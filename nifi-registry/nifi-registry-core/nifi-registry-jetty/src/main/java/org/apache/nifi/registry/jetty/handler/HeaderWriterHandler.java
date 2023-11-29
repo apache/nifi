@@ -17,15 +17,15 @@
 package org.apache.nifi.registry.jetty.handler;
 
 import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.ScopedHandler;
+import org.eclipse.jetty.server.Handler;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import org.eclipse.jetty.server.Response;
+import org.eclipse.jetty.util.Callback;
 
 /**
  * HTTP Response Header Writer Handler applies standard headers to HTTP responses
  */
-public class HeaderWriterHandler extends ScopedHandler {
+public class HeaderWriterHandler extends Handler.Wrapper {
     protected static final String CONTENT_SECURITY_POLICY_HEADER = "Content-Security-Policy";
     protected static final String CONTENT_SECURITY_POLICY = "frame-ancestors 'self'";
 
@@ -41,19 +41,22 @@ public class HeaderWriterHandler extends ScopedHandler {
     /**
      * Handle requests and set HTTP response headers
      *
-     * @param target Target URI
      * @param request Jetty Request
-     * @param httpServletRequest HTTP Servlet Request
-     * @param httpServletResponse HTTP Servlet Response
+     * @param response Jetty Response
+     * @param callback Jetty Callback
+     * @return Handled status
+     * @throws Exception Thrown on failures from subsequent handlers
      */
     @Override
-    public void doHandle(final String target, final Request request, final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse) {
-        httpServletResponse.setHeader(CONTENT_SECURITY_POLICY_HEADER, CONTENT_SECURITY_POLICY);
-        httpServletResponse.setHeader(FRAME_OPTIONS_HEADER, FRAME_OPTIONS);
-        httpServletResponse.setHeader(XSS_PROTECTION_HEADER, XSS_PROTECTION);
+    public boolean handle(final Request request, final Response response, final Callback callback) throws Exception {
+        response.getHeaders().add(CONTENT_SECURITY_POLICY_HEADER, CONTENT_SECURITY_POLICY);
+        response.getHeaders().add(FRAME_OPTIONS_HEADER, FRAME_OPTIONS);
+        response.getHeaders().add(XSS_PROTECTION_HEADER, XSS_PROTECTION);
 
-        if (httpServletRequest.isSecure()) {
-            httpServletResponse.setHeader(STRICT_TRANSPORT_SECURITY_HEADER, STRICT_TRANSPORT_SECURITY);
+        if (request.isSecure()) {
+            response.getHeaders().add(STRICT_TRANSPORT_SECURITY_HEADER, STRICT_TRANSPORT_SECURITY);
         }
+
+        return super.handle(request, response, callback);
     }
 }

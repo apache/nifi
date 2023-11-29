@@ -16,16 +16,13 @@
  */
 package org.apache.nifi.registry.db;
 
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestExecutionListeners;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 import org.springframework.test.context.transaction.TransactionalTestExecutionListener;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
-@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = DatabaseTestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @TestExecutionListeners({DependencyInjectionTestExecutionListener.class, TransactionalTestExecutionListener.class})
 public abstract class DatabaseBaseTest {
