@@ -15,16 +15,13 @@
  *  limitations under the License.
  */
 
-import { createSelector } from "@ngrx/store";
-import { countersFeatureKey, CountersState, selectCounterState } from "../index";
-import { CounterListingState } from "./index";
+import { createSelector } from '@ngrx/store';
+import { countersFeatureKey, CountersState, selectCounterState } from '../index';
+import { CounterListingState } from './index';
 
 export const selectCounterListingState = createSelector(
     selectCounterState,
     (state: CountersState) => state[countersFeatureKey]
 );
 
-export const selectCounters = createSelector(
-    selectCounterListingState,
-    (state: CounterListingState) => state.counters
-);
+export const selectCounters = createSelector(selectCounterListingState, (state: CounterListingState) => state.counters);

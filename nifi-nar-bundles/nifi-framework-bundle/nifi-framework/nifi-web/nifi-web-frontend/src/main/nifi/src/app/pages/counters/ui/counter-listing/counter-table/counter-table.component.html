@@ -16,30 +16,21 @@
   -->
 <div class="counter-table h-full flex flex-col">
     <div class="counter-table-filter-container">
-        <div class="value">
-            Displaying {{filteredCount}} of {{totalCount}}
-        </div>
+        <div class="value">Displaying {{ filteredCount }} of {{ totalCount }}</div>
         <form [formGroup]="filterForm">
             <div class="flex pt-2">
                 <div class="mr-2">
                     <mat-form-field>
                         <mat-label>Filter</mat-label>
-                        <input matInput
-                               type="text"
-                               class="small"
-                               formControlName="filterTerm" />
+                        <input matInput type="text" class="small" formControlName="filterTerm" />
                     </mat-form-field>
                 </div>
                 <div>
                     <mat-form-field>
                         <mat-label>Filter By</mat-label>
                         <mat-select formControlName="filterColumn">
-                            <mat-option value="name">
-                                name
-                            </mat-option>
-                            <mat-option value="context">
-                                context
-                            </mat-option>
+                            <mat-option value="name"> name </mat-option>
+                            <mat-option value="context"> context </mat-option>
                         </mat-select>
                     </mat-form-field>
                 </div>
@@ -48,7 +39,13 @@
     </div>
     <div class="flex-1 relative">
         <div class="listing-table overflow-y-auto border absolute inset-0">
-            <table mat-table [dataSource]="dataSource" matSort matSortDisableClear [matSortActive]="initialSortColumn" [matSortDirection]="initialSortDirection">
+            <table
+                mat-table
+                [dataSource]="dataSource"
+                matSort
+                matSortDisableClear
+                [matSortActive]="initialSortColumn"
+                [matSortDirection]="initialSortDirection">
                 <!-- Context column -->
                 <ng-container matColumnDef="context">
                     <th mat-header-cell *matHeaderCellDef mat-sort-header>Context</th>
@@ -82,19 +79,14 @@
                                     class="pointer fa fa-undo"
                                     title="Reset Counter"
                                     *ngIf="canModifyCounters"
-                                    (click)="resetClicked(item, $event)"
-                                ></div>
+                                    (click)="resetClicked(item, $event)"></div>
                             </div>
                         </ng-container>
                     </td>
                 </ng-container>
 
                 <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-                <tr
-                    mat-row
-                    *matRowDef="let row; let even = even; columns: displayedColumns"
-                    [class.even]="even"></tr>
-
+                <tr mat-row *matRowDef="let row; let even = even; columns: displayedColumns" [class.even]="even"></tr>
             </table>
         </div>
     </div>

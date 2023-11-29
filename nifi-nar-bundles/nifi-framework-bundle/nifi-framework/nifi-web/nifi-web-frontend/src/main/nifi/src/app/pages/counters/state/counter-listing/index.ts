@@ -24,7 +24,7 @@ export interface CounterEntity {
 }
 
 export interface CounterListingState {
-    counters: CounterEntity[],
+    counters: CounterEntity[];
     saving: boolean;
     loadedTimestamp: string;
     error: string | null;
@@ -33,11 +33,11 @@ export interface CounterListingState {
 
 export interface LoadCounterListingResponse {
     counters: CounterEntity[];
-    loadedTimestamp: string
+    loadedTimestamp: string;
 }
 
 export interface ResetCounterRequest {
-    counter: CounterEntity
+    counter: CounterEntity;
 }
 
 export interface ResetCounterSuccess {

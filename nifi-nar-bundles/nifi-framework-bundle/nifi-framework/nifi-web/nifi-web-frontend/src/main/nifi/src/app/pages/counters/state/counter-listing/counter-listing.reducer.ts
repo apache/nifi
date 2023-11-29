@@ -15,13 +15,11 @@
  *  limitations under the License.
  */
 
-import { CounterListingState } from "./index";
-import { createReducer, on } from "@ngrx/store";
-import { loadCounters, loadCountersSuccess, resetCounterSuccess } from "./counter-listing.actions";
-import {
-    parameterContextListingApiError
-} from "../../../parameter-contexts/state/parameter-context-listing/parameter-context-listing.actions";
-import { produce } from "immer";
+import { CounterListingState } from './index';
+import { createReducer, on } from '@ngrx/store';
+import { loadCounters, loadCountersSuccess, resetCounterSuccess } from './counter-listing.actions';
+import { parameterContextListingApiError } from '../../../parameter-contexts/state/parameter-context-listing/parameter-context-listing.actions';
+import { produce } from 'immer';
 
 export const initialState: CounterListingState = {
     counters: [],
@@ -29,7 +27,7 @@ export const initialState: CounterListingState = {
     loadedTimestamp: '',
     error: null,
     status: 'pending'
-}
+};
 
 export const counterListingReducer = createReducer(
     initialState,
@@ -52,12 +50,11 @@ export const counterListingReducer = createReducer(
     })),
     on(resetCounterSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
-            const index: number = draftState.counters
-                .findIndex((c: any) => c.id === response.counter.id);
+            const index: number = draftState.counters.findIndex((c: any) => c.id === response.counter.id);
             if (index > -1) {
                 draftState.counters[index] = {
                     ...response.counter
-                }
+                };
             }
         });
     })

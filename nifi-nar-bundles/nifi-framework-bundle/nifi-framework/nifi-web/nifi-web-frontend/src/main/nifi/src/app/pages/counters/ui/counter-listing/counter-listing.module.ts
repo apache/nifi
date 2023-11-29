@@ -15,16 +15,16 @@
  *  limitations under the License.
  */
 
-import { NgModule } from "@angular/core";
-import { CounterListing } from "./counter-listing.component";
-import { CommonModule } from "@angular/common";
-import { NgxSkeletonLoaderModule } from "ngx-skeleton-loader";
+import { NgModule } from '@angular/core';
+import { CounterListing } from './counter-listing.component';
+import { CommonModule } from '@angular/common';
+import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { CounterTable } from './counter-table/counter-table.component';
-import { MatTableModule } from "@angular/material/table";
-import { MatSortModule } from "@angular/material/sort";
-import { MatInputModule } from "@angular/material/input";
-import { ReactiveFormsModule } from "@angular/forms";
-import { MatSelectModule } from "@angular/material/select";
+import { MatTableModule } from '@angular/material/table';
+import { MatSortModule } from '@angular/material/sort';
+import { MatInputModule } from '@angular/material/input';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatSelectModule } from '@angular/material/select';
 
 @NgModule({
     declarations: [CounterListing, CounterTable],

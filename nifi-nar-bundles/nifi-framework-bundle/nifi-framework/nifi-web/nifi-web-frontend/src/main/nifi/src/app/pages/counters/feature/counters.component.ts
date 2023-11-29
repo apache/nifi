@@ -15,10 +15,10 @@
  *  limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from "@angular/core";
-import { Store } from "@ngrx/store";
-import { NiFiState } from "../../../state";
-import { startUserPolling, stopUserPolling } from "../../../state/user/user.actions";
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { NiFiState } from '../../../state';
+import { startUserPolling, stopUserPolling } from '../../../state/user/user.actions';
 
 @Component({
     selector: 'counters',

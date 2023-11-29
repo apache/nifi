@@ -15,10 +15,10 @@
  *  limitations under the License.
  */
 
-import { createAction, props } from "@ngrx/store";
-import { LoadCounterListingResponse, ResetCounterRequest, ResetCounterSuccess } from "./index";
+import { createAction, props } from '@ngrx/store';
+import { LoadCounterListingResponse, ResetCounterRequest, ResetCounterSuccess } from './index';
 
-const COUNTER_PREFIX: string = '[Counter Listing]'
+const COUNTER_PREFIX: string = '[Counter Listing]';
 
 export const loadCounters = createAction(`${COUNTER_PREFIX} Load Counter Listing`);
 
@@ -35,14 +35,11 @@ export const counterListingApiError = createAction(
 export const promptCounterReset = createAction(
     `${COUNTER_PREFIX} Prompt Counter Reset`,
     props<{ request: ResetCounterRequest }>()
-)
+);
 
-export const resetCounter = createAction(
-    `${COUNTER_PREFIX} Reset Counter`,
-    props<{ request: ResetCounterRequest }>()
-)
+export const resetCounter = createAction(`${COUNTER_PREFIX} Reset Counter`, props<{ request: ResetCounterRequest }>());
 
 export const resetCounterSuccess = createAction(
     `${COUNTER_PREFIX} Reset Counter Success`,
     props<{ response: ResetCounterSuccess }>()
-)
+);

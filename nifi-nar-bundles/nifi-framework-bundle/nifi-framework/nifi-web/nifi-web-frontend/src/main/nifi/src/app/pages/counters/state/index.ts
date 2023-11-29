@@ -15,9 +15,9 @@
  *  limitations under the License.
  */
 
-import { CounterListingState } from "./counter-listing";
-import { Action, combineReducers, createFeatureSelector } from "@ngrx/store";
-import { counterListingReducer } from "./counter-listing/counter-listing.reducer";
+import { CounterListingState } from './counter-listing';
+import { Action, combineReducers, createFeatureSelector } from '@ngrx/store';
+import { counterListingReducer } from './counter-listing/counter-listing.reducer';
 
 export const countersFeatureKey = 'counters';
 

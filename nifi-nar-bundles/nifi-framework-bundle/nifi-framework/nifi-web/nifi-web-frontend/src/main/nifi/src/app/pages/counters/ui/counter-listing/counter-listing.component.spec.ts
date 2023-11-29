@@ -15,28 +15,26 @@
  *  limitations under the License.
  */
 
-import { CounterListing } from "./counter-listing.component";
-import { ComponentFixture, TestBed } from "@angular/core/testing";
-import { provideMockStore } from "@ngrx/store/testing";
-import { initialState } from "../../state/counter-listing/counter-listing.reducer";
+import { CounterListing } from './counter-listing.component';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../state/counter-listing/counter-listing.reducer';
 
-describe("CounterListing", () => {
+describe('CounterListing', () => {
     let component: CounterListing;
     let fixture: ComponentFixture<CounterListing>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [CounterListing],
-            providers: [
-                provideMockStore({ initialState })
-            ]
+            providers: [provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(CounterListing);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });
 
-    it("should create", () => {
+    it('should create', () => {
         expect(component).toBeTruthy();
     });
 });

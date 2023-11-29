@@ -15,15 +15,15 @@
  *  limitations under the License.
  */
 
-import { Counters } from "./counters.component";
-import { ComponentFixture, TestBed } from "@angular/core/testing";
-import { provideMockStore } from "@ngrx/store/testing";
-import { initialState } from "../state/counter-listing/counter-listing.reducer";
-import { CounterListing } from "../ui/counter-listing/counter-listing.component";
-import { RouterModule } from "@angular/router";
-import { RouterTestingModule } from "@angular/router/testing";
+import { Counters } from './counters.component';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../state/counter-listing/counter-listing.reducer';
+import { CounterListing } from '../ui/counter-listing/counter-listing.component';
+import { RouterModule } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
 
-describe("Counters", () => {
+describe('Counters', () => {
     let component: Counters;
     let fixture: ComponentFixture<Counters>;
 
@@ -31,16 +31,14 @@ describe("Counters", () => {
         TestBed.configureTestingModule({
             declarations: [Counters, CounterListing],
             imports: [RouterModule, RouterTestingModule],
-            providers: [
-                provideMockStore({ initialState })
-            ]
+            providers: [provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(Counters);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });
 
-    it("should create", () => {
+    it('should create', () => {
         expect(component).toBeTruthy();
     });
 });

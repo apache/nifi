@@ -15,13 +15,13 @@
  *  limitations under the License.
  */
 
-import { Component, OnInit } from "@angular/core";
-import { CounterEntity, CounterListingState } from "../../state/counter-listing";
-import { Store } from "@ngrx/store";
-import { loadCounters, promptCounterReset } from "../../state/counter-listing/counter-listing.actions";
-import { selectCounterListingState } from "../../state/counter-listing/counter-listing.selectors";
-import { initialState } from "../../state/counter-listing/counter-listing.reducer";
-import { selectUser } from "../../../../state/user/user.selectors";
+import { Component, OnInit } from '@angular/core';
+import { CounterEntity, CounterListingState } from '../../state/counter-listing';
+import { Store } from '@ngrx/store';
+import { loadCounters, promptCounterReset } from '../../state/counter-listing/counter-listing.actions';
+import { selectCounterListingState } from '../../state/counter-listing/counter-listing.selectors';
+import { initialState } from '../../state/counter-listing/counter-listing.reducer';
+import { selectUser } from '../../../../state/user/user.selectors';
 
 @Component({
     selector: 'counter-listing',
@@ -32,9 +32,7 @@ export class CounterListing implements OnInit {
     counterListingState$ = this.store.select(selectCounterListingState);
     currentUser$ = this.store.select(selectUser);
 
-    constructor(
-        private store: Store<CounterListingState>
-    ) {}
+    constructor(private store: Store<CounterListingState>) {}
 
     ngOnInit(): void {
         this.store.dispatch(loadCounters());
@@ -49,10 +47,12 @@ export class CounterListing implements OnInit {
     }
 
     resetCounter(entity: CounterEntity): void {
-        this.store.dispatch(promptCounterReset({
-            request: {
-                counter: entity
-            }
-        }))
+        this.store.dispatch(
+            promptCounterReset({
+                request: {
+                    counter: entity
+                }
+            })
+        );
     }
 }

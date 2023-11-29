@@ -15,25 +15,25 @@
  *  limitations under the License.
  */
 
-import { Injectable } from "@angular/core";
-import { Actions, createEffect, ofType } from "@ngrx/effects";
-import { NiFiState } from "../../../../state";
-import { Store } from "@ngrx/store";
-import { Router } from "@angular/router";
+import { Injectable } from '@angular/core';
+import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { NiFiState } from '../../../../state';
+import { Store } from '@ngrx/store';
+import { Router } from '@angular/router';
 import * as CounterListingActions from './counter-listing.actions';
-import { catchError, from, map, of, switchMap, take, tap } from "rxjs";
-import { CountersService } from "../../service/counters.service";
-import { MatDialog } from "@angular/material/dialog";
-import { YesNoDialog } from "../../../../ui/common/yes-no-dialog/yes-no-dialog.component";
+import { catchError, from, map, of, switchMap, take, tap } from 'rxjs';
+import { CountersService } from '../../service/counters.service';
+import { MatDialog } from '@angular/material/dialog';
+import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 
 @Injectable()
 export class CounterListingEffects {
     constructor(
-       private actions$: Actions,
-       private store: Store<NiFiState>,
-       private router: Router,
-       private countersService: CountersService,
-       private dialog: MatDialog
+        private actions$: Actions,
+        private store: Store<NiFiState>,
+        private router: Router,
+        private countersService: CountersService,
+        private dialog: MatDialog
     ) {}
 
     loadCounters$ = createEffect(() =>
@@ -50,9 +50,11 @@ export class CounterListingEffects {
                         })
                     ),
                     catchError((error) =>
-                        of(CounterListingActions.counterListingApiError({
-                            error: error.error
-                        }))
+                        of(
+                            CounterListingActions.counterListingApiError({
+                                error: error.error
+                            })
+                        )
                     )
                 )
             )
@@ -73,9 +75,7 @@ export class CounterListingEffects {
                         panelClass: 'small-dialog'
                     });
 
-                    dialogReference.componentInstance.yes.pipe(
-                        take(1)
-                    ).subscribe(() => {
+                    dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
                         this.store.dispatch(
                             CounterListingActions.resetCounter({
                                 request
@@ -87,23 +87,20 @@ export class CounterListingEffects {
         { dispatch: false }
     );
 
-    resetCounter$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(CounterListingActions.resetCounter),
-                map((action) => action.request),
-                switchMap((request) =>
-                    from(this.countersService.resetCounter(request)).pipe(
-                        map((response) =>
-                            CounterListingActions.resetCounterSuccess({
-                                response
-                            })
-                        ),
-                        catchError((error) =>
-                            of(CounterListingActions.counterListingApiError({ error: error.error }))
-                        )
-                    )
+    resetCounter$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(CounterListingActions.resetCounter),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.countersService.resetCounter(request)).pipe(
+                    map((response) =>
+                        CounterListingActions.resetCounterSuccess({
+                            response
+                        })
+                    ),
+                    catchError((error) => of(CounterListingActions.counterListingApiError({ error: error.error })))
                 )
             )
-        );
+        )
+    );
 }

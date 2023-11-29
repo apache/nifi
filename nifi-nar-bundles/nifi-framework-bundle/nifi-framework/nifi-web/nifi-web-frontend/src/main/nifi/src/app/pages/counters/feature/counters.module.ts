@@ -15,18 +15,16 @@
  *  limitations under the License.
  */
 
-import { NgModule } from "@angular/core";
-import { CommonModule } from "@angular/common";
-import { Counters } from "./counters.component";
-import { CountersRoutingModule } from "./counters-routing.module";
-import { StoreModule } from "@ngrx/store";
-import { countersFeatureKey, reducers } from "../state";
-import { EffectsModule } from "@ngrx/effects";
-import { CounterListingEffects } from "../state/counter-listing/counter-listing.effects";
-import { CounterListingModule } from "../ui/counter-listing/counter-listing.module";
-import {
-    ParameterContextListingModule
-} from "../../parameter-contexts/ui/parameter-context-listing/parameter-context-listing.module";
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Counters } from './counters.component';
+import { CountersRoutingModule } from './counters-routing.module';
+import { StoreModule } from '@ngrx/store';
+import { countersFeatureKey, reducers } from '../state';
+import { EffectsModule } from '@ngrx/effects';
+import { CounterListingEffects } from '../state/counter-listing/counter-listing.effects';
+import { CounterListingModule } from '../ui/counter-listing/counter-listing.module';
+import { ParameterContextListingModule } from '../../parameter-contexts/ui/parameter-context-listing/parameter-context-listing.module';
 
 @NgModule({
     declarations: [Counters],

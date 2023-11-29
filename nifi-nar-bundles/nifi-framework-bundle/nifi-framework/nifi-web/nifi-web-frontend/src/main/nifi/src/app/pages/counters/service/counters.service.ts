@@ -15,11 +15,11 @@
  *  limitations under the License.
  */
 
-import { Injectable } from "@angular/core";
-import { HttpClient } from "@angular/common/http";
-import { Client } from "../../../service/client.service";
-import { Observable } from "rxjs";
-import { CounterEntity, ResetCounterRequest } from "../state/counter-listing";
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Client } from '../../../service/client.service';
+import { Observable } from 'rxjs';
+import { CounterEntity, ResetCounterRequest } from '../state/counter-listing';
 
 @Injectable({ providedIn: 'root' })
 export class CountersService {
@@ -31,7 +31,7 @@ export class CountersService {
     ) {}
 
     getCounters(): Observable<any> {
-        return this.httpClient.get(`${CountersService.API}/counters`)
+        return this.httpClient.get(`${CountersService.API}/counters`);
     }
 
     resetCounter(counterResetRequest: ResetCounterRequest): Observable<any> {
