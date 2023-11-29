@@ -92,6 +92,7 @@ public class TestConsumeSlack {
         assertEquals(message, outputMessages[0]);
 
         outFlowFile1.assertAttributeEquals("slack.channel.id", "cid1");
+        outFlowFile1.assertAttributeEquals("slack.channel.name", "cname1");
     }
 
 
@@ -115,6 +116,7 @@ public class TestConsumeSlack {
         assertArrayEquals(expectedMessages, outputMessages);
 
         outFlowFile1.assertAttributeEquals("slack.channel.id", "cid1");
+        outFlowFile1.assertAttributeEquals("slack.channel.name", "cname1");
     }
 
 
@@ -562,7 +564,9 @@ public class TestConsumeSlack {
 
         @Override
         public Map<String, String> fetchChannelIds() {
-            return Collections.emptyMap();
+            final Map<String, String> nameIdMapping = new HashMap<String, String>();
+            nameIdMapping.put("cname1", "cid1");
+            return nameIdMapping;
         }
 
         private void checkRateLimit() {

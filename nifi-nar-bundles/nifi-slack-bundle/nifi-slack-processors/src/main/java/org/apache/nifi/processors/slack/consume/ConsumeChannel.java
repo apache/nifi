@@ -61,6 +61,7 @@ public class ConsumeChannel {
 
     private final ConsumeSlackClient client;
     private final String channelId;
+    private final String channelName;
     private final int batchSize;
     private final long replyMonitorFrequencyMillis;
     private final long replyMonitorWindowMillis;
@@ -80,6 +81,7 @@ public class ConsumeChannel {
     private ConsumeChannel(final Builder builder) {
         this.client = builder.client;
         this.channelId = builder.channelId;
+        this.channelName = builder.channelName;
         this.batchSize = builder.batchSize;
         this.replyMonitorFrequencyMillis = builder.replyMonitorFrequencyMillis;
         this.replyMonitorWindowMillis = builder.replyMonitorWindowMillis;
@@ -545,6 +547,7 @@ public class ConsumeChannel {
         // Determine attributes for outbound FlowFile
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("slack.channel.id", channelId);
+        attributes.put("slack.channel.name", channelName);
         attributes.put("slack.message.count", Integer.toString(messageCount));
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
 
@@ -698,6 +701,7 @@ public class ConsumeChannel {
     public static class Builder {
         private ConsumeSlackClient client;
         private String channelId;
+        private String channelName;
         private boolean includeMessageBlocks;
         private boolean resolveUsernames;
         private int batchSize = 50;
@@ -710,6 +714,11 @@ public class ConsumeChannel {
 
         public Builder channelId(final String channelId) {
             this.channelId = channelId;
+            return this;
+        }
+
+        public Builder channelName(final String channelName) {
+            this.channelName = channelName;
             return this;
         }
 
@@ -827,6 +836,7 @@ public class ConsumeChannel {
             return continuePolling;
         }
 
+        @Override
         public boolean isMore() {
             return isMore;
         }
