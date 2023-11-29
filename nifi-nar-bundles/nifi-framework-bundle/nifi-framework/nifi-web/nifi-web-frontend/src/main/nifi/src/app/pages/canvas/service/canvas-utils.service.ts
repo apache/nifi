@@ -307,14 +307,15 @@ export class CanvasUtils {
      * @param selection
      */
     public isConfigurable(selection: any): boolean {
-        // ensure the correct number of components are selected
-        if (selection.size() !== 1) {
-            return selection.empty();
+        if (selection.empty()) {
+            return this.canvasPermissions.canRead && this.canvasPermissions.canWrite;
         }
 
-        if (this.isProcessGroup(selection)) {
-            return true;
+        // disable configuration if there are multiple components selected
+        if (selection.size() > 1) {
+            return false;
         }
+
         if (!this.canRead(selection) || !this.canModify(selection)) {
             return false;
         }

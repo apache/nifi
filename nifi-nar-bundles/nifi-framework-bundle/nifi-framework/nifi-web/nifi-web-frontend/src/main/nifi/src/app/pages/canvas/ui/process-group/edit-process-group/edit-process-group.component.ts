@@ -104,7 +104,7 @@ export class EditProcessGroup {
             text: 'Stateless',
             value: 'STATELESS',
             description:
-                'Run the dataflow using the Stateless Execution Engine. See the User Guide for additional detials.'
+                'Run the dataflow using the Stateless Execution Engine. See the User Guide for additional details.'
         }
     ];
 
