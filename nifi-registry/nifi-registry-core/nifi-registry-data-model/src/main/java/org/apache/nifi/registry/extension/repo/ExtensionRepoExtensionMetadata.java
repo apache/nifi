@@ -19,7 +19,7 @@ package org.apache.nifi.registry.extension.repo;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.Comparator;
-import javax.ws.rs.core.Link;
+import jakarta.ws.rs.core.Link;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.extension.ExtensionMetadata;

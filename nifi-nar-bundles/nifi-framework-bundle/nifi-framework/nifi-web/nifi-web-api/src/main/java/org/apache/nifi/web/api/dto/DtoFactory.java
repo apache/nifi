@@ -1532,6 +1532,9 @@ public final class DtoFactory {
 
        final ParameterContext containingParameterContext = (parameter.getParameterContextId() == null)
                ? parameterContext : parameterContextLookup.getParameterContext(parameter.getParameterContextId());
+
+       dto.setInherited(!containingParameterContext.getIdentifier().equals(parameterContext.getIdentifier()));
+
        ParameterContextReferenceDTO refDto = createParameterContextReference(containingParameterContext);
        dto.setParameterContext(entityFactory.createParameterReferenceEntity(refDto, createPermissionsDto(containingParameterContext)));
 

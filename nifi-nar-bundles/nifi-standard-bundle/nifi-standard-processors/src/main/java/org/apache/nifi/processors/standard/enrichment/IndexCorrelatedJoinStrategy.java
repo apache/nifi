@@ -28,6 +28,7 @@ import org.apache.nifi.serialization.record.RecordSet;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 
 public abstract class IndexCorrelatedJoinStrategy implements RecordJoinStrategy {
     private final ComponentLog logger;
@@ -41,7 +42,9 @@ public abstract class IndexCorrelatedJoinStrategy implements RecordJoinStrategy 
     }
 
     @Override
-    public RecordJoinResult join(final RecordJoinInput originalInput, final RecordJoinInput enrichmentInput, final ProcessSession session, final RecordSchema writerSchema) throws Exception {
+    public RecordJoinResult join(final RecordJoinInput originalInput, final RecordJoinInput enrichmentInput, final Map<String, String> combinedAttributes,
+                final ProcessSession session,final RecordSchema writerSchema) throws Exception {
+
         final FlowFile originalFlowFile = originalInput.getFlowFile();
         final FlowFile enrichmentFlowFile = enrichmentInput.getFlowFile();
 

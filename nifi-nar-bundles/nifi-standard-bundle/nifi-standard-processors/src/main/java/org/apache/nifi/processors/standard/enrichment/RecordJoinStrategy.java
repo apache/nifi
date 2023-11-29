@@ -20,6 +20,8 @@ package org.apache.nifi.processors.standard.enrichment;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.util.Map;
+
 public interface RecordJoinStrategy {
-    RecordJoinResult join(RecordJoinInput originalInput, RecordJoinInput enrichmentInput, ProcessSession session, RecordSchema outputSchema) throws Exception;
+    RecordJoinResult join(RecordJoinInput originalInput, RecordJoinInput enrichmentInput, Map<String, String> combinedAttributes, ProcessSession session, RecordSchema outputSchema) throws Exception;
 }

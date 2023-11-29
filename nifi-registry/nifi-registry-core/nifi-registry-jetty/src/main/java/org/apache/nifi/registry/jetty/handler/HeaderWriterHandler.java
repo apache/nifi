@@ -19,8 +19,8 @@ package org.apache.nifi.registry.jetty.handler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.ScopedHandler;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * HTTP Response Header Writer Handler applies standard headers to HTTP responses

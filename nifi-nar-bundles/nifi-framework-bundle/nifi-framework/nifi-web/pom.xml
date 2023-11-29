@@ -34,6 +34,23 @@
         <module>nifi-web-content-access</module>
         <module>nifi-ui-extension</module>
     </modules>
+
+    <!-- Only include the new UI if the profile is active -->
+    <profiles>
+        <profile>
+            <id>include-new-ui</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>include-new-ui</name>
+                </property>
+            </activation>
+            <modules>
+                <module>nifi-web-frontend</module>
+            </modules>
+        </profile>
+    </profiles>
+
     <dependencyManagement>
         <dependencies>
             <dependency>

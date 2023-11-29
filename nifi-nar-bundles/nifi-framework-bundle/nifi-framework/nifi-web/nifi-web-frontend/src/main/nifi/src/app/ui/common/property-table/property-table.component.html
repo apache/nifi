@@ -1,0 +1,160 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="property-table flex flex-col gap-y-3">
+    <div class="flex justify-between items-center">
+        <div class="font-bold">Required field</div>
+        <div>
+            <!-- TODO Property Verification -->
+            <button class="nifi-button" type="button" (click)="newPropertyClicked()">
+                <i class="fa fa-plus"></i>
+            </button>
+        </div>
+    </div>
+    <div class="h-96 overflow-y-auto overflow-x-hidden border">
+        <table mat-table #propertyTable [dataSource]="dataSource">
+            <!-- Property Column -->
+            <ng-container matColumnDef="property">
+                <th mat-header-cell *matHeaderCellDef>Property</th>
+                <td mat-cell *matCellDef="let item" [class.font-bold]="item.descriptor.required">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            {{ item.descriptor.displayName }}
+                        </div>
+                        <div>
+                            <div
+                                class="fa fa-question-circle"
+                                *ngIf="hasInfo(item.descriptor)"
+                                nifiTooltip
+                                [tooltipComponentType]="PropertyTip"
+                                [tooltipInputData]="getPropertyTipData(item)"
+                                [delayClose]="false"></div>
+                        </div>
+                    </div>
+                </td>
+            </ng-container>
+
+            <!-- Value Column -->
+            <ng-container matColumnDef="value">
+                <th mat-header-cell *matHeaderCellDef>Value</th>
+                <td mat-cell *matCellDef="let item">
+                    <div
+                        [id]="formatId(item)"
+                        class="pointer"
+                        cdkOverlayOrigin
+                        #trigger="cdkOverlayOrigin"
+                        (click)="openEditor(trigger, item)">
+                        <ng-container *ngIf="isNull(item.value); else nonNull">
+                            <div class="unset">No value set</div>
+                        </ng-container>
+                        <ng-template #nonNull>
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    isSensitiveProperty(item.descriptor) ? sensitive : nonSensitive;
+                                    context: { $implicit: resolvePropertyValue(item) }
+                                "></ng-container>
+                            <ng-template #sensitive>
+                                <div class="sensitive">Sensitive value set</div>
+                            </ng-template>
+                            <ng-template #nonSensitive let-resolvedValue>
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        isEmptyString(resolvedValue) ? blank : nonBlank;
+                                        context: { $implicit: resolvedValue }
+                                    "></ng-container>
+                            </ng-template>
+                            <ng-template #blank>
+                                <div class="empty">Empty string set</div>
+                            </ng-template>
+                            <ng-template #nonBlank let-resolvedValue>
+                                <div class="flex justify-between items-center">
+                                    <div class="whitespace-nowrap overflow-hidden text-ellipsis">
+                                        {{ resolvedValue }}
+                                    </div>
+                                    <div
+                                        class="fa fa-info"
+                                        *ngIf="hasExtraWhitespace(resolvedValue)"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        [tooltipInputData]="getExtraWhitespaceTipData()"></div>
+                                </div>
+                            </ng-template>
+                        </ng-template>
+                    </div>
+                </td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef></th>
+                <td mat-cell *matCellDef="let item">
+                    <div class="flex items-center gap-x-3">
+                        <!-- TODO - convert to parameter, go to parameter -->
+                        <div
+                            class="pointer fa fa-plus"
+                            *ngIf="item.descriptor.identifiesControllerService"
+                            (click)="createNewControllerService(item)"
+                            title="Create new service"></div>
+                        <!-- TODO - need to prevent navigation if outstanding changes -->
+                        <div
+                            class="pointer fa fa-long-arrow-right"
+                            *ngIf="item.serviceLink"
+                            [routerLink]="item.serviceLink"
+                            mat-dialog-close
+                            title="Go to"></div>
+                        <div
+                            class="pointer fa fa-trash"
+                            *ngIf="item.type == 'userDefined'"
+                            (click)="deleteProperty(item)"
+                            title="Delete"></div>
+                    </div>
+                </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+            <tr
+                mat-row
+                *matRowDef="let row; let even = even; columns: displayedColumns"
+                (click)="selectProperty(row)"
+                [class.selected]="isSelected(row)"
+                [class.even]="even"></tr>
+        </table>
+        <ng-template
+            cdkConnectedOverlay
+            [cdkConnectedOverlayOrigin]="editorTrigger"
+            [cdkConnectedOverlayPositions]="editorPositions"
+            [cdkConnectedOverlayHasBackdrop]="true"
+            [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
+            [cdkConnectedOverlayOpen]="editorOpen"
+            (detach)="closeEditor()"
+            (backdropClick)="closeEditor()">
+            <combo-editor
+                *ngIf="hasAllowableValues(editorItem); else nfEditor"
+                [item]="editorItem"
+                [getParameters]="getParameters"
+                (ok)="savePropertyValue(editorItem, $event)"
+                (cancel)="closeEditor()"></combo-editor>
+            <ng-template #nfEditor>
+                <nf-editor
+                    [item]="editorItem"
+                    [getParameters]="getParameters"
+                    (ok)="savePropertyValue(editorItem, $event)"
+                    (cancel)="closeEditor()"></nf-editor>
+            </ng-template>
+        </ng-template>
+    </div>
+</div>

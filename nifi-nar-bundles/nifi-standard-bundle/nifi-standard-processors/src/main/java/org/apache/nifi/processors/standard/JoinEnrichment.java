@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -372,7 +373,7 @@ public class JoinEnrichment extends BinFiles {
         final WriteResult writeResult;
         final String mimeType;
         FlowFile output;
-        try (final RecordJoinResult result = joinStrategy.join(originalInput, enrichmentInput, session, writerSchema)) {
+        try (final RecordJoinResult result = joinStrategy.join(originalInput, enrichmentInput, combinedAttributes, session, writerSchema)) {
             // Create output FlowFile
             output = session.create(flowFiles);
 
@@ -426,10 +427,10 @@ public class JoinEnrichment extends BinFiles {
     private RecordJoinStrategy getJoinStrategy(final ProcessContext context, final Map<String, String> attributes) {
         final String strategyName = context.getProperty(JOIN_STRATEGY).getValue();
         if (strategyName.equalsIgnoreCase(JOIN_SQL.getValue())) {
-            final String sql = context.getProperty(SQL).getValue();
+            final PropertyValue sqlPropertyValue = context.getProperty(SQL);
             final int defaultPrecision = context.getProperty(DEFAULT_PRECISION).evaluateAttributeExpressions(attributes).asInteger();
             final int defaultScale = context.getProperty(DEFAULT_SCALE).evaluateAttributeExpressions(attributes).asInteger();
-            return new SqlJoinStrategy(sqlJoinCache, sql, getLogger(), defaultPrecision, defaultScale);
+            return new SqlJoinStrategy(sqlJoinCache, sqlPropertyValue, getLogger(), defaultPrecision, defaultScale);
         } else if (strategyName.equalsIgnoreCase(JOIN_WRAPPER.getValue())) {
             return new WrapperJoinStrategy(getLogger());
         } else if (strategyName.equalsIgnoreCase(JOIN_INSERT_ENRICHMENT_FIELDS.getValue())) {

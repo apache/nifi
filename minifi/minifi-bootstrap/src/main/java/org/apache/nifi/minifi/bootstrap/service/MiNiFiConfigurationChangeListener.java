@@ -35,11 +35,13 @@ import java.nio.file.Path;
 import java.util.Properties;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
 import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
 import org.apache.nifi.minifi.commons.service.FlowEnrichService;
+import org.apache.nifi.minifi.commons.service.FlowSerDeService;
 import org.slf4j.Logger;
 
 public class MiNiFiConfigurationChangeListener implements ConfigurationChangeListener {
@@ -50,12 +52,15 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
     private final Logger logger;
     private final BootstrapFileProvider bootstrapFileProvider;
     private final FlowEnrichService flowEnrichService;
+    private final FlowSerDeService flowSerDeService;
 
-    public MiNiFiConfigurationChangeListener(RunMiNiFi runner, Logger logger, BootstrapFileProvider bootstrapFileProvider, FlowEnrichService flowEnrichService) {
+    public MiNiFiConfigurationChangeListener(RunMiNiFi runner, Logger logger, BootstrapFileProvider bootstrapFileProvider,
+                                             FlowEnrichService flowEnrichService, FlowSerDeService flowSerDeService) {
         this.runner = runner;
         this.logger = logger;
         this.bootstrapFileProvider = bootstrapFileProvider;
         this.flowEnrichService = flowEnrichService;
+        this.flowSerDeService = flowSerDeService;
     }
 
     @Override
@@ -83,8 +88,10 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
             backup(currentRawFlowConfigFile, backupRawFlowConfigFile);
 
             byte[] rawFlow = toByteArray(flowConfigInputStream);
-            byte[] enrichedFlow = flowEnrichService.enrichFlow(rawFlow);
-            persist(enrichedFlow, currentFlowConfigFile, true);
+            VersionedDataflow rawDataFlow = flowSerDeService.deserialize(rawFlow);
+            VersionedDataflow enrichedFlow = flowEnrichService.enrichFlow(rawDataFlow);
+            byte[] serializedEnrichedFlow = flowSerDeService.serialize(enrichedFlow);
+            persist(serializedEnrichedFlow, currentFlowConfigFile, true);
             restartInstance();
             persist(rawFlow, currentRawFlowConfigFile, false);
             setActiveFlowReference(wrap(rawFlow));

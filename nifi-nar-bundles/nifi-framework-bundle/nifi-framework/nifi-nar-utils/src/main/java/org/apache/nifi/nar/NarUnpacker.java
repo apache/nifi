@@ -61,6 +61,8 @@ public final class NarUnpacker {
 
     private static final String BUNDLED_DEPENDENCIES_PREFIX = "META-INF/bundled-dependencies";
 
+    private static final String JAR_DOCUMENTATION_ROOT_PATH = "docs";
+
     private static final Logger logger = LoggerFactory.getLogger(NarUnpacker.class);
     private static final String HASH_FILENAME = "nar-digest";
     private static final FileFilter NAR_FILTER = pathname -> {
@@ -554,22 +556,23 @@ public final class NarUnpacker {
         // look for all documentation related to each component
         try (final JarFile jarFile = new JarFile(jar)) {
             for (final String componentName : jarExtensionMapping.getAllExtensionNames().keySet()) {
-                final String entryName = "docs/" + componentName;
+                // Build documentation path based on component class using Paths.get() for platform compatibility
+                final String componentDocumentationDirectory = Paths.get(JAR_DOCUMENTATION_ROOT_PATH, componentName).toString();
 
                 // go through each entry in this jar
                 for (final Enumeration<JarEntry> jarEnumeration = jarFile.entries(); jarEnumeration.hasMoreElements();) {
                     final JarEntry jarEntry = jarEnumeration.nextElement();
                     final File jarEntryFile = getJarEntryFile(docsDirectory, jarEntry.getName());
-                    final String jarEntryName = jarEntryFile.getName();
+                    final String jarEntryFileAbsolutePath = jarEntryFile.getAbsolutePath();
 
                     // if this entry is documentation for this component
-                    if (jarEntryName.startsWith(entryName)) {
-                        final String name = StringUtils.substringAfter(jarEntryName, "docs/");
-                        final String path = coordinate.getGroup() + "/" + coordinate.getId() + "/" + coordinate.getVersion() + "/" + name;
+                    if (jarEntryFileAbsolutePath.contains(componentDocumentationDirectory)) {
+                        final String relativePath = StringUtils.substringAfter(jarEntryFileAbsolutePath, componentDocumentationDirectory);
+                        final String outputPath = Paths.get(coordinate.getGroup(), coordinate.getId(), coordinate.getVersion(), componentName, relativePath).toString();
 
                         // if this is a directory create it
                         if (jarEntry.isDirectory()) {
-                            final File componentDocsDirectory = new File(docsDirectory, path);
+                            final File componentDocsDirectory = new File(docsDirectory, outputPath);
 
                             // ensure the documentation directory can be created
                             if (!componentDocsDirectory.exists() && !componentDocsDirectory.mkdirs()) {
@@ -578,7 +581,7 @@ public final class NarUnpacker {
                             }
                         } else {
                             // if this is a file, write to it
-                            final File componentDoc = new File(docsDirectory, path);
+                            final File componentDoc = new File(docsDirectory, outputPath);
                             makeFile(jarFile.getInputStream(jarEntry), componentDoc);
                         }
                     }

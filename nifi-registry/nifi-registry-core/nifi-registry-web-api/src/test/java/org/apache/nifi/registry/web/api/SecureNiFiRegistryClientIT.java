@@ -49,7 +49,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import javax.ws.rs.ForbiddenException;
+import jakarta.ws.rs.ForbiddenException;
 import java.io.IOException;
 import java.util.List;
 
@@ -169,6 +169,7 @@ public class SecureNiFiRegistryClientIT extends IntegrationTestBase {
         snapshotMetadata2.setVersion(2);
         snapshotMetadata2.setComments("This is snapshot #2");
         snapshotMetadata2.setAuthor(SECOND_IDENTITY);
+        snapshotMetadata2.setTimestamp(System.currentTimeMillis());
 
         final VersionedFlowSnapshot snapshot2 = new VersionedFlowSnapshot();
         snapshot2.setSnapshotMetadata(snapshotMetadata2);
