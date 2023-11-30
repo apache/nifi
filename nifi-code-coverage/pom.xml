@@ -1224,11 +1224,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-influxdb-processors</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-iotdb-processors</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>

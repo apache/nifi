@@ -1167,8 +1167,6 @@
                                 !ITMoveAzureDataLakeStorage,
                                 !AzureGraphUserGroupProviderIT,
                                 !JMSPublisherConsumerIT#validateMessageRedeliveryWhenNotAcked,
-                                !ITPutInfluxDB,
-                                !ITExecuteInfluxDBQuery,
                                 !GremlinClientServiceYamlSettingsAndBytecodeIT,
                                 !GremlinClientServiceControllerSettingsIT,
                                 !ITestConsumeEmail#validateUrl,
