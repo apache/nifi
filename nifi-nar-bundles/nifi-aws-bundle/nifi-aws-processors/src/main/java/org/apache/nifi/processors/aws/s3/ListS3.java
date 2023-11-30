@@ -143,12 +143,17 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             " However an additional DistributedMapCache controller service is required and more JVM heap memory is used." +
             " For more information on how the 'Entity Tracking Time Window' property works, see the description.");
 
+    public static final AllowableValue NO_TRACKING = new AllowableValue("none", "No Tracking",
+            "This strategy lists all entities without any tracking. The same entities will be listed each time" +
+                    " this processor is scheduled. It is recommended to change the default run schedule value." +
+                    " Any property that relates to the persisting state will be ignored.");
+
     public static final PropertyDescriptor LISTING_STRATEGY = new Builder()
         .name("listing-strategy")
         .displayName("Listing Strategy")
         .description("Specify how to determine new/updated entities. See each strategy descriptions for detail.")
         .required(true)
-        .allowableValues(BY_TIMESTAMPS, BY_ENTITIES)
+        .allowableValues(BY_TIMESTAMPS, BY_ENTITIES, NO_TRACKING)
         .defaultValue(BY_TIMESTAMPS.getValue())
         .build();
 
@@ -451,8 +456,89 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             listByTrackingTimestamps(context, session);
         } else if (BY_ENTITIES.equals(listingStrategy)) {
             listByTrackingEntities(context, session);
+        } else if (NO_TRACKING.equals(listingStrategy)) {
+            listNoTracking(context, session);
         } else {
             throw new ProcessException("Unknown listing strategy: " + listingStrategy);
+        }
+    }
+
+    private void listNoTracking(ProcessContext context, ProcessSession session) {
+        final AmazonS3 client = getClient(context);
+
+        S3BucketLister bucketLister = getS3BucketLister(context, client);
+
+        final long startNanos = System.nanoTime();
+        final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final Long maxAgeMilliseconds = context.getProperty(MAX_AGE) != null ? context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
+        final long listingTimestamp = System.currentTimeMillis();
+
+        final String bucket = context.getProperty(BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions().getValue();
+        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+
+        int listCount = 0;
+        int totalListCount = 0;
+
+        getLogger().trace("Start listing, listingTimestamp={}", new Object[]{listingTimestamp});
+
+        final S3ObjectWriter writer;
+        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        if (writerFactory == null) {
+            writer = new AttributeObjectWriter(session);
+        } else {
+            writer = new RecordObjectWriter(session, writerFactory, getLogger(), context.getProperty(S3_REGION).getValue());
+        }
+
+        try {
+            writer.beginListing();
+
+            do {
+                VersionListing versionListing = bucketLister.listVersions();
+                for (S3VersionSummary versionSummary : versionListing.getVersionSummaries()) {
+                    long lastModified = versionSummary.getLastModified().getTime();
+                    if ((maxAgeMilliseconds != null && (lastModified < (listingTimestamp - maxAgeMilliseconds)))
+                        || lastModified > (listingTimestamp - minAgeMilliseconds)) {
+                        continue;
+                    }
+
+                    getLogger().trace("Listed key={}, lastModified={}", new Object[]{versionSummary.getKey(), lastModified});
+
+                    GetObjectTaggingResult taggingResult = getTaggingResult(context, client, versionSummary);
+
+                    ObjectMetadata objectMetadata = getObjectMetadata(context, client, versionSummary);
+
+                    // Write the entity to the listing
+                    writer.addToListing(versionSummary, taggingResult, objectMetadata, context.getProperty(S3_REGION).getValue());
+
+                    listCount++;
+                }
+                bucketLister.setNextMarker();
+
+                totalListCount += listCount;
+
+                if (listCount >= batchSize && writer.isCheckpoint()) {
+                    getLogger().info("Successfully listed {} new files from S3; routing to success", listCount);
+                    session.commitAsync();
+                }
+
+                listCount = 0;
+            } while (bucketLister.isTruncated());
+
+            writer.finishListing();
+        } catch (final Exception e) {
+            getLogger().error("Failed to list contents of bucket due to {}", e, e);
+            writer.finishListingExceptionally(e);
+            session.rollback();
+            context.yield();
+            return;
+        }
+
+        final long listMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+        getLogger().info("Successfully listed S3 bucket {} in {} millis", new Object[]{bucket, listMillis});
+
+        if (totalListCount == 0) {
+            getLogger().debug("No new objects in S3 bucket {} to list. Yielding.", new Object[]{bucket});
+            context.yield();
         }
     }
 
