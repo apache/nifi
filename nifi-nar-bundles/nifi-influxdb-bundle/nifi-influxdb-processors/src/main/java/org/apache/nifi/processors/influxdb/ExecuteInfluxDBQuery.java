@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -65,6 +66,7 @@ import java.util.stream.Collectors;
     @WritesAttribute(attribute = AbstractInfluxDBProcessor.INFLUX_DB_ERROR_MESSAGE, description = "InfluxDB error message"),
     @WritesAttribute(attribute = ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY, description = "InfluxDB executed query"),
     })
+@DeprecationNotice(reason = "Deprecated in favor of InfluxDB Processors maintained in https://github.com/influxdata/nifi-influxdb-bundle")
 public class ExecuteInfluxDBQuery extends AbstractInfluxDBProcessor {
 
     public static final String INFLUX_DB_EXECUTED_QUERY = "influxdb.executed.query";
