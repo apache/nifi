@@ -17,7 +17,7 @@
 
 import { createAction, props } from '@ngrx/store';
 import { LoadUserResponse, UserState } from './index';
-import { LoadProcessGroupRequest, LoadProcessGroupResponse } from '../../pages/canvas/state/flow';
+import { LoadProcessGroupRequest, LoadProcessGroupResponse } from '../../pages/flow-designer/state/flow';
 
 export const loadUser = createAction('[User] Load User');
 

@@ -90,6 +90,14 @@ export class ManagementControllerServices implements OnInit {
         this.store.dispatch(loadManagementControllerServices());
     }
 
+    formatScope(entity: ControllerServiceEntity): string {
+        return 'Controller';
+    }
+
+    definedByCurrentGroup(entity: ControllerServiceEntity): boolean {
+        return true;
+    }
+
     configureControllerService(entity: ControllerServiceEntity): void {
         this.store.dispatch(
             navigateToEditService({

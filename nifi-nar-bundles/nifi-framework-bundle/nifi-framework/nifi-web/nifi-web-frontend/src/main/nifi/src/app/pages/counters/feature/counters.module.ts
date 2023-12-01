@@ -25,6 +25,7 @@ import { EffectsModule } from '@ngrx/effects';
 import { CounterListingEffects } from '../state/counter-listing/counter-listing.effects';
 import { CounterListingModule } from '../ui/counter-listing/counter-listing.module';
 import { ParameterContextListingModule } from '../../parameter-contexts/ui/parameter-context-listing/parameter-context-listing.module';
+import { MatDialogModule } from '@angular/material/dialog';
 
 @NgModule({
     declarations: [Counters],
@@ -35,7 +36,8 @@ import { ParameterContextListingModule } from '../../parameter-contexts/ui/param
         StoreModule.forFeature(countersFeatureKey, reducers),
         EffectsModule.forFeature(CounterListingEffects),
         CounterListingModule,
-        ParameterContextListingModule
+        ParameterContextListingModule,
+        MatDialogModule
     ]
 })
 export class CountersModule {}

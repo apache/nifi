@@ -88,6 +88,7 @@ import org.apache.nifi.web.api.entity.ControllerStatusEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisResultEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisRuleTypesEntity;
+import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryBucketEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryBucketsEntity;
@@ -399,6 +400,43 @@ public class FlowResource extends ApplicationResource {
         final ProcessGroupFlowEntity entity = serviceFacade.getProcessGroupFlow(groupId, uiOnly);
         populateRemainingFlowContent(entity.getProcessGroupFlow());
         return generateOkResponse(entity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("process-groups/{id}/breadcrumbs")
+    @ApiOperation(
+            value = "Gets the breadcrumbs for a process group",
+            response = FlowBreadcrumbEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getBreadcrumbs(
+            @ApiParam(
+                    value = "The process group id."
+            )
+            @PathParam("id") final String groupId) {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // get the breadcrumbs for this process group
+        final FlowBreadcrumbEntity breadcrumbEntity = serviceFacade.getProcessGroupBreadcrumbs(groupId);
+        return generateOkResponse(breadcrumbEntity).build();
     }
 
     /**

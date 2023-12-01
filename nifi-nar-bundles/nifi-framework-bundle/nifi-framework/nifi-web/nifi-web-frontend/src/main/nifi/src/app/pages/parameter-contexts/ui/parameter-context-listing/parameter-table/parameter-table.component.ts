@@ -31,7 +31,7 @@ import { Observable, take } from 'rxjs';
 import { ParameterReferences } from '../parameter-references/parameter-references.component';
 import { Store } from '@ngrx/store';
 import { ParameterContextListingState } from '../../../state/parameter-context-listing';
-import { showOkDialog } from '../../../../canvas/state/flow/flow.actions';
+import { showOkDialog } from '../../../../flow-designer/state/flow/flow.actions';
 
 export interface ParameterItem {
     deleted: boolean;

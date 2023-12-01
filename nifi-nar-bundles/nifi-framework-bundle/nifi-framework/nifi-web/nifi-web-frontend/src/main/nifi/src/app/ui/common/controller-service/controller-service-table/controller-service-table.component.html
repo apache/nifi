@@ -142,7 +142,10 @@
                         </div>
                     </ng-container>
                     <ng-template #notDefinedByCurrentGroup>
-                        <div class="pointer fa fa-long-arrow-right" title="Go To"></div>
+                        <div
+                            class="pointer fa fa-long-arrow-right"
+                            title="Go To"
+                            [routerLink]="getServiceLink(item)"></div>
                     </ng-template>
                     <div class="pointer fa fa-key" *ngIf="canManageAccessPolicies()" title="Access Policies"></div>
                 </td>

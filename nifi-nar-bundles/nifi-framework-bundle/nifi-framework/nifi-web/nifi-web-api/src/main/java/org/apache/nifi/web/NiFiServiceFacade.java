@@ -102,6 +102,7 @@ import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEnti
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisResultEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
+import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
@@ -1007,6 +1008,14 @@ public interface NiFiServiceFacade {
      * @return the flow
      */
     ProcessGroupFlowEntity getProcessGroupFlow(String groupId, boolean uiOnly);
+
+    /**
+     * Returns the breadcrumbs for the specified group.
+     *
+     * @param groupId group id
+     * @return the breadcrumbs
+     */
+    FlowBreadcrumbEntity getProcessGroupBreadcrumbs(String groupId);
 
     // ----------------------------------------
     // ProcessGroup methods
