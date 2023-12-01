@@ -236,7 +236,7 @@ public class TestListenHTTP {
         configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverNoTruststoreConfiguration);
 
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
-        runner.setProperty(ListenHTTP.HTTP_PROTOCOL_STRATEGY, HttpProtocolStrategy.H2_HTTP_1_1.getValue());
+        runner.setProperty(ListenHTTP.HTTP_PROTOCOL_STRATEGY, HttpProtocolStrategy.H2_HTTP_1_1);
         runner.assertValid();
 
         testPOSTRequestsReceived(HttpServletResponse.SC_OK, true, false);
@@ -248,7 +248,7 @@ public class TestListenHTTP {
 
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
         runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
-        runner.setProperty(ListenHTTP.HTTP_PROTOCOL_STRATEGY, HttpProtocolStrategy.H2.getValue());
+        runner.setProperty(ListenHTTP.HTTP_PROTOCOL_STRATEGY, HttpProtocolStrategy.H2);
         runner.assertValid();
 
         testPOSTRequestsReceived(HttpServletResponse.SC_NO_CONTENT, true, false);

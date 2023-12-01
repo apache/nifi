@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processor;
 
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyValue;
@@ -32,6 +33,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
@@ -109,6 +111,23 @@ public class TestStandardPropertyValue {
     }
 
     @Test
+    public void testGetValueAsDescribedValue() {
+        for (ExamplePropertyEnum enumValue : ExamplePropertyEnum.values()) {
+            final PropertyValue value = new StandardPropertyValue(enumValue.getValue(), lookup, ParameterLookup.EMPTY);
+            assertEquals(enumValue, value.asDescribedValue(ExamplePropertyEnum.class));
+        }
+
+        final PropertyValue nullValue = new StandardPropertyValue(null, lookup, ParameterLookup.EMPTY);
+        assertNull(nullValue.asDescribedValue(ExamplePropertyEnum.class));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            final PropertyValue invalidValue = new StandardPropertyValue("FOO", lookup, ParameterLookup.EMPTY);
+            invalidValue.asDescribedValue(ExamplePropertyEnum.class);
+        });
+        assertEquals("ExamplePropertyEnum does not have an entry with value FOO", exception.getMessage());
+    }
+
+    @Test
     public void testFileSize() {
         final PropertyValue value = new StandardPropertyValue("${fileSize}", lookup, ParameterLookup.EMPTY);
         final FlowFile flowFile = new StandardFlowFileRecord.Builder().size(1024 * 1024L).build();
@@ -176,5 +195,36 @@ public class TestStandardPropertyValue {
             return false;
         }
 
+    }
+
+    private enum ExamplePropertyEnum implements DescribedValue {
+        ONE("One Value", "One Display", "One Description"),
+        OTHER("Other Value", "Other Display", "Other Description"),
+        ANOTHER("Another Value", "Another Display", "Another Description");
+
+        private final String value;
+        private final String displayName;
+        private final String description;
+
+        ExamplePropertyEnum(final String value, final String displayName, final String description) {
+            this.value = value;
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return this.value;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return this.displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return this.description;
+        }
     }
 }

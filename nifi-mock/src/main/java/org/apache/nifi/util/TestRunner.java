@@ -17,6 +17,7 @@
 package org.apache.nifi.util;
 
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ControllerService;
@@ -247,7 +248,7 @@ public interface TestRunner {
      * @param value allowable valu
      * @return result
      */
-    ValidationResult setProperty(PropertyDescriptor descriptor, AllowableValue value);
+    ValidationResult setProperty(PropertyDescriptor descriptor, DescribedValue value);
 
     /**
      * Sets the annotation data.

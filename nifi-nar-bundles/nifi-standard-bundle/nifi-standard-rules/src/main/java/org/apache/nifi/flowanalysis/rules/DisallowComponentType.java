@@ -42,7 +42,6 @@ public class DisallowComponentType extends AbstractFlowAnalysisRule {
                     " Either the simple or the fully qualified name of the type should be provided.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .defaultValue(null)
             .build();
 
     private final static List<PropertyDescriptor> propertyDescriptors;

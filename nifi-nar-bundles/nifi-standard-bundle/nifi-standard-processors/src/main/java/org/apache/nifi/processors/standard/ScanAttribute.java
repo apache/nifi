@@ -96,7 +96,6 @@ public class ScanAttribute extends AbstractProcessor {
                     + "the dictionary will be used and each term will consist of the text of the entire line in the file")
             .required(false)
             .addValidator(StandardValidators.createRegexValidator(0, 1, false))
-            .defaultValue(null)
             .build();
 
     private List<PropertyDescriptor> properties;

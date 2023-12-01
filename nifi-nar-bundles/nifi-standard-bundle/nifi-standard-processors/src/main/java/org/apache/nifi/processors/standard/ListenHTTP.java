@@ -197,7 +197,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .description("HTTP Protocols supported for Application Layer Protocol Negotiation with TLS")
         .required(true)
         .allowableValues(HttpProtocolStrategy.class)
-        .defaultValue(HttpProtocolStrategy.HTTP_1_1.getValue())
+        .defaultValue(HttpProtocolStrategy.HTTP_1_1)
         .dependsOn(SSL_CONTEXT_SERVICE)
         .build();
     public static final PropertyDescriptor HEADERS_AS_ATTRIBUTES_REGEX = new PropertyDescriptor.Builder()
@@ -414,7 +414,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
         // get the configured port
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-        final HttpProtocolStrategy httpProtocolStrategy = HttpProtocolStrategy.valueOf(context.getProperty(HTTP_PROTOCOL_STRATEGY).getValue());
+        final HttpProtocolStrategy httpProtocolStrategy = context.getProperty(HTTP_PROTOCOL_STRATEGY).asDescribedValue(HttpProtocolStrategy.class);
         final ServerConnector connector = createServerConnector(server,
                 port,
                 sslContextService,

@@ -189,7 +189,6 @@ public class TinkerpopClientService extends AbstractControllerService implements
                     "classes specified in the YAML file. Additionally, any custom classes required for the groovy script to " +
                     "work in the bytecode submission setting should also be contained in these JAR files.")
             .dependsOn(CONNECTION_SETTINGS, YAML_SETTINGS)
-            .defaultValue(null)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dynamicallyModifiesClasspath(true)

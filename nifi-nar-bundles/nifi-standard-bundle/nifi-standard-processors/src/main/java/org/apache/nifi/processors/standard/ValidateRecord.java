@@ -201,7 +201,6 @@ public class ValidateRecord extends AbstractProcessor {
         .required(false)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
-        .defaultValue(null)
         .build();
     static final PropertyDescriptor MAX_VALIDATION_DETAILS_LENGTH = new PropertyDescriptor.Builder()
         .name("maximum-validation-details-length")

@@ -70,6 +70,17 @@ public class TestPropertyDescriptor {
     }
 
     @Test
+    void testDefaultValueWithDescribedValue() {
+        final PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder()
+                .name("defaultDescribedValueDescriptor")
+                .defaultValue(EnumAllowableValue.GREEN)
+                .build();
+
+        assertNotNull(propertyDescriptor);
+        assertEquals(EnumAllowableValue.GREEN.getValue(), propertyDescriptor.getDefaultValue());
+    }
+
+    @Test
     void testAllowableValuesWithEnumClass() {
         final PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder()
                 .name("enumAllowableValueDescriptor")

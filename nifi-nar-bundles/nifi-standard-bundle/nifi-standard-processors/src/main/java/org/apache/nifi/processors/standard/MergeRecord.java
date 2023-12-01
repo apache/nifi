@@ -220,7 +220,6 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .required(false)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
-        .defaultValue(null)
         .build();
     public static final PropertyDescriptor MIN_SIZE = new PropertyDescriptor.Builder()
         .name("min-bin-size")
