@@ -43,86 +43,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.cast.InstantCast
 import org.apache.nifi.attribute.expression.language.evaluation.cast.NumberCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.StringCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.WholeNumberCastEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.AndEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.AppendEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.Base64DecodeEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.Base64EncodeEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.CharSequenceTranslatorEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.ContainsEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.DivideEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.EndsWithEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.EqualsEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.EqualsIgnoreCaseEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.FindEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.FormatEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.FromRadixEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.GetDelimitedFieldEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.GetStateVariableEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanOrEqualEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.HashEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.HostnameEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.IPEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.IfElseEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.InEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.IndexOfEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.InstantFormatEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.IsEmptyEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.IsJsonEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.IsNullEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathAddEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathDeleteEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathSetEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathPutEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.LastIndexOfEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.LengthEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.LessThanEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.LessThanOrEqualEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.MatchesEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.MathEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.MinusEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.ModEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.MultiplyEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.NotEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.NotNullEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.NowEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.NumberToDateEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.NumberToInstantEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.OneUpSequenceEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.OrEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.PadLeftEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.PadRightEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.PlusEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.PrependEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.RandomNumberGeneratorEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.RepeatEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceAllEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceEmptyEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceFirstEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceNullEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.StartsWithEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.StringToDateEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.StringToInstantEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.SubstringAfterEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.SubstringAfterLastEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.SubstringBeforeEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.SubstringBeforeLastEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.SubstringEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.ThreadEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.ToLowerEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.ToRadixEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.ToStringEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.ToUpperEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.EvaluateELStringEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.TrimEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.GetUriEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlDecodeEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlEncodeEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.UuidEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.Uuid3Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.Uuid5Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.*;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.BooleanLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.DecimalLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
@@ -267,6 +188,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.WHOLE_NUMBER;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.EVALUATE_EL_STRING;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IS_JSON;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NIFI_VERSION;
 
 public class ExpressionCompiler {
     private final Set<Evaluator<?>> evaluators = new HashSet<>();
@@ -1280,6 +1202,9 @@ public class ExpressionCompiler {
                         .map(num -> toStringEvaluator(buildEvaluator(tree.getChild(num))))
                         .collect(Collectors.toList());
                 return addToken(new GetUriEvaluator(uriArgs), "getUri");
+            }
+            case NIFI_VERSION: {
+                return addToken(new NifiVersionEvaluator(), "nifiVersion");
             }
             default:
                 throw new AttributeExpressionLanguageParsingException("Unexpected token: " + tree.toString());

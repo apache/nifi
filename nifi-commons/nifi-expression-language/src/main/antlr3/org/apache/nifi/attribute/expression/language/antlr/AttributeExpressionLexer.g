@@ -113,6 +113,7 @@ HOSTNAME : 'hostname';	// requires boolean arg: prefer FQDN
 NOW	: 'now';
 THREAD : 'thread';
 GET_URI : 'getUri';
+NIFI_VERSION : 'nifiVersion';
 
 
 // 0 arg functions

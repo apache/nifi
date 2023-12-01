@@ -134,7 +134,7 @@ functionCall : functionRef ->
 	^(FUNCTION_CALL functionRef);
 
 booleanLiteral : TRUE | FALSE;
-zeroArgStandaloneFunction : (IP | UUID | NOW | NEXT_INT | HOSTNAME | THREAD | RANDOM) LPAREN! RPAREN!;
+zeroArgStandaloneFunction : (IP | UUID | NOW | NEXT_INT | HOSTNAME | THREAD | RANDOM | NIFI_VERSION) LPAREN! RPAREN!;
 oneArgStandaloneFunction : ((TO_LITERAL | MATH | GET_STATE_VALUE)^ LPAREN! anyArg RPAREN!) |
                            (HOSTNAME^ LPAREN! booleanLiteral RPAREN!);
 sevenArgStandaloneFunction : GET_URI^ LPAREN! anyArg COMMA! anyArg COMMA! anyArg COMMA! anyArg COMMA! anyArg COMMA! anyArg COMMA! anyArg RPAREN!;
