@@ -325,7 +325,6 @@ public class MergeContent extends BinFiles {
         .required(false)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
-        .defaultValue(null)
         .dependsOn(MERGE_STRATEGY, MERGE_STRATEGY_BIN_PACK)
         .build();
 

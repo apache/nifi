@@ -153,7 +153,6 @@ public class LivySessionController extends AbstractControllerService implements 
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .defaultValue(null)
             .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()

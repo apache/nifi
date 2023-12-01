@@ -256,7 +256,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .displayName("MySQL Driver Location(s)")
             .description("Comma-separated list of files/folders and/or URLs containing the MySQL driver JAR and its dependencies (if any). "
                     + "For example '/var/tmp/mysql-connector-java-5.1.38-bin.jar'")
-            .defaultValue(null)
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)

@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.resource.ResourceContext;
@@ -322,6 +323,11 @@ public class MockPropertyValue implements PropertyValue {
         return new StandardResourceReferenceFactory().createResourceReferences(rawValue, propertyDescriptor.getResourceDefinition());
     }
 
+    @Override
+    public <E extends Enum<E> & DescribedValue> E asDescribedValue(Class<E> enumType) throws IllegalArgumentException {
+        ensureExpressionsEvaluated();
+        return stdPropValue.asDescribedValue(enumType);
+    }
 
     @Override
     public boolean isSet() {

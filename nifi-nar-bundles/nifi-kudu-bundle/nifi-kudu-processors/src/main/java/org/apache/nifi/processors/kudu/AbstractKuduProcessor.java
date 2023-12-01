@@ -375,7 +375,6 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
         alterTable.addColumn(new ColumnSchema.ColumnSchemaBuilder(columnName, toKuduType(nifiType))
                 .nullable(true)
-                .defaultValue(null)
                 .typeAttributes(getKuduTypeAttributes(nifiType))
                 .build());
 
