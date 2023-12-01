@@ -982,6 +982,9 @@
                         </goals>
                         <configuration>
                             <rules>
+                                <requireJavaVersion>
+                                    <version>[${minimalJavaBuildVersion}, 21)</version>
+                                </requireJavaVersion>
                                 <banDuplicatePomDependencyVersions />
                                 <requireSameVersions>
                                     <plugins>
