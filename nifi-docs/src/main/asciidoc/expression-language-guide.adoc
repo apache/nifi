@@ -227,6 +227,12 @@ and then press Ctrl+Space, we are provided a pop-up that lists six different fun
 which functions are shown, or we can select one of the functions from the list by double-clicking
 it with the mouse or using the arrow keys to highlight the desired function and pressing Enter.
 
+[[system-properties]]
+=== Framework System Properties
+
+The following system properties are set by the NiFi application, and are available to the Expression Language:
+
+- *nifi.framework.version*: The build version for the NiFi framework. Usage: ${'nifi.framework.version'}
 
 
 [[functions]]
