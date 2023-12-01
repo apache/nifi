@@ -19,7 +19,6 @@ import { NgModule } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { FlowDesigner } from './flow-designer.component';
 import { FlowDesignerRoutingModule } from './flow-designer-routing.module';
-import { CanvasModule } from '../ui/canvas/canvas.module';
 import { StoreModule } from '@ngrx/store';
 import { EffectsModule } from '@ngrx/effects';
 import { FlowEffects } from '../state/flow/flow.effects';
@@ -27,7 +26,6 @@ import { TransformEffects } from '../state/transform/transform.effects';
 import { VersionControlTip } from '../ui/common/tooltips/version-control-tip/version-control-tip.component';
 import { canvasFeatureKey, reducers } from '../state';
 import { MatDialogModule } from '@angular/material/dialog';
-import { ControllerServicesModule } from '../ui/controller-service/controller-services.module';
 import { ControllerServicesEffects } from '../state/controller-services/controller-services.effects';
 
 @NgModule({
