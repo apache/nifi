@@ -30,7 +30,9 @@ import {
     navigateToControllerServicesForProcessGroup,
     navigateToEditComponent,
     navigateToEditCurrentProcessGroup,
-    reloadFlow
+    navigateToProvenanceForComponent,
+    reloadFlow,
+    replayLastProvenanceEvent
 } from '../../../state/flow/flow.actions';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
 import { DeleteComponentRequest, MoveComponentRequest } from '../../../state/flow';
@@ -154,24 +156,38 @@ export class ContextMenu implements OnInit {
         menuItems: [
             {
                 condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - canReplayProvenance
-                    return false;
+                    return canvasUtils.canReplayComponentProvenance(selection);
                 },
                 clazz: 'fa',
                 text: 'All nodes',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - replayLastAllNodes
+                action: function (store: Store<CanvasState>, selection: any) {
+                    const selectionData = selection.datum();
+                    store.dispatch(
+                        replayLastProvenanceEvent({
+                            request: {
+                                componentId: selectionData.id,
+                                nodes: 'ALL'
+                            }
+                        })
+                    );
                 }
             },
             {
                 condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - canReplayProvenance
-                    return false;
+                    return canvasUtils.canReplayComponentProvenance(selection);
                 },
                 clazz: 'fa',
                 text: 'Primary node',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - replayLastPrimaryNode
+                action: function (store: Store<CanvasState>, selection: any) {
+                    const selectionData = selection.datum();
+                    store.dispatch(
+                        replayLastProvenanceEvent({
+                            request: {
+                                componentId: selectionData.id,
+                                nodes: 'PRIMARY'
+                            }
+                        })
+                    );
                 }
             }
         ]
@@ -525,14 +541,18 @@ export class ContextMenu implements OnInit {
             },
             {
                 condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - canAccessProvenance
-                    return false;
+                    return canvasUtils.canAccessComponentProvenance(selection);
                 },
                 clazz: 'icon icon-provenance',
                 // imgStyle: 'context-menu-provenance',
                 text: 'View data provenance',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - openProvenance
+                action: function (store: Store<CanvasState>, selection: any) {
+                    const selectionData = selection.datum();
+                    store.dispatch(
+                        navigateToProvenanceForComponent({
+                            id: selectionData.id
+                        })
+                    );
                 }
             },
             {
@@ -958,6 +978,7 @@ export class ContextMenu implements OnInit {
     ) {
         this.allMenus = new Map<string, ContextMenuDefinition>();
         this.allMenus.set(this.ROOT_MENU.id, this.ROOT_MENU);
+        this.allMenus.set(this.PROVENANCE_REPLAY.id, this.PROVENANCE_REPLAY);
         this.allMenus.set(this.VERSION_MENU.id, this.VERSION_MENU);
         this.allMenus.set(this.UPSTREAM_DOWNSTREAM.id, this.UPSTREAM_DOWNSTREAM);
         this.allMenus.set(this.ALIGN.id, this.ALIGN);

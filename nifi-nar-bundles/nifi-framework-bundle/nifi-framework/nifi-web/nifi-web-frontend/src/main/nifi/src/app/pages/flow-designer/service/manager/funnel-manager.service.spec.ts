@@ -28,6 +28,8 @@ import { selectFlowState } from '../../state/flow/flow.selectors';
 import { selectTransform } from '../../state/transform/transform.selectors';
 import { controllerServicesFeatureKey } from '../../state/controller-services';
 import * as fromControllerServices from '../../state/controller-services/controller-services.reducer';
+import { selectUser } from '../../../../state/user/user.selectors';
+import * as fromUser from '../../../../state/user/user.reducer';
 
 describe('FunnelManager', () => {
     let service: FunnelManager;
@@ -51,6 +53,10 @@ describe('FunnelManager', () => {
                         {
                             selector: selectTransform,
                             value: initialState[transformFeatureKey]
+                        },
+                        {
+                            selector: selectUser,
+                            value: fromUser.initialState.user
                         }
                     ]
                 })

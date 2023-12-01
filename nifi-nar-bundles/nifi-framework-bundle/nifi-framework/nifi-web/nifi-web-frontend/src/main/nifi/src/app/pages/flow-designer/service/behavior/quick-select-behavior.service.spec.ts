@@ -27,6 +27,8 @@ import { transformFeatureKey } from '../../state/transform';
 import * as fromTransform from '../../state/transform/transform.reducer';
 import { controllerServicesFeatureKey } from '../../state/controller-services';
 import * as fromControllerServices from '../../state/controller-services/controller-services.reducer';
+import { selectUser } from '../../../../state/user/user.selectors';
+import * as fromUser from '../../../../state/user/user.reducer';
 
 describe('QuickSelectBehavior', () => {
     let service: QuickSelectBehavior;
@@ -46,6 +48,10 @@ describe('QuickSelectBehavior', () => {
                         {
                             selector: selectFlowState,
                             value: initialState[flowFeatureKey]
+                        },
+                        {
+                            selector: selectUser,
+                            value: fromUser.initialState.user
                         }
                     ]
                 })

@@ -304,6 +304,11 @@ export interface NavigateToComponentRequest {
     processGroupId?: string;
 }
 
+export interface ReplayLastProvenanceEventRequest {
+    componentId: string;
+    nodes: string;
+}
+
 /*
     Snippets
  */

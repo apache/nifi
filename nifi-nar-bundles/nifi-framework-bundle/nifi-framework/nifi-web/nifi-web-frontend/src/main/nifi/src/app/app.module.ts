@@ -20,7 +20,6 @@ import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { FlowDesignerModule } from './pages/flow-designer/feature/flow-designer.module';
 import { StoreModule } from '@ngrx/store';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
@@ -29,13 +28,14 @@ import { HTTP_INTERCEPTORS, HttpClientModule, HttpClientXsrfModule } from '@angu
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { rootReducers } from './state';
 import { UserEffects } from './state/user/user.effects';
-import { LoginModule } from './pages/login/feature/login.module';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LoadingInterceptor } from './service/interceptors/loading.interceptor';
 import { AuthInterceptor } from './service/interceptors/auth.interceptor';
 import { ExtensionTypesEffects } from './state/extension-types/extension-types.effects';
 import { PollingInterceptor } from './service/interceptors/polling.interceptor';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
+import { MatNativeDateModule } from '@angular/material/core';
+import { AboutEffects } from './state/about/about.effects';
 
 // @ts-ignore
 @NgModule({
@@ -54,13 +54,14 @@ import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
             routerState: RouterState.Minimal,
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
-        EffectsModule.forRoot(UserEffects, ExtensionTypesEffects),
+        EffectsModule.forRoot(UserEffects, ExtensionTypesEffects, AboutEffects),
         StoreDevtoolsModule.instrument({
             maxAge: 25,
             logOnly: environment.production,
             autoPause: true
         }),
-        MatProgressSpinnerModule
+        MatProgressSpinnerModule,
+        MatNativeDateModule
     ],
     providers: [
         {

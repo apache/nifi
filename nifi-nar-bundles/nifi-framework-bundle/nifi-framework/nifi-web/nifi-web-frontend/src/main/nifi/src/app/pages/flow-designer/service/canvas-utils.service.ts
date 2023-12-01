@@ -26,12 +26,15 @@ import {
     selectCurrentProcessGroupId,
     selectParentProcessGroupId
 } from '../state/flow/flow.selectors';
-import { initialState } from '../state/flow/flow.reducer';
+import { initialState as initialFlowState } from '../state/flow/flow.reducer';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BulletinsTip } from '../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { Position } from '../state/shared';
 import { ComponentType, Permissions } from '../../../state/shared';
 import { NiFiCommon } from '../../../service/nifi-common.service';
+import { User } from '../../../state/user';
+import { initialState as initialUserState } from '../../../state/user/user.reducer';
+import { selectUser } from '../../../state/user/user.selectors';
 
 @Injectable({
     providedIn: 'root'
@@ -42,9 +45,10 @@ export class CanvasUtils {
     private destroyRef = inject(DestroyRef);
 
     private trimLengthCaches: Map<string, Map<string, Map<number, number>>> = new Map();
-    private currentProcessGroupId: string = initialState.id;
-    private parentProcessGroupId: string | null = initialState.flow.processGroupFlow.parentGroupId;
-    private canvasPermissions: Permissions = initialState.flow.permissions;
+    private currentProcessGroupId: string = initialFlowState.id;
+    private parentProcessGroupId: string | null = initialFlowState.flow.processGroupFlow.parentGroupId;
+    private canvasPermissions: Permissions = initialFlowState.flow.permissions;
+    private currentUser: User = initialUserState.user;
     private connections: any[] = [];
 
     private readonly humanizeDuration: Humanizer;
@@ -82,6 +86,13 @@ export class CanvasUtils {
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((connections) => {
                 this.connections = connections;
+            });
+
+        this.store
+            .select(selectUser)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((user) => {
+                this.currentUser = user;
             });
     }
 
@@ -122,6 +133,13 @@ export class CanvasUtils {
      */
     public removeTempEdge(): void {
         d3.select('path.connector').remove();
+    }
+
+    /**
+     * Determines whether the current user can access provenance.
+     */
+    public canAccessProvenance(): boolean {
+        return this.currentUser.provenancePermissions.canRead;
     }
 
     /**
@@ -433,6 +451,40 @@ export class CanvasUtils {
      */
     public isFunnel(selection: any): boolean {
         return selection.size() === 1 && selection.classed('funnel');
+    }
+
+    /**
+     * Determines whether the current user can access provenance for the specified component.
+     *
+     * @argument {selection} selection      The selection
+     */
+    public canAccessComponentProvenance(selection: any): boolean {
+        // ensure the correct number of components are selected
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        return (
+            !this.isLabel(selection) &&
+            !this.isConnection(selection) &&
+            !this.isProcessGroup(selection) &&
+            !this.isRemoteProcessGroup(selection) &&
+            this.canAccessProvenance()
+        );
+    }
+
+    /**
+     * Determines whether the current selection should provide ability to replay latest provenance event.
+     *
+     * @param {selection} selection
+     */
+    public canReplayComponentProvenance(selection: any): boolean {
+        // ensure the correct number of components are selected
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        return this.isProcessor(selection) && this.canAccessProvenance();
     }
 
     /**

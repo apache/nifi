@@ -30,6 +30,11 @@ const routes: Routes = [
         loadChildren: () => import('./pages/settings/feature/settings.module').then((m) => m.SettingsModule)
     },
     {
+        path: 'provenance',
+        canMatch: [authGuard],
+        loadChildren: () => import('./pages/provenance/feature/provenance.module').then((m) => m.ProvenanceModule)
+    },
+    {
         path: 'parameter-contexts',
         canMatch: [authGuard],
         loadChildren: () =>

@@ -21,15 +21,19 @@ import { UserState, userFeatureKey } from './user';
 import { userReducer } from './user/user.reducer';
 import { extensionTypesFeatureKey, ExtensionTypesState } from './extension-types';
 import { extensionTypesReducer } from './extension-types/extension-types.reducer';
+import { aboutFeatureKey, AboutState } from './about';
+import { aboutReducer } from './about/about.reducer';
 
 export interface NiFiState {
     router: RouterReducerState;
     [userFeatureKey]: UserState;
     [extensionTypesFeatureKey]: ExtensionTypesState;
+    [aboutFeatureKey]: AboutState;
 }
 
 export const rootReducers: ActionReducerMap<NiFiState> = {
     router: routerReducer,
     [userFeatureKey]: userReducer,
-    [extensionTypesFeatureKey]: extensionTypesReducer
+    [extensionTypesFeatureKey]: extensionTypesReducer,
+    [aboutFeatureKey]: aboutReducer
 };

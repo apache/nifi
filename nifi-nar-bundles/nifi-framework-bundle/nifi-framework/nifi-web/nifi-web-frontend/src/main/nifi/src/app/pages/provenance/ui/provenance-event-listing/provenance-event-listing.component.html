@@ -1,0 +1,45 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="flex flex-col h-full gap-y-2 text-sm" *ngIf="status$ | async; let status">
+    <div class="flex-1">
+        <div *ngIf="isInitialLoading(status); else loaded">
+            <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+        </div>
+        <ng-template #loaded>
+            <ng-container *ngIf="provenance$ | async; let provenance">
+                <provenance-event-table
+                    [events]="provenance.results.provenanceEvents"
+                    [oldestEventAvailable]="provenance.results.oldestEvent"
+                    [resultsMessage]="getResultsMessage(provenance)"
+                    [hasRequest]="hasRequest(provenance.request)"
+                    (openSearchCriteria)="openSearchCriteria()"
+                    (openEventDialog)="openEventDialog($event)"
+                    (clearRequest)="clearRequest()"></provenance-event-table>
+            </ng-container>
+        </ng-template>
+    </div>
+    <div class="flex justify-between">
+        <div class="refresh-container flex items-center gap-x-2">
+            <button class="nifi-button" (click)="refreshParameterContextListing()">
+                <i class="fa fa-refresh" [class.fa-spin]="(status$ | async) === 'loading'"></i>
+            </button>
+            <div>Last updated:</div>
+            <div class="refresh-timestamp">{{ loadedTimestamp$ | async }}</div>
+        </div>
+    </div>
+</div>

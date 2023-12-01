@@ -26,6 +26,7 @@ import {
     CreateProcessGroupRequest,
     CreateProcessorRequest,
     DeleteComponentRequest,
+    ReplayLastProvenanceEventRequest,
     Snippet,
     UpdateComponentRequest,
     UploadProcessGroupRequest
@@ -93,10 +94,6 @@ export class FlowService {
         return this.httpClient.get(`${FlowService.API}/parameter-contexts/${id}`, {
             params: { includeInheritedParameters: true }
         });
-    }
-
-    getCurrentUser(): Observable<any> {
-        return this.httpClient.get(`${FlowService.API}/flow/controller/bulletins`);
     }
 
     getProcessor(id: string): Observable<any> {
@@ -244,5 +241,9 @@ export class FlowService {
 
     deleteSnippet(snippetId: string): Observable<any> {
         return this.httpClient.delete(`${FlowService.API}/snippets/${snippetId}`);
+    }
+
+    replayLastProvenanceEvent(request: ReplayLastProvenanceEventRequest): Observable<any> {
+        return this.httpClient.post(`${FlowService.API}/provenance-events/latest/replays`, request);
     }
 }
