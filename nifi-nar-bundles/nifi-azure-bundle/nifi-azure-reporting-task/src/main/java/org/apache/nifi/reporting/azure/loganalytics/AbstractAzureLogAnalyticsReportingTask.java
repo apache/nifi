@@ -25,12 +25,12 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import javax.xml.bind.DatatypeConverter;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -95,8 +95,8 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
             String signature = String.format("POST\n%d\napplication/json\nx-ms-date:%s\n/api/logs", contentLength,
                     rfc1123Date);
             Mac mac = Mac.getInstance(HMAC_SHA256_ALG);
-            mac.init(new SecretKeySpec(DatatypeConverter.parseBase64Binary(key), HMAC_SHA256_ALG));
-            String hmac = DatatypeConverter.printBase64Binary(mac.doFinal(signature.getBytes(UTF8)));
+            mac.init(new SecretKeySpec(Base64.getDecoder().decode(key), HMAC_SHA256_ALG));
+            String hmac = Base64.getEncoder().encodeToString(mac.doFinal(signature.getBytes(UTF8)));
             return String.format("SharedKey %s:%s", workspaceId, hmac);
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new RuntimeException(e);

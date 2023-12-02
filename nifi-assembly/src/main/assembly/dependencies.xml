@@ -37,8 +37,8 @@
                 <exclude>*:nifi-property-protection-factory</exclude>
                 <exclude>*:nifi-resources</exclude>
                 <exclude>*:nifi-docs</exclude>
-                <!-- exclude AspectJ library from lib included in the aspectj subdir -->
-                <exclude>org.aspectj:aspectjweaver</exclude>
+                <exclude>*:nifi-single-user-utils</exclude>
+                <exclude>*:nifi-flow-encryptor</exclude>
             </excludes>
         </dependencySet>
 

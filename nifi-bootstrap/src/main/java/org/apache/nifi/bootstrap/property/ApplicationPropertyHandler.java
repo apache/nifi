@@ -14,20 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.bootstrap.notification;
+package org.apache.nifi.bootstrap.property;
 
-public class NotificationFailedException extends Exception {
-    private static final long serialVersionUID = 1L;
+import java.nio.file.Path;
 
-    public NotificationFailedException(final String message) {
-        super(message);
-    }
-
-    public NotificationFailedException(final String message, final Throwable t) {
-        super(message, t);
-    }
-
-    public NotificationFailedException(final Throwable t) {
-        super(t);
-    }
+/**
+ * Abstraction for evaluating and updating application properties prior to startup
+ */
+public interface ApplicationPropertyHandler {
+    /**
+     * Handle Application Properties based on provided path location
+     *
+     * @param applicationPropertiesLocation Path to Application Properties
+     */
+    void handleProperties(Path applicationPropertiesLocation);
 }
