@@ -28,7 +28,7 @@ import com.rabbitmq.client.ReturnListener;
 
 /**
  * Generic publisher of messages to AMQP-based messaging system. It is based on
- * RabbitMQ client API (https://www.rabbitmq.com/api-guide.html)
+ * RabbitMQ client API (<a href="https://www.rabbitmq.com/api-guide.html">Java Client API Guide</a>)
  */
 final class AMQPPublisher extends AMQPWorker {
 
@@ -63,7 +63,7 @@ final class AMQPPublisher extends AMQPWorker {
         exchange = exchange == null ? "" : exchange.trim();
 
         if (processorLog.isDebugEnabled()) {
-            if (exchange.length() == 0) {
+            if (exchange.isEmpty()) {
                 processorLog.debug("The 'exchangeName' is not specified. Messages will be sent to default exchange");
             }
             processorLog.debug("Successfully connected AMQPPublisher to {} and '{}' exchange with '{}' as a routing key.", this.connectionString, exchange, routingKey);
