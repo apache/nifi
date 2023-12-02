@@ -419,6 +419,7 @@ public class RunNiFi {
             defaultLogger.info("Registered no Notification Services for Notification Type {}", type);
             return;
         }
+        deprecationLogger.warn("Bootstrap Notification Services are deprecated [{}]", serviceIds);
 
         int registered = 0;
         for (final String id : serviceIds.split(",")) {
