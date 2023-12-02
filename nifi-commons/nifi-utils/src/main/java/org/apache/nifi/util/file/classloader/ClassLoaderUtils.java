@@ -20,7 +20,6 @@ import org.apache.nifi.util.security.MessageDigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.bind.DatatypeConverter;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.net.MalformedURLException;
@@ -31,6 +30,7 @@ import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HexFormat;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -151,7 +151,7 @@ public class ClassLoaderUtils {
         formattedUrls.append(classloaderIsolationKey);
         final byte[] formattedUrlsBinary = formattedUrls.toString().getBytes(StandardCharsets.UTF_8);
 
-        return DatatypeConverter.printHexBinary(MessageDigestUtils.getDigest(formattedUrlsBinary));
+        return HexFormat.of().formatHex(MessageDigestUtils.getDigest(formattedUrlsBinary));
     }
 
     private static long getLastModified(String url) {

@@ -28,9 +28,12 @@
                 <include>*:slf4j-api</include>
                 <include>*:logback-classic</include>
                 <include>*:logback-core</include>
+                <include>*:commons-lang3</include>
                 <include>*:nifi-api</include>
                 <include>*:nifi-property-protection-api</include>
                 <include>*:nifi-per-process-group-logging</include>
+                <include>*:nifi-single-user-utils</include>
+                <include>*:nifi-flow-encryptor</include>
             </includes>
         </dependencySet>
 

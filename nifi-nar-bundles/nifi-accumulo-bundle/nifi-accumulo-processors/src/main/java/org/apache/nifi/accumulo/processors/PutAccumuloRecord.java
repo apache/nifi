@@ -66,12 +66,12 @@ import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.accumulo.controllerservices.BaseAccumuloService;
 import org.apache.nifi.accumulo.data.AccumuloRecordConfiguration;
 
-import javax.xml.bind.DatatypeConverter;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -577,7 +577,7 @@ public class PutAccumuloRecord extends BaseAccumuloProcessor {
                     final String delim = config.getFieldDelimiter();
                     if (!StringUtils.isEmpty(delim)) {
                         if (config.getEncodeDelimiter()) {
-                            byte [] asHex = DatatypeConverter.parseHexBinary(delim);
+                            byte [] asHex = HexFormat.of().parseHex(delim);
                             cq.append(asHex, 0, asHex.length);
                         }else{
                             cq.append(delim.getBytes(), 0, delim.length());
