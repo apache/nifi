@@ -18,7 +18,6 @@ package org.apache.nifi.jms.processors;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.lang3.SerializationUtils;
 import org.apache.nifi.jms.processors.JMSConsumer.JMSResponse;
 import org.apache.nifi.logging.ComponentLog;
 import org.junit.jupiter.api.Test;
@@ -70,9 +69,9 @@ public class JMSPublisherConsumerIT {
         };
 
         Consumer<JMSResponse> responseChecker = response -> {
-            assertEquals(
-                "stringAsObject",
-                SerializationUtils.deserialize(response.getMessageBody())
+            assertArrayEquals(
+                ObjectMessage.class.getSimpleName().getBytes(StandardCharsets.UTF_8),
+                response.getMessageBody()
             );
         };
 
@@ -447,7 +446,7 @@ public class JMSPublisherConsumerIT {
                     }
 
                     callbackInvoked.set(true);
-                    assertEquals("1", new String(response.getMessageBody()));
+                    assertEquals("2", new String(response.getMessageBody()));
                     acknowledge(response);
                 });
             }
@@ -464,7 +463,7 @@ public class JMSPublisherConsumerIT {
                         }
 
                         callbackInvoked.set(true);
-                        assertEquals("2", new String(response.getMessageBody()));
+                        assertEquals("1", new String(response.getMessageBody()));
                         throw new RuntimeException("intentional to avoid explicit ack");
                     });
                 }
@@ -483,7 +482,7 @@ public class JMSPublisherConsumerIT {
                         }
 
                         callbackInvoked.set(true);
-                        assertEquals("2", new String(response.getMessageBody()));
+                        assertEquals("1", new String(response.getMessageBody()));
                         acknowledge(response);
                     });
                 }

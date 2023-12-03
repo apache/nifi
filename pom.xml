@@ -1166,7 +1166,6 @@
                                 !ITDeleteAzureBlobStorage_v12,
                                 !ITMoveAzureDataLakeStorage,
                                 !AzureGraphUserGroupProviderIT,
-                                !JMSPublisherConsumerIT#validateMessageRedeliveryWhenNotAcked,
                                 !GremlinClientServiceYamlSettingsAndBytecodeIT,
                                 !GremlinClientServiceControllerSettingsIT,
                                 !ITestConsumeEmail#validateUrl,
