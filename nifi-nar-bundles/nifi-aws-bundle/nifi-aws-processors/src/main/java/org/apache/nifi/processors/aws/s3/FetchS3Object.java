@@ -130,6 +130,63 @@ import java.util.concurrent.TimeUnit;
     }
 )
 @MultiProcessorUseCase(
+    description = "Retrieve only files from S3 that meet some specified criteria",
+    keywords = {"s3", "state", "retrieve", "filter", "select", "fetch", "criteria"},
+    configurations = {
+        @ProcessorConfiguration(
+            processorClass = ListS3.class,
+            configuration = """
+                The "Bucket" property should be set to the name of the S3 bucket that files reside in. If the flow being built is to be reused elsewhere, it's a good idea to parameterize \
+                    this property by setting it to something like `#{S3_SOURCE_BUCKET}`.
+                The "Region" property must be set to denote the S3 region that the Bucket resides in. If the flow being built is to be reused elsewhere, it's a good idea to parameterize \
+                    this property by setting it to something like `#{S3_SOURCE_REGION}`.
+
+                The "AWS Credentials Provider service" property should specify an instance of the AWSCredentialsProviderControllerService in order to provide credentials for accessing the bucket.
+
+                The 'success' Relationship of this Processor is then connected to RouteOnAttribute.
+                """
+        ),
+        @ProcessorConfiguration(
+            processorClassName = "org.apache.nifi.processors.standard.RouteOnAttribute",
+            configuration = """
+                If you would like to "OR" together all of the conditions (i.e., the file should be retrieved if any of the conditions are met), \
+                set "Routing Strategy" to "Route to 'matched' if any matches".
+                If you would like to "AND" together all of the conditions (i.e., the file should only be retrieved if all of the conditions are met), \
+                set "Routing Strategy" to "Route to 'matched' if all match".
+
+                For each condition that you would like to filter on, add a new property. The name of the property should describe the condition. \
+                The value of the property should be an Expression Language expression that returns `true` if the file meets the condition or `false` \
+                if the file does not meet the condition.
+
+                Some attributes that you may consider filtering on are:
+                - `filename` (the name of the file)
+                - `s3.length` (the number of bytes in the file)
+                - `s3.tag.<tag name>` (the value of the s3 tag with the name `tag name`)
+                - `s3.user.metadata.<key name>` (the value of the user metadata with the key named `key name`)
+
+                For example, to fetch only files that are at least 1 MB and have a filename ending in `.zip` we would set the following properties:
+                - "Routing Strategy" = "Route to 'matched' if all match"
+                - "At least 1 MB" = "${s3.length:ge(1000000)}"
+                - "Ends in .zip" = "${filename:endsWith('.zip')}"
+
+                Auto-terminate the `unmatched` Relationship.
+                Connect the `matched` Relationship to the FetchS3Object processor.
+                """
+        ),
+        @ProcessorConfiguration(
+            processorClass = FetchS3Object.class,
+            configuration = """
+                "Bucket" = "${s3.bucket}"
+                "Object Key" = "${filename}"
+
+                The "AWS Credentials Provider service" property should specify an instance of the AWSCredentialsProviderControllerService in order to provide credentials for accessing the bucket.
+
+                The "Region" property must be set to the same value as the "Region" property of the ListS3 Processor.
+                """
+        )
+    }
+)
+@MultiProcessorUseCase(
     description = "Retrieve new files as they arrive in an S3 bucket",
     notes = "This method of retrieving files from S3 is more efficient than using ListS3 and more cost effective. It is the pattern recommended by AWS. " +
         "However, it does require that the S3 bucket be configured to place notifications on an SQS queue when new files arrive. For more information, see " +
