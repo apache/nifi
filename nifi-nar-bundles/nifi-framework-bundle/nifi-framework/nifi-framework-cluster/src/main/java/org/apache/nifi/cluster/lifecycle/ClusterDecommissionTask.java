@@ -25,6 +25,7 @@ import org.apache.nifi.cluster.coordination.node.OffloadCode;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.FlowController.GroupStatusCounts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -139,6 +140,7 @@ public class ClusterDecommissionTask implements DecommissionTask {
     private void waitForOffloadToFinish() throws InterruptedException {
         logger.info("Waiting for Node to finish offloading");
 
+        int iterations = 0;
         while (true) {
             final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(localNodeIdentifier);
             final NodeConnectionState state = status.getState();
@@ -150,7 +152,16 @@ public class ClusterDecommissionTask implements DecommissionTask {
                 throw new IllegalStateException("Expected state of Node to be OFFLOADING but Node is now in a state of " + state);
             }
 
-            logger.debug("Node state is OFFLOADING. Will wait {} seconds and check again", delaySeconds);
+            // Every 10th iteration log how many FlowFiles are left
+            if (++iterations % 10 == 0) {
+                final GroupStatusCounts statusCounts = flowController.getGroupStatusCounts(flowController.getFlowManager().getRootGroup());
+                final int flowFileCount = statusCounts.getQueuedCount();
+                final long byteCount = statusCounts.getQueuedContentSize();
+                logger.info("Node state is OFFLOADING. Currently, there are {} FlowFiles ({} bytes) left on node.", flowFileCount, byteCount);
+            } else {
+                logger.debug("Node state is OFFLOADING. Will wait {} seconds and check again", delaySeconds);
+            }
+
             TimeUnit.SECONDS.sleep(delaySeconds);
         }
     }
