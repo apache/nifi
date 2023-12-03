@@ -44,6 +44,7 @@ import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -66,6 +67,13 @@ import org.apache.nifi.ssl.SSLContextService;
 @DynamicProperty(name = "A JSON object to add to Slack's \"attachments\" JSON payload.", value = "JSON-formatted string to add to Slack's payload JSON appended to the \"attachments\" JSON array.",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Converts the contents of each value specified by the Dynamic Property's value to JSON and appends it to the payload being sent to Slack.")
+@DeprecationNotice(
+    alternatives = {PublishSlack.class},
+    reason = "This Processor makes use of a Webhook URL, rather than Slack's REST API. As a result, the Processor is more difficult to configure than necessary and " +
+             "requires special permissions for the Slack Application / Bot. These permissions must be granted for every channel that the application is to respond to, " +
+             "which makes setup and maintenance difficult. Additionally, it does not make clear the differences between PutSlack and PostSlack. Each provides slightly " +
+             "different capabilities. PublishSlack combines the capabilities of both Processors in a simpler configuration that makes use of Slack's standard REST API."
+)
 public class PutSlack extends AbstractProcessor {
 
     public static final PropertyDescriptor WEBHOOK_URL = new PropertyDescriptor

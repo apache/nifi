@@ -59,13 +59,14 @@ import org.apache.nifi.processors.slack.consume.ConsumeChannel;
 import org.apache.nifi.processors.slack.consume.ConsumeSlackClient;
 import org.apache.nifi.processors.slack.consume.ConsumeSlackUtil;
 import org.apache.nifi.processors.slack.consume.UsernameLookup;
+import org.apache.nifi.processors.slack.util.RateLimit;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +74,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -182,7 +182,7 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
         .build();
 
 
-    private final AtomicLong nextRequestTime = new AtomicLong(0L);
+    private final RateLimit rateLimit = new RateLimit(getLogger());
     private final Queue<ConsumeChannel> channels = new LinkedBlockingQueue<>();
     private volatile App slackApp;
 
@@ -329,7 +329,8 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         // Check to see if we are currently in a backoff period due to Slack's Rate Limit
-        if (isRateLimited()) {
+        if (rateLimit.isLimitReached()) {
+            getLogger().debug("Will not consume from Slack because rate limit has been reached");
             context.yield();
             return;
         }
@@ -362,24 +363,10 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
         }
 
         final int retryAfterSeconds = ConsumeSlackUtil.getRetryAfterSeconds(t);
-        final long timeOfNextRequest = System.currentTimeMillis() + (retryAfterSeconds * 1000L);
-        nextRequestTime.getAndUpdate(currentTime -> Math.max(currentTime, timeOfNextRequest));
+        rateLimit.retryAfter(Duration.ofSeconds(retryAfterSeconds));
         context.yield();
     }
 
-
-    private boolean isRateLimited() {
-        final long nextTime = nextRequestTime.get();
-        if (nextTime > 0 && System.currentTimeMillis() < nextTime) {
-            getLogger().debug("Will not retrieve any messages until {} due to Slack's Rate Limit", new Date(nextTime));
-            return true;
-        } else if (nextTime > 0) {
-            // Set nextRequestTime to 0 so that we no longer bother to make system calls to System.currentTimeMillis()
-            nextRequestTime.compareAndSet(nextTime, 0);
-        }
-
-        return false;
-    }
 
     @Override
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {

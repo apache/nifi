@@ -17,3 +17,4 @@ org.apache.nifi.processors.slack.PutSlack
 org.apache.nifi.processors.slack.PostSlack
 org.apache.nifi.processors.slack.ConsumeSlack
 org.apache.nifi.processors.slack.ListenSlack
+org.apache.nifi.processors.slack.PublishSlack
