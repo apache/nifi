@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -115,6 +116,7 @@ public class RunNiFi {
     public static final String PING_CMD = "PING";
     public static final String DUMP_CMD = "DUMP";
     public static final String DIAGNOSTICS_CMD = "DIAGNOSTICS";
+    public static final String CLUSTER_STATUS_CMD = "CLUSTER_STATUS";
     public static final String IS_LOADED_CMD = "IS_LOADED";
     public static final String STATUS_HISTORY_CMD = "STATUS_HISTORY";
 
@@ -204,6 +206,10 @@ public class RunNiFi {
                     dumpFile = new File(args[1]);
                 }
             }
+        } else if (cmd.equalsIgnoreCase("cluster-status")) {
+            if (args.length > 1) {
+                dumpFile = new File(args[1]);
+            }
         } else if (cmd.equalsIgnoreCase("status-history")) {
             if (args.length < 2) {
                 System.err.printf("Wrong number of arguments: %d instead of 1 or 2, the command parameters are: " +
@@ -253,6 +259,7 @@ public class RunNiFi {
             case "status-history":
             case "restart":
             case "env":
+            case "cluster-status":
                 break;
             default:
                 printUsage();
@@ -274,7 +281,8 @@ public class RunNiFi {
                 runNiFi.stop();
                 break;
             case "decommission":
-                exitStatus = runNiFi.decommission();
+                final boolean shutdown = args.length < 2 || !"--shutdown=false".equals(args[1]);
+                exitStatus = runNiFi.decommission(shutdown);
                 break;
             case "status":
                 exitStatus = runNiFi.status();
@@ -295,6 +303,9 @@ public class RunNiFi {
                 break;
             case "diagnostics":
                 runNiFi.diagnostics(dumpFile, verbose);
+                break;
+            case "cluster-status":
+                runNiFi.clusterStatus(dumpFile);
                 break;
             case "status-history":
                 runNiFi.statusHistory(dumpFile, statusHistoryDays);
@@ -659,7 +670,16 @@ public class RunNiFi {
      */
     public void diagnostics(final File dumpFile, final boolean verbose) throws IOException {
         final String args = verbose ? "--verbose=true" : null;
-        makeRequest(DIAGNOSTICS_CMD, args, dumpFile, "diagnostics information");
+        makeRequest(DIAGNOSTICS_CMD, args, dumpFile, null, "diagnostics information");
+    }
+
+    public void clusterStatus(final File dumpFile) throws IOException {
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            makeRequest(CLUSTER_STATUS_CMD, null, dumpFile, baos, "cluster status");
+
+            final String response = baos.toString(StandardCharsets.UTF_8);
+            System.out.println("Cluster Status: " + response);
+        }
     }
 
     /**
@@ -670,7 +690,7 @@ public class RunNiFi {
      * @throws IOException if any issues occur while writing the dump file
      */
     public void dump(final File dumpFile) throws IOException {
-        makeRequest(DUMP_CMD, null, dumpFile, "thread dump");
+        makeRequest(DUMP_CMD, null, dumpFile, null, "thread dump");
     }
 
     /**
@@ -681,7 +701,7 @@ public class RunNiFi {
      */
     public void statusHistory(final File dumpFile, final String days) throws IOException {
         // Due to input validation, the dumpFile cannot currently be null in this scenario.
-        makeRequest(STATUS_HISTORY_CMD, days, dumpFile, "status history information");
+        makeRequest(STATUS_HISTORY_CMD, days, dumpFile, null, "status history information");
     }
 
     private boolean isNiFiFullyLoaded() throws IOException, NiFiNotRunningException {
@@ -703,7 +723,16 @@ public class RunNiFi {
         }
     }
 
-    private void makeRequest(final String request, final String arguments, final File dumpFile, final String contentsDescription) throws IOException {
+    /**
+     * Makes a request to the Bootstrap Listener
+     * @param request the request to send
+     * @param arguments any arguments for the command, or <code>null</code> if the command takes no arguments
+     * @param dumpFile a file to write the results to, or <code>null</code> to skip writing the results to any file
+     * @param outputStream an OutputStream to write the results to, or <code>null</code> to skip writing the results to any OutputStream
+     * @param contentsDescription a description of the contents being written; used for logging purposes
+     * @throws IOException if unable to communicate with the NiFi instance or write out the results
+     */
+    private void makeRequest(final String request, final String arguments, final File dumpFile, final OutputStream outputStream, final String contentsDescription) throws IOException {
         final Logger logger = defaultLogger;    // dump to bootstrap log file by default
         final Integer port = getCurrentPort(logger);
         if (port == null) {
@@ -721,11 +750,21 @@ public class RunNiFi {
                 try (final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
-                        if (fileOut == null) {
-                            logger.info(line);
-                        } else {
+                        boolean written = false;
+                        if (fileOut != null) {
                             fileOut.write(line.getBytes(StandardCharsets.UTF_8));
                             fileOut.write('\n');
+                            written = true;
+                        }
+
+                        if (outputStream != null) {
+                            outputStream.write(line.getBytes(StandardCharsets.UTF_8));
+                            outputStream.write('\n');
+                            written = true;
+                        }
+
+                        if (!written) {
+                            logger.info(line);
                         }
                     }
                 }
@@ -760,7 +799,8 @@ public class RunNiFi {
         socketOut.flush();
     }
 
-    public Integer decommission() throws IOException {
+
+    public Integer decommission(final boolean shutdown) throws IOException {
         final Logger logger = cmdLogger;
         final Integer port = getCurrentPort(logger);
         if (port == null) {
@@ -792,7 +832,8 @@ public class RunNiFi {
 
             logger.debug("Sending DECOMMISSION Command to port {}", port);
             final OutputStream out = socket.getOutputStream();
-            out.write((DECOMMISSION_CMD + " " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
+            final String command = DECOMMISSION_CMD + " " + secretKey + " --shutdown=" + shutdown + "\n";
+            out.write(command.getBytes(StandardCharsets.UTF_8));
             out.flush();
             socket.shutdownOutput();
 

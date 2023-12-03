@@ -52,6 +52,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.cluster.ClusterDetailsFactory;
 import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
@@ -167,6 +168,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private DiagnosticsFactory diagnosticsFactory;
     private DecommissionTask decommissionTask;
     private StatusHistoryDumpFactory statusHistoryDumpFactory;
+    private ClusterDetailsFactory clusterDetailsFactory;
 
     private WebAppContext webApiContext;
     private WebAppContext webDocsContext;
@@ -849,6 +851,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                 diagnosticsFactory = webApplicationContext.getBean("diagnosticsFactory", DiagnosticsFactory.class);
                 decommissionTask = webApplicationContext.getBean("decommissionTask", DecommissionTask.class);
                 statusHistoryDumpFactory = webApplicationContext.getBean("statusHistoryDumpFactory", StatusHistoryDumpFactory.class);
+                clusterDetailsFactory = webApplicationContext.getBean("clusterDetailsFactory", ClusterDetailsFactory.class);
             }
 
             // ensure the web document war was loaded and provide the extension mapping
@@ -954,6 +957,11 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     @Override
     public DecommissionTask getDecommissionTask() {
         return decommissionTask;
+    }
+
+    @Override
+    public ClusterDetailsFactory getClusterDetailsFactory() {
+        return clusterDetailsFactory;
     }
 
     @Override

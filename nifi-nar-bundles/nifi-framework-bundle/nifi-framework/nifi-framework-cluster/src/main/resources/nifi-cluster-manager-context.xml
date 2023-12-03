@@ -61,4 +61,7 @@
         <constructor-arg ref="flowController" />
     </bean>
 
+    <bean id="clusterDetailsFactory" class="org.apache.nifi.cluster.StandardClusterDetailsFactory">
+        <constructor-arg ref="clusterCoordinator" />
+    </bean>
 </beans>
