@@ -26,6 +26,8 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -67,20 +69,21 @@ import java.util.concurrent.atomic.AtomicReference;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"attributes", "routing", "Attribute Expression Language", "regexp", "regex", "Regular Expression", "Expression Language", "find", "text", "string", "search", "filter", "detect"})
 @CapabilityDescription("Routes FlowFiles based on their Attributes using the Attribute Expression Language")
-@DynamicProperty(name = "Relationship Name", value = "Attribute Expression Language",
-                 expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES, description = "Routes FlowFiles whose attributes match the "
-                         + "Attribute Expression Language specified in the Dynamic Property Value to the Relationship specified in the Dynamic Property Key")
+@DynamicProperty(name = "Relationship Name", value = "Expression Language expression that returns a boolean value indicating whether or not the FlowFile should be routed to this Relationship",
+    expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+    description = "Routes FlowFiles whose attributes match the Expression Language specified in the Dynamic Property Value to the Relationship " +
+                  "specified in the Dynamic Property Key")
 @DynamicRelationship(name = "Name from Dynamic Property", description = "FlowFiles that match the Dynamic Property's Attribute Expression Language")
 @WritesAttributes({
     @WritesAttribute(attribute = RouteOnAttribute.ROUTE_ATTRIBUTE_KEY, description = "The relation to which the FlowFile was routed")
 })
 @UseCase(
-    description = "Route data to one or more relationships based on its attributes.",
+    description = "Route data to one or more relationships based on its attributes using the NiFi Expression Language.",
     keywords = {"attributes", "routing", "expression language"},
     configuration = """
         Set the "Routing Strategy" property to "Route to Property name".
         For each route that a FlowFile might be routed to, add a new property. The name of the property should describe the route.
-        The value of the property is an Attribute Expression Language expression that will be used to determine whether or not a given FlowFile will be routed to the \
+        The value of the property is an Attribute Expression Language expression that returns a boolean value indicating whether or not a given FlowFile will be routed to the \
         associated relationship.
 
         For example, we might route data based on its file extension using the following properties:
@@ -132,6 +135,39 @@ import java.util.concurrent.atomic.AtomicReference;
         Auto-terminate the 'matched' relationship.
         Connect the 'unmatched' relationship to the next processor in the flow.
         """
+)
+@MultiProcessorUseCase(
+    description = "Route record-oriented data based on whether or not the record's values meet some criteria",
+    keywords = {"record", "route", "content", "data"},
+    configurations = {
+        @ProcessorConfiguration(
+            processorClass = PartitionRecord.class,
+            configuration = """
+                Choose a RecordReader that is appropriate based on the format of the incoming data.
+                Choose a RecordWriter that writes the data in the desired output format.
+
+                Add a single additional property. The name of the property should describe the criteria to route on. \
+                The property's value should be a RecordPath that returns `true` if the Record meets the criteria or `false` otherwise. \
+                This adds a new attribute to the FlowFile whose name is equal to the property name.
+
+                Connect the 'success' Relationship to RouteOnAttribute.
+                """
+        ),
+        @ProcessorConfiguration(
+            processorClass = RouteOnAttribute.class,
+            configuration = """
+                Set "Routing Strategy" to "Route to Property name"
+
+                Add two additional properties. For the first one, the name of the property should describe data that matches the criteria. \
+                The value is an Expression Language expression that checks if the attribute added by the PartitionRecord processor has a value of `true`. \
+                For example, `${criteria:equals('true')}`.
+                The second property should have a name that describes data that does not match the criteria. The value is an Expression Language that evaluates to the \
+                opposite of the first property value. For example, `${criteria:equals('true'):not()}`.
+
+                Connect each of the newly created Relationships to the appropriate downstream processors.
+                """
+        )
+    }
 )
 public class RouteOnAttribute extends AbstractProcessor {
 

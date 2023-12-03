@@ -60,22 +60,21 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"update", "record", "generic", "schema", "json", "csv", "avro", "log", "logs", "freeform", "text"})
 @CapabilityDescription("Updates the contents of a FlowFile that contains Record-oriented data (i.e., data that can be read via a RecordReader and written by a RecordWriter). "
-    + "This Processor requires that at least one user-defined Property be added. The name of the Property should indicate a RecordPath that determines the field that should "
-    + "be updated. The value of the Property is either a replacement value (optionally making use of the Expression Language) or is itself a RecordPath that extracts a value from "
-    + "the Record. Whether the Property value is determined to be a RecordPath or a literal value depends on the configuration of the <Replacement Value Strategy> Property.")
+                       + "This Processor requires that at least one user-defined Property be added. The name of the Property should indicate a RecordPath that determines the field that should "
+                       + "be updated. The value of the Property is either a replacement value (optionally making use of the Expression Language) or is itself a RecordPath that extracts a value from "
+                       + "the Record. Whether the Property value is determined to be a RecordPath or a literal value depends on the configuration of the <Replacement Value Strategy> Property.")
 @WritesAttributes({
     @WritesAttribute(attribute = "record.index", description = "This attribute provides the current row index and is only available inside the literal value expression."),
     @WritesAttribute(attribute = "record.error.message", description = "This attribute provides on failure the error message encountered by the Reader or Writer.")
 })
 @DynamicProperty(name = "A RecordPath.", value = "The value to use to replace fields in the record that match the RecordPath",
-        description = "Allows users to specify values to use to replace fields in the record that match the RecordPath.",
-        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+    description = "Allows users to specify values to use to replace fields in the record that match the RecordPath.",
+    expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @SeeAlso({ConvertRecord.class})
 @UseCase(
     description = "Combine multiple fields into a single field.",
@@ -124,8 +123,9 @@ import java.util.stream.Stream;
         """
 )
 @UseCase(
-    description = "Change the format of a record field.",
+    description = "Change the format of a record field's value.",
     keywords = {"change", "update", "replace", "insert", "transform", "format", "date/time", "timezone", "expression language"},
+    notes = "Use the RenameRecordField Processor in order to change a field's name.",
     configuration = """
         "Replacement Value Strategy" = "Literal Value"
 
@@ -148,11 +148,11 @@ public class UpdateRecord extends AbstractRecordProcessor {
 
     static final AllowableValue LITERAL_VALUES = new AllowableValue("literal-value", "Literal Value",
         "The value entered for a Property (after Expression Language has been evaluated) is the desired value to update the Record Fields with. Expression Language "
-            + "may reference variables 'field.name', 'field.type', and 'field.value' to access information about the field and the value of the field being evaluated.");
+        + "may reference variables 'field.name', 'field.type', and 'field.value' to access information about the field and the value of the field being evaluated.");
     static final AllowableValue RECORD_PATH_VALUES = new AllowableValue("record-path-value", "Record Path Value",
         "The value entered for a Property (after Expression Language has been evaluated) is not the literal value to use but rather is a Record Path "
-            + "that should be evaluated against the Record, and the result of the RecordPath will be used to update the Record. Note that if this option is selected, "
-            + "and the Record Path results in multiple values for a given Record, the input FlowFile will be routed to the 'failure' Relationship.");
+        + "that should be evaluated against the Record, and the result of the RecordPath will be used to update the Record. Note that if this option is selected, "
+        + "and the Record Path results in multiple values for a given Record, the input FlowFile will be routed to the 'failure' Relationship.");
 
     static final PropertyDescriptor REPLACEMENT_VALUE_STRATEGY = new PropertyDescriptor.Builder()
         .name("Replacement Value Strategy")
@@ -358,3 +358,4 @@ public class UpdateRecord extends AbstractRecordProcessor {
         }
     }
 }
+
