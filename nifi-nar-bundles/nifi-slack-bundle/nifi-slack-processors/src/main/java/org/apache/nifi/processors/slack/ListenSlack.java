@@ -71,7 +71,7 @@ import java.util.regex.Pattern;
 @WritesAttributes({
     @WritesAttribute(attribute = "mime.type", description = "Set to application/json, as the output will always be in JSON format")
 })
-@SeeAlso({ConsumeSlack.class, PostSlack.class, PutSlack.class})
+@SeeAlso({ConsumeSlack.class})
 @Tags({"slack", "real-time", "event", "message", "command", "listen", "receive", "social media", "team", "text", "unstructured"})
 @CapabilityDescription("Retrieves real-time messages or Slack commands from one or more Slack conversations. The messages are written out in JSON format. " +
     "Note that this Processor should be used to obtain real-time messages and commands from Slack and does not provide a mechanism for obtaining historical messages. " +

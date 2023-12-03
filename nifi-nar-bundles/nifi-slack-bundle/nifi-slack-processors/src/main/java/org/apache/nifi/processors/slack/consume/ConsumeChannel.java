@@ -48,6 +48,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processors.slack.util.SlackResponseUtil;
 
 public class ConsumeChannel {
     private static final String CONVERSATION_HISTORY_URL = "https://slack.com/api/conversations.history";
@@ -140,7 +141,7 @@ public class ConsumeChannel {
                 .build();
         }
 
-        final String errorMessage = ConsumeSlackUtil.getErrorMessage(response.getError(), response.getNeeded(), response.getProvided(), response.getWarning());
+        final String errorMessage = SlackResponseUtil.getErrorMessage(response.getError(), response.getNeeded(), response.getProvided(), response.getWarning());
         return new ConfigVerificationResult.Builder()
             .verificationStepName("Check authorization for Channel " + channelId)
             .outcome(ConfigVerificationResult.Outcome.FAILED)
@@ -422,7 +423,7 @@ public class ConsumeChannel {
         // Gather slack conversation history
         final ConversationsHistoryResponse response = client.fetchConversationsHistory(request);
         if (!response.isOk()) {
-            final String error = ConsumeSlackUtil.getErrorMessage(response.getError(), response.getNeeded(), response.getProvided(), response.getWarning());
+            final String error = SlackResponseUtil.getErrorMessage(response.getError(), response.getNeeded(), response.getProvided(), response.getWarning());
             logger.error("Received unexpected response from Slack when attempting to retrieve messages for channel {}: {}", channelId, error);
             context.yield();
             return new StandardConsumptionResults(null, null, null, true, false, false);
@@ -479,7 +480,7 @@ public class ConsumeChannel {
                 }
 
                 // Simple case is that we need to output only the message.
-                if (!ConsumeSlackUtil.hasReplies(message)) {
+                if (!SlackResponseUtil.hasReplies(message)) {
                     continue;
                 }
 
@@ -611,8 +612,8 @@ public class ConsumeChannel {
 
 
     private void yieldOnException(final PartialThreadException e, final String channelId, final Message message, final ProcessContext context) {
-        if (ConsumeSlackUtil.isRateLimited(e.getCause())) {
-            final int retryAfterSeconds = ConsumeSlackUtil.getRetryAfterSeconds(e);
+        if (SlackResponseUtil.isRateLimited(e.getCause())) {
+            final int retryAfterSeconds = SlackResponseUtil.getRetryAfterSeconds(e);
             logger.warn("Slack indicated that the Rate Limit has been exceeded when attempting to retrieve messages for channel {}; will continue in {} seconds",
                 channelId, retryAfterSeconds);
         } else {
@@ -620,7 +621,7 @@ public class ConsumeChannel {
                 message.getThreadTs(), e.getMessage(), e);
         }
 
-        final int retryAfterSeconds = ConsumeSlackUtil.getRetryAfterSeconds(e);
+        final int retryAfterSeconds = SlackResponseUtil.getRetryAfterSeconds(e);
         final long timeOfNextRequest = System.currentTimeMillis() + (retryAfterSeconds * 1000L);
         nextRequestTime.getAndUpdate(currentTime -> Math.max(currentTime, timeOfNextRequest));
         context.yield();
@@ -662,7 +663,7 @@ public class ConsumeChannel {
             }
 
             if (!response.isOk()) {
-                final String errorMessage = ConsumeSlackUtil.getErrorMessage(response.getError(), response.getNeeded(), response.getProvided(), response.getWarning());
+                final String errorMessage = SlackResponseUtil.getErrorMessage(response.getError(), response.getNeeded(), response.getProvided(), response.getWarning());
                 throw new PartialThreadException(replies, cursor, errorMessage);
             }
 

@@ -14,15 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.slack.consume;
+package org.apache.nifi.processors.slack.util;
 
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.model.Message;
+import org.apache.nifi.processors.slack.consume.PartialThreadException;
 import org.apache.nifi.util.StringUtils;
 
 import java.util.Objects;
 
-public class ConsumeSlackUtil {
+public class SlackResponseUtil {
     public static String getErrorMessage(final String error, final String needed, final String provided, final String warning) {
         final String mainMessage = Objects.requireNonNullElse(error, warning);
 
@@ -59,12 +60,5 @@ public class ConsumeSlackUtil {
     public static boolean hasReplies(final Message message) {
         final String threadTs = message.getThreadTs();
         return !StringUtils.isEmpty(threadTs);
-    }
-
-    public static void main(final String[] args) {
-        final String ts = "1694011369.515799";
-        final double d = Double.parseDouble(ts);
-        final long l = (long) (d * 1000D);
-        System.out.println(new java.util.Date(l));
     }
 }
