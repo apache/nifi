@@ -306,7 +306,7 @@ public class GenerateRecord extends AbstractProcessor {
             case BOOLEAN:
                 return FakerUtils.getFakeData("Bool.bool", faker);
             case BYTE:
-                return faker.number().numberBetween(Byte.MIN_VALUE, Byte.MAX_VALUE);
+                return (byte) faker.number().numberBetween(Byte.MIN_VALUE, Byte.MAX_VALUE);
             case CHAR:
                 return (char) faker.number().numberBetween(Character.MIN_VALUE, Character.MAX_VALUE);
             case DATE:
