@@ -17,7 +17,7 @@
 # under the License.
 #
 
-ARG IMAGE_NAME=bellsoft/liberica-openjdk-debian
+ARG IMAGE_NAME=bellsoft/liberica-openjdk-alpine
 ARG IMAGE_TAG=21
 FROM ${IMAGE_NAME}:${IMAGE_TAG}
 ARG MAINTAINER="Apache NiFi <dev@nifi.apache.org>"
@@ -41,22 +41,15 @@ ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 
 ADD sh/ ${NIFI_BASE_DIR}/scripts/
 RUN chmod -R +x ${NIFI_BASE_DIR}/scripts/*.sh \
-   && apt-get update \
-   && apt-get install -y unzip
+   && apk update \
+   && apk add --no-cache --no-interactive --no-progress coreutils unzip curl jq \
+        xmlstarlet procps-ng python3 py3-pip py3-virtualenv ripgrep
 
 # Setup NiFi user and create necessary directories
-RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -f1` \
-    && useradd --shell /bin/bash -u ${UID} -g ${GID} -m nifi \
+RUN addgroup -g ${GID} nifi \
+    && adduser -S --shell /bin/bash -u ${UID} -G nifi nifi \
     && mkdir -p ${NIFI_BASE_DIR} \
-    && chown -R nifi:nifi ${NIFI_BASE_DIR} \
-    && apt-get update \
-    && apt-get install -y jq xmlstarlet procps unzip \
-    && apt-get install -y python3 \
-    && apt-get install -y python3-pip \
-    && apt-get install -y python3-venv \
-    && apt-get -y autoremove \
-    && apt-get clean autoclean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    && chown -R nifi:nifi ${NIFI_BASE_DIR}
 
 USER nifi
 
