@@ -38,7 +38,7 @@ public enum TranslationStrategy implements DescribedValue {
 
     @Override
     public String getValue() {
-        return value;
+        return name();
     }
 
     @Override
