@@ -1262,8 +1262,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
 
                 final String normalizedColName = getNormalizedName(fieldName, settings.translateFieldNames,
                         settings.translationStrategy, settings.translationRegex);
-                final ColumnDescription desc = tableSchema.getColumns().get(getNormalizedName(fieldName,
-                        settings.translateFieldNames, settings.translationStrategy, settings.translationRegex));
+                final ColumnDescription desc = tableSchema.getColumns().get(normalizedColName);
                 if (desc == null) {
                     if (!settings.ignoreUnmappedFields) {
                         throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database\n"
