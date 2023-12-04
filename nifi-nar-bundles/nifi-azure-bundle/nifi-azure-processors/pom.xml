@@ -111,12 +111,12 @@
         <dependency>
             <groupId>com.microsoft.azure.kusto</groupId>
             <artifactId>kusto-data</artifactId>
-            <version>5.0.1</version>
+            <version>5.0.3</version>
         </dependency>
         <dependency>
             <groupId>com.microsoft.azure.kusto</groupId>
             <artifactId>kusto-ingest</artifactId>
-            <version>5.0.1</version>
+            <version>5.0.3</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
