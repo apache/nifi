@@ -57,9 +57,9 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.slack.consume.ConsumeChannel;
 import org.apache.nifi.processors.slack.consume.ConsumeSlackClient;
-import org.apache.nifi.processors.slack.consume.ConsumeSlackUtil;
 import org.apache.nifi.processors.slack.consume.UsernameLookup;
 import org.apache.nifi.processors.slack.util.RateLimit;
+import org.apache.nifi.processors.slack.util.SlackResponseUtil;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
@@ -86,7 +86,7 @@ import java.util.concurrent.TimeUnit;
     @WritesAttribute(attribute = "slack.message.count", description = "The number of slack messages that are included in the FlowFile"),
     @WritesAttribute(attribute = "mime.type", description = "Set to application/json, as the output will always be in JSON format")
 })
-@SeeAlso({ListenSlack.class, PostSlack.class, PutSlack.class})
+@SeeAlso({ListenSlack.class})
 @Tags({"slack", "conversation", "conversation.history", "social media", "team", "text", "unstructured"})
 @CapabilityDescription("Retrieves messages from one or more configured Slack channels. The messages are written out in JSON format. " +
     "See Usage / Additional Details for more information about how to configure this Processor and enable it to retrieve messages from Slack.")
@@ -356,13 +356,13 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
 
 
     private void yieldOnException(final Throwable t, final String channelId, final ProcessContext context) {
-        if (ConsumeSlackUtil.isRateLimited(t)) {
+        if (SlackResponseUtil.isRateLimited(t)) {
             getLogger().warn("Slack indicated that the Rate Limit has been exceeded when attempting to retrieve messages for channel {}", channelId);
         } else {
             getLogger().error("Failed to retrieve messages for channel {}", channelId, t);
         }
 
-        final int retryAfterSeconds = ConsumeSlackUtil.getRetryAfterSeconds(t);
+        final int retryAfterSeconds = SlackResponseUtil.getRetryAfterSeconds(t);
         rateLimit.retryAfter(Duration.ofSeconds(retryAfterSeconds));
         context.yield();
     }
@@ -453,7 +453,7 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
                     continue;
                 }
 
-                final String errorMessage = ConsumeSlackUtil.getErrorMessage(response.getError(), response.getNeeded(), response.getProvided(), response.getWarning());
+                final String errorMessage = SlackResponseUtil.getErrorMessage(response.getError(), response.getNeeded(), response.getProvided(), response.getWarning());
                 throw new RuntimeException("Failed to determine Channel IDs: " + errorMessage);
             }
         }

@@ -21,7 +21,6 @@ import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.conversations.ConversationsListRequest;
 import com.slack.api.methods.response.conversations.ConversationsListResponse;
-import org.apache.nifi.processors.slack.consume.ConsumeSlackUtil;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
@@ -81,7 +80,7 @@ public class ChannelMapper {
                 continue;
             }
 
-            final String errorMessage = ConsumeSlackUtil.getErrorMessage(response.getError(), response.getNeeded(), response.getProvided(), response.getWarning());
+            final String errorMessage = SlackResponseUtil.getErrorMessage(response.getError(), response.getNeeded(), response.getProvided(), response.getWarning());
             throw new RuntimeException("Failed to determine Channel IDs: " + errorMessage);
         }
 

@@ -53,7 +53,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.slack.consume.ConsumeSlackUtil;
+import org.apache.nifi.processors.slack.util.SlackResponseUtil;
 import org.apache.nifi.processors.slack.util.ChannelMapper;
 import org.apache.nifi.processors.slack.util.RateLimit;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -393,7 +393,7 @@ public class PublishSlack extends AbstractProcessor {
         }
 
         if (!postMessageResponse.isOk()) {
-            final String errorMessage = ConsumeSlackUtil.getErrorMessage(postMessageResponse.getError(), postMessageResponse.getNeeded(),
+            final String errorMessage = SlackResponseUtil.getErrorMessage(postMessageResponse.getError(), postMessageResponse.getNeeded(),
                 postMessageResponse.getProvided(), postMessageResponse.getWarning());
 
             getLogger().error("Could not send message to Slack for {} - received error: {}", flowFile, errorMessage);
@@ -447,7 +447,7 @@ public class PublishSlack extends AbstractProcessor {
         }
 
         if (!uploadResponse.isOk()) {
-            final String errorMessage = ConsumeSlackUtil.getErrorMessage(uploadResponse.getError(), uploadResponse.getNeeded(),
+            final String errorMessage = SlackResponseUtil.getErrorMessage(uploadResponse.getError(), uploadResponse.getNeeded(),
                 uploadResponse.getProvided(), uploadResponse.getWarning());
 
             getLogger().error("Could not upload contents of {} to Slack - received error: {}", flowFile, errorMessage);
@@ -484,14 +484,14 @@ public class PublishSlack extends AbstractProcessor {
     }
 
     private boolean yieldOnRateLimit(final Throwable t, final String channelId, final ProcessContext context) {
-        final boolean rateLimited = ConsumeSlackUtil.isRateLimited(t);
+        final boolean rateLimited = SlackResponseUtil.isRateLimited(t);
         if (rateLimited) {
             getLogger().warn("Slack indicated that the Rate Limit has been exceeded when attempting to publish messages to channel {}", channelId);
         } else {
             getLogger().error("Failed to retrieve messages for channel {}", channelId, t);
         }
 
-        final int retryAfterSeconds = ConsumeSlackUtil.getRetryAfterSeconds(t);
+        final int retryAfterSeconds = SlackResponseUtil.getRetryAfterSeconds(t);
         rateLimit.retryAfter(Duration.ofSeconds(retryAfterSeconds));
         context.yield();
         return rateLimited;
