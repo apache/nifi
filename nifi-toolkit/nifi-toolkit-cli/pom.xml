@@ -125,7 +125,7 @@
         <dependency>
             <groupId>com.opencsv</groupId>
             <artifactId>opencsv</artifactId>
-            <version>5.8</version>
+            <version>5.9</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-logging</groupId>
