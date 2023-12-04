@@ -16,6 +16,7 @@
  */
 
 package org.apache.nifi.processors.standard.db;
+
 public interface ColumnNameNormalizer {
 
 
