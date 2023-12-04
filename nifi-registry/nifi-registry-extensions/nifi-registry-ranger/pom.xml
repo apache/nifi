@@ -32,22 +32,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- Override jetty-server:9.4.20 -->
-            <dependency>
-                <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-server</artifactId>
-                <version>${jetty.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-servlet</artifactId>
-                <version>${jetty.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-webapp</artifactId>
-                <version>${jetty.version}</version>
-            </dependency>
             <!-- Override SolrJ 8.6.3 from Ranger -->
             <dependency>
                 <groupId>org.apache.solr</groupId>

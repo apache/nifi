@@ -19,6 +19,7 @@ package org.apache.nifi.registry;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.web.context.ServletContextAware;
 
 import jakarta.servlet.ServletContext;
@@ -28,6 +29,7 @@ import jakarta.servlet.ServletContext;
  * obtains that instance and makes it available to inject to all other places.
  *
  */
+@Profile("default")
 @Configuration
 public class NiFiRegistryPropertiesFactory implements ServletContextAware {
 

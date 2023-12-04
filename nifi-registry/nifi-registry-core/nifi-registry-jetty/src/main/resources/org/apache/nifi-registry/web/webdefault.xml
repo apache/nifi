@@ -42,34 +42,6 @@
         Default web.xml file.  
         This file is applied to a Web application before it's own WEB_INF/web.xml file
     </description>
-  
-    <!-- ==================================================================== -->
-    <!-- Removes static cache of Methods from java.beans.Introspector to      -->
-    <!-- ensure webapp classloader can be released on undeploy                -->
-    <!-- ==================================================================== -->  
-    <listener>
-        <listener-class>org.eclipse.jetty.servlet.listener.IntrospectorCleaner</listener-class>
-    </listener>
-  
-
-    <!-- ==================================================================== -->
-    <!-- Context params to control Session Cookies                            -->
-    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -->
-    <!--
-      UNCOMMENT TO ACTIVATE 
-      <context-param> 
-        <param-name>org.eclipse.jetty.servlet.SessionDomain</param-name> 
-        <param-value>127.0.0.1</param-value> 
-      </context-param> 
-      <context-param>
-        <param-name>org.eclipse.jetty.servlet.SessionPath</param-name>
-        <param-value>/</param-value>
-      </context-param>
-      <context-param>
-        <param-name>org.eclipse.jetty.servlet.MaxAge</param-name>
-        <param-value>-1</param-value>
-      </context-param>
-    -->
 
     <!-- ==================================================================== -->
     <!-- The default servlet.                                                 -->
@@ -139,7 +111,7 @@
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -->
     <servlet>
         <servlet-name>default</servlet-name>
-        <servlet-class>org.eclipse.jetty.servlet.DefaultServlet</servlet-class>
+        <servlet-class>org.eclipse.jetty.ee10.servlet.DefaultServlet</servlet-class>
         <init-param>
             <param-name>aliases</param-name>
             <param-value>false</param-value>
@@ -184,18 +156,6 @@
             <param-name>useFileMappedBuffer</param-name>
             <param-value>true</param-value>
         </init-param>
-        <!--
-        <init-param>
-          <param-name>resourceCache</param-name>
-          <param-value>resourceCache</param-value>
-        </init-param>
-        -->
-        <!--
-        <init-param>
-          <param-name>cacheControl</param-name>
-          <param-value>max-age=3600,public</param-value>
-        </init-param>
-        -->
         <load-on-startup>0</load-on-startup>
     </servlet>
 

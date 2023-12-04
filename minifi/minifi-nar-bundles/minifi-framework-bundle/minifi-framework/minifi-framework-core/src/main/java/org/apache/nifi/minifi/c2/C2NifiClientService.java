@@ -46,6 +46,8 @@ import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_TR
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_TRUSTSTORE_PASSWORD;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_SECURITY_TRUSTSTORE_TYPE;
 import static org.apache.nifi.util.NiFiProperties.FLOW_CONFIGURATION_FILE;
+import static org.apache.nifi.util.NiFiProperties.SENSITIVE_PROPS_ALGORITHM;
+import static org.apache.nifi.util.NiFiProperties.SENSITIVE_PROPS_KEY;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -87,6 +89,7 @@ import org.apache.nifi.c2.protocol.api.FlowQueueStatus;
 import org.apache.nifi.c2.serializer.C2JacksonSerializer;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
+import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
 import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
 import org.apache.nifi.extension.manifest.parser.jaxb.JAXBExtensionManifestParser;
 import org.apache.nifi.manifest.RuntimeManifestService;
@@ -97,7 +100,10 @@ import org.apache.nifi.minifi.c2.command.TransferDebugCommandHelper;
 import org.apache.nifi.minifi.c2.command.UpdateAssetCommandHelper;
 import org.apache.nifi.minifi.c2.command.UpdatePropertiesPropertyProvider;
 import org.apache.nifi.minifi.commons.api.MiNiFiCommandState;
-import org.apache.nifi.minifi.commons.service.FlowEnrichService;
+import org.apache.nifi.minifi.commons.service.FlowPropertyEncryptor;
+import org.apache.nifi.minifi.commons.service.StandardFlowEnrichService;
+import org.apache.nifi.minifi.commons.service.StandardFlowPropertyEncryptor;
+import org.apache.nifi.minifi.commons.service.StandardFlowSerDeService;
 import org.apache.nifi.nar.ExtensionManagerHolder;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.FormatUtils;
@@ -214,9 +220,13 @@ public class C2NifiClientService {
         UpdatePropertiesPropertyProvider updatePropertiesPropertyProvider = new UpdatePropertiesPropertyProvider(bootstrapConfigFileLocation);
         PropertiesPersister propertiesPersister = new PropertiesPersister(updatePropertiesPropertyProvider, bootstrapConfigFileLocation);
 
-        FlowEnrichService flowEnrichService = new FlowEnrichService(niFiProperties);
-        UpdateConfigurationStrategy updateConfigurationStrategy =
-            new DefaultUpdateConfigurationStrategy(flowController, flowService, flowEnrichService, niFiProperties.getProperty(FLOW_CONFIGURATION_FILE));
+        FlowPropertyEncryptor flowPropertyEncryptor = new StandardFlowPropertyEncryptor(
+            new PropertyEncryptorBuilder(niFiProperties.getProperty(SENSITIVE_PROPS_KEY))
+                .setAlgorithm(niFiProperties.getProperty(SENSITIVE_PROPS_ALGORITHM)).build(),
+            runtimeManifestService.getManifest());
+        UpdateConfigurationStrategy updateConfigurationStrategy = new DefaultUpdateConfigurationStrategy(flowController, flowService,
+            new StandardFlowEnrichService(niFiProperties), flowPropertyEncryptor,
+            StandardFlowSerDeService.defaultInstance(), niFiProperties.getProperty(FLOW_CONFIGURATION_FILE));
 
         return new C2OperationHandlerProvider(List.of(
             new UpdateConfigurationOperationHandler(client, flowIdHolder, updateConfigurationStrategy, emptyOperandPropertiesProvider),

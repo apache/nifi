@@ -46,7 +46,8 @@ import org.apache.nifi.minifi.bootstrap.service.ReloadService;
 import org.apache.nifi.minifi.bootstrap.util.ProcessUtils;
 import org.apache.nifi.minifi.bootstrap.util.UnixProcessUtils;
 import org.apache.nifi.minifi.commons.api.MiNiFiCommandState;
-import org.apache.nifi.minifi.commons.service.FlowEnrichService;
+import org.apache.nifi.minifi.commons.service.StandardFlowEnrichService;
+import org.apache.nifi.minifi.commons.service.StandardFlowSerDeService;
 import org.apache.nifi.properties.ApplicationProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,7 +118,7 @@ public class RunMiNiFi implements ConfigurationFileHolder {
         periodicStatusReporterManager =
             new PeriodicStatusReporterManager(bootstrapProperties, miNiFiStatusProvider, miNiFiCommandSender, miNiFiParameters);
         MiNiFiConfigurationChangeListener configurationChangeListener = new MiNiFiConfigurationChangeListener(this, DEFAULT_LOGGER, bootstrapFileProvider,
-            new FlowEnrichService(new ApplicationProperties(bootstrapProperties)));
+            new StandardFlowEnrichService(new ApplicationProperties(bootstrapProperties)), StandardFlowSerDeService.defaultInstance());
         configurationChangeCoordinator = new ConfigurationChangeCoordinator(bootstrapFileProvider, this, singleton(configurationChangeListener));
 
         currentPortProvider = new CurrentPortProvider(miNiFiCommandSender, miNiFiParameters, processUtils);

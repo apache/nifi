@@ -1532,6 +1532,9 @@ public final class DtoFactory {
 
        final ParameterContext containingParameterContext = (parameter.getParameterContextId() == null)
                ? parameterContext : parameterContextLookup.getParameterContext(parameter.getParameterContextId());
+
+       dto.setInherited(!containingParameterContext.getIdentifier().equals(parameterContext.getIdentifier()));
+
        ParameterContextReferenceDTO refDto = createParameterContextReference(containingParameterContext);
        dto.setParameterContext(entityFactory.createParameterReferenceEntity(refDto, createPermissionsDto(containingParameterContext)));
 
@@ -1839,7 +1842,6 @@ public final class DtoFactory {
        Collection<ValidationResult> validationErrors = null;
        if (component instanceof ProcessorNode) {
            final ProcessorNode node = ((ProcessorNode) component);
-           dto.setGroupId(node.getProcessGroup().getIdentifier());
            dto.setState(node.getScheduledState().name());
            dto.setActiveThreadCount(node.getActiveThreadCount());
            dto.setType(node.getComponentType());
@@ -1916,6 +1918,7 @@ public final class DtoFactory {
        orderedProperties.putAll(sortedProperties);
 
        // build the descriptor and property dtos
+       dto.setGroupId(processGroupId);
        dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
        dto.setProperties(new LinkedHashMap<String, String>());
        for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
@@ -2088,7 +2091,7 @@ public final class DtoFactory {
     * @param group group
     * @return dto
     */
-   private FlowBreadcrumbEntity createBreadcrumbEntity(final ProcessGroup group) {
+   public FlowBreadcrumbEntity createBreadcrumbEntity(final ProcessGroup group) {
        if (group == null) {
            return null;
        }

@@ -26,7 +26,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @Testcontainers
 public class AbstractMongoIT {
-    private static final String DOCKER_IMAGE = System.getProperty("mongo.docker.image");
+    private static final String DOCKER_IMAGE = System.getProperty("mongo.docker.image", "mongo:5");
     @Container
     protected static final MongoDBContainer MONGO_CONTAINER = new MongoDBContainer(DockerImageName.parse(DOCKER_IMAGE));
 }

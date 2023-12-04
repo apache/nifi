@@ -20,12 +20,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.apache.nifi.registry.security.crypto.CryptoKeyProvider;
 import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.handler.HandlerCollection;
-import org.eclipse.jetty.servlet.DefaultServlet;
-import org.eclipse.jetty.servlet.ErrorPageErrorHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.webapp.WebAppClassLoader;
-import org.eclipse.jetty.webapp.WebAppContext;
+import org.eclipse.jetty.server.handler.ContextHandlerCollection;
+import org.eclipse.jetty.ee10.servlet.DefaultServlet;
+import org.eclipse.jetty.ee10.servlet.ErrorPageErrorHandler;
+import org.eclipse.jetty.ee10.servlet.ServletHolder;
+import org.eclipse.jetty.ee10.webapp.WebAppClassLoader;
+import org.eclipse.jetty.ee10.webapp.WebAppContext;
 
 import java.io.File;
 import java.io.IOException;
@@ -101,7 +101,7 @@ public class StandardHandlerProvider implements HandlerProvider {
         final File libDirectory = properties.getWarLibDirectory();
         final File workDirectory = properties.getWebWorkingDirectory();
 
-        final HandlerCollection handlers = new HandlerCollection();
+        final Handler.Collection handlers = new ContextHandlerCollection();
         // Add Header Writer Handler before others
         handlers.addHandler(new HeaderWriterHandler());
 
@@ -158,12 +158,8 @@ public class StandardHandlerProvider implements HandlerProvider {
         final File tempDirectory = getTempDirectory(workDirectory, applicationFile.getName());
         webAppContext.setTempDirectory(tempDirectory);
 
-        try {
-            final WebAppClassLoader webAppClassLoader = new WebAppClassLoader(parentClassLoader, webAppContext);
-            webAppContext.setClassLoader(webAppClassLoader);
-        } catch (final IOException e) {
-            throw new IllegalStateException(String.format("Application Context Path [%s] ClassLoader creation failed", contextPath), e);
-        }
+        final WebAppClassLoader webAppClassLoader = new WebAppClassLoader(parentClassLoader, webAppContext);
+        webAppContext.setClassLoader(webAppClassLoader);
 
         return webAppContext;
     }

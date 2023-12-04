@@ -14,11 +14,11 @@
 # limitations under the License.
 
 from langchain.vectorstores import Pinecone
-from langchain.embeddings.openai import OpenAIEmbeddings
 from nifiapi.flowfiletransform import FlowFileTransform, FlowFileTransformResult
-from nifiapi.properties import PropertyDescriptor, StandardValidators, ExpressionLanguageScope
+from nifiapi.properties import PropertyDescriptor, StandardValidators, ExpressionLanguageScope, PropertyDependency
 import pinecone
 import json
+from EmbeddingUtils import OPENAI, HUGGING_FACE, EMBEDDING_MODEL, create_embedding_service
 
 
 class PutPinecone(FlowFileTransform):
@@ -31,7 +31,6 @@ class PutPinecone(FlowFileTransform):
                        The text must be a string, while metadata must be a map with strings for values. Any additional fields will be ignored."""
         tags = ["pinecone", "vector", "vectordb", "vectorstore", "embeddings", "ai", "artificial intelligence", "ml", "machine learning", "text", "LLM"]
 
-
     PINECONE_API_KEY = PropertyDescriptor(
         name="Pinecone API Key",
         description="The API Key to use in order to authentication with Pinecone",
@@ -39,12 +38,37 @@ class PutPinecone(FlowFileTransform):
         required=True,
         validators=[StandardValidators.NON_EMPTY_VALIDATOR]
     )
+    HUGGING_FACE_API_KEY = PropertyDescriptor(
+        name="HuggingFace API Key",
+        description="The API Key for interacting with HuggingFace",
+        validators=[StandardValidators.NON_EMPTY_VALIDATOR],
+        required=True,
+        sensitive=True,
+        dependencies=[PropertyDependency(EMBEDDING_MODEL, HUGGING_FACE)]
+    )
+    HUGGING_FACE_MODEL = PropertyDescriptor(
+        name="HuggingFace Model",
+        description="The name of the HuggingFace model to use",
+        validators=[StandardValidators.NON_EMPTY_VALIDATOR],
+        required=True,
+        default_value="sentence-transformers/all-MiniLM-L6-v2",
+        dependencies=[PropertyDependency(EMBEDDING_MODEL, HUGGING_FACE)]
+    )
     OPENAI_API_KEY = PropertyDescriptor(
         name="OpenAI API Key",
         description="The API Key for OpenAI in order to create embeddings",
         sensitive=True,
         required=True,
-        validators=[StandardValidators.NON_EMPTY_VALIDATOR]
+        validators=[StandardValidators.NON_EMPTY_VALIDATOR],
+        dependencies=[PropertyDependency(EMBEDDING_MODEL, OPENAI)]
+    )
+    OPENAI_API_MODEL = PropertyDescriptor(
+        name="OpenAI Model",
+        description="The API Key for OpenAI in order to create embeddings",
+        required=True,
+        validators=[StandardValidators.NON_EMPTY_VALIDATOR],
+        default_value="text-embedding-ada-002",
+        dependencies=[PropertyDependency(EMBEDDING_MODEL, OPENAI)]
     )
     PINECONE_ENV = PropertyDescriptor(
         name="Pinecone Environment",
@@ -78,15 +102,19 @@ class PutPinecone(FlowFileTransform):
     )
     DOC_ID_FIELD_NAME = PropertyDescriptor(
         name="Document ID Field Name",
-        description="Specifies the name of the field in the 'metadata' element of each document where the document's ID can be found. " +
-                    "If not specified, an ID will be generated based on the FlowFile's filename and a one-up number.",
+        description="""Specifies the name of the field in the 'metadata' element of each document where the document's ID can be found.  
+                    If not specified, an ID will be generated based on the FlowFile's filename and a one-up number.""",
         required=False,
         validators=[StandardValidators.NON_EMPTY_VALIDATOR],
         expression_language_scope=ExpressionLanguageScope.FLOWFILE_ATTRIBUTES
     )
 
     properties = [PINECONE_API_KEY,
+                  EMBEDDING_MODEL,
                   OPENAI_API_KEY,
+                  OPENAI_API_MODEL,
+                  HUGGING_FACE_API_KEY,
+                  HUGGING_FACE_MODEL,
                   PINECONE_ENV,
                   INDEX_NAME,
                   TEXT_KEY,
@@ -110,9 +138,8 @@ class PutPinecone(FlowFileTransform):
             api_key=api_key,
             environment=pinecone_env,
         )
-        openai_api_key = context.getProperty(self.OPENAI_API_KEY).getValue()
-        self.embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
 
+        self.embeddings = create_embedding_service(context)
 
     def transform(self, context, flowfile):
         # First, check if our index already exists. If it doesn't, we create it
@@ -158,4 +185,4 @@ class PutPinecone(FlowFileTransform):
         text_key = context.getProperty(self.TEXT_KEY).evaluateAttributeExpressions().getValue()
         vectorstore = Pinecone(index, self.embeddings.embed_query, text_key)
         vectorstore.add_texts(texts=texts, metadatas=metadatas, ids=ids, namespace=namespace)
-        return FlowFileTransformResult(relationship = "success")
+        return FlowFileTransformResult(relationship="success")
