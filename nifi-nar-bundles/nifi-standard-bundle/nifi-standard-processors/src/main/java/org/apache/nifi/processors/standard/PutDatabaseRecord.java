@@ -258,7 +258,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
             .dependsOn(TRANSLATE_FIELD_NAMES, TRANSLATE_FIELD_NAMES.getDefaultValue())
             .build();
 
-    public static final PropertyDescriptor TRANSLATION_REGEX = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor TRANSLATION_PATTERN = new PropertyDescriptor.Builder()
             .required(true)
             .name("Column Name Translation Pattern")
             .description("Column name will be normalized with this regular expression")
