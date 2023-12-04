@@ -181,7 +181,7 @@ public class UpdateDatabaseTable extends AbstractProcessor implements ColumnName
             .build();
     public static final PropertyDescriptor TRANSLATION_STRATEGY = new PropertyDescriptor.Builder()
             .required(true)
-            .name("Translation Strategy")
+            .name("Column Name Translation Strategy")
             .description("The strategy used to normalize table column name")
             .allowableValues(TranslationStrategy.class)
             .defaultValue(TranslationStrategy.REMOVE_UNDERSCORE.getValue())
