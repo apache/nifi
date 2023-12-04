@@ -1303,8 +1303,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
 
                 final String normalizedColName = getNormalizedName(fieldName,
                         settings.translateFieldNames, settings.translationStrategy, settings.translationRegex);
-                final ColumnDescription desc = tableSchema.getColumns().get(getNormalizedName(fieldName,
-                        settings.translateFieldNames, settings.translationStrategy, settings.translationRegex));
+                final ColumnDescription desc = tableSchema.getColumns().get(normalizedColName);
                 if (desc != null) {
 
                     // Check if this column is a Update Key. If so, add it to the WHERE clause
