@@ -28,7 +28,7 @@ public interface ColumnNameNormalizer {
      * @param translationRegex Regex For translation
      * @return The normalized column name as a String.
      */
-    default String getNormalizedName(final String colName,boolean isTranslationEnabled, TranslationStrategy strategy, String translationRegex) {
+    default String getNormalizedName(String colName, boolean translationEnabled, TranslationStrategy strategy, Pattern translationPattern) {
         return ColumnNameNormalizerUtility.getNormalizedName(colName,isTranslationEnabled,strategy,translationRegex);
     }
 
