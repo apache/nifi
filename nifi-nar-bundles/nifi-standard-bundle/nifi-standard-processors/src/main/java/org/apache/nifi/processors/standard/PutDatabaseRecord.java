@@ -260,8 +260,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
 
     public static final PropertyDescriptor TRANSLATION_REGEX = new PropertyDescriptor.Builder()
             .required(true)
-            .name("translation-regex")
-            .displayName("Translation Regular Expression")
+            .name("Column Name Translation Pattern")
             .description("Column name will be normalized with this regular expression")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
