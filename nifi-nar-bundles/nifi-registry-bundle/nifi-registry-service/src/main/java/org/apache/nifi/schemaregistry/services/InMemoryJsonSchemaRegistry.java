@@ -58,9 +58,11 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
         description = "Adds a named schema using the JSON string representation of a JSON schema",
         expressionLanguageScope = ExpressionLanguageScope.NONE)
 public class InMemoryJsonSchemaRegistry extends AbstractControllerService implements JsonSchemaRegistry, JsonSchemaRegistryComponent {
+
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.singletonList(SCHEMA_VERSION);
+
     private final ConcurrentMap<String, JsonSchema> jsonSchemas;
     private final ConcurrentMap<SchemaVersion, JsonSchemaFactory> schemaFactories;
-    private final List<PropertyDescriptor> propertyDescriptors;
     private volatile SchemaVersion schemaVersion;
 
     public InMemoryJsonSchemaRegistry() {
@@ -68,7 +70,6 @@ public class InMemoryJsonSchemaRegistry extends AbstractControllerService implem
         schemaFactories = Arrays.stream(SchemaVersion.values())
                 .collect(Collectors.toConcurrentMap(Function.identity(),
                         schemaDraftVersion -> JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.fromId(schemaDraftVersion.getUri()).get())));
-        propertyDescriptors = Collections.singletonList(SCHEMA_VERSION);
         schemaVersion = SchemaVersion.valueOf(SCHEMA_VERSION.getDefaultValue());
     }
 
@@ -139,7 +140,7 @@ public class InMemoryJsonSchemaRegistry extends AbstractControllerService implem
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
