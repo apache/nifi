@@ -189,8 +189,8 @@ public class UpdateDatabaseTable extends AbstractProcessor implements ColumnName
             .build();
 
     public static final PropertyDescriptor TRANSLATION_REGEX = new PropertyDescriptor.Builder()
-            .name("translation-regex")
-            .displayName("Translation Regular Expression")
+            .name("Column Name Translation Pattern")
+            .displayName("Column Name Translation Pattern")
             .description("Column name will be normalized with this regular expression")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
