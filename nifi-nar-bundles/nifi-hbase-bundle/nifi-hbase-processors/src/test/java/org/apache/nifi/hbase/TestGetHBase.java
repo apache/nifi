@@ -45,8 +45,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -140,7 +138,7 @@ public class TestGetHBase {
     }
 
     @Test
-    public void testPersistAndRecoverFromLocalState() throws InitializationException {
+    public void testPersistAndRecoverFromLocalState() {
         final File stateFile = new File("target/test-recover-state.bin");
         if (!stateFile.delete() && stateFile.exists()) {
             fail("Could not delete state file " + stateFile);
@@ -178,7 +176,7 @@ public class TestGetHBase {
     }
 
     @Test
-    public void testBecomePrimaryWithNoLocalState() throws InitializationException {
+    public void testBecomePrimaryWithNoLocalState() {
         final long now = System.currentTimeMillis();
 
         final Map<String, String> cells = new HashMap<>();
@@ -491,7 +489,7 @@ public class TestGetHBase {
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
         }
 
         @Override
@@ -500,23 +498,5 @@ public class TestGetHBase {
             values.remove(key);
             return true;
         }
-
-        @Override
-        public long removeByPattern(String regex) throws IOException {
-            verifyNotFail();
-            final List<Object> removedRecords = new ArrayList<>();
-            Pattern p = Pattern.compile(regex);
-            for (Object key : values.keySet()) {
-                // Key must be backed by something that array() returns a byte[] that can be converted into a String via the default charset
-                Matcher m = p.matcher(key.toString());
-                if (m.matches()) {
-                    removedRecords.add(values.get(key));
-                }
-            }
-            final long numRemoved = removedRecords.size();
-            removedRecords.forEach(values::remove);
-            return numRemoved;
-        }
     }
-
 }

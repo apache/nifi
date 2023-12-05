@@ -155,25 +155,6 @@ public class PersistentMapCache implements MapCache {
     }
 
     @Override
-    public Map<ByteBuffer, ByteBuffer> removeByPattern(final String regex) throws IOException {
-        final Map<ByteBuffer, ByteBuffer> removeResult = wrapped.removeByPattern(regex);
-        if (removeResult != null) {
-            final List<MapWaliRecord> records = new ArrayList<>(removeResult.size());
-            for(Map.Entry<ByteBuffer, ByteBuffer> entry : removeResult.entrySet()) {
-                final MapWaliRecord record = new MapWaliRecord(UpdateType.DELETE, entry.getKey(), entry.getValue());
-                records.add(record);
-                wali.update(records, false);
-
-                final long modCount = modifications.getAndIncrement();
-                if (modCount > 0 && modCount % 1000 == 0) {
-                    wali.checkpoint();
-                }
-            }
-        }
-        return removeResult;
-    }
-
-    @Override
     public Set<ByteBuffer> keySet() throws IOException {
         return wrapped.keySet();
     }
@@ -255,7 +236,7 @@ public class PersistentMapCache implements MapCache {
 
         @Override
         public MapWaliRecord deserializeRecord(final DataInputStream in, final int version) throws IOException {
-            return deserializeEdit(in, new HashMap<Object, MapWaliRecord>(), version);
+            return deserializeEdit(in, new HashMap<>(), version);
         }
 
         @Override
@@ -281,7 +262,7 @@ public class PersistentMapCache implements MapCache {
 
     private static class SerdeFactory implements SerDeFactory<MapWaliRecord> {
 
-        private Serde serde;
+        private final Serde serde;
 
         public SerdeFactory() {
             this.serde = new Serde();

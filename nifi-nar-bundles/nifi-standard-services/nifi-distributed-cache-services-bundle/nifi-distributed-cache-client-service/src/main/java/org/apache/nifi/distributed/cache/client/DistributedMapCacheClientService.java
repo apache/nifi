@@ -26,7 +26,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.distributed.cache.client.adapter.AtomicCacheEntryInboundAdapter;
-import org.apache.nifi.distributed.cache.client.adapter.MapInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.MapValuesInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.SetInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.ValueInboundAdapter;
@@ -182,19 +181,6 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         final byte[] bytesKey = CacheClientSerde.serialize(key, keySerializer);
         final ValueInboundAdapter<V> inboundAdapter = new ValueInboundAdapter<>(valueDeserializer);
         return cacheClient.removeAndGet(bytesKey, inboundAdapter);
-    }
-
-    @Override
-    public long removeByPattern(String regex) throws IOException {
-        return cacheClient.removeByPattern(regex);
-    }
-
-    @Override
-    public <K, V> Map<K, V> removeByPatternAndGet(String regex, Deserializer<K> keyDeserializer,
-                                                  Deserializer<V> valueDeserializer) throws IOException {
-        final MapInboundAdapter<K, V> inboundAdapter =
-                new MapInboundAdapter<>(keyDeserializer, valueDeserializer, new HashMap<>());
-        return cacheClient.removeByPatternAndGet(regex, inboundAdapter);
     }
 
     @Override

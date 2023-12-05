@@ -57,10 +57,6 @@ public class MapCacheRequestDecoder extends CacheRequestDecoder {
             request = new MapCacheRequest(cacheOperation);
         } else if (MapOperation.REMOVE == cacheOperation) {
             request = readKeyRequest(cacheOperation, byteBuf);
-        } else if (MapOperation.REMOVE_BY_PATTERN == cacheOperation) {
-            request = readPatternRequest(cacheOperation, byteBuf);
-        } else if (MapOperation.REMOVE_BY_PATTERN_AND_GET == cacheOperation) {
-            request = readPatternRequest(cacheOperation, byteBuf);
         } else if (MapOperation.REMOVE_AND_GET == cacheOperation) {
             request = readKeyRequest(cacheOperation, byteBuf);
         } else if (MapOperation.REPLACE == cacheOperation) {
@@ -114,12 +110,6 @@ public class MapCacheRequestDecoder extends CacheRequestDecoder {
         }
 
         return mapCacheRequest;
-    }
-
-    private MapCacheRequest readPatternRequest(final CacheOperation cacheOperation, final ByteBuf byteBuf) {
-        final Optional<String> pattern = readUnicodeString(byteBuf);
-        final Optional<MapCacheRequest> request = pattern.map(requestedPattern -> new MapCacheRequest(cacheOperation, requestedPattern));
-        return request.orElse(null);
     }
 
     private MapCacheRequest readSubMapRequest(final CacheOperation cacheOperation, final ByteBuf byteBuf) {

@@ -253,11 +253,6 @@ public class HBase_2_ClientMapCacheService extends AbstractControllerService imp
     }
 
     @Override
-    public long removeByPattern(String regex) throws IOException {
-        throw new IOException("HBase removeByPattern is not implemented");
-    }
-
-    @Override
     public void close() throws IOException {
     }
 

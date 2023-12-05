@@ -36,8 +36,6 @@ public interface MapCache {
 
     ByteBuffer remove(ByteBuffer key) throws IOException;
 
-    Map<ByteBuffer, ByteBuffer> removeByPattern(String regex) throws IOException;
-
     MapCacheRecord fetch(ByteBuffer key) throws IOException;
 
     MapPutResult replace(MapCacheRecord record) throws IOException;

@@ -137,19 +137,6 @@ public class TestDistributedMapServerAndClient {
             final Set<String> keys = client.keySet(deserializer);
             assertEquals(0, keys.size());
 
-            // Test removeByPattern, the first two should be removed and the last should remain
-            client.put("test.1", "1", keySerializer, keySerializer);
-            client.put("test.2", "2", keySerializer, keySerializer);
-            client.put("test3", "2", keySerializer, keySerializer);
-            final long removedTwo = client.removeByPattern("test\\..*");
-            assertEquals(2L, removedTwo);
-            assertFalse(client.containsKey("test.1", keySerializer));
-            assertFalse(client.containsKey("test.2", keySerializer));
-            assertTrue(client.containsKey("test3", keySerializer));
-
-            final boolean containedAfterRemove = client.containsKey("testKey", keySerializer);
-            assertFalse(containedAfterRemove);
-
             client.putIfAbsent("testKey", "test", keySerializer, valueSerializer);
             runner.disableControllerService(client);
 
@@ -280,7 +267,6 @@ public class TestDistributedMapServerAndClient {
 
             assertThrows(UnsupportedOperationException.class, () -> client.keySet(stringDeserializer));
             assertThrows(UnsupportedOperationException.class, () -> client.removeAndGet("v.*", stringSerializer, stringDeserializer));
-            assertThrows(UnsupportedOperationException.class, () ->client.removeByPatternAndGet("v.*", stringDeserializer, stringDeserializer));
         } finally {
             client.close();
         }
