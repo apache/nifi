@@ -14,7 +14,7 @@
   limitations under the License.
 -->
 <assembly>
-    <id>bin</id>
+    <id>core</id>
     <includeBaseDirectory>false</includeBaseDirectory>
     <baseDirectory>nifi-execute-stateless-processor-assembly-${project.version}</baseDirectory>
 
@@ -41,6 +41,7 @@
                 <include>*:nifi-runtime</include>
                 <include>*:nifi-nar-utils</include>
                 <include>*:nifi-stateless-api</include>
+                <include>*:nifi-property-utils</include>
                 <include>*:slf4j-api</include>
             </includes>
         </dependencySet>
