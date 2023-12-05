@@ -1,0 +1,277 @@
+{
+  "flowContents": {
+    "identifier": "c680fa77-5e72-334f-b7c1-e2d6918ce73a",
+    "instanceIdentifier": "fc646a49-018b-1000-5cb2-37fc54983e37",
+    "name": "jslt-flow",
+    "comments": "",
+    "position": {
+      "x": 1389.0,
+      "y": 408.0
+    },
+    "processGroups": [],
+    "remoteProcessGroups": [],
+    "processors": [
+      {
+        "identifier": "1d143bd9-51a5-3e7a-906a-7ac9ec497672",
+        "instanceIdentifier": "fc648ca8-018b-1000-a8dd-fc45b5f9db3f",
+        "name": "JSLTTransformJSON",
+        "comments": "",
+        "position": {
+          "x": 1208.0,
+          "y": 280.0
+        },
+        "type": "org.apache.nifi.processors.jslt.JSLTTransformJSON",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-jslt-nar",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "jslt-transform-pretty_print": "false",
+          "jslt-transform-result-filter": ". != null and . != {} and . != []",
+          "jslt-transform-transformation": ".name",
+          "jslt-transform-cache-size": "1",
+          "jslt-transform-transformation-strategy": "EACH_OBJECT"
+        },
+        "propertyDescriptors": {
+          "jslt-transform-pretty_print": {
+            "name": "jslt-transform-pretty_print",
+            "displayName": "Pretty Print",
+            "identifiesControllerService": false,
+            "sensitive": false,
+            "dynamic": false
+          },
+          "jslt-transform-result-filter": {
+            "name": "jslt-transform-result-filter",
+            "displayName": "Transform Result Filter",
+            "identifiesControllerService": false,
+            "sensitive": false,
+            "dynamic": false
+          },
+          "jslt-transform-transformation": {
+            "name": "jslt-transform-transformation",
+            "displayName": "JSLT Transformation",
+            "identifiesControllerService": false,
+            "sensitive": false,
+            "dynamic": false,
+            "resourceDefinition": {
+              "cardinality": "SINGLE",
+              "resourceTypes": [
+                "FILE",
+                "TEXT"
+              ]
+            }
+          },
+          "jslt-transform-cache-size": {
+            "name": "jslt-transform-cache-size",
+            "displayName": "Transform Cache Size",
+            "identifiesControllerService": false,
+            "sensitive": false,
+            "dynamic": false
+          },
+          "jslt-transform-transformation-strategy": {
+            "name": "jslt-transform-transformation-strategy",
+            "displayName": "Transformation Strategy",
+            "identifiesControllerService": false,
+            "sensitive": false,
+            "dynamic": false
+          }
+        },
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
+        "scheduledState": "ENABLED",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "c680fa77-5e72-334f-b7c1-e2d6918ce73a"
+      }
+    ],
+    "inputPorts": [
+      {
+        "identifier": "05506a5d-3d47-309e-a2f9-ccdf620fc7bb",
+        "instanceIdentifier": "fc647f65-018b-1000-a0c0-693b42308743",
+        "name": "input",
+        "position": {
+          "x": 1265.0,
+          "y": 128.0
+        },
+        "type": "INPUT_PORT",
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "ENABLED",
+        "allowRemoteAccess": false,
+        "portFunction": "STANDARD",
+        "componentType": "INPUT_PORT",
+        "groupIdentifier": "c680fa77-5e72-334f-b7c1-e2d6918ce73a"
+      }
+    ],
+    "outputPorts": [
+      {
+        "identifier": "a21e1073-b62e-3f2c-af10-0df16221e97e",
+        "instanceIdentifier": "fc64eadc-018b-1000-549e-85726a49e708",
+        "name": "failure",
+        "position": {
+          "x": 1424.0,
+          "y": 512.0
+        },
+        "type": "OUTPUT_PORT",
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "ENABLED",
+        "allowRemoteAccess": false,
+        "portFunction": "STANDARD",
+        "componentType": "OUTPUT_PORT",
+        "groupIdentifier": "c680fa77-5e72-334f-b7c1-e2d6918ce73a"
+      },
+      {
+        "identifier": "a0a4d4cb-5e8c-313b-8d72-322c238f7d94",
+        "instanceIdentifier": "fc64d691-018b-1000-e8e3-16301be6f952",
+        "name": "success",
+        "position": {
+          "x": 1104.0,
+          "y": 520.0
+        },
+        "type": "OUTPUT_PORT",
+        "concurrentlySchedulableTaskCount": 1,
+        "scheduledState": "ENABLED",
+        "allowRemoteAccess": false,
+        "portFunction": "STANDARD",
+        "componentType": "OUTPUT_PORT",
+        "groupIdentifier": "c680fa77-5e72-334f-b7c1-e2d6918ce73a"
+      }
+    ],
+    "connections": [
+      {
+        "identifier": "ca1b97b0-b158-3e74-afc9-8b1ce3f9a52e",
+        "instanceIdentifier": "fc6508de-018b-1000-b1a0-a664e9eced65",
+        "name": "",
+        "source": {
+          "id": "1d143bd9-51a5-3e7a-906a-7ac9ec497672",
+          "type": "PROCESSOR",
+          "groupId": "c680fa77-5e72-334f-b7c1-e2d6918ce73a",
+          "name": "JSLTTransformJSON",
+          "comments": "",
+          "instanceIdentifier": "fc648ca8-018b-1000-a8dd-fc45b5f9db3f"
+        },
+        "destination": {
+          "id": "a0a4d4cb-5e8c-313b-8d72-322c238f7d94",
+          "type": "OUTPUT_PORT",
+          "groupId": "c680fa77-5e72-334f-b7c1-e2d6918ce73a",
+          "name": "success",
+          "instanceIdentifier": "fc64d691-018b-1000-e8e3-16301be6f952"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "partitioningAttribute": "",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "c680fa77-5e72-334f-b7c1-e2d6918ce73a"
+      },
+      {
+        "identifier": "52f6fd29-6c71-3bf6-a4f8-6bc1790cf014",
+        "instanceIdentifier": "fc64a5ba-018b-1000-86f3-d0035c35ba1b",
+        "name": "",
+        "source": {
+          "id": "05506a5d-3d47-309e-a2f9-ccdf620fc7bb",
+          "type": "INPUT_PORT",
+          "groupId": "c680fa77-5e72-334f-b7c1-e2d6918ce73a",
+          "name": "input",
+          "instanceIdentifier": "fc647f65-018b-1000-a0c0-693b42308743"
+        },
+        "destination": {
+          "id": "1d143bd9-51a5-3e7a-906a-7ac9ec497672",
+          "type": "PROCESSOR",
+          "groupId": "c680fa77-5e72-334f-b7c1-e2d6918ce73a",
+          "name": "JSLTTransformJSON",
+          "comments": "",
+          "instanceIdentifier": "fc648ca8-018b-1000-a8dd-fc45b5f9db3f"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          ""
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "partitioningAttribute": "",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "c680fa77-5e72-334f-b7c1-e2d6918ce73a"
+      },
+      {
+        "identifier": "79321aac-35cb-3600-8364-099dba9014f0",
+        "instanceIdentifier": "fc6518f9-018b-1000-a271-819fb66c5dc8",
+        "name": "",
+        "source": {
+          "id": "1d143bd9-51a5-3e7a-906a-7ac9ec497672",
+          "type": "PROCESSOR",
+          "groupId": "c680fa77-5e72-334f-b7c1-e2d6918ce73a",
+          "name": "JSLTTransformJSON",
+          "comments": "",
+          "instanceIdentifier": "fc648ca8-018b-1000-a8dd-fc45b5f9db3f"
+        },
+        "destination": {
+          "id": "a21e1073-b62e-3f2c-af10-0df16221e97e",
+          "type": "OUTPUT_PORT",
+          "groupId": "c680fa77-5e72-334f-b7c1-e2d6918ce73a",
+          "name": "failure",
+          "instanceIdentifier": "fc64eadc-018b-1000-549e-85726a49e708"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "failure"
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "partitioningAttribute": "",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "c680fa77-5e72-334f-b7c1-e2d6918ce73a"
+      }
+    ],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [],
+    "defaultFlowFileExpiration": "0 sec",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "scheduledState": "ENABLED",
+    "executionEngine": "INHERITED",
+    "maxConcurrentTasks": 1,
+    "statelessFlowTimeout": "1 min",
+    "componentType": "PROCESS_GROUP",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+    "flowFileConcurrency": "UNBOUNDED"
+  },
+  "externalControllerServices": {},
+  "parameterContexts": {},
+  "flowEncodingVersion": "1.0",
+  "parameterProviders": {},
+  "latest": false
+}

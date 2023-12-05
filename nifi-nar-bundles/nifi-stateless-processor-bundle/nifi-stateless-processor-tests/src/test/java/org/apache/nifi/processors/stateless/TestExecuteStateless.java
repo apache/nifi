@@ -29,12 +29,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestExecuteStateless {
     private static final String HELLO_WORLD = "Hello World";
-    private static final String LIB_DIR = "target/nifi-stateless-processors-test-assembly";
+    private static final String JSON_OBJECT = "{\"id\": 1,\"name\": \"John\"}";
+    private static final String LIB_DIR = "target/nifi-stateless-processors-test-assembly-core";
+    private static final String JSLT_DIR = "target/nifi-stateless-processors-test-assembly-jslt";
+    private static final String COMPRESS_DIR = "target/nifi-stateless-processors-test-assembly-compress";
     private static final String WORK_DIR = "target/work";
 
     private TestRunner runner;
@@ -178,6 +182,60 @@ public class TestExecuteStateless {
     @Test
     public void testErrorBulletinSurfaced() {
         testBulletinSurfaced("ERROR", true, MockComponentLog::getErrorMessages);
+    }
+
+    @Test
+    public void testAdditionalNarDirectoryNotSpecified() {
+        /* The test flow (jslt-flow.json) requires a nar dependency deliberately not found in LIB_DIR.
+        * Since ExecuteStateless' "Additional NAR Directories" property is purposefully not set,
+        * Stateless NiFi does not find the dependency and throws an error. */
+        runner.setProperty(ExecuteStateless.DATAFLOW_FILE, "src/test/resources/jslt-flow.json");
+        runner.setProperty(ExecuteStateless.INPUT_PORT, "input");
+        runner.setProperty(ExecuteStateless.FAILURE_PORTS, "failure");
+
+        runner.enqueue(JSON_OBJECT.getBytes(), Collections.singletonMap("abc", "xyz"));
+        runner.run();
+
+        final List<LogMessage> logMessages = runner.getLogger().getErrorMessages();
+        assertTrue(logMessages.get(0).getMsg().contains("Could not create dataflow from snapshot"));
+    }
+
+    @Test
+    public void testAdditionalNarDirectorySpecified() {
+        /* The test flow (jslt-flow.json) requires a nar dependency not found in LIB_DIR.
+         * ExecuteStateless' "Additional NAR Directories" property points to the directory containing the dependency.
+         * Stateless loads the dependency from that location. */
+        runner.setProperty(ExecuteStateless.DATAFLOW_FILE, "src/test/resources/jslt-flow.json");
+        runner.setProperty(ExecuteStateless.ADDITIONAL_LIB_DIRECTORIES, JSLT_DIR);
+        runner.setProperty(ExecuteStateless.INPUT_PORT, "input");
+        runner.setProperty(ExecuteStateless.FAILURE_PORTS, "failure");
+
+        runner.enqueue(JSON_OBJECT.getBytes(), Collections.singletonMap("abc", "xyz"));
+        runner.run();
+
+        runner.assertTransferCount(ExecuteStateless.REL_OUTPUT, 1);
+        final List<MockFlowFile> output = runner.getFlowFilesForRelationship(ExecuteStateless.REL_OUTPUT);
+        output.get(0).assertContentEquals("\"John\"");
+    }
+
+    @Test
+    public void testAdditionalNarDirectoriesSpecified() {
+        /* The test flow (jslt-compress-flow.json) requires nar dependencies not found in LIB_DIR.
+         * ExecuteStateless' "Additional NAR Directories" property points to two separate directories containing the dependencies.
+         * Stateless loads the dependencies from those locations. */
+        runner.setProperty(ExecuteStateless.DATAFLOW_FILE, "src/test/resources/jslt-compress-flow.json");
+        runner.setProperty(ExecuteStateless.ADDITIONAL_LIB_DIRECTORIES, JSLT_DIR + "," + COMPRESS_DIR);
+        runner.setProperty(ExecuteStateless.INPUT_PORT, "input");
+        runner.setProperty(ExecuteStateless.FAILURE_PORTS, "failure");
+        byte[] expectedContents = new byte[] {31, -117, 8, 0, 0, 0, 0, 0, 0, -1, 83, -14, -54, -49, -56, 83, 2, 0, 118, 63, 122, -30, 6, 0, 0, 0};
+
+        runner.enqueue(JSON_OBJECT.getBytes(), Collections.singletonMap("abc", "xyz"));
+        runner.run();
+
+        runner.assertTransferCount(ExecuteStateless.REL_OUTPUT, 1);
+        final List<MockFlowFile> output = runner.getFlowFilesForRelationship(ExecuteStateless.REL_OUTPUT);
+        output.get(0).assertAttributeEquals("mime.type", "application/gzip");
+        assertArrayEquals(output.get(0).getData(), expectedContents);
     }
 
     private void testBulletinSurfaced(final String logLevel, final boolean shouldBeSurfaced, final Function<MockComponentLog, List<LogMessage>> getMessageFunction) {
