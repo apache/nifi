@@ -20,9 +20,18 @@ package org.apache.nifi.controller.status;
  * The status of a storage repository.
  */
 public class StorageStatus implements Cloneable {
+    private long createdAtInMs;
     private String name;
     private long freeSpace;
     private long usedSpace;
+
+    public long getCreatedAtInMs() {
+        return createdAtInMs;
+    }
+
+    public void setCreatedAtInMs(final long createdAtInMs) {
+        this.createdAtInMs = createdAtInMs;
+    }
 
     public String getName() {
         return name;

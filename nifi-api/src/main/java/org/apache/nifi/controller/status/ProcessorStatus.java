@@ -24,6 +24,7 @@ import org.apache.nifi.scheduling.ExecutionNode;
 /**
  */
 public class ProcessorStatus implements Cloneable {
+    private long createdAtInMs;
 
     private String id;
     private String groupId;
@@ -48,6 +49,14 @@ public class ProcessorStatus implements Cloneable {
     private int flowFilesSent;
     private long bytesSent;
     private Map<String, Long> counters;
+
+    public long getCreatedAtInMs() {
+        return createdAtInMs;
+    }
+
+    public void setCreatedAtInMs(final long createdAtInMs) {
+        this.createdAtInMs = createdAtInMs;
+    }
 
     public String getId() {
         return id;

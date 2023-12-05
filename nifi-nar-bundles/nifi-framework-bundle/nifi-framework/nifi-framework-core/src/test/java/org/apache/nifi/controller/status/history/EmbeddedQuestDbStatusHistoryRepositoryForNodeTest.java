@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class EmbeddedQuestDbStatusHistoryRepositoryForNodeTest extends AbstractEmbeddedQuestDbStatusHistoryRepositoryTest {
     private static final long ZERO_BYTES = 0L;
-
     private static final int ZERO_COUNT = 0;
 
     @Test
@@ -40,7 +39,7 @@ public class EmbeddedQuestDbStatusHistoryRepositoryForNodeTest extends AbstractE
     public void testWritingThenReadingComponents() throws Exception {
         final ProcessGroupStatus processGroupStatus = getProcessGroupStatus();
 
-        repository.capture(givenNodeStatus(), processGroupStatus, givenGarbageCollectionStatuses(INSERTED_AT), INSERTED_AT);
+        repository.capture(givenNodeStatus(INSERTED_AT.getTime()), processGroupStatus, givenGarbageCollectionStatuses(INSERTED_AT));
         waitUntilPersisted();
 
         final StatusHistory nodeStatusHistory = repository.getNodeStatusHistory(START, END);
@@ -53,6 +52,7 @@ public class EmbeddedQuestDbStatusHistoryRepositoryForNodeTest extends AbstractE
 
     private static ProcessGroupStatus getProcessGroupStatus() {
         final ProcessGroupStatus processGroupStatus = new ProcessGroupStatus();
+        processGroupStatus.setCreatedAtInMs(INSERTED_AT.getTime());
         processGroupStatus.setBytesRead(ZERO_BYTES);
         processGroupStatus.setBytesWritten(ZERO_BYTES);
         processGroupStatus.setInputCount(ZERO_COUNT);

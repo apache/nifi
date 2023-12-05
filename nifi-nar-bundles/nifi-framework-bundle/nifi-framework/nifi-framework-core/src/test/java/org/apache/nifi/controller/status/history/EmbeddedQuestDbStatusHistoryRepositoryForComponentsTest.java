@@ -36,7 +36,7 @@ public class EmbeddedQuestDbStatusHistoryRepositoryForComponentsTest extends Abs
 
     @Test
     public void testWritingThenReadingComponents() throws Exception {
-        repository.capture(new NodeStatus(), givenRootProcessGroupStatus(), new ArrayList<>(), INSERTED_AT);
+        repository.capture(new NodeStatus(), givenRootProcessGroupStatus(INSERTED_AT.getTime()), new ArrayList<>());
         waitUntilPersisted();
 
         // reading root processor group
@@ -81,10 +81,10 @@ public class EmbeddedQuestDbStatusHistoryRepositoryForComponentsTest extends Abs
 
     @Test
     public void testReadingLimitedByPreferredDataPoints() throws Exception {
-        repository.capture(new NodeStatus(), givenSimpleRootProcessGroupStatus(), new ArrayList<>(), new Date(INSERTED_AT.getTime() - TimeUnit.MINUTES.toMillis(8)));
-        repository.capture(new NodeStatus(), givenSimpleRootProcessGroupStatus(), new ArrayList<>(), new Date(INSERTED_AT.getTime() - TimeUnit.MINUTES.toMillis(7)));
-        repository.capture(new NodeStatus(), givenSimpleRootProcessGroupStatus(), new ArrayList<>(), new Date(INSERTED_AT.getTime() - TimeUnit.MINUTES.toMillis(6)));
-        repository.capture(new NodeStatus(), givenSimpleRootProcessGroupStatus(), new ArrayList<>(), new Date(INSERTED_AT.getTime() - TimeUnit.MINUTES.toMillis(5)));
+        repository.capture(new NodeStatus(), givenSimpleRootProcessGroupStatus(INSERTED_AT.getTime() - TimeUnit.MINUTES.toMillis(5)), new ArrayList<>());
+        repository.capture(new NodeStatus(), givenSimpleRootProcessGroupStatus(INSERTED_AT.getTime() - TimeUnit.MINUTES.toMillis(6)), new ArrayList<>());
+        repository.capture(new NodeStatus(), givenSimpleRootProcessGroupStatus(INSERTED_AT.getTime() - TimeUnit.MINUTES.toMillis(7)), new ArrayList<>());
+        repository.capture(new NodeStatus(), givenSimpleRootProcessGroupStatus(INSERTED_AT.getTime() - TimeUnit.MINUTES.toMillis(8)), new ArrayList<>());
         waitUntilPersisted();
 
         final StatusHistory result = repository.getProcessGroupStatusHistory(ROOT_GROUP_ID, START, END, 3);

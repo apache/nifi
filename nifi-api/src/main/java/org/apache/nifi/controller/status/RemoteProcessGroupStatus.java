@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
  *
  */
 public class RemoteProcessGroupStatus implements Cloneable {
+    private long createdAtInMs;
 
     private String id;
     private String groupId;
@@ -41,6 +42,14 @@ public class RemoteProcessGroupStatus implements Cloneable {
     private Integer inactiveRemotePortCount;
 
     private long averageLineageDuration;
+
+    public long getCreatedAtInMs() {
+        return createdAtInMs;
+    }
+
+    public void setCreatedAtInMs(final long createdAtInMs) {
+        this.createdAtInMs = createdAtInMs;
+    }
 
     public String getTargetUri() {
         return uri;

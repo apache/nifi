@@ -22,6 +22,7 @@ import org.apache.nifi.processor.DataUnit;
 /**
  */
 public class ConnectionStatus implements Cloneable {
+    private long createdAtInMs;
 
     private String id;
     private String groupId;
@@ -46,6 +47,14 @@ public class ConnectionStatus implements Cloneable {
     private long maxQueuedDuration;
     private FlowFileAvailability flowFileAvailability;
     private LoadBalanceStatus loadBalanceStatus;
+
+    public long getCreatedAtInMs() {
+        return createdAtInMs;
+    }
+
+    public void setCreatedAtInMs(final long createdAtInMs) {
+        this.createdAtInMs = createdAtInMs;
+    }
 
     public String getId() {
         return id;

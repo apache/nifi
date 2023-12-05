@@ -20,6 +20,7 @@ package org.apache.nifi.controller.status;
  * The status of a port.
  */
 public class PortStatus implements Cloneable {
+    private long createdAtInMs;
 
     private String id;
     private String groupId;
@@ -35,6 +36,14 @@ public class PortStatus implements Cloneable {
     private long bytesSent;
     private Boolean transmitting;
     private RunStatus runStatus;
+
+    public long getCreatedAtInMs() {
+        return createdAtInMs;
+    }
+
+    public void setCreatedAtInMs(final long createdAtInMs) {
+        this.createdAtInMs = createdAtInMs;
+    }
 
     public Boolean isTransmitting() {
         return transmitting;

@@ -749,7 +749,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             @Override
             public void run() {
                 try {
-                    statusHistoryRepository.capture(getNodeStatusSnapshot(), eventAccess.getControllerStatus(), getGarbageCollectionStatus(), new Date());
+                    statusHistoryRepository.capture(getNodeStatusSnapshot(), eventAccess.getControllerStatus(), getGarbageCollectionStatus());
                 } catch (final Exception e) {
                     LOG.error("Failed to capture component stats for Stats History", e);
                 }

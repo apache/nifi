@@ -41,6 +41,7 @@ import org.apache.nifi.provenance.ProvenanceRepository;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -94,7 +95,7 @@ public class StandardEventAccess extends AbstractEventAccess implements UserAwar
         }
 
         final Predicate<Authorizable> authorizer = authorizable -> authorizable.isAuthorized(this.authorizer, RequestAction.READ, user);
-        return getProcessorStatus(flowFileEvent, procNode, authorizer);
+        return getProcessorStatus(flowFileEvent, procNode, authorizer, new Date());
     }
 
     /**
@@ -125,7 +126,7 @@ public class StandardEventAccess extends AbstractEventAccess implements UserAwar
         final ProcessGroup group = flowManager.getGroup(groupId);
 
         // on demand status request for a specific user... require authorization per component and filter results as appropriate
-        return getGroupStatus(group, statusReport, authorizable -> authorizable.isAuthorized(this.authorizer, RequestAction.READ, user), Integer.MAX_VALUE, 1, false);
+        return getGroupStatus(group, statusReport, authorizable -> authorizable.isAuthorized(this.authorizer, RequestAction.READ, user), Integer.MAX_VALUE, 1, false, new Date());
     }
 
     /**
@@ -156,7 +157,7 @@ public class StandardEventAccess extends AbstractEventAccess implements UserAwar
         final ProcessGroup group = flowManager.getGroup(groupId);
 
         // on demand status request for a specific user... require authorization per component and filter results as appropriate
-        return getGroupStatus(group, statusReport, authorizable -> authorizable.isAuthorized(this.authorizer, RequestAction.READ, user), recursiveStatusDepth, 1, false);
+        return getGroupStatus(group, statusReport, authorizable -> authorizable.isAuthorized(this.authorizer, RequestAction.READ, user), recursiveStatusDepth, 1, false, new Date());
     }
 
     /**

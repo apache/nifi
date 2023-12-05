@@ -108,7 +108,7 @@
         <nifi.provenance.repository.buffer.size>100000</nifi.provenance.repository.buffer.size>
 
         <!-- Component status repository properties -->
-        <nifi.components.status.repository.implementation>org.apache.nifi.controller.status.history.VolatileComponentStatusRepository</nifi.components.status.repository.implementation>
+        <nifi.components.status.repository.implementation>org.apache.nifi.controller.status.history.questdb.EmbeddedQuestDbStatusHistoryRepository</nifi.components.status.repository.implementation>
         <nifi.components.status.repository.buffer.size>1440</nifi.components.status.repository.buffer.size>
         <nifi.components.status.snapshot.frequency>1 min</nifi.components.status.snapshot.frequency>
 

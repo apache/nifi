@@ -43,10 +43,9 @@ public interface StatusHistoryRepository {
      *
      * @param nodeStatus status of the node
      * @param rootGroupStatus status of the root group and it's content
-     * @param timestamp timestamp of capture
      * @param garbageCollectionStatus status of garbage collection
      */
-    void capture(NodeStatus nodeStatus, ProcessGroupStatus rootGroupStatus, List<GarbageCollectionStatus> garbageCollectionStatus, Date timestamp);
+    void capture(NodeStatus nodeStatus, ProcessGroupStatus rootGroupStatus, List<GarbageCollectionStatus> garbageCollectionStatus);
 
     /**
      * @param connectionId the ID of the Connection for which the Status is

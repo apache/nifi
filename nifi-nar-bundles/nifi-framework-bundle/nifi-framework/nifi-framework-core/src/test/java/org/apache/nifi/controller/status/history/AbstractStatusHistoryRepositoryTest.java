@@ -42,9 +42,10 @@ public abstract class AbstractStatusHistoryRepositoryTest {
     protected static final String CONNECTION_ID = "d5452f70-a0d9-44c5-aeda-c2026482e4ee";
     protected static final String REMOTE_PROCESS_GROUP_ID = "f5f4fe2a-0209-4ba7-8f15-f33df942cde5";
 
-    protected ProcessGroupStatus givenSimpleRootProcessGroupStatus() {
+    protected ProcessGroupStatus givenSimpleRootProcessGroupStatus(final long capturedAt) {
         final ProcessGroupStatus status = new ProcessGroupStatus();
         status.setId(ROOT_GROUP_ID);
+        status.setCreatedAtInMs(capturedAt);
         status.setName("Root");
         status.setInputCount(1);
         status.setInputContentSize(2L);
@@ -66,17 +67,19 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         return status;
     }
 
-    protected ProcessGroupStatus givenRootProcessGroupStatus() {
-        final ProcessGroupStatus status = givenSimpleRootProcessGroupStatus();
-        status.setConnectionStatus(Collections.singleton(givenConnectionStatus()));
-        status.setProcessGroupStatus(Collections.singleton(givenChildProcessGroupStatus()));
-        status.setProcessorStatus(Collections.singleton(givenProcessorStatus()));
+    protected ProcessGroupStatus givenRootProcessGroupStatus(final long capturedAt) {
+        final ProcessGroupStatus status = givenSimpleRootProcessGroupStatus(capturedAt);
+        status.setCreatedAtInMs(capturedAt);
+        status.setConnectionStatus(Collections.singleton(givenConnectionStatus(capturedAt)));
+        status.setProcessGroupStatus(Collections.singleton(givenChildProcessGroupStatus(capturedAt)));
+        status.setProcessorStatus(Collections.singleton(givenProcessorStatus(capturedAt)));
         return status;
     }
 
-    protected ProcessGroupStatus givenChildProcessGroupStatus() {
+    protected ProcessGroupStatus givenChildProcessGroupStatus(final long capturedAt) {
         final ProcessGroupStatus status = new ProcessGroupStatus();
         status.setId(CHILD_GROUP_ID);
+        status.setCreatedAtInMs(capturedAt);
         status.setName("Child");
         status.setInputCount(21);
         status.setInputContentSize(22L);
@@ -96,15 +99,16 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         status.setBytesTransferred(36L);
         status.setProcessingNanos(88000000);
 
-        status.setRemoteProcessGroupStatus(Collections.singleton(givenRemoteProcessGroupStatus()));
-        status.setProcessorStatus(Collections.singleton(givenProcessorWithCounterStatus()));
+        status.setRemoteProcessGroupStatus(Collections.singleton(givenRemoteProcessGroupStatus(capturedAt)));
+        status.setProcessorStatus(Collections.singleton(givenProcessorWithCounterStatus(capturedAt)));
 
         return status;
     }
 
-    protected ProcessorStatus givenProcessorStatus() {
+    protected ProcessorStatus givenProcessorStatus(final long capturedAt) {
         final ProcessorStatus status = new ProcessorStatus();
         status.setId(PROCESSOR_ID);
+        status.setCreatedAtInMs(capturedAt);
         status.setName("Processor");
         status.setInputCount(61);
         status.setInputBytes(62);
@@ -125,13 +129,14 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         return status;
     }
 
-    protected ProcessorStatus givenProcessorWithCounterStatus() {
+    protected ProcessorStatus givenProcessorWithCounterStatus(final long capturedAt) {
         final Map<String, Long> counters = new HashMap<>();
         counters.put("counter1", 97L);
         counters.put("counter2", 98L);
 
         final ProcessorStatus status = new ProcessorStatus();
         status.setId(PROCESSOR_WITH_COUNTER_ID);
+        status.setCreatedAtInMs(capturedAt);
         status.setName("ProcessorWithCounter");
         status.setInputCount(81);
         status.setInputBytes(82);
@@ -153,9 +158,10 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         return status;
     }
 
-    protected ConnectionStatus givenConnectionStatus() {
+    protected ConnectionStatus givenConnectionStatus(final long capturedAt) {
         final ConnectionStatus status = new ConnectionStatus();
         status.setId(CONNECTION_ID);
+        status.setCreatedAtInMs(capturedAt);
         status.setName("Connection");
         status.setInputCount(101);
         status.setInputBytes(102);
@@ -172,9 +178,10 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         return status;
     }
 
-    protected RemoteProcessGroupStatus givenRemoteProcessGroupStatus() {
+    protected RemoteProcessGroupStatus givenRemoteProcessGroupStatus(final long capturedAt) {
         final RemoteProcessGroupStatus status = new RemoteProcessGroupStatus();
         status.setId(REMOTE_PROCESS_GROUP_ID);
+        status.setCreatedAtInMs(capturedAt);
         status.setName("RemoteProcessGroup");
         status.setActiveThreadCount(121);
         status.setSentCount(122);
@@ -286,9 +293,9 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         assertEquals(Double.valueOf(128000L).longValue(), snapshot.getStatusMetric(RemoteProcessGroupStatusDescriptor.AVERAGE_LINEAGE_DURATION.getDescriptor()).longValue());
     }
 
-    protected NodeStatus givenNodeStatus(final int number) {
+    protected NodeStatus givenNodeStatus(final int number, final long capturedAt) {
         final NodeStatus result = new NodeStatus();
-        result.setCreatedAtInMs(System.currentTimeMillis());
+        result.setCreatedAtInMs(capturedAt);
         result.setFreeHeap(1 + number);
         result.setUsedHeap(2 + number);
         result.setHeapUtilization(3 + number);
@@ -312,8 +319,9 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         return result;
     }
 
-    protected NodeStatus givenNodeStatus() {
+    protected NodeStatus givenNodeStatus(final long capturedAt) {
         final NodeStatus status = new NodeStatus();
+        status.setCreatedAtInMs(capturedAt);
         status.setFreeHeap(11);
         status.setUsedHeap(12);
         status.setHeapUtilization(13);

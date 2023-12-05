@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.status.history;
 
+import org.apache.nifi.controller.status.history.questdb.EmbeddedQuestDbStatusHistoryRepositoryFactory;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -37,9 +38,9 @@ public abstract class AbstractEmbeddedQuestDbStatusHistoryRepositoryTest extends
 
     protected static final int PREFERRED_DATA_POINTS = 1000;
     protected static final int DAYS_TO_KEEP_DATA = 7;
-    protected static final long PERSIST_FREQUENCY = 50; //200 milliseconds
+    protected static final String PERSIST_FREQUENCY = "200 ms"; // 200 milliseconds
 
-    protected EmbeddedQuestDbStatusHistoryRepository repository;
+    protected StatusHistoryRepository repository;
 
     @TempDir
     private Path temporaryDirectory;
@@ -63,7 +64,7 @@ public abstract class AbstractEmbeddedQuestDbStatusHistoryRepositoryTest extends
         repository.shutdown();
     }
 
-    private EmbeddedQuestDbStatusHistoryRepository startRepository() {
+    private StatusHistoryRepository startRepository() {
         final NiFiProperties niFiProperties = Mockito.mock(NiFiProperties.class);
 
         Mockito.when(niFiProperties.getIntegerProperty(
@@ -76,9 +77,12 @@ public abstract class AbstractEmbeddedQuestDbStatusHistoryRepositoryTest extends
                 NiFiProperties.DEFAULT_COMPONENT_STATUS_REPOSITORY_PERSIST_COMPONENT_DAYS)
         ).thenReturn(DAYS_TO_KEEP_DATA);
 
-        Mockito.when(niFiProperties.getQuestDbStatusRepositoryPath()).thenReturn(temporaryDirectory);
+        Mockito.when(niFiProperties.getQuestDbStatusRepositoryPersistBatchSize()).thenReturn(Integer.parseInt(NiFiProperties.DEFAULT_COMPONENT_STATUS_REPOSITORY_PERSIST_BATCH_SIZE));
 
-        final EmbeddedQuestDbStatusHistoryRepository testSubject = new EmbeddedQuestDbStatusHistoryRepository(niFiProperties, PERSIST_FREQUENCY);
+        Mockito.when(niFiProperties.getQuestDbStatusRepositoryPath()).thenReturn(temporaryDirectory.toAbsolutePath().toString());
+        Mockito.when(niFiProperties.getQuestDbStatusRepositoryPersistFrequency()).thenReturn(PERSIST_FREQUENCY);
+
+        final StatusHistoryRepository testSubject = EmbeddedQuestDbStatusHistoryRepositoryFactory.getInstance(niFiProperties);
         testSubject.start();
         return testSubject;
     }

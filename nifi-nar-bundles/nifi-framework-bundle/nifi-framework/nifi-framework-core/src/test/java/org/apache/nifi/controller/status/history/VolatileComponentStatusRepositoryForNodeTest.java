@@ -34,23 +34,20 @@ public class VolatileComponentStatusRepositoryForNodeTest extends AbstractStatus
 
     @Test
     public void testNodeStatusHistory() {
-        // given
         final NiFiProperties niFiProperties = Mockito.mock(NiFiProperties.class);
         Mockito.when(niFiProperties.getIntegerProperty(VolatileComponentStatusRepository.NUM_DATA_POINTS_PROPERTY, VolatileComponentStatusRepository.DEFAULT_NUM_DATA_POINTS)).thenReturn(10);
         final VolatileComponentStatusRepository testSubject = new VolatileComponentStatusRepository(niFiProperties);
         final List<NodeStatus> nodeStatuses = Arrays.asList(
-                givenNodeStatus(0),
-                givenNodeStatus(1)
+                givenNodeStatus(0, 0),
+                givenNodeStatus(1, 0)
         );
 
         final Date capturedAt = new Date();
-        testSubject.capture(nodeStatuses.get(0), givenSimpleRootProcessGroupStatus(), givenGarbageCollectionStatuses(capturedAt, 1, 100, 2, 300), capturedAt);
-        testSubject.capture(nodeStatuses.get(1), givenSimpleRootProcessGroupStatus(), givenGarbageCollectionStatuses(capturedAt, 1, 100, 5, 700), capturedAt);
+        testSubject.capture(nodeStatuses.get(0), givenSimpleRootProcessGroupStatus(System.currentTimeMillis() - 1000), givenGarbageCollectionStatuses(capturedAt, 1, 100, 2, 300));
+        testSubject.capture(nodeStatuses.get(1), givenSimpleRootProcessGroupStatus(System.currentTimeMillis()), givenGarbageCollectionStatuses(capturedAt, 1, 100, 5, 700));
 
-        // when
         final StatusHistory result = testSubject.getNodeStatusHistory(new Date(0), new Date());
 
-        // then
         // checking on snapshots
         assertEquals(nodeStatuses.size(), result.getStatusSnapshots().size());
 

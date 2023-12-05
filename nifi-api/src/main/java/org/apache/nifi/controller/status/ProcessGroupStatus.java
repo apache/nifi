@@ -27,6 +27,7 @@ import java.util.Map;
 /**
  */
 public class ProcessGroupStatus implements Cloneable {
+    private long createdAtInMs;
 
     private String id;
     private String name;
@@ -56,6 +57,14 @@ public class ProcessGroupStatus implements Cloneable {
     private Collection<RemoteProcessGroupStatus> remoteProcessGroupStatus = new ArrayList<>();
     private Collection<PortStatus> inputPortStatus = new ArrayList<>();
     private Collection<PortStatus> outputPortStatus = new ArrayList<>();
+
+    public long getCreatedAtInMs() {
+        return createdAtInMs;
+    }
+
+    public void setCreatedAtInMs(final long createdAtInMs) {
+        this.createdAtInMs = createdAtInMs;
+    }
 
     public String getId() {
         return id;

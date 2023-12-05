@@ -63,6 +63,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -94,25 +95,10 @@ public abstract class AbstractEventAccess implements EventAccess {
      */
     @Override
     public ProcessGroupStatus getGroupStatus(final String groupId) {
+        final Date timestamp = new Date();
         final RepositoryStatusReport statusReport = generateRepositoryStatusReport();
         final ProcessGroup group = flowManager.getGroup(groupId);
-        return getGroupStatus(group, statusReport, authorizable -> true, Integer.MAX_VALUE, 1, true);
-    }
-
-    /**
-     * Returns the status for the components in the specified group with the
-     * specified report. This request is not in the context of a user so the
-     * results will be unfiltered.
-     *
-     * @param groupId group id
-     * @param statusReport report
-     * @return the component status
-     */
-    public ProcessGroupStatus getGroupStatus(final String groupId, final RepositoryStatusReport statusReport) {
-        final ProcessGroup group = flowManager.getGroup(groupId);
-
-        // this was invoked with no user context so the results will be unfiltered... necessary for aggregating status history
-        return getGroupStatus(group, statusReport, authorizable -> true, Integer.MAX_VALUE, 1, false);
+        return getGroupStatus(group, statusReport, authorizable -> true, Integer.MAX_VALUE, 1, true, timestamp);
     }
 
     protected RepositoryStatusReport generateRepositoryStatusReport() {
@@ -134,12 +120,13 @@ public abstract class AbstractEventAccess implements EventAccess {
      * @return the component status
      */
     ProcessGroupStatus getGroupStatus(final ProcessGroup group, final RepositoryStatusReport statusReport, final Predicate<Authorizable> isAuthorized,
-                                      final int recursiveStatusDepth, final int currentDepth, final boolean includeConnectionDetails) {
+                                      final int recursiveStatusDepth, final int currentDepth, final boolean includeConnectionDetails, final Date timestamp) {
         if (group == null) {
             return null;
         }
 
         final ProcessGroupStatus status = new ProcessGroupStatus();
+        status.setCreatedAtInMs(timestamp.toInstant().toEpochMilli());
         status.setId(group.getIdentifier());
         status.setName(isAuthorized.test(group) ? group.getName() : group.getIdentifier());
         int activeGroupThreads = 0;
@@ -166,7 +153,7 @@ public abstract class AbstractEventAccess implements EventAccess {
         final Collection<ProcessorStatus> processorStatusCollection = new ArrayList<>();
         status.setProcessorStatus(processorStatusCollection);
         for (final ProcessorNode procNode : group.getProcessors()) {
-            final ProcessorStatus procStat = getProcessorStatus(statusReport, procNode, isAuthorized);
+            final ProcessorStatus procStat = getProcessorStatus(statusReport, procNode, isAuthorized, timestamp);
             if (populateChildStatuses) {
                 processorStatusCollection.add(procStat);
             }
@@ -189,14 +176,14 @@ public abstract class AbstractEventAccess implements EventAccess {
         for (final ProcessGroup childGroup : group.getProcessGroups()) {
             final ProcessGroupStatus childGroupStatus;
             if (populateChildStatuses) {
-                childGroupStatus = getGroupStatus(childGroup, statusReport, isAuthorized, recursiveStatusDepth, currentDepth + 1, includeConnectionDetails);
+                childGroupStatus = getGroupStatus(childGroup, statusReport, isAuthorized, recursiveStatusDepth, currentDepth + 1, includeConnectionDetails, timestamp);
                 localChildGroupStatusCollection.add(childGroupStatus);
             } else {
                 // In this case, we don't want to include any of the recursive components' individual statuses. As a result, we can
                 // avoid performing any sort of authorizations. Because we only care about the numbers that come back, we can just indicate
                 // that the user is not authorized. This allows us to avoid the expense of both performing the authorization and calculating
                 // things that we would otherwise need to calculate if the user were in fact authorized.
-                childGroupStatus = getGroupStatus(childGroup, statusReport, authorizable -> false, recursiveStatusDepth, currentDepth + 1, includeConnectionDetails);
+                childGroupStatus = getGroupStatus(childGroup, statusReport, authorizable -> false, recursiveStatusDepth, currentDepth + 1, includeConnectionDetails, timestamp);
             }
 
             activeGroupThreads += childGroupStatus.getActiveThreadCount();
@@ -221,7 +208,7 @@ public abstract class AbstractEventAccess implements EventAccess {
         final Collection<RemoteProcessGroupStatus> remoteProcessGroupStatusCollection = new ArrayList<>();
         status.setRemoteProcessGroupStatus(remoteProcessGroupStatusCollection);
         for (final RemoteProcessGroup remoteGroup : group.getRemoteProcessGroups()) {
-            final RemoteProcessGroupStatus remoteStatus = createRemoteGroupStatus(remoteGroup, statusReport, isAuthorized);
+            final RemoteProcessGroupStatus remoteStatus = createRemoteGroupStatus(remoteGroup, statusReport, isAuthorized, timestamp);
             if (remoteStatus != null) {
                 if (populateChildStatuses) {
                     remoteProcessGroupStatusCollection.add(remoteStatus);
@@ -238,7 +225,7 @@ public abstract class AbstractEventAccess implements EventAccess {
         final Collection<ConnectionStatus> connectionStatusCollection = new ArrayList<>();
         status.setConnectionStatus(connectionStatusCollection);
 
-        long now = System.currentTimeMillis();
+        long now = timestamp.toInstant().toEpochMilli();
 
         // get the connection and remote port status
         for (final Connection conn : group.getConnections()) {
@@ -247,6 +234,7 @@ public abstract class AbstractEventAccess implements EventAccess {
             final boolean isDestinationAuthorized = isAuthorized.test(conn.getDestination());
 
             final ConnectionStatus connStatus = new ConnectionStatus();
+            connStatus.setCreatedAtInMs(timestamp.toInstant().toEpochMilli());
             connStatus.setId(conn.getIdentifier());
             connStatus.setGroupId(conn.getProcessGroup().getIdentifier());
             connStatus.setSourceId(conn.getSource().getIdentifier());
@@ -355,6 +343,7 @@ public abstract class AbstractEventAccess implements EventAccess {
             final boolean isInputPortAuthorized = isAuthorized.test(port);
 
             final PortStatus portStatus = new PortStatus();
+            portStatus.setCreatedAtInMs(timestamp.toInstant().toEpochMilli());
             portStatus.setId(port.getIdentifier());
             portStatus.setGroupId(port.getProcessGroup().getIdentifier());
             portStatus.setName(isInputPortAuthorized ? port.getName() : port.getIdentifier());
@@ -418,6 +407,7 @@ public abstract class AbstractEventAccess implements EventAccess {
             final boolean isOutputPortAuthorized = isAuthorized.test(port);
 
             final PortStatus portStatus = new PortStatus();
+            portStatus.setCreatedAtInMs(timestamp.toInstant().toEpochMilli());
             portStatus.setId(port.getIdentifier());
             portStatus.setGroupId(port.getProcessGroup().getIdentifier());
             portStatus.setName(isOutputPortAuthorized ? port.getName() : port.getIdentifier());
@@ -519,7 +509,9 @@ public abstract class AbstractEventAccess implements EventAccess {
         return status;
     }
 
-    private RemoteProcessGroupStatus createRemoteGroupStatus(final RemoteProcessGroup remoteGroup, final RepositoryStatusReport statusReport, final Predicate<Authorizable> isAuthorized) {
+    private RemoteProcessGroupStatus createRemoteGroupStatus(
+        final RemoteProcessGroup remoteGroup, final RepositoryStatusReport statusReport, final Predicate<Authorizable> isAuthorized, final Date timestamp
+    ) {
         final boolean isRemoteProcessGroupAuthorized = isAuthorized.test(remoteGroup);
 
         int receivedCount = 0;
@@ -531,6 +523,7 @@ public abstract class AbstractEventAccess implements EventAccess {
         int inactivePortCount = 0;
 
         final RemoteProcessGroupStatus status = new RemoteProcessGroupStatus();
+        status.setCreatedAtInMs(timestamp.toInstant().toEpochMilli());
         status.setGroupId(remoteGroup.getProcessGroup().getIdentifier());
         status.setName(isRemoteProcessGroupAuthorized ? remoteGroup.getName() : remoteGroup.getIdentifier());
         status.setComments(isRemoteProcessGroupAuthorized ? remoteGroup.getComments() : null);
@@ -604,15 +597,16 @@ public abstract class AbstractEventAccess implements EventAccess {
         return status;
     }
 
-    private ProcessorStatus getProcessorStatus(final RepositoryStatusReport report, final ProcessorNode procNode, final Predicate<Authorizable> isAuthorized) {
+    private ProcessorStatus getProcessorStatus(final RepositoryStatusReport report, final ProcessorNode procNode, final Predicate<Authorizable> isAuthorized, final Date timestamp) {
         final FlowFileEvent entry = report.getReportEntries().get(procNode.getIdentifier());
-        return getProcessorStatus(entry, procNode, isAuthorized);
+        return getProcessorStatus(entry, procNode, isAuthorized, timestamp);
     }
 
-    protected ProcessorStatus getProcessorStatus(final FlowFileEvent flowFileEvent, final ProcessorNode procNode, final Predicate<Authorizable> isAuthorized) {
+    protected ProcessorStatus getProcessorStatus(final FlowFileEvent flowFileEvent, final ProcessorNode procNode, final Predicate<Authorizable> isAuthorized, final Date timestamp) {
         final boolean isProcessorAuthorized = isAuthorized.test(procNode);
 
         final ProcessorStatus status = new ProcessorStatus();
+        status.setCreatedAtInMs(timestamp.toInstant().toEpochMilli());
         status.setId(procNode.getIdentifier());
         status.setGroupId(procNode.getProcessGroup().getIdentifier());
         status.setName(isProcessorAuthorized ? procNode.getName() : procNode.getIdentifier());
@@ -685,8 +679,9 @@ public abstract class AbstractEventAccess implements EventAccess {
         final String rootGroupId = flowManager.getRootGroupId();
         final ProcessGroup group = flowManager.getGroup(rootGroupId);
         final RepositoryStatusReport statusReport = generateRepositoryStatusReport();
+        final Date timestamp = new Date();
 
-        return getGroupStatus(group, statusReport, authorizable -> true, Integer.MAX_VALUE, 1, true);
+        return getGroupStatus(group, statusReport, authorizable -> true, Integer.MAX_VALUE, 1, true, timestamp);
     }
 
     @Override

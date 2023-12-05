@@ -96,7 +96,8 @@ public class VolatileComponentStatusRepository implements StatusHistoryRepositor
     }
 
     @Override
-    public synchronized void capture(final NodeStatus nodeStatus, final ProcessGroupStatus rootGroupStatus, final List<GarbageCollectionStatus> gcStatus, final Date timestamp) {
+    public synchronized void capture(final NodeStatus nodeStatus, final ProcessGroupStatus rootGroupStatus, final List<GarbageCollectionStatus> gcStatus) {
+        final Date timestamp = new Date();
         final Date evicted = timestamps.add(timestamp);
         if (evicted != null) {
             componentStatusHistories.values().forEach(history -> history.expireBefore(evicted));
