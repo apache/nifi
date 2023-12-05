@@ -388,7 +388,7 @@ public class PublishSlack extends AbstractProcessor {
             postMessageResponse = client.chatPostMessage(request);
         } catch (final Exception e) {
             final Relationship relationship = handleClientException(channelId, flowFile, session, context, e);
-            getLogger().error("Failed to send message to Slack for {}; transferring to {}", flowFile, e, relationship);
+            getLogger().error("Failed to send message to Slack for {}; transferring to {}", flowFile, relationship, e);
             return;
         }
 
@@ -442,7 +442,7 @@ public class PublishSlack extends AbstractProcessor {
             uploadResponse = client.filesUploadV2(uploadRequest);
         } catch (final Exception e) {
             final Relationship relationship = handleClientException(channelId, flowFile, session, context, e);
-            getLogger().error("Could not upload contents of {} to Slack; routing to {}", flowFile, e, relationship);
+            getLogger().error("Could not upload contents of {} to Slack; routing to {}", flowFile, relationship, e);
             return;
         }
 
