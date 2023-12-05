@@ -133,16 +133,22 @@ class TestWriteJsonResult {
         final Map<String, Object> values1 = new HashMap<>();
         values1.put("name", "John Doe");
         values1.put("age", 42);
-        final String serialized1 = "{ \"name\": \"John Doe\",    \"age\": 42 }";
+        final String serialized1 = "{\n" +
+                "  \"name\": \"John Doe\",\n" +
+                "  \"age\": 42\n" +
+                "}";
         final SerializedForm serializedForm1 = SerializedForm.of(serialized1, "application/json");
         final Record record1 = new MapRecord(schema, values1, serializedForm1);
 
         final Map<String, Object> values2 = new HashMap<>();
         values2.put("name", "Jane Doe");
         values2.put("age", 43);
-        final String serialized2 = "{ \"name\": \"Jane Doe\",    \"age\": 43 }";
+        final String serialized2 = "{\n" +
+                "  \"name\": \"Jane Doe\",\n" +
+                "  \"age\": 43\n" +
+                "}";
         final SerializedForm serializedForm2 = SerializedForm.of(serialized2, "application/json");
-        final Record record2 = new MapRecord(schema, values1, serializedForm2);
+        final Record record2 = new MapRecord(schema, values2, serializedForm2);
 
         final RecordSet rs = RecordSet.of(schema, record1, record2);
 
@@ -154,11 +160,9 @@ class TestWriteJsonResult {
             writer.write(rs);
         }
 
-        final byte[] data = baos.toByteArray();
-
         final String expected = "[ " + serialized1 + ", " + serialized2 + " ]";
 
-        final String output = new String(data, StandardCharsets.UTF_8);
+        final String output = baos.toString(StandardCharsets.UTF_8.name());
         assertEquals(expected, output);
     }
 
