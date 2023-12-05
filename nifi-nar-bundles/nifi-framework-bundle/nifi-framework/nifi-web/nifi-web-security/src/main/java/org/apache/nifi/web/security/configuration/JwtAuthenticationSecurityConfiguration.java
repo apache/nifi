@@ -36,7 +36,9 @@ import org.apache.nifi.web.security.jwt.key.StandardVerificationKeySelector;
 import org.apache.nifi.web.security.jwt.key.service.StandardVerificationKeyService;
 import org.apache.nifi.web.security.jwt.key.service.VerificationKeyService;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
+import org.apache.nifi.web.security.jwt.provider.IssuerProvider;
 import org.apache.nifi.web.security.jwt.provider.StandardBearerTokenProvider;
+import org.apache.nifi.web.security.jwt.provider.StandardIssuerProvider;
 import org.apache.nifi.web.security.jwt.provider.SupportedClaim;
 import org.apache.nifi.web.security.jwt.resolver.StandardBearerTokenResolver;
 import org.apache.nifi.web.security.jwt.revocation.JwtLogoutListener;
@@ -181,7 +183,12 @@ public class JwtAuthenticationSecurityConfiguration {
 
     @Bean
     public BearerTokenProvider bearerTokenProvider() {
-        return new StandardBearerTokenProvider(jwsSignerProvider());
+        return new StandardBearerTokenProvider(jwsSignerProvider(), issuerProvider());
+    }
+
+    @Bean
+    public IssuerProvider issuerProvider() {
+        return new StandardIssuerProvider(niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST), niFiProperties.getConfiguredHttpOrHttpsPort());
     }
 
     @Bean

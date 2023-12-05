@@ -16,16 +16,28 @@
  */
 package org.apache.nifi.web.security.oidc.client.web;
 
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
+import org.apache.nifi.web.security.token.LoginAuthenticationToken;
+import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.OAuth2RefreshTokenGrantRequest;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
@@ -45,11 +57,14 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -89,6 +104,10 @@ class OidcBearerTokenRefreshFilterTest {
 
     private static final int INSTANT_OFFSET = 1;
 
+    private static final String PROVIDER_GROUP = "Authorized";
+
+    private static final Set<String> PROVIDER_GROUPS = Collections.singleton(PROVIDER_GROUP);
+
     @Mock
     BearerTokenProvider bearerTokenProvider;
 
@@ -106,6 +125,9 @@ class OidcBearerTokenRefreshFilterTest {
 
     @Mock
     OidcAuthorizedClient authorizedClient;
+
+    @Captor
+    ArgumentCaptor<LoginAuthenticationToken> tokenArgumentCaptor;
 
     MockHttpServletRequest request;
 
@@ -128,6 +150,11 @@ class OidcBearerTokenRefreshFilterTest {
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
         filterChain = new MockFilterChain();
+    }
+
+    @AfterEach
+    void clearContext() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -193,6 +220,12 @@ class OidcBearerTokenRefreshFilterTest {
 
     @Test
     void testDoFilterBearerTokenTokenRefreshed() throws ServletException, IOException {
+        final NiFiUser user = new StandardNiFiUser.Builder().identity(IDENTITY).identityProviderGroups(PROVIDER_GROUPS).build();
+        final NiFiUserDetails userDetails = new NiFiUserDetails(user);
+        final NiFiAuthenticationToken authenticationToken = new NiFiAuthenticationToken(userDetails);
+        final SecurityContext securityContext = new SecurityContextImpl(authenticationToken);
+        SecurityContextHolder.setContext(securityContext);
+
         request.setServletPath(CURRENT_USER_URI);
 
         when(bearerTokenResolver.resolve(eq(request))).thenReturn(BEARER_TOKEN);
@@ -220,13 +253,19 @@ class OidcBearerTokenRefreshFilterTest {
                 .build();
         when(refreshTokenResponseClient.getTokenResponse(any())).thenReturn(tokenResponse);
 
-        when(bearerTokenProvider.getBearerToken(any())).thenReturn(BEARER_TOKEN_REFRESHED);
+        when(bearerTokenProvider.getBearerToken(tokenArgumentCaptor.capture())).thenReturn(BEARER_TOKEN_REFRESHED);
 
         filter.doFilter(request, response, filterChain);
 
         final Cookie cookie = response.getCookie(ApplicationCookieName.AUTHORIZATION_BEARER.getCookieName());
         assertNotNull(cookie);
         assertEquals(BEARER_TOKEN_REFRESHED, cookie.getValue());
+
+        final LoginAuthenticationToken loginAuthenticationToken = tokenArgumentCaptor.getValue();
+        final Iterator<GrantedAuthority> authorities = loginAuthenticationToken.getAuthorities().iterator();
+        assertTrue(authorities.hasNext());
+        final GrantedAuthority authority = authorities.next();
+        assertEquals(PROVIDER_GROUP, authority.getAuthority());
     }
 
     private Jwt getJwt(final Instant expiration) {

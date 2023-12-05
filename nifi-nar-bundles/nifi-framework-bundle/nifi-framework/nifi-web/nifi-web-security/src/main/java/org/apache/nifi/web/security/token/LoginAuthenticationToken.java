@@ -21,56 +21,29 @@ import org.springframework.security.core.GrantedAuthority;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Objects;
 
 /**
- * This is an Authentication Token for logging in. Once a user is authenticated, they can be issued an ID token.
+ * Login Authentication Token containing mapped Identity and Expiration Time to exchange for Application Bearer Token
  */
 public class LoginAuthenticationToken extends AbstractAuthenticationToken {
 
     private final String identity;
-    private final String username;
-    private final long expiration;
-    private final String issuer;
 
-    /**
-     * Creates a representation of the authentication token for a user.
-     *
-     * @param identity   The unique identifier for this user
-     * @param expiration The relative time to expiration in milliseconds
-     * @param issuer     The IdentityProvider implementation that generated this token
-     */
-    public LoginAuthenticationToken(final String identity, final long expiration, final String issuer) {
-        this(identity, null, expiration, issuer, null);
-    }
+    private final Instant expiration;
 
     /**
      * Creates a representation of the authentication token for a user.
      *
      * @param identity    The unique identifier for this user (cannot be null or empty)
-     * @param username    The preferred username for this user
-     * @param expiration  The relative time to expiration in milliseconds
-     * @param issuer      The IdentityProvider implementation that generated this token
-     */
-    public LoginAuthenticationToken(final String identity, final String username, final long expiration, final String issuer) {
-        this(identity, username, expiration, issuer, null);
-    }
-
-    /**
-     * Creates a representation of the authentication token for a user.
-     *
-     * @param identity    The unique identifier for this user (cannot be null or empty)
-     * @param username    The preferred username for this user
-     * @param expiration  The relative time to expiration in milliseconds
-     * @param issuer      The IdentityProvider implementation that generated this token
+     * @param expiration  Instant at which the authenticated token is no longer valid
      * @param authorities The authorities that have been granted this token.
      */
-    public LoginAuthenticationToken(final String identity, final String username, final long expiration, final String issuer, Collection<? extends GrantedAuthority> authorities) {
+    public LoginAuthenticationToken(final String identity, final Instant expiration, Collection<? extends GrantedAuthority> authorities) {
         super(authorities);
         setAuthenticated(true);
         this.identity = identity;
-        this.username = username == null ? identity : username;
-        this.issuer = issuer;
-        this.expiration = Instant.now().plusMillis(expiration).toEpochMilli();
+        this.expiration = Objects.requireNonNull(expiration);
     }
 
     @Override
@@ -83,43 +56,17 @@ public class LoginAuthenticationToken extends AbstractAuthenticationToken {
         return identity;
     }
 
-    /**
-     * Returns the expiration instant in milliseconds. This value is an absolute point in time (i.e. Nov
-     * 16, 2015 11:30:00.000 GMT), not a relative time (i.e. 60 minutes). It is calculated by adding the
-     * relative expiration from the constructor to the timestamp at object creation.
-     *
-     * @return the expiration in millis
-     */
-    public long getExpiration() {
+    public Instant getExpiration() {
         return expiration;
-    }
-
-    public String getIssuer() {
-        return issuer;
     }
 
     @Override
     public String getName() {
-        return username;
+        return identity;
     }
 
     @Override
     public String toString() {
-        final Instant expirationTime = Instant.ofEpochMilli(expiration);
-        long remainingTime = expirationTime.toEpochMilli() - Instant.now().toEpochMilli();
-
-        return new StringBuilder("LoginAuthenticationToken for ")
-                .append(getName())
-                .append(" issued by ")
-                .append(getIssuer())
-                .append(" expiring at ")
-                .append(expirationTime)
-                .append(" [")
-                .append(getExpiration())
-                .append(" ms, ")
-                .append(remainingTime)
-                .append(" ms remaining]")
-                .toString();
+        return getName();
     }
-
 }

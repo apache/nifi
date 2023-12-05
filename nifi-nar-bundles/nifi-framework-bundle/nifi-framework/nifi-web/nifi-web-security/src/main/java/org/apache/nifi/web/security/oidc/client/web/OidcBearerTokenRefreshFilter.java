@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.security.oidc.client.web;
 
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.cookie.ApplicationCookieService;
@@ -27,6 +28,8 @@ import org.apache.nifi.web.util.RequestUriBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -56,8 +59,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 /**
  * OpenID Connect Filter for evaluating the application Bearer Token and returning an updated Bearer Token after successful OAuth2 Refresh Token processing
@@ -143,8 +148,7 @@ public class OidcBearerTokenRefreshFilter extends OncePerRequestFilter {
                     logger.warn("Identity [{}] OpenID Connect Refresh Token not found", userIdentity);
                 } else {
                     final URI resourceUri = RequestUriBuilder.fromHttpServletRequest(request).path(ROOT_PATH).build();
-                    final String issuer = resourceUri.toString();
-                    final String bearerToken = getBearerToken(userIdentity, issuer, tokenResponse);
+                    final String bearerToken = getBearerToken(userIdentity, tokenResponse);
                     applicationCookieService.addSessionCookie(resourceUri, response, ApplicationCookieName.AUTHORIZATION_BEARER, bearerToken);
                 }
             }
@@ -174,20 +178,20 @@ public class OidcBearerTokenRefreshFilter extends OncePerRequestFilter {
         return authorizedClientRepository.loadAuthorizedClient(OidcRegistrationProperty.REGISTRATION_ID.getProperty(), principal, request);
     }
 
-    private String getBearerToken(final String userIdentity, final String issuer, final OAuth2AccessTokenResponse tokenResponse) {
+    private String getBearerToken(final String userIdentity, final OAuth2AccessTokenResponse tokenResponse) {
         final OAuth2AccessToken accessToken = tokenResponse.getAccessToken();
-        final long sessionExpiration = getSessionExpiration(accessToken);
-        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(userIdentity, userIdentity, sessionExpiration, issuer);
+        final Instant sessionExpiration = getSessionExpiration(accessToken);
+        final Set<? extends GrantedAuthority> providerAuthorities = getProviderAuthorities();
+        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(userIdentity, sessionExpiration, providerAuthorities);
         return bearerTokenProvider.getBearerToken(loginAuthenticationToken);
     }
 
-    private long getSessionExpiration(final OAuth2AccessToken accessToken) {
+    private Instant getSessionExpiration(final OAuth2AccessToken accessToken) {
         final Instant tokenExpiration = accessToken.getExpiresAt();
         if (tokenExpiration == null) {
             throw new IllegalArgumentException("OpenID Connect Access Token expiration claim not found");
         }
-        final Duration expiration = Duration.between(Instant.now(), tokenExpiration);
-        return expiration.toMillis();
+        return tokenExpiration;
     }
 
     private OAuth2AccessTokenResponse getRefreshTokenResponse(final OidcAuthorizedClient authorizedClient, final HttpServletRequest request, final HttpServletResponse response) {
@@ -228,5 +232,19 @@ public class OidcBearerTokenRefreshFilter extends OncePerRequestFilter {
         final OidcIdToken idToken = authorizedClient.getIdToken();
         final OidcUser oidcUser = new DefaultOidcUser(Collections.emptyList(), idToken, SupportedClaim.SUBJECT.getClaim());
         return new OAuth2AuthenticationToken(oidcUser, Collections.emptyList(), clientRegistration.getRegistrationId());
+    }
+
+    private Set<? extends GrantedAuthority> getProviderAuthorities() {
+        final Set<? extends GrantedAuthority> authorities;
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final Set<String> providerGroups = user.getIdentityProviderGroups();
+        if (providerGroups == null) {
+            authorities = Collections.emptySet();
+        } else {
+            authorities = providerGroups.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toSet());
+        }
+
+        return authorities;
     }
 }

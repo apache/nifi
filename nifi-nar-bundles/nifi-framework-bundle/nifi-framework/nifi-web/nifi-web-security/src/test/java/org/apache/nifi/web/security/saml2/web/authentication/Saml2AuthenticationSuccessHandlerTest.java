@@ -42,8 +42,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @ExtendWith(MockitoExtension.class)
 class Saml2AuthenticationSuccessHandlerTest {
-    private static final String ISSUER = Saml2AuthenticationSuccessHandlerTest.class.getSimpleName();
-
     private static final Duration EXPIRATION = Duration.ofMinutes(1);
 
     private static final String IDENTITY = Authentication.class.getSimpleName();
@@ -103,8 +101,7 @@ class Saml2AuthenticationSuccessHandlerTest {
                 bearerTokenProvider,
                 Collections.singletonList(UPPER_IDENTITY_MAPPING),
                 Collections.singletonList(LOWER_IDENTITY_MAPPING),
-                EXPIRATION,
-                ISSUER
+                EXPIRATION
         );
         httpServletRequest = new MockHttpServletRequest();
         httpServletRequest.setServerPort(SERVER_PORT);
