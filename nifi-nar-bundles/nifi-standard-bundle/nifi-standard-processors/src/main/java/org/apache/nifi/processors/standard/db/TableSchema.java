@@ -28,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public class TableSchema {
     private final List<String> requiredColumnNames;
@@ -40,7 +41,7 @@ public class TableSchema {
 
     public TableSchema(final String catalogName, final String schemaName, final String tableName,
                        final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames,
-                       final TranslationStrategy translationStrategy, String translationRegex,
+                       final TranslationStrategy translationStrategy, Pattern translationRegex,
                        final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
         this.catalogName = catalogName;
         this.schemaName = schemaName;
@@ -90,7 +91,7 @@ public class TableSchema {
     }
 
     public static TableSchema from(final Connection conn, final String catalog, final String schema, final String tableName,
-                                   final boolean translateColumnNames, final TranslationStrategy translationStrategy, String translationRegex,
+                                   final boolean translateColumnNames, final TranslationStrategy translationStrategy, Pattern translationRegex,
                                    final String updateKeys, ComponentLog log) throws SQLException {
         final DatabaseMetaData dmd = conn.getMetaData();
 

@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard.db;
 
 
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * ColumnNameNormalizerUtility is a utility class that helps to normalize column names. It provides various strategies to
@@ -27,7 +28,7 @@ import java.util.Objects;
  */
 public class ColumnNameNormalizerUtility {
     // Regular expression to remove all special characters from a string.
-    private static final String REMOVE_ALL_SPECIAL_CHAR_REGEX = "[^a-zA-Z0-9]";
+    private static final Pattern REMOVE_ALL_SPECIAL_CHAR_REGEX = Pattern.compile("[^a-zA-Z0-9]");
 
     /**
      * Normalizes the given column name based on the specified strategy.
@@ -38,7 +39,7 @@ public class ColumnNameNormalizerUtility {
      * @param translationRegex Regex For translation
      * @return The normalized column name as a String.
      */
-    public static String getNormalizedName(final String colName, boolean isTranslationEnabled, TranslationStrategy strategy, String translationRegex) {
+    public static String getNormalizedName(final String colName, boolean isTranslationEnabled, TranslationStrategy strategy, Pattern translationRegex) {
         // If the column name is null or translation is not enabled, return the original column name.
         if (colName == null || !isTranslationEnabled) {
             return colName;
@@ -47,9 +48,8 @@ public class ColumnNameNormalizerUtility {
         return switch (Objects.requireNonNull(strategy)) {
             case REMOVE_UNDERSCORE -> colName.toUpperCase().replace("_", "");
             case REMOVE_SPACE -> colName.toUpperCase().replace(" ", "");
-            case REMOVE_ALL_SPECIAL_CHAR -> colName.toUpperCase().replaceAll(REMOVE_ALL_SPECIAL_CHAR_REGEX, "");
-            case REGEX -> colName.toUpperCase().replaceAll(translationRegex, "");
-            default -> colName;
+            case REMOVE_ALL_SPECIAL_CHAR -> REMOVE_ALL_SPECIAL_CHAR_REGEX .matcher(colName.toUpperCase()).replaceAll( "");
+            case PATTERN -> translationRegex.matcher(colName.toUpperCase()).replaceAll( "");
         };
     }
 

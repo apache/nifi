@@ -19,6 +19,8 @@ package org.apache.nifi.processors.standard.db;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.regex.Pattern;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
@@ -56,9 +58,9 @@ public class ColumnNameNormalizerUtilityTest {
     @Test
     void testNormalizingColumnName_Regex() {
         String inputColumnName = "Your @Input -String Here";
-        String translationRegex = "[@-]";
-        String expectedNormalized = inputColumnName.toUpperCase().replaceAll(translationRegex, "");
-        String normalized = ColumnNameNormalizerUtility.getNormalizedName(inputColumnName,true, TranslationStrategy.REGEX, translationRegex);
+        Pattern translationPattern = Pattern.compile("[@-]");
+        String expectedNormalized = translationPattern.matcher(inputColumnName.toUpperCase()).replaceAll( "");
+        String normalized = ColumnNameNormalizerUtility.getNormalizedName(inputColumnName,true, TranslationStrategy.PATTERN, translationPattern);
 
         assertEquals(expectedNormalized, normalized);
     }
