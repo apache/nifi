@@ -19,7 +19,6 @@ package org.apache.nifi.processors.azure.eventhub.checkpoint;
 import com.azure.core.util.CoreUtils;
 import com.azure.messaging.eventhubs.CheckpointStore;
 import com.azure.messaging.eventhubs.models.Checkpoint;
-import com.azure.messaging.eventhubs.models.PartitionContext;
 import com.azure.messaging.eventhubs.models.PartitionOwnership;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -40,7 +39,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.toList;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.KEY_CHECKPOINT;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.KEY_OWNERSHIP;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.checkpointToString;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.convertOwnership;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createCheckpointKey;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createCheckpointValue;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createOwnershipKey;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createOwnershipValue;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.ownershipListToString;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.ownershipToString;
 
 /**
  * The {@link com.azure.messaging.eventhubs.CheckpointStore} is responsible for managing the storage of partition ownership and checkpoint information for Azure Event Hubs consumers.
@@ -78,9 +89,6 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ComponentStateCheckpointStore.class);
 
-    private static final String KEY_OWNERSHIP = "ownership";
-    private static final String KEY_CHECKPOINT = "checkpoint";
-
     private final String clientId;
 
     private final StateManager stateManager;
@@ -100,7 +108,7 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                                 && ownership.getEventHubName().equals(eventHubName)
                                 && ownership.getConsumerGroup().equals(consumerGroup)
                 )
-                .doOnNext(partitionOwnership -> debug("listOwnership() -> Returning {}", toString(partitionOwnership)))
+                .doOnNext(partitionOwnership -> debug("listOwnership() -> Returning {}", ownershipToString(partitionOwnership)))
                 .doOnComplete(() -> debug("listOwnership() -> Succeeded"))
                 .doOnError(throwable -> debug("listOwnership() -> Failed: {}", throwable.getMessage()));
     }
@@ -108,7 +116,7 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
     @Override
     public Flux<PartitionOwnership> claimOwnership(List<PartitionOwnership> requestedPartitionOwnerships) {
         return getState()
-                .doFirst(() -> debug("claimOwnership() -> Entering [{}]", requestedPartitionOwnerships.stream().map(this::toString).collect(Collectors.toList())))
+                .doFirst(() -> debug("claimOwnership() -> Entering [{}]", ownershipListToString(requestedPartitionOwnerships)))
                 .flatMapMany(oldState -> {
                     Map<String, String> newMap = new HashMap<>(oldState.toMap());
 
@@ -119,22 +127,24 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                     for (PartitionOwnership requestedPartitionOwnership : requestedPartitionOwnerships) {
                         String key = createOwnershipKey(requestedPartitionOwnership);
 
-                        PartitionContext partitionContext = getPartitionContext(requestedPartitionOwnership);
-
                         if (oldState.get(key) != null) {
-                            PartitionOwnership oldPartitionOwnership = convertOwnership(partitionContext, oldState.get(key));
+                            PartitionOwnership oldPartitionOwnership = convertOwnership(key, oldState.get(key));
 
                             String oldETag = oldPartitionOwnership.getETag();
                             String reqETag = requestedPartitionOwnership.getETag();
                             if (StringUtils.isNotEmpty(oldETag) && !oldETag.equals(reqETag)) {
-                                debug("claimOwnership() -> Already claimed {}", toString(oldPartitionOwnership));
+                                debug("claimOwnership() -> Already claimed {}", ownershipToString(oldPartitionOwnership));
                                 continue;
                             }
                         }
 
                         String newETag = CoreUtils.randomUuid().toString();
 
-                        PartitionOwnership partitionOwnership = newPartitionOwnership(partitionContext)
+                        PartitionOwnership partitionOwnership = new PartitionOwnership()
+                                .setFullyQualifiedNamespace(requestedPartitionOwnership.getFullyQualifiedNamespace())
+                                .setEventHubName(requestedPartitionOwnership.getEventHubName())
+                                .setConsumerGroup(requestedPartitionOwnership.getConsumerGroup())
+                                .setPartitionId(requestedPartitionOwnership.getPartitionId())
                                 .setOwnerId(requestedPartitionOwnership.getOwnerId())
                                 .setLastModifiedTime(timestamp)
                                 .setETag(newETag);
@@ -143,7 +153,7 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
 
                         newMap.put(key, createOwnershipValue(partitionOwnership));
 
-                        debug("claimOwnership() -> Claiming {}", toString(partitionOwnership));
+                        debug("claimOwnership() -> Claiming {}", ownershipToString(partitionOwnership));
                     }
 
                     if (claimedOwnerships.isEmpty()) {
@@ -153,7 +163,7 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                     return updateState(oldState, newMap)
                             .thenMany(Flux.fromIterable(claimedOwnerships));
                 })
-                .doOnNext(partitionOwnership -> debug("claimOwnership() -> Returning {}", toString(partitionOwnership)))
+                .doOnNext(partitionOwnership -> debug("claimOwnership() -> Returning {}", ownershipToString(partitionOwnership)))
                 .doOnComplete(() -> debug("claimOwnership() -> Succeeded"))
                 .doOnError(throwable -> debug("claimOwnership() -> Failed: {}", throwable.getMessage()))
                 .retryWhen(createRetrySpec())
@@ -170,7 +180,7 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                                 && checkpoint.getEventHubName().equals(eventHubName)
                                 && checkpoint.getConsumerGroup().equals(consumerGroup)
                 )
-                .doOnNext(checkpoint -> debug("listCheckpoints() -> Returning {}", toString(checkpoint)))
+                .doOnNext(checkpoint -> debug("listCheckpoints() -> Returning {}", checkpointToString(checkpoint)))
                 .doOnComplete(() -> debug("listCheckpoints() -> Succeeded"))
                 .doOnError(throwable -> debug("listCheckpoints() -> Failed: {}", throwable.getMessage()));
     }
@@ -178,7 +188,7 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
     @Override
     public Mono<Void> updateCheckpoint(Checkpoint checkpoint) {
         return getState()
-                .doFirst(() -> debug("updateCheckpoint() -> Entering [{}]", toString(checkpoint)))
+                .doFirst(() -> debug("updateCheckpoint() -> Entering [{}]", checkpointToString(checkpoint)))
                 .flatMap(oldState -> {
                     Map<String, String> newMap = new HashMap<>(oldState.toMap());
 
@@ -201,148 +211,18 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
     }
 
     private Flux<PartitionOwnership> getOwnerships(StateMap state) {
-        return getEntries(state, KEY_OWNERSHIP, this::convertOwnership);
+        return getEntries(state, KEY_OWNERSHIP, ComponentStateCheckpointStoreUtils::convertOwnership);
     }
 
     private Flux<Checkpoint> getCheckpoints(StateMap state) {
-        return getEntries(state, KEY_CHECKPOINT, this::convertCheckpoint);
+        return getEntries(state, KEY_CHECKPOINT, ComponentStateCheckpointStoreUtils::convertCheckpoint);
     }
 
-    private <T> Flux<T> getEntries(StateMap state, String kind, BiFunction<PartitionContext, String, T> converter) throws ProcessException {
-        final List<T> result = new ArrayList<>();
-        for (Map.Entry<String, String> entry : state.toMap().entrySet()) {
-            final String key = entry.getKey();
-            final String[] parts = key.split("/", 5);
-            if (parts.length != 5 || !parts[0].equals(kind)) {
-                continue;
-            }
-            final String fullyQualifiedNamespace = parts[1];
-            final String eventHubName = parts[2];
-            final String consumerGroup = parts[3];
-            final String partitionId = parts[4];
-            PartitionContext partitionContext = new PartitionContext(
-                    fullyQualifiedNamespace,
-                    eventHubName,
-                    consumerGroup,
-                    partitionId
-            );
-            final T item = converter.apply(partitionContext, entry.getValue());
-            result.add(item);
-        }
-        return Flux.fromIterable(result);
-    }
-
-    private PartitionOwnership convertOwnership(PartitionContext context, String value) {
-        final String[] parts = value.split("/", 3);
-        if (parts.length != 3) {
-            throw new ProcessException(String.format("Invalid ownership value: %s", value));
-        }
-        return new PartitionOwnership()
-                .setFullyQualifiedNamespace(context.getFullyQualifiedNamespace())
-                .setEventHubName(context.getEventHubName())
-                .setConsumerGroup(context.getConsumerGroup())
-                .setPartitionId(context.getPartitionId())
-                .setOwnerId(parts[0])
-                .setLastModifiedTime(Long.parseLong(parts[1]))
-                .setETag(parts[2]);
-    }
-
-    private Checkpoint convertCheckpoint(PartitionContext context, String value) {
-        final String[] parts = value.split("/", 2);
-        if (parts.length != 2) {
-            throw new ProcessException(String.format("Invalid checkpoint value: %s", value));
-        }
-        return new Checkpoint()
-                .setFullyQualifiedNamespace(context.getFullyQualifiedNamespace())
-                .setEventHubName(context.getEventHubName())
-                .setConsumerGroup(context.getConsumerGroup())
-                .setPartitionId(context.getPartitionId())
-                .setOffset(StringUtils.isNotEmpty(parts[0]) ? Long.parseLong(parts[0]) : null)
-                .setSequenceNumber(StringUtils.isNotEmpty(parts[1]) ? Long.parseLong(parts[1]): null);
-    }
-
-    static String createOwnershipKey(PartitionOwnership partitionOwnership) {
-        return createKey(
-                KEY_OWNERSHIP,
-                partitionOwnership.getFullyQualifiedNamespace(),
-                partitionOwnership.getEventHubName(),
-                partitionOwnership.getConsumerGroup(),
-                partitionOwnership.getPartitionId()
-        );
-    }
-
-    static String createCheckpointKey(Checkpoint checkpoint) {
-        return createKey(
-                KEY_CHECKPOINT,
-                checkpoint.getFullyQualifiedNamespace(),
-                checkpoint.getEventHubName(),
-                checkpoint.getConsumerGroup(),
-                checkpoint.getPartitionId()
-        );
-    }
-
-    static String createOwnershipValue(PartitionOwnership partitionOwnership) {
-        return String.format("%s/%s/%s",
-                partitionOwnership.getOwnerId(),
-                partitionOwnership.getLastModifiedTime(),
-                partitionOwnership.getETag());
-    }
-
-    static String createCheckpointValue(Checkpoint checkpoint) {
-        return String.format("%s/%s",
-                checkpoint.getOffset() != null ? checkpoint.getOffset().toString() : "",
-                checkpoint.getSequenceNumber() != null ? checkpoint.getSequenceNumber().toString() : "");
-    }
-
-    private static String createKey(String kind, String fullyQualifiedNamespace, String eventHubName, String consumerGroup, String partitionId) {
-        return String.format(
-                "%s/%s/%s/%s/%s",
-                kind,
-                fullyQualifiedNamespace,
-                eventHubName,
-                consumerGroup,
-                partitionId
-        );
-    }
-
-    private PartitionContext getPartitionContext(PartitionOwnership partitionOwnership) {
-        return new PartitionContext(
-                partitionOwnership.getFullyQualifiedNamespace(),
-                partitionOwnership.getEventHubName(),
-                partitionOwnership.getConsumerGroup(),
-                partitionOwnership.getPartitionId()
-        );
-    }
-
-    private PartitionOwnership newPartitionOwnership(PartitionContext partitionContext) {
-        return new PartitionOwnership()
-                .setFullyQualifiedNamespace(partitionContext.getFullyQualifiedNamespace())
-                .setEventHubName(partitionContext.getEventHubName())
-                .setConsumerGroup(partitionContext.getConsumerGroup())
-                .setPartitionId(partitionContext.getPartitionId());
-    }
-
-    private String toString(PartitionOwnership partitionOwnership) {
-        return "PartitionOwnership{" +
-                "fullyQualifiedNamespace='" + partitionOwnership.getFullyQualifiedNamespace() + '\'' +
-                ", eventHubName='" + partitionOwnership.getEventHubName() + '\'' +
-                ", consumerGroup='" + partitionOwnership.getConsumerGroup() + '\'' +
-                ", partitionId='" + partitionOwnership.getPartitionId() + '\'' +
-                ", ownerId='" + partitionOwnership.getOwnerId() + '\'' +
-                ", lastModifiedTime=" + partitionOwnership.getLastModifiedTime() +
-                ", eTag='" + partitionOwnership.getETag() + '\'' +
-                '}';
-    }
-
-    private String toString(Checkpoint checkpoint) {
-        return "Checkpoint{" +
-                "fullyQualifiedNamespace='" + checkpoint.getFullyQualifiedNamespace() + '\'' +
-                ", eventHubName='" + checkpoint.getEventHubName() + '\'' +
-                ", consumerGroup='" + checkpoint.getConsumerGroup() + '\'' +
-                ", partitionId='" + checkpoint.getPartitionId() + '\'' +
-                ", offset=" + checkpoint.getOffset() +
-                ", sequenceNumber=" + checkpoint.getSequenceNumber() +
-                '}';
+    private <T> Flux<T> getEntries(StateMap state, String kind, BiFunction<String, String, T> converter) throws ProcessException {
+        return state.toMap().entrySet().stream()
+                .filter(e -> e.getKey().startsWith(kind))
+                .map(e -> converter.apply(e.getKey(), e.getValue()))
+                .collect(collectingAndThen(toList(), Flux::fromIterable));
     }
 
     private void debug(String message, Object... arguments) {

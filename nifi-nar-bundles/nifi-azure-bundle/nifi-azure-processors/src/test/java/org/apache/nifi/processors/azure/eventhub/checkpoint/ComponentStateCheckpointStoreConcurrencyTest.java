@@ -35,9 +35,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStore.createCheckpointKey;
-import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStore.createCheckpointValue;
-import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStore.createOwnershipKey;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createCheckpointKey;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createCheckpointValue;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createOwnershipKey;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
@@ -157,7 +157,7 @@ class ComponentStateCheckpointStoreConcurrencyTest extends AbstractComponentStat
         return Stream.of(partitionOwnerships)
                 .map(this::copy)
                 .map(this::setETagAndLastModified)
-                .collect(Collectors.toMap(ComponentStateCheckpointStore::createOwnershipKey, ComponentStateCheckpointStore::createOwnershipValue));
+                .collect(Collectors.toMap(ComponentStateCheckpointStoreUtils::createOwnershipKey, ComponentStateCheckpointStoreUtils::createOwnershipValue));
     }
 
 }

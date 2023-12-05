@@ -30,10 +30,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStore.createCheckpointKey;
-import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStore.createCheckpointValue;
-import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStore.createOwnershipKey;
-import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStore.createOwnershipValue;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createCheckpointKey;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createCheckpointValue;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createOwnershipKey;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createOwnershipValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,42 +49,6 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
         stateManager = new MockStateManager(new Object());
         stateManager.setIgnoreAnnotations(true);
         return stateManager;
-    }
-
-    @Test
-    void testOwnershipKey() {
-        String ownershipKey = createOwnershipKey(partitionOwnership1);
-
-        String expectedOwnershipKey = "ownership/my-event-hub-namespace/my-event-hub-name/my-consumer-group/1";
-        assertEquals(expectedOwnershipKey, ownershipKey);
-    }
-
-    @Test
-    void testOwnershipValue() {
-        partitionOwnership1
-                .setLastModifiedTime(1234567890L)
-                .setETag("my-etag");
-
-        String ownershipValue = createOwnershipValue(partitionOwnership1);
-
-        String expectedOwnershipValue = "client-id-1/1234567890/my-etag";
-        assertEquals(expectedOwnershipValue, ownershipValue);
-    }
-
-    @Test
-    void testCheckpointKey() {
-        String checkpointKey = createCheckpointKey(checkpoint1);
-
-        String expectedCheckpointKey = "checkpoint/my-event-hub-namespace/my-event-hub-name/my-consumer-group/1";
-        assertEquals(expectedCheckpointKey, checkpointKey);
-    }
-
-    @Test
-    void testCheckpointValue() {
-        String checkpointValue = createCheckpointValue(checkpoint1);
-
-        String expectedCheckpointValue = "10/1";
-        assertEquals(expectedCheckpointValue, checkpointValue);
     }
 
     @Test
