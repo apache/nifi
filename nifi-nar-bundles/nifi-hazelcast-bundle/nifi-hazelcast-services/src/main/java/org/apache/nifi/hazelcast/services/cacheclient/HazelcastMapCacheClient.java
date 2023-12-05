@@ -180,11 +180,6 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
         return cache.remove(getCacheEntryKey(key, keySerializer));
     }
 
-    @Override
-    public long removeByPattern(final String regex) throws IOException {
-        return cache.removeAll(new RegexPredicate(regex));
-    }
-
     private static class RegexPredicate implements Predicate<String>, Serializable {
         private final Pattern pattern;
 

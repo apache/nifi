@@ -28,14 +28,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -69,7 +65,7 @@ public class TestPutDistributedMapCache {
     }
 
     @Test
-    public void testSingleFlowFile() throws InitializationException, IOException {
+    public void testSingleFlowFile() throws IOException {
         runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
 
         final Map<String, String> props = new HashMap<>();
@@ -93,7 +89,7 @@ public class TestPutDistributedMapCache {
     }
 
     @Test
-    public void testNothingToCache() throws InitializationException, IOException {
+    public void testNothingToCache() {
         runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
 
         final Map<String, String> props = new HashMap<>();
@@ -109,7 +105,7 @@ public class TestPutDistributedMapCache {
     }
 
     @Test
-    public void testMaxCacheEntrySize() throws InitializationException, IOException {
+    public void testMaxCacheEntrySize() throws IOException {
 
         runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_IDENTIFIER, "${uuid}");
         runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_MAX_BYTES, "10 B");
@@ -134,7 +130,7 @@ public class TestPutDistributedMapCache {
     }
 
     @Test
-    public void testCacheStrategyReplace() throws InitializationException, IOException {
+    public void testCacheStrategyReplace() throws IOException {
 
         runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
         runner.setProperty(PutDistributedMapCache.CACHE_UPDATE_STRATEGY, PutDistributedMapCache.CACHE_UPDATE_REPLACE.getValue());
@@ -178,7 +174,7 @@ public class TestPutDistributedMapCache {
     }
 
     @Test
-    public void testCacheStrategyKeepOriginal() throws InitializationException, IOException {
+    public void testCacheStrategyKeepOriginal() throws IOException {
 
         runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
         runner.setProperty(PutDistributedMapCache.CACHE_UPDATE_STRATEGY, PutDistributedMapCache.CACHE_UPDATE_KEEP_ORIGINAL.getValue());
@@ -221,7 +217,7 @@ public class TestPutDistributedMapCache {
         assertEquals(original, new String(value, "UTF-8"));
     }
 
-    private class MockCacheClient extends AbstractControllerService implements DistributedMapCacheClient {
+    private static class MockCacheClient extends AbstractControllerService implements DistributedMapCacheClient {
         private final ConcurrentMap<Object, Object> values = new ConcurrentHashMap<>();
         private boolean failOnCalls = false;
 
@@ -266,7 +262,7 @@ public class TestPutDistributedMapCache {
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
         }
 
         @Override
@@ -275,24 +271,5 @@ public class TestPutDistributedMapCache {
             values.remove(key);
             return true;
         }
-
-        @Override
-        public long removeByPattern(String regex) throws IOException {
-            verifyNotFail();
-            final List<Object> removedRecords = new ArrayList<>();
-            Pattern p = Pattern.compile(regex);
-            for (Object key : values.keySet()) {
-                // Key must be backed by something that can be converted into a String
-                Matcher m = p.matcher(key.toString());
-                if (m.matches()) {
-                    removedRecords.add(values.get(key));
-                }
-            }
-            final long numRemoved = removedRecords.size();
-            removedRecords.forEach(values::remove);
-            return numRemoved;
-        }
     }
-
-
 }

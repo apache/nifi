@@ -18,8 +18,6 @@ package org.apache.nifi.distributed.cache.client;
 
 import org.apache.nifi.distributed.cache.client.adapter.AtomicCacheEntryInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.BooleanInboundAdapter;
-import org.apache.nifi.distributed.cache.client.adapter.LongInboundAdapter;
-import org.apache.nifi.distributed.cache.client.adapter.MapInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.MapValuesInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.OutboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.SetInboundAdapter;
@@ -221,41 +219,6 @@ public class NettyDistributedMapCacheClient extends DistributedCacheClient {
                 .write(key);
         invoke(outboundAdapter, valueAdapter);
         return valueAdapter.getResult();
-    }
-
-    /**
-     * Removes entries whose keys match the specified pattern.
-     *
-     * @param regex The regular expression / pattern on which to match the keys to be removed
-     * @return The number of entries that were removed
-     * @throws IOException if unable to communicate with the remote instance
-     */
-    public long removeByPattern(String regex) throws IOException {
-        final OutboundAdapter outboundAdapter = new OutboundAdapter()
-                .write(MapOperation.REMOVE_BY_PATTERN.value())
-                .write(regex);
-        final LongInboundAdapter inboundAdapter = new LongInboundAdapter();
-        invoke(outboundAdapter, inboundAdapter);
-        return inboundAdapter.getResult();
-    }
-
-    /**
-     * Removes entries whose keys match the specified pattern, and returns a map of entries that
-     * were removed.
-     *
-     * @param <K>   type of key
-     * @param <V>   type of value
-     * @param regex The regular expression / pattern on which to match the keys to be removed
-     * @return A map of key/value entries that were removed from the cache
-     * @throws IOException if unable to communicate with the remote instance
-     */
-    public <K, V> Map<K, V> removeByPatternAndGet(String regex, final MapInboundAdapter<K, V> mapAdapter) throws IOException {
-        final OutboundAdapter outboundAdapter = new OutboundAdapter()
-                .minimumVersion(ProtocolVersion.V3.value())
-                .write(MapOperation.REMOVE_BY_PATTERN_AND_GET.value())
-                .write(regex);
-        invoke(outboundAdapter, mapAdapter);
-        return mapAdapter.getResult();
     }
 
     /**

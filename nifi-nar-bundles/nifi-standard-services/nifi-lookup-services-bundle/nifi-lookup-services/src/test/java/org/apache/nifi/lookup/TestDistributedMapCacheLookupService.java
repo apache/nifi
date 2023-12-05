@@ -29,7 +29,6 @@ import org.apache.nifi.util.TestRunners;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -77,7 +76,7 @@ public class TestDistributedMapCacheLookupService {
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
         }
 
         @Override
@@ -90,39 +89,34 @@ public class TestDistributedMapCacheLookupService {
         }
 
         @Override
-        public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
+        public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
             throw new UnsupportedOperationException("not implemented");
         }
 
         @Override
         public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer,
-                final Deserializer<V> valueDeserializer) throws IOException {
+                final Deserializer<V> valueDeserializer) {
             throw new UnsupportedOperationException("not implemented");
         }
 
         @Override
-        public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
+        public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) {
             throw new UnsupportedOperationException("not implemented");
         }
 
         @Override
         @SuppressWarnings("unchecked")
-        public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
+        public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) {
             return (V) map.get(key);
         }
 
         @Override
-        public <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
+        public <K> boolean remove(final K key, final Serializer<K> serializer) {
             throw new UnsupportedOperationException("not implemented");
         }
 
         @Override
-        public long removeByPattern(String regex) throws IOException {
-            throw new UnsupportedOperationException("not implemented");
-        }
-
-        @Override
-        public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
+        public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
             throw new UnsupportedOperationException("not implemented");
         }
     }

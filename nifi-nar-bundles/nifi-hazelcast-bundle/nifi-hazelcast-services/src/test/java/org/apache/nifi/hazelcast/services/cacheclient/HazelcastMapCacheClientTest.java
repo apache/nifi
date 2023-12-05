@@ -163,24 +163,6 @@ public class HazelcastMapCacheClientTest {
     }
 
     @Test
-    public void testRemoveByPattern() throws Exception {
-        // given
-        whenPutEntry("key1", "a");
-        whenPutEntry("key2", "b");
-        whenPutEntry("key3", "c");
-        whenPutEntry("other", "d");
-
-        // when
-        testSubject.removeByPattern("key.*");
-
-        // then
-        thenEntryIsNotInCache("key1");
-        thenEntryIsNotInCache("key2");
-        thenEntryIsNotInCache("key3");
-        thenEntryIsInCache("other");
-    }
-
-    @Test
     public void testWhenReplaceNonExistingAtomicEntry() throws Exception {
         // given
         thenFetchedEntryIsNull();
