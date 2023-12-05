@@ -35,6 +35,7 @@ import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SerializedForm;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
@@ -399,7 +400,8 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             childValues.put(childFieldName, childValue);
         }
 
-        return new MapRecord(childSchema, childValues);
+        final SerializedForm serializedForm = SerializedForm.of(fieldNode::toString, "application/json");
+        return new MapRecord(childSchema, childValues, serializedForm);
     }
 
     protected JsonNode getNextJsonNode() throws IOException, MalformedRecordException {

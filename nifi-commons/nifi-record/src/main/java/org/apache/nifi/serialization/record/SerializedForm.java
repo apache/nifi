@@ -18,6 +18,7 @@
 package org.apache.nifi.serialization.record;
 
 import java.util.Objects;
+import java.util.function.Supplier;
 
 public interface SerializedForm {
     /**
@@ -30,7 +31,7 @@ public interface SerializedForm {
      */
     String getMimeType();
 
-    public static SerializedForm of(final java.util.function.Supplier<Object> serializedSupplier, final String mimeType) {
+    static SerializedForm of(final Supplier<?> serializedSupplier, final String mimeType) {
         Objects.requireNonNull(serializedSupplier);
         Objects.requireNonNull(mimeType);
 
@@ -68,17 +69,16 @@ public interface SerializedForm {
                     return false;
                 }
 
-                if (!(obj instanceof SerializedForm)) {
+                if (!(obj instanceof final SerializedForm other)) {
                     return false;
                 }
 
-                final SerializedForm other = (SerializedForm) obj;
                 return other.getMimeType().equals(mimeType) && Objects.deepEquals(other.getSerialized(), getSerialized());
             }
         };
     }
 
-    public static SerializedForm of(final Object serialized, final String mimeType) {
+    static SerializedForm of(final Object serialized, final String mimeType) {
         Objects.requireNonNull(serialized);
         Objects.requireNonNull(mimeType);
 
@@ -108,11 +108,10 @@ public interface SerializedForm {
                     return false;
                 }
 
-                if (!(obj instanceof SerializedForm)) {
+                if (!(obj instanceof final SerializedForm other)) {
                     return false;
                 }
 
-                final SerializedForm other = (SerializedForm) obj;
                 return other.getMimeType().equals(mimeType) && Objects.deepEquals(other.getSerialized(), getSerialized());
             }
         };
