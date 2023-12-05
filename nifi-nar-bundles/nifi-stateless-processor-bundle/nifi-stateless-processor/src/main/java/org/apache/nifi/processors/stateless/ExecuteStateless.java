@@ -258,10 +258,26 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
     public static final PropertyDescriptor LIB_DIRECTORY = new Builder()
         .name("NAR Directory")
         .displayName("NAR Directory")
-        .description("The directory to retrieve NAR's from")
+        .description("This directory has three roles: " +
+            "1) it contains the NiFi Stateless NAR and other necessary libraries required for the Stateless engine to be bootstrapped, " +
+            "2) it can contain extensions that should be loaded by the Stateless engine, " +
+            "3) it is used by the Stateless engine to download extensions into.")
         .required(true)
         .addValidator(createDirectoryExistsValidator(false, false))
         .defaultValue("./lib")
+        .build();
+
+    public static final PropertyDescriptor ADDITIONAL_LIB_DIRECTORIES = new Builder()
+        .name("additional-nar-directories")
+        .displayName("Additional NAR Directories")
+        .description("A comma-separated list of paths for directories that contain extensions that " +
+                "should be loaded by the stateless engine. The engine will not download any " +
+                "extensions into these directories or write to them but will read any NAR files " +
+                "that are found within these directories. The engine will not recurse into " +
+                "subdirectories of these directories.")
+        .required(false)
+        .addValidator(StandardValidators.createListValidator(true, true,
+                StandardValidators.createDirectoryExistsValidator(false, false)))
         .build();
 
     public static final PropertyDescriptor WORKING_DIRECTORY = new Builder()
@@ -386,6 +402,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
             MAX_INPUT_FLOWFILE_SIZE,
             DATAFLOW_TIMEOUT,
             LIB_DIRECTORY,
+            ADDITIONAL_LIB_DIRECTORIES,
             WORKING_DIRECTORY,
             MAX_INGEST_FLOWFILES,
             MAX_INGEST_DATA_SIZE,
@@ -838,6 +855,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
     private StatelessEngineConfiguration createEngineConfiguration(final ProcessContext context, final int contentRepoIndex) {
         final File workingDirectory = new File(context.getProperty(WORKING_DIRECTORY).getValue());
         final File narDirectory = new File(context.getProperty(LIB_DIRECTORY).getValue());
+        final Collection<File> additionalNarDirectories = getAdditionalNarDirectories(context.getProperty(ADDITIONAL_LIB_DIRECTORIES).getValue());
         final ResourceReference krb5Reference = context.getProperty(KRB5_CONF).asResource();
         final File krb5Conf = krb5Reference == null ? null : krb5Reference.asFile();
         final SSLContextService sslContextService = context.getProperty(STATELESS_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
@@ -886,7 +904,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
 
             @Override
             public Collection<File> getReadOnlyExtensionsDirectories() {
-                return Collections.emptyList();
+                return additionalNarDirectories;
             }
 
             @Override
@@ -1036,6 +1054,21 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         }
     }
 
+    private Collection<File> getAdditionalNarDirectories(String commaSeparatedPaths) {
+        if (commaSeparatedPaths == null || commaSeparatedPaths.isEmpty()) {
+            return Collections.emptyList();
+        } else {
+            final String[] paths = commaSeparatedPaths.split(",");
+            final List<File> directories = new ArrayList<>();
+            for (String path : paths) {
+                final String trimmedPath = path.trim();
+                if (!trimmedPath.isEmpty()) {
+                    directories.add(new File(trimmedPath));
+                }
+            }
+            return directories;
+        }
+    }
 
     private static class VersionedComponentSearchResults {
         private final String term;
