@@ -34,13 +34,13 @@
         <dependency>
             <groupId>com.slack.api</groupId>
             <artifactId>bolt-socket-mode</artifactId>
-            <version>1.32.1</version>
+            <version>1.36.1</version>
         </dependency>
         <!-- Required by bolt-socket-mode but the library itself doesn't have the dependency. -->
         <dependency>
             <groupId>org.glassfish.tyrus.bundles</groupId>
             <artifactId>tyrus-standalone-client</artifactId>
-            <version>1.20</version>
+            <version>1.21</version>
         </dependency>
 
         <dependency>
