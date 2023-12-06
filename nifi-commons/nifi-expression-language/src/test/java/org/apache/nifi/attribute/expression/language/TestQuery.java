@@ -113,7 +113,6 @@ public class TestQuery {
         assertValid("${attr:padRight(10, '#')}");
         assertValid("${attr:padLeft(10)}");
         assertValid("${attr:padRight(10)}");
-        assertValid("${nifiVersion()}");
     }
 
 

@@ -2650,20 +2650,6 @@ The following examples detail how this expression can be invoked:
 |`${getUri('http', null, 'nifi.apache.org', -1, '/docs.html', null, null)}`                                       | `http://nifi.apache.org/docs.html`
 |============================================================================
 
-[.function]
-=== nifiVersion
-
-*Description*: [.description]#Returns the version of NIFI.#
-
-*Subject Type*: [.subjectless]#No subject#
-
-*Arguments*: No arguments
-
-*Return Type*: [.returnType]#String#
-
-*Examples*: The version of NIFI can be obtained by using the Expression `${nifiVersion()}`.
-
-
 [[multi]]
 == Evaluating Multiple Attributes
 
