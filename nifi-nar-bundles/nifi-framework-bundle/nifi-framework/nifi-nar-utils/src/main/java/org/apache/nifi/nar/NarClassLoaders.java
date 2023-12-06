@@ -74,6 +74,7 @@ public final class NarClassLoaders {
             this.jettyBundle = jettyBundle;
             this.serverInstance = serverInstance;
             this.bundles = bundles;
+            System.setProperty("nifi.version", frameworkBundle.getBundleDetails().getCoordinate().getVersion());
         }
     }
 
