@@ -355,8 +355,8 @@
 
             // add status history details
             var detailsContainer = buildDetailsContainer('Status History');
-            Object.entries(statusHistory.details).forEach(function([key, value]) {
-                addDetailItem(detailsContainer, key, value);
+            Object.entries(statusHistory.details).forEach(function(entry) {
+                addDetailItem(detailsContainer, entry[0], entry[1]);
             });
 
             var margin = {
