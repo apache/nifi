@@ -164,7 +164,7 @@ enum CookieStrategy {
                 + "the segments that were created from a single parent FlowFile"),
         @WritesAttribute(attribute = "fragment.count", description = "The number of segments generated from the parent FlowFile"),
 })
-public class FontisInvokeHTTPRecord extends AbstractProcessor {
+public class InvokeHTTPRecord extends AbstractProcessor {
     public final static String REMOTE_DN = "invokehttp.remote.dn";
     public static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
     public static final PropertyDescriptor HTTP2_DISABLED = new PropertyDescriptor.Builder()
@@ -681,7 +681,7 @@ public class FontisInvokeHTTPRecord extends AbstractProcessor {
     private volatile Set<Relationship> relationships = new HashSet<>(Arrays.asList(REL_ORIGINAL, REL_FAILURE));
 
     private static File getResponseCacheDirectory() throws IOException {
-        return Files.createTempDirectory(FontisInvokeHTTPRecord.class.getSimpleName()).toFile();
+        return Files.createTempDirectory(InvokeHTTPRecord.class.getSimpleName()).toFile();
     }
 
     @Override
