@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry.web.security;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.nifi.registry.security.authorization.Authorizer;
 import org.apache.nifi.registry.security.authorization.resource.ResourceType;
 import org.apache.nifi.registry.security.identity.IdentityMapper;
@@ -23,6 +24,11 @@ import org.apache.nifi.registry.service.AuthorizationService;
 import org.apache.nifi.registry.web.security.authentication.AnonymousIdentityFilter;
 import org.apache.nifi.registry.web.security.authentication.IdentityAuthenticationProvider;
 import org.apache.nifi.registry.web.security.authentication.IdentityFilter;
+import org.apache.nifi.registry.web.security.authentication.csrf.CsrfCookieFilter;
+import org.apache.nifi.registry.web.security.authentication.csrf.CsrfCookieName;
+import org.apache.nifi.registry.web.security.authentication.csrf.CsrfRequestMatcher;
+import org.apache.nifi.registry.web.security.authentication.csrf.StandardCookieCsrfTokenRepository;
+import org.apache.nifi.registry.web.security.authentication.csrf.StandardCsrfTokenRequestAttributeHandler;
 import org.apache.nifi.registry.web.security.authentication.jwt.JwtIdentityProvider;
 import org.apache.nifi.registry.web.security.authentication.x509.X509IdentityAuthenticationProvider;
 import org.apache.nifi.registry.web.security.authentication.x509.X509IdentityProvider;
@@ -32,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -41,10 +48,15 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.web.csrf.CsrfException;
+
+import java.io.IOException;
 
 import static org.springframework.security.web.util.matcher.AntPathRequestMatcher.antMatcher;
 
@@ -81,7 +93,12 @@ public class NiFiRegistrySecurityConfig {
                 // Add Resource Authorization after Spring Security but before Jersey Resources
                 .addFilterAfter(resourceAuthorizationFilter(), AuthorizationFilter.class)
                 .anonymous(anonymous -> anonymous.authenticationFilter(new AnonymousIdentityFilter()))
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(csrf -> {
+                    csrf.requireCsrfProtectionMatcher(new CsrfRequestMatcher());
+                    csrf.csrfTokenRepository(new StandardCookieCsrfTokenRepository());
+                    csrf.csrfTokenRequestHandler(new StandardCsrfTokenRequestAttributeHandler());
+                })
+                .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
                 .logout(AbstractHttpConfigurer::disable)
                 .rememberMe(AbstractHttpConfigurer::disable)
                 .requestCache(AbstractHttpConfigurer::disable)
@@ -106,7 +123,8 @@ public class NiFiRegistrySecurityConfig {
                         .anyRequest().fullyAuthenticated()
                 )
                 .exceptionHandling(exceptionHandling -> exceptionHandling
-                    .authenticationEntryPoint(http401AuthenticationEntryPoint())
+                        .authenticationEntryPoint(http401AuthenticationEntryPoint())
+                        .accessDeniedHandler(new StandardAccessDeniedHandler())
                 )
                 .build();
     }
@@ -157,5 +175,27 @@ public class NiFiRegistrySecurityConfig {
                 response.getWriter().println(String.format("%s Contact the system administrator.", authenticationException.getLocalizedMessage()));
             }
         };
+    }
+
+    private static class StandardAccessDeniedHandler implements AccessDeniedHandler {
+
+        @Override
+        public void handle(final HttpServletRequest request, final HttpServletResponse response, final AccessDeniedException accessDeniedException) throws IOException {
+            final String message;
+            final int status;
+            if (accessDeniedException instanceof CsrfException) {
+                status = HttpServletResponse.SC_FORBIDDEN;
+                message = "Access Denied: CSRF Header and Cookie not matched";
+                logger.info("Access Denied: CSRF Header [{}] not matched: {}", CsrfCookieName.REQUEST_TOKEN.getCookieName(), accessDeniedException.toString());
+            } else {
+                status = HttpServletResponse.SC_UNAUTHORIZED;
+                message = "Access Denied";
+                logger.debug(message, accessDeniedException);
+            }
+
+            response.setStatus(status);
+            response.setContentType("text/plain");
+            response.getWriter().println(message);
+        }
     }
 }
