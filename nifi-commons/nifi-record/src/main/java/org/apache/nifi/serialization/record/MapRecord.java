@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -346,7 +347,55 @@ public class MapRecord implements Record {
 
     @Override
     public Optional<SerializedForm> getSerializedForm() {
+        if (serializedForm.isEmpty()) {
+            return Optional.empty();
+        }
+
+        if (isSerializedFormReset()) {
+            return Optional.empty();
+        }
+
         return serializedForm;
+    }
+
+    private boolean isSerializedFormReset() {
+        if (serializedForm.isEmpty()) {
+            return true;
+        }
+
+        for (final Object value : values.values()) {
+            if (isSerializedFormReset(value)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isSerializedFormReset(final Object value) {
+        if (value == null) {
+            return true;
+        }
+
+        if (value instanceof final MapRecord childRecord) {
+            if (childRecord.isSerializedFormReset()) {
+                return true;
+            }
+        } else if (value instanceof final Collection<?> collection) {
+            for (final Object collectionValue : collection) {
+                if (isSerializedFormReset(collectionValue)) {
+                    return true;
+                }
+            }
+        } else if (value instanceof final Object[] array) {
+            for (final Object arrayValue : array) {
+                if (isSerializedFormReset(arrayValue)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     @Override
@@ -400,13 +449,17 @@ public class MapRecord implements Record {
     public void setValue(final RecordField field, final Object value) {
         final Optional<RecordField> existingField = setValueAndGetField(field.getFieldName(), value);
 
+        // Keep track of any fields whose definition has been added or changed so that it can be taken into account when
+        // calling #incorporateInactiveFields
         if (existingField.isPresent()) {
             final RecordField existingRecordField = existingField.get();
             final RecordField merged = DataTypeUtils.merge(existingRecordField, field);
-            if (updatedFields == null) {
-                updatedFields = new LinkedHashMap<>();
+            if (!Objects.equals(existingRecordField, merged)) {
+                if (updatedFields == null) {
+                    updatedFields = new LinkedHashMap<>();
+                }
+                updatedFields.put(field.getFieldName(), merged);
             }
-            updatedFields.put(field.getFieldName(), merged);
         } else {
             if (inactiveFields == null) {
                 inactiveFields = new LinkedHashSet<>();
@@ -414,7 +467,6 @@ public class MapRecord implements Record {
 
             inactiveFields.add(field);
         }
-
     }
 
     @Override
@@ -479,6 +531,7 @@ public class MapRecord implements Record {
             inactiveFields.add(field);
         }
     }
+
 
     private Optional<RecordField> setValueAndGetField(final String fieldName, final Object value) {
         final Optional<RecordField> field = getSchema().getField(fieldName);

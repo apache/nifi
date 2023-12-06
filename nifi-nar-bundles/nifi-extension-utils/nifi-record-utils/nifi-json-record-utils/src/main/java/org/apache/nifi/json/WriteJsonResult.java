@@ -61,6 +61,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
     private String mimeType = "application/json";
+    private final boolean prettyPrint;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -94,6 +95,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         factory.setCodec(objectMapper);
 
         this.generator = factory.createGenerator(out);
+        this.prettyPrint = prettyPrint;
         if (prettyPrint) {
             generator.useDefaultPrettyPrinter();
         } else if (OutputGrouping.OUTPUT_ONELINE.equals(outputGrouping)) {
@@ -173,9 +175,12 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             final SerializedForm form = serializedForm.get();
             if (form.getMimeType().equals(getMimeType()) && record.getSchema().equals(writeSchema)) {
                 final Object serialized = form.getSerialized();
-                if (serialized instanceof String) {
-                    generator.writeRawValue((String) serialized);
-                    return;
+                if (serialized instanceof final String serializedString) {
+                    final boolean serializedPretty = serializedString.contains("\n");
+                    if (serializedPretty == this.prettyPrint) {
+                        generator.writeRawValue((String) serialized);
+                        return;
+                    }
                 }
             }
         }
