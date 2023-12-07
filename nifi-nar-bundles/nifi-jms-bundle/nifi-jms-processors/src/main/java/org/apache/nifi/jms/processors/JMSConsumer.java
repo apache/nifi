@@ -38,6 +38,7 @@ import javax.jms.StreamMessage;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -184,7 +185,8 @@ class JMSConsumer extends JMSWorker {
                 messageBody = MessageBodyToBytesConverter.toBytes((BytesMessage) message);
             } else if (message instanceof ObjectMessage) {
                 messageType = ObjectMessage.class.getSimpleName();
-                messageBody = MessageBodyToBytesConverter.toBytes((ObjectMessage) message);
+                // Return Message Type as body to avoid unsupported class references
+                messageBody = messageType.getBytes(StandardCharsets.UTF_8);
             } else if (message instanceof StreamMessage) {
                 messageType = StreamMessage.class.getSimpleName();
                 messageBody = MessageBodyToBytesConverter.toBytes((StreamMessage) message);

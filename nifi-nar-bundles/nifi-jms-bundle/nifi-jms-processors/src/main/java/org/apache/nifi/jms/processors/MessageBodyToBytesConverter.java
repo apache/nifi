@@ -31,13 +31,11 @@ import javax.jms.BytesMessage;
 import javax.jms.JMSException;
 import javax.jms.MapMessage;
 import javax.jms.MessageEOFException;
-import javax.jms.ObjectMessage;
 import javax.jms.StreamMessage;
 import javax.jms.TextMessage;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.SerializationUtils;
 
 /**
  *
@@ -85,19 +83,6 @@ abstract class MessageBodyToBytesConverter {
             return IOUtils.toByteArray(is);
         } catch (Exception e) {
             throw new MessageConversionException("Failed to convert " + BytesMessage.class.getSimpleName() + " to byte[]", e);
-        }
-    }
-
-    /**
-     *
-     * @param message instance of {@link ObjectMessage}
-     * @return byte array representing the {@link ObjectMessage}
-     */
-    public static byte[] toBytes(ObjectMessage message) {
-        try {
-            return SerializationUtils.serialize(message.getObject());
-        } catch (Exception e) {
-            throw new MessageConversionException("Failed to convert " + ObjectMessage.class.getSimpleName() + " to byte[]", e);
         }
     }
 
