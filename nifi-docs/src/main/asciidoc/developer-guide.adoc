@@ -2714,6 +2714,7 @@ deprecationLogger.warn(
 | Contribution Check     | contrib-check         | Runs various quality checks that are required to be accepted before a contribution can be accepted into the core NiFi code base.
 | Graph Database Bundle  | include-graph         | Adds support for various common graph database scenarios. Support is currently for https://neo4j.com/developer/cypher[Cypher] and https://tinkerpop.apache.org/gremlin.html[Gremlin]-compatible databases such as Neo4J and JanusGraph. Includes controller services that provide driver functionality and a suite of processors for ingestion and querying.
 | Media Bundle           | include-media         | The media bundle provides functionality based on https://tika.apache.org[Apache Tika] for extracting content and metadata from various types of binary formats supported by Apache Tika (ex. PDF, Microsoft Office).
+| QuestDB Bundle         | include-questdb       | Adds support for persistent Status History using QuestDB
 | Snowflake Bundle       | include-snowflake     | Adds support for integration with the https://www.snowflake.com[Snowflake platform].
 | SQL Reporting Bundle   | include-sql-reporting | Adds reporting tasks that are designed to use SQL to update a RDBMS with metrics and other related data from Apache NiFi.
 |==================================================================================================================================================
