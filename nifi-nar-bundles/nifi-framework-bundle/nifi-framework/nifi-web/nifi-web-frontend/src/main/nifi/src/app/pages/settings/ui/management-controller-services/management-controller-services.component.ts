@@ -36,6 +36,8 @@ import { ControllerServiceEntity } from '../../../../state/shared';
 import { initialState } from '../../state/management-controller-services/management-controller-services.reducer';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { selectUser } from '../../../../state/user/user.selectors';
+import { NiFiState } from '../../../../state';
 
 @Component({
     selector: 'management-controller-services',
@@ -45,8 +47,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 export class ManagementControllerServices implements OnInit {
     serviceState$ = this.store.select(selectManagementControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
+    currentUser$ = this.store.select(selectUser);
 
-    constructor(private store: Store<ManagementControllerServicesState>) {
+    constructor(private store: Store<NiFiState>) {
         this.store
             .select(selectSingleEditedService)
             .pipe(

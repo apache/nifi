@@ -15,10 +15,6 @@
  * limitations under the License.
  */
 
-/*
-  Canvas Positioning/Transforms
- */
-
 import { Action, combineReducers, createFeatureSelector } from '@ngrx/store';
 import { GeneralState, generalFeatureKey } from './general';
 import { generalReducer } from './general/general.reducer';
@@ -29,6 +25,8 @@ import {
 import { managementControllerServicesReducer } from './management-controller-services/management-controller-services.reducer';
 import { reportingTasksFeatureKey, ReportingTasksState } from './reporting-tasks';
 import { reportingTasksReducer } from './reporting-tasks/reporting-tasks.reducer';
+import { registryClientsFeatureKey, RegistryClientsState } from './registry-clients';
+import { registryClientsReducer } from './registry-clients/registry-clients.reducer';
 
 export const settingsFeatureKey = 'settings';
 
@@ -36,13 +34,15 @@ export interface SettingsState {
     [generalFeatureKey]: GeneralState;
     [managementControllerServicesFeatureKey]: ManagementControllerServicesState;
     [reportingTasksFeatureKey]: ReportingTasksState;
+    [registryClientsFeatureKey]: RegistryClientsState;
 }
 
 export function reducers(state: SettingsState | undefined, action: Action) {
     return combineReducers({
         [generalFeatureKey]: generalReducer,
         [managementControllerServicesFeatureKey]: managementControllerServicesReducer,
-        [reportingTasksFeatureKey]: reportingTasksReducer
+        [reportingTasksFeatureKey]: reportingTasksReducer,
+        [registryClientsFeatureKey]: registryClientsReducer
     })(state, action);
 }
 

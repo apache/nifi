@@ -24,11 +24,14 @@ import { ReportingTasks } from '../ui/reporting-tasks/reporting-tasks.component'
 import { FlowAnalysisRules } from '../ui/flow-analysis-rules/flow-analysis-rules.component';
 import { RegistryClients } from '../ui/registry-clients/registry-clients.component';
 import { ParameterProviders } from '../ui/parameter-providers/parameter-providers.component';
+import { authorizationGuard } from '../../../service/guard/authorization.guard';
+import { User } from '../../../state/user';
 
 const routes: Routes = [
     {
         path: '',
         component: Settings,
+        canMatch: [authorizationGuard((user: User) => user.controllerPermissions.canRead)],
         children: [
             { path: '', pathMatch: 'full', redirectTo: 'general' },
             { path: 'general', component: General },
@@ -59,7 +62,22 @@ const routes: Routes = [
                 ]
             },
             { path: 'flow-analysis-rules', component: FlowAnalysisRules },
-            { path: 'registry-clients', component: RegistryClients },
+            {
+                path: 'registry-clients',
+                component: RegistryClients,
+                children: [
+                    {
+                        path: ':id',
+                        component: RegistryClients,
+                        children: [
+                            {
+                                path: 'edit',
+                                component: RegistryClients
+                            }
+                        ]
+                    }
+                ]
+            },
             { path: 'parameter-providers', component: ParameterProviders }
         ]
     }

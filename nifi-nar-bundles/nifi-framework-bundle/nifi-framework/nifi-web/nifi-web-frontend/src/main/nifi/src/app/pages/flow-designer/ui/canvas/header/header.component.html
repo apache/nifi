@@ -90,7 +90,11 @@
                         Data Provenance
                     </button>
                     <mat-divider></mat-divider>
-                    <button mat-menu-item class="global-menu-item" [routerLink]="['/settings']">
+                    <button
+                        mat-menu-item
+                        class="global-menu-item"
+                        [routerLink]="['/settings']"
+                        [disabled]="!user.controllerPermissions.canRead">
                         <i class="fa fa-fw fa-wrench mr-2"></i>
                         Controller Settings
                     </button>

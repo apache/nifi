@@ -105,15 +105,23 @@ export class ReportingTasksEffects {
         )
     );
 
-    createReportingTaskSuccess$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(ReportingTaskActions.createReportingTaskSuccess),
-                tap(() => {
-                    this.dialog.closeAll();
-                })
-            ),
-        { dispatch: false }
+    createReportingTaskSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ReportingTaskActions.createReportingTaskSuccess),
+            map((action) => action.response),
+            tap(() => {
+                this.dialog.closeAll();
+            }),
+            switchMap((response) =>
+                of(
+                    ReportingTaskActions.selectReportingTask({
+                        request: {
+                            reportingTask: response.reportingTask
+                        }
+                    })
+                )
+            )
+        )
     );
 
     promptReportingTaskDeletion$ = createEffect(
@@ -124,8 +132,8 @@ export class ReportingTasksEffects {
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
                         data: {
-                            title: 'Delete Controller Service',
-                            message: `Delete controller service ${request.reportingTask.component.name}?`
+                            title: 'Delete Reporting Task',
+                            message: `Delete reporting task ${request.reportingTask.component.name}?`
                         },
                         panelClass: 'small-dialog'
                     });

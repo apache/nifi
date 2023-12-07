@@ -17,17 +17,18 @@
 
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
-import * as ManagementControllerServicesActions from './management-controller-services.actions';
+import * as RegistryClientsActions from './registry-clients.actions';
 import { catchError, from, map, NEVER, Observable, of, switchMap, take, takeUntil, tap, withLatestFrom } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
-import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
-import { selectControllerServiceTypes } from '../../../../state/extension-types/extension-types.selectors';
-import { CreateControllerService } from '../../../../ui/common/controller-service/create-controller-service/create-controller-service.component';
-import { Client } from '../../../../service/client.service';
+import { selectRegistryClientTypes } from '../../../../state/extension-types/extension-types.selectors';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
-import { EditControllerService } from '../../../../ui/common/controller-service/edit-controller-service/edit-controller-service.component';
+import { Router } from '@angular/router';
+import { RegistryClientService } from '../../service/registry-client.service';
+import { CreateRegistryClient } from '../../ui/registry-clients/create-registry-client/create-registry-client.component';
+import { selectSaving } from './registry-clients.selectors';
+import { EditRegistryClient } from '../../ui/registry-clients/edit-registry-client/edit-registry-client.component';
 import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
@@ -37,38 +38,40 @@ import {
     PropertyDescriptor
 } from '../../../../state/shared';
 import { NewPropertyDialog } from '../../../../ui/common/new-property-dialog/new-property-dialog.component';
-import { Router } from '@angular/router';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
-import { selectSaving } from './management-controller-services.selectors';
+import { CreateControllerService } from '../../../../ui/common/controller-service/create-controller-service/create-controller-service.component';
+import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
+import { Client } from '../../../../service/client.service';
 
 @Injectable()
-export class ManagementControllerServicesEffects {
+export class RegistryClientsEffects {
     constructor(
         private actions$: Actions,
         private store: Store<NiFiState>,
         private client: Client,
-        private managementControllerServiceService: ManagementControllerServiceService,
+        private registryClientService: RegistryClientService,
         private extensionTypesService: ExtensionTypesService,
+        private managementControllerServiceService: ManagementControllerServiceService,
         private dialog: MatDialog,
         private router: Router
     ) {}
 
-    loadControllerConfig$ = createEffect(() =>
+    loadRegistryClients$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(ManagementControllerServicesActions.loadManagementControllerServices),
+            ofType(RegistryClientsActions.loadRegistryClients),
             switchMap(() =>
-                from(this.managementControllerServiceService.getControllerServices()).pipe(
+                from(this.registryClientService.getRegistryClients()).pipe(
                     map((response) =>
-                        ManagementControllerServicesActions.loadManagementControllerServicesSuccess({
+                        RegistryClientsActions.loadRegistryClientsSuccess({
                             response: {
-                                controllerServices: response.controllerServices,
+                                registryClients: response.registries,
                                 loadedTimestamp: response.currentTime
                             }
                         })
                     ),
                     catchError((error) =>
                         of(
-                            ManagementControllerServicesActions.managementControllerServicesApiError({
+                            RegistryClientsActions.registryClientsApiError({
                                 error: error.error
                             })
                         )
@@ -78,58 +81,49 @@ export class ManagementControllerServicesEffects {
         )
     );
 
-    openNewControllerServiceDialog$ = createEffect(
+    openNewRegistryClientDialog$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(ManagementControllerServicesActions.openNewControllerServiceDialog),
-                withLatestFrom(this.store.select(selectControllerServiceTypes)),
-                tap(([action, controllerServiceTypes]) => {
-                    const dialogReference = this.dialog.open(CreateControllerService, {
+                ofType(RegistryClientsActions.openNewRegistryClientDialog),
+                withLatestFrom(this.store.select(selectRegistryClientTypes)),
+                tap(([action, registryClientTypes]) => {
+                    const dialogReference = this.dialog.open(CreateRegistryClient, {
                         data: {
-                            controllerServiceTypes
+                            registryClientTypes
                         },
                         panelClass: 'medium-dialog'
                     });
 
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
 
-                    dialogReference.componentInstance.createControllerService
-                        .pipe(take(1))
-                        .subscribe((controllerServiceType) => {
-                            this.store.dispatch(
-                                ManagementControllerServicesActions.createControllerService({
-                                    request: {
-                                        revision: {
-                                            clientId: this.client.getClientId(),
-                                            version: 0
-                                        },
-                                        controllerServiceType: controllerServiceType.type,
-                                        controllerServiceBundle: controllerServiceType.bundle
-                                    }
-                                })
-                            );
-                        });
+                    dialogReference.componentInstance.createRegistryClient.pipe(take(1)).subscribe((request) => {
+                        this.store.dispatch(
+                            RegistryClientsActions.createRegistryClient({
+                                request
+                            })
+                        );
+                    });
                 })
             ),
         { dispatch: false }
     );
 
-    createControllerService$ = createEffect(() =>
+    createRegistryClient$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(ManagementControllerServicesActions.createControllerService),
+            ofType(RegistryClientsActions.createRegistryClient),
             map((action) => action.request),
             switchMap((request) =>
-                from(this.managementControllerServiceService.createControllerService(request)).pipe(
+                from(this.registryClientService.createRegistryClient(request)).pipe(
                     map((response) =>
-                        ManagementControllerServicesActions.createControllerServiceSuccess({
+                        RegistryClientsActions.createRegistryClientSuccess({
                             response: {
-                                controllerService: response
+                                registryClient: response
                             }
                         })
                     ),
                     catchError((error) =>
                         of(
-                            ManagementControllerServicesActions.managementControllerServicesApiError({
+                            RegistryClientsActions.registryClientsApiError({
                                 error: error.error
                             })
                         )
@@ -139,18 +133,18 @@ export class ManagementControllerServicesEffects {
         )
     );
 
-    createControllerServiceSuccess$ = createEffect(() =>
+    createRegistryClientSuccess$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(ManagementControllerServicesActions.createControllerServiceSuccess),
+            ofType(RegistryClientsActions.createRegistryClientSuccess),
             map((action) => action.response),
             tap(() => {
                 this.dialog.closeAll();
             }),
             switchMap((response) =>
                 of(
-                    ManagementControllerServicesActions.selectControllerService({
+                    RegistryClientsActions.selectClient({
                         request: {
-                            id: response.controllerService.id
+                            id: response.registryClient.id
                         }
                     })
                 )
@@ -158,13 +152,13 @@ export class ManagementControllerServicesEffects {
         )
     );
 
-    navigateToEditService$ = createEffect(
+    navigateToEditRegistryClient$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(ManagementControllerServicesActions.navigateToEditService),
+                ofType(RegistryClientsActions.navigateToEditRegistryClient),
                 map((action) => action.id),
                 tap((id) => {
-                    this.router.navigate(['/settings', 'management-controller-services', id, 'edit']);
+                    this.router.navigate(['/settings', 'registry-clients', id, 'edit']);
                 })
             ),
         { dispatch: false }
@@ -173,15 +167,13 @@ export class ManagementControllerServicesEffects {
     openConfigureControllerServiceDialog$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(ManagementControllerServicesActions.openConfigureControllerServiceDialog),
+                ofType(RegistryClientsActions.openConfigureRegistryClientDialog),
                 map((action) => action.request),
                 tap((request) => {
-                    const serviceId: string = request.id;
+                    const registryClientId: string = request.registryClient.id;
 
-                    const editDialogReference = this.dialog.open(EditControllerService, {
-                        data: {
-                            controllerService: request.controllerService
-                        },
+                    const editDialogReference = this.dialog.open(EditRegistryClient, {
+                        data: request,
                         panelClass: 'large-dialog'
                     });
 
@@ -200,8 +192,12 @@ export class ManagementControllerServicesEffects {
                         return newPropertyDialogReference.componentInstance.newProperty.pipe(
                             take(1),
                             switchMap((dialogResponse: NewPropertyDialogResponse) => {
-                                return this.managementControllerServiceService
-                                    .getPropertyDescriptor(request.id, dialogResponse.name, dialogResponse.sensitive)
+                                return this.registryClientService
+                                    .getPropertyDescriptor(
+                                        registryClientId,
+                                        dialogResponse.name,
+                                        dialogResponse.sensitive
+                                    )
                                     .pipe(
                                         take(1),
                                         map((response) => {
@@ -263,20 +259,13 @@ export class ManagementControllerServicesEffects {
                                                 .pipe(
                                                     take(1),
                                                     switchMap((createReponse) => {
-                                                        // dispatch an inline create service success action so the new service is in the state
-                                                        this.store.dispatch(
-                                                            ManagementControllerServicesActions.inlineCreateControllerServiceSuccess(
-                                                                {
-                                                                    response: {
-                                                                        controllerService: createReponse
-                                                                    }
-                                                                }
-                                                            )
-                                                        );
-
                                                         // fetch an updated property descriptor
-                                                        return this.managementControllerServiceService
-                                                            .getPropertyDescriptor(serviceId, descriptor.name, false)
+                                                        return this.registryClientService
+                                                            .getPropertyDescriptor(
+                                                                registryClientId,
+                                                                descriptor.name,
+                                                                false
+                                                            )
                                                             .pipe(
                                                                 take(1),
                                                                 map((descriptorResponse) => {
@@ -301,14 +290,14 @@ export class ManagementControllerServicesEffects {
                             );
                     };
 
-                    editDialogReference.componentInstance.editControllerService
+                    editDialogReference.componentInstance.editRegistryClient
                         .pipe(takeUntil(editDialogReference.afterClosed()))
                         .subscribe((payload: any) => {
                             this.store.dispatch(
-                                ManagementControllerServicesActions.configureControllerService({
+                                RegistryClientsActions.configureRegistryClient({
                                     request: {
-                                        id: request.controllerService.id,
-                                        uri: request.controllerService.uri,
+                                        id: registryClientId,
+                                        uri: request.registryClient.uri,
                                         payload
                                     }
                                 })
@@ -318,9 +307,9 @@ export class ManagementControllerServicesEffects {
                     editDialogReference.afterClosed().subscribe((response) => {
                         if (response != 'ROUTED') {
                             this.store.dispatch(
-                                ManagementControllerServicesActions.selectControllerService({
+                                RegistryClientsActions.selectClient({
                                     request: {
-                                        id: serviceId
+                                        id: registryClientId
                                     }
                                 })
                             );
@@ -333,21 +322,21 @@ export class ManagementControllerServicesEffects {
 
     configureControllerService$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(ManagementControllerServicesActions.configureControllerService),
+            ofType(RegistryClientsActions.configureRegistryClient),
             map((action) => action.request),
             switchMap((request) =>
-                from(this.managementControllerServiceService.updateControllerService(request)).pipe(
+                from(this.registryClientService.updateRegistryClient(request)).pipe(
                     map((response) =>
-                        ManagementControllerServicesActions.configureControllerServiceSuccess({
+                        RegistryClientsActions.configureRegistryClientSuccess({
                             response: {
                                 id: request.id,
-                                controllerService: response
+                                registryClient: response
                             }
                         })
                     ),
                     catchError((error) =>
                         of(
-                            ManagementControllerServicesActions.managementControllerServicesApiError({
+                            RegistryClientsActions.registryClientsApiError({
                                 error: error.error
                             })
                         )
@@ -357,10 +346,10 @@ export class ManagementControllerServicesEffects {
         )
     );
 
-    configureControllerServiceSuccess$ = createEffect(
+    configureRegistryClientSuccess = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(ManagementControllerServicesActions.configureControllerServiceSuccess),
+                ofType(RegistryClientsActions.configureRegistryClientSuccess),
                 tap(() => {
                     this.dialog.closeAll();
                 })
@@ -368,23 +357,23 @@ export class ManagementControllerServicesEffects {
         { dispatch: false }
     );
 
-    promptControllerServiceDeletion$ = createEffect(
+    promptRegistryClientDeletion$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(ManagementControllerServicesActions.promptControllerServiceDeletion),
+                ofType(RegistryClientsActions.promptRegistryClientDeletion),
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
                         data: {
-                            title: 'Delete Controller Service',
-                            message: `Delete controller service ${request.controllerService.component.name}?`
+                            title: 'Delete Registry Client',
+                            message: `Delete registry client ${request.registryClient.component.name}?`
                         },
                         panelClass: 'small-dialog'
                     });
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
                         this.store.dispatch(
-                            ManagementControllerServicesActions.deleteControllerService({
+                            RegistryClientsActions.deleteRegistryClient({
                                 request
                             })
                         );
@@ -394,22 +383,22 @@ export class ManagementControllerServicesEffects {
         { dispatch: false }
     );
 
-    deleteControllerService$ = createEffect(() =>
+    deleteRegistryClient$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(ManagementControllerServicesActions.deleteControllerService),
+            ofType(RegistryClientsActions.deleteRegistryClient),
             map((action) => action.request),
             switchMap((request) =>
-                from(this.managementControllerServiceService.deleteControllerService(request)).pipe(
+                from(this.registryClientService.deleteRegistryClient(request)).pipe(
                     map((response) =>
-                        ManagementControllerServicesActions.deleteControllerServiceSuccess({
+                        RegistryClientsActions.deleteRegistryClientSuccess({
                             response: {
-                                controllerService: response
+                                registryClient: response
                             }
                         })
                     ),
                     catchError((error) =>
                         of(
-                            ManagementControllerServicesActions.managementControllerServicesApiError({
+                            RegistryClientsActions.registryClientsApiError({
                                 error: error.error
                             })
                         )
@@ -419,13 +408,13 @@ export class ManagementControllerServicesEffects {
         )
     );
 
-    selectControllerService$ = createEffect(
+    selectRegistryClient$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(ManagementControllerServicesActions.selectControllerService),
+                ofType(RegistryClientsActions.selectClient),
                 map((action) => action.request),
                 tap((request) => {
-                    this.router.navigate(['/settings', 'management-controller-services', request.id]);
+                    this.router.navigate(['/settings', 'registry-clients', request.id]);
                 })
             ),
         { dispatch: false }

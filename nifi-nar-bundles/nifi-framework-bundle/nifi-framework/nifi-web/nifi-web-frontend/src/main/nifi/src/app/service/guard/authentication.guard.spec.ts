@@ -15,18 +15,20 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RegistryClients } from './registry-clients.component';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { RegistryClientTable } from './registry-client-table/registry-client-table.component';
-import { MatTableModule } from '@angular/material/table';
-import { MatSortModule } from '@angular/material/sort';
-import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { TestBed } from '@angular/core/testing';
+import { CanMatchFn } from '@angular/router';
 
-@NgModule({
-    declarations: [RegistryClients, RegistryClientTable],
-    exports: [RegistryClients],
-    imports: [CommonModule, NgxSkeletonLoaderModule, MatTableModule, MatSortModule, NifiTooltipDirective]
-})
-export class RegistryClientsModule {}
+import { authenticationGuard } from './authentication.guard';
+
+describe('authenticationGuard', () => {
+    const executeGuard: CanMatchFn = (...guardParameters) =>
+        TestBed.runInInjectionContext(() => authenticationGuard(...guardParameters));
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({});
+    });
+
+    it('should be created', () => {
+        expect(executeGuard).toBeTruthy();
+    });
+});

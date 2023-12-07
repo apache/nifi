@@ -16,14 +16,14 @@
   -->
 
 <div class="general-form w-96">
-    <form [formGroup]="controllerForm">
+    <form [formGroup]="controllerForm" *ngIf="currentUser$ | async; let currentUser">
         <div>
             <mat-form-field>
                 <mat-label>Maximum Timer Driven Thread Count</mat-label>
-                <input matInput formControlName="timerDrivenThreadCount" type="text" />
+                <input matInput formControlName="timerDrivenThreadCount" [readonly]="!currentUser.controllerPermissions.canWrite" type="text" />
             </mat-form-field>
         </div>
-        <div>
+        <div *ngIf="currentUser.controllerPermissions.canWrite">
             <button
                 [disabled]="!controllerForm.dirty || controllerForm.invalid"
                 type="button"

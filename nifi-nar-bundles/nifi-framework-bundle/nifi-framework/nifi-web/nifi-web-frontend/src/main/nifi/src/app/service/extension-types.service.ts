@@ -48,6 +48,10 @@ export class ExtensionTypesService {
         return this.httpClient.get(`${ExtensionTypesService.API}/flow/reporting-task-types`);
     }
 
+    getRegistryClientTypes(): Observable<any> {
+        return this.httpClient.get(`${ExtensionTypesService.API}/controller/registry-types`);
+    }
+
     getPrioritizers(): Observable<any> {
         return this.httpClient.get(`${ExtensionTypesService.API}/flow/prioritizers`);
     }

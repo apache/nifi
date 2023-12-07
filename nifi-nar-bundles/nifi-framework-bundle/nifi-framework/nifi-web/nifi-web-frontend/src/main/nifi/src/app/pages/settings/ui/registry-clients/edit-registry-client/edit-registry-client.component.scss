@@ -15,18 +15,22 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RegistryClients } from './registry-clients.component';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { RegistryClientTable } from './registry-client-table/registry-client-table.component';
-import { MatTableModule } from '@angular/material/table';
-import { MatSortModule } from '@angular/material/sort';
-import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
+@use '@angular/material' as mat;
 
-@NgModule({
-    declarations: [RegistryClients, RegistryClientTable],
-    exports: [RegistryClients],
-    imports: [CommonModule, NgxSkeletonLoaderModule, MatTableModule, MatSortModule, NifiTooltipDirective]
-})
-export class RegistryClientsModule {}
+.edit-registry-client-form {
+    @include mat.button-density(-1);
+
+    .mdc-dialog__content {
+        padding: 0 16px;
+        font-size: 14px;
+
+        .tab-content {
+            height: 475px;
+            overflow-y: auto;
+        }
+    }
+
+    .mat-mdc-form-field {
+        width: 100%;
+    }
+}

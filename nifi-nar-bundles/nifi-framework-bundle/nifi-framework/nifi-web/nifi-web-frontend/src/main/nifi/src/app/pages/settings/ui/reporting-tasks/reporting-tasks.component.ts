@@ -31,6 +31,8 @@ import {
     stopReportingTask
 } from '../../state/reporting-tasks/reporting-tasks.actions';
 import { initialState } from '../../state/reporting-tasks/reporting-tasks.reducer';
+import { selectUser } from '../../../../state/user/user.selectors';
+import { NiFiState } from '../../../../state';
 
 @Component({
     selector: 'reporting-tasks',
@@ -40,8 +42,9 @@ import { initialState } from '../../state/reporting-tasks/reporting-tasks.reduce
 export class ReportingTasks implements OnInit {
     reportingTaskState$ = this.store.select(selectReportingTasksState);
     selectedReportingTaskId$ = this.store.select(selectReportingTaskIdFromRoute);
+    currentUser$ = this.store.select(selectUser);
 
-    constructor(private store: Store<ReportingTasksState>) {}
+    constructor(private store: Store<NiFiState>) {}
 
     ngOnInit(): void {
         this.store.dispatch(loadReportingTasks());
