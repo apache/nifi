@@ -26,7 +26,7 @@
     <artifactId>nifi-poi-bundle</artifactId>
     <packaging>pom</packaging>
     <properties>
-        <poi.version>5.2.4</poi.version>
+        <poi.version>5.2.5</poi.version>
     </properties>
     <modules>
         <module>nifi-poi-nar</module>
