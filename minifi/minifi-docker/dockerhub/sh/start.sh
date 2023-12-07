@@ -15,12 +15,13 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-# Continuously provide logs so that 'docker logs' can    produce them
+# Continuously provide logs so that 'docker logs' can produce them
 tail -F "${MINIFI_HOME}/logs/minifi-app.log" &
 "${MINIFI_HOME}/bin/minifi.sh" run &
 minifi_pid="$!"
 
-trap "echo Received trapped signal, beginning shutdown...;" KILL TERM HUP INT EXIT;
+trap 'echo Received trapped signal, beginning shutdown...;./bin/minifi.sh stop;exit 0;' TERM HUP INT;
+trap ":" EXIT
 
 echo MiNiFi running with PID ${minifi_pid}.
 wait ${minifi_pid}
