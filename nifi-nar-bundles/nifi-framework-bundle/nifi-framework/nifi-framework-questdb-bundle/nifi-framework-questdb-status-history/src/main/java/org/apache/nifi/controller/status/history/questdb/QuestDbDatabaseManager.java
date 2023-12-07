@@ -20,6 +20,7 @@ import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.CairoEngine;
 import io.questdb.cairo.DefaultCairoConfiguration;
 import io.questdb.griffin.SqlCompiler;
+import io.questdb.griffin.SqlCompilerImpl;
 import io.questdb.griffin.SqlExecutionContext;
 import java.io.File;
 import java.nio.file.Path;
@@ -146,7 +147,7 @@ public final class QuestDbDatabaseManager {
 
         try (
             final CairoEngine engine = new CairoEngine(configuration);
-            final SqlCompiler compiler = new SqlCompiler(engine)
+            final SqlCompiler compiler = new SqlCompilerImpl(engine)
         ) {
             final SqlExecutionContext context = SqlExecutionContextFactory.getInstance(engine);
 

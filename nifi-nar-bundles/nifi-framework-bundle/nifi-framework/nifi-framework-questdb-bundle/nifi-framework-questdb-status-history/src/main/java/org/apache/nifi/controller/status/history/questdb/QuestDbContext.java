@@ -19,6 +19,7 @@ package org.apache.nifi.controller.status.history.questdb;
 import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.CairoEngine;
 import io.questdb.griffin.SqlCompiler;
+import io.questdb.griffin.SqlCompilerImpl;
 import io.questdb.griffin.SqlExecutionContext;
 
 public class QuestDbContext {
@@ -41,7 +42,7 @@ public class QuestDbContext {
     }
 
     public SqlCompiler getCompiler() {
-        return new SqlCompiler(engine);
+        return new SqlCompilerImpl(engine);
     }
 
     public void close() {

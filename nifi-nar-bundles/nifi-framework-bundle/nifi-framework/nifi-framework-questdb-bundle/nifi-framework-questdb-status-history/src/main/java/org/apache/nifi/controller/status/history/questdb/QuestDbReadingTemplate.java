@@ -20,6 +20,7 @@ import io.questdb.cairo.CairoEngine;
 import io.questdb.cairo.sql.RecordCursor;
 import io.questdb.cairo.sql.RecordCursorFactory;
 import io.questdb.griffin.SqlCompiler;
+import io.questdb.griffin.SqlCompilerImpl;
 import io.questdb.griffin.SqlExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,9 +62,9 @@ abstract public class QuestDbReadingTemplate<R> {
      */
     public R read(final CairoEngine engine, final SqlExecutionContext context, final List<Object> parameters) {
         try (
-            final SqlCompiler compiler = new SqlCompiler(engine);
-            final RecordCursorFactory factory = compiler.compile(String.format(query, parameters.toArray()), context).getRecordCursorFactory();
-            final RecordCursor cursor = factory.getCursor(context);
+                final SqlCompiler compiler = new SqlCompilerImpl(engine);
+                final RecordCursorFactory factory = compiler.compile(String.format(query, parameters.toArray()), context).getRecordCursorFactory();
+                final RecordCursor cursor = factory.getCursor(context)
         ) {
             return processResult(cursor);
         } catch (final Exception e) {
