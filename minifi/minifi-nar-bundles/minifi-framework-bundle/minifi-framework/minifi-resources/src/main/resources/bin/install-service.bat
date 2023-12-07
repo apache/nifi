@@ -15,72 +15,52 @@ rem    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 rem    See the License for the specific language governing permissions and
 rem    limitations under the License.
 rem
-
 call %~sdp0\minifi-env.bat
-
 setlocal enabledelayedexpansion
-
-set "arg1="
-set "arg2="
-set "arg3="
-set "errorFlag=0"
-
-set "argCount=0"
-for %%A in (%*) do (
-    set /a "argCount+=1"
-
-    if !argCount! equ 1 set "arg1=%%~A"
-    if !argCount! equ 2 set "arg2=%%~A"
-    if !argCount! equ 3 set "arg3=%%~A"
-
-    if !argCount! geq 4 (
-        set "errorFlag=tooManyArguments"
-        goto :error
-    )
-	
-	if "!arg1:~0,11!" equ "serviceName" (
-		set "serviceName=!arg1:~12!"
-	) else ( 
-		if "!arg2:~0,11!" equ "serviceName" (
-			set "serviceName=!arg2:~12!"
-		) else ( 
-			if "!arg3:~0,11!" equ "serviceName" (
-				set "serviceName=!arg3:~12!" 
-			)
-		)
-	)
-	
-	if "!arg1:~0,11!" equ "serviceUser" (
-		set "serviceUser=!arg1:~12!"
-	) else ( 
-		if "!arg2:~0,11!" equ "serviceUser" (
-			set "serviceUser=!arg2:~12!"
-		) else ( 
-			if "!arg3:~0,11!" equ "serviceUser" (
-				set "serviceUser=!arg3:~12!" 
-			)
-		)
-	)
-	
-	if not "!serviceUser!"=="" (
-		if "!arg1:~0,19!" equ "serviceUserPassword" (
-			set "serviceUserPassword=!arg1:~20!"
-		) else ( 
-			if "!arg2:~0,19!" equ "serviceUserPassword" (
-				set "serviceUserPassword=!arg2:~20!"
-			) else ( 
-				if "!arg3:~0,19!" equ "serviceUserPassword" (
-					set "serviceUserPassword=!arg3:~20!" 
-				)
-			)
-		)
-	)
+if "%JAVA_DIR%"=="" if "%JAVA_HOME%"=="" (
+	goto end
 )
 
-net user %serviceUser% >nul 2>&1
-if not !errorlevel! == 0 (
-	set "errorFlag=userNotExist"
-	goto :error
+set "arg1=%~1"
+set "arg2=%~2"
+set "arg3=%~3"
+
+if "!arg1:~0,11!" equ "serviceName" (
+    set "serviceName=!arg1:~12!"
+) else (
+    if "!arg2:~0,11!" equ "serviceName" (
+        set "serviceName=!arg2:~12!"
+    ) else (
+        if "!arg3:~0,11!" equ "serviceName" (
+            set "serviceName=!arg3:~12!"
+        )
+    )
+)
+
+if "!arg1:~0,11!" equ "serviceUser" (
+    set "serviceUser=!arg1:~12!"
+) else (
+    if "!arg2:~0,11!" equ "serviceUser" (
+        set "serviceUser=!arg2:~12!"
+    ) else (
+        if "!arg3:~0,11!" equ "serviceUser" (
+            set "serviceUser=!arg3:~12!"
+        )
+    )
+)
+
+if not "!serviceUser!"=="" (
+    if "!arg1:~0,19!" equ "serviceUserPassword" (
+        set "serviceUserPassword=!arg1:~20!"
+    ) else (
+        if "!arg2:~0,19!" equ "serviceUserPassword" (
+            set "serviceUserPassword=!arg2:~20!"
+        ) else (
+            if "!arg3:~0,19!" equ "serviceUserPassword" (
+                set "serviceUserPassword=!arg3:~20!"
+            )
+        )
+    )
 )
 
 set CONF_DIR=%MINIFI_ROOT%\conf
@@ -106,10 +86,18 @@ set CLASS_PATH="%CONF_DIR%";"%MINIFI_ROOT%lib\*";"%MINIFI_ROOT%lib\bootstrap\*"
 set LOG_PATH="%MINIFI_ROOT%\logs"
 set LOG_PREFIX=minifi.log
 
+if "%serviceUser%"=="" (
+    goto withoutUser
+) else (
+    goto withUser
+)
+
+:withoutUser
 "%SRV_BIN%" //IS//%SVC_NAME% ^
 --DisplayName=%SVC_DISPLAY% ^
 --Description=%SVC_DESCRIPTION% ^
 --Install="%SRV_BIN%" ^
+--JavaHome=%JAVA_DIR% ^
 --Jvm="%JVM%" ^
 --JvmMs="%PR_JVMMS%" ^
 --JvmMx="%PR_JVMMX%" ^
@@ -129,17 +117,42 @@ set LOG_PREFIX=minifi.log
 --LogLevel=ERROR ^
 --LogPath="%LOG_PATH%" ^
 --LogPrefix="%LOG_PREFIX%" ^
---StdOutput=auto ^
---StdError=auto ^
+--StdOutput= ^
+--StdError= ^
+--LogLevel=Error
+goto end
+
+:withUser
+"%SRV_BIN%" //IS//%SVC_NAME% ^
+--DisplayName=%SVC_DISPLAY% ^
+--Description=%SVC_DESCRIPTION% ^
+--Install="%SRV_BIN%" ^
+--JavaHome=%JAVA_DIR% ^
+--Jvm="%JVM%" ^
+--JvmMs="%PR_JVMMS%" ^
+--JvmMx="%PR_JVMMX%" ^
+--JvmSs="%PR_JVMSS%" ^
+--StartMode="%START_MODE%" ^
+--StopMode="%STOP_MODE%" ^
+--Startup="%STARTUP%" ^
+--StartClass="%START_CLASS%" ^
+--StopClass="%STOP_CLASS%" ^
+--StartParams="%START_PARAMS%" ^
+--StopParams="%STOP_PARAMS%" ^
+--StartMethod="%START_METHOD%" ^
+--StopMethod="%STOP_METHOD%" ^
+--StopTimeout="%STOP_TIMEOUT%" ^
+--Classpath="%CLASS_PATH%" ^
+--JvmOptions9="%JAVA_ARGS%" ^
+--LogLevel=ERROR ^
+--LogPath="%LOG_PATH%" ^
+--LogPrefix="%LOG_PREFIX%" ^
+--StdOutput= ^
+--StdError= ^
+--LogLevel=Error ^
 --ServiceUser="%serviceUser%" ^
 --ServicePassword="%serviceUserPassword%"
+goto end
 
-:error
-if !errorFlag! equ tooManyArguments (
-    echo Error: Too many arguments!
-) 
-if !errorFlag! equ userNotExist (
-    echo Error: User !serviceUser! does not exist. Please create it and re-run the installation script.
-)
-
+:end
 endlocal

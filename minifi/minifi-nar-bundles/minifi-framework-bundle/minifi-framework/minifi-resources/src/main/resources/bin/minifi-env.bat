@@ -15,20 +15,28 @@ rem    See the License for the specific language governing permissions and
 rem    limitations under the License.
 rem
 
+@echo off
+setlocal enabledelayedexpansion
+
 rem The java implementation to use
-rem set JAVA_HOME="C:\Program Files\Java\jdk-21
+rem set JAVA_DIR=C:\Java\jdk-21\
 
 set "currentDirectory=%~dp0"
 set "MINIFI_ROOT="
 for %%I in ("%currentDirectory%.") do set "MINIFI_ROOT=%%~dpI"
 
-rem The directory for the NiFi pid file
 set MINIFI_PID_DIR=%MINIFI_ROOT%\run
-
-rem The directory for NiFi log files
 set MINIFI_LOG_DIR=%MINIFI_ROOT%\logs
-
 set MINIFI_APP_LOG_FILE_NAME=minifi-app
 set MINIFI_APP_LOG_FILE_EXTENSION=log
 set MINIFI_BOOTSTRAP_LOG_FILE_NAME=minifi-bootstrap
 set MINIFI_BOOTSTRAP_LOG_FILE_EXTENSION=log
+
+if "%JAVA_DIR%"=="" if "%JAVA_HOME%"=="" (
+  echo Please set JAVA_HOME or JAVA_DIR
+) else if "%JAVA_DIR%"=="" (
+    set JAVA_DIR=%JAVA_HOME%
+)
+if  "%JAVA_HOME%"=="" (
+    set JAVA_HOME=%JAVA_DIR%
+)
