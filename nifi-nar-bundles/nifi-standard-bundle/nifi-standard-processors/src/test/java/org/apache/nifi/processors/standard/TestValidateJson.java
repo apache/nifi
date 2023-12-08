@@ -309,7 +309,7 @@ class TestValidateJson {
 
         @Override
         public JsonSchema retrieveSchema(String schemaName) throws SchemaNotFoundException {
-            if(StringUtils.isNotBlank(schemaName) && this.schemaName.equals(schemaName)) {
+            if (this.schemaName.equals(schemaName)) {
                 return new JsonSchema(SchemaVersion.DRAFT_2020_12, "{}");
             } else {
                 throw new SchemaNotFoundException("");

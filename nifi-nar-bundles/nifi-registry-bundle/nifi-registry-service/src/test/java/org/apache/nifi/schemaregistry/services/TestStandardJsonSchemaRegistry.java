@@ -22,8 +22,11 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.JsonSchemaRegistryComponent;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +40,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.apache.nifi.util.TestRunners;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -47,7 +51,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class TestInMemoryJsonSchemaRegistry {
+class TestStandardJsonSchemaRegistry {
     private static final String SCHEMA_NAME = "fooSchema";
     private static final PropertyDescriptor SUPPORTED_DYNAMIC_PROPERTY_DESCRIPTOR =  new PropertyDescriptor.Builder()
             .name(SCHEMA_NAME)
@@ -62,12 +66,14 @@ class TestInMemoryJsonSchemaRegistry {
     @Mock
     private PropertyValue propertyValue;
     private Map<PropertyDescriptor, String> properties;
-    private InMemoryJsonSchemaRegistry delegate;
+    private StandardJsonSchemaRegistry delegate;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws InitializationException {
         properties = new HashMap<>();
-        delegate = new InMemoryJsonSchemaRegistry();
+        delegate = new StandardJsonSchemaRegistry();
+        TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        runner.addControllerService("jsonSchemaRegistry", delegate);
     }
 
     @Test
@@ -95,7 +101,7 @@ class TestInMemoryJsonSchemaRegistry {
 
     @ParameterizedTest(name = "{3}")
     @MethodSource("dynamicProperties")
-    void testSchemaRetrieval(PropertyDescriptor propertyDescriptor, String schema, int numValidationErrors) throws SchemaNotFoundException {
+    void testSchemaRetrieval(PropertyDescriptor propertyDescriptor, String schema, int numValidationErrors) throws SchemaNotFoundException, InitializationException {
         delegate.onPropertyModified(propertyDescriptor, null, schema);
         boolean validSchema = numValidationErrors == 0;
 

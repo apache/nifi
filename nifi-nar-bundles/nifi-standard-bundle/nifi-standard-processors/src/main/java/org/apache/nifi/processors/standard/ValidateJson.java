@@ -252,7 +252,7 @@ public class ValidateJson extends AbstractProcessor {
             try {
                 final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions(flowFile).getValue();
                 final JsonSchema jsonSchema = jsonSchemaRegistry.retrieveSchema(schemaName);
-                final JsonSchemaFactory factory = schemaFactories.get(jsonSchema.getSchemaDraftVersion());
+                final JsonSchemaFactory factory = schemaFactories.get(jsonSchema.getSchemaVersion());
                 schema = factory.getSchema(jsonSchema.getSchemaText());
             } catch (Exception e) {
                 getLogger().error("Could not retrieve JSON schema for {}", flowFile, e);

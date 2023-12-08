@@ -20,8 +20,9 @@ import org.apache.nifi.components.PropertyDescriptor;
 
 public interface JsonSchemaRegistryComponent {
     PropertyDescriptor SCHEMA_VERSION = new PropertyDescriptor
-        .Builder().name("Schema Version")
-        .displayName("JSON Draft Schema Version")
+        .Builder()
+        .name("JSON Schema Version")
+        .displayName("JSON Schema Version")
         .description("The JSON schema specification")
         .required(true)
         .allowableValues(SchemaVersion.class)

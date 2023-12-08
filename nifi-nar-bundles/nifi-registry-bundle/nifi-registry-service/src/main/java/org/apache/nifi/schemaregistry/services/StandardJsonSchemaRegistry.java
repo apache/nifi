@@ -47,17 +47,17 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 @Tags({"schema", "registry", "json"})
-@CapabilityDescription("Provides a service for registering and accessing schemas. One can register a schema "
+@CapabilityDescription("Provides a service for registering and accessing JSON schemas. One can register a schema "
         + "as a dynamic property where 'name' represents the schema name and 'value' represents the textual "
-        + "representation of the actual schema following the syntax and semantics of JSON's Schema format. "
+        + "representation of the actual schema following the syntax and semantics of the JSON Schema format. "
         + "Empty schemas and schemas only consisting of whitespace are not acceptable schemas."
-        + "The registry is heterogeneous registry as it can store schemas of multiple schema draft versions. "
+        + "The registry is heterogeneous registry as it can store schemas of different schema draft versions. "
         + "By default the registry is configured to store schemas of Draft 2020-12. When a schema is added, the version "
         + "which is currently is set, is what the schema is saved as.")
-@DynamicProperty(name = "Schema name", value = "Schema Content",
+@DynamicProperty(name = "Schema Name", value = "Schema Content",
         description = "Adds a named schema using the JSON string representation of a JSON schema",
         expressionLanguageScope = ExpressionLanguageScope.NONE)
-public class InMemoryJsonSchemaRegistry extends AbstractControllerService implements JsonSchemaRegistry, JsonSchemaRegistryComponent {
+public class StandardJsonSchemaRegistry extends AbstractControllerService implements JsonSchemaRegistry, JsonSchemaRegistryComponent {
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.singletonList(SCHEMA_VERSION);
 
@@ -65,7 +65,7 @@ public class InMemoryJsonSchemaRegistry extends AbstractControllerService implem
     private final ConcurrentMap<SchemaVersion, JsonSchemaFactory> schemaFactories;
     private volatile SchemaVersion schemaVersion;
 
-    public InMemoryJsonSchemaRegistry() {
+    public StandardJsonSchemaRegistry() {
         jsonSchemas = new ConcurrentHashMap<>();
         schemaFactories = Arrays.stream(SchemaVersion.values())
                 .collect(Collectors.toConcurrentMap(Function.identity(),
@@ -86,7 +86,8 @@ public class InMemoryJsonSchemaRegistry extends AbstractControllerService implem
                 jsonSchemaFactory.getSchema(newValue);
                 jsonSchemas.put(schemaName, new JsonSchema(schemaVersion, newValue));
             } catch (final Exception e) {
-                // not a problem - the service won't be valid and the validation message will indicate what is wrong.
+                getLogger().debug("Exception thrown when changing value of schema name '{}' from '{}' to '{}'",
+                        descriptor.getName(), oldValue, newValue, e);
             }
         }
     }
@@ -95,9 +96,9 @@ public class InMemoryJsonSchemaRegistry extends AbstractControllerService implem
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final Set<ValidationResult> results = new HashSet<>();
 
-        final boolean noEnteredSchema = validationContext.getProperties().keySet().stream()
+        final boolean noSchemasConfigured = validationContext.getProperties().keySet().stream()
                 .noneMatch(PropertyDescriptor::isDynamic);
-        if(noEnteredSchema) {
+        if (noSchemasConfigured) {
             results.add(new ValidationResult.Builder()
                     .subject("Supported Dynamic Property Descriptor")
                     .valid(false)
@@ -132,10 +133,11 @@ public class InMemoryJsonSchemaRegistry extends AbstractControllerService implem
 
     @Override
     public JsonSchema retrieveSchema(final String schemaName) throws SchemaNotFoundException {
-        if(!jsonSchemas.containsKey(schemaName)) {
+        JsonSchema jsonSchema = jsonSchemas.get(schemaName);
+        if (jsonSchema == null) {
             throw new SchemaNotFoundException("Unable to find schema with name '" + schemaName + "'");
         }
-        return jsonSchemas.get(schemaName);
+        return jsonSchema;
     }
 
     @Override

@@ -19,18 +19,18 @@ package org.apache.nifi.schema.access;
 import java.util.Objects;
 
 public class JsonSchema {
-    private final SchemaVersion schemaDraftVersion;
+    private final SchemaVersion schemaVersion;
     private final String schemaText;
 
-    public JsonSchema(SchemaVersion schemaDraftVersion, String schemaText) {
-        Objects.requireNonNull(schemaDraftVersion, "Schema draft version cannot be null");
+    public JsonSchema(SchemaVersion schemaVersion, String schemaText) {
+        Objects.requireNonNull(schemaVersion, "Schema version cannot be null");
         Objects.requireNonNull(schemaText, "The text of the schema cannot be null");
-        this.schemaDraftVersion = schemaDraftVersion;
+        this.schemaVersion = schemaVersion;
         this.schemaText = schemaText;
     }
 
-    public SchemaVersion getSchemaDraftVersion() {
-        return schemaDraftVersion;
+    public SchemaVersion getSchemaVersion() {
+        return schemaVersion;
     }
 
     public String getSchemaText() {
