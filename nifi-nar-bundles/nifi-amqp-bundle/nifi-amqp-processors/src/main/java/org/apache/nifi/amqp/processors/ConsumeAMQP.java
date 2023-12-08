@@ -112,6 +112,17 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .defaultValue("10")
         .required(true)
         .build();
+    static final PropertyDescriptor PREFETCH_COUNT = new PropertyDescriptor.Builder()
+        .name("prefetch.count")
+        .displayName("Prefetch Count")
+        .description("The maximum number of unacknowledged messages for the consumer. If consumer has this number of unacknowledged messages, AMQP broker will "
+               + "no longer send new messages until consumer acknowledges some of the messages already delivered to it."
+               + "Allowed values: from 0 to 65535. 0 means no limit")
+        .addValidator(StandardValidators.createLongValidator(0, 65535, true))
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .defaultValue("0")
+        .required(true)
+        .build();
 
     public static final PropertyDescriptor HEADER_FORMAT = new PropertyDescriptor.Builder()
         .name("header.format")
@@ -167,6 +178,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         properties.add(QUEUE);
         properties.add(AUTO_ACKNOWLEDGE);
         properties.add(BATCH_SIZE);
+        properties.add(PREFETCH_COUNT);
         properties.add(HEADER_FORMAT);
         properties.add(HEADER_KEY_PREFIX);
         properties.add(HEADER_SEPARATOR);
@@ -301,7 +313,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         try {
             final String queueName = context.getProperty(QUEUE).getValue();
             final boolean autoAcknowledge = context.getProperty(AUTO_ACKNOWLEDGE).asBoolean();
-            final AMQPConsumer amqpConsumer = new AMQPConsumer(connection, queueName, autoAcknowledge, getLogger());
+            final int prefetchCount =  context.getProperty(PREFETCH_COUNT).asInteger();
+            final AMQPConsumer amqpConsumer = new AMQPConsumer(connection, queueName, autoAcknowledge, prefetchCount, getLogger());
 
             return amqpConsumer;
         } catch (final IOException ioe) {

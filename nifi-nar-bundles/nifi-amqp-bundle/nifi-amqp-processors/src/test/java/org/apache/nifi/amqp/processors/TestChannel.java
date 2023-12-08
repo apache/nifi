@@ -77,6 +77,7 @@ class TestChannel implements Channel {
     private long deliveryTag = 0L;
     private final BitSet acknowledgments = new BitSet();
     private final BitSet nacks = new BitSet();
+    private int prefetchCount = 0;
 
     public TestChannel(Map<String, String> exchangeToRoutingKeyMappings,
             Map<String, List<String>> routingKeyToQueueMappings) {
@@ -222,8 +223,11 @@ class TestChannel implements Channel {
 
     @Override
     public void basicQos(int prefetchCount) throws IOException {
-        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
+        this.prefetchCount = prefetchCount;
+    }
 
+    public int getPrefetchCount() {
+        return this.prefetchCount;
     }
 
     @Override

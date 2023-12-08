@@ -43,7 +43,8 @@ final class AMQPConsumer extends AMQPWorker {
     private final boolean autoAcknowledge;
     private final Consumer consumer;
 
-    AMQPConsumer(final Connection connection, final String queueName, final boolean autoAcknowledge, ComponentLog processorLog) throws IOException {
+    AMQPConsumer(final Connection connection, final String queueName, final boolean autoAcknowledge, final int prefetchCount,
+            ComponentLog processorLog) throws IOException {
         super(connection, processorLog);
         this.validateStringProperty("queueName", queueName);
         this.queueName = queueName;
@@ -80,6 +81,7 @@ final class AMQPConsumer extends AMQPWorker {
             }
         };
 
+        channel.basicQos(prefetchCount);
         channel.basicConsume(queueName, autoAcknowledge, consumer);
     }
 
