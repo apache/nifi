@@ -17,7 +17,8 @@ rem    limitations under the License.
 rem
 call %~sdp0\minifi-env.bat
 setlocal enabledelayedexpansion
-if "%JAVA_DIR%"=="" if "%JAVA_HOME%"=="" (
+
+if "%JAVA_MINIFI%"=="" (
 	goto end
 )
 
@@ -97,7 +98,7 @@ if "%serviceUser%"=="" (
 --DisplayName=%SVC_DISPLAY% ^
 --Description=%SVC_DESCRIPTION% ^
 --Install="%SRV_BIN%" ^
---JavaHome=%JAVA_DIR% ^
+--JavaHome=%JAVA_MINIFI% ^
 --Jvm="%JVM%" ^
 --JvmMs="%PR_JVMMS%" ^
 --JvmMx="%PR_JVMMX%" ^
@@ -127,7 +128,7 @@ goto end
 --DisplayName=%SVC_DISPLAY% ^
 --Description=%SVC_DESCRIPTION% ^
 --Install="%SRV_BIN%" ^
---JavaHome=%JAVA_DIR% ^
+--JavaHome=%JAVA_MINIFI% ^
 --Jvm="%JVM%" ^
 --JvmMs="%PR_JVMMS%" ^
 --JvmMx="%PR_JVMMX%" ^
