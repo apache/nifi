@@ -295,21 +295,21 @@ For example, typing tab at an empty prompt should display possible commands for 
 Typing "nifi " and then a tab will show the sub-commands for NiFi:
 
  #> nifi
- change-version-processor  delete-reporting-task	     get-policy	             merge-param-context	pg-replace	                      update-user-group
- cluster-summary           disable-services	             get-reg-client-id	     offload-node	        pg-set-param-context
- connect-node	           disconnect-node	             get-reporting-task	     pg-change-version	    pg-start
- create-param-context	   enable-services	             get-reporting-tasks	 pg-connect	            pg-status
- create-param-provider	   export-param-context	         get-root-id	         pg-create	            pg-stop
- create-reg-client	       export-reporting-task	     get-service	         pg-create-service	    pg-stop-version-control
- create-reporting-task	   export-reporting-tasks	     get-services	         pg-disable-services	remove-inherited-param-contexts
- create-service	           fetch-params	                 import-param-context	 pg-enable-services	    set-inherited-param-contexts
- create-user	           get-access-token	             import-reporting-tasks	 pg-export	            set-param
- create-user-group	       get-access-token-spnego	     list-param-contexts	 pg-get-all-versions	set-param-provider-property
- current-user	           get-controller-configuration	 list-param-providers	 pg-get-param-context	start-reporting-tasks
- delete-node	           get-node	                     list-reg-clients	     pg-get-services	    stop-reporting-tasks
- delete-param	           get-nodes	                 list-user-groups	     pg-get-version	        update-controller-configuration
- delete-param-context	   get-param-context	         list-users	             pg-import	            update-policy
- delete-param-provider	   get-param-provider	         logout-access-token	 pg-list	            update-reg-client
+ change-version-processor   delete-reporting-task           get-policy              merge-param-context     pg-replace                      update-user-group
+ cluster-summary            disable-services                get-reg-client-id       offload-node            pg-set-param-context
+ connect-node               disconnect-node                 get-reporting-task      pg-change-version       pg-start
+ create-param-context       enable-services                 get-reporting-tasks     pg-connect              pg-status
+ create-param-provider      export-param-context            get-root-id             pg-create               pg-stop
+ create-reg-client          export-reporting-task           get-service             pg-create-service       pg-stop-version-control
+ create-reporting-task      export-reporting-tasks          get-services            pg-disable-services     remove-inherited-param-contexts
+ create-service             fetch-params                    import-param-context    pg-enable-services      set-inherited-param-contexts
+ create-user                get-access-token                import-reporting-tasks  pg-export               set-param
+ create-user-group          get-access-token-spnego         list-param-contexts     pg-get-all-versions     set-param-provider-property
+ current-user               get-controller-configuration    list-param-providers    pg-get-param-context    start-reporting-tasks
+ delete-node                get-node                        list-reg-clients        pg-get-services         stop-reporting-tasks
+ delete-param               get-nodes                       list-user-groups        pg-get-version          update-controller-configuration
+ delete-param-context       get-param-context               list-users              pg-import               update-policy
+ delete-param-provider      get-param-provider              logout-access-token     pg-list                 update-reg-client
 
 Arguments that represent a path to a file, such as `-p` or when setting a properties file in the session, will auto-complete the path being typed:
 
