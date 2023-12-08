@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.IntStream;
 import org.apache.avro.Schema;
@@ -46,11 +47,13 @@ public class ParquetTestUtils {
     }
 
     public static Map<String, Object> createUser(int i) {
-        return Map.of(
-                "name", "Bob" + i,
-                "favorite_number", i,
-                "favorite_color", "blue" + i
-        );
+        return new HashMap<String, Object>() {
+            {
+                put("name", "Bob" + i);
+                put("favorite_number", i);
+                put("favorite_color", "blue" + i);
+            }
+        };
     }
 
     private static File createUsersParquetFile(Collection<Map<String, Object>> users) throws IOException {

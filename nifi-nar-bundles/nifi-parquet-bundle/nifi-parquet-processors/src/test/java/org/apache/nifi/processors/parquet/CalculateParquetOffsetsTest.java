@@ -42,10 +42,12 @@ public class CalculateParquetOffsetsTest {
     private static final Path PARQUET_PATH = Paths.get("src/test/resources/TestParquetReader.parquet");
     private static final Path NOT_PARQUET_PATH = Paths.get("src/test/resources/core-site.xml");
 
-    private static final Map<String, String> PRESERVED_ATTRIBUTES = Map.of(
-            "foo", "bar",
-            "example", "value"
-    );
+    private static final Map<String, String> PRESERVED_ATTRIBUTES = new HashMap<String, String>() {
+        {
+            put("foo", "bar");
+            put("example", "value");
+        }
+    };
 
     private TestRunner runner;
 
@@ -63,11 +65,11 @@ public class CalculateParquetOffsetsTest {
 
         final List<MockFlowFile> results = runner.getFlowFilesForRelationship(REL_SUCCESS);
 
-        results.getFirst().assertAttributeEquals(ParquetAttribute.RECORD_COUNT, "10");
-        results.getFirst().assertAttributeEquals(ParquetAttribute.RECORD_OFFSET, "0");
-        results.getFirst().assertContentEquals(PARQUET_PATH);
+        results.get(0).assertAttributeEquals(ParquetAttribute.RECORD_COUNT, "10");
+        results.get(0).assertAttributeEquals(ParquetAttribute.RECORD_OFFSET, "0");
+        results.get(0).assertContentEquals(PARQUET_PATH);
 
-        PRESERVED_ATTRIBUTES.forEach(results.getFirst()::assertAttributeEquals);
+        PRESERVED_ATTRIBUTES.forEach(results.get(0)::assertAttributeEquals);
     }
 
     @Test
@@ -131,10 +133,12 @@ public class CalculateParquetOffsetsTest {
     @Test
     public void testSubPartitioningWithCountAndOffset() throws Exception {
         runner.setProperty(PROP_RECORDS_PER_SPLIT, "3");
-        runner.enqueue(PARQUET_PATH, createAttributes(Map.of(
-                ParquetAttribute.RECORD_COUNT, "7",
-                ParquetAttribute.RECORD_OFFSET, "2"
-        )));
+        runner.enqueue(PARQUET_PATH, createAttributes(new HashMap<String, String>() {
+            {
+                put(ParquetAttribute.RECORD_COUNT, "7");
+                put(ParquetAttribute.RECORD_OFFSET, "2");
+            }
+        }));
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 3);
 
@@ -257,10 +261,12 @@ public class CalculateParquetOffsetsTest {
     @Test
     public void testEmptyInputWithOffsetAndCountAttributes() {
         runner.setProperty(PROP_RECORDS_PER_SPLIT, "3");
-        runner.enqueue("", createAttributes(Map.of(
-                ParquetAttribute.RECORD_OFFSET, "2",
-                ParquetAttribute.RECORD_COUNT, "4"
-        )));
+        runner.enqueue("", createAttributes(new HashMap<String, String>() {
+            {
+                put(ParquetAttribute.RECORD_OFFSET, "2");
+                put(ParquetAttribute.RECORD_COUNT, "4");
+            }
+        }));
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 2);
 
@@ -318,10 +324,12 @@ public class CalculateParquetOffsetsTest {
     @Test
     public void testUnrecognizedInputWithOffsetAndCountAttributes() throws IOException {
         runner.setProperty(PROP_RECORDS_PER_SPLIT, "3");
-        runner.enqueue(NOT_PARQUET_PATH, createAttributes(Map.of(
-                ParquetAttribute.RECORD_OFFSET, "2",
-                ParquetAttribute.RECORD_COUNT, "4"
-        )));
+        runner.enqueue(NOT_PARQUET_PATH, createAttributes(new HashMap<String, String>() {
+            {
+                put(ParquetAttribute.RECORD_OFFSET, "2");
+                put(ParquetAttribute.RECORD_COUNT, "4");
+            }
+        }));
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 2);
 
@@ -339,7 +347,7 @@ public class CalculateParquetOffsetsTest {
     }
 
     private HashMap<String, String> createAttributes(Map<String, String> additionalAttributes) {
-        return new HashMap<>(PRESERVED_ATTRIBUTES) {{
+        return new HashMap<String, String>(PRESERVED_ATTRIBUTES) {{
             putAll(additionalAttributes);
         }};
     }

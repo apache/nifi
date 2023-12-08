@@ -26,12 +26,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -70,7 +69,7 @@ public class TestParquetReader {
     }
 
     @Test
-    public void testReadUsers() throws IOException {
+    public void testReadUsers() throws IOException, MalformedRecordException {
         final int numUsers = 10;
         final File parquetFile = ParquetTestUtils.createUsersParquetFile(numUsers);
         final List<Record> results = getRecords(parquetFile, emptyMap());
@@ -81,7 +80,7 @@ public class TestParquetReader {
     }
 
     @Test
-    public void testReadUsersPartiallyWithLimitedRecordCount() throws IOException {
+    public void testReadUsersPartiallyWithLimitedRecordCount() throws IOException, MalformedRecordException {
         final int numUsers = 25;
         final int expectedRecords = 3;
         final File parquetFile = ParquetTestUtils.createUsersParquetFile(numUsers);
@@ -93,7 +92,7 @@ public class TestParquetReader {
     }
 
     @Test
-    public void testReadUsersPartiallyWithOffset() throws IOException {
+    public void testReadUsersPartiallyWithOffset() throws IOException, MalformedRecordException {
         final int numUsers = 1000025; // intentionally so large, to test input with many record groups
         final int expectedRecords = 5;
         final File parquetFile = ParquetTestUtils.createUsersParquetFile(numUsers);
@@ -105,14 +104,16 @@ public class TestParquetReader {
     }
 
     @Test
-    public void testReadUsersPartiallyWithOffsetAndLimitedRecordCount() throws IOException {
+    public void testReadUsersPartiallyWithOffsetAndLimitedRecordCount() throws IOException, MalformedRecordException {
         final int numUsers = 1000025; // intentionally so large, to test input with many record groups
         final int expectedRecords = 2;
         final File parquetFile = ParquetTestUtils.createUsersParquetFile(numUsers);
-        final List<Record> results = getRecords(parquetFile, Map.of(
-                ParquetAttribute.RECORD_OFFSET, "1000020",
-                ParquetAttribute.RECORD_COUNT, "2"
-        ));
+        final List<Record> results = getRecords(parquetFile, new HashMap<String, String>() {
+            {
+                put(ParquetAttribute.RECORD_OFFSET, "1000020");
+                put(ParquetAttribute.RECORD_COUNT, "2");
+            }
+        });
 
         assertEquals(expectedRecords, results.size());
         IntStream.range(0, expectedRecords)
@@ -120,17 +121,20 @@ public class TestParquetReader {
     }
 
     @Test
-    public void testReadUsersPartiallyWithLimitedRecordCountWithinFileRange() throws IOException {
+    public void testReadUsersPartiallyWithLimitedRecordCountWithinFileRange()
+            throws IOException, MalformedRecordException {
         final int numUsers = 1000;
         final int expectedRecords = 3;
         final File parquetFile = ParquetTestUtils.createUsersParquetFile(numUsers);
         final List<Record> results = getRecords(
                 parquetFile,
-                Map.of(
-                        ParquetAttribute.RECORD_COUNT, "3",
-                        ParquetAttribute.FILE_RANGE_START_OFFSET, "16543",
-                        ParquetAttribute.FILE_RANGE_END_OFFSET, "24784"
-                )
+                new HashMap<String, String>() {
+                    {
+                        put(ParquetAttribute.RECORD_COUNT, "3");
+                        put(ParquetAttribute.FILE_RANGE_START_OFFSET, "16543");
+                        put(ParquetAttribute.FILE_RANGE_END_OFFSET, "24784");
+                    }
+                }
         );
 
         assertEquals(expectedRecords, results.size());
@@ -139,17 +143,19 @@ public class TestParquetReader {
     }
 
     @Test
-    public void testReadUsersPartiallyWithOffsetWithinFileRange() throws IOException {
+    public void testReadUsersPartiallyWithOffsetWithinFileRange() throws IOException, MalformedRecordException {
         final int numUsers = 1000;
         final int expectedRecords = 5;
         final File parquetFile = ParquetTestUtils.createUsersParquetFile(numUsers);
         final List<Record> results = getRecords(
                 parquetFile,
-                Map.of(
-                        ParquetAttribute.RECORD_OFFSET, "321",
-                        ParquetAttribute.FILE_RANGE_START_OFFSET, "16543",
-                        ParquetAttribute.FILE_RANGE_END_OFFSET, "24784"
-                )
+                new HashMap<String, String>() {
+                    {
+                        put(ParquetAttribute.RECORD_OFFSET, "321");
+                        put(ParquetAttribute.FILE_RANGE_START_OFFSET, "16543");
+                        put(ParquetAttribute.FILE_RANGE_END_OFFSET, "24784");
+                    }
+                }
         );
 
         assertEquals(expectedRecords, results.size());
@@ -158,18 +164,21 @@ public class TestParquetReader {
     }
 
     @Test
-    public void testReadUsersPartiallyWithOffsetAndLimitedRecordCountWithinFileRange() throws IOException {
+    public void testReadUsersPartiallyWithOffsetAndLimitedRecordCountWithinFileRange()
+            throws IOException, MalformedRecordException {
         final int numUsers = 1000;
         final int expectedRecords = 2;
         final File parquetFile = ParquetTestUtils.createUsersParquetFile(numUsers);
         final List<Record> results = getRecords(
                 parquetFile,
-                Map.of(
-                        ParquetAttribute.RECORD_OFFSET, "321",
-                        ParquetAttribute.RECORD_COUNT, "2",
-                        ParquetAttribute.FILE_RANGE_START_OFFSET, "16543",
-                        ParquetAttribute.FILE_RANGE_END_OFFSET, "24784"
-                )
+                new HashMap<String, String>() {
+                    {
+                        put(ParquetAttribute.RECORD_OFFSET, "321");
+                        put(ParquetAttribute.RECORD_COUNT, "2");
+                        put(ParquetAttribute.FILE_RANGE_START_OFFSET, "16543");
+                        put(ParquetAttribute.FILE_RANGE_END_OFFSET, "24784");
+                    }
+                }
         );
 
         assertEquals(expectedRecords, results.size());
@@ -191,17 +200,17 @@ public class TestParquetReader {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(TestParquetProcessor.SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TestParquetProcessor.SUCCESS).getFirst().assertContentEquals("""
-                MapRecord[{name=Bob0, favorite_number=0, favorite_color=blue0}]
-                MapRecord[{name=Bob1, favorite_number=1, favorite_color=blue1}]
-                MapRecord[{name=Bob2, favorite_number=2, favorite_color=blue2}]
-                MapRecord[{name=Bob3, favorite_number=3, favorite_color=blue3}]
-                MapRecord[{name=Bob4, favorite_number=4, favorite_color=blue4}]
-                MapRecord[{name=Bob5, favorite_number=5, favorite_color=blue5}]
-                MapRecord[{name=Bob6, favorite_number=6, favorite_color=blue6}]
-                MapRecord[{name=Bob7, favorite_number=7, favorite_color=blue7}]
-                MapRecord[{name=Bob8, favorite_number=8, favorite_color=blue8}]
-                MapRecord[{name=Bob9, favorite_number=9, favorite_color=blue9}]""");
+        runner.getFlowFilesForRelationship(TestParquetProcessor.SUCCESS).get(0).assertContentEquals(
+                "MapRecord[{name=Bob0, favorite_number=0, favorite_color=blue0}]\n" +
+                "MapRecord[{name=Bob1, favorite_number=1, favorite_color=blue1}]\n" +
+                "MapRecord[{name=Bob2, favorite_number=2, favorite_color=blue2}]\n" +
+                "MapRecord[{name=Bob3, favorite_number=3, favorite_color=blue3}]\n" +
+                "MapRecord[{name=Bob4, favorite_number=4, favorite_color=blue4}]\n" +
+                "MapRecord[{name=Bob5, favorite_number=5, favorite_color=blue5}]\n" +
+                "MapRecord[{name=Bob6, favorite_number=6, favorite_color=blue6}]\n" +
+                "MapRecord[{name=Bob7, favorite_number=7, favorite_color=blue7}]\n" +
+                "MapRecord[{name=Bob8, favorite_number=8, favorite_color=blue8}]\n" +
+                "MapRecord[{name=Bob9, favorite_number=9, favorite_color=blue9}]");
     }
 
     @Test
@@ -218,9 +227,9 @@ public class TestParquetReader {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(TestParquetProcessor.SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TestParquetProcessor.SUCCESS).getFirst().assertContentEquals("""
-                MapRecord[{name=Bob0, favorite_number=0, favorite_color=blue0}]
-                MapRecord[{name=Bob1, favorite_number=1, favorite_color=blue1}]""");
+        runner.getFlowFilesForRelationship(TestParquetProcessor.SUCCESS).get(0).assertContentEquals(
+                "MapRecord[{name=Bob0, favorite_number=0, favorite_color=blue0}]\n" +
+                "MapRecord[{name=Bob1, favorite_number=1, favorite_color=blue1}]");
     }
 
     @Test
@@ -231,18 +240,20 @@ public class TestParquetReader {
         runner.addControllerService("reader", parquetReader);
         runner.enableControllerService(parquetReader);
 
-        runner.enqueue(Paths.get(PARQUET_PATH), Map.of(
-                ParquetAttribute.RECORD_OFFSET, "6",
-                ParquetAttribute.RECORD_COUNT, "2"
-        ));
+        runner.enqueue(Paths.get(PARQUET_PATH), new HashMap<String, String>() {
+            {
+                put(ParquetAttribute.RECORD_OFFSET, "6");
+                put(ParquetAttribute.RECORD_COUNT, "2");
+            }
+        });
 
         runner.setProperty(TestParquetProcessor.READER, "reader");
 
         runner.run();
         runner.assertAllFlowFilesTransferred(TestParquetProcessor.SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TestParquetProcessor.SUCCESS).getFirst().assertContentEquals("""
-                MapRecord[{name=Bob6, favorite_number=6, favorite_color=blue6}]
-                MapRecord[{name=Bob7, favorite_number=7, favorite_color=blue7}]""");
+        runner.getFlowFilesForRelationship(TestParquetProcessor.SUCCESS).get(0).assertContentEquals(
+                "MapRecord[{name=Bob6, favorite_number=6, favorite_color=blue6}]\n" +
+                "MapRecord[{name=Bob7, favorite_number=7, favorite_color=blue7}]");
     }
 
     @Test
@@ -259,19 +270,19 @@ public class TestParquetReader {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(TestParquetProcessor.SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TestParquetProcessor.SUCCESS).getFirst().assertContentEquals("""
-                MapRecord[{name=Bob3, favorite_number=3, favorite_color=blue3}]
-                MapRecord[{name=Bob4, favorite_number=4, favorite_color=blue4}]
-                MapRecord[{name=Bob5, favorite_number=5, favorite_color=blue5}]
-                MapRecord[{name=Bob6, favorite_number=6, favorite_color=blue6}]
-                MapRecord[{name=Bob7, favorite_number=7, favorite_color=blue7}]
-                MapRecord[{name=Bob8, favorite_number=8, favorite_color=blue8}]
-                MapRecord[{name=Bob9, favorite_number=9, favorite_color=blue9}]""");
+        runner.getFlowFilesForRelationship(TestParquetProcessor.SUCCESS).get(0).assertContentEquals(
+                "MapRecord[{name=Bob3, favorite_number=3, favorite_color=blue3}]\n" +
+                "MapRecord[{name=Bob4, favorite_number=4, favorite_color=blue4}]\n" +
+                "MapRecord[{name=Bob5, favorite_number=5, favorite_color=blue5}]\n" +
+                "MapRecord[{name=Bob6, favorite_number=6, favorite_color=blue6}]\n" +
+                "MapRecord[{name=Bob7, favorite_number=7, favorite_color=blue7}]\n" +
+                "MapRecord[{name=Bob8, favorite_number=8, favorite_color=blue8}]\n" +
+                "MapRecord[{name=Bob9, favorite_number=9, favorite_color=blue9}]");
     }
 
     private List<Record> getRecords(File parquetFile, Map<String, String> variables)
-            throws IOException {
-        final List<Record> results;
+            throws IOException, MalformedRecordException {
+        final List<Record> results = new ArrayList<>();
         // read the parquet file into bytes since we can't use a FileInputStream since it doesn't support mark/reset
         final byte[] parquetBytes = IOUtils.toByteArray(parquetFile.toURI());
 
@@ -280,13 +291,10 @@ public class TestParquetReader {
                 final RecordReader recordReader = parquetReaderFactory.createRecordReader(
                         variables, in, parquetFile.length(), componentLog)) {
 
-            results = Stream.generate(() -> {
-                try {
-                    return recordReader.nextRecord();
-                } catch (IOException | MalformedRecordException e) {
-                    throw new RuntimeException(e);
-                }
-            }).takeWhile(Objects::nonNull).toList();
+            Record record;
+            while ((record = recordReader.nextRecord()) != null) {
+                results.add(record);
+            }
         }
         return results;
     }

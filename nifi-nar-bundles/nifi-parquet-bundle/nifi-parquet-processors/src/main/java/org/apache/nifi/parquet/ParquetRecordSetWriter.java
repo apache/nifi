@@ -24,6 +24,8 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -112,11 +114,11 @@ public class ParquetRecordSetWriter extends SchemaRegistryRecordSetWriter implem
 
             // These attributes should not be carried over to a newly written Parquet RecordSet, because then
             // processors reading FlowFiles with any of these, might try to jump to non-existing locations.
-            final Set<String> propertiesToBeCleared = Set.of(
+            final Set<String> propertiesToBeCleared = new HashSet<>(Arrays.asList(
                     ParquetAttribute.RECORD_OFFSET,
                     ParquetAttribute.FILE_RANGE_START_OFFSET,
                     ParquetAttribute.FILE_RANGE_END_OFFSET
-            );
+            ));
             final Map<String, String> filteredVariables = variables.entrySet()
                     .stream()
                     .filter(entry -> !propertiesToBeCleared.contains(entry.getKey()))

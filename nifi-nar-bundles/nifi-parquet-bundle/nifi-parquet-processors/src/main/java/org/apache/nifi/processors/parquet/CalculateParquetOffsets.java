@@ -17,11 +17,15 @@
 
 package org.apache.nifi.processors.parquet;
 
+import static java.util.Collections.singletonList;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -142,12 +146,12 @@ public class CalculateParquetOffsets extends AbstractProcessor {
             .description("FlowFiles, with special attributes that represent a chunk of the input file.")
             .build();
 
-    static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+    static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Arrays.asList(
             PROP_RECORDS_PER_SPLIT,
             PROP_ZERO_CONTENT_OUTPUT
     );
 
-    static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
+    static final Set<Relationship> RELATIONSHIPS = new HashSet<>(singletonList(REL_SUCCESS));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -220,7 +224,7 @@ public class CalculateParquetOffsets extends AbstractProcessor {
             long recordOffset,
             boolean zeroContentOutput
     ) {
-        final long numberOfPartitions = Math.ceilDiv(recordCount, partitionSize);
+        final long numberOfPartitions = (recordCount / partitionSize) + ((recordCount % partitionSize) > 0 ? 1 : 0);
         final List<FlowFile> results = new ArrayList<>((int)Math.min(Integer.MAX_VALUE, numberOfPartitions));
 
         for (long currentPartition = 0; currentPartition < numberOfPartitions; currentPartition++) {
@@ -236,10 +240,12 @@ public class CalculateParquetOffsets extends AbstractProcessor {
             results.add(
                     session.putAllAttributes(
                             outputFlowFile,
-                            Map.of(
-                                    ParquetAttribute.RECORD_OFFSET, Long.toString(recordOffset + addedOffset),
-                                    ParquetAttribute.RECORD_COUNT, Long.toString(Math.min(partitionSize, recordCount - addedOffset))
-                            )
+                            new HashMap<String, String>() {
+                                {
+                                    put(ParquetAttribute.RECORD_OFFSET, Long.toString(recordOffset + addedOffset));
+                                    put(ParquetAttribute.RECORD_COUNT, Long.toString(Math.min(partitionSize, recordCount - addedOffset)));
+                                }
+                            }
                     )
             );
         }

@@ -20,6 +20,7 @@ import static java.util.Collections.singletonList;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -77,7 +78,7 @@ public class TestParquetProcessor extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return Set.of(SUCCESS);
+        return new HashSet<>(singletonList(SUCCESS));
     }
 
 }

@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.nifi.parquet.ParquetTestUtils;
@@ -43,10 +44,12 @@ public class CalculateParquetRowGroupOffsetsTest {
 
     private static final Path NOT_PARQUET_PATH = Paths.get("src/test/resources/core-site.xml");
 
-    private static final Map<String, String> PRESERVED_ATTRIBUTES = Map.of(
-            "foo", "bar",
-            "example", "value"
-    );
+    private static final Map<String, String> PRESERVED_ATTRIBUTES = new HashMap<String, String>() {
+        {
+            put("foo", "bar");
+            put("example", "value");
+        }
+    };
 
     private TestRunner runner;
 
@@ -64,12 +67,12 @@ public class CalculateParquetRowGroupOffsetsTest {
 
         final List<MockFlowFile> results = runner.getFlowFilesForRelationship(REL_SUCCESS);
 
-        results.getFirst().assertAttributeEquals(ParquetAttribute.RECORD_COUNT, "10");
-        results.getFirst().assertAttributeEquals(ParquetAttribute.FILE_RANGE_START_OFFSET, "4");
-        results.getFirst().assertAttributeEquals(ParquetAttribute.FILE_RANGE_END_OFFSET, "298");
-        results.getFirst().assertContentEquals(parquetFile.toPath());
+        results.get(0).assertAttributeEquals(ParquetAttribute.RECORD_COUNT, "10");
+        results.get(0).assertAttributeEquals(ParquetAttribute.FILE_RANGE_START_OFFSET, "4");
+        results.get(0).assertAttributeEquals(ParquetAttribute.FILE_RANGE_END_OFFSET, "298");
+        results.get(0).assertContentEquals(parquetFile.toPath());
 
-        PRESERVED_ATTRIBUTES.forEach(results.getFirst()::assertAttributeEquals);
+        PRESERVED_ATTRIBUTES.forEach(results.get(0)::assertAttributeEquals);
     }
 
     @Test
