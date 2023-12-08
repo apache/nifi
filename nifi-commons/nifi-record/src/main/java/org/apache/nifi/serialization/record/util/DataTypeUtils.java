@@ -501,21 +501,25 @@ public class DataTypeUtils {
         return toRecord(value, fieldName, charset, false);
     }
 
-    private static Object covertObjectToRecord(final Object rawValue, final String key, final Charset charset) {
+    private static Object convertNestedObject(final Object rawValue, final String key, final Charset charset) {
         final Object coercedValue;
         if (rawValue instanceof Map<?, ?>) {
             coercedValue = toRecord(rawValue, key, charset, true);
         } else if (rawValue instanceof Object[]) {
-            final Object[] objArray = (Object[]) rawValue;
-            coercedValue = Arrays.stream(objArray).noneMatch(o -> o instanceof Map<?, ?>)
-                    ? objArray
-                    : Arrays.stream(objArray).map(o -> toRecord(o, key, charset, true)).toArray();
+            final Object[] rawArray = (Object[]) rawValue;
+            final List<Object> objList = new ArrayList<>(rawArray.length);
+            for (final Object o : rawArray) {
+                objList.add(o instanceof Map<?, ?> ? toRecord(o, key, charset, true) : o);
+            }
+            coercedValue = objList.toArray();
         } else if (rawValue instanceof Collection<?>) {
             final Collection<?> objCollection = (Collection<?>) rawValue;
             // Records have ARRAY DataTypes, so convert any Collections
-            coercedValue = objCollection.stream().noneMatch(o -> o instanceof Map<?, ?>)
-                    ? objCollection.toArray()
-                    : objCollection.stream().map(o -> toRecord(o, key, charset, true)).toArray();
+            final List<Object> objList = new ArrayList<>(objCollection.size());
+            for (final Object o : objCollection) {
+                objList.add(o instanceof Map<?, ?> ? toRecord(o, key, charset, true) : o);
+            }
+            coercedValue = objList.toArray();
         } else {
             coercedValue = rawValue;
         }
@@ -532,7 +536,7 @@ public class DataTypeUtils {
             if (recursive) {
                 record.getRawFieldNames().forEach(name -> {
                     final Object rawValue = record.getValue(name);
-                    record.setValue(name, covertObjectToRecord(rawValue, name, charset));
+                    record.setValue(name, convertNestedObject(rawValue, name, charset));
                 });
             }
             return record;
@@ -557,7 +561,7 @@ public class DataTypeUtils {
                 inferredFieldTypes.add(recordField);
 
                 final Object coercedValue = recursive
-                        ? covertObjectToRecord(rawValue, key, charset)
+                        ? convertNestedObject(rawValue, key, charset)
                         : convertType(rawValue, inferredDataType, fieldName, charset);
                 coercedValues.put(key, coercedValue);
             }
@@ -857,7 +861,13 @@ public class DataTypeUtils {
         if (value instanceof Map) {
             final Map<?, ?> original = (Map<?, ?>) value;
 
-            boolean keysAreStrings = original.keySet().stream().allMatch(key -> key instanceof String);
+            boolean keysAreStrings = true;
+            for (final Object key : original.keySet()) {
+                if (!(key instanceof String)) {
+                    keysAreStrings = false;
+                    break;
+                }
+            }
 
             if (keysAreStrings) {
                 return (Map<String, Object>) value;
@@ -976,11 +986,22 @@ public class DataTypeUtils {
     }
 
     public static Object[] convertRecordArrayToJavaArray(final Object[] array, final DataType elementDataType) {
-        if (array == null || array.length == 0 || Arrays.stream(array).allMatch(o -> isScalarValue(elementDataType, o))) {
+        if (array == null || array.length == 0) {
             return array;
-        } else {
-            return Arrays.stream(array).map(o -> convertRecordFieldtoObject(o, elementDataType)).toArray();
         }
+
+        final List<Object> objList = new ArrayList<>(array.length);
+        boolean nonScalarConverted = false;
+        for (final Object o : array) {
+            if (isScalarValue(elementDataType, o)) {
+                objList.add(o);
+            } else {
+                nonScalarConverted = true;
+                objList.add(convertRecordFieldtoObject(o, elementDataType));
+            }
+        }
+
+        return !nonScalarConverted ? array : objList.toArray();
     }
 
     public static boolean isMapTypeCompatible(final Object value) {
