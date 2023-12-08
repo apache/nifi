@@ -198,12 +198,17 @@
         }).done(function (registriesResponse) {
             var registries = [];
 
-            if (nfCommon.isDefinedAndNotNull(registriesResponse.registries) && registriesResponse.registries.length > 0) {
-                registriesResponse.registries.sort(function (a, b) {
+            var authorizedRegistries = [];
+            if (nfCommon.isDefinedAndNotNull(registriesResponse.registries)) {
+                authorizedRegistries = registriesResponse.registries.filter((registry) => registry.permissions.canRead);
+            }
+
+            if (authorizedRegistries.length > 0) {
+                authorizedRegistries.sort(function (a, b) {
                     return a.component.name > b.component.name;
                 });
 
-                $.each(registriesResponse.registries, function (_, registryEntity) {
+                $.each(authorizedRegistries, function (_, registryEntity) {
                     var registry = registryEntity.component;
                     registries.push({
                         text: registry.name,
