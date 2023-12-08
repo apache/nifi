@@ -200,7 +200,9 @@
 
             var authorizedRegistries = [];
             if (nfCommon.isDefinedAndNotNull(registriesResponse.registries)) {
-                authorizedRegistries = registriesResponse.registries.filter((registry) => registry.permissions.canRead);
+                authorizedRegistries = registriesResponse.registries.filter(function(registry) {
+                    return registry.permissions.canRead;
+                });
             }
 
             if (authorizedRegistries.length > 0) {
