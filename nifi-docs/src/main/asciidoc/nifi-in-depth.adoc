@@ -113,8 +113,8 @@ At a high level, this flow reaches out to a seed URL configured in the InvokeHTT
 
 The flow also detects duplicate URLs and prevents processing them again, emails the user when keywords are found, logs all successful HTTP requests, and bundles up the successful requests to be compressed and archived on disk.
 
-NOTE: To use this flow you need to configure a couple options. First a DistributedMapCacheServer controller service must be added with default properties. Also to get emails, the PutEmail processor must be configured with your email credentials. Finally, to use HTTPS the StandardSSLContextService must be configured with proper key and trust stores. Remember that the truststore must be configured with the proper Certificate Authorities in order to work for websites. The command below is an example of using the "keytool" command to add the default Java 1.8.0_60 CAs to a truststore called myTrustStore:
-keytool -importkeystore -srckeystore /Library/Java/JavaVirtualMachines/jdk1.8.0_60.jdk/Contents/Home/jre/lib/security/cacerts  -destkeystore myTrustStore
+NOTE: To use this flow you need to configure a couple options. First a DistributedMapCacheServer controller service must be added with default properties. Also to get emails, the PutEmail processor must be configured with your email credentials. Finally, to use HTTPS the StandardSSLContextService must be configured with proper key and trust stores. Remember that the truststore must be configured with the proper Certificate Authorities in order to work for websites. The command below is an example of using the "keytool" command to add the default Java CAs to a truststore called myTrustStore:
+keytool -importkeystore -srckeystore /Library/Java/JavaVirtualMachines/jdk/Contents/Home/jre/lib/security/cacerts  -destkeystore myTrustStore
 
 
 === WebCrawler Flow

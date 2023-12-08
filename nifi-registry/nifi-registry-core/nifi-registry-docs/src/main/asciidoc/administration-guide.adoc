@@ -23,7 +23,7 @@ Apache NiFi Team <dev@nifi.apache.org>
 
 NiFi Registry has the following minimum system requirements:
 
-* Requires Java Development Kit (JDK) 17
+* Requires Java 21
 
 WARNING: When running Registry with only a JRE you may encounter the following error as Flyway (database migration tool) attempts to utilize a resource from the JDK: +
  +
