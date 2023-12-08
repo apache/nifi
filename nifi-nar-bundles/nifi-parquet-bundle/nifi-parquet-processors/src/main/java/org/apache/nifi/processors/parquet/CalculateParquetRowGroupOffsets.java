@@ -32,7 +32,6 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parquet.stream.NifiParquetInputFile;
@@ -53,42 +52,6 @@ import org.apache.parquet.hadoop.metadata.ParquetMetadata;
         "The processor generates one FlowFile from each Row Group of the input, and adds attributes with the offsets "
                 + "required to read the group of rows in the FlowFile's content. Can be used to increase the overall "
                 + "efficiency of processing extremely large Parquet files."
-)
-@UseCase(
-        description = "Multithreaded processing of extremely large Parquet files",
-        keywords = {"multi-threaded", "multi-core", "parallel"},
-        configuration = """
-                Instead of having something like
-
-                X -> ConvertRecord (Parquet / JSON) -> ...
-
-                Have something like
-
-                X -> CalculateParquetRowGroupOffsets -> ConvertRecord (Parquet / JSON) -> ...
-
-                This increases the overall efficiency of this operation for extremely large
-                Parquet files (hundreds of GBs). With the second approach, you can leverage
-                multi-threading, for processing a single file.
-                """
-)
-@UseCase(
-        description = "Distributed processing of extremely large Parquet files across the NiFi nodes",
-        keywords = {"distribute", "nodes", "cluster", "transfer", "parallel"},
-        configuration = """
-                Instead of having something like
-
-                X -> ConvertRecord (Parquet / JSON) -> ...
-
-                Have something like
-
-                X -> CalculateParquetRowGroupOffsets -> FetchParquet (JSON Writer) -> ...
-
-                And set "Zero Content Output" to "true".
-
-                This way, a load balanced connection could be used between CalculateParquetOffsets and FetchParquet,
-                in order to distribute the work across the nodes, without transferring a lot of data across
-                the nodes of the cluster.
-                """
 )
 @WritesAttributes({
         @WritesAttribute(
