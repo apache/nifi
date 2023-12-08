@@ -295,22 +295,6 @@ For example, typing tab at an empty prompt should display possible commands for 
 Typing "nifi " and then a tab will show the sub-commands for NiFi:
 
  #> nifi
- cluster-summary         export-param-context    list-users              pg-export
- connect-node            get-node                merge-param-context     pg-list
- create-param-context    get-nodes               offload-node            pg-set-param-context
- create-reg-client       get-param-context       pg-change-version       pg-set-var
- create-reporting-task   get-policy              pg-create-service       pg-start
- create-service          get-reg-client-id       pg-create-service       pg-status
- create-user             get-reporting-task      pg-disable-services     pg-stop
- create-user-group       get-reporting-tasks     pg-enable-services      set-param
- current-user            get-root-id             pg-get-all-versions     start-reporting-tasks
- delete-node             get-service             pg-get-param-context    stop-reporting-tasks
- delete-param            get-services            pg-get-services         update-policy
- delete-param-context    import-param-context    pg-get-vars             update-reg-client
- disable-services        list-param-contexts     pg-get-version          update-user-group
- disconnect-node         list-reg-clients        pg-connect              delete-reporting-task
- enable-services         list-user-groups        pg-import
-
  change-version-processor  delete-reporting-task	     get-policy	             merge-param-context	pg-replace	                      update-user-group
  cluster-summary           disable-services	             get-reg-client-id	     offload-node	        pg-set-param-context
  connect-node	           disconnect-node	             get-reporting-task	     pg-change-version	    pg-start
