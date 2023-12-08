@@ -26,7 +26,6 @@ import org.apache.nifi.schema.access.JsonSchemaRegistryComponent;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.access.SchemaVersion;
 import org.apache.nifi.schemaregistry.services.JsonSchemaRegistry;
-import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
