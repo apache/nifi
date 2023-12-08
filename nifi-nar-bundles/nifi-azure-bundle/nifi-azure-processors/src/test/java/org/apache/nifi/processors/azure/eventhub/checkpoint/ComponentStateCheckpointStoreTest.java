@@ -20,7 +20,9 @@ import com.azure.messaging.eventhubs.models.Checkpoint;
 import com.azure.messaging.eventhubs.models.PartitionOwnership;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.processors.azure.eventhub.ConsumeAzureEventHub;
 import org.apache.nifi.state.MockStateManager;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -42,6 +44,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpointStoreTest {
 
+    private static final String KEY_CLIENT_ID = ConsumeAzureEventHub.KEY_CLIENT_ID;
+
     private MockStateManager stateManager;
 
     @Override
@@ -49,6 +53,11 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
         stateManager = new MockStateManager(new Object());
         stateManager.setIgnoreAnnotations(true);
         return stateManager;
+    }
+
+    @BeforeEach
+    void beforeEach() throws IOException {
+        addToState(KEY_CLIENT_ID, CLIENT_ID_1);
     }
 
     @Test
@@ -73,22 +82,26 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
 
     @Test
     void testListing() throws IOException {
-        addToState(partitionOwnership1);
-        addToState(partitionOwnership2);
-
-        addToState(checkpoint1);
-        addToState(checkpoint2);
-
-        addToState(createPartitionOwnership(EVENT_HUB_NAMESPACE + "-2", EVENT_HUB_NAME, CONSUMER_GROUP, PARTITION_ID_1, CLIENT_ID_1));
-        addToState(createPartitionOwnership(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME + "-2", CONSUMER_GROUP, PARTITION_ID_1, CLIENT_ID_1));
-        addToState(createPartitionOwnership(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP + "-2", PARTITION_ID_1, CLIENT_ID_1));
-
-        addToState(createCheckpoint(EVENT_HUB_NAMESPACE + "-2", EVENT_HUB_NAME, CONSUMER_GROUP, PARTITION_ID_1, OFFSET, SEQUENCE_NUMBER));
-        addToState(createCheckpoint(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME + "-2", CONSUMER_GROUP, PARTITION_ID_1, OFFSET, SEQUENCE_NUMBER));
-        addToState(createCheckpoint(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP + "-2", PARTITION_ID_1, OFFSET, SEQUENCE_NUMBER));
+        initStateWithAllItems();
 
         testListOwnerships(partitionOwnership1, partitionOwnership2);
         testListCheckpoints(checkpoint1, checkpoint2);
+    }
+
+    @Test
+    void testCleanUp() throws IOException {
+        initStateWithAllItems();
+
+        assertEquals(11, stateManager.getState(Scope.CLUSTER).toMap().size());
+
+        checkpointStore.cleanUp(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP);
+
+        assertEquals(5, stateManager.getState(Scope.CLUSTER).toMap().size());
+
+        testListOwnerships(partitionOwnership1, partitionOwnership2);
+        testListCheckpoints(checkpoint1, checkpoint2);
+
+        assertStoredClientId();
     }
 
     @Test
@@ -109,6 +122,8 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
 
         assertStoredOwnerships(partitionOwnership1, convertToTestable(claimedOwnership));
         assertStoredCheckpoints(checkpoint1);
+
+        assertStoredClientId();
     }
 
     @Test
@@ -250,6 +265,8 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
 
         assertStoredCheckpoints(checkpoint1, newCheckpoint);
         assertStoredOwnerships(partitionOwnership1, partitionOwnership2);
+
+        assertStoredClientId();
     }
 
     @Test
@@ -312,22 +329,42 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
         testListCheckpoints(expectedCheckpoints);
     }
 
+    private void assertStoredClientId() {
+        stateManager.assertStateEquals(KEY_CLIENT_ID, CLIENT_ID_1, Scope.CLUSTER);
+    }
+
     private void addToState(PartitionOwnership partitionOwnership) throws IOException {
         setETagAndLastModified(partitionOwnership);
 
+        addToState(createOwnershipKey(partitionOwnership), createOwnershipValue(partitionOwnership));
+    }
+
+    private void addToState(Checkpoint checkpoint) throws IOException {
+        addToState(createCheckpointKey(checkpoint), createCheckpointValue(checkpoint));
+    }
+
+    private void addToState(String key, String value) throws IOException {
         Map<String, String> map = new HashMap<>(stateManager.getState(Scope.CLUSTER).toMap());
 
-        map.put(createOwnershipKey(partitionOwnership), createOwnershipValue(partitionOwnership));
+        map.put(key, value);
 
         stateManager.setState(map, Scope.CLUSTER);
     }
 
-    private void addToState(Checkpoint checkpoint) throws IOException {
-        Map<String, String> map = new HashMap<>(stateManager.getState(Scope.CLUSTER).toMap());
+    private void initStateWithAllItems() throws IOException {
+        addToState(partitionOwnership1);
+        addToState(partitionOwnership2);
 
-        map.put(createCheckpointKey(checkpoint), createCheckpointValue(checkpoint));
+        addToState(checkpoint1);
+        addToState(checkpoint2);
 
-        stateManager.setState(map, Scope.CLUSTER);
+        addToState(createPartitionOwnership(EVENT_HUB_NAMESPACE + "-2", EVENT_HUB_NAME, CONSUMER_GROUP, PARTITION_ID_1, CLIENT_ID_1));
+        addToState(createPartitionOwnership(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME + "-2", CONSUMER_GROUP, PARTITION_ID_1, CLIENT_ID_1));
+        addToState(createPartitionOwnership(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP + "-2", PARTITION_ID_1, CLIENT_ID_1));
+
+        addToState(createCheckpoint(EVENT_HUB_NAMESPACE + "-2", EVENT_HUB_NAME, CONSUMER_GROUP, PARTITION_ID_1, OFFSET, SEQUENCE_NUMBER));
+        addToState(createCheckpoint(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME + "-2", CONSUMER_GROUP, PARTITION_ID_1, OFFSET, SEQUENCE_NUMBER));
+        addToState(createCheckpoint(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP + "-2", PARTITION_ID_1, OFFSET, SEQUENCE_NUMBER));
     }
 
 }

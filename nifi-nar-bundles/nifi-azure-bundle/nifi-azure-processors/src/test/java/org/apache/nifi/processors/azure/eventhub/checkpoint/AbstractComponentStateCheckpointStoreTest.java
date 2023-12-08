@@ -21,6 +21,10 @@ import com.azure.messaging.eventhubs.models.PartitionOwnership;
 import org.apache.nifi.components.state.StateManager;
 import org.junit.jupiter.api.BeforeEach;
 
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -56,6 +60,13 @@ abstract class AbstractComponentStateCheckpointStoreTest extends AbstractCheckpo
 
         assertNotNull(claimedOwnership.getETag());
         assertNotEquals(requestedOwnership.getETag(), claimedOwnership.getETag());
+    }
+
+    Map<String, String> initMap(PartitionOwnership... partitionOwnerships) {
+        return Stream.of(partitionOwnerships)
+                .map(this::copy)
+                .map(this::setETagAndLastModified)
+                .collect(Collectors.toMap(ComponentStateCheckpointStoreUtils::createOwnershipKey, ComponentStateCheckpointStoreUtils::createOwnershipValue));
     }
 
 }

@@ -17,11 +17,13 @@
 package org.apache.nifi.processors.azure.eventhub.checkpoint;
 
 import com.azure.messaging.eventhubs.models.Checkpoint;
+import com.azure.messaging.eventhubs.models.PartitionContext;
 import com.azure.messaging.eventhubs.models.PartitionOwnership;
 import org.junit.jupiter.api.Test;
 
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.convertCheckpoint;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.convertOwnership;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.convertPartitionContext;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createCheckpointKey;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createCheckpointValue;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createOwnershipKey;
@@ -66,6 +68,30 @@ class ComponentStateCheckpointStoreUtilsTest extends AbstractCheckpointStoreTest
 
         assertEquals(OFFSET, checkpoint.getOffset());
         assertEquals(SEQUENCE_NUMBER, checkpoint.getSequenceNumber());
+    }
+
+    @Test
+    void testConvertPartitionContextFromOwnershipKey() {
+        PartitionContext partitionContext = convertPartitionContext(OWNERSHIP_KEY);
+
+        assertNotNull(partitionContext);
+
+        assertEquals(EVENT_HUB_NAMESPACE, partitionContext.getFullyQualifiedNamespace());
+        assertEquals(EVENT_HUB_NAME, partitionContext.getEventHubName());
+        assertEquals(CONSUMER_GROUP, partitionContext.getConsumerGroup());
+        assertEquals(PARTITION_ID_1, partitionContext.getPartitionId());
+    }
+
+    @Test
+    void testConvertPartitionContextFromCheckpointKey() {
+        PartitionContext partitionContext = convertPartitionContext(CHECKPOINT_KEY);
+
+        assertNotNull(partitionContext);
+
+        assertEquals(EVENT_HUB_NAMESPACE, partitionContext.getFullyQualifiedNamespace());
+        assertEquals(EVENT_HUB_NAME, partitionContext.getEventHubName());
+        assertEquals(CONSUMER_GROUP, partitionContext.getConsumerGroup());
+        assertEquals(PARTITION_ID_1, partitionContext.getPartitionId());
     }
 
     @Test

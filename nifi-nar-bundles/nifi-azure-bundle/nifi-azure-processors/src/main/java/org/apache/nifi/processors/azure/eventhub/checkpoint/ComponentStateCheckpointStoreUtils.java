@@ -68,7 +68,7 @@ final class ComponentStateCheckpointStoreUtils {
                 .setSequenceNumber(StringUtils.isNotEmpty(parts[1]) ? Long.parseLong(parts[1]): null);
     }
 
-    private static PartitionContext convertPartitionContext(String key) {
+    static PartitionContext convertPartitionContext(String key) {
         final String[] parts = key.split("/", 5);
         if (parts.length != 5) {
             throw new ProcessException(String.format("Invalid entry key: %s", key));

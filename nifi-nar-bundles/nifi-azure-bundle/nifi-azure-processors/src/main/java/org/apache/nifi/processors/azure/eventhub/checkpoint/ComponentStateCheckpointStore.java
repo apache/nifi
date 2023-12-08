@@ -19,6 +19,7 @@ package org.apache.nifi.processors.azure.eventhub.checkpoint;
 import com.azure.core.util.CoreUtils;
 import com.azure.messaging.eventhubs.CheckpointStore;
 import com.azure.messaging.eventhubs.models.Checkpoint;
+import com.azure.messaging.eventhubs.models.PartitionContext;
 import com.azure.messaging.eventhubs.models.PartitionOwnership;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -41,10 +42,12 @@ import java.util.function.BiFunction;
 
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.KEY_CHECKPOINT;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.KEY_OWNERSHIP;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.checkpointToString;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.convertOwnership;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.convertPartitionContext;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createCheckpointKey;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createCheckpointValue;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createOwnershipKey;
@@ -97,15 +100,60 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
         this.stateManager = stateManager;
     }
 
+    /**
+     * Cleans up the underlying state map and retains only items matching the "EventHub coordinates" passed in ({@code fullyQualifiedNamespace}, {@code eventHubName} and {@code consumerGroup}).
+     * The method should be called once in the initialization phase in order to remove the obsolete items but the checkpoint store can operate properly without doing that too.
+     *
+     * @param fullyQualifiedNamespace the fullyQualifiedNamespace of the items to be retained
+     * @param eventHubName the eventHubName of the items to be retained
+     * @param consumerGroup the consumerGroup of the items to be retained
+     */
+    public void cleanUp(String fullyQualifiedNamespace, String eventHubName, String consumerGroup) {
+        cleanUpMono(fullyQualifiedNamespace, eventHubName, consumerGroup)
+                .subscribe();
+    }
+
+    Mono<Void> cleanUpMono(String fullyQualifiedNamespace, String eventHubName, String consumerGroup) {
+        return getState()
+                .doFirst(() -> debug("cleanUp() -> Entering [{}, {}, {}]", fullyQualifiedNamespace, eventHubName, consumerGroup))
+                .flatMap(oldState -> {
+                    Map<String, String> newMap = oldState.toMap().entrySet().stream()
+                            .filter(e -> {
+                                String key = e.getKey();
+                                if (!key.startsWith(KEY_OWNERSHIP) && !key.startsWith(KEY_CHECKPOINT)) {
+                                    return true;
+                                }
+                                PartitionContext context = convertPartitionContext(key);
+                                return context.getFullyQualifiedNamespace().equalsIgnoreCase(fullyQualifiedNamespace)
+                                        && context.getEventHubName().equalsIgnoreCase(eventHubName)
+                                        && context.getConsumerGroup().equalsIgnoreCase(consumerGroup);
+                            })
+                            .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+                    int removed = oldState.toMap().size() - newMap.size();
+                    if (removed > 0) {
+                        debug("cleanUp() -> Removed {} item(s)", removed);
+                        return updateState(oldState, newMap);
+                    } else {
+                        debug("cleanUp() -> Nothing to clean up");
+                        return Mono.empty();
+                    }
+                })
+                .doOnSuccess(__ -> debug("cleanUp() -> Succeeded"))
+                .doOnError(throwable -> debug("cleanUp() -> Failed: {}", throwable.getMessage()))
+                .retryWhen(createRetrySpec())
+                .doOnError(ConcurrentStateModificationException.class, throwable -> debug("cleanUp() -> Retry failed: {}", throwable.getMessage()));
+    }
+
     @Override
     public Flux<PartitionOwnership> listOwnership(String fullyQualifiedNamespace, String eventHubName, String consumerGroup) {
         return getState()
                 .doFirst(() -> debug("listOwnership() -> Entering [{}, {}, {}]", fullyQualifiedNamespace, eventHubName, consumerGroup))
                 .flatMapMany(this::getOwnerships)
                 .filter(ownership ->
-                        ownership.getFullyQualifiedNamespace().equals(fullyQualifiedNamespace)
-                                && ownership.getEventHubName().equals(eventHubName)
-                                && ownership.getConsumerGroup().equals(consumerGroup)
+                        ownership.getFullyQualifiedNamespace().equalsIgnoreCase(fullyQualifiedNamespace)
+                                && ownership.getEventHubName().equalsIgnoreCase(eventHubName)
+                                && ownership.getConsumerGroup().equalsIgnoreCase(consumerGroup)
                 )
                 .doOnNext(partitionOwnership -> debug("listOwnership() -> Returning {}", ownershipToString(partitionOwnership)))
                 .doOnComplete(() -> debug("listOwnership() -> Succeeded"))
@@ -175,9 +223,9 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                 .doFirst(() -> debug("listCheckpoints() -> Entering [{}, {}, {}]", fullyQualifiedNamespace, eventHubName, consumerGroup))
                 .flatMapMany(this::getCheckpoints)
                 .filter(checkpoint ->
-                        checkpoint.getFullyQualifiedNamespace().equals(fullyQualifiedNamespace)
-                                && checkpoint.getEventHubName().equals(eventHubName)
-                                && checkpoint.getConsumerGroup().equals(consumerGroup)
+                        checkpoint.getFullyQualifiedNamespace().equalsIgnoreCase(fullyQualifiedNamespace)
+                                && checkpoint.getEventHubName().equalsIgnoreCase(eventHubName)
+                                && checkpoint.getConsumerGroup().equalsIgnoreCase(consumerGroup)
                 )
                 .doOnNext(checkpoint -> debug("listCheckpoints() -> Returning {}", checkpointToString(checkpoint)))
                 .doOnComplete(() -> debug("listCheckpoints() -> Succeeded"))

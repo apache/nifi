@@ -33,8 +33,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createCheckpointKey;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createCheckpointValue;
@@ -45,6 +43,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
@@ -159,11 +158,25 @@ class ComponentStateCheckpointStoreConcurrencyTest extends AbstractComponentStat
         assertThat(updatedMap1, hasEntry(createCheckpointKey(checkpoint1), createCheckpointValue(checkpoint1)));
     }
 
-    private Map<String, String> initMap(PartitionOwnership... partitionOwnerships) {
-        return Stream.of(partitionOwnerships)
-                .map(this::copy)
-                .map(this::setETagAndLastModified)
-                .collect(Collectors.toMap(ComponentStateCheckpointStoreUtils::createOwnershipKey, ComponentStateCheckpointStoreUtils::createOwnershipValue));
+    @Test
+    void testConcurrentCleanUp() throws IOException {
+        StateMap state1 = new MockStateMap(initMap(partitionOwnership1), 1);
+        StateMap state2 = new MockStateMap(initMap(), 2);
+
+        when(stateManager.getState(Scope.CLUSTER))
+                .thenReturn(state1)
+                .thenReturn(state2);
+
+        when(stateManager.replace(eq(state1), anyMap(), eq(Scope.CLUSTER))).thenReturn(false);
+
+        checkpointStore.cleanUp(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP + "-2");
+
+        verify(stateManager, times(2)).getState(eq(Scope.CLUSTER));
+        verify(stateManager, times(1)).replace(any(StateMap.class), updatedMapCaptor.capture(), eq(Scope.CLUSTER));
+        verifyNoMoreInteractions(stateManager);
+
+        Map<String, String> updatedMap1 = updatedMapCaptor.getAllValues().get(0);
+        assertTrue(updatedMap1.isEmpty());
     }
 
 }

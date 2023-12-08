@@ -324,6 +324,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             PROXY_CONFIGURATION_SERVICE
     );
 
+    public static final String KEY_CLIENT_ID = "clientid";
+
     private volatile ProcessSessionFactory processSessionFactory;
     private volatile EventProcessorClient eventProcessorClient;
     private volatile RecordReaderFactory readerFactory;
@@ -401,8 +403,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         }
     }
 
-    private static final String KEY_CLIENT_ID = "clientid";
-
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
         StateManager stateManager = context.getStateManager();
@@ -454,6 +454,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
         final String consumerGroup = context.getProperty(CONSUMER_GROUP).evaluateAttributeExpressions().getValue();
 
+        final String fullyQualifiedNamespace = String.format("%s%s", eventHubNamespace, serviceBusEndpoint);
+
         final CheckpointStore checkpointStore;
         final Map<String, EventPosition> legacyPartitionEventPosition;
 
@@ -473,7 +475,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             checkpointStore = new BlobCheckpointStore(blobContainerAsyncClient);
             legacyPartitionEventPosition = getLegacyPartitionEventPosition(blobContainerAsyncClient, consumerGroup);
         } else {
-            checkpointStore = new ComponentStateCheckpointStore(clientId, context.getStateManager());
+            ComponentStateCheckpointStore componentStateCheckpointStore = new ComponentStateCheckpointStore(clientId, context.getStateManager());
+            componentStateCheckpointStore.cleanUp(fullyQualifiedNamespace, eventHubName, consumerGroup);
+            checkpointStore = componentStateCheckpointStore;
             legacyPartitionEventPosition = Collections.emptyMap();
         }
 
@@ -491,7 +495,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
                 .processError(errorProcessor)
                 .processEventBatch(eventBatchProcessor, maxBatchSize, maxWaitTime);
 
-        final String fullyQualifiedNamespace = String.format("%s%s", eventHubNamespace, serviceBusEndpoint);
         final boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
         if (useManagedIdentity) {
             final ManagedIdentityCredentialBuilder managedIdentityCredentialBuilder = new ManagedIdentityCredentialBuilder();

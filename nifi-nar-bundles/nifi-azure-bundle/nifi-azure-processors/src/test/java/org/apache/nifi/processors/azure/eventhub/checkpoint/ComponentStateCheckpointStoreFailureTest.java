@@ -129,6 +129,33 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
     }
 
     @Test
+    void testCleanUp_GetState_IOException() throws IOException {
+        when(stateManager.getState(Scope.CLUSTER)).thenThrow(IOException.class);
+
+        StepVerifier.create(checkpointStore.cleanUpMono(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP + "-2"))
+                .expectError(IOException.class)
+                .verify();
+
+        verify(stateManager).getState(Scope.CLUSTER);
+        verifyNoMoreInteractions(stateManager);
+    }
+
+    @Test
+    void testCleanUp_ReplaceState_IOException() throws IOException {
+        StateMap state = new MockStateMap(new HashMap<>(initMap(partitionOwnership1)), 1);
+        when(stateManager.getState(Scope.CLUSTER)).thenReturn(state);
+        when(stateManager.replace(eq(state), anyMap(), eq(Scope.CLUSTER))).thenThrow(IOException.class);
+
+        StepVerifier.create(checkpointStore.cleanUpMono(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP + "-2"))
+                .expectError(IOException.class)
+                .verify();
+
+        verify(stateManager, times(1)).getState(Scope.CLUSTER);
+        verify(stateManager).replace(eq(state), anyMap(), eq(Scope.CLUSTER));
+        verifyNoMoreInteractions(stateManager);
+    }
+
+    @Test
     void testClaimOwnership_ReplaceState_ConcurrentStateModificationException_Success() throws IOException {
         StateMap state = new MockStateMap(new HashMap<>(), 1);
         when(stateManager.getState(Scope.CLUSTER)).thenReturn(state);
@@ -183,6 +210,38 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
         when(stateManager.replace(eq(state), anyMap(), eq(Scope.CLUSTER))).thenReturn(false);
 
         StepVerifier.withVirtualTime(() -> checkpointStore.updateCheckpoint(checkpoint1))
+                .thenAwait(Duration.ofSeconds(10))
+                .expectError(ConcurrentStateModificationException.class)
+                .verify();
+
+        verify(stateManager, times(11)).getState(Scope.CLUSTER);
+        verify(stateManager, times(11)).replace(eq(state), anyMap(), eq(Scope.CLUSTER));
+        verifyNoMoreInteractions(stateManager);
+    }
+
+    @Test
+    void testCleanUp_ReplaceState_ConcurrentStateModificationException_Success() throws IOException {
+        StateMap state = new MockStateMap(new HashMap<>(initMap(partitionOwnership1)), 1);
+        when(stateManager.getState(Scope.CLUSTER)).thenReturn(state);
+        when(stateManager.replace(eq(state), anyMap(), eq(Scope.CLUSTER))).thenReturn(false, false, true);
+
+        StepVerifier.withVirtualTime(() -> checkpointStore.cleanUpMono(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP + "-2"))
+                .thenAwait(Duration.ofSeconds(1))
+                .expectNext()
+                .verifyComplete();
+
+        verify(stateManager, times(3)).getState(Scope.CLUSTER);
+        verify(stateManager, times(3)).replace(eq(state), anyMap(), eq(Scope.CLUSTER));
+        verifyNoMoreInteractions(stateManager);
+    }
+
+    @Test
+    void testCleanUp_ReplaceState_ConcurrentStateModificationException_Failure() throws IOException {
+        StateMap state = new MockStateMap(new HashMap<>(initMap(partitionOwnership1)), 1);
+        when(stateManager.getState(Scope.CLUSTER)).thenReturn(state);
+        when(stateManager.replace(eq(state), anyMap(), eq(Scope.CLUSTER))).thenReturn(false);
+
+        StepVerifier.withVirtualTime(() -> checkpointStore.cleanUpMono(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP + "-2"))
                 .thenAwait(Duration.ofSeconds(10))
                 .expectError(ConcurrentStateModificationException.class)
                 .verify();
