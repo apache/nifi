@@ -36,6 +36,7 @@ import {
     clearProvenanceRequest,
     openProvenanceEventDialog,
     openSearchDialog,
+    resubmitProvenanceQuery,
     saveProvenanceRequest,
     submitProvenanceQuery
 } from '../../state/provenance-event-listing/provenance-event-listing.actions';
@@ -98,7 +99,7 @@ export class ProvenanceEventListing {
                 );
             });
 
-        // any chances to the saved request will trigger a provenance query submission
+        // any changes to the saved request will trigger a provenance query submission
         this.store
             .select(selectProvenanceRequest)
             .pipe(
@@ -125,10 +126,6 @@ export class ProvenanceEventListing {
                     })
                 );
             });
-    }
-
-    isInitialLoading(status: string): boolean {
-        return status === 'pending' || status === 'loading';
     }
 
     getResultsMessage(provenance: Provenance): string {
@@ -173,7 +170,7 @@ export class ProvenanceEventListing {
 
     refreshParameterContextListing(): void {
         this.store.dispatch(
-            submitProvenanceQuery({
+            resubmitProvenanceQuery({
                 request: this.request
             })
         );

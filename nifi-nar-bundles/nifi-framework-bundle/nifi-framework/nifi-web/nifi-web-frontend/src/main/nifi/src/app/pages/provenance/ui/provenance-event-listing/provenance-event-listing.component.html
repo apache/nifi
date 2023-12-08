@@ -17,20 +17,18 @@
 
 <div class="flex flex-col h-full gap-y-2 text-sm" *ngIf="status$ | async; let status">
     <div class="flex-1">
-        <div *ngIf="isInitialLoading(status); else loaded">
+        <ng-container *ngIf="provenance$ | async as provenance; else initialLoading">
+            <provenance-event-table
+                [events]="provenance.results.provenanceEvents"
+                [oldestEventAvailable]="provenance.results.oldestEvent"
+                [resultsMessage]="getResultsMessage(provenance)"
+                [hasRequest]="hasRequest(provenance.request)"
+                (openSearchCriteria)="openSearchCriteria()"
+                (openEventDialog)="openEventDialog($event)"
+                (clearRequest)="clearRequest()"></provenance-event-table>
+        </ng-container>
+        <ng-template #initialLoading>
             <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
-        </div>
-        <ng-template #loaded>
-            <ng-container *ngIf="provenance$ | async; let provenance">
-                <provenance-event-table
-                    [events]="provenance.results.provenanceEvents"
-                    [oldestEventAvailable]="provenance.results.oldestEvent"
-                    [resultsMessage]="getResultsMessage(provenance)"
-                    [hasRequest]="hasRequest(provenance.request)"
-                    (openSearchCriteria)="openSearchCriteria()"
-                    (openEventDialog)="openEventDialog($event)"
-                    (clearRequest)="clearRequest()"></provenance-event-table>
-            </ng-container>
         </ng-template>
     </div>
     <div class="flex justify-between">

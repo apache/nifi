@@ -30,6 +30,11 @@ export const submitProvenanceQuery = createAction(
     props<{ request: ProvenanceRequest }>()
 );
 
+export const resubmitProvenanceQuery = createAction(
+    '[Provenance Event Listing] Resubmit Provenance Query',
+    props<{ request: ProvenanceRequest }>()
+);
+
 export const submitProvenanceQuerySuccess = createAction(
     '[Provenance Event Listing] Submit Provenance Query Success',
     props<{ response: ProvenanceQueryResponse }>()
@@ -66,11 +71,6 @@ export const saveProvenanceRequest = createAction(
 );
 
 export const clearProvenanceRequest = createAction('[Provenance Event Listing] Clear Provenance Request');
-
-export const selectProvenanceEvent = createAction(
-    '[Provenance Event Listing] Select Provenance Event'
-    // props<{ request: SelectParameterContextRequest }>()
-);
 
 export const showOkDialog = createAction(
     '[Provenance Event Listing] Show Ok Dialog',

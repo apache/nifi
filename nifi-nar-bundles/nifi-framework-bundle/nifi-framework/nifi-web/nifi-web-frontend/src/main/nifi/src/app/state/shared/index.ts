@@ -20,6 +20,11 @@ export interface OkDialogRequest {
     message: string;
 }
 
+export interface CancelDialogRequest {
+    title: string;
+    message: string;
+}
+
 export interface YesNoDialogRequest {
     title: string;
     message: string;

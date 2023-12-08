@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
@@ -29,8 +29,9 @@ import { MatSelectModule } from '@angular/material/select';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { NgForOf, NgIf } from '@angular/common';
 import { debounceTime } from 'rxjs';
-import { ProvenanceEvent, ProvenanceEventSummary } from '../../../../../state/shared';
+import { ProvenanceEventSummary } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
+import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 
 @Component({
     selector: 'provenance-event-table',
@@ -46,14 +47,14 @@ import { RouterLink } from '@angular/router';
         ReactiveFormsModule,
         NgForOf,
         NgIf,
-        RouterLink
+        RouterLink,
+        NgxSkeletonLoaderModule
     ],
     styleUrls: ['./provenance-event-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
 })
 export class ProvenanceEventTable implements AfterViewInit {
     @Input() set events(events: ProvenanceEventSummary[]) {
-        this.dataSource = new MatTableDataSource<ProvenanceEventSummary>(events);
-        this.dataSource.sort = this.sort;
+        this.dataSource.data = this.sortEvents(events, this.sort);
         this.dataSource.filterPredicate = (data: ProvenanceEventSummary, filter: string) => {
             const filterArray = filter.split('|');
             const filterTerm = filterArray[0];
@@ -103,11 +104,14 @@ export class ProvenanceEventTable implements AfterViewInit {
     dataSource: MatTableDataSource<ProvenanceEventSummary> = new MatTableDataSource<ProvenanceEventSummary>();
     selectedEventId: string | null = null;
 
-    @ViewChild(MatSort) sort!: MatSort;
+    sort: Sort = {
+        active: 'eventTime',
+        direction: 'desc'
+    };
 
     filterForm: FormGroup;
     filterTerm: string = '';
-    filterColumnOptions: string[] = ['component name', 'component type', 'typ'];
+    filterColumnOptions: string[] = ['component name', 'component type', 'type'];
     totalCount: number = 0;
     filteredCount: number = 0;
 
@@ -119,8 +123,6 @@ export class ProvenanceEventTable implements AfterViewInit {
     }
 
     ngAfterViewInit(): void {
-        this.dataSource.sort = this.sort;
-
         this.filterForm
             .get('filterTerm')
             ?.valueChanges.pipe(debounceTime(500))
@@ -133,6 +135,45 @@ export class ProvenanceEventTable implements AfterViewInit {
             const filterTerm = this.filterForm.get('filterTerm')?.value;
             this.applyFilter(filterTerm, filterColumn);
         });
+    }
+
+    updateSort(sort: Sort): void {
+        this.sort = sort;
+        this.dataSource.data = this.sortEvents(this.dataSource.data, sort);
+    }
+
+    sortEvents(events: ProvenanceEventSummary[], sort: Sort): ProvenanceEventSummary[] {
+        const data: ProvenanceEventSummary[] = events.slice();
+        return data.sort((a, b) => {
+            const isAsc = sort.direction === 'asc';
+
+            switch (sort.active) {
+                case 'eventTime':
+                    // event ideas are increasing, so we can use this simple number for sorting purposes
+                    // since we don't surface the timestamp as millis
+                    return (a.eventId - b.eventId) * (isAsc ? 1 : -1);
+                case 'eventType':
+                    return this.compare(a.eventType, b.eventType, isAsc);
+                case 'flowFileUuid':
+                    return this.compare(a.flowFileUuid, b.flowFileUuid, isAsc);
+                case 'fileSize':
+                    return (a.fileSizeBytes - b.fileSizeBytes) * (isAsc ? 1 : -1);
+                case 'componentName':
+                    return this.compare(a.componentName, b.componentName, isAsc);
+                case 'componentType':
+                    return this.compare(a.componentType, b.componentType, isAsc);
+                default:
+                    return 0;
+            }
+        });
+    }
+
+    private compare(a: string, b: string, isAsc: boolean): number {
+        if (a === b) {
+            return 0;
+        }
+
+        return (a < b ? -1 : 1) * (isAsc ? 1 : -1);
     }
 
     applyFilter(filterTerm: string, filterColumn: string) {

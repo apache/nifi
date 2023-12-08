@@ -40,9 +40,9 @@
                         <mat-form-field>
                             <mat-label>Filter By</mat-label>
                             <mat-select formControlName="filterColumn">
-                                <mat-option *ngFor="let option of filterColumnOptions" [value]="option">{{
-                                    option
-                                }}</mat-option>
+                                <mat-option *ngFor="let option of filterColumnOptions" [value]="option"
+                                    >{{ option }}
+                                </mat-option>
                             </mat-select>
                         </mat-form-field>
                     </div>
@@ -57,7 +57,14 @@
     </div>
     <div class="flex-1 relative">
         <div class="listing-table border absolute inset-0 overflow-y-auto">
-            <table mat-table [dataSource]="dataSource" matSort matSortDisableClear>
+            <table
+                mat-table
+                [dataSource]="dataSource"
+                matSort
+                matSortDisableClear
+                (matSortChange)="updateSort($event)"
+                [matSortActive]="sort.active"
+                [matSortDirection]="sort.direction">
                 <!-- More Details Column -->
                 <ng-container matColumnDef="moreDetails">
                     <th mat-header-cell *matHeaderCellDef></th>

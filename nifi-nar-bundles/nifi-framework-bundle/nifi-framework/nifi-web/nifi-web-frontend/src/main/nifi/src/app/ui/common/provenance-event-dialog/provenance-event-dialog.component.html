@@ -22,8 +22,8 @@
             <mat-tab label="Details">
                 <div class="tab-content py-4">
                     <div class="absolute inset-0 flex gap-x-4">
-                        <div class="w-full">
-                            <div class="flex flex-col mb-4">
+                        <div class="w-full flex flex-col gap-y-3">
+                            <div class="flex flex-col">
                                 <div>Time</div>
                                 <ng-container
                                     *ngTemplateOutlet="
@@ -31,7 +31,7 @@
                                         context: { $implicit: request.event.eventTime }
                                     "></ng-container>
                             </div>
-                            <div class="flex flex-col mb-4">
+                            <div class="flex flex-col">
                                 <div>Event Duration</div>
                                 <ng-container
                                     *ngTemplateOutlet="
@@ -39,7 +39,7 @@
                                         context: { $implicit: request.event.eventDuration }
                                     "></ng-container>
                             </div>
-                            <div class="flex flex-col mb-4">
+                            <div class="flex flex-col">
                                 <div>Lineage Duration</div>
                                 <ng-container
                                     *ngTemplateOutlet="
@@ -47,7 +47,7 @@
                                         context: { $implicit: request.event.lineageDuration }
                                     "></ng-container>
                             </div>
-                            <div class="flex flex-col mb-4">
+                            <div class="flex flex-col">
                                 <div>Type</div>
                                 <ng-container
                                     *ngTemplateOutlet="
@@ -55,7 +55,7 @@
                                         context: { $implicit: request.event.eventType }
                                     "></ng-container>
                             </div>
-                            <div class="flex flex-col mb-4">
+                            <div class="flex flex-col">
                                 <div>FlowFile UUID</div>
                                 <ng-container
                                     *ngTemplateOutlet="
@@ -63,7 +63,7 @@
                                         context: { $implicit: request.event.flowFileUuid }
                                     "></ng-container>
                             </div>
-                            <div class="flex flex-col mb-4">
+                            <div class="flex flex-col">
                                 <div>File Size</div>
                                 <ng-container
                                     *ngTemplateOutlet="
@@ -74,7 +74,7 @@
                                         }
                                     "></ng-container>
                             </div>
-                            <div class="flex flex-col mb-4">
+                            <div class="flex flex-col">
                                 <div>Component Id</div>
                                 <ng-container
                                     *ngTemplateOutlet="
@@ -82,7 +82,7 @@
                                         context: { $implicit: request.event.componentId }
                                     "></ng-container>
                             </div>
-                            <div class="flex flex-col mb-4">
+                            <div class="flex flex-col">
                                 <div>Component Name</div>
                                 <ng-container
                                     *ngTemplateOutlet="
@@ -90,7 +90,7 @@
                                         context: { $implicit: request.event.componentName }
                                     "></ng-container>
                             </div>
-                            <div class="flex flex-col mb-4">
+                            <div class="flex flex-col">
                                 <div>Component Type</div>
                                 <ng-container
                                     *ngTemplateOutlet="
@@ -98,7 +98,7 @@
                                         context: { $implicit: request.event.componentType }
                                     "></ng-container>
                             </div>
-                            <div class="flex flex-col mb-4">
+                            <div class="flex flex-col">
                                 <div>Details</div>
                                 <ng-container
                                     *ngTemplateOutlet="
@@ -107,7 +107,7 @@
                                     "></ng-container>
                             </div>
                             <ng-container *ngIf="request.event.eventType === 'RECEIVE'">
-                                <div class="flex flex-col mb-4">
+                                <div class="flex flex-col">
                                     <div>Source FlowFile Id</div>
                                     <ng-container
                                         *ngTemplateOutlet="
@@ -115,7 +115,7 @@
                                             context: { $implicit: request.event.sourceSystemFlowFileId }
                                         "></ng-container>
                                 </div>
-                                <div class="flex flex-col mb-4">
+                                <div class="flex flex-col">
                                     <div>Transit Uri</div>
                                     <ng-container
                                         *ngTemplateOutlet="
@@ -125,7 +125,7 @@
                                 </div>
                             </ng-container>
                             <ng-container *ngIf="request.event.eventType === 'SEND'">
-                                <div class="flex flex-col mb-4">
+                                <div class="flex flex-col">
                                     <div>Transit Uri</div>
                                     <ng-container
                                         *ngTemplateOutlet="
@@ -135,7 +135,7 @@
                                 </div>
                             </ng-container>
                             <ng-container *ngIf="request.event.eventType === 'ADDINFO'">
-                                <div class="flex flex-col mb-4">
+                                <div class="flex flex-col">
                                     <div>Alternate Identifier Uri</div>
                                     <ng-container
                                         *ngTemplateOutlet="
@@ -145,7 +145,7 @@
                                 </div>
                             </ng-container>
                             <ng-container *ngIf="request.event.eventType === 'ROUTE'">
-                                <div class="flex flex-col mb-4">
+                                <div class="flex flex-col">
                                     <div>Relationship</div>
                                     <ng-container
                                         *ngTemplateOutlet="
@@ -155,7 +155,7 @@
                                 </div>
                             </ng-container>
                             <ng-container *ngIf="request.event.eventType === 'FETCH'">
-                                <div class="flex flex-col mb-4">
+                                <div class="flex flex-col" *ngIf="request.event.eventType === 'FETCH'">
                                     <div>Transit Uri</div>
                                     <ng-container
                                         *ngTemplateOutlet="
@@ -165,7 +165,7 @@
                                 </div>
                             </ng-container>
                             <ng-container *ngIf="request.event.clusterNodeId">
-                                <div class="flex flex-col mb-4">
+                                <div class="flex flex-col">
                                     <div>Node Address</div>
                                     <ng-container
                                         *ngTemplateOutlet="
@@ -183,8 +183,8 @@
                                 </ng-template>
                             </ng-template>
                         </div>
-                        <div class="w-full">
-                            <div class="flex flex-col mb-4">
+                        <div class="w-full flex flex-col gap-y-3">
+                            <div class="flex flex-col">
                                 <div class="event-header">
                                     Parent FlowFiles ({{ request.event.parentUuids.length }})
                                 </div>
@@ -194,7 +194,7 @@
                                         context: { $implicit: request.event.parentUuids, emptyMessage: 'No parents' }
                                     "></ng-container>
                             </div>
-                            <div class="flex flex-col mb-4">
+                            <div class="flex flex-col">
                                 <div class="event-header">Child FlowFiles ({{ request.event.childUuids.length }})</div>
                                 <ng-container
                                     *ngTemplateOutlet="

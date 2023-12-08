@@ -49,6 +49,7 @@ import { Provenance, ProvenanceRequest } from './index';
 import { ProvenanceSearchDialog } from '../../ui/provenance-event-listing/provenance-search-dialog/provenance-search-dialog.component';
 import { selectAbout } from '../../../../state/about/about.selectors';
 import { ProvenanceEventDialog } from '../../../../ui/common/provenance-event-dialog/provenance-event-dialog.component';
+import { CancelDialog } from '../../../../ui/common/cancel-dialog/cancel-dialog.component';
 
 @Injectable()
 export class ProvenanceEventListingEffects {
@@ -114,6 +115,29 @@ export class ProvenanceEventListingEffects {
         )
     );
 
+    resubmitProvenanceQuery = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ProvenanceEventListingActions.resubmitProvenanceQuery),
+            map((action) => action.request),
+            switchMap((request) => {
+                const dialogReference = this.dialog.open(CancelDialog, {
+                    data: {
+                        title: 'Provenance',
+                        message: 'Searching provenance events...'
+                    },
+                    disableClose: true,
+                    panelClass: 'small-dialog'
+                });
+
+                dialogReference.componentInstance.cancel.pipe(take(1)).subscribe(() => {
+                    this.store.dispatch(ProvenanceEventListingActions.stopPollingProvenanceQuery());
+                });
+
+                return of(ProvenanceEventListingActions.submitProvenanceQuery({ request }));
+            })
+        )
+    );
+
     submitProvenanceQuerySuccess$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ProvenanceEventListingActions.submitProvenanceQuerySuccess),
@@ -121,6 +145,7 @@ export class ProvenanceEventListingEffects {
             switchMap((response) => {
                 const query: Provenance = response.provenance;
                 if (query.finished) {
+                    this.dialog.closeAll();
                     return of(ProvenanceEventListingActions.deleteProvenanceQuery());
                 } else {
                     return of(ProvenanceEventListingActions.startPollingProvenanceQuery());
@@ -177,6 +202,7 @@ export class ProvenanceEventListingEffects {
             switchMap((response) => {
                 const query: Provenance = response.provenance;
                 if (query.finished) {
+                    this.dialog.closeAll();
                     return of(ProvenanceEventListingActions.stopPollingProvenanceQuery());
                 } else {
                     return NEVER;
