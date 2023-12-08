@@ -54,7 +54,6 @@ import org.junit.jupiter.api.condition.OS;
 public class TestParquetReader {
 
     private static final String PARQUET_PATH = "src/test/resources/TestParquetReader.parquet";
-    private static final String SCHEMA_PATH = "src/test/resources/avro/user.avsc";
 
     private ParquetReader parquetReaderFactory;
     private ComponentLog componentLog;

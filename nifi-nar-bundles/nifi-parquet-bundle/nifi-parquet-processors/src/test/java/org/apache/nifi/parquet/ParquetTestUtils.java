@@ -37,8 +37,6 @@ import org.apache.parquet.hadoop.util.HadoopOutputFile;
 
 public class ParquetTestUtils {
 
-    private static final String SCHEMA_PATH = "src/test/resources/avro/user.avsc";
-
     public static File createUsersParquetFile(int numUsers) throws IOException {
         return createUsersParquetFile(IntStream
                 .range(0, numUsers)
