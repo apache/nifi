@@ -101,7 +101,7 @@ class TestStandardJsonSchemaRegistry {
 
     @ParameterizedTest(name = "{3}")
     @MethodSource("dynamicProperties")
-    void testSchemaRetrieval(PropertyDescriptor propertyDescriptor, String schema, int numValidationErrors) throws SchemaNotFoundException, InitializationException {
+    void testSchemaRetrieval(PropertyDescriptor propertyDescriptor, String schema, int numValidationErrors) throws SchemaNotFoundException {
         delegate.onPropertyModified(propertyDescriptor, null, schema);
         boolean validSchema = numValidationErrors == 0;
 
