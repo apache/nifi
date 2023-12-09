@@ -29,6 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +56,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ComponentStateCheckpointStoreConcurrencyTest extends AbstractComponentStateCheckpointStoreTest {
 
-    @Mock
+    @Mock(strictness = Mock.Strictness.WARN)
     private StateManager stateManager;
 
     @Captor
@@ -80,12 +81,14 @@ class ComponentStateCheckpointStoreConcurrencyTest extends AbstractComponentStat
 
         List<PartitionOwnership> requestedOwnerships = Collections.singletonList(partitionOwnership2);
 
-        List<PartitionOwnership> claimedOwnerships = checkpointStore.claimOwnership(requestedOwnerships).collectList().block();
+        List<PartitionOwnership> claimedOwnerships = new ArrayList<>();
+        checkpointStore.claimOwnership(requestedOwnerships).subscribe(claimedOwnerships::add);
 
         assertThat(claimedOwnerships, hasSize(1));
         PartitionOwnership claimedOwnership = claimedOwnerships.get(0);
         assertClaimedOwnership(partitionOwnership2, claimedOwnership);
 
+        verify(stateManager, times(2)).getState(eq(Scope.CLUSTER));
         verify(stateManager, times(2)).replace(any(StateMap.class), updatedMapCaptor.capture(), eq(Scope.CLUSTER));
         verifyNoMoreInteractions(stateManager);
 
@@ -112,10 +115,12 @@ class ComponentStateCheckpointStoreConcurrencyTest extends AbstractComponentStat
 
         List<PartitionOwnership> requestedOwnerships = Collections.singletonList(partitionOwnership1);
 
-        List<PartitionOwnership> claimedOwnerships = checkpointStore.claimOwnership(requestedOwnerships).collectList().block();
+        List<PartitionOwnership> claimedOwnerships = new ArrayList<>();
+        checkpointStore.claimOwnership(requestedOwnerships).subscribe(claimedOwnerships::add);
 
         assertThat(claimedOwnerships, hasSize(0));
 
+        verify(stateManager, times(2)).getState(eq(Scope.CLUSTER));
         verify(stateManager, times(1)).replace(any(StateMap.class), updatedMapCaptor.capture(), eq(Scope.CLUSTER));
         verifyNoMoreInteractions(stateManager);
 
@@ -136,8 +141,9 @@ class ComponentStateCheckpointStoreConcurrencyTest extends AbstractComponentStat
         when(stateManager.replace(eq(state1), anyMap(), eq(Scope.CLUSTER))).thenReturn(false);
         when(stateManager.replace(eq(state2), anyMap(), eq(Scope.CLUSTER))).thenReturn(true);
 
-        checkpointStore.updateCheckpoint(checkpoint1).block();
+        checkpointStore.updateCheckpoint(checkpoint1).subscribe();
 
+        verify(stateManager, times(2)).getState(eq(Scope.CLUSTER));
         verify(stateManager, times(2)).replace(any(StateMap.class), updatedMapCaptor.capture(), eq(Scope.CLUSTER));
         verifyNoMoreInteractions(stateManager);
 

@@ -33,7 +33,6 @@ import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -203,10 +202,9 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
     }
 
     private Retry createRetrySpec() {
-        return Retry.backoff(10, Duration.ofMillis(100))
-                .maxBackoff(Duration.ofMillis(400))
+        return Retry.max(10)
                 .filter(t -> t instanceof ConcurrentStateModificationException)
-                .onRetryExhaustedThrow(((retryBackoffSpec, retrySignal) -> new ConcurrentStateModificationException(
+                .onRetryExhaustedThrow(((retrySpec, retrySignal) -> new ConcurrentStateModificationException(
                         String.format("Retrials of concurrent state modifications has been exhausted (%d retrials)", 10))));
     }
 
