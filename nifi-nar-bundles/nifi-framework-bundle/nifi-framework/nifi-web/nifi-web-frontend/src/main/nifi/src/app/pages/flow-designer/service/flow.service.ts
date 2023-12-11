@@ -64,10 +64,6 @@ export class FlowService {
         return this.httpClient.get(`${FlowService.API}/flow/process-groups/${processGroupId}`);
     }
 
-    getControllerService(id: string): Observable<any> {
-        return this.httpClient.get(`${FlowService.API}/controller-services/${id}`);
-    }
-
     getProcessGroupStatus(processGroupId: string = 'root', recursive: boolean = false): Observable<any> {
         return this.httpClient.get(`${FlowService.API}/flow/process-groups/${processGroupId}/status`, {
             params: { recursive: recursive }

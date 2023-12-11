@@ -16,7 +16,7 @@
  */
 
 import { createReducer, on } from '@ngrx/store';
-import { ParameterContextListingState, ParameterContextUpdateRequestEntity } from './index';
+import { ParameterContextListingState } from './index';
 import { produce } from 'immer';
 import {
     createParameterContext,
@@ -30,7 +30,7 @@ import {
     submitParameterContextUpdateRequest,
     submitParameterContextUpdateRequestSuccess
 } from './parameter-context-listing.actions';
-import { Revision } from '../../../../state/shared';
+import { ParameterContextUpdateRequestEntity, Revision } from '../../../../state/shared';
 
 export const initialState: ParameterContextListingState = {
     parameterContexts: [],
@@ -74,11 +74,7 @@ export const parameterContextListingReducer = createReducer(
         ...state,
         saving: true
     })),
-    on(submitParameterContextUpdateRequestSuccess, (state, { response }) => ({
-        ...state,
-        updateRequestEntity: response.requestEntity
-    })),
-    on(pollParameterContextUpdateRequestSuccess, (state, { response }) => ({
+    on(submitParameterContextUpdateRequestSuccess, pollParameterContextUpdateRequestSuccess, (state, { response }) => ({
         ...state,
         updateRequestEntity: response.requestEntity
     })),

@@ -218,8 +218,33 @@ export class ManagementControllerServicesEffects {
                         );
                     };
 
-                    editDialogReference.componentInstance.getServiceLink = (serviceId: string) => {
-                        return of(['/settings', 'management-controller-services', serviceId]);
+                    const goTo = (commands: string[]): void => {
+                        if (editDialogReference.componentInstance.editControllerServiceForm.dirty) {
+                            const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
+                                data: {
+                                    title: 'Controller Service Configuration',
+                                    message: `Save changes before going to this Controller Service?`
+                                },
+                                panelClass: 'small-dialog'
+                            });
+
+                            saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
+                                editDialogReference.componentInstance.submitForm(commands);
+                            });
+
+                            saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
+                                editDialogReference.close('ROUTED');
+                                this.router.navigate(commands);
+                            });
+                        } else {
+                            editDialogReference.close('ROUTED');
+                            this.router.navigate(commands);
+                        }
+                    };
+
+                    editDialogReference.componentInstance.goToService = (serviceId: string) => {
+                        const commands: string[] = ['/settings', 'management-controller-services', serviceId];
+                        goTo(commands);
                     };
 
                     editDialogReference.componentInstance.createNewService = (

@@ -18,22 +18,15 @@
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
-import {
-    CreateParameterContextRequest,
-    DeleteParameterContextRequest,
-    ParameterContextEntity
-} from '../state/parameter-context-listing';
 import { ParameterContextUpdateRequest, SubmitParameterContextUpdate } from '../../../state/shared';
 
 @Injectable({ providedIn: 'root' })
-export class ParameterContextService {
+export class ParameterService {
     private static readonly API: string = '../nifi-api';
 
     constructor(
         private httpClient: HttpClient,
-        private client: Client,
         private nifiCommon: NiFiCommon
     ) {}
 
@@ -50,19 +43,8 @@ export class ParameterContextService {
         return this.nifiCommon.substringAfterFirst(url, ':');
     }
 
-    getParameterContexts(): Observable<any> {
-        return this.httpClient.get(`${ParameterContextService.API}/flow/parameter-contexts`);
-    }
-
-    createParameterContext(createParameterContext: CreateParameterContextRequest): Observable<any> {
-        return this.httpClient.post(
-            `${ParameterContextService.API}/parameter-contexts`,
-            createParameterContext.payload
-        );
-    }
-
     getParameterContext(id: string, includeInheritedParameters: boolean): Observable<any> {
-        return this.httpClient.get(`${ParameterContextService.API}/parameter-contexts/${id}`, {
+        return this.httpClient.get(`${ParameterService.API}/parameter-contexts/${id}`, {
             params: {
                 includeInheritedParameters
             }
@@ -71,7 +53,7 @@ export class ParameterContextService {
 
     submitParameterContextUpdate(configureParameterContext: SubmitParameterContextUpdate): Observable<any> {
         return this.httpClient.post(
-            `${ParameterContextService.API}/parameter-contexts/${configureParameterContext.id}/update-requests`,
+            `${ParameterService.API}/parameter-contexts/${configureParameterContext.id}/update-requests`,
             configureParameterContext.payload
         );
     }
@@ -82,13 +64,5 @@ export class ParameterContextService {
 
     deleteParameterContextUpdate(updateRequest: ParameterContextUpdateRequest): Observable<any> {
         return this.httpClient.delete(this.stripProtocol(updateRequest.uri));
-    }
-
-    deleteParameterContext(deleteParameterContext: DeleteParameterContextRequest): Observable<any> {
-        const entity: ParameterContextEntity = deleteParameterContext.parameterContext;
-        const revision: any = this.client.getRevision(entity);
-        return this.httpClient.delete(`${ParameterContextService.API}/parameter-contexts/${entity.id}`, {
-            params: revision
-        });
     }
 }

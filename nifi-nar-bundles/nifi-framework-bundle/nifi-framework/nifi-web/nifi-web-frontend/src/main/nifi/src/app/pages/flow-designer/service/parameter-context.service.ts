@@ -18,13 +18,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
-import {
-    CreateParameterContextRequest,
-    DeleteParameterContextRequest,
-    ParameterContextEntity
-} from '../state/parameter-context-listing';
 import { ParameterContextUpdateRequest, SubmitParameterContextUpdate } from '../../../state/shared';
 
 @Injectable({ providedIn: 'root' })
@@ -33,7 +27,6 @@ export class ParameterContextService {
 
     constructor(
         private httpClient: HttpClient,
-        private client: Client,
         private nifiCommon: NiFiCommon
     ) {}
 
@@ -48,17 +41,6 @@ export class ParameterContextService {
      */
     private stripProtocol(url: string): string {
         return this.nifiCommon.substringAfterFirst(url, ':');
-    }
-
-    getParameterContexts(): Observable<any> {
-        return this.httpClient.get(`${ParameterContextService.API}/flow/parameter-contexts`);
-    }
-
-    createParameterContext(createParameterContext: CreateParameterContextRequest): Observable<any> {
-        return this.httpClient.post(
-            `${ParameterContextService.API}/parameter-contexts`,
-            createParameterContext.payload
-        );
     }
 
     getParameterContext(id: string, includeInheritedParameters: boolean): Observable<any> {
@@ -82,13 +64,5 @@ export class ParameterContextService {
 
     deleteParameterContextUpdate(updateRequest: ParameterContextUpdateRequest): Observable<any> {
         return this.httpClient.delete(this.stripProtocol(updateRequest.uri));
-    }
-
-    deleteParameterContext(deleteParameterContext: DeleteParameterContextRequest): Observable<any> {
-        const entity: ParameterContextEntity = deleteParameterContext.parameterContext;
-        const revision: any = this.client.getRevision(entity);
-        return this.httpClient.delete(`${ParameterContextService.API}/parameter-contexts/${entity.id}`, {
-            params: revision
-        });
     }
 }

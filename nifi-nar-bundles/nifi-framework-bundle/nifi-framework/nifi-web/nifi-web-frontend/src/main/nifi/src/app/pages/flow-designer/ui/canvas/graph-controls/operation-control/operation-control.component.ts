@@ -20,6 +20,7 @@ import {
     deleteComponents,
     getParameterContextsAndOpenGroupComponentsDialog,
     navigateToEditComponent,
+    navigateToEditCurrentProcessGroup,
     setOperationCollapsed
 } from '../../../../state/flow/flow.actions';
 import { Store } from '@ngrx/store';
@@ -174,15 +175,19 @@ export class OperationControl {
     }
 
     configure(selection: any): void {
-        const selectionData = selection.datum();
-        this.store.dispatch(
-            navigateToEditComponent({
-                request: {
-                    type: selectionData.type,
-                    id: selectionData.id
-                }
-            })
-        );
+        if (selection.empty()) {
+            this.store.dispatch(navigateToEditCurrentProcessGroup());
+        } else {
+            const selectionData = selection.datum();
+            this.store.dispatch(
+                navigateToEditComponent({
+                    request: {
+                        type: selectionData.type,
+                        id: selectionData.id
+                    }
+                })
+            );
+        }
     }
 
     canManageAccess(selection: any): boolean {

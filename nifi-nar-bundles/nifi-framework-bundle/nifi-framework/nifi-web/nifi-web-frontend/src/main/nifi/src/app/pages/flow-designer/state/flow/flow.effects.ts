@@ -19,6 +19,7 @@ import { Injectable } from '@angular/core';
 import { FlowService } from '../../service/flow.service';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
+import * as ParameterActions from '../parameter/parameter.actions';
 import {
     asyncScheduler,
     catchError,
@@ -46,7 +47,8 @@ import {
     Snippet,
     UpdateComponentFailure,
     UpdateComponentResponse,
-    UpdateConnectionSuccess
+    UpdateConnectionSuccess,
+    UpdateProcessorRequest
 } from './index';
 import { Action, Store } from '@ngrx/store';
 import {
@@ -65,6 +67,8 @@ import { CreatePort } from '../../ui/canvas/items/port/create-port/create-port.c
 import { EditPort } from '../../ui/canvas/items/port/edit-port/edit-port.component';
 import {
     ComponentType,
+    EditParameterRequest,
+    EditParameterResponse,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     NewPropertyDialogRequest,
@@ -94,6 +98,10 @@ import { CreateControllerService } from '../../../../ui/common/controller-servic
 import * as ControllerServicesActions from '../controller-services/controller-services.actions';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { ControllerServiceService } from '../../service/controller-service.service';
+import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
+import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
+import { selectParameterSaving } from '../parameter/parameter.selectors';
+import { ParameterService } from '../../service/parameter.service';
 
 @Injectable()
 export class FlowEffects {
@@ -103,6 +111,7 @@ export class FlowEffects {
         private flowService: FlowService,
         private extensionTypesService: ExtensionTypesService,
         private controllerServiceService: ControllerServiceService,
+        private parameterService: ParameterService,
         private client: Client,
         private canvasUtils: CanvasUtils,
         private canvasView: CanvasView,
@@ -771,6 +780,7 @@ export class FlowEffects {
 
                     const editDialogReference = this.dialog.open(EditProcessor, {
                         data: request,
+                        id: processorId,
                         panelClass: 'large-dialog'
                     });
 
@@ -807,6 +817,30 @@ export class FlowEffects {
                         );
                     };
 
+                    const goTo = (commands: string[], destination: string): void => {
+                        if (editDialogReference.componentInstance.editProcessorForm.dirty) {
+                            const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
+                                data: {
+                                    title: 'Processor Configuration',
+                                    message: `Save changes before going to this ${destination}?`
+                                },
+                                panelClass: 'small-dialog'
+                            });
+
+                            saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
+                                editDialogReference.componentInstance.submitForm(commands);
+                            });
+
+                            saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
+                                editDialogReference.close('ROUTED');
+                                this.router.navigate(commands);
+                            });
+                        } else {
+                            editDialogReference.close('ROUTED');
+                            this.router.navigate(commands);
+                        }
+                    };
+
                     if (parameterContext != null) {
                         editDialogReference.componentInstance.getParameters = (sensitive: boolean) => {
                             return this.flowService.getParameterContext(parameterContext.id).pipe(
@@ -819,20 +853,98 @@ export class FlowEffects {
                                 })
                             );
                         };
+
+                        editDialogReference.componentInstance.parameterContext = parameterContext;
+                        editDialogReference.componentInstance.goToParameter = (parameter: string) => {
+                            const commands: string[] = ['/parameter-contexts', parameterContext.id];
+                            goTo(commands, 'Parameter');
+                        };
+
+                        editDialogReference.componentInstance.convertToParameter = (
+                            name: string,
+                            sensitive: boolean,
+                            value: string | null
+                        ) => {
+                            return this.parameterService.getParameterContext(parameterContext.id, false).pipe(
+                                switchMap((parameterContextEntity) => {
+                                    const existingParameters: string[] =
+                                        parameterContextEntity.component.parameters.map(
+                                            (parameterEntity: ParameterEntity) => parameterEntity.parameter.name
+                                        );
+                                    const convertToParameterDialogRequest: EditParameterRequest = {
+                                        parameter: {
+                                            name,
+                                            value,
+                                            sensitive,
+                                            description: ''
+                                        },
+                                        existingParameters
+                                    };
+                                    const convertToParameterDialogReference = this.dialog.open(EditParameterDialog, {
+                                        data: convertToParameterDialogRequest,
+                                        panelClass: 'medium-dialog'
+                                    });
+
+                                    convertToParameterDialogReference.componentInstance.saving$ =
+                                        this.store.select(selectParameterSaving);
+
+                                    convertToParameterDialogReference.componentInstance.cancel.pipe(
+                                        takeUntil(convertToParameterDialogReference.afterClosed()),
+                                        tap(() => ParameterActions.stopPollingParameterContextUpdateRequest())
+                                    );
+
+                                    return convertToParameterDialogReference.componentInstance.editParameter.pipe(
+                                        takeUntil(convertToParameterDialogReference.afterClosed()),
+                                        switchMap((dialogResponse: EditParameterResponse) => {
+                                            this.store.dispatch(
+                                                ParameterActions.submitParameterContextUpdateRequest({
+                                                    request: {
+                                                        id: parameterContext.id,
+                                                        payload: {
+                                                            revision: this.client.getRevision(parameterContextEntity),
+                                                            component: {
+                                                                id: parameterContextEntity.id,
+                                                                parameters: [{ parameter: dialogResponse.parameter }]
+                                                            }
+                                                        }
+                                                    }
+                                                })
+                                            );
+
+                                            return this.store.select(selectParameterSaving).pipe(
+                                                takeUntil(convertToParameterDialogReference.afterClosed()),
+                                                filter((parameterSaving) => parameterSaving === false),
+                                                map(() => {
+                                                    convertToParameterDialogReference.close();
+                                                    return `#{${dialogResponse.parameter.name}}`;
+                                                })
+                                            );
+                                        })
+                                    );
+                                }),
+                                catchError((error) => {
+                                    // TODO handle error
+                                    return NEVER;
+                                })
+                            );
+                        };
                     }
 
-                    editDialogReference.componentInstance.getServiceLink = (serviceId: string) => {
-                        return this.flowService.getControllerService(serviceId).pipe(
-                            take(1),
-                            map((serviceEntity) => {
-                                return [
+                    editDialogReference.componentInstance.goToService = (serviceId: string) => {
+                        this.controllerServiceService.getControllerService(serviceId).subscribe({
+                            next: (serviceEntity) => {
+                                const commands: string[] = [
                                     '/process-groups',
                                     serviceEntity.component.parentGroupId,
                                     'controller-services',
                                     serviceEntity.id
                                 ];
-                            })
-                        );
+                                goTo(commands, 'Controller Service');
+                            },
+                            error: () => {
+                                // TODO - handle error
+                            }
+                        });
                     };
 
                     editDialogReference.componentInstance.createNewService = (
@@ -917,14 +1029,15 @@ export class FlowEffects {
 
                     editDialogReference.componentInstance.editProcessor
                         .pipe(takeUntil(editDialogReference.afterClosed()))
-                        .subscribe((payload: any) => {
+                        .subscribe((updateProcessorRequest: UpdateProcessorRequest) => {
                             this.store.dispatch(
                                 FlowActions.updateProcessor({
                                     request: {
                                         id: processorId,
                                         uri: request.uri,
                                         type: request.type,
-                                        payload
+                                        payload: updateProcessorRequest.payload,
+                                        postUpdateNavigation: updateProcessorRequest.postUpdateNavigation
                                     }
                                 })
                             );
@@ -1082,7 +1195,8 @@ export class FlowEffects {
                             requestId: request.requestId,
                             id: request.id,
                             type: request.type,
-                            response: response
+                            postUpdateNavigation: request.postUpdateNavigation,
+                            response
                         };
                         return FlowActions.updateComponentSuccess({ response: updateComponentResponse });
                     }),
@@ -1104,8 +1218,14 @@ export class FlowEffects {
         () =>
             this.actions$.pipe(
                 ofType(FlowActions.updateComponentSuccess),
-                tap(() => {
-                    this.dialog.closeAll();
+                map((action) => action.response),
+                tap((response) => {
+                    if (response.postUpdateNavigation) {
+                        this.router.navigate(response.postUpdateNavigation);
+                        this.dialog.getDialogById(response.id)?.close('ROUTED');
+                    } else {
+                        this.dialog.closeAll();
+                    }
                 })
             ),
         { dispatch: false }
@@ -1130,7 +1250,8 @@ export class FlowEffects {
                             requestId: request.requestId,
                             id: request.id,
                             type: request.type,
-                            response: response
+                            postUpdateNavigation: request.postUpdateNavigation,
+                            response
                         };
                         return FlowActions.updateProcessorSuccess({ response: updateComponentResponse });
                     }),
@@ -1151,10 +1272,16 @@ export class FlowEffects {
     updateProcessorSuccess$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.updateProcessorSuccess),
-            tap(() => {
-                this.dialog.closeAll();
-            }),
             map((action) => action.response),
+            tap((response) => {
+                if (response.postUpdateNavigation) {
+                    this.router.navigate(response.postUpdateNavigation);
+                    this.dialog.getDialogById(response.id)?.close('ROUTED');
+                } else {
+                    this.dialog.closeAll();
+                }
+            }),
+            filter((response) => response.postUpdateNavigation == null),
             switchMap((response) => of(FlowActions.loadConnectionsForComponent({ id: response.id })))
         )
     );
