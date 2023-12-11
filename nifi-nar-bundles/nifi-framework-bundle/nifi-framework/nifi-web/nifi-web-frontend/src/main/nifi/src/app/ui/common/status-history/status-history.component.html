@@ -44,7 +44,7 @@
                                             <label>End</label>
                                             <div class="value">{{ maxDate }}</div>
                                         </div>
-                                        <div class="flex flex-col" *ngIf="!!clusterStats">
+                                        <div class="flex flex-col">
                                             <div class="font-bold">NiFi</div>
                                             <div class="detail-item">
                                                 <label>Min / Max / Mean</label>
@@ -61,7 +61,7 @@
                                                 <mat-label>NiFi</mat-label>
                                             </div>
                                         </div>
-                                        <div class="flex flex-col" *ngIf="!!nodes && nodes.length > 0 && !!nodeStats">
+                                        <div class="flex flex-col" *ngIf="!!nodes && nodes.length > 0">
                                             <div>Nodes</div>
                                             <div>
                                                 <label>Min / Max / Mean</label>
@@ -84,7 +84,7 @@
                                         </div>
                                     </div>
                                     <div class="chart-panel grow flex flex-col">
-                                        <div id="">
+                                        <div *ngIf="fieldDescriptors$ | async">
                                             <mat-form-field>
                                                 <mat-select formControlName="fieldDescriptor">
                                                     <ng-container *ngFor="let descriptor of fieldDescriptors">
@@ -108,11 +108,19 @@
                                                 </mat-select>
                                             </mat-form-field>
                                         </div>
+                                        <status-history-chart
+                                            [instances]="instances"
+                                            [visibleInstances]="instanceVisibility"
+                                            [selectedFieldDescriptor]="selectedDescriptor"
+                                            (nodeStats)="nodeStatsChanged($event)"
+                                            (clusterStats)="clusterStatsChanged($event)"
+                                            class="flex flex-1 flex-col">
+                                        </status-history-chart>
 
-                                        <div id="status-history-container" class="flex-1 flex flex-col">
-                                            <div id="status-history-chart-container" class="grow">chart goes here</div>
-                                            <div id="status-history-chart-control-container">control goes here</div>
-                                        </div>
+                                        <!--                                        <div id="status-history-container" class="flex-1 flex flex-col">-->
+                                        <!--                                            <div id="status-history-chart-container" class="grow">chart goes here</div>-->
+                                        <!--                                            <div id="status-history-chart-control-container">control goes here</div>-->
+                                        <!--                                        </div>-->
                                     </div>
                                 </div>
                             </ng-container>
