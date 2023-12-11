@@ -20,6 +20,11 @@ export interface OkDialogRequest {
     message: string;
 }
 
+export interface CancelDialogRequest {
+    title: string;
+    message: string;
+}
+
 export interface YesNoDialogRequest {
     title: string;
     message: string;
@@ -51,6 +56,65 @@ export interface CreateControllerServiceRequest {
 export interface EditControllerServiceDialogRequest {
     id: string;
     controllerService: ControllerServiceEntity;
+}
+
+export interface ProvenanceEventSummary {
+    id: string;
+    eventId: number;
+    eventTime: string;
+    eventType: string;
+    flowFileUuid: string;
+    fileSize: string;
+    fileSizeBytes: number;
+    clusterNodeId?: string;
+    clusterNodeAddress?: string;
+    groupId: string;
+    componentId: string;
+    componentType: string;
+    componentName: string;
+}
+
+export interface Attribute {
+    name: string;
+    value: string;
+    previousValue: string;
+}
+
+export interface ProvenanceEvent extends ProvenanceEventSummary {
+    eventDuration: string;
+    lineageDuration: number;
+    clusterNodeId: string;
+    clusterNodeAddress: string;
+    sourceSystemFlowFileId: string;
+    alternateIdentifierUri: string;
+    attributes: Attribute[];
+    parentUuids: string[];
+    childUuids: string[];
+    transitUri: string;
+    relationship: string;
+    details: string;
+    contentEqual: boolean;
+    inputContentAvailable: boolean;
+    inputContentClaimSection: string;
+    inputContentClaimContainer: string;
+    inputContentClaimIdentifier: string;
+    inputContentClaimOffset: number;
+    inputContentClaimFileSize: string;
+    inputContentClaimFileSizeBytes: number;
+    outputContentAvailable: boolean;
+    outputContentClaimSection: string;
+    outputContentClaimContainer: string;
+    outputContentClaimIdentifier: string;
+    outputContentClaimOffset: string;
+    outputContentClaimFileSize: string;
+    outputContentClaimFileSizeBytes: number;
+    replayAvailable: boolean;
+    replayExplanation: string;
+    sourceConnectionIdentifier: string;
+}
+
+export interface ProvenanceEventDialogRequest {
+    event: ProvenanceEvent;
 }
 
 export interface TextTipInput {

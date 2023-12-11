@@ -81,7 +81,11 @@
                         Bulletin Board
                     </button>
                     <mat-divider></mat-divider>
-                    <button mat-menu-item class="global-menu-item">
+                    <button
+                        mat-menu-item
+                        class="global-menu-item"
+                        [routerLink]="['/provenance']"
+                        [disabled]="!user.provenancePermissions.canRead">
                         <i class="icon fa-fw icon-provenance mr-2"></i>
                         Data Provenance
                     </button>

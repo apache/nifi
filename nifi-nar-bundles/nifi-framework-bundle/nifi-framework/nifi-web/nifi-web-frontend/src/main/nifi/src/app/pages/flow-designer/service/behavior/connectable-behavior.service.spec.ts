@@ -27,6 +27,8 @@ import { CanvasState } from '../../state';
 import { transformFeatureKey } from '../../state/transform';
 import { controllerServicesFeatureKey } from '../../state/controller-services';
 import * as fromControllerServices from '../../state/controller-services/controller-services.reducer';
+import { selectUser } from '../../../../state/user/user.selectors';
+import * as fromUser from '../../../../state/user/user.reducer';
 
 describe('ConnectableBehavior', () => {
     let service: ConnectableBehavior;
@@ -46,6 +48,10 @@ describe('ConnectableBehavior', () => {
                         {
                             selector: selectFlowState,
                             value: initialState[flowFeatureKey]
+                        },
+                        {
+                            selector: selectUser,
+                            value: fromUser.initialState.user
                         }
                     ]
                 })

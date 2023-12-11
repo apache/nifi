@@ -20,11 +20,11 @@
 @use '@angular/material' as mat;
 
 // Plus imports for other components in your app.
-@import '~roboto-fontface/css/roboto/roboto-fontface.css';
-@import 'assets/fonts/flowfont/flowfont.css';
-@import '~font-awesome/css/font-awesome.min.css';
-@import '~codemirror/lib/codemirror.css';
-@import '~codemirror/addon/hint/show-hint.css';
+@use 'roboto-fontface/css/roboto/roboto-fontface.css';
+@use 'assets/fonts/flowfont/flowfont.css';
+@use 'font-awesome/css/font-awesome.min.css';
+@use 'codemirror/lib/codemirror.css';
+@use 'codemirror/addon/hint/show-hint.css';
 
 $fontPrimary: 'Roboto', sans-serif;
 $fontSecondary: 'Robot Slab', sans-serif;

@@ -1770,6 +1770,94 @@ export class FlowEffects {
         { dispatch: false }
     );
 
+    navigateToProvenanceForComponent$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.navigateToProvenanceForComponent),
+                map((action) => action.id),
+                tap((componentId) => {
+                    this.router.navigate(['/provenance'], { queryParams: { componentId } });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    replayLastProvenanceEvent = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.replayLastProvenanceEvent),
+                map((action) => action.request),
+                tap((request) => {
+                    this.flowService.replayLastProvenanceEvent(request).subscribe({
+                        next: (response) => {
+                            if (response.aggregateSnapshot.failureExplanation) {
+                                this.store.dispatch(
+                                    FlowActions.showOkDialog({
+                                        title: 'Replay Event Failure',
+                                        message: response.aggregateSnapshot.failureExplanation
+                                    })
+                                );
+                            } else if (response.aggregateSnapshot.eventAvailable !== true) {
+                                this.store.dispatch(
+                                    FlowActions.showOkDialog({
+                                        title: 'No Event Available',
+                                        message: 'There was no recent event available to be replayed.'
+                                    })
+                                );
+                            } else if (response.nodeSnapshots) {
+                                let replayedCount: number = 0;
+                                let unavailableCount: number = 0;
+
+                                response.nodeSnapshots.forEach((nodeResponse: any) => {
+                                    if (nodeResponse.snapshot.eventAvailable) {
+                                        replayedCount++;
+                                    } else {
+                                        unavailableCount++;
+                                    }
+                                });
+
+                                let message: string;
+                                if (unavailableCount === 0) {
+                                    message = 'All nodes successfully replayed the latest event.';
+                                } else {
+                                    message = `${replayedCount} nodes successfully replayed the latest event but ${unavailableCount} had no recent event available to be replayed.`;
+                                }
+
+                                this.store.dispatch(
+                                    FlowActions.showOkDialog({
+                                        title: 'Events Replayed',
+                                        message
+                                    })
+                                );
+                            } else {
+                                this.store.dispatch(
+                                    FlowActions.showOkDialog({
+                                        title: 'Events Replayed',
+                                        message: 'Successfully replayed the latest event.'
+                                    })
+                                );
+                            }
+
+                            this.store.dispatch(
+                                FlowActions.loadConnectionsForComponent({
+                                    id: request.componentId
+                                })
+                            );
+                        },
+                        error: (error) => {
+                            this.store.dispatch(
+                                FlowActions.showOkDialog({
+                                    title: 'Failed to Replay Event',
+                                    message: error.error
+                                })
+                            );
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
     showOkDialog$ = createEffect(
         () =>
             this.actions$.pipe(

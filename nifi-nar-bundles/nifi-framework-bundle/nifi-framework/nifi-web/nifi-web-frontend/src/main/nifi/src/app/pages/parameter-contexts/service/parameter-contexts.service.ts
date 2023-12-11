@@ -92,8 +92,4 @@ export class ParameterContextService {
             params: revision
         });
     }
-
-    // updateControllerConfig(controllerEntity: ControllerEntity): Observable<any> {
-    //     return this.httpClient.put(`${ControllerServiceService.API}/controller/config`, controllerEntity);
-    // }
 }

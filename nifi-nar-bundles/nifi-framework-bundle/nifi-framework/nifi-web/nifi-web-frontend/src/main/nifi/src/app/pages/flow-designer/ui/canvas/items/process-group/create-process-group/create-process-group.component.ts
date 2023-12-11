@@ -114,6 +114,7 @@ export class CreateProcessGroup {
             this.createProcessGroupForm
                 .get('newProcessGroupName')
                 ?.setValue(this.nifiCommon.substringBeforeLast(file.name, '.'));
+            this.createProcessGroupForm.get('newProcessGroupName')?.markAsDirty();
             this.createProcessGroupForm.get('newProcessGroupParameterContext')?.setValue(null);
             this.flowNameAttached = file.name;
             this.flowDefinition = file;

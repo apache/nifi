@@ -53,7 +53,8 @@ import {
     UpdatePositionsRequest,
     UploadProcessGroupRequest,
     EditCurrentProcessGroupRequest,
-    NavigateToControllerServicesRequest
+    NavigateToControllerServicesRequest,
+    ReplayLastProvenanceEventRequest
 } from './index';
 
 /*
@@ -374,4 +375,14 @@ export const showOkDialog = createAction('[Canvas] Show Ok Dialog', props<{ titl
 export const renderConnectionsForComponent = createAction(
     '[Canvas] Render Connections For Component',
     props<{ id: string; updatePath: boolean; updateLabel: boolean }>()
+);
+
+export const navigateToProvenanceForComponent = createAction(
+    '[Canvas] Navigate To Provenance For Component',
+    props<{ id: string }>()
+);
+
+export const replayLastProvenanceEvent = createAction(
+    '[Canvas] Replay Last Provenance Event',
+    props<{ request: ReplayLastProvenanceEventRequest }>()
 );
