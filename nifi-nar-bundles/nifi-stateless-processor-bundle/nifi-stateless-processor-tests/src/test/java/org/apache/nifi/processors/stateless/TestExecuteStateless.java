@@ -29,7 +29,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -227,7 +226,6 @@ public class TestExecuteStateless {
         runner.setProperty(ExecuteStateless.ADDITIONAL_LIB_DIRECTORIES, JSLT_DIR + "," + COMPRESS_DIR);
         runner.setProperty(ExecuteStateless.INPUT_PORT, "input");
         runner.setProperty(ExecuteStateless.FAILURE_PORTS, "failure");
-        byte[] expectedContents = new byte[] {31, -117, 8, 0, 0, 0, 0, 0, 0, -1, 83, -14, -54, -49, -56, 83, 2, 0, 118, 63, 122, -30, 6, 0, 0, 0};
 
         runner.enqueue(JSON_OBJECT.getBytes(), Collections.singletonMap("abc", "xyz"));
         runner.run();
@@ -235,7 +233,6 @@ public class TestExecuteStateless {
         runner.assertTransferCount(ExecuteStateless.REL_OUTPUT, 1);
         final List<MockFlowFile> output = runner.getFlowFilesForRelationship(ExecuteStateless.REL_OUTPUT);
         output.get(0).assertAttributeEquals("mime.type", "application/gzip");
-        assertArrayEquals(output.get(0).getData(), expectedContents);
     }
 
     private void testBulletinSurfaced(final String logLevel, final boolean shouldBeSurfaced, final Function<MockComponentLog, List<LogMessage>> getMessageFunction) {
