@@ -54,28 +54,30 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 })
 export class ProvenanceEventTable implements AfterViewInit {
     @Input() set events(events: ProvenanceEventSummary[]) {
-        this.dataSource.data = this.sortEvents(events, this.sort);
-        this.dataSource.filterPredicate = (data: ProvenanceEventSummary, filter: string) => {
-            const filterArray = filter.split('|');
-            const filterTerm = filterArray[0];
-            const filterColumn = filterArray[1];
+        if (events) {
+            this.dataSource.data = this.sortEvents(events, this.sort);
+            this.dataSource.filterPredicate = (data: ProvenanceEventSummary, filter: string) => {
+                const filterArray = filter.split('|');
+                const filterTerm = filterArray[0];
+                const filterColumn = filterArray[1];
 
-            if (filterColumn === this.filterColumnOptions[0]) {
-                return data.componentName.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0;
-            } else if (filterColumn === this.filterColumnOptions[1]) {
-                return data.componentType.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0;
-            } else {
-                return data.eventType.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0;
+                if (filterColumn === this.filterColumnOptions[0]) {
+                    return data.componentName.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0;
+                } else if (filterColumn === this.filterColumnOptions[1]) {
+                    return data.componentType.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0;
+                } else {
+                    return data.eventType.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0;
+                }
+            };
+            this.totalCount = events.length;
+            this.filteredCount = events.length;
+
+            // apply any filtering to the new data
+            const filterTerm = this.filterForm.get('filterTerm')?.value;
+            if (filterTerm?.length > 0) {
+                const filterColumn = this.filterForm.get('filterColumn')?.value;
+                this.applyFilter(filterTerm, filterColumn);
             }
-        };
-        this.totalCount = events.length;
-        this.filteredCount = events.length;
-
-        // apply any filtering to the new data
-        const filterTerm = this.filterForm.get('filterTerm')?.value;
-        if (filterTerm?.length > 0) {
-            const filterColumn = this.filterForm.get('filterColumn')?.value;
-            this.applyFilter(filterTerm, filterColumn);
         }
     }
     @Input() oldestEventAvailable!: string;
@@ -110,15 +112,11 @@ export class ProvenanceEventTable implements AfterViewInit {
     };
 
     filterForm: FormGroup;
-    filterTerm: string = '';
     filterColumnOptions: string[] = ['component name', 'component type', 'type'];
     totalCount: number = 0;
     filteredCount: number = 0;
 
-    constructor(
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor(private formBuilder: FormBuilder) {
         this.filterForm = this.formBuilder.group({ filterTerm: '', filterColumn: this.filterColumnOptions[0] });
     }
 

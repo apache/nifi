@@ -37,8 +37,7 @@ import {
     openProvenanceEventDialog,
     openSearchDialog,
     resubmitProvenanceQuery,
-    saveProvenanceRequest,
-    submitProvenanceQuery
+    saveProvenanceRequest
 } from '../../state/provenance-event-listing/provenance-event-listing.actions';
 import { ProvenanceSearchDialog } from './provenance-search-dialog/provenance-search-dialog.component';
 import { ProvenanceEventSummary } from '../../../../state/shared';
@@ -121,7 +120,7 @@ export class ProvenanceEventListing {
             )
             .subscribe((request) => {
                 this.store.dispatch(
-                    submitProvenanceQuery({
+                    resubmitProvenanceQuery({
                         request
                     })
                 );

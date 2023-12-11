@@ -260,8 +260,8 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                 type: property.descriptor.required
                     ? 'required'
                     : property.descriptor.dynamic
-                    ? 'userDefined'
-                    : 'optional'
+                      ? 'userDefined'
+                      : 'optional'
             };
 
             this.populateServiceLink(item);
@@ -307,8 +307,8 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                     type: property.descriptor.required
                         ? 'required'
                         : property.descriptor.dynamic
-                        ? 'userDefined'
-                        : 'optional'
+                          ? 'userDefined'
+                          : 'optional'
                 };
 
                 this.populateServiceLink(item);
