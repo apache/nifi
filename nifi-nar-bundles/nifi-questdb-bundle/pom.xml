@@ -17,22 +17,14 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-framework</artifactId>
+        <artifactId>nifi-nar-bundles</artifactId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-framework-status-history-shared</artifactId>
-    <dependencies>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-        </dependency>
-    </dependencies>
+    <artifactId>nifi-questdb-bundle</artifactId>
+    <packaging>pom</packaging>
+    <modules>
+        <module>nifi-questdb-status-history</module>
+        <module>nifi-questdb-nar</module>
+        <module>nifi-questdb</module>
+    </modules>
 </project>

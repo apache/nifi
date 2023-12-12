@@ -3515,7 +3515,7 @@ the User Interface. The following properties govern how these tools work.
 |====
 |*Property*|*Description*
 |`nifi.components.status.repository.implementation`|The Status History Repository implementation. The default value is `org.apache.nifi.controller.status.history.VolatileComponentStatusRepository`,
-which stores status history in memory. `org.apache.nifi.controller.status.history.EmbeddedQuestDbStatusHistoryRepository` is also supported and stores status history information on disk so that it is
+which stores status history in memory. `org.apache.nifi.controller.status.history.questdb.EmbeddedQuestDbStatusHistoryRepository` is also supported and stores status history information on disk so that it is
 available across restarts and can be stored for much longer periods of time.
 |`nifi.components.status.snapshot.frequency`|This value indicates how often to capture a snapshot of the components' status history. The default value is `1 min`.
 |====
@@ -3538,8 +3538,8 @@ of 576.
 
 ==== Persistent repository
 
-If the value of the property `nifi.components.status.repository.implementation` is `EmbeddedQuestDbStatusHistoryRepository`, the
-status history data will be stored to the disk in a persistent manner. Data will be kept between restarts.
+If the value of the property `nifi.components.status.repository.implementation` is `org.apache.nifi.controller.status.history.questdb.EmbeddedQuestDbStatusHistoryRepository`, the
+status history data will be stored to the disk in a persistent manner. Data will be kept between restarts. In order to use persistent repository, the QuestDB NAR must be re-built with the `include-questdb` profiles enabled.
 
 |====
 |*Property*|*Description*
@@ -3547,6 +3547,10 @@ status history data will be stored to the disk in a persistent manner. Data will
 is `14`.
 |`nifi.status.repository.questdb.persist.component.days`|The number of days the component status data (i.e., stats for each Processor, Connection, etc.) will be kept. The default value is `3`.
 |`nifi.status.repository.questdb.persist.location`|The location of the persistent Status History Repository. The default value is `./status_repository`.
+|`nifi.status.repository.questdb.persist.location.backup`|The location of the database backup in case the database is being corrupted and recreated. The default value is `./status_repository_backup`.
+|`nifi.status.repository.questdb.persist.batchsize`|The QuestDb based status history repository persists the collected status information in batches. The batch size determines the maximum number of persisted status records at a given time. The default value is `1000`.
+|`nifi.status.repository.questdb.persist.frequency`|The frequency of persisting collected status records. The default value is `5 secs`.
+
 |====
 
 [[site_to_site_properties]]
