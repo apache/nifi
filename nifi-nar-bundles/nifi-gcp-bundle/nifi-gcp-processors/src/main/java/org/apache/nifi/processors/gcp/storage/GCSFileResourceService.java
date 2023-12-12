@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.gcp.fileresource.service;
+package org.apache.nifi.processors.gcp.storage;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ReadChannel;
@@ -40,7 +40,6 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.gcp.storage.FetchGCSObject;
 import org.apache.nifi.processors.gcp.util.GoogleUtils;
 
 import java.io.IOException;
@@ -69,7 +68,8 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.KEY_DESC;
 public class GCSFileResourceService extends AbstractControllerService implements FileResourceService {
 
     public static final PropertyDescriptor BUCKET = new PropertyDescriptor
-            .Builder().name("gcs-bucket")
+            .Builder()
+            .name("Bucket")
             .displayName("Bucket")
             .description(BUCKET_DESC)
             .required(true)
@@ -79,7 +79,8 @@ public class GCSFileResourceService extends AbstractControllerService implements
             .build();
 
     public static final PropertyDescriptor KEY = new PropertyDescriptor
-            .Builder().name("gcs-key")
+            .Builder()
+            .name("Name")
             .displayName("Name")
             .description(KEY_DESC)
             .required(true)
@@ -133,18 +134,19 @@ public class GCSFileResourceService extends AbstractControllerService implements
 
     /**
      * Fetching blob from the provided bucket.
-     * @param storage gcs storage
+     *
+     * @param storage    gcs storage
      * @param attributes configuration attributes
      * @return fetched blob as FileResource
      * @throws IOException exception caused by missing parameters
      */
-    private FileResource fetchBlob(Storage storage, Map<String, String> attributes) throws IOException {
+    private FileResource fetchBlob(final Storage storage, final Map<String, String> attributes) throws IOException {
         final String bucketName = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
 
         final BlobId blobId = BlobId.of(bucketName, key);
         if (blobId.getName() == null || blobId.getName().isEmpty()) {
-            throw new IllegalArgumentException("Name is required");
+            throw new IllegalArgumentException("Blob Name is required");
         }
 
         final Blob blob = storage.get(blobId);

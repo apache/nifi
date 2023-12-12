@@ -13,4 +13,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService
-org.apache.nifi.processors.gcp.fileresource.service.GCSFileResourceService
+org.apache.nifi.processors.gcp.storage.GCSFileResourceService
