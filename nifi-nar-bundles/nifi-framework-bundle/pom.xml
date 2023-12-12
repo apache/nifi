@@ -35,19 +35,7 @@
         <module>nifi-headless-server-nar</module>
         <module>nifi-framework-external-resource-utils</module>
     </modules>
-    <repositories>
-        <!-- Shibboleth Repository required for OpenSAML -->
-        <repository>
-            <id>shibboleth</id>
-            <url>https://build.shibboleth.net/nexus/content/repositories/releases/</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
