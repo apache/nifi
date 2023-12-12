@@ -17,11 +17,20 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
+import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.CONNECT_TIMEOUT_KEY;
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.DEFAULT_CONNECT_TIMEOUT_MS;
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.DEFAULT_READ_TIMEOUT_MS;
 import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.PULL_HTTP_BASE_KEY;
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.QUERY_KEY;
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.READ_TIMEOUT_KEY;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.Properties;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.eclipse.jetty.server.ServerConnector;
 import org.junit.jupiter.api.BeforeAll;
 import org.mockito.Mockito;
@@ -51,12 +60,15 @@ public class PullHttpChangeIngestorTest extends PullHttpChangeIngestorCommonTest
 
 
     @Override
-    public void pullHttpChangeIngestorInit(Properties properties) throws IOException {
+    public void pullHttpChangeIngestorInit(BootstrapProperties properties) throws IOException {
         port = ((ServerConnector) jetty.getConnectors()[0]).getLocalPort();
-        properties.put(PullHttpChangeIngestor.PORT_KEY, String.valueOf(port));
-        properties.put(PullHttpChangeIngestor.HOST_KEY, "localhost");
-        properties.put(PullHttpChangeIngestor.PULL_HTTP_POLLING_PERIOD_KEY, "30000");
-        properties.put(PULL_HTTP_BASE_KEY + ".override.core", "true");
+        when(properties.getProperty(PullHttpChangeIngestor.PORT_KEY)).thenReturn(String.valueOf(port));
+        when(properties.getProperty(PullHttpChangeIngestor.HOST_KEY)).thenReturn("localhost");
+        when(properties.getProperty(eq(PullHttpChangeIngestor.PULL_HTTP_POLLING_PERIOD_KEY), any())).thenReturn("30000");
+        when(properties.getProperty(PULL_HTTP_BASE_KEY + ".override.core")).thenReturn("true");
+        when(properties.getProperty(eq(READ_TIMEOUT_KEY), any())).thenReturn(DEFAULT_READ_TIMEOUT_MS);
+        when(properties.getProperty(eq(CONNECT_TIMEOUT_KEY), any())).thenReturn(DEFAULT_CONNECT_TIMEOUT_MS);
+        when(properties.getProperty(eq(QUERY_KEY), any())).thenReturn(EMPTY);
         ConfigurationFileHolder configurationFileHolder = Mockito.mock(ConfigurationFileHolder.class);
 
         pullHttpChangeIngestor = new PullHttpChangeIngestor();

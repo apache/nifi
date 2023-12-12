@@ -26,7 +26,7 @@ MiNiFi is a child project effort of Apache NiFi.  The MiNiFi C2 Server aids in t
 - [Export Control](#export-control)
 
 ## Requirements
-* JRE 17
+* JRE 21
 * Apache Maven 3
 
 ## Getting Started

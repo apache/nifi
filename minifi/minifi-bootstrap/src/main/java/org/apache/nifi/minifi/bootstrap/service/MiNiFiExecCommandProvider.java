@@ -28,12 +28,13 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.stream.Stream;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 
 public class MiNiFiExecCommandProvider {
 
     public static final String LOG_DIR = "org.apache.nifi.minifi.bootstrap.config.log.dir";
+    public static final String MINIFI_BOOTSTRAP_CONF_FILE_PATH = "minifi.bootstrap.conf.file.path";
     public static final String DEFAULT_LOG_DIR = "./logs";
 
     public static final String APP_LOG_FILE_NAME = "org.apache.nifi.minifi.bootstrap.config.log.app.file.name";
@@ -73,7 +74,7 @@ public class MiNiFiExecCommandProvider {
         this.bootstrapFileProvider = bootstrapFileProvider;
     }
 
-    public static String getMiNiFiPropertiesPath(Properties props, File confDir) {
+    public static String getMiNiFiPropertiesPath(BootstrapProperties props, File confDir) {
         return ofNullable(props.getProperty(PROPERTIES_FILE_KEY))
             .orElseGet(() -> ofNullable(confDir)
                 .filter(File::exists)
@@ -92,7 +93,7 @@ public class MiNiFiExecCommandProvider {
      * @throws IOException throws IOException if any of the configuration file read fails
      */
     public List<String> getMiNiFiExecCommand(int listenPort, File workingDir) throws IOException {
-        Properties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
+        BootstrapProperties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
 
         File confDir = getFile(bootstrapProperties.getProperty(CONF_DIR_KEY, DEFAULT_CONF_DIR).trim(), workingDir);
         File libDir = getFile(bootstrapProperties.getProperty(LIB_DIR_KEY, DEFAULT_LIB_DIR).trim(), workingDir);
@@ -107,6 +108,7 @@ public class MiNiFiExecCommandProvider {
         List<String> javaAdditionalArgs = getJavaAdditionalArgs(bootstrapProperties);
         List<String> systemProperties = List.of(
             systemProperty(PROPERTIES_FILE_PATH, getMiNiFiPropertiesPath(bootstrapProperties, confDir)),
+            systemProperty(MINIFI_BOOTSTRAP_CONF_FILE_PATH, bootstrapFileProvider.getBootstrapFilePath()),
             systemProperty(NIFI_BOOTSTRAP_LISTEN_PORT, listenPort),
             systemProperty(APP, MINIFI_CLASS_NAME),
             systemProperty(LOG_DIR, minifiLogDir),
@@ -116,8 +118,7 @@ public class MiNiFiExecCommandProvider {
             systemProperty(BOOTSTRAP_LOG_FILE_EXTENSION, minifiBootstrapLogFileExtension)
         );
 
-        return List.of(javaCommand, javaAdditionalArgs, systemProperties, List.of(MINIFI_FULLY_QUALIFIED_CLASS_NAME))
-            .stream()
+        return Stream.of(javaCommand, javaAdditionalArgs, systemProperties, List.of(MINIFI_FULLY_QUALIFIED_CLASS_NAME))
             .flatMap(List::stream)
             .toList();
     }
@@ -127,7 +128,7 @@ public class MiNiFiExecCommandProvider {
         return file.isAbsolute() ? file : new File(workingDir, filename).getAbsoluteFile();
     }
 
-    private String getJavaCommand(Properties bootstrapProperties) {
+    private String getJavaCommand(BootstrapProperties bootstrapProperties) {
         String javaCommand = bootstrapProperties.getProperty(JAVA_COMMAND_KEY, DEFAULT_JAVA_CMD);
         return javaCommand.equals(DEFAULT_JAVA_CMD)
             ? ofNullable(System.getenv(JAVA_HOME_ENVIRONMENT_VARIABLE))
@@ -159,15 +160,16 @@ public class MiNiFiExecCommandProvider {
             .collect(joining(File.pathSeparator));
     }
 
-    private List<String> getJavaAdditionalArgs(Properties props) {
-        return props.entrySet()
+    private List<String> getJavaAdditionalArgs(BootstrapProperties props) {
+        return props.getPropertyKeys()
             .stream()
-            .filter(entry -> ((String) entry.getKey()).startsWith(JAVA_ARG_KEY_PREFIX))
-            .map(entry -> (String) entry.getValue())
+            .filter(entry -> entry.startsWith(JAVA_ARG_KEY_PREFIX))
+            .map(props::getProperty)
             .toList();
     }
 
     private String systemProperty(String key, Object value) {
         return String.format(SYSTEM_PROPERTY_TEMPLATE, key, value);
     }
+
 }

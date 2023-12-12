@@ -17,7 +17,12 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.DEFAULT_PATH;
 import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.PATH_KEY;
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.USE_ETAG_KEY;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -26,13 +31,13 @@ import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.Properties;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.ListenerHandleResult;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.Differentiator;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
@@ -68,7 +73,7 @@ public abstract class PullHttpChangeIngestorCommonTest {
         jetty.setHandler(handlerCollection);
     }
 
-    public abstract void pullHttpChangeIngestorInit(Properties properties) throws IOException;
+    public abstract void pullHttpChangeIngestorInit(BootstrapProperties properties) throws IOException;
 
     @BeforeEach
     public void setListeners() {
@@ -85,8 +90,9 @@ public abstract class PullHttpChangeIngestorCommonTest {
 
     @Test
     public void testNewUpdate() throws IOException {
-        Properties properties = new Properties();
-        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
+        BootstrapProperties properties = mock(BootstrapProperties.class);
+        when(properties.getProperty(PullHttpChangeIngestor.OVERRIDE_SECURITY)).thenReturn("true");
+        when(properties.getProperty(eq(PATH_KEY), any())).thenReturn(DEFAULT_PATH);
         pullHttpChangeIngestorInit(properties);
         pullHttpChangeIngestor.setUseEtag(false);
         when(mockDifferentiator.isNew(Mockito.any(ByteBuffer.class))).thenReturn(true);
@@ -98,8 +104,9 @@ public abstract class PullHttpChangeIngestorCommonTest {
 
     @Test
     public void testNoUpdate() throws IOException {
-        Properties properties = new Properties();
-        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
+        BootstrapProperties properties = mock(BootstrapProperties.class);
+        when(properties.getProperty(PullHttpChangeIngestor.OVERRIDE_SECURITY)).thenReturn("true");
+        when(properties.getProperty(eq(PATH_KEY), any())).thenReturn(DEFAULT_PATH);
         pullHttpChangeIngestorInit(properties);
         pullHttpChangeIngestor.setUseEtag(false);
         when(mockDifferentiator.isNew(Mockito.any(ByteBuffer.class))).thenReturn(false);
@@ -111,8 +118,11 @@ public abstract class PullHttpChangeIngestorCommonTest {
 
     @Test
     public void testUseEtag() throws IOException {
-        Properties properties = new Properties();
-        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
+        BootstrapProperties properties = mock(BootstrapProperties.class);
+        when(properties.getProperty(PullHttpChangeIngestor.OVERRIDE_SECURITY)).thenReturn("true");
+        when(properties.getProperty(eq(USE_ETAG_KEY), any())).thenReturn("true");
+        when(properties.getProperty(eq(PATH_KEY), any())).thenReturn(DEFAULT_PATH);
+
         pullHttpChangeIngestorInit(properties);
         pullHttpChangeIngestor.setLastEtag("");
 
@@ -131,9 +141,9 @@ public abstract class PullHttpChangeIngestorCommonTest {
 
     @Test
     public void testNewUpdateWithPath() throws IOException {
-        Properties properties = new Properties();
-        properties.put(PATH_KEY, FLOW_JSON);
-        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
+        BootstrapProperties properties = mock(BootstrapProperties.class);
+        when(properties.getProperty(PullHttpChangeIngestor.OVERRIDE_SECURITY)).thenReturn("true");
+        when(properties.getProperty(eq(PATH_KEY), any())).thenReturn(FLOW_JSON);
         pullHttpChangeIngestorInit(properties);
         pullHttpChangeIngestor.setUseEtag(false);
         when(mockDifferentiator.isNew(Mockito.any(ByteBuffer.class))).thenReturn(true);
@@ -145,9 +155,9 @@ public abstract class PullHttpChangeIngestorCommonTest {
 
     @Test
     public void testNoUpdateWithPath() throws IOException {
-        Properties properties = new Properties();
-        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
-        properties.put(PATH_KEY, FLOW_JSON);
+        BootstrapProperties properties = mock(BootstrapProperties.class);
+        when(properties.getProperty(PullHttpChangeIngestor.OVERRIDE_SECURITY)).thenReturn("true");
+        when(properties.getProperty(eq(PATH_KEY), any())).thenReturn(FLOW_JSON);
         pullHttpChangeIngestorInit(properties);
         pullHttpChangeIngestor.setUseEtag(false);
         when(mockDifferentiator.isNew(Mockito.any(ByteBuffer.class))).thenReturn(false);
@@ -159,9 +169,11 @@ public abstract class PullHttpChangeIngestorCommonTest {
 
     @Test
     public void testUseEtagWithPath() throws IOException {
-        Properties properties = new Properties();
-        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
-        properties.put(PATH_KEY, FLOW_JSON);
+        BootstrapProperties properties = mock(BootstrapProperties.class);
+        when(properties.getProperty(PullHttpChangeIngestor.OVERRIDE_SECURITY)).thenReturn("true");
+        when(properties.getProperty(eq(PATH_KEY), any())).thenReturn(FLOW_JSON);
+        when(properties.getProperty(eq(USE_ETAG_KEY), any())).thenReturn("true");
+
         pullHttpChangeIngestorInit(properties);
         pullHttpChangeIngestor.setLastEtag("");
 

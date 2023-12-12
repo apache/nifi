@@ -63,7 +63,7 @@ public enum MiNiFiProperties {
     NIFI_MINIFI_SECURITY_SSL_PROTOCOL("nifi.minifi.security.ssl.protocol", null, false, false, VALID),
     NIFI_MINIFI_FLOW_USE_PARENT_SSL("nifi.minifi.flow.use.parent.ssl", null, false, true, VALID),
     NIFI_MINIFI_SENSITIVE_PROPS_KEY("nifi.minifi.sensitive.props.key", null, true, false, VALID),
-    NIFI_MINIFI_SENSITIVE_PROPS_ALGORITHM("nifi.minifi.sensitive.props.algorithm", null, true, false, VALID),
+    NIFI_MINIFI_SENSITIVE_PROPS_ALGORITHM("nifi.minifi.sensitive.props.algorithm", null, false, false, VALID),
     C2_ENABLE("c2.enable", "false", false, true, BOOLEAN_VALIDATOR),
     C2_AGENT_HEARTBEAT_PERIOD("c2.agent.heartbeat.period", "1000", false, true, LONG_VALIDATOR),
     C2_AGENT_CLASS("c2.agent.class", "", false, true, VALID),
@@ -120,6 +120,7 @@ public enum MiNiFiProperties {
     public static final String MINIFI_LOG_DIRECTORY = "nifi.minifi.log.directory";
     public static final String MINIFI_APP_LOG_FILE = "nifi.minifi.app.log.file";
     public static final String MINIFI_BOOTSTRAP_LOG_FILE = "nifi.minifi.bootstrap.log.file";
+    public static final String ADDITIONAL_SENSITIVE_PROPERTIES_KEY = "nifi.minifi.sensitive.props.additional.keys";
 
     private final String key;
     private final String defaultValue;

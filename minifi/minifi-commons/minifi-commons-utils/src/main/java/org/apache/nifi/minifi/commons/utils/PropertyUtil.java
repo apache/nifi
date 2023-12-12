@@ -48,4 +48,5 @@ public abstract class PropertyUtil {
     private static Stream<String> keyPermutations(String name) {
         return Stream.of(name, name.replace(DOT, UNDERSCORE), name.replace(HYPHEN, UNDERSCORE), name.replace(DOT, UNDERSCORE).replace(HYPHEN, UNDERSCORE)).distinct();
     }
+
 }

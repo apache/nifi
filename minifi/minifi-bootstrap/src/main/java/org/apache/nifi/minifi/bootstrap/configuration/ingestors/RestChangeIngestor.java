@@ -33,7 +33,6 @@ import java.nio.ByteBuffer;
 import java.security.KeyStore;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Properties;
 import java.util.function.Supplier;
 import javax.net.ssl.SSLContext;
 import javax.servlet.http.HttpServletRequest;
@@ -45,6 +44,7 @@ import org.apache.nifi.minifi.bootstrap.configuration.ListenerHandleResult;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.Differentiator;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.security.util.KeystoreType;
@@ -100,7 +100,7 @@ public class RestChangeIngestor implements ChangeIngestor {
     }
 
     @Override
-    public void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
+    public void initialize(BootstrapProperties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
         logger.info("Initializing RestChangeIngestor");
         this.differentiator = ofNullable(properties.getProperty(DIFFERENTIATOR_KEY))
             .filter(not(String::isBlank))
@@ -154,7 +154,7 @@ public class RestChangeIngestor implements ChangeIngestor {
         return ((ServerConnector) jetty.getConnectors()[0]).getLocalPort();
     }
 
-    private void createConnector(Properties properties) {
+    private void createConnector(BootstrapProperties properties) {
         ServerConnector http = new ServerConnector(jetty);
 
         http.setPort(Integer.parseInt(properties.getProperty(PORT_KEY, "0")));
@@ -167,7 +167,7 @@ public class RestChangeIngestor implements ChangeIngestor {
         logger.info("Added an http connector on the host '{}' and port '{}'", http.getHost(), http.getPort());
     }
 
-    private void createSecureConnector(Properties properties) {
+    private void createSecureConnector(BootstrapProperties properties) {
         KeyStore keyStore;
         KeyStore trustStore = null;
 
