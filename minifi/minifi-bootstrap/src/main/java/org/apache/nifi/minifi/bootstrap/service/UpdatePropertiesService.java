@@ -25,10 +25,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Optional;
-import java.util.Properties;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
 import org.apache.nifi.minifi.commons.api.MiNiFiCommandState;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.slf4j.Logger;
 
 public class UpdatePropertiesService {
@@ -59,7 +59,7 @@ public class UpdatePropertiesService {
             Files.copy(bootstrapFileProvider.getBootstrapConfNewFile().toPath(), bootstrapConfigFile.toPath(), REPLACE_EXISTING);
 
             // already from new
-            commandState = generateConfigfilesBasedOnNewProperties(bootstrapConfigFile, bootstrapSwapConfigFile, bootstrapFileProvider.getBootstrapProperties());
+            commandState = generateConfigfilesBasedOnNewProperties(bootstrapConfigFile, bootstrapSwapConfigFile, bootstrapFileProvider.getProtectedBootstrapProperties());
         } catch (Exception e) {
             commandState = Optional.of(MiNiFiCommandState.NOT_APPLIED_WITHOUT_RESTART);
             logger.error("Failed to load new bootstrap properties", e);
@@ -67,7 +67,7 @@ public class UpdatePropertiesService {
         return commandState;
     }
 
-    private Optional<MiNiFiCommandState> generateConfigfilesBasedOnNewProperties(File bootstrapConfigFile, File bootstrapSwapConfigFile, Properties bootstrapProperties)
+    private Optional<MiNiFiCommandState> generateConfigfilesBasedOnNewProperties(File bootstrapConfigFile, File bootstrapSwapConfigFile, BootstrapProperties bootstrapProperties)
         throws IOException, ConfigurationChangeException {
         Optional<MiNiFiCommandState> commandState = Optional.empty();
         try {

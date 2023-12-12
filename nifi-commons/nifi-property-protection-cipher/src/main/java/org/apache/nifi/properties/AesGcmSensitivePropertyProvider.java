@@ -39,7 +39,7 @@ import java.util.Objects;
 /**
  * Sensitive Property Provider implementation using AES-GCM with configurable key sizes
  */
-class AesGcmSensitivePropertyProvider implements SensitivePropertyProvider {
+public class AesGcmSensitivePropertyProvider implements SensitivePropertyProvider {
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final String SECRET_KEY_ALGORITHM = "AES";
     private static final String DELIMITER = "||"; // "|" is not a valid Base64 character, so ensured not to be present in cipher text

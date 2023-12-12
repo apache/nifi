@@ -14,24 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.minifi.bootstrap.service;
+package org.apache.nifi.minifi.properties;
 
 import static org.apache.nifi.minifi.commons.utils.PropertyUtil.resolvePropertyValue;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.nifi.properties.ApplicationProperties;
 
 /**
  * Extends Properties functionality with System and Environment property override possibility. The property resolution also works with
  * dots and hyphens that are not supported in some shells.
  */
-public class BootstrapProperties extends Properties {
+public class BootstrapProperties extends ApplicationProperties {
 
-    private BootstrapProperties() {
-        super();
+    public BootstrapProperties() {
+        super(Collections.emptyMap());
     }
 
-    public static BootstrapProperties getInstance() {
-        return new BootstrapProperties();
+    public BootstrapProperties(Properties properties) {
+        super(properties);
+    }
+    public BootstrapProperties(Map<String, String> properties) {
+        super(properties);
     }
 
     @Override
@@ -41,4 +50,22 @@ public class BootstrapProperties extends Properties {
             .orElseGet(() -> super.getProperty(key));
     }
 
+    @Override
+    public String getProperty(String key, String defaultValue) {
+        return resolvePropertyValue(key, System.getProperties())
+            .or(() -> resolvePropertyValue(key, System.getenv()))
+            .orElseGet(() -> super.getProperty(key, defaultValue));
+    }
+
+    @Override
+    public Set<String> getPropertyKeys() {
+        Set<String> systemKeys = System.getProperties().keySet().stream().map(String::valueOf).collect(Collectors.toSet());
+        return Stream.of(systemKeys, System.getenv().keySet(), super.getPropertyKeys())
+            .flatMap(Set::stream)
+            .collect(Collectors.toSet());
+    }
+
+    public boolean containsKey(String key) {
+        return getPropertyKeys().contains(key);
+    }
 }
