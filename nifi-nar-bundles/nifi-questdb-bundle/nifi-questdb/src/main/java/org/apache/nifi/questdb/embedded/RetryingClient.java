@@ -61,7 +61,7 @@ final class RetryingClient implements Client {
     static RetryingClient getInstance(final int numberOfRetries, final BiConsumer<Integer, Exception> errorAction, final Client client, final Client fallbackClient) {
         final RetryTemplate retryAction = RetryTemplate.builder()
                 .times(numberOfRetries)
-                .abortingExceptions(ClientIsDisconnectedException.class)
+                .abortingExceptions(ClientDisconnectedException.class)
                 .errorAction(errorAction)
                 .buildSynchronousRetryTemplate();
         return new RetryingClient(retryAction, client, fallbackClient);

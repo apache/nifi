@@ -182,7 +182,7 @@ final class BufferedStatusHistoryStorage implements StatusHistoryStorage {
                 try {
                     target.accept(statusEntries);
                 } catch (final Exception e) {
-                    LOGGER.error("Error during flushing buffered status history information: " + e.getMessage(), e);
+                    LOGGER.error("Error during flushing buffered status history information.", e);
                 }
             }
         }

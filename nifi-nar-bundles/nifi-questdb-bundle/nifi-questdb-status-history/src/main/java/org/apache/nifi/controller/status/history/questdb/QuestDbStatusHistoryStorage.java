@@ -164,7 +164,7 @@ final class QuestDbStatusHistoryStorage implements StatusHistoryStorage {
         try {
             return client.query(query, rowProcessor);
         } catch (final DatabaseException e) {
-            LOGGER.error("Error during returning results for query " + query, e);
+            LOGGER.error("Error during returning results for query {}", query, e);
             return errorResult;
         }
     }

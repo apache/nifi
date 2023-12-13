@@ -18,9 +18,9 @@ package org.apache.nifi.questdb.embedded;
 
 import org.apache.nifi.questdb.DatabaseException;
 
-final class ClientIsDisconnectedException extends DatabaseException {
+final class ClientDisconnectedException extends DatabaseException {
 
-    ClientIsDisconnectedException(final String message) {
+    ClientDisconnectedException(final String message) {
         super(message);
     }
 }

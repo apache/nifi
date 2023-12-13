@@ -93,7 +93,6 @@ final class EmbeddedClient implements Client {
             tableWriter.commit();
         } catch (final Exception | CairoError e) {
             // CairoError might be thrown in extreme cases, for example when no space left on the disk
-            LOGGER.error("Add rows to table [{}] failed", tableName, e);
             throw new DatabaseException(e);
         } finally {
             engine.get().releaseInactive();
@@ -138,7 +137,7 @@ final class EmbeddedClient implements Client {
 
     private void checkConnectionState() throws DatabaseException {
         if (disconnected.get()) {
-            throw new ClientIsDisconnectedException("The client is already disconnected");
+            throw new ClientDisconnectedException("The client is already disconnected");
         }
     }
 

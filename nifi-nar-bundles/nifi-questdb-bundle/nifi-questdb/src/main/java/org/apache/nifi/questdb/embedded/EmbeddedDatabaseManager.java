@@ -180,7 +180,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
             for (final ManagedTableDefinition tableDefinition : context.getTableDefinitions()) {
                 try {
                     final TableToken tableToken = this.engine.get().getTableTokenIfExists(tableDefinition.getName());
-                    final TableRecordMetadata metadata = this.engine.get().getMetadata(tableToken);
+                    final TableRecordMetadata metadata = this.engine.get().getSequencerMetadata(tableToken);
                     metadata.close();
 
                     client.execute(String.format("SELECT * FROM %S LIMIT 1", tableDefinition.getName()));
@@ -271,7 +271,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
 
         if (exception instanceof ConditionFailedException
             || exception instanceof LockUnsuccessfulException
-            || exception instanceof ClientIsDisconnectedException
+            || exception instanceof ClientDisconnectedException
         ) {
             return false;
         }

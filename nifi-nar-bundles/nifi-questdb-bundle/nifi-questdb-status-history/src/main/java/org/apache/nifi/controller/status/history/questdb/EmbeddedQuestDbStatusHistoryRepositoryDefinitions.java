@@ -84,17 +84,19 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
         "averageQueuedDuration LONG" +
         ") TIMESTAMP(capturedAt) PARTITION BY DAY";
 
-    private static final Map<Integer, MetricDescriptor<ConnectionStatus>> CONNECTION_METRICS = new HashMap<>() {{
-        put(2, ConnectionStatusDescriptor.INPUT_BYTES.getDescriptor());
-        put(3, ConnectionStatusDescriptor.INPUT_COUNT.getDescriptor());
-        put(4, ConnectionStatusDescriptor.OUTPUT_BYTES.getDescriptor());
-        put(5, ConnectionStatusDescriptor.OUTPUT_COUNT.getDescriptor());
-        put(6, ConnectionStatusDescriptor.QUEUED_BYTES.getDescriptor());
-        put(7, ConnectionStatusDescriptor.QUEUED_COUNT.getDescriptor());
-        put(8, ConnectionStatusDescriptor.TOTAL_QUEUED_DURATION.getDescriptor());
-        put(9, ConnectionStatusDescriptor.MAX_QUEUED_DURATION.getDescriptor());
-        put(10, ConnectionStatusDescriptor.AVERAGE_QUEUED_DURATION.getDescriptor());
-    }};
+    private static final Map<Integer, MetricDescriptor<ConnectionStatus>> CONNECTION_METRICS = new HashMap<>();
+
+    static {
+        CONNECTION_METRICS.put(2, ConnectionStatusDescriptor.INPUT_BYTES.getDescriptor());
+        CONNECTION_METRICS.put(3, ConnectionStatusDescriptor.INPUT_COUNT.getDescriptor());
+        CONNECTION_METRICS.put(4, ConnectionStatusDescriptor.OUTPUT_BYTES.getDescriptor());
+        CONNECTION_METRICS.put(5, ConnectionStatusDescriptor.OUTPUT_COUNT.getDescriptor());
+        CONNECTION_METRICS.put(6, ConnectionStatusDescriptor.QUEUED_BYTES.getDescriptor());
+        CONNECTION_METRICS.put(7, ConnectionStatusDescriptor.QUEUED_COUNT.getDescriptor());
+        CONNECTION_METRICS.put(8, ConnectionStatusDescriptor.TOTAL_QUEUED_DURATION.getDescriptor());
+        CONNECTION_METRICS.put(9, ConnectionStatusDescriptor.MAX_QUEUED_DURATION.getDescriptor());
+        CONNECTION_METRICS.put(10, ConnectionStatusDescriptor.AVERAGE_QUEUED_DURATION.getDescriptor());
+    }
 
     static InsertRowDataSource getConnectionStatusDataSource(final Collection<CapturedStatus<ConnectionStatus>> statuses) {
         return new ComponentStatusDataSource<>(statuses.iterator(), CONNECTION_METRICS, ConnectionStatus::getId);
@@ -125,21 +127,23 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
         "averageTaskNanos LONG" +
         ") TIMESTAMP(capturedAt) PARTITION BY DAY";
 
-    private static final Map<Integer, MetricDescriptor<ProcessorStatus>> PROCESSOR_METRICS = new HashMap<>() {{
-        put(2, ProcessorStatusDescriptor.BYTES_READ.getDescriptor());
-        put(3, ProcessorStatusDescriptor.BYTES_WRITTEN.getDescriptor());
-        put(4, ProcessorStatusDescriptor.BYTES_TRANSFERRED.getDescriptor());
-        put(5, ProcessorStatusDescriptor.INPUT_BYTES.getDescriptor());
-        put(6, ProcessorStatusDescriptor.INPUT_COUNT.getDescriptor());
-        put(7, ProcessorStatusDescriptor.OUTPUT_BYTES.getDescriptor());
-        put(8, ProcessorStatusDescriptor.OUTPUT_COUNT.getDescriptor());
-        put(9, ProcessorStatusDescriptor.TASK_COUNT.getDescriptor());
-        put(10, ProcessorStatusDescriptor.TASK_MILLIS.getDescriptor());
-        put(11, ProcessorStatusDescriptor.TASK_NANOS.getDescriptor());
-        put(12, ProcessorStatusDescriptor.FLOWFILES_REMOVED.getDescriptor());
-        put(13, ProcessorStatusDescriptor.AVERAGE_LINEAGE_DURATION.getDescriptor());
-        put(14, ProcessorStatusDescriptor.AVERAGE_TASK_NANOS.getDescriptor());
-    }};
+    private static final Map<Integer, MetricDescriptor<ProcessorStatus>> PROCESSOR_METRICS = new HashMap<>();
+
+    static {
+        PROCESSOR_METRICS.put(2, ProcessorStatusDescriptor.BYTES_READ.getDescriptor());
+        PROCESSOR_METRICS.put(3, ProcessorStatusDescriptor.BYTES_WRITTEN.getDescriptor());
+        PROCESSOR_METRICS.put(4, ProcessorStatusDescriptor.BYTES_TRANSFERRED.getDescriptor());
+        PROCESSOR_METRICS.put(5, ProcessorStatusDescriptor.INPUT_BYTES.getDescriptor());
+        PROCESSOR_METRICS.put(6, ProcessorStatusDescriptor.INPUT_COUNT.getDescriptor());
+        PROCESSOR_METRICS.put(7, ProcessorStatusDescriptor.OUTPUT_BYTES.getDescriptor());
+        PROCESSOR_METRICS.put(8, ProcessorStatusDescriptor.OUTPUT_COUNT.getDescriptor());
+        PROCESSOR_METRICS.put(9, ProcessorStatusDescriptor.TASK_COUNT.getDescriptor());
+        PROCESSOR_METRICS.put(10, ProcessorStatusDescriptor.TASK_MILLIS.getDescriptor());
+        PROCESSOR_METRICS.put(11, ProcessorStatusDescriptor.TASK_NANOS.getDescriptor());
+        PROCESSOR_METRICS.put(12, ProcessorStatusDescriptor.FLOWFILES_REMOVED.getDescriptor());
+        PROCESSOR_METRICS.put(13, ProcessorStatusDescriptor.AVERAGE_LINEAGE_DURATION.getDescriptor());
+        PROCESSOR_METRICS.put(14, ProcessorStatusDescriptor.AVERAGE_TASK_NANOS.getDescriptor());
+    }
 
     static InsertRowDataSource getProcessorStatusDataSource(final Collection<CapturedStatus<ProcessorStatus>> statuses) {
         return new ComponentStatusDataSource<>(statuses.iterator(), PROCESSOR_METRICS, ProcessorStatus::getId);
@@ -171,18 +175,20 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
         "taskMillis LONG" +
         ") TIMESTAMP(capturedAt) PARTITION BY DAY";
 
-    private static final Map<Integer, MetricDescriptor<ProcessGroupStatus>> PROCESS_GROUP_METRICS = new HashMap<>() {{
-        put(2, ProcessGroupStatusDescriptor.BYTES_READ.getDescriptor());
-        put(3, ProcessGroupStatusDescriptor.BYTES_WRITTEN.getDescriptor());
-        put(4, ProcessGroupStatusDescriptor.BYTES_TRANSFERRED.getDescriptor());
-        put(5, ProcessGroupStatusDescriptor.INPUT_BYTES.getDescriptor());
-        put(6, ProcessGroupStatusDescriptor.INPUT_COUNT.getDescriptor());
-        put(7, ProcessGroupStatusDescriptor.OUTPUT_BYTES.getDescriptor());
-        put(8, ProcessGroupStatusDescriptor.OUTPUT_COUNT.getDescriptor());
-        put(9, ProcessGroupStatusDescriptor.QUEUED_BYTES.getDescriptor());
-        put(10, ProcessGroupStatusDescriptor.QUEUED_COUNT.getDescriptor());
-        put(11, ProcessGroupStatusDescriptor.TASK_MILLIS.getDescriptor());
-    }};
+    private static final Map<Integer, MetricDescriptor<ProcessGroupStatus>> PROCESS_GROUP_METRICS = new HashMap<>();
+
+    static {
+        PROCESS_GROUP_METRICS.put(2, ProcessGroupStatusDescriptor.BYTES_READ.getDescriptor());
+        PROCESS_GROUP_METRICS.put(3, ProcessGroupStatusDescriptor.BYTES_WRITTEN.getDescriptor());
+        PROCESS_GROUP_METRICS.put(4, ProcessGroupStatusDescriptor.BYTES_TRANSFERRED.getDescriptor());
+        PROCESS_GROUP_METRICS.put(5, ProcessGroupStatusDescriptor.INPUT_BYTES.getDescriptor());
+        PROCESS_GROUP_METRICS.put(6, ProcessGroupStatusDescriptor.INPUT_COUNT.getDescriptor());
+        PROCESS_GROUP_METRICS.put(7, ProcessGroupStatusDescriptor.OUTPUT_BYTES.getDescriptor());
+        PROCESS_GROUP_METRICS.put(8, ProcessGroupStatusDescriptor.OUTPUT_COUNT.getDescriptor());
+        PROCESS_GROUP_METRICS.put(9, ProcessGroupStatusDescriptor.QUEUED_BYTES.getDescriptor());
+        PROCESS_GROUP_METRICS.put(10, ProcessGroupStatusDescriptor.QUEUED_COUNT.getDescriptor());
+        PROCESS_GROUP_METRICS.put(11, ProcessGroupStatusDescriptor.TASK_MILLIS.getDescriptor());
+    }
 
     static InsertRowDataSource getProcessGroupStatusDataSource(final Collection<CapturedStatus<ProcessGroupStatus>> statuses) {
         return new ComponentStatusDataSource<>(statuses.iterator(), PROCESS_GROUP_METRICS, ProcessGroupStatus::getId);
@@ -208,16 +214,18 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
         "averageLineageDuration LONG" +
         ") TIMESTAMP(capturedAt) PARTITION BY DAY";
 
-    private static final Map<Integer, MetricDescriptor<RemoteProcessGroupStatus>> REMOTE_PROCESS_GROUP_METRICS = new HashMap<>() {{
-        put(2, RemoteProcessGroupStatusDescriptor.SENT_BYTES.getDescriptor());
-        put(3, RemoteProcessGroupStatusDescriptor.SENT_COUNT.getDescriptor());
-        put(4, RemoteProcessGroupStatusDescriptor.RECEIVED_BYTES.getDescriptor());
-        put(5, RemoteProcessGroupStatusDescriptor.RECEIVED_COUNT.getDescriptor());
-        put(6, RemoteProcessGroupStatusDescriptor.RECEIVED_BYTES_PER_SECOND.getDescriptor());
-        put(7, RemoteProcessGroupStatusDescriptor.SENT_BYTES_PER_SECOND.getDescriptor());
-        put(8, RemoteProcessGroupStatusDescriptor.TOTAL_BYTES_PER_SECOND.getDescriptor());
-        put(9, RemoteProcessGroupStatusDescriptor.AVERAGE_LINEAGE_DURATION.getDescriptor());
-    }};
+    private static final Map<Integer, MetricDescriptor<RemoteProcessGroupStatus>> REMOTE_PROCESS_GROUP_METRICS = new HashMap<>();
+
+    static {
+        REMOTE_PROCESS_GROUP_METRICS.put(2, RemoteProcessGroupStatusDescriptor.SENT_BYTES.getDescriptor());
+        REMOTE_PROCESS_GROUP_METRICS.put(3, RemoteProcessGroupStatusDescriptor.SENT_COUNT.getDescriptor());
+        REMOTE_PROCESS_GROUP_METRICS.put(4, RemoteProcessGroupStatusDescriptor.RECEIVED_BYTES.getDescriptor());
+        REMOTE_PROCESS_GROUP_METRICS.put(5, RemoteProcessGroupStatusDescriptor.RECEIVED_COUNT.getDescriptor());
+        REMOTE_PROCESS_GROUP_METRICS.put(6, RemoteProcessGroupStatusDescriptor.RECEIVED_BYTES_PER_SECOND.getDescriptor());
+        REMOTE_PROCESS_GROUP_METRICS.put(7, RemoteProcessGroupStatusDescriptor.SENT_BYTES_PER_SECOND.getDescriptor());
+        REMOTE_PROCESS_GROUP_METRICS.put(8, RemoteProcessGroupStatusDescriptor.TOTAL_BYTES_PER_SECOND.getDescriptor());
+        REMOTE_PROCESS_GROUP_METRICS.put(9, RemoteProcessGroupStatusDescriptor.AVERAGE_LINEAGE_DURATION.getDescriptor());
+    }
 
     static InsertRowDataSource getRemoteProcessGroupStatusDataSource(final Collection<CapturedStatus<RemoteProcessGroupStatus>> statuses) {
         return new ComponentStatusDataSource<>(statuses.iterator(), REMOTE_PROCESS_GROUP_METRICS, RemoteProcessGroupStatus::getId);
@@ -306,17 +314,19 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
         "AND capturedAt < to_timestamp('%s', '" + CAPTURE_DATE_FORMAT + "') " +
         "ORDER BY capturedAt ASC";
 
-    private static final Map<Integer, MetricDescriptor<NodeStatus>> NODE_STATUS_METRICS = new HashMap<>() {{
-       put(1, NodeStatusDescriptor.FREE_HEAP.getDescriptor());
-       put(2, NodeStatusDescriptor.USED_HEAP.getDescriptor());
-       put(3, NodeStatusDescriptor.HEAP_UTILIZATION.getDescriptor());
-       put(4, NodeStatusDescriptor.FREE_NON_HEAP.getDescriptor());
-       put(5, NodeStatusDescriptor.USED_NON_HEAP.getDescriptor());
-       put(6, NodeStatusDescriptor.OPEN_FILE_HANDLES.getDescriptor());
-       put(7, NodeStatusDescriptor.PROCESSOR_LOAD_AVERAGE.getDescriptor());
-       put(8, NodeStatusDescriptor.TOTAL_THREADS.getDescriptor());
-       put(9, NodeStatusDescriptor.TIME_DRIVEN_THREADS.getDescriptor());
-    }};
+    private static final Map<Integer, MetricDescriptor<NodeStatus>> NODE_STATUS_METRICS = new HashMap<>();
+
+    static {
+        NODE_STATUS_METRICS.put(1, NodeStatusDescriptor.FREE_HEAP.getDescriptor());
+        NODE_STATUS_METRICS.put(2, NodeStatusDescriptor.USED_HEAP.getDescriptor());
+        NODE_STATUS_METRICS.put(3, NodeStatusDescriptor.HEAP_UTILIZATION.getDescriptor());
+        NODE_STATUS_METRICS.put(4, NodeStatusDescriptor.FREE_NON_HEAP.getDescriptor());
+        NODE_STATUS_METRICS.put(5, NodeStatusDescriptor.USED_NON_HEAP.getDescriptor());
+        NODE_STATUS_METRICS.put(6, NodeStatusDescriptor.OPEN_FILE_HANDLES.getDescriptor());
+        NODE_STATUS_METRICS.put(7, NodeStatusDescriptor.PROCESSOR_LOAD_AVERAGE.getDescriptor());
+        NODE_STATUS_METRICS.put(8, NodeStatusDescriptor.TOTAL_THREADS.getDescriptor());
+        NODE_STATUS_METRICS.put(9, NodeStatusDescriptor.TIME_DRIVEN_THREADS.getDescriptor());
+    }
 
     static InsertRowDataSource getNodeStatusDataSource(final Collection<CapturedStatus<NodeStatus>> statuses) {
         return new NodeStatusDataSource(statuses.iterator(), NODE_STATUS_METRICS);
