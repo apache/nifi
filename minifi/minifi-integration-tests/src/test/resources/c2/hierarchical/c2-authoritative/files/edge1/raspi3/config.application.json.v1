@@ -4,7 +4,6 @@
         "minorVersion": 0
     },
     "maxTimerDrivenThreadCount": 10,
-    "maxEventDrivenThreadCount": 1,
     "registries": [],
     "parameterContexts": [],
     "parameterProviders": [],
