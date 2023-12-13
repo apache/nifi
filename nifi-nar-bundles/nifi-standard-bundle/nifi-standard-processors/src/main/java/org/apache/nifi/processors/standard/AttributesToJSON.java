@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -181,7 +182,7 @@ public class AttributesToJSON extends AbstractProcessor {
     private volatile Set<String> attributes;
     private volatile Boolean nullValueForEmptyString;
     private volatile boolean destinationContent;
-    private volatile boolean prettyPrint;
+    private volatile ObjectWriter objectWriter;
     private volatile Pattern pattern;
     private volatile JsonHandlingStrategy jsonHandlingStrategy;
 
@@ -277,7 +278,8 @@ public class AttributesToJSON extends AbstractProcessor {
         attributes = buildAtrs(context.getProperty(ATTRIBUTES_LIST).getValue());
         nullValueForEmptyString = context.getProperty(NULL_VALUE_FOR_EMPTY_STRING).asBoolean();
         destinationContent = DESTINATION_CONTENT.equals(context.getProperty(DESTINATION).getValue());
-        prettyPrint = context.getProperty(PRETTY_PRINT).asBoolean();
+        final boolean prettyPrint = context.getProperty(PRETTY_PRINT).asBoolean();
+        objectWriter = destinationContent && prettyPrint ? OBJECT_MAPPER.writerWithDefaultPrettyPrinter() : OBJECT_MAPPER.writer();
         jsonHandlingStrategy = JsonHandlingStrategy.valueOf(context.getProperty(JSON_HANDLING_STRATEGY).getValue());
 
         if(context.getProperty(ATTRIBUTES_REGEX).isSet()) {
@@ -299,11 +301,7 @@ public class AttributesToJSON extends AbstractProcessor {
             if (destinationContent) {
                 FlowFile conFlowfile = session.write(original, (in, out) -> {
                     try (OutputStream outputStream = new BufferedOutputStream(out)) {
-                        if(prettyPrint) {
-                            outputStream.write(OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsBytes(formattedAttributes));
-                        } else {
-                            outputStream.write(OBJECT_MAPPER.writeValueAsBytes(formattedAttributes));
-                        }
+                        objectWriter.writeValue(outputStream, formattedAttributes);
                     }
                 });
                 conFlowfile = session.putAttribute(conFlowfile, CoreAttributes.MIME_TYPE.key(), APPLICATION_JSON);
