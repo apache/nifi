@@ -137,13 +137,12 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
             }
         };
 
-       init(recordWriterFactory, recordReaderFactory, eventReporter, authorizer, resourceFactory);
+       init(recordWriterFactory, recordReaderFactory, eventReporter, authorizer, resourceFactory, fileManager);
     }
 
     synchronized void init(RecordWriterFactory recordWriterFactory, RecordReaderFactory recordReaderFactory,
                            final EventReporter eventReporter, final Authorizer authorizer,
-                           final ProvenanceAuthorizableFactory resourceFactory) throws IOException {
-        final EventFileManager fileManager = new EventFileManager();
+                           final ProvenanceAuthorizableFactory resourceFactory, final EventFileManager fileManager) throws IOException {
 
         eventStore = new PartitionedWriteAheadEventStore(config, recordWriterFactory, recordReaderFactory, eventReporter, fileManager);
 
