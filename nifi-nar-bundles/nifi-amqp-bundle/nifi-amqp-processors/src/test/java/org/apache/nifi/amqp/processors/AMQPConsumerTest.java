@@ -42,8 +42,8 @@ import org.junit.jupiter.api.Test;
 
 public class AMQPConsumerTest {
 
-    private ComponentLog processorLog;
     private static final int DEFAULT_PREFETCH_COUNT = 0;
+    private ComponentLog processorLog;
 
     @BeforeEach
     public void setUp() {
