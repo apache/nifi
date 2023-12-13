@@ -316,8 +316,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         try {
             final String queueName = context.getProperty(QUEUE).getValue();
             final boolean autoAcknowledge = context.getProperty(AUTO_ACKNOWLEDGE).asBoolean();
-            final AMQPConsumer amqpConsumer = new AMQPConsumer(connection, queueName, autoAcknowledge,
-                    context.getProperty(PREFETCH_COUNT).asInteger(), getLogger());
+            final int prefetchCount =  context.getProperty(PREFETCH_COUNT).asInteger();
+            final AMQPConsumer amqpConsumer = new AMQPConsumer(connection, queueName, autoAcknowledge, prefetchCount, getLogger());
 
             return amqpConsumer;
         } catch (final IOException ioe) {
