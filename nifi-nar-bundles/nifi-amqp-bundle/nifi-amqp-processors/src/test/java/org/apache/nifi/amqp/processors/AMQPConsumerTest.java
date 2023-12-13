@@ -43,6 +43,7 @@ import org.junit.jupiter.api.Test;
 public class AMQPConsumerTest {
 
     private ComponentLog processorLog;
+    private static final int DEFAULT_PREFETCH_COUNT = 0;
 
     @BeforeEach
     public void setUp() {
@@ -55,7 +56,7 @@ public class AMQPConsumerTest {
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
 
         final TestConnection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
-        final AMQPConsumer consumer = new AMQPConsumer(connection, "queue1", true, 0, processorLog);
+        final AMQPConsumer consumer = new AMQPConsumer(connection, "queue1", true, DEFAULT_PREFETCH_COUNT, processorLog);
         consumer.getChannel().basicPublish("myExchange", "key1", new BasicProperties(), new byte[0]);
 
         consumer.close();
@@ -69,7 +70,7 @@ public class AMQPConsumerTest {
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
 
         final TestConnection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
-        final AMQPConsumer consumer = new AMQPConsumer(connection, "queue1", true, 0, processorLog);
+        final AMQPConsumer consumer = new AMQPConsumer(connection, "queue1", true, DEFAULT_PREFETCH_COUNT, processorLog);
 
         assertFalse(consumer.closed);
 
@@ -80,14 +81,14 @@ public class AMQPConsumerTest {
 
     @Test
     public void failOnNullConnection() {
-        assertThrows(IllegalArgumentException.class, () -> new AMQPConsumer(null, null, true, 0, processorLog));
+        assertThrows(IllegalArgumentException.class, () -> new AMQPConsumer(null, null, true, DEFAULT_PREFETCH_COUNT, processorLog));
     }
 
     @Test
     public void failOnNullQueueName() {
         assertThrows(IllegalArgumentException.class, () -> {
             Connection conn = new TestConnection(null, null);
-            new AMQPConsumer(conn, null, true, 0, processorLog);
+            new AMQPConsumer(conn, null, true, DEFAULT_PREFETCH_COUNT, processorLog);
         });
     }
 
@@ -95,7 +96,7 @@ public class AMQPConsumerTest {
     public void failOnEmptyQueueName() {
         assertThrows(IllegalArgumentException.class, () -> {
             Connection conn = new TestConnection(null, null);
-            new AMQPConsumer(conn, " ", true, 0, processorLog);
+            new AMQPConsumer(conn, " ", true, DEFAULT_PREFETCH_COUNT, processorLog);
         });
     }
 
@@ -103,7 +104,7 @@ public class AMQPConsumerTest {
     public void failOnNonExistingQueue() {
         assertThrows(IOException.class, () -> {
             Connection conn = new TestConnection(null, null);
-            try (AMQPConsumer consumer = new AMQPConsumer(conn, "hello", true, 0, processorLog)) {
+            try (AMQPConsumer consumer = new AMQPConsumer(conn, "hello", true, DEFAULT_PREFETCH_COUNT, processorLog)) {
                 consumer.consume();
             }
         });
@@ -117,7 +118,7 @@ public class AMQPConsumerTest {
         exchangeToRoutingKeymap.put("", "queue1");
 
         Connection conn = new TestConnection(exchangeToRoutingKeymap, routingMap);
-        try (AMQPConsumer consumer = new AMQPConsumer(conn, "queue1", true, 0, processorLog)) {
+        try (AMQPConsumer consumer = new AMQPConsumer(conn, "queue1", true, DEFAULT_PREFETCH_COUNT, processorLog)) {
             GetResponse response = consumer.consume();
             assertNull(response);
         }
@@ -132,7 +133,7 @@ public class AMQPConsumerTest {
 
         Connection conn = new TestConnection(exchangeToRoutingKeymap, routingMap);
         conn.createChannel().basicPublish("myExchange", "key1", null, "hello Joe".getBytes());
-        try (AMQPConsumer consumer = new AMQPConsumer(conn, "queue1", true, 0, processorLog)) {
+        try (AMQPConsumer consumer = new AMQPConsumer(conn, "queue1", true, DEFAULT_PREFETCH_COUNT, processorLog)) {
             GetResponse response = consumer.consume();
             assertNotNull(response);
         }

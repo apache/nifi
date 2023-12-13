@@ -37,6 +37,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -46,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.Collection;
 
 @Tags({"amqp", "rabbit", "get", "message", "receive", "consume"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -116,7 +119,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .name("prefetch.count")
         .displayName("Prefetch Count")
         .description("The maximum number of unacknowledged messages for the consumer. If consumer has this number of unacknowledged messages, AMQP broker will "
-               + "no longer send new messages until consumer acknowledges some of the messages already delivered to it. 0 means no limit")
+               + "no longer send new messages until consumer acknowledges some of the messages already delivered to it."
+               + "Allowed values: from 0 to 65535. 0 means no limit")
         .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .defaultValue("0")
@@ -329,5 +333,21 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        List<ValidationResult> results = new ArrayList<>(super.customValidate(context));
+
+        int prefetchCount = context.getProperty(PREFETCH_COUNT).asInteger();
+        if (prefetchCount < 0 || prefetchCount > 65535) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Prefetch configuration")
+                    .valid(false)
+                    .explanation("prefetch count must be between 0 and 65535")
+                    .build());
+        }
+
+        return results;
     }
 }
