@@ -1804,10 +1804,6 @@ help the framework understand how to interact with the Processor in terms of sch
 The following annotations from the `org.apache.nifi.annotation.behavior` package can be used to modify how the framework
 will handle your Processor:
 
-  - `EventDriven`: Instructs the framework that the Processor can be scheduled using the Event-Driven scheduling
-    strategy. This strategy is still experimental at this point, but can result in reduced resource utilization
-    on dataflows that do not handle extremely high data rates.
-
   - `SideEffectFree`: Indicates that the Processor does not have any side effects external to NiFi. As a result, the
     framework is free to invoke the Processor many times with the same input without causing any unexpected
     results to occur. This implies idempotent behavior. This can be used by the framework to improve efficiency by
