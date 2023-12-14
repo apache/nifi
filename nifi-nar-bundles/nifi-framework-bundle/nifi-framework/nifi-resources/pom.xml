@@ -252,6 +252,8 @@
         <nifi.analytics.connection.model.implementation>org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares</nifi.analytics.connection.model.implementation>
         <nifi.analytics.connection.model.score.name>rSquared</nifi.analytics.connection.model.score.name>
         <nifi.analytics.connection.model.score.threshold>.90</nifi.analytics.connection.model.score.threshold>
+        <nifi.analytics.prediction.parallel.processing.timeout>60 secs</nifi.analytics.prediction.parallel.processing.timeout>
+        <nifi.analytics.prediction.parallel.processing.threads>4</nifi.analytics.prediction.parallel.processing.threads>
 
         <!-- nifi.properties: flow analysis properties -->
         <nifi.flow.analysis.background.task.schedule>5 mins</nifi.flow.analysis.background.task.schedule>

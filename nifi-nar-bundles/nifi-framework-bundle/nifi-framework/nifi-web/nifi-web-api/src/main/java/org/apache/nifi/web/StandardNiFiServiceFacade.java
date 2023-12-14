@@ -181,6 +181,7 @@ import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.VerifiableReportingTask;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FlowDifferenceFilters;
+import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.validation.RuleViolation;
@@ -390,6 +391,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -6233,27 +6237,54 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         // Get Connection Status Analytics (predictions, e.g.)
         Set<Connection> connections = controllerFacade.getFlowManager().findAllConnections();
-        for (Connection c : connections) {
-            // If a ResourceNotFoundException is thrown, analytics hasn't been enabled
+        Collection<Map<String, Long>> predictions = new ConcurrentLinkedDeque<>();
+
+        final boolean analyticsEnabled = Boolean.parseBoolean(properties.getProperty(NiFiProperties.ANALYTICS_PREDICTION_ENABLED, Boolean.FALSE.toString()));
+
+        if (analyticsEnabled) {
+            final int parallelProcessingThreads = properties.getIntegerProperty(NiFiProperties.ANALYTICS_PREDICTION_PARALLEL_PROCESSING_THREADS, 4);
+            final long parallelProcessingTimeout = Math.round(FormatUtils.getPreciseTimeDuration(
+                    properties.getProperty(NiFiProperties.ANALYTICS_PREDICTION_PARALLEL_PROCESSING_TIMEOUT, "1 min"), TimeUnit.MILLISECONDS));
+
+            final ForkJoinPool.ForkJoinWorkerThreadFactory factory = pool -> {
+                final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
+                worker.setName("analytics-prediction-parallel-processing-thread-" + UUID.randomUUID());
+                return worker;
+            };
+
+            final ForkJoinPool parallelProcessingThreadPool = new ForkJoinPool(parallelProcessingThreads, factory, null, false);
             try {
-                final StatusAnalytics statusAnalytics = controllerFacade.getConnectionStatusAnalytics(c.getIdentifier());
-                PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry,
-                        statusAnalytics,
-                        instanceId,
-                        "Connection",
-                        c.getName(),
-                        c.getIdentifier(),
-                        c.getProcessGroup().getIdentifier(),
-                        c.getSource().getName(),
-                        c.getSource().getIdentifier(),
-                        c.getDestination().getName(),
-                        c.getDestination().getIdentifier()
-                );
-                PrometheusMetricsUtil.aggregateConnectionPredictionMetrics(aggregatedMetrics, statusAnalytics.getPredictions());
-            } catch (ResourceNotFoundException rnfe) {
-                break;
+                parallelProcessingThreadPool.submit(
+                        () -> connections.parallelStream().forEach((c) -> {
+                            final StatusAnalytics statusAnalytics = controllerFacade.getConnectionStatusAnalytics(c.getIdentifier());
+                            PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry,
+                                    statusAnalytics,
+                                    instanceId,
+                                    "Connection",
+                                    c.getName(),
+                                    c.getIdentifier(),
+                                    c.getProcessGroup().getIdentifier(),
+                                    c.getSource().getName(),
+                                    c.getSource().getIdentifier(),
+                                    c.getDestination().getName(),
+                                    c.getDestination().getIdentifier()
+                            );
+                            predictions.add(statusAnalytics.getPredictions());
+                        }));
+            } finally {
+                parallelProcessingThreadPool.shutdown();
+                try {
+                    boolean finished = parallelProcessingThreadPool.awaitTermination(parallelProcessingTimeout, TimeUnit.MILLISECONDS);
+                    if (!finished) {
+                        throw new WebApplicationException("Populating flow metrics timed out");
+                    }
+                } catch (InterruptedException e) {
+                    parallelProcessingThreadPool.shutdownNow();
+                    throw new WebApplicationException("Populating flow metrics cancelled");
+                }
             }
         }
+        predictions.forEach((prediction) -> PrometheusMetricsUtil.aggregateConnectionPredictionMetrics(aggregatedMetrics, prediction));
         PrometheusMetricsUtil.createAggregatedConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry, aggregatedMetrics, instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId);
 
         // Create a query to get all bulletins
