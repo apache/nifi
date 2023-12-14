@@ -21,7 +21,6 @@ import org.apache.nifi.snmp.configuration.V2TrapConfiguration;
 import org.apache.nifi.snmp.factory.trap.V1TrapPDUFactory;
 import org.apache.nifi.snmp.factory.trap.V2TrapPDUFactory;
 import org.apache.nifi.util.MockComponentLog;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.snmp4j.PDU;
@@ -47,7 +46,6 @@ class SendTrapSNMPHandlerTest {
     private MockComponentLog mockComponentLog;
     private V1TrapConfiguration mockV1TrapConfiguration;
     private V2TrapConfiguration mockV2TrapConfiguration;
-    private SNMPResourceHandler snmpResourceHandler;
     private SendTrapSNMPHandler sendTrapSNMPHandler;
 
     @BeforeEach
@@ -66,30 +64,23 @@ class SendTrapSNMPHandlerTest {
 
         when(mockSnmpManager.send(mockPdu, mockTarget)).thenReturn(mockResponseEvent);
 
-        snmpResourceHandler = new SNMPResourceHandler(mockSnmpManager, mockTarget);
-
-        sendTrapSNMPHandler = new SendTrapSNMPHandler(snmpResourceHandler, Instant.now(), mockComponentLog) {
+        sendTrapSNMPHandler = new SendTrapSNMPHandler(mockSnmpManager, Instant.now(), mockComponentLog) {
             @Override
-            V1TrapPDUFactory createV1TrapPduFactory(final Instant startTime) {
+            V1TrapPDUFactory createV1TrapPduFactory(final Target target, final Instant startTime) {
                 return mockV1TrapPDUFactory;
             }
 
             @Override
-            V2TrapPDUFactory createV2TrapPduFactory(final Instant startTime) {
+            V2TrapPDUFactory createV2TrapPduFactory(final Target target, final Instant startTime) {
                 return mockV2TrapPDUFactory;
             }
         };
     }
 
-    @AfterEach
-    public void tearDown() {
-        snmpResourceHandler.close();
-    }
-
     @Test
     void testSendV1TrapWithValidFlowfile() throws IOException {
         final String flowFileOid = "1.3.6.1.2.1.1.1.0";
-        sendTrapSNMPHandler.sendTrap(Collections.singletonMap("snmp$" + flowFileOid, "OID value"), mockV1TrapConfiguration);
+        sendTrapSNMPHandler.sendTrap(Collections.singletonMap("snmp$" + flowFileOid, "OID value"), mockV1TrapConfiguration, mockTarget);
 
         verify(mockSnmpManager).send(mockPdu, mockTarget);
     }
@@ -97,14 +88,14 @@ class SendTrapSNMPHandlerTest {
     @Test
     void testSendV2TrapWithValidFlowfile() throws IOException {
         final String flowFileOid = "1.3.6.1.2.1.1.1.0";
-        sendTrapSNMPHandler.sendTrap(Collections.singletonMap("snmp$" + flowFileOid, "OID value"), mockV2TrapConfiguration);
+        sendTrapSNMPHandler.sendTrap(Collections.singletonMap("snmp$" + flowFileOid, "OID value"), mockV2TrapConfiguration, mockTarget);
 
         verify(mockSnmpManager).send(mockPdu, mockTarget);
     }
 
     @Test
     void testSendV1TrapWithFlowfileWithoutOptionalSnmpAttributes() throws IOException {
-        sendTrapSNMPHandler.sendTrap(Collections.singletonMap("invalid key", "invalid value"), mockV1TrapConfiguration);
+        sendTrapSNMPHandler.sendTrap(Collections.singletonMap("invalid key", "invalid value"), mockV1TrapConfiguration, mockTarget);
 
         verify(mockSnmpManager).send(mockPdu, mockTarget);
 
