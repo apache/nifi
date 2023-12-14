@@ -27,7 +27,6 @@
                         [processors]="(processorStatusSnapshots$ | async)!"
                         [selectedProcessorId]="selectedProcessorId$ | async"
                         (viewStatusHistory)="viewStatusHistory($event)"
-                        (gotoProcessor)="gotoProcessor($event)"
                         (selectProcessor)="selectProcessor($event)"
                         initialSortColumn="name"
                         initialSortDirection="asc"></processor-status-table>

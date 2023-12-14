@@ -89,15 +89,6 @@ export class ProcessorStatusListing {
         this.store.dispatch(SummaryListingActions.loadSummaryListing({ recursive: true }));
     }
 
-    gotoProcessor(processor: ProcessorStatusSnapshotEntity): void {
-        this.router.navigate([
-            '/process-groups',
-            processor.processorStatusSnapshot.groupId,
-            'processors',
-            processor.id
-        ]);
-    }
-
     viewStatusHistory(processor: ProcessorStatusSnapshotEntity): void {
         this.store.dispatch(
             SummaryListingActions.navigateToViewProcessorStatusHistory({

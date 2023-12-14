@@ -14,7 +14,7 @@
   ~  See the License for the specific language governing permissions and
   ~  limitations under the License.
   -->
-<div class="counter-table h-full flex flex-col">
+<div class="processor-status-table h-full flex flex-col">
     <!-- allow filtering of the table -->
     <summary-table-filter
         [filteredCount]="filteredCount"
@@ -204,7 +204,7 @@
                         <div class="flex items-center gap-x-3">
                             <div
                                 class="pointer fa fa-long-arrow-right"
-                                (click)="gotoProcessor.next(item)"
+                                [routerLink]="getProcessorLink(item)"
                                 title="Go to Processor in {{
                                     item?.processorStatusSnapshot?.processGroupNamePath
                                 }}"></div>

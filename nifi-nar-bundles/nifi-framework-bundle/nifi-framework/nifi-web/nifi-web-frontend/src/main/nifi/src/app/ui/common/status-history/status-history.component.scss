@@ -17,39 +17,54 @@
 
 @use '@angular/material' as mat;
 
-.status-history {
-    @include mat.button-density(-1);
+.status-history-container {
+    position: relative;
+    resize: both;
+    max-width: 80vw;
+    max-height: 84vh;
 
-    .mdc-dialog__content {
-        padding: 0 16px;
-        font-size: 14px;
+    .status-history {
+        @include mat.button-density(-1);
+        overflow-y: auto;
 
-        .dialog-content {
-            min-height: 523px;
-            overflow-y: auto;
+        .mdc-dialog__content {
+            padding: 0 16px;
+            font-size: 14px;
+
+            .dialog-content {
+                min-height: 523px;
+                overflow-y: auto;
+            }
         }
-    }
 
-    .mat-mdc-form-field {
-        width: 100%;
-    }
+        .mdc-dialog__actions {
+            // give a little room for the grab/resize handle away from the button.
+            padding: 10px;
+        }
 
-    mat-dialog-actions {
-        margin-top: auto;
-    }
+        .mat-mdc-form-field {
+            width: 100%;
+        }
 
-    .status-history-svg {
-        pointer-events: none;
-    }
+        mat-dialog-actions {
+            margin-top: auto;
+        }
 
-    .component-details {
-        min-width: 285px;
-    }
-    .chart-panel {
-        min-width: 495px;
-    }
-    .mat-mdc-dialog-content {
-        max-height: unset;
+        .status-history-svg {
+            pointer-events: none;
+        }
+
+        .component-details {
+            min-width: 285px;
+        }
+
+        .chart-panel {
+            min-width: 495px;
+        }
+
+        .mat-mdc-dialog-content {
+            max-height: unset;
+        }
     }
 }
 
@@ -99,4 +114,8 @@
     fill: #527991;
     font-family: Arial, sans-serif;
     font-size: 10px;
+}
+
+:host ::ng-deep .mat-mdc-dialog-surface.mdc-dialog__surface {
+    overflow: hidden !important;
 }

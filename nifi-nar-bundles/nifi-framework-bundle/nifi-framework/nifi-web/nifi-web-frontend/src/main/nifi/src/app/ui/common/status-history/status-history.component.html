@@ -14,7 +14,12 @@
   ~  See the License for the specific language governing permissions and
   ~  limitations under the License.
   -->
-<div resizable (resized)="resized($event)" [minHeight]="630" [minWidth]="830" class="flex flex-col">
+<div
+    resizable
+    (resized)="resized($event)"
+    [minHeight]="630"
+    [minWidth]="830"
+    class="flex flex-col status-history-container">
     <ng-container *ngIf="statusHistoryState$ | async; let statusHistoryState">
         <h2 mat-dialog-title>Status History</h2>
         <div class="status-history flex flex-col grow">
@@ -116,11 +121,6 @@
                                             (clusterStats)="clusterStatsChanged($event)"
                                             class="flex flex-1 flex-col">
                                         </status-history-chart>
-
-                                        <!--                                        <div id="status-history-container" class="flex-1 flex flex-col">-->
-                                        <!--                                            <div id="status-history-chart-container" class="grow">chart goes here</div>-->
-                                        <!--                                            <div id="status-history-chart-control-container">control goes here</div>-->
-                                        <!--                                        </div>-->
                                     </div>
                                 </div>
                             </ng-container>

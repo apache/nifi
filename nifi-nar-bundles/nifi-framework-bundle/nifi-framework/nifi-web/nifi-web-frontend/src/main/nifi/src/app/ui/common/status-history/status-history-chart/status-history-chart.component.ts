@@ -119,7 +119,7 @@ export class StatusHistoryChart {
             top: 15,
             right: 20,
             bottom: 25,
-            left: 75
+            left: 80
         };
 
         // -------------
@@ -185,7 +185,7 @@ export class StatusHistoryChart {
         let width = chartContainer.clientWidth - margin.left - margin.right;
         let height = chartContainer.clientHeight - margin.top - margin.bottom;
 
-        let maxWidth = chartContainer.clientWidth;
+        let maxWidth = Math.min(chartContainer.clientWidth, this.getChartMaxWidth());
         if (width > maxWidth) {
             width = maxWidth;
         }
@@ -631,6 +631,22 @@ export class StatusHistoryChart {
             parseInt(marginTop.value, 10) -
             parseInt(dialogStyles.get('top')?.value) -
             parseInt(dialogStyles.get('bottom')?.value)
+        );
+    }
+
+    private getChartMaxWidth() {
+        const statusHistory = document.getElementsByClassName('status-history')![0];
+        const dialogContent = statusHistory.getElementsByClassName('dialog-content')![0];
+        const dialogContentStyles: any = dialogContent.computedStyleMap();
+        const fullDialogStyles: any = statusHistory.computedStyleMap();
+        const bodyWidth = document.body.getBoundingClientRect().width;
+
+        return (
+            bodyWidth -
+            statusHistory.clientWidth -
+            parseInt(fullDialogStyles.get('left')?.value, 10) -
+            parseInt(dialogContentStyles.get('left')?.value) -
+            parseInt(dialogContentStyles.get('right')?.value)
         );
     }
 

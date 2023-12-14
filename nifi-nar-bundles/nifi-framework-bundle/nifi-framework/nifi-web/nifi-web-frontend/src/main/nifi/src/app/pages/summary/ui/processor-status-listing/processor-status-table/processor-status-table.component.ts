@@ -130,8 +130,6 @@ export class ProcessorStatusTable {
         this.filteredCount = processors.length;
     }
 
-    @Output() gotoProcessor: EventEmitter<ProcessorStatusSnapshotEntity> =
-        new EventEmitter<ProcessorStatusSnapshotEntity>();
     @Output() viewStatusHistory: EventEmitter<ProcessorStatusSnapshotEntity> =
         new EventEmitter<ProcessorStatusSnapshotEntity>();
     @Output() selectProcessor: EventEmitter<ProcessorStatusSnapshotEntity> =

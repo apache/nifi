@@ -393,12 +393,8 @@ export class NiFiCommon {
      * @param {integer} integer
      */
     public formatInteger(integer: number): string {
-        let string: string = String(integer);
-        const regex: RegExp = /(\d+)(\d{3})/;
-        while (regex.test(string)) {
-            string = string.replace(regex, '$1' + ',' + '$2');
-        }
-        return string;
+        const locale: string = (navigator && navigator.language) || 'en';
+        return integer.toLocaleString(locale, { maximumFractionDigits: 0 });
     }
 
     /**
@@ -408,8 +404,9 @@ export class NiFiCommon {
      */
     public formatFloat(f: number): string {
         if (!f) {
-            return 0.0 + '';
+            return '0.0';
         }
-        return f.toFixed(2) + '';
+        const locale: string = (navigator && navigator.language) || 'en';
+        return f.toLocaleString(locale, { maximumFractionDigits: 2, minimumFractionDigits: 2 });
     }
 }
