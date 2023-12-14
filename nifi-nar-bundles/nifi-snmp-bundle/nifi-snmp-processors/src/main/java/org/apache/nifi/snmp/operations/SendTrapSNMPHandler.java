@@ -31,32 +31,27 @@ import java.time.Instant;
 import java.util.Map;
 
 public class SendTrapSNMPHandler {
-    private final SNMPResourceHandler snmpResourceHandler;
     private final ComponentLog logger;
-    private final V1TrapPDUFactory v1TrapPDUFactory;
-    private final V2TrapPDUFactory v2TrapPDUFactory;
+    private final Snmp snmpManager;
+    private final Instant startTime;
 
-    public SendTrapSNMPHandler(final SNMPResourceHandler snmpResourceHandler, final Instant startTime, final ComponentLog logger) {
-        this.snmpResourceHandler = snmpResourceHandler;
+    public SendTrapSNMPHandler(final Snmp snmpManager, final Instant startTime, final ComponentLog logger) {
+        this.snmpManager = snmpManager;
         this.logger = logger;
-        v1TrapPDUFactory = createV1TrapPduFactory(startTime);
-        v2TrapPDUFactory = createV2TrapPduFactory(startTime);
+        this.startTime = startTime;
     }
 
-    public void sendTrap(final Map<String, String> flowFileAttributes, final V1TrapConfiguration trapConfiguration) throws IOException {
-        final PDU pdu = v1TrapPDUFactory.get(trapConfiguration);
-        sendTrap(flowFileAttributes, pdu);
+    public void sendTrap(final Map<String, String> flowFileAttributes, final V1TrapConfiguration trapConfiguration, final Target target) throws IOException {
+        final PDU pdu = createV1TrapPduFactory(target, startTime).get(trapConfiguration);
+        sendTrap(flowFileAttributes, pdu, target);
     }
 
-    public void sendTrap(final Map<String, String> flowFileAttributes, final V2TrapConfiguration trapConfiguration) throws IOException {
-        final PDU pdu = v2TrapPDUFactory.get(trapConfiguration);
-        sendTrap(flowFileAttributes, pdu);
+    public void sendTrap(final Map<String, String> flowFileAttributes, final V2TrapConfiguration trapConfiguration, final Target target) throws IOException {
+        final PDU pdu = createV2TrapPduFactory(target, startTime).get(trapConfiguration);
+        sendTrap(flowFileAttributes, pdu, target);
     }
 
-    private void sendTrap(Map<String, String> flowFileAttributes, PDU pdu) throws IOException {
-        final Target target = snmpResourceHandler.getTarget();
-        final Snmp snmpManager = snmpResourceHandler.getSnmpManager();
-
+    private void sendTrap(final Map<String, String> flowFileAttributes, final PDU pdu, final Target target) throws IOException {
         final boolean isAnyVariableAdded = SNMPUtils.addVariables(pdu, flowFileAttributes);
         if (!isAnyVariableAdded) {
             logger.debug("No optional SNMP specific variables found in flowfile.");
@@ -65,11 +60,11 @@ public class SendTrapSNMPHandler {
         snmpManager.send(pdu, target);
     }
 
-    V1TrapPDUFactory createV1TrapPduFactory(final Instant startTime) {
-        return new V1TrapPDUFactory(snmpResourceHandler.getTarget(), startTime);
+    V1TrapPDUFactory createV1TrapPduFactory(final Target target, final Instant startTime) {
+        return new V1TrapPDUFactory(target, startTime);
     }
 
-    V2TrapPDUFactory createV2TrapPduFactory(final Instant startTime) {
-        return new V2TrapPDUFactory(snmpResourceHandler.getTarget(), startTime);
+    V2TrapPDUFactory createV2TrapPduFactory(final Target target, final Instant startTime) {
+        return new V2TrapPDUFactory(target, startTime);
     }
 }

@@ -33,7 +33,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.apache.nifi.snmp.operations.SNMPResourceHandler.REQUEST_TIMEOUT_EXCEPTION_TEMPLATE;
+import static org.apache.nifi.snmp.processors.AbstractSNMPProcessor.REQUEST_TIMEOUT_EXCEPTION_TEMPLATE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -65,8 +65,7 @@ class SetSNMPHandlerTest {
 
         when(mockPduFactory.createPDU(mockTarget)).thenReturn(mockPdu);
 
-        SNMPResourceHandler snmpResourceHandler = new SNMPResourceHandler(mockSnmpManager, mockTarget);
-        setSNMPHandler = new SetSNMPHandler(snmpResourceHandler);
+        setSNMPHandler = new SetSNMPHandler(mockSnmpManager);
         SetSNMPHandler.setSetPduFactory(mockPduFactory);
     }
 
@@ -84,7 +83,7 @@ class SetSNMPHandlerTest {
         when(mockResponseEvent.getResponse()).thenReturn(mockResponsePdu);
         when(mockSnmpManager.set(any(PDU.class), any(Target.class))).thenReturn(mockResponseEvent);
 
-        setSNMPHandler.set(flowFileAttributes);
+        setSNMPHandler.set(flowFileAttributes, mockTarget);
 
         verify(mockSnmpManager).set(mockPdu, mockTarget);
     }
@@ -99,7 +98,7 @@ class SetSNMPHandlerTest {
 
         final RequestTimeoutException requestTimeoutException = assertThrows(
                 RequestTimeoutException.class,
-                () -> setSNMPHandler.set(flowFileAttributes)
+                () -> setSNMPHandler.set(flowFileAttributes, mockTarget)
         );
 
         assertEquals(String.format(REQUEST_TIMEOUT_EXCEPTION_TEMPLATE, "write"), requestTimeoutException.getMessage());
@@ -112,7 +111,7 @@ class SetSNMPHandlerTest {
 
         when(mockSnmpManager.set(any(PDU.class), any(Target.class))).thenReturn(mockResponseEvent);
 
-        final Optional<SNMPSingleResponse> optionalResponse = setSNMPHandler.set(flowFileAttributes);
+        final Optional<SNMPSingleResponse> optionalResponse = setSNMPHandler.set(flowFileAttributes, mockTarget);
 
         assertFalse(optionalResponse.isPresent());
     }

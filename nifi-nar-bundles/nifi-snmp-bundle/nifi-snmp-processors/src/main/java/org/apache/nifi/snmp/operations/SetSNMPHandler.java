@@ -30,21 +30,18 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.apache.nifi.snmp.operations.SNMPResourceHandler.REQUEST_TIMEOUT_EXCEPTION_TEMPLATE;
+import static org.apache.nifi.snmp.processors.AbstractSNMPProcessor.REQUEST_TIMEOUT_EXCEPTION_TEMPLATE;
 
 public class SetSNMPHandler {
     private static PDUFactory setPduFactory = new DefaultPDUFactory(PDU.SET);
 
-    private final SNMPResourceHandler snmpResourceHandler;
+    private final Snmp snmpManager;
 
-    public SetSNMPHandler(final SNMPResourceHandler snmpResourceHandler) {
-        this.snmpResourceHandler = snmpResourceHandler;
+    public SetSNMPHandler(final Snmp snmpManager) {
+        this.snmpManager = snmpManager;
     }
 
-    public Optional<SNMPSingleResponse> set(final Map<String, String> flowFileAttributes) throws IOException {
-        Target target = snmpResourceHandler.getTarget();
-        Snmp snmpManager = snmpResourceHandler.getSnmpManager();
-
+    public Optional<SNMPSingleResponse> set(final Map<String, String> flowFileAttributes, final Target target) throws IOException {
         final PDU pdu = setPduFactory.createPDU(target);
         final boolean isAnySnmpVariableInFlowFile = SNMPUtils.addVariables(pdu, flowFileAttributes);
         if (isAnySnmpVariableInFlowFile) {

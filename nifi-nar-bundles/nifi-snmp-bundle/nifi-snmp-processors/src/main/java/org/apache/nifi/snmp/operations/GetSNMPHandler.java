@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.apache.nifi.snmp.operations.SNMPResourceHandler.REQUEST_TIMEOUT_EXCEPTION_TEMPLATE;
+import static org.apache.nifi.snmp.processors.AbstractSNMPProcessor.REQUEST_TIMEOUT_EXCEPTION_TEMPLATE;
 
 public class GetSNMPHandler {
 
@@ -56,29 +56,15 @@ public class GetSNMPHandler {
             "associated with this %s OID does not contain child OIDs. Please check if the OID exists in the agent " +
             "MIB or specify a parent OID with at least one child element";
 
-    private final SNMPResourceHandler snmpResourceHandler;
+    private Snmp snmpManager;
     private TreeUtils treeUtils;
 
-    public GetSNMPHandler(final SNMPResourceHandler snmpResourceHandler) {
-        this.snmpResourceHandler = snmpResourceHandler;
-        this.treeUtils = new TreeUtils(snmpResourceHandler.getSnmpManager(), getPduFactory);
+    public GetSNMPHandler(final Snmp snmpManager) {
+        this.snmpManager = snmpManager;
+        this.treeUtils = new TreeUtils(snmpManager, getPduFactory);
     }
 
-    public SNMPSingleResponse get(final String oid) throws IOException {
-        final Target target = snmpResourceHandler.getTarget();
-        final Snmp snmpManager = snmpResourceHandler.getSnmpManager();
-
-        final PDU pdu = getPduFactory.createPDU(target);
-        pdu.add(new VariableBinding(new OID(oid)));
-
-        final PDU responsePdu = getResponsePdu(target, snmpManager, pdu);
-        return new SNMPSingleResponse(target, responsePdu);
-    }
-
-    public Optional<SNMPSingleResponse> get(final Map<String, String> flowFileAttributes) throws IOException {
-        final Target target = snmpResourceHandler.getTarget();
-        final Snmp snmpManager = snmpResourceHandler.getSnmpManager();
-
+    public Optional<SNMPSingleResponse> get(final Map<String, String> flowFileAttributes, final Target target) throws IOException {
         final PDU pdu = getPduFactory.createPDU(target);
         VariableBinding[] variableBindings = SNMPUtils.addGetVariables(flowFileAttributes);
         if (variableBindings.length == 0) {
@@ -86,21 +72,11 @@ public class GetSNMPHandler {
         }
         pdu.addAll(variableBindings);
 
-        final PDU responsePdu = getResponsePdu(target, snmpManager, pdu);
+        final PDU responsePdu = getResponsePdu(target, pdu);
         return Optional.of(new SNMPSingleResponse(target, responsePdu));
     }
 
-    public SNMPTreeResponse walk(final String oid) {
-        final Target target = snmpResourceHandler.getTarget();
-        final List<TreeEvent> subtree = treeUtils.getSubtree(target, new OID(oid));
-
-        evaluateSubtreeErrors(oid, subtree);
-
-        return new SNMPTreeResponse(target, subtree);
-    }
-
-    public Optional<SNMPTreeResponse> walk(final Map<String, String> flowFileAttributes) {
-        final Target target = snmpResourceHandler.getTarget();
+    public Optional<SNMPTreeResponse> walk(final Map<String, String> flowFileAttributes, final Target target) {
         final List<TreeEvent> subtree;
 
         final OID[] oids = SNMPUtils.addWalkVariables(flowFileAttributes);
@@ -114,7 +90,7 @@ public class GetSNMPHandler {
         return Optional.of(new SNMPTreeResponse(target, subtree));
     }
 
-    private PDU getResponsePdu(Target target, Snmp snmpManager, PDU pdu) throws IOException {
+    private PDU getResponsePdu(final Target target, final PDU pdu) throws IOException {
         final ResponseEvent response = snmpManager.get(pdu, target);
         final PDU responsePdu = response.getResponse();
         if (responsePdu == null) {

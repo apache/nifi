@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -35,6 +36,7 @@ import org.apache.nifi.snmp.processors.properties.V1TrapProperties;
 import org.apache.nifi.snmp.processors.properties.V2TrapProperties;
 import org.apache.nifi.snmp.processors.properties.V3SecurityProperties;
 import org.apache.nifi.snmp.utils.SNMPUtils;
+import org.snmp4j.Target;
 import org.snmp4j.mp.SnmpConstants;
 
 import java.io.IOException;
@@ -62,18 +64,20 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
     public static final PropertyDescriptor SNMP_MANAGER_HOST = new PropertyDescriptor.Builder()
             .name("snmp-trap-manager-host")
             .displayName("SNMP Manager Host")
-            .description("The host where the SNMP Manager sends the trap.")
+            .description("The host of the SNMP Manager where the trap is sent.")
             .required(true)
             .defaultValue("localhost")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor SNMP_MANAGER_PORT = new PropertyDescriptor.Builder()
             .name("snmp-trap-manager-port")
             .displayName("SNMP Manager Port")
-            .description("The port where the SNMP Manager listens to the incoming traps.")
+            .description("The port of the SNMP Manager where the trap is sent.")
             .required(true)
-            .addValidator(StandardValidators.PORT_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -116,15 +120,16 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
     public void init(ProcessContext context) {
         Instant startTime = Instant.now();
         initSnmpManager(context);
-        snmpHandler = new SendTrapSNMPHandler(snmpResourceHandler, startTime, getLogger());
+        snmpHandler = new SendTrapSNMPHandler(snmpManager, startTime, getLogger());
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession processSession) {
-        final FlowFile flowFile = Optional.ofNullable(processSession.get()).orElseGet(processSession::create);
+        FlowFile flowFile = Optional.ofNullable(processSession.get()).orElseGet(processSession::create);
         final Map<String, String> attributes = new HashMap<>(flowFile.getAttributes());
 
         try {
+            final Target target = factory.createTargetInstance(getTargetConfiguration(context, flowFile));
             final int snmpVersion = SNMPUtils.getVersion(context.getProperty(BasicProperties.SNMP_VERSION).getValue());
             if (SnmpConstants.version1 == snmpVersion) {
 
@@ -147,17 +152,15 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
                 attributes.put("enterpriseOid", enterpriseOid);
                 attributes.put("genericTrapType", genericTrapType);
                 attributes.put("specificTrapType", specificTrapType);
-                snmpHandler.sendTrap(attributes, v1TrapConfiguration);
+                snmpHandler.sendTrap(attributes, v1TrapConfiguration, target);
             } else {
                 final String trapOidValue = context.getProperty(V2TrapProperties.TRAP_OID_VALUE).evaluateAttributeExpressions(flowFile).getValue();
                 V2TrapConfiguration v2TrapConfiguration = new V2TrapConfiguration(trapOidValue);
                 attributes.put("trapOidValue", trapOidValue);
-                snmpHandler.sendTrap(attributes, v2TrapConfiguration);
+                snmpHandler.sendTrap(attributes, v2TrapConfiguration, target);
             }
-
-            processSession.putAllAttributes(flowFile, attributes);
+            flowFile = processSession.putAllAttributes(flowFile, attributes);
             processSession.transfer(flowFile, REL_SUCCESS);
-
         } catch (IOException e) {
             getLogger().error("Failed to send request to the agent. Check if the agent supports the used version.", e);
             processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
@@ -179,12 +182,12 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
     }
 
     @Override
-    protected String getTargetHost(ProcessContext processContext) {
-        return processContext.getProperty(SNMP_MANAGER_HOST).getValue();
+    protected String getTargetHost(final ProcessContext processContext, final FlowFile flowFile) {
+        return processContext.getProperty(SNMP_MANAGER_HOST).evaluateAttributeExpressions(flowFile).getValue();
     }
 
     @Override
-    protected String getTargetPort(ProcessContext processContext) {
-        return processContext.getProperty(SNMP_MANAGER_PORT).getValue();
+    protected String getTargetPort(final ProcessContext processContext, final FlowFile flowFile) {
+        return processContext.getProperty(SNMP_MANAGER_PORT).evaluateAttributeExpressions(flowFile).getValue();
     }
 }

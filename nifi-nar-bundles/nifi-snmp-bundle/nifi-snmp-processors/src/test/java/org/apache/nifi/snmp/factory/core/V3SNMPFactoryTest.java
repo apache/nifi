@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.snmp.factory.core;
 
-import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 import org.junit.jupiter.api.Test;
 import org.snmp4j.Snmp;
 import org.snmp4j.Target;
@@ -32,8 +31,6 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
 
 class V3SNMPFactoryTest extends SNMPSocketSupport {
 
@@ -58,15 +55,5 @@ class V3SNMPFactoryTest extends SNMPSocketSupport {
         USM usm = (USM) SecurityModels.getInstance().getSecurityModel(new Integer32(3));
         assertNotNull(address);
         assertTrue(usm.hasUser(null, new OctetString("SHAAES128")));
-    }
-
-    @Test
-    void testFactoryCreatesResourceHandler() {
-        final V3SNMPFactory snmpFactory = spy(V3SNMPFactory.class);
-        final SNMPConfiguration snmpConfiguration = getSnmpConfiguration(0, "48");
-        snmpFactory.createSNMPResourceHandler(snmpConfiguration);
-
-        verify(snmpFactory).createTargetInstance(snmpConfiguration);
-        verify(snmpFactory).createSnmpManagerInstance(snmpConfiguration);
     }
 }

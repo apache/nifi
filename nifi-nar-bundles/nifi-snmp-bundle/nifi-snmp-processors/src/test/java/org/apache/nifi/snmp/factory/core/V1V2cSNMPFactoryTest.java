@@ -29,8 +29,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
 
 class V1V2cSNMPFactoryTest extends SNMPSocketSupport {
 
@@ -54,17 +52,6 @@ class V1V2cSNMPFactoryTest extends SNMPSocketSupport {
         final Snmp snmpManager = createInstanceWithRetries(snmpFactory::createSnmpManagerInstance, 5);
         final String address = snmpManager.getMessageDispatcher().getTransportMappings().iterator().next().getListenAddress().toString();
         assertNotNull(address);
-    }
-
-    @Test
-    void testFactoryCreatesResourceHandler() {
-        final V1V2cSNMPFactory snmpFactory = spy(V1V2cSNMPFactory.class);
-        final SNMPConfiguration snmpConfiguration = getSnmpConfiguration(0, "48");
-
-        snmpFactory.createSNMPResourceHandler(snmpConfiguration);
-
-        verify(snmpFactory).createTargetInstance(snmpConfiguration);
-        verify(snmpFactory).createSnmpManagerInstance(snmpConfiguration);
     }
 
     @Override
