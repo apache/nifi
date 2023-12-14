@@ -33,6 +33,7 @@ import org.apache.nifi.snmp.operations.SetSNMPHandler;
 import org.apache.nifi.snmp.processors.properties.BasicProperties;
 import org.apache.nifi.snmp.processors.properties.V3SecurityProperties;
 import org.apache.nifi.snmp.utils.SNMPUtils;
+import org.snmp4j.Target;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -101,7 +102,7 @@ public class SetSNMP extends AbstractSNMPProcessor {
     @OnScheduled
     public void init(final ProcessContext context) {
         initSnmpManager(context);
-        snmpHandler = new SetSNMPHandler(snmpResourceHandler);
+        snmpHandler = new SetSNMPHandler(snmpManager);
     }
 
     @Override
@@ -109,16 +110,17 @@ public class SetSNMP extends AbstractSNMPProcessor {
         final FlowFile flowFile = processSession.get();
         if (flowFile != null) {
             try {
-                final Optional<SNMPSingleResponse> optionalResponse = snmpHandler.set(flowFile.getAttributes());
+                final Target target = factory.createTargetInstance(getTargetConfiguration(context, flowFile));
+                final Optional<SNMPSingleResponse> optionalResponse = snmpHandler.set(flowFile.getAttributes(), target);
                 if (optionalResponse.isPresent()) {
                     processSession.remove(flowFile);
                     final FlowFile outgoingFlowFile = processSession.create();
                     final SNMPSingleResponse response = optionalResponse.get();
-                    processSession.getProvenanceReporter().receive(outgoingFlowFile, "/set");
-                    handleResponse(context, processSession, outgoingFlowFile, response, REL_SUCCESS, REL_FAILURE, "/set");
+                    handleResponse(context, processSession, outgoingFlowFile, response, REL_SUCCESS, REL_FAILURE, "/set", true);
                 } else {
                     getLogger().warn("No SNMP specific attributes found in flowfile.");
                     processSession.transfer(flowFile, REL_FAILURE);
+                    processSession.getProvenanceReporter().receive(flowFile, "/set");
                 }
             } catch (IOException e) {
                 getLogger().error("Failed to send request to the agent. Check if the agent supports the used version.");
@@ -138,13 +140,12 @@ public class SetSNMP extends AbstractSNMPProcessor {
         return RELATIONSHIPS;
     }
 
-    @Override
-    protected String getTargetHost(ProcessContext processContext) {
-        return processContext.getProperty(AGENT_HOST).getValue();
+    protected String getTargetHost(final ProcessContext processContext, final FlowFile flowFile) {
+        return processContext.getProperty(AGENT_HOST).evaluateAttributeExpressions(flowFile).getValue();
     }
 
     @Override
-    protected String getTargetPort(ProcessContext processContext) {
-        return processContext.getProperty(AGENT_PORT).getValue();
+    protected String getTargetPort(final ProcessContext processContext, final FlowFile flowFile) {
+        return processContext.getProperty(AGENT_PORT).evaluateAttributeExpressions(flowFile).getValue();
     }
 }

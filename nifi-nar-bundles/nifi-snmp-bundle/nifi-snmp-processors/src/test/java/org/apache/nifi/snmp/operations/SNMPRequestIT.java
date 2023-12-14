@@ -21,6 +21,7 @@ import org.apache.nifi.snmp.dto.SNMPSingleResponse;
 import org.apache.nifi.snmp.dto.SNMPTreeResponse;
 import org.apache.nifi.snmp.dto.SNMPValue;
 import org.apache.nifi.snmp.exception.RequestTimeoutException;
+import org.apache.nifi.snmp.factory.core.SNMPContext;
 import org.apache.nifi.snmp.factory.core.SNMPFactoryProvider;
 import org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory;
 import org.apache.nifi.snmp.helper.configurations.SNMPV1V2cConfigurationFactory;
@@ -29,10 +30,12 @@ import org.apache.nifi.snmp.testagents.TestAgent;
 import org.apache.nifi.snmp.testagents.TestSNMPV1Agent;
 import org.apache.nifi.snmp.testagents.TestSNMPV2cAgent;
 import org.apache.nifi.snmp.testagents.TestSNMPV3Agent;
-import org.junit.jupiter.api.AfterEach;
+import org.apache.nifi.util.EqualsWrapper;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.snmp4j.Snmp;
+import org.snmp4j.Target;
 import org.snmp4j.agent.mo.DefaultMOFactory;
 import org.snmp4j.agent.mo.MOAccessImpl;
 import org.snmp4j.mp.SnmpConstants;
@@ -44,10 +47,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -93,17 +98,11 @@ class SNMPRequestIT {
     private static final TestAgent v2cTestAgent = new TestSNMPV2cAgent(LOCALHOST);
     private static final TestAgent v3TestAgent = new TestSNMPV3Agent(LOCALHOST);
 
-    private SNMPResourceHandler snmpResourceHandler;
 
     static {
         registerManagedObjects(v1TestAgent);
         registerManagedObjects(v2cTestAgent);
         registerManagedObjects(v3TestAgent);
-    }
-
-    @AfterEach
-    public void tearDown() {
-        snmpResourceHandler.close();
     }
 
     private static Stream<Arguments> provideBasicArguments() {
@@ -152,9 +151,12 @@ class SNMPRequestIT {
         agent.start();
         try {
             final SNMPConfiguration snmpConfiguration = snmpConfigurationFactory.createSnmpGetSetConfiguration(agent.getPort());
-            snmpResourceHandler = SNMPFactoryProvider.getFactory(version).createSNMPResourceHandler(snmpConfiguration);
-            final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpResourceHandler);
-            final SNMPSingleResponse response = getSNMPHandler.get(READ_ONLY_OID_1);
+            final SNMPContext factory = SNMPFactoryProvider.getFactory(version);
+            final Target target = factory.createTargetInstance(snmpConfiguration);
+            final Snmp snmpManager = factory.createSnmpManagerInstance(snmpConfiguration);
+            final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpManager);
+            final Map<String, String> attributes = Collections.singletonMap("snmp$" + READ_ONLY_OID_1, "");
+            final SNMPSingleResponse response = getSNMPHandler.get(attributes, target).orElseThrow();
             assertEquals(READ_ONLY_OID_VALUE_1, response.getVariableBindings().get(0).getVariable());
             assertEquals(SUCCESS, response.getErrorStatusText());
         } catch (Exception e) {
@@ -171,9 +173,11 @@ class SNMPRequestIT {
         agent.start();
         try {
             final SNMPConfiguration snmpConfiguration = snmpConfigurationFactory.createSnmpGetSetConfiguration(agent.getPort());
-            snmpResourceHandler = SNMPFactoryProvider.getFactory(version).createSNMPResourceHandler(snmpConfiguration);
-            final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpResourceHandler);
-            final Optional<SNMPSingleResponse> optionalResponse = getSNMPHandler.get(getFlowFileAttributesForSnmpGet(READ_ONLY_OID_1, READ_ONLY_OID_2));
+            final SNMPContext factory = SNMPFactoryProvider.getFactory(version);
+            final Target target = factory.createTargetInstance(snmpConfiguration);
+            final Snmp snmpManager = factory.createSnmpManagerInstance(snmpConfiguration);
+            final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpManager);
+            final Optional<SNMPSingleResponse> optionalResponse = getSNMPHandler.get(getFlowFileAttributesForSnmpGet(READ_ONLY_OID_1, READ_ONLY_OID_2), target);
             if (optionalResponse.isPresent()) {
                 final SNMPSingleResponse response = optionalResponse.get();
                 Set<String> expectedVariables = new HashSet<>(Arrays.asList(READ_ONLY_OID_VALUE_1, READ_ONLY_OID_VALUE_2));
@@ -198,11 +202,14 @@ class SNMPRequestIT {
         agent.start();
         try {
             final SNMPConfiguration snmpConfiguration = snmpConfigurationFactory.createSnmpGetSetConfiguration(agent.getPort());
-            snmpResourceHandler = SNMPFactoryProvider.getFactory(version).createSNMPResourceHandler(snmpConfiguration);
-            final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpResourceHandler);
-            final SNMPTreeResponse response = getSNMPHandler.walk(WALK_OID);
+            final SNMPContext factory = SNMPFactoryProvider.getFactory(version);
+            final Target target = factory.createTargetInstance(snmpConfiguration);
+            final Snmp snmpManager = factory.createSnmpManagerInstance(snmpConfiguration);
+            final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpManager);
+            final Map<String, String> attributes = Collections.singletonMap("snmp$" + WALK_OID, "");
+            final Optional<SNMPTreeResponse> response = getSNMPHandler.walk(attributes, target);
 
-            assertSubTreeContainsOids(response);
+            assertSubTreeContainsOids(response.orElseThrow());
         } catch (Exception e) {
             fail(e);
         } finally {
@@ -217,11 +224,13 @@ class SNMPRequestIT {
         agent.start();
         try {
             final SNMPConfiguration snmpConfiguration = snmpConfigurationFactory.createSnmpGetSetConfigWithCustomHost(INVALID_HOST, agent.getPort());
-            snmpResourceHandler = SNMPFactoryProvider.getFactory(version).createSNMPResourceHandler(snmpConfiguration);
-
-            final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpResourceHandler);
+            final SNMPContext factory = SNMPFactoryProvider.getFactory(version);
+            final Target target = factory.createTargetInstance(snmpConfiguration);
+            final Snmp snmpManager = factory.createSnmpManagerInstance(snmpConfiguration);
+            final Map<String, String> attributes = Collections.singletonMap("snmp$" + READ_ONLY_OID_1, "");
+            final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpManager);
             assertThrows(RequestTimeoutException.class, () ->
-                    getSNMPHandler.get(READ_ONLY_OID_1)
+                    getSNMPHandler.get(attributes, target)
             );
         } catch (Exception e) {
             fail(e);
@@ -237,20 +246,38 @@ class SNMPRequestIT {
         agent.start();
         try {
             final SNMPConfiguration snmpConfiguration = snmpConfigurationFactory.createSnmpGetSetConfiguration(agent.getPort());
-            snmpResourceHandler = SNMPFactoryProvider.getFactory(version).createSNMPResourceHandler(snmpConfiguration);
-            final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpResourceHandler);
-            final Optional<SNMPSingleResponse> optionalResponse = getSNMPHandler.get(getFlowFileAttributesForSnmpGet(INVALID_OID, READ_ONLY_OID_2));
+            final SNMPContext factory = SNMPFactoryProvider.getFactory(version);
+            final Target target = factory.createTargetInstance(snmpConfiguration);
+            final Snmp snmpManager = factory.createSnmpManagerInstance(snmpConfiguration);
+            final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpManager);
+            final Optional<SNMPSingleResponse> optionalResponse = getSNMPHandler.get(getFlowFileAttributesForSnmpGet(INVALID_OID, READ_ONLY_OID_2), target);
             if (optionalResponse.isPresent()) {
                 final SNMPSingleResponse response = optionalResponse.get();
+                final List<SNMPValue> actualVariableBindings = response.getVariableBindings();
+                final List<SNMPValue> expectedVariableBindings;
+
+                final List<Function<SNMPValue, Object>> equalsProperties = Arrays.asList(
+                        SNMPValue::getOid,
+                        SNMPValue::getVariable
+                );
+
                 if (version == SnmpConstants.version1) {
-                    assertEquals("Null", response.getVariableBindings().get(1).getVariable());
-                    assertEquals(READ_ONLY_OID_VALUE_2, response.getVariableBindings().get(0).getVariable());
+                    expectedVariableBindings = Arrays.asList(
+                            new SNMPValue(INVALID_OID, "Null"),
+                            new SNMPValue(READ_ONLY_OID_2, READ_ONLY_OID_VALUE_2)
+                    );
                     assertEquals(NO_SUCH_NAME, response.getErrorStatusText());
                 } else {
-                    assertEquals(NO_SUCH_OBJECT, response.getVariableBindings().get(1).getVariable());
-                    assertEquals(READ_ONLY_OID_VALUE_2, response.getVariableBindings().get(0).getVariable());
+                    expectedVariableBindings = Arrays.asList(
+                            new SNMPValue(INVALID_OID, NO_SUCH_OBJECT),
+                            new SNMPValue(READ_ONLY_OID_2, READ_ONLY_OID_VALUE_2)
+                    );
                     assertEquals(SUCCESS, response.getErrorStatusText());
                 }
+                assertEquals(
+                        new HashSet<>(EqualsWrapper.wrapList(actualVariableBindings, equalsProperties)),
+                        new HashSet<>(EqualsWrapper.wrapList(expectedVariableBindings, equalsProperties))
+                );
             } else {
                 fail("Response is not present.");
             }
@@ -269,9 +296,11 @@ class SNMPRequestIT {
         try {
             final Map<String, String> flowFileAttributes = getFlowFileAttributes(WRITE_ONLY_OID);
             final SNMPConfiguration snmpConfiguration = snmpConfigurationFactory.createSnmpGetSetConfiguration(agent.getPort());
-            snmpResourceHandler = SNMPFactoryProvider.getFactory(version).createSNMPResourceHandler(snmpConfiguration);
-            final SetSNMPHandler setSNMPHandler = new SetSNMPHandler(snmpResourceHandler);
-            final Optional<SNMPSingleResponse> optionalResponse = setSNMPHandler.set(flowFileAttributes);
+            final SNMPContext factory = SNMPFactoryProvider.getFactory(version);
+            final Target target = factory.createTargetInstance(snmpConfiguration);
+            final Snmp snmpManager = factory.createSnmpManagerInstance(snmpConfiguration);
+            final SetSNMPHandler setSNMPHandler = new SetSNMPHandler(snmpManager);
+            final Optional<SNMPSingleResponse> optionalResponse = setSNMPHandler.set(flowFileAttributes, target);
             if (optionalResponse.isPresent()) {
                 final SNMPSingleResponse response = optionalResponse.get();
                 assertEquals(TEST_OID_VALUE, response.getVariableBindings().get(0).getVariable());
@@ -295,9 +324,11 @@ class SNMPRequestIT {
         try {
             final Map<String, String> flowFileAttributes = getFlowFileAttributes(READ_ONLY_OID_1);
             final SNMPConfiguration snmpConfiguration = snmpConfigurationFactory.createSnmpGetSetConfiguration(agent.getPort());
-            snmpResourceHandler = SNMPFactoryProvider.getFactory(version).createSNMPResourceHandler(snmpConfiguration);
-            final SetSNMPHandler setSNMPHandler = new SetSNMPHandler(snmpResourceHandler);
-            final Optional<SNMPSingleResponse> optionalResponse = setSNMPHandler.set(flowFileAttributes);
+            final SNMPContext factory = SNMPFactoryProvider.getFactory(version);
+            final Target target = factory.createTargetInstance(snmpConfiguration);
+            final Snmp snmpManager = factory.createSnmpManagerInstance(snmpConfiguration);
+            final SetSNMPHandler setSNMPHandler = new SetSNMPHandler(snmpManager);
+            final Optional<SNMPSingleResponse> optionalResponse = setSNMPHandler.set(flowFileAttributes, target);
             if (optionalResponse.isPresent()) {
                 final SNMPSingleResponse response = optionalResponse.get();
                 assertEquals(cannotSetReadOnlyOidStatusMessage, response.getErrorStatusText());
@@ -319,11 +350,14 @@ class SNMPRequestIT {
         agent.start();
         try {
             final SNMPConfiguration snmpConfiguration = snmpConfigurationFactory.createSnmpGetSetConfiguration(agent.getPort());
-            snmpResourceHandler = SNMPFactoryProvider.getFactory(version).createSNMPResourceHandler(snmpConfiguration);
-            final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpResourceHandler);
-            final SNMPSingleResponse response = getSNMPHandler.get(WRITE_ONLY_OID);
+            final SNMPContext factory = SNMPFactoryProvider.getFactory(version);
+            final Target target = factory.createTargetInstance(snmpConfiguration);
+            final Snmp snmpManager = factory.createSnmpManagerInstance(snmpConfiguration);
+            final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpManager);
+            final Map<String, String> attributes = Collections.singletonMap("snmp$" + WRITE_ONLY_OID, "");
+            final Optional<SNMPSingleResponse> response = getSNMPHandler.get(attributes, target);
 
-            assertEquals(cannotModifyOidStatusMessage, response.getErrorStatusText());
+            assertEquals(cannotModifyOidStatusMessage, response.map(SNMPSingleResponse::getErrorStatusText).orElseThrow());
         } catch (Exception e) {
             fail(e);
         } finally {
@@ -339,9 +373,12 @@ class SNMPRequestIT {
         agent.start();
         try {
             final SNMPConfiguration snmpConfiguration = snmpConfigurationFactory.createSnmpGetSetConfiguration(agent.getPort());
-            snmpResourceHandler = SNMPFactoryProvider.getFactory(version).createSNMPResourceHandler(snmpConfiguration);
-            final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpResourceHandler);
-            final SNMPSingleResponse response = getSNMPHandler.get(INVALID_OID);
+            final SNMPContext factory = SNMPFactoryProvider.getFactory(version);
+            final Target target = factory.createTargetInstance(snmpConfiguration);
+            final Snmp snmpManager = factory.createSnmpManagerInstance(snmpConfiguration);
+            final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpManager);
+            final Map<String, String> attributes = Collections.singletonMap("snmp$" + INVALID_OID, "");
+            final SNMPSingleResponse response = getSNMPHandler.get(attributes, target).orElseThrow();
             if (version == SnmpConstants.version1) {
                 assertEquals(getInvalidOidStatusMessage, response.getErrorStatusText());
             } else {
@@ -364,9 +401,11 @@ class SNMPRequestIT {
         try {
             final Map<String, String> flowFileAttributes = getFlowFileAttributes(INVALID_OID);
             final SNMPConfiguration snmpConfiguration = snmpConfigurationFactory.createSnmpGetSetConfiguration(agent.getPort());
-            snmpResourceHandler = SNMPFactoryProvider.getFactory(version).createSNMPResourceHandler(snmpConfiguration);
-            final SetSNMPHandler setSNMPHandler = new SetSNMPHandler(snmpResourceHandler);
-            final Optional<SNMPSingleResponse> optionalResponse = setSNMPHandler.set(flowFileAttributes);
+            final SNMPContext factory = SNMPFactoryProvider.getFactory(version);
+            final Target target = factory.createTargetInstance(snmpConfiguration);
+            final Snmp snmpManager = factory.createSnmpManagerInstance(snmpConfiguration);
+            final SetSNMPHandler setSNMPHandler = new SetSNMPHandler(snmpManager);
+            final Optional<SNMPSingleResponse> optionalResponse = setSNMPHandler.set(flowFileAttributes, target);
             if (optionalResponse.isPresent()) {
                 final SNMPSingleResponse response = optionalResponse.get();
                 assertEquals(setInvalidOidStatusMessage, response.getErrorStatusText());
