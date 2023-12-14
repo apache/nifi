@@ -160,9 +160,7 @@ public class PublisherLease implements Closeable {
                     tracker.fail(flowFile, new TokenTooLargeException("A message in the stream exceeds the maximum allowed message size of " + maxMessageSize + " bytes."));
                     return;
                 }
-                if(flowFile.getAttribute(KafkaFlowFileAttribute.KAFKA_IS_TOMBSTONE) != null
-                        && flowFile.getAttribute(KafkaFlowFileAttribute.KAFKA_IS_TOMBSTONE).equals("true")
-                        && flowFile.getSize() == 0) {
+                if (Boolean.TRUE.toString().equals(flowFile.getAttribute(KafkaFlowFileAttribute.KAFKA_IS_TOMBSTONE)) && flowFile.getSize() == 0) {
                     messageContent = null;
                 } else {
                     // Send FlowFile content as it is, to support sending 0 byte message.

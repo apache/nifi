@@ -40,5 +40,5 @@ public interface KafkaFlowFileAttribute {
 
     String KAFKA_CONSUMER_OFFSETS_COMMITTED = "kafka.consumer.offsets.committed";
 
-    String KAFKA_IS_TOMBSTONE = "kafka.isTombstone";
+    String KAFKA_IS_TOMBSTONE = "kafka.tombstone";
 }
