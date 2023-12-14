@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ProcessGroupStatusListing } from './process-group-status-listing.component';
 
-describe('ProcessGroupStatusListingComponent', () => {
+describe('ProcessGroupStatusListing', () => {
     let component: ProcessGroupStatusListing;
     let fixture: ComponentFixture<ProcessGroupStatusListing>;
 

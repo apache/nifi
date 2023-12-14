@@ -393,12 +393,12 @@ export class NiFiCommon {
      * @param {integer} integer
      */
     public formatInteger(integer: number): string {
-        let string: string = integer + '';
+        let string: string = String(integer);
         const regex: RegExp = /(\d+)(\d{3})/;
         while (regex.test(string)) {
             string = string.replace(regex, '$1' + ',' + '$2');
         }
-        return this.escapeHtml(string);
+        return string;
     }
 
     /**
@@ -411,30 +411,5 @@ export class NiFiCommon {
             return 0.0 + '';
         }
         return f.toFixed(2) + '';
-    }
-
-    private static readonly entityMap: { [key: string]: string } = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;',
-        '/': '&#x2f;'
-    };
-
-    /**
-     * HTML escapes the specified string. If the string is null
-     * or undefined, an empty string is returned.
-     *
-     * @returns {string}
-     */
-    public escapeHtml(string: string): string {
-        if (!!string) {
-            return String(string).replace(/[&<>"'\/]/g, (s) => {
-                return NiFiCommon.entityMap[s];
-            });
-        } else {
-            return '';
-        }
     }
 }

@@ -31,7 +31,6 @@ import { debounceTime, Subject } from 'rxjs';
     styleUrls: ['./status-history-chart.component.scss']
 })
 export class StatusHistoryChart {
-    private svg: any;
     private _instances!: Instance[];
     private _selectedDescriptor: FieldDescriptor | null = null;
     private _visibleInstances: VisibleInstances = {};
@@ -617,7 +616,6 @@ export class StatusHistoryChart {
     }
 
     private getChartMaxHeight() {
-        const chartContainer = document.getElementById('status-history-chart-container')!;
         const controlContainer = document.getElementById('status-history-chart-control-container')!;
 
         const marginTop: any = controlContainer.computedStyleMap().get('margin-top');
@@ -633,25 +631,6 @@ export class StatusHistoryChart {
             parseInt(marginTop.value, 10) -
             parseInt(dialogStyles.get('top')?.value) -
             parseInt(dialogStyles.get('bottom')?.value)
-        );
-    }
-
-    private getChartMaxWidth() {
-        const chartContainer = document.getElementById('status-history-chart-container')!;
-        const controlContainer = document.getElementById('status-history-chart-control-container')!;
-
-        const statusHistory = document.getElementsByClassName('status-history')![0];
-        const dialogContent = statusHistory.getElementsByClassName('dialog-content')![0];
-        const dialogContentStyles: any = dialogContent.computedStyleMap();
-        const fullDialogStyles: any = statusHistory.computedStyleMap();
-        const bodyWidth = document.body.getBoundingClientRect().width;
-
-        return (
-            bodyWidth -
-            statusHistory.clientWidth -
-            parseInt(fullDialogStyles.get('left')?.value, 10) -
-            parseInt(dialogContentStyles.get('left')?.value) -
-            parseInt(dialogContentStyles.get('right')?.value)
         );
     }
 

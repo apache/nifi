@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { StatusHistoryChart } from './status-history-chart.component';
 
-describe('StatusHistoryChartComponent', () => {
+describe('StatusHistoryChart', () => {
     let component: StatusHistoryChart;
     let fixture: ComponentFixture<StatusHistoryChart>;
 

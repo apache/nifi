@@ -23,14 +23,16 @@ import { SummaryTableFilterModule } from '../common/summary-table-filter/summary
 import { ProcessorStatusListingModule } from './processor-status-listing.module';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../counters/state/counter-listing/counter-listing.reducer';
+import { ProcessorStatusTable } from './processor-status-table/processor-status-table.component';
 
-describe('ProcessorStatusListingComponent', () => {
+describe('ProcessorStatusListing', () => {
     let component: ProcessorStatusListing;
     let fixture: ComponentFixture<ProcessorStatusListing>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ProcessorStatusListing],
+            declarations: [ProcessorStatusListing, ProcessorStatusTable],
+            imports: [SummaryTableFilterModule],
             providers: [provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(ProcessorStatusListing);

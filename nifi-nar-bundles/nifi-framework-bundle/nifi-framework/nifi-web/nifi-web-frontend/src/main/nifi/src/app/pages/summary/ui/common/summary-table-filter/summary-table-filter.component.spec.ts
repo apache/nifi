@@ -22,7 +22,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { SummaryTableFilterModule } from './summary-table-filter.module';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
-describe('SummaryTableFilterComponent', () => {
+describe('SummaryTableFilter', () => {
     let component: SummaryTableFilter;
     let fixture: ComponentFixture<SummaryTableFilter>;
 

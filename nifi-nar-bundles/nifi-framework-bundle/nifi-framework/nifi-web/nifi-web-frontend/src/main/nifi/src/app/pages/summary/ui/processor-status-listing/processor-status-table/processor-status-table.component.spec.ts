@@ -26,7 +26,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
-describe('ProcessorStatusTableComponent', () => {
+describe('ProcessorStatusTable', () => {
     let component: ProcessorStatusTable;
     let fixture: ComponentFixture<ProcessorStatusTable>;
 

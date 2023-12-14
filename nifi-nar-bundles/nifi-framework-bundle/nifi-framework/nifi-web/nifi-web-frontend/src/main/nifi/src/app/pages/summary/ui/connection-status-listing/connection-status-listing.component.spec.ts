@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ConnectionStatusListing } from './connection-status-listing.component';
 
-describe('ConnectionStatusListingComponent', () => {
+describe('ConnectionStatusListing', () => {
     let component: ConnectionStatusListing;
     let fixture: ComponentFixture<ConnectionStatusListing>;
 

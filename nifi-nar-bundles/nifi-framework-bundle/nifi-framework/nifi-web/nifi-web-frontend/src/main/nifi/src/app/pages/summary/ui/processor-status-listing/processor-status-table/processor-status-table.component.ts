@@ -202,6 +202,9 @@ export class ProcessorStatusTable {
     }
 
     private sortEntities(data: ProcessorStatusSnapshotEntity[], sort: Sort): ProcessorStatusSnapshotEntity[] {
+        if (!data) {
+            return [];
+        }
         return data.slice().sort((a, b) => {
             const isAsc = sort.direction === 'asc';
             switch (sort.active) {

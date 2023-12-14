@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { RemoteProcessGroupStatusListing } from './remote-process-group-status-listing.component';
 
-describe('RemoteProcessGroupStatusListingComponent', () => {
+describe('RemoteProcessGroupStatusListing', () => {
     let component: RemoteProcessGroupStatusListing;
     let fixture: ComponentFixture<RemoteProcessGroupStatusListing>;
 

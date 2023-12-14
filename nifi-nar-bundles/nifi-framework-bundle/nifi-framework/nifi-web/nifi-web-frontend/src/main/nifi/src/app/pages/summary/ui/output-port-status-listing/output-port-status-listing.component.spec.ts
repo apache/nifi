@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { OutputPortStatusListing } from './output-port-status-listing.component';
 
-describe('OutputPortStatusListingComponent', () => {
+describe('OutputPortStatusListing', () => {
     let component: OutputPortStatusListing;
     let fixture: ComponentFixture<OutputPortStatusListing>;
 

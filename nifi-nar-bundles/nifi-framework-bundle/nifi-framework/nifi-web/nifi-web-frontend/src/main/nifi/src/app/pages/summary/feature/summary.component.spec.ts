@@ -23,7 +23,7 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { Summary } from './summary.component';
 import { initialState } from '../state/summary-listing/summary-listing.reducer';
 
-describe('SummaryComponent', () => {
+describe('Summary', () => {
     let component: Summary;
     let fixture: ComponentFixture<Summary>;
 
