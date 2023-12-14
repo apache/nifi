@@ -44,15 +44,17 @@
                 </div>
             </mat-tab>
             <mat-tab label="Properties">
-                <property-table
-                    formControlName="properties"
-                    [createNewProperty]="createNewProperty"
-                    [createNewService]="createNewService"
-                    [getParameters]="getParameters"
-                    [getServiceLink]="getServiceLink"
-                    [supportsSensitiveDynamicProperties]="
-                        request.registryClient.component.supportsSensitiveDynamicProperties
-                    "></property-table>
+                <div class="tab-content py-4">
+                    <property-table
+                        formControlName="properties"
+                        [createNewProperty]="createNewProperty"
+                        [createNewService]="createNewService"
+                        [getParameters]="getParameters"
+                        [getServiceLink]="getServiceLink"
+                        [supportsSensitiveDynamicProperties]="
+                            request.registryClient.component.supportsSensitiveDynamicProperties
+                        "></property-table>
+                </div>
             </mat-tab>
         </mat-tab-group>
     </mat-dialog-content>

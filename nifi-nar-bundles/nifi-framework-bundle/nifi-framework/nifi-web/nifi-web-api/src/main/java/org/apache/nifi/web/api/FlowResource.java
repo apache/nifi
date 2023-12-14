@@ -1838,6 +1838,7 @@ public class FlowResource extends ApplicationResource {
 
         final Set<FlowRegistryClientEntity> registryClients = serviceFacade.getRegistryClientsForUser();
         final FlowRegistryClientsEntity registryClientEntities = new FlowRegistryClientsEntity();
+        registryClientEntities.setCurrentTime(new Date());
         registryClientEntities.setRegistries(registryClients);
 
         return generateOkResponse(populateRemainingRegistryClientEntityContent(registryClientEntities)).build();

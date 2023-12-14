@@ -31,7 +31,7 @@ const routes: Routes = [
     },
     {
         path: 'provenance',
-        canMatch: [authGuard],
+        canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/provenance/feature/provenance.module').then((m) => m.ProvenanceModule)
     },
     {

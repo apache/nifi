@@ -116,7 +116,9 @@ export class ProvenanceEventTable implements AfterViewInit {
     totalCount: number = 0;
     filteredCount: number = 0;
 
-    constructor(private formBuilder: FormBuilder) {
+    constructor(
+        private formBuilder: FormBuilder,
+        private nifiCommon: NiFiCommon) {
         this.filterForm = this.formBuilder.group({ filterTerm: '', filterColumn: this.filterColumnOptions[0] });
     }
 
@@ -145,33 +147,32 @@ export class ProvenanceEventTable implements AfterViewInit {
         return data.sort((a, b) => {
             const isAsc = sort.direction === 'asc';
 
+            let retVal: number = 0;
             switch (sort.active) {
                 case 'eventTime':
                     // event ideas are increasing, so we can use this simple number for sorting purposes
                     // since we don't surface the timestamp as millis
-                    return (a.eventId - b.eventId) * (isAsc ? 1 : -1);
+                    retVal = this.nifiCommon.compareNumber(a.eventId, b.eventId);
+                    break;
                 case 'eventType':
-                    return this.compare(a.eventType, b.eventType, isAsc);
+                    retVal = this.nifiCommon.compareString(a.eventType, b.eventType);
+                    break;
                 case 'flowFileUuid':
-                    return this.compare(a.flowFileUuid, b.flowFileUuid, isAsc);
+                    retVal = this.nifiCommon.compareString(a.flowFileUuid, b.flowFileUuid);
+                    break;
                 case 'fileSize':
-                    return (a.fileSizeBytes - b.fileSizeBytes) * (isAsc ? 1 : -1);
+                    retVal = this.nifiCommon.compareNumber(a.fileSizeBytes, b.fileSizeBytes);
+                    break;
                 case 'componentName':
-                    return this.compare(a.componentName, b.componentName, isAsc);
+                    retVal = this.nifiCommon.compareString(a.componentName, b.componentName);
+                    break;
                 case 'componentType':
-                    return this.compare(a.componentType, b.componentType, isAsc);
-                default:
-                    return 0;
+                    retVal = this.nifiCommon.compareString(a.componentType, b.componentType);
+                    break;
             }
+
+            return retVal * (isAsc ? 1 : -1);
         });
-    }
-
-    private compare(a: string, b: string, isAsc: boolean): number {
-        if (a === b) {
-            return 0;
-        }
-
-        return (a < b ? -1 : 1) * (isAsc ? 1 : -1);
     }
 
     applyFilter(filterTerm: string, filterColumn: string) {

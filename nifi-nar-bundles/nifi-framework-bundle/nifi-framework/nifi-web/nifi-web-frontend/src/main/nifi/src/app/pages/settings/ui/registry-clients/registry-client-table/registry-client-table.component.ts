@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
-import { MatSort } from '@angular/material/sort';
+import { Sort } from '@angular/material/sort';
 import { ReportingTaskEntity } from '../../../state/reporting-tasks';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
@@ -31,21 +31,13 @@ import { RegistryClientEntity } from '../../../state/registry-clients';
     templateUrl: './registry-client-table.component.html',
     styleUrls: ['./registry-client-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
 })
-export class RegistryClientTable implements AfterViewInit {
+export class RegistryClientTable {
     @Input() set registryClients(registryClientEntities: RegistryClientEntity[]) {
-        this.dataSource = new MatTableDataSource<RegistryClientEntity>(registryClientEntities);
-        this.dataSource.sort = this.sort;
-        this.dataSource.sortingDataAccessor = (data: RegistryClientEntity, displayColumn: string) => {
-            if (displayColumn === 'name') {
-                return this.formatType(data);
-            } else if (displayColumn === 'type') {
-                return this.formatType(data);
-            } else if (displayColumn === 'bundle') {
-                return this.formatBundle(data);
-            }
-            return '';
-        };
+        if (registryClientEntities) {
+            this.dataSource.data = this.sortEvents(registryClientEntities, this.sort);
+        }
     }
+
     @Input() selectedRegistryClientId!: string;
 
     @Output() selectRegistryClient: EventEmitter<RegistryClientEntity> = new EventEmitter<RegistryClientEntity>();
@@ -59,13 +51,12 @@ export class RegistryClientTable implements AfterViewInit {
     displayedColumns: string[] = ['moreDetails', 'name', 'description', 'type', 'bundle', 'actions'];
     dataSource: MatTableDataSource<RegistryClientEntity> = new MatTableDataSource<RegistryClientEntity>();
 
-    @ViewChild(MatSort) sort!: MatSort;
+    sort: Sort = {
+        active: 'name',
+        direction: 'asc'
+    };
 
     constructor(private nifiCommon: NiFiCommon) {}
-
-    ngAfterViewInit(): void {
-        this.dataSource.sort = this.sort;
-    }
 
     canRead(entity: RegistryClientEntity): boolean {
         return entity.permissions.canRead;
@@ -103,6 +94,36 @@ export class RegistryClientTable implements AfterViewInit {
 
     formatBundle(entity: RegistryClientEntity): string {
         return this.nifiCommon.formatBundle(entity.component.bundle);
+    }
+
+    updateSort(sort: Sort): void {
+        this.sort = sort;
+        this.dataSource.data = this.sortEvents(this.dataSource.data, sort);
+    }
+
+    sortEvents(entities: RegistryClientEntity[], sort: Sort): RegistryClientEntity[] {
+        const data: RegistryClientEntity[] = entities.slice();
+        return data.sort((a, b) => {
+            const isAsc = sort.direction === 'asc';
+
+            let retVal: number = 0;
+            switch (sort.active) {
+                case 'name':
+                    retVal = this.nifiCommon.compareString(a.component.name, b.component.name);
+                    break;
+                case 'description':
+                    retVal = this.nifiCommon.compareString(a.component.description, b.component.description);
+                    break;
+                case 'type':
+                    retVal = this.nifiCommon.compareString(this.formatType(a), this.formatType(b));
+                    break;
+                case 'bundle':
+                    retVal = this.nifiCommon.compareString(this.formatBundle(a), this.formatBundle(b));
+                    break;
+            }
+
+            return retVal * (isAsc ? 1 : -1);
+        });
     }
 
     canConfigure(entity: RegistryClientEntity): boolean {

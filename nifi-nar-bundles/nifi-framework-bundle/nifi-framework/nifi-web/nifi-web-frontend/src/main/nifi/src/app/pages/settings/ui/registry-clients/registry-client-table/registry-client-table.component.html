@@ -17,7 +17,13 @@
 
 <div class="relative h-full border">
     <div class="registry-client-table listing-table absolute inset-0 overflow-y-auto">
-        <table mat-table [dataSource]="dataSource" matSort matSortDisableClear>
+        <table mat-table
+               [dataSource]="dataSource"
+               matSort
+               matSortDisableClear
+               (matSortChange)="updateSort($event)"
+               [matSortActive]="sort.active"
+               [matSortDirection]="sort.direction">
             <!-- More Details Column -->
             <ng-container matColumnDef="moreDetails">
                 <th mat-header-cell *matHeaderCellDef></th>
@@ -97,7 +103,7 @@
                             class="pointer fa fa-pencil"
                             *ngIf="canConfigure(item)"
                             (click)="configureClicked(item, $event)"
-                            title="Delete"></div>
+                            title="Configure"></div>
                         <div
                             class="pointer fa fa-trash"
                             *ngIf="canDelete(item)"
