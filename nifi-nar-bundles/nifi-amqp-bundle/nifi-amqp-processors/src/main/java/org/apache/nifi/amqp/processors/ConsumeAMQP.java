@@ -121,7 +121,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .description("The maximum number of unacknowledged messages for the consumer. If consumer has this number of unacknowledged messages, AMQP broker will "
                + "no longer send new messages until consumer acknowledges some of the messages already delivered to it."
                + "Allowed values: from 0 to 65535. 0 means no limit")
-        .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+        .addValidator(StandardValidators.createLongValidator(0, 65535, true))
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .defaultValue("0")
         .required(true)
@@ -333,21 +333,5 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
-    }
-
-    @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
-        List<ValidationResult> results = new ArrayList<>(super.customValidate(context));
-
-        int prefetchCount = context.getProperty(PREFETCH_COUNT).asInteger();
-        if (prefetchCount < 0 || prefetchCount > 65535) {
-            results.add(new ValidationResult.Builder()
-                    .subject("Prefetch configuration")
-                    .valid(false)
-                    .explanation("prefetch count must be between 0 and 65535")
-                    .build());
-        }
-
-        return results;
     }
 }
