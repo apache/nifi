@@ -29,25 +29,25 @@
                                 <div
                                     *ngIf="componentDetails$ | async; let componentDetails"
                                     class="flex flex-1 w-full gap-x-4">
-                                    <div class="component-details flex flex-col gap-y-2">
+                                    <div class="component-details flex flex-col gap-y-3">
                                         <div
                                             *ngFor="let entry of Object.entries(componentDetails)"
                                             class="flex flex-col">
-                                            <label>{{ entry[0] }}</label>
+                                            <div>{{ entry[0] }}</div>
                                             <div class="value">{{ entry[1] }}</div>
                                         </div>
                                         <div class="flex flex-col">
-                                            <label>Start</label>
+                                            <div>Start</div>
                                             <div class="value">{{ minDate }}</div>
                                         </div>
                                         <div class="flex flex-col">
-                                            <label>End</label>
+                                            <div>End</div>
                                             <div class="value">{{ maxDate }}</div>
                                         </div>
                                         <div class="flex flex-col">
                                             <div class="font-bold">NiFi</div>
                                             <div class="detail-item">
-                                                <label>Min / Max / Mean</label>
+                                                <div>Min / Max / Mean</div>
                                                 <div class="value">
                                                     {{ clusterStats.min }} / {{ clusterStats.max }} /
                                                     {{ clusterStats.mean }}
@@ -64,7 +64,7 @@
                                         <div class="flex flex-col" *ngIf="!!nodes && nodes.length > 0">
                                             <div>Nodes</div>
                                             <div>
-                                                <label>Min / Max / Mean</label>
+                                                <div>Min / Max / Mean</div>
                                                 <div class="value">
                                                     {{ nodeStats.min }} / {{ nodeStats.max }} / {{ nodeStats.mean }}
                                                 </div>
