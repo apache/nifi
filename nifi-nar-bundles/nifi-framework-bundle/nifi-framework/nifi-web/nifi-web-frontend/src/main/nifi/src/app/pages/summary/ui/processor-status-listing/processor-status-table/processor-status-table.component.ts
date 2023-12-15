@@ -22,7 +22,8 @@ import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
 import { SummaryTableFilterArgs } from '../../common/summary-table-filter/summary-table-filter.component';
 import { RouterLink } from '@angular/router';
 import { SummaryTableFilterModule } from '../../common/summary-table-filter/summary-table-filter.module';
-import { NgClass } from '@angular/common';
+import { NgClass, NgIf } from '@angular/common';
+import { ComponentType } from '../../../../../state/shared';
 
 export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 'in' | 'out' | 'readWrite' | 'tasks';
 
@@ -36,7 +37,7 @@ export interface MultiSort extends Sort {
     templateUrl: './processor-status-table.component.html',
     styleUrls: ['./processor-status-table.component.scss', '../../../../../../assets/styles/listing-table.scss'],
     standalone: true,
-    imports: [RouterLink, SummaryTableFilterModule, MatTableModule, MatSortModule, NgClass]
+    imports: [RouterLink, SummaryTableFilterModule, MatTableModule, MatSortModule, NgClass, NgIf]
 })
 export class ProcessorStatusTable {
     private _initialSortColumn: SupportedColumns = 'name';
@@ -179,7 +180,7 @@ export class ProcessorStatusTable {
     }
 
     getProcessorLink(processor: ProcessorStatusSnapshotEntity): string[] {
-        return ['/process-groups', processor.processorStatusSnapshot.groupId, 'processors', processor.id];
+        return ['/process-groups', processor.processorStatusSnapshot.groupId, ComponentType.Processor, processor.id];
     }
 
     getRunStatusIcon(processor: ProcessorStatusSnapshotEntity): string {

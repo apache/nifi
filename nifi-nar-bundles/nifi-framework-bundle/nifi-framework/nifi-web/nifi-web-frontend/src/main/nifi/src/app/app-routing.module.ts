@@ -49,7 +49,7 @@ const routes: Routes = [
     },
     {
         path: 'summary',
-        canMatch: [authGuard],
+        canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/summary/feature/summary.module').then((m) => m.SummaryModule)
     },
     {
@@ -64,7 +64,8 @@ const routes: Routes = [
     imports: [
         RouterModule.forRoot(routes, {
             paramsInheritanceStrategy: 'always',
-            useHash: true
+            useHash: true,
+            enableTracing: true
         })
     ],
     exports: [RouterModule]

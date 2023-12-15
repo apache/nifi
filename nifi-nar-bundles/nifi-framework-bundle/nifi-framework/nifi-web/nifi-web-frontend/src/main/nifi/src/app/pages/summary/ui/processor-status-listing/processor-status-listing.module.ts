@@ -30,6 +30,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
 import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { SummaryTableFilterModule } from '../common/summary-table-filter/summary-table-filter.module';
+import { ProcessorStatusTable } from './processor-status-table/processor-status-table.component';
 
 @NgModule({
     declarations: [ProcessorStatusListing],
@@ -47,7 +48,8 @@ import { SummaryTableFilterModule } from '../common/summary-table-filter/summary
         MatDialogModule,
         RouterLink,
         NifiTooltipDirective,
-        SummaryTableFilterModule
+        SummaryTableFilterModule,
+        ProcessorStatusTable
     ]
 })
 export class ProcessorStatusListingModule {}
