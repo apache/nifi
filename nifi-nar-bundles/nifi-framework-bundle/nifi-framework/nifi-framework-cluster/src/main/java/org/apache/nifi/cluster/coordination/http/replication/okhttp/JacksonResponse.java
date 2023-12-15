@@ -231,7 +231,12 @@ public class JacksonResponse extends Response {
     }
 
     @Override
-    public String getHeaderString(String name) {
-        return responseHeaders.getFirst(name);
+    public String getHeaderString(final String name) {
+        final String headerValue = responseHeaders.getFirst(name);
+        if (headerValue != null) {
+            return headerValue;
+        }
+
+        return responseHeaders.getFirst(name.toLowerCase());
     }
 }
