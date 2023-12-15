@@ -17,7 +17,6 @@
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
@@ -37,13 +36,15 @@ public class IsJsonEvaluator extends BooleanEvaluator {
     @Override
     public QueryResult<Boolean> evaluate(EvaluationContext evaluationContext) {
         final String subjectValue = subject.evaluate(evaluationContext).getValue();
-        if (StringUtils.isNotBlank(subjectValue)
-                && (isPossibleJsonArray(subjectValue) || isPossibleJsonObject(subjectValue))) {
-            try {
-                MAPPER.readTree(subjectValue);
-                return new BooleanQueryResult(true);
-            } catch (IOException ignored) {
-                //IOException ignored
+        if (subjectValue != null) {
+            final String trimmedSubjectValue = subjectValue.trim();
+            if (isPossibleJsonArray(trimmedSubjectValue) || isPossibleJsonObject(trimmedSubjectValue)) {
+                try {
+                    MAPPER.readTree(trimmedSubjectValue);
+                    return new BooleanQueryResult(true);
+                } catch (IOException ignored) {
+                    //IOException ignored
+                }
             }
         }
         return new BooleanQueryResult(false);

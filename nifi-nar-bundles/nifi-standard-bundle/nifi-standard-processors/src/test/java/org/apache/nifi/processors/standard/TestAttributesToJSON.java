@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.standard;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -42,6 +43,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -53,6 +55,8 @@ public class TestAttributesToJSON {
 
     private static final String TEST_ATTRIBUTE_KEY = "TestAttribute";
     private static final String TEST_ATTRIBUTE_VALUE = "TestValue";
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
     public void testInvalidUserSuppliedAttributeList() {
@@ -109,8 +113,7 @@ public class TestAttributesToJSON {
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
                 .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, String> val = mapper.readValue(json, HashMap.class);
+        Map<String, String> val = MAPPER.readValue(json, HashMap.class);
 
         assertNull(val.get(NON_PRESENT_ATTRIBUTE_KEY));
     }
@@ -139,8 +142,7 @@ public class TestAttributesToJSON {
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
                 .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, String> val = mapper.readValue(json, HashMap.class);
+        Map<String, String> val = MAPPER.readValue(json, HashMap.class);
 
         assertEquals(val.get(NON_PRESENT_ATTRIBUTE_KEY), "");
     }
@@ -188,8 +190,7 @@ public class TestAttributesToJSON {
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
                 .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, String> val = mapper.readValue(json, HashMap.class);
+        Map<String, String> val = MAPPER.readValue(json, HashMap.class);
         assertTrue(val.get(TEST_ATTRIBUTE_KEY).equals(TEST_ATTRIBUTE_VALUE));
     }
 
@@ -234,8 +235,7 @@ public class TestAttributesToJSON {
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
                 .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, String> val = mapper.readValue(json, HashMap.class);
+        Map<String, String> val = MAPPER.readValue(json, HashMap.class);
         assertTrue(val.get(TEST_ATTRIBUTE_KEY).equals(TEST_ATTRIBUTE_VALUE));
         assertTrue(val.size() == 1);
     }
@@ -262,8 +262,7 @@ public class TestAttributesToJSON {
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
                 .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, String> val = mapper.readValue(json, HashMap.class);
+        Map<String, String> val = MAPPER.readValue(json, HashMap.class);
         assertTrue(val.get(TEST_ATTRIBUTE_KEY).equals(TEST_ATTRIBUTE_VALUE));
         assertTrue(val.size() == 1);
     }
@@ -290,8 +289,7 @@ public class TestAttributesToJSON {
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
                 .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, String> val = mapper.readValue(json, HashMap.class);
+        Map<String, String> val = MAPPER.readValue(json, HashMap.class);
 
         //If a Attribute is requested but does not exist then it is placed in the JSON with an empty string
         assertTrue(val.get("NonExistingAttribute").equals(""));
@@ -320,8 +318,7 @@ public class TestAttributesToJSON {
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
                 .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, String> val = mapper.readValue(json, HashMap.class);
+        Map<String, String> val = MAPPER.readValue(json, HashMap.class);
         assertEquals(TEST_ATTRIBUTE_VALUE, val.get(TEST_ATTRIBUTE_KEY));
         assertEquals(TEST_ATTRIBUTE_VALUE, val.get(CoreAttributes.PATH.key()));
         assertEquals(2, val.size());
@@ -349,8 +346,7 @@ public class TestAttributesToJSON {
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
                 .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, String> val = mapper.readValue(json, HashMap.class);
+        Map<String, String> val = MAPPER.readValue(json, HashMap.class);
         assertEquals(TEST_ATTRIBUTE_VALUE, val.get(CoreAttributes.PATH.key()));
         assertEquals(1, val.size());
     }
@@ -372,8 +368,7 @@ public class TestAttributesToJSON {
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
 
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, String> val = mapper.readValue(testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0).toByteArray(), HashMap.class);
+        Map<String, String> val = MAPPER.readValue(testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0).toByteArray(), HashMap.class);
         assertEquals(TEST_ATTRIBUTE_VALUE, val.get(TEST_ATTRIBUTE_KEY));
         assertEquals(1, val.size());
     }
@@ -399,7 +394,7 @@ public class TestAttributesToJSON {
 
         assertEquals(AttributesToJSON.APPLICATION_JSON, flowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
 
-        Map<String, String> val = new ObjectMapper().readValue(flowFile.toByteArray(), HashMap.class);
+        Map<String, String> val = MAPPER.readValue(flowFile.toByteArray(), HashMap.class);
         assertEquals(3, val.size());
         Set<String> coreAttributes = Arrays.stream(CoreAttributes.values()).map(CoreAttributes::key).collect(Collectors.toSet());
         val.keySet().forEach(k -> assertTrue(coreAttributes.contains(k)));
@@ -425,7 +420,7 @@ public class TestAttributesToJSON {
 
         assertNull(flowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
 
-        Map<String, String> val = new ObjectMapper().readValue(flowFile.getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME), HashMap.class);
+        Map<String, String> val = MAPPER.readValue(flowFile.getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME), HashMap.class);
         assertEquals(3, val.size());
         Set<String> coreAttributes = Arrays.stream(CoreAttributes.values()).map(CoreAttributes::key).collect(Collectors.toSet());
         val.keySet().forEach(k -> assertTrue(coreAttributes.contains(k)));
@@ -455,7 +450,7 @@ public class TestAttributesToJSON {
 
         MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0);
 
-        Map<String, String> val = new ObjectMapper().readValue(flowFile.getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME), HashMap.class);
+        Map<String, String> val = MAPPER.readValue(flowFile.getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME), HashMap.class);
         assertTrue(val.keySet().contains("delimited.header.column.1"));
         assertTrue(val.keySet().contains("delimited.header.column.2"));
         assertTrue(val.keySet().contains("delimited.header.column.3"));
@@ -485,7 +480,7 @@ public class TestAttributesToJSON {
         List<MockFlowFile> flowFilesForRelationship = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS);
         MockFlowFile flowFile = flowFilesForRelationship.get(0);
         assertEquals(AttributesToJSON.APPLICATION_JSON, flowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
-        Map<String, Object> val = new ObjectMapper().readValue(flowFile.toByteArray(), Map.class);
+        Map<String, Object> val = MAPPER.readValue(flowFile.toByteArray(), Map.class);
         assertInstanceOf(expectedClass, val.get(TEST_ATTRIBUTE_KEY));
     }
 
@@ -516,8 +511,7 @@ public class TestAttributesToJSON {
 
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
                 .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> val = mapper.readValue(json, Map.class);
+        Map<String, Object> val = MAPPER.readValue(json, Map.class);
         assertInstanceOf(expectedClass, val.get(TEST_ATTRIBUTE_KEY));
     }
 
@@ -560,8 +554,34 @@ public class TestAttributesToJSON {
 
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
                 .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> val = mapper.readValue(json, Map.class);
+        Map<String, Object> val = MAPPER.readValue(json, Map.class);
         assertInstanceOf(String.class, val.get(TEST_ATTRIBUTE_KEY));
+    }
+
+    @Test
+    public void testAttributeWithJsonBetweenLeadingAndTrailingSpaces() throws JsonProcessingException {
+        final String jsonBetweenLeadingAndTrailingSpaces = "\n{\n" +
+                "    \"fruit\": \"Apple\",\n" +
+                "    \"size\": \"Large\",\n" +
+                "    \"color\": \"Red\"\n" +
+                "}\n";
+        assertDoesNotThrow(() -> MAPPER.readValue(jsonBetweenLeadingAndTrailingSpaces, Map.class));
+
+        final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
+        testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_CONTENT);
+        testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY,
+                AttributesToJSON.JsonHandlingStrategy.NESTED.getValue());
+
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        FlowFile ff = session.create();
+        ff = session.putAttribute(ff, TEST_ATTRIBUTE_KEY, jsonBetweenLeadingAndTrailingSpaces);
+        testRunner.enqueue(ff);
+        testRunner.run();
+
+        testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
+        testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
+        MockFlowFile result = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0);
+        Map<String, Object> attributes = MAPPER.readValue(result.getContent(), Map.class);
+        assertInstanceOf(Map.class, attributes.get(TEST_ATTRIBUTE_KEY));
     }
 }
