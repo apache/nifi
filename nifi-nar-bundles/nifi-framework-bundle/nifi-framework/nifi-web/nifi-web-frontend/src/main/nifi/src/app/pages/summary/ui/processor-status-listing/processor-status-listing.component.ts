@@ -18,7 +18,6 @@
 import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
 import {
-    selectClusterSummary,
     selectProcessorIdFromRoute,
     selectProcessorStatus,
     selectProcessorStatusSnapshots,
@@ -29,7 +28,6 @@ import {
 import { ProcessorStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
 import { selectUser } from '../../../../state/user/user.selectors';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
-import { Router } from '@angular/router';
 import { openStatusHistoryDialog } from '../../../../state/status-history/status-history.actions';
 import { ComponentType } from '../../../../state/shared';
 import { filter, switchMap, take } from 'rxjs';
@@ -42,7 +40,6 @@ import * as SummaryListingActions from '../../state/summary-listing/summary-list
     styleUrls: ['./processor-status-listing.component.scss']
 })
 export class ProcessorStatusListing {
-    clusterSummary$ = this.store.select(selectClusterSummary);
     processorStatusSnapshots$ = this.store.select(selectProcessorStatusSnapshots);
     loadedTimestamp$ = this.store.select(selectSummaryListingLoadedTimestamp);
     summaryListingStatus$ = this.store.select(selectSummaryListingStatus);
@@ -51,8 +48,7 @@ export class ProcessorStatusListing {
     currentUser$ = this.store.select(selectUser);
 
     constructor(
-        private store: Store<SummaryListingState>,
-        private router: Router
+        private store: Store<SummaryListingState>
     ) {
         this.store
             .select(selectViewStatusHistory)
