@@ -172,7 +172,7 @@ public class StandardNiFiContentAccess implements ContentAccess {
      * @return the value of the first header with the given name, or <code>null</code> if the header is not found
      */
     private String getHeader(final MultivaluedMap<String, String> headers, final String headerName) {
-        if (headers == null || headers.isEmpty() || headerName == null || headerName.isBlank()) {
+        if (headers == null || headers.isEmpty() || headerName == null || headerName.trim().isEmpty()) {
             return null;
         }
 
