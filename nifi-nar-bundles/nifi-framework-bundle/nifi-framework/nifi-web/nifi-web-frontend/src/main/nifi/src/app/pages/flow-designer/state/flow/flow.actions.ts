@@ -61,6 +61,8 @@ import {
     Loading Flow
  */
 
+export const resetState = createAction('[Canvas] Reset State');
+
 export const reloadFlow = createAction('[Canvas] Reload Flow');
 
 export const leaveProcessGroup = createAction('[Canvas] Leave Process Group');
@@ -152,7 +154,7 @@ export const removeSelectedComponents = createAction(
     props<{ request: SelectComponentsRequest }>()
 );
 
-export const centerSelectedComponent = createAction('[Canvas] Center Selected Components');
+export const centerSelectedComponent = createAction('[Canvas] Center Selected Component');
 
 /*
     Create Component Actions

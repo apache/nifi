@@ -15,29 +15,26 @@
   ~ limitations under the License.
   -->
 
-<div class="flex flex-col h-full gap-y-2 text-sm" *ngIf="status$ | async; let status">
+<div class="flex flex-col h-full text-sm" *ngIf="status$ | async; let status">
     <div class="flex-1">
         <ng-container *ngIf="provenance$ | async as provenance; else initialLoading">
             <provenance-event-table
+                [loading]="status === 'loading'"
+                [loadedTimestamp]="(loadedTimestamp$ | async)!"
                 [events]="provenance.results.provenanceEvents"
                 [oldestEventAvailable]="provenance.results.oldestEvent"
                 [resultsMessage]="getResultsMessage(provenance)"
                 [hasRequest]="hasRequest(provenance.request)"
+                [lineage$]="lineage$"
                 (openSearchCriteria)="openSearchCriteria()"
                 (openEventDialog)="openEventDialog($event)"
-                (clearRequest)="clearRequest()"></provenance-event-table>
+                (resubmitProvenanceQuery)="resubmitProvenanceQuery()"
+                (clearRequest)="clearRequest()"
+                (queryLineage)="queryLineage($event)"
+                (resetLineage)="resetLineage()"></provenance-event-table>
         </ng-container>
         <ng-template #initialLoading>
             <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
         </ng-template>
-    </div>
-    <div class="flex justify-between">
-        <div class="refresh-container flex items-center gap-x-2">
-            <button class="nifi-button" (click)="refreshParameterContextListing()">
-                <i class="fa fa-refresh" [class.fa-spin]="(status$ | async) === 'loading'"></i>
-            </button>
-            <div>Last updated:</div>
-            <div class="refresh-timestamp">{{ loadedTimestamp$ | async }}</div>
-        </div>
     </div>
 </div>

@@ -16,7 +16,9 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { ProvenanceOptionsResponse, ProvenanceQueryResponse, ProvenanceRequest } from './index';
+import { ProvenanceEventRequest, ProvenanceOptionsResponse, ProvenanceQueryResponse, ProvenanceRequest } from './index';
+
+export const resetProvenanceState = createAction('[Provenance Event Listing] Reset Provenance State');
 
 export const loadProvenanceOptions = createAction('[Provenance Event Listing] Load Provenance Options');
 
@@ -54,13 +56,13 @@ export const stopPollingProvenanceQuery = createAction('[Provenance Event Listin
 export const deleteProvenanceQuery = createAction('[Provenance Event Listing] Delete Provenance Query');
 
 export const provenanceApiError = createAction(
-    '[Provenance Event Listing] Load Parameter Context Listing Error',
+    '[Provenance Event Listing] Provenance Api Error',
     props<{ error: string }>()
 );
 
 export const openProvenanceEventDialog = createAction(
     '[Provenance Event Listing] Open Provenance Event Dialog',
-    props<{ id: string }>()
+    props<{ request: ProvenanceEventRequest }>()
 );
 
 export const openSearchDialog = createAction('[Provenance Event Listing] Open Search Dialog');

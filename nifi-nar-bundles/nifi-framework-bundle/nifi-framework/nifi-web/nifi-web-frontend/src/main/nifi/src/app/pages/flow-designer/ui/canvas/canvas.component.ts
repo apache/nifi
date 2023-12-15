@@ -25,6 +25,7 @@ import {
     editComponent,
     editCurrentProcessGroup,
     loadProcessGroup,
+    resetState,
     selectComponents,
     setSkipTransform,
     startProcessGroupPolling,
@@ -558,6 +559,7 @@ export class Canvas implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.store.dispatch(resetState());
         this.store.dispatch(stopProcessGroupPolling());
     }
 }

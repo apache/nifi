@@ -287,6 +287,7 @@ export class ProvenanceEventListingEffects {
         () =>
             this.actions$.pipe(
                 ofType(ProvenanceEventListingActions.openProvenanceEventDialog),
+                map((action) => action.request),
                 withLatestFrom(this.store.select(selectAbout)),
                 tap(([request, about]) => {
                     this.provenanceService.getProvenanceEvent(request.id).subscribe({

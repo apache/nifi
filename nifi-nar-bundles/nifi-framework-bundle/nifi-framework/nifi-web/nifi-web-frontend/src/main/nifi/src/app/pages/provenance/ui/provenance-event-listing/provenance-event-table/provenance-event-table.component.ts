@@ -27,11 +27,15 @@ import { MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { NgForOf, NgIf } from '@angular/common';
-import { debounceTime } from 'rxjs';
+import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { debounceTime, Observable } from 'rxjs';
 import { ProvenanceEventSummary } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { Lineage, LineageRequest } from '../../../state/lineage';
+import { LineageComponent } from './lineage/lineage.component';
+import { ProvenanceEventRequest } from '../../../state/provenance-event-listing';
 
 @Component({
     selector: 'provenance-event-table',
@@ -48,7 +52,10 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
         NgForOf,
         NgIf,
         RouterLink,
-        NgxSkeletonLoaderModule
+        NgxSkeletonLoaderModule,
+        AsyncPipe,
+        MatPaginatorModule,
+        LineageComponent
     ],
     styleUrls: ['./provenance-event-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
 })
@@ -77,16 +84,24 @@ export class ProvenanceEventTable implements AfterViewInit {
             if (filterTerm?.length > 0) {
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
                 this.applyFilter(filterTerm, filterColumn);
+            } else {
+                this.resetPaginator();
             }
         }
     }
     @Input() oldestEventAvailable!: string;
     @Input() resultsMessage!: string;
     @Input() hasRequest!: boolean;
+    @Input() loading!: boolean;
+    @Input() loadedTimestamp!: string;
+    @Input() lineage$!: Observable<Lineage | null>;
 
     @Output() openSearchCriteria: EventEmitter<void> = new EventEmitter<void>();
     @Output() clearRequest: EventEmitter<void> = new EventEmitter<void>();
-    @Output() openEventDialog: EventEmitter<ProvenanceEventSummary> = new EventEmitter<ProvenanceEventSummary>();
+    @Output() openEventDialog: EventEmitter<ProvenanceEventRequest> = new EventEmitter<ProvenanceEventRequest>();
+    @Output() resubmitProvenanceQuery: EventEmitter<void> = new EventEmitter<void>();
+    @Output() queryLineage: EventEmitter<LineageRequest> = new EventEmitter<LineageRequest>();
+    @Output() resetLineage: EventEmitter<void> = new EventEmitter<void>();
 
     protected readonly TextTip = TextTip;
     protected readonly BulletinsTip = BulletinsTip;
@@ -106,6 +121,8 @@ export class ProvenanceEventTable implements AfterViewInit {
     dataSource: MatTableDataSource<ProvenanceEventSummary> = new MatTableDataSource<ProvenanceEventSummary>();
     selectedEventId: string | null = null;
 
+    @ViewChild(MatPaginator) paginator!: MatPaginator;
+
     sort: Sort = {
         active: 'eventTime',
         direction: 'desc'
@@ -116,6 +133,9 @@ export class ProvenanceEventTable implements AfterViewInit {
     totalCount: number = 0;
     filteredCount: number = 0;
 
+    showLineage: boolean = false;
+    eventId: string | null = null;
+
     constructor(
         private formBuilder: FormBuilder,
         private nifiCommon: NiFiCommon
@@ -124,6 +144,8 @@ export class ProvenanceEventTable implements AfterViewInit {
     }
 
     ngAfterViewInit(): void {
+        this.dataSource.paginator = this.paginator;
+
         this.filterForm
             .get('filterTerm')
             ?.valueChanges.pipe(debounceTime(500))
@@ -179,6 +201,13 @@ export class ProvenanceEventTable implements AfterViewInit {
     applyFilter(filterTerm: string, filterColumn: string) {
         this.dataSource.filter = `${filterTerm}|${filterColumn}`;
         this.filteredCount = this.dataSource.filteredData.length;
+        this.resetPaginator();
+    }
+
+    resetPaginator(): void {
+        if (this.dataSource.paginator) {
+            this.dataSource.paginator.firstPage();
+        }
     }
 
     clearRequestClicked(): void {
@@ -190,7 +219,14 @@ export class ProvenanceEventTable implements AfterViewInit {
     }
 
     viewDetailsClicked(event: ProvenanceEventSummary) {
-        this.openEventDialog.next(event);
+        this.submitProvenanceEventRequest({
+            id: event.id,
+            clusterNodeId: event.clusterNodeId
+        });
+    }
+
+    submitProvenanceEventRequest(request: ProvenanceEventRequest): void {
+        this.openEventDialog.next(request);
     }
 
     select(event: ProvenanceEventSummary): void {
@@ -230,5 +266,25 @@ export class ProvenanceEventTable implements AfterViewInit {
         }
 
         return link;
+    }
+
+    showLineageGraph(event: ProvenanceEventSummary): void {
+        this.eventId = event.id;
+        this.showLineage = true;
+
+        this.queryLineage.next({
+            lineageRequestType: 'FLOWFILE',
+            uuid: event.flowFileUuid,
+            clusterNodeId: event.clusterNodeId
+        });
+    }
+
+    hideLineageGraph(): void {
+        this.showLineage = false;
+        this.resetLineage.next();
+    }
+
+    refreshClicked(): void {
+        this.resubmitProvenanceQuery.next();
     }
 }

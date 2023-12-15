@@ -15,28 +15,26 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-import { Provenance } from './provenance.component';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-const routes: Routes = [
-    {
-        path: '',
-        component: Provenance,
-        children: [
-            {
-                path: '',
-                loadChildren: () =>
-                    import('../ui/provenance-event-listing/provenance-event-listing.module').then(
-                        (m) => m.ProvenanceEventListingModule
-                    )
-            }
-        ]
-    }
-];
+import { LineageComponent } from './lineage.component';
+import SpyObj = jasmine.SpyObj;
+import createSpyObj = jasmine.createSpyObj;
 
-@NgModule({
-    imports: [RouterModule.forChild(routes)],
-    exports: [RouterModule]
-})
-export class ProvenanceRoutingModule {}
+describe('LineageComponent', () => {
+    let component: LineageComponent;
+    let fixture: ComponentFixture<LineageComponent>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            imports: [LineageComponent]
+        });
+        fixture = TestBed.createComponent(LineageComponent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});
