@@ -37,5 +37,5 @@ export const authorizationGuard = (authorizationCheck: (user: User) => boolean):
                 return router.parseUrl('/');
             })
         );
-    }
-}
+    };
+};

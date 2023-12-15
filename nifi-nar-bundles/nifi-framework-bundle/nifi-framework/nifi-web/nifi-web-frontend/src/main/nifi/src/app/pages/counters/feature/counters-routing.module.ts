@@ -25,7 +25,7 @@ const routes: Routes = [
     {
         path: '',
         component: Counters,
-        canMatch: [authorizationGuard((user: User) => user.countersPermissions.canRead)],
+        canMatch: [authorizationGuard((user: User) => user.countersPermissions.canRead)]
     }
 ];
 

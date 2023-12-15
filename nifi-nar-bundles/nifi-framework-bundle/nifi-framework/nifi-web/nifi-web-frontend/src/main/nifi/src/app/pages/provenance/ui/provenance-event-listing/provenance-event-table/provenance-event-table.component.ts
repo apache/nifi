@@ -118,7 +118,8 @@ export class ProvenanceEventTable implements AfterViewInit {
 
     constructor(
         private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon) {
+        private nifiCommon: NiFiCommon
+    ) {
         this.filterForm = this.formBuilder.group({ filterTerm: '', filterColumn: this.filterColumnOptions[0] });
     }
 

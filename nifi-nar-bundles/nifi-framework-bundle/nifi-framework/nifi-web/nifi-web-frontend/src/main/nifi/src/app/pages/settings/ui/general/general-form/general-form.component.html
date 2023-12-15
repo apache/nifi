@@ -20,7 +20,11 @@
         <div>
             <mat-form-field>
                 <mat-label>Maximum Timer Driven Thread Count</mat-label>
-                <input matInput formControlName="timerDrivenThreadCount" [readonly]="!currentUser.controllerPermissions.canWrite" type="text" />
+                <input
+                    matInput
+                    formControlName="timerDrivenThreadCount"
+                    [readonly]="!currentUser.controllerPermissions.canWrite"
+                    type="text" />
             </mat-form-field>
         </div>
         <div *ngIf="currentUser.controllerPermissions.canWrite">

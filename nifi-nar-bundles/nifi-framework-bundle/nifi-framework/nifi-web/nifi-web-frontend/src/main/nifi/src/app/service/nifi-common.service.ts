@@ -181,7 +181,7 @@ export class NiFiCommon {
      * @param b
      */
     public compareNumber(a: number, b: number): number {
-        return (a - b);
+        return a - b;
     }
 
     /**
