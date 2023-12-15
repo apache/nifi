@@ -47,9 +47,7 @@ export class ProcessorStatusListing {
 
     currentUser$ = this.store.select(selectUser);
 
-    constructor(
-        private store: Store<SummaryListingState>
-    ) {
+    constructor(private store: Store<SummaryListingState>) {
         this.store
             .select(selectViewStatusHistory)
             .pipe(

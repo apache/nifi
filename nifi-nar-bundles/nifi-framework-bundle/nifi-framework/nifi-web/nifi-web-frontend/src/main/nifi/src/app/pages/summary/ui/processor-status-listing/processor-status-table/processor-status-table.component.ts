@@ -16,10 +16,13 @@
  */
 
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { MatTableDataSource } from '@angular/material/table';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { ProcessorStatusSnapshot, ProcessorStatusSnapshotEntity } from '../../../state/summary-listing';
-import { Sort, SortDirection } from '@angular/material/sort';
+import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
 import { SummaryTableFilterArgs } from '../../common/summary-table-filter/summary-table-filter.component';
+import { RouterLink } from '@angular/router';
+import { SummaryTableFilterModule } from '../../common/summary-table-filter/summary-table-filter.module';
+import { NgClass } from '@angular/common';
 
 export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 'in' | 'out' | 'readWrite' | 'tasks';
 
@@ -31,7 +34,9 @@ export interface MultiSort extends Sort {
 @Component({
     selector: 'processor-status-table',
     templateUrl: './processor-status-table.component.html',
-    styleUrls: ['./processor-status-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./processor-status-table.component.scss', '../../../../../../assets/styles/listing-table.scss'],
+    standalone: true,
+    imports: [RouterLink, SummaryTableFilterModule, MatTableModule, MatSortModule, NgClass]
 })
 export class ProcessorStatusTable {
     private _initialSortColumn: SupportedColumns = 'name';
@@ -91,43 +96,45 @@ export class ProcessorStatusTable {
     }
 
     @Input() set processors(processors: ProcessorStatusSnapshotEntity[]) {
-        this.dataSource.data = this.sortEntities(processors, this.multiSort);
-        this.dataSource.filterPredicate = (data: ProcessorStatusSnapshotEntity, filter: string): boolean => {
-            const filterArray: string[] = filter.split('|');
-            const filterTerm: string = filterArray[0] || '';
-            const filterColumn: string = filterArray[1];
-            const filterStatus: string = filterArray[2];
-            const primaryOnly: boolean = filterArray[3] === 'true';
-            const matchOnStatus: boolean = filterStatus !== 'All';
+        if (processors) {
+            this.dataSource.data = this.sortEntities(processors, this.multiSort);
+            this.dataSource.filterPredicate = (data: ProcessorStatusSnapshotEntity, filter: string): boolean => {
+                const filterArray: string[] = filter.split('|');
+                const filterTerm: string = filterArray[0] || '';
+                const filterColumn: string = filterArray[1];
+                const filterStatus: string = filterArray[2];
+                const primaryOnly: boolean = filterArray[3] === 'true';
+                const matchOnStatus: boolean = filterStatus !== 'All';
 
-            if (primaryOnly) {
-                if (data.processorStatusSnapshot.executionNode !== 'PRIMARY') {
+                if (primaryOnly) {
+                    if (data.processorStatusSnapshot.executionNode !== 'PRIMARY') {
+                        return false;
+                    }
+                }
+                if (matchOnStatus) {
+                    if (data.processorStatusSnapshot.runStatus !== filterStatus) {
+                        return false;
+                    }
+                }
+                if (filterTerm === '') {
+                    return true;
+                }
+
+                try {
+                    const filterExpression: RegExp = new RegExp(filterTerm, 'i');
+                    const field: string = data.processorStatusSnapshot[
+                        filterColumn as keyof ProcessorStatusSnapshot
+                    ] as string;
+                    return field.search(filterExpression) >= 0;
+                } catch (e) {
+                    // invalid regex;
                     return false;
                 }
-            }
-            if (matchOnStatus) {
-                if (data.processorStatusSnapshot.runStatus !== filterStatus) {
-                    return false;
-                }
-            }
-            if (filterTerm === '') {
-                return true;
-            }
+            };
 
-            try {
-                const filterExpression: RegExp = new RegExp(filterTerm, 'i');
-                const field: string = data.processorStatusSnapshot[
-                    filterColumn as keyof ProcessorStatusSnapshot
-                ] as string;
-                return field.search(filterExpression) >= 0;
-            } catch (e) {
-                // invalid regex;
-                return false;
-            }
-        };
-
-        this.totalCount = processors.length;
-        this.filteredCount = processors.length;
+            this.totalCount = processors.length;
+            this.filteredCount = processors.length;
+        }
     }
 
     @Output() viewStatusHistory: EventEmitter<ProcessorStatusSnapshotEntity> =

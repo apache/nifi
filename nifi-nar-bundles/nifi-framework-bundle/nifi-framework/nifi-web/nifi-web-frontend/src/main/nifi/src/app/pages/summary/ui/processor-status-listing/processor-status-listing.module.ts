@@ -19,7 +19,6 @@ import { NgModule } from '@angular/core';
 import { ProcessorStatusListing } from './processor-status-listing.component';
 import { CommonModule } from '@angular/common';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { ProcessorStatusTable } from './processor-status-table/processor-status-table.component';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
@@ -33,7 +32,7 @@ import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-toolti
 import { SummaryTableFilterModule } from '../common/summary-table-filter/summary-table-filter.module';
 
 @NgModule({
-    declarations: [ProcessorStatusListing, ProcessorStatusTable],
+    declarations: [ProcessorStatusListing],
     exports: [ProcessorStatusListing],
     imports: [
         CommonModule,

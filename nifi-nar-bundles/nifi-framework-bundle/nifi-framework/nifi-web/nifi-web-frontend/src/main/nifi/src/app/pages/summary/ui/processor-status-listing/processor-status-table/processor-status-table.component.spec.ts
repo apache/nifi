@@ -32,7 +32,6 @@ describe('ProcessorStatusTable', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ProcessorStatusTable],
             imports: [
                 SummaryTableFilterModule,
                 MatTableModule,

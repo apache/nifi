@@ -27,6 +27,8 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { selectFlowState } from '../state/flow/flow.selectors';
 import { controllerServicesFeatureKey } from '../state/controller-services';
 import * as fromControllerServices from '../state/controller-services/controller-services.reducer';
+import { selectUser } from '../../../state/user/user.selectors';
+import * as fromUser from '../../../state/user/user.reducer';
 
 describe('CanvasUtils', () => {
     let service: CanvasUtils;
@@ -46,6 +48,10 @@ describe('CanvasUtils', () => {
                         {
                             selector: selectFlowState,
                             value: initialState[flowFeatureKey]
+                        },
+                        {
+                            selector: selectUser,
+                            value: fromUser.initialState.user
                         }
                     ]
                 })

@@ -24,6 +24,7 @@ import { ProcessorStatusListingModule } from './processor-status-listing.module'
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../counters/state/counter-listing/counter-listing.reducer';
 import { ProcessorStatusTable } from './processor-status-table/processor-status-table.component';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('ProcessorStatusListing', () => {
     let component: ProcessorStatusListing;
@@ -31,8 +32,8 @@ describe('ProcessorStatusListing', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ProcessorStatusListing, ProcessorStatusTable],
-            imports: [SummaryTableFilterModule],
+            declarations: [ProcessorStatusListing],
+            imports: [SummaryTableFilterModule, ProcessorStatusTable, NoopAnimationsModule],
             providers: [provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(ProcessorStatusListing);
