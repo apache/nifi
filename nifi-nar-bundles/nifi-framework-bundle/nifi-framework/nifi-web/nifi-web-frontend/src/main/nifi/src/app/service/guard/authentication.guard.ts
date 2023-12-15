@@ -26,7 +26,7 @@ import { UserState } from '../../state/user';
 import { loadUserSuccess } from '../../state/user/user.actions';
 import { selectUserState } from '../../state/user/user.selectors';
 
-export const authGuard: CanMatchFn = (route, state) => {
+export const authenticationGuard: CanMatchFn = (route, state) => {
     const authStorage: AuthStorage = inject(AuthStorage);
     const authService: AuthService = inject(AuthService);
     const userService: UserService = inject(UserService);

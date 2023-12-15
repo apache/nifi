@@ -59,18 +59,27 @@ export class ExtensionTypesEffects {
                 combineLatest([
                     this.extensionTypesService.getControllerServiceTypes(),
                     this.extensionTypesService.getReportingTaskTypes(),
+                    this.extensionTypesService.getRegistryClientTypes(),
                     this.extensionTypesService.getParameterProviderTypes(),
                     this.extensionTypesService.getFlowAnalysisRuleTypes()
                 ]).pipe(
-                    map(([controllerServiceTypes, reportingTaskTypes, parameterProviderTypes, flowAnalysisRuleTypes]) =>
-                        ExtensionTypesActions.loadExtensionTypesForSettingsSuccess({
-                            response: {
-                                controllerServiceTypes: controllerServiceTypes.controllerServiceTypes,
-                                reportingTaskTypes: reportingTaskTypes.reportingTaskTypes,
-                                parameterProviderTypes: parameterProviderTypes.parameterProviderTypes,
-                                flowAnalysisRuleTypes: flowAnalysisRuleTypes.flowAnalysisRuleTypes
-                            }
-                        })
+                    map(
+                        ([
+                            controllerServiceTypes,
+                            reportingTaskTypes,
+                            registryClientTypes,
+                            parameterProviderTypes,
+                            flowAnalysisRuleTypes
+                        ]) =>
+                            ExtensionTypesActions.loadExtensionTypesForSettingsSuccess({
+                                response: {
+                                    controllerServiceTypes: controllerServiceTypes.controllerServiceTypes,
+                                    reportingTaskTypes: reportingTaskTypes.reportingTaskTypes,
+                                    registryClientTypes: registryClientTypes.flowRegistryClientTypes,
+                                    parameterProviderTypes: parameterProviderTypes.parameterProviderTypes,
+                                    flowAnalysisRuleTypes: flowAnalysisRuleTypes.flowAnalysisRuleTypes
+                                }
+                            })
                     ),
                     catchError((error) => of(ExtensionTypesActions.extensionTypesApiError({ error: error.error })))
                 )

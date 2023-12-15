@@ -16,7 +16,12 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
+
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.util.Date;
 import java.util.Set;
 
 /**
@@ -25,6 +30,7 @@ import java.util.Set;
 @XmlRootElement(name = "registryClientsEntity")
 public class FlowRegistryClientsEntity extends Entity {
 
+    private Date currentTime;
     private Set<FlowRegistryClientEntity> registries;
 
     /**
@@ -38,4 +44,19 @@ public class FlowRegistryClientsEntity extends Entity {
         this.registries = registries;
     }
 
+    /**
+     * @return current time on the server
+     */
+    @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "The current time on the system.",
+            dataType = "string"
+    )
+    public Date getCurrentTime() {
+        return currentTime;
+    }
+
+    public void setCurrentTime(Date currentTime) {
+        this.currentTime = currentTime;
+    }
 }

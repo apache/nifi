@@ -20,6 +20,7 @@ import { ReportingTasksState } from './index';
 import {
     createReportingTask,
     createReportingTaskSuccess,
+    deleteReportingTask,
     deleteReportingTaskSuccess,
     loadReportingTasks,
     loadReportingTasksSuccess,
@@ -56,7 +57,7 @@ export const reportingTasksReducer = createReducer(
         error,
         status: 'error' as const
     })),
-    on(createReportingTask, (state, { request }) => ({
+    on(createReportingTask, deleteReportingTask, (state, { request }) => ({
         ...state,
         saving: true
     })),
@@ -94,6 +95,7 @@ export const reportingTasksReducer = createReducer(
             if (componentIndex > -1) {
                 draftState.reportingTasks.splice(componentIndex, 1);
             }
+            draftState.saving = false;
         });
     })
 );

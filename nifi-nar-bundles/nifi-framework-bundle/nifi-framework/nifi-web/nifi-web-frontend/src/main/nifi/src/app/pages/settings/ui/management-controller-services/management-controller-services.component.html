@@ -20,8 +20,8 @@
         <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
     </div>
     <ng-template #loaded>
-        <div class="flex flex-col h-full gap-y-2">
-            <div class="flex justify-end">
+        <div class="flex flex-col h-full gap-y-2" *ngIf="currentUser$ | async; let currentUser">
+            <div class="flex justify-end" *ngIf="currentUser.controllerPermissions.canWrite">
                 <button class="nifi-button" (click)="openNewControllerServiceDialog()">
                     <i class="fa fa-plus"></i>
                 </button>

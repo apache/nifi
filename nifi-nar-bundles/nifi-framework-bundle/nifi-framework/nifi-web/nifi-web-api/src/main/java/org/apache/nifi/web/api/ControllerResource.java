@@ -1483,6 +1483,7 @@ public class ControllerResource extends ApplicationResource {
 
         final Set<FlowRegistryClientEntity> flowRegistryClients = serviceFacade.getRegistryClients();
         final FlowRegistryClientsEntity flowRegistryClientEntities = new FlowRegistryClientsEntity();
+        flowRegistryClientEntities.setCurrentTime(new Date());
         flowRegistryClientEntities.setRegistries(flowRegistryClients);
 
         return generateOkResponse(populateRemainingRegistryClientEntityContent(flowRegistryClientEntities)).build();

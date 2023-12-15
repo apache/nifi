@@ -4,7 +4,7 @@
     "scripts": {
         "ng": "ng",
         "start": "ng serve",
-        "build": "ng build",
+        "build": "ng build --verbose",
         "watch": "ng build --watch --configuration development",
         "test": "ng test --karma-config=karma.conf.js --watch=false",
         "prettier": "prettier --config .prettierrc . --check",

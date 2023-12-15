@@ -15,18 +15,28 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RegistryClients } from './registry-clients.component';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { RegistryClientTable } from './registry-client-table/registry-client-table.component';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { RegistryClientTable } from './registry-client-table.component';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
-import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
-@NgModule({
-    declarations: [RegistryClients, RegistryClientTable],
-    exports: [RegistryClients],
-    imports: [CommonModule, NgxSkeletonLoaderModule, MatTableModule, MatSortModule, NifiTooltipDirective]
-})
-export class RegistryClientsModule {}
+describe('RegistryClientTable', () => {
+    let component: RegistryClientTable;
+    let fixture: ComponentFixture<RegistryClientTable>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [RegistryClientTable],
+            imports: [MatTableModule, MatSortModule, BrowserAnimationsModule]
+        });
+        fixture = TestBed.createComponent(RegistryClientTable);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

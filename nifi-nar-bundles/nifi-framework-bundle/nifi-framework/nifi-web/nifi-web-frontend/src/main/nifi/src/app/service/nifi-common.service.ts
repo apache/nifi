@@ -161,6 +161,30 @@ export class NiFiCommon {
     }
 
     /**
+     * Compares two strings.
+     *
+     * @param a
+     * @param b
+     */
+    public compareString(a: string, b: string): number {
+        if (a === b) {
+            return 0;
+        }
+
+        return a < b ? -1 : 1;
+    }
+
+    /**
+     * Compares two numbers.
+     *
+     * @param a
+     * @param b
+     */
+    public compareNumber(a: number, b: number): number {
+        return a - b;
+    }
+
+    /**
      * Constant regex for leading and/or trailing whitespace.
      */
     private static readonly LEAD_TRAIL_WHITE_SPACE_REGEX: RegExp = /^[ \s]+|[ \s]+$/;

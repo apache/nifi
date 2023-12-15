@@ -17,7 +17,7 @@
 
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { authGuard } from './service/guard/auth.guard';
+import { authenticationGuard } from './service/guard/authentication.guard';
 
 const routes: Routes = [
     {
@@ -26,17 +26,17 @@ const routes: Routes = [
     },
     {
         path: 'settings',
-        canMatch: [authGuard],
+        canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/settings/feature/settings.module').then((m) => m.SettingsModule)
     },
     {
         path: 'provenance',
-        canMatch: [authGuard],
+        canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/provenance/feature/provenance.module').then((m) => m.ProvenanceModule)
     },
     {
         path: 'parameter-contexts',
-        canMatch: [authGuard],
+        canMatch: [authenticationGuard],
         loadChildren: () =>
             import('./pages/parameter-contexts/feature/parameter-contexts.module').then(
                 (m) => m.ParameterContextsModule
@@ -44,12 +44,12 @@ const routes: Routes = [
     },
     {
         path: 'counters',
-        canMatch: [authGuard],
+        canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/counters/feature/counters.module').then((m) => m.CountersModule)
     },
     {
         path: '',
-        canMatch: [authGuard],
+        canMatch: [authenticationGuard],
         loadChildren: () =>
             import('./pages/flow-designer/feature/flow-designer.module').then((m) => m.FlowDesignerModule)
     }

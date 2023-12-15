@@ -39,3 +39,8 @@ export const selectReportingTaskTypes = createSelector(
     selectExtensionTypesState,
     (state: ExtensionTypesState) => state.reportingTaskTypes
 );
+
+export const selectRegistryClientTypes = createSelector(
+    selectExtensionTypesState,
+    (state: ExtensionTypesState) => state.registryClientTypes
+);

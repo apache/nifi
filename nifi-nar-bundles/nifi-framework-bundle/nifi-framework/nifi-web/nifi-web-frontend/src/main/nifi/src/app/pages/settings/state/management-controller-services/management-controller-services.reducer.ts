@@ -22,6 +22,7 @@ import {
     configureControllerServiceSuccess,
     createControllerService,
     createControllerServiceSuccess,
+    deleteControllerService,
     deleteControllerServiceSuccess,
     inlineCreateControllerServiceSuccess,
     loadManagementControllerServices,
@@ -57,7 +58,7 @@ export const managementControllerServicesReducer = createReducer(
         error,
         status: 'error' as const
     })),
-    on(createControllerService, (state, { request }) => ({
+    on(createControllerService, configureControllerService, deleteControllerService, (state, { request }) => ({
         ...state,
         saving: true
     })),
@@ -72,10 +73,6 @@ export const managementControllerServicesReducer = createReducer(
             draftState.controllerServices.push(response.controllerService);
         });
     }),
-    on(configureControllerService, (state, { request }) => ({
-        ...state,
-        saving: true
-    })),
     on(configureControllerServiceSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             const componentIndex: number = draftState.controllerServices.findIndex((f: any) => response.id === f.id);
@@ -93,6 +90,7 @@ export const managementControllerServicesReducer = createReducer(
             if (componentIndex > -1) {
                 draftState.controllerServices.splice(componentIndex, 1);
             }
+            draftState.saving = false;
         });
     })
 );

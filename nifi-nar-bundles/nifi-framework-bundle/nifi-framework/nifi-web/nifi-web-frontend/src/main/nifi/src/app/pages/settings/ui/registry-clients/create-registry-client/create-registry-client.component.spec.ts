@@ -17,20 +17,36 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { RegistryClients } from './registry-clients.component';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/registry-clients/registry-clients.reducer';
+import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { CreateRegistryClient } from './create-registry-client.component';
+import { CreateRegistryClientDialogRequest } from '../../../state/registry-clients';
 
-describe('RegistryClients', () => {
-    let component: RegistryClients;
-    let fixture: ComponentFixture<RegistryClients>;
+describe('CreateRegistryClient', () => {
+    let component: CreateRegistryClient;
+    let fixture: ComponentFixture<CreateRegistryClient>;
+
+    const data: CreateRegistryClientDialogRequest = {
+        registryClientTypes: [
+            {
+                type: 'org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient',
+                bundle: {
+                    group: 'org.apache.nifi',
+                    artifact: 'nifi-flow-registry-client-nar',
+                    version: '2.0.0-SNAPSHOT'
+                },
+                restricted: false,
+                tags: []
+            }
+        ]
+    };
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [RegistryClients],
-            providers: [provideMockStore({ initialState })]
+            imports: [CreateRegistryClient, BrowserAnimationsModule],
+            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
         });
-        fixture = TestBed.createComponent(RegistryClients);
+        fixture = TestBed.createComponent(CreateRegistryClient);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });
