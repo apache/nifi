@@ -23,17 +23,21 @@ import { extensionTypesFeatureKey, ExtensionTypesState } from './extension-types
 import { extensionTypesReducer } from './extension-types/extension-types.reducer';
 import { aboutFeatureKey, AboutState } from './about';
 import { aboutReducer } from './about/about.reducer';
+import { statusHistoryFeatureKey, StatusHistoryState } from './status-history';
+import { statusHistoryReducer } from './status-history/status-history.reducer';
 
 export interface NiFiState {
     router: RouterReducerState;
     [userFeatureKey]: UserState;
     [extensionTypesFeatureKey]: ExtensionTypesState;
     [aboutFeatureKey]: AboutState;
+    [statusHistoryFeatureKey]: StatusHistoryState;
 }
 
 export const rootReducers: ActionReducerMap<NiFiState> = {
     router: routerReducer,
     [userFeatureKey]: userReducer,
     [extensionTypesFeatureKey]: extensionTypesReducer,
-    [aboutFeatureKey]: aboutReducer
+    [aboutFeatureKey]: aboutReducer,
+    [statusHistoryFeatureKey]: statusHistoryReducer
 };

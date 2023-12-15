@@ -21,10 +21,21 @@ import { Injectable } from '@angular/core';
     providedIn: 'root'
 })
 export class NiFiCommon {
-    private static readonly MILLIS_PER_DAY: number = 86400000;
-    private static readonly MILLIS_PER_HOUR: number = 3600000;
-    private static readonly MILLIS_PER_MINUTE: number = 60000;
-    private static readonly MILLIS_PER_SECOND: number = 1000;
+    /**
+     * Constants for time duration formatting.
+     */
+    public static readonly MILLIS_PER_DAY: number = 86400000;
+    public static readonly MILLIS_PER_HOUR: number = 3600000;
+    public static readonly MILLIS_PER_MINUTE: number = 60000;
+    public static readonly MILLIS_PER_SECOND: number = 1000;
+
+    /**
+     * Constants for formatting data size.
+     */
+    public static readonly BYTES_IN_KILOBYTE: number = 1024;
+    public static readonly BYTES_IN_MEGABYTE: number = 1048576;
+    public static readonly BYTES_IN_GIGABYTE: number = 1073741824;
+    public static readonly BYTES_IN_TERABYTE: number = 1099511627776;
 
     constructor() {}
 
@@ -339,5 +350,63 @@ export class NiFiCommon {
         } else {
             return time;
         }
+    }
+
+    /**
+     * Formats the specified number of bytes into a human readable string.
+     *
+     * @param {number} dataSize
+     * @returns {string}
+     */
+    public formatDataSize(dataSize: number): string {
+        let dataSizeToFormat: number = parseFloat(`${dataSize / NiFiCommon.BYTES_IN_TERABYTE}`);
+        if (dataSizeToFormat > 1) {
+            return dataSizeToFormat.toFixed(2) + ' TB';
+        }
+
+        // check gigabytes
+        dataSizeToFormat = parseFloat(`${dataSize / NiFiCommon.BYTES_IN_GIGABYTE}`);
+        if (dataSizeToFormat > 1) {
+            return dataSizeToFormat.toFixed(2) + ' GB';
+        }
+
+        // check megabytes
+        dataSizeToFormat = parseFloat(`${dataSize / NiFiCommon.BYTES_IN_MEGABYTE}`);
+        if (dataSizeToFormat > 1) {
+            return dataSizeToFormat.toFixed(2) + ' MB';
+        }
+
+        // check kilobytes
+        dataSizeToFormat = parseFloat(`${dataSize / NiFiCommon.BYTES_IN_KILOBYTE}`);
+        if (dataSizeToFormat > 1) {
+            return dataSizeToFormat.toFixed(2) + ' KB';
+        }
+
+        // default to bytes
+        return parseFloat(`${dataSize}`).toFixed(2) + ' bytes';
+    }
+
+    /**
+     * Formats the specified integer as a string (adding commas). At this
+     * point this does not take into account any locales.
+     *
+     * @param {integer} integer
+     */
+    public formatInteger(integer: number): string {
+        const locale: string = (navigator && navigator.language) || 'en';
+        return integer.toLocaleString(locale, { maximumFractionDigits: 0 });
+    }
+
+    /**
+     * Formats the specified float using two decimal places.
+     *
+     * @param {float} f
+     */
+    public formatFloat(f: number): string {
+        if (!f) {
+            return '0.0';
+        }
+        const locale: string = (navigator && navigator.language) || 'en';
+        return f.toLocaleString(locale, { maximumFractionDigits: 2, minimumFractionDigits: 2 });
     }
 }

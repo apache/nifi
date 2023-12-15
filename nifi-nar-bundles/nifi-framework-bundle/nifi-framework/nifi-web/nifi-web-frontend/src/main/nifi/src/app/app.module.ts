@@ -36,6 +36,8 @@ import { PollingInterceptor } from './service/interceptors/polling.interceptor';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { MatNativeDateModule } from '@angular/material/core';
 import { AboutEffects } from './state/about/about.effects';
+import { StatusHistoryEffects } from './state/status-history/status-history.effects';
+import { MatDialogModule } from '@angular/material/dialog';
 
 // @ts-ignore
 @NgModule({
@@ -54,14 +56,15 @@ import { AboutEffects } from './state/about/about.effects';
             routerState: RouterState.Minimal,
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
-        EffectsModule.forRoot(UserEffects, ExtensionTypesEffects, AboutEffects),
+        EffectsModule.forRoot(UserEffects, ExtensionTypesEffects, AboutEffects, StatusHistoryEffects),
         StoreDevtoolsModule.instrument({
             maxAge: 25,
             logOnly: environment.production,
             autoPause: true
         }),
         MatProgressSpinnerModule,
-        MatNativeDateModule
+        MatNativeDateModule,
+        MatDialogModule
     ],
     providers: [
         {
