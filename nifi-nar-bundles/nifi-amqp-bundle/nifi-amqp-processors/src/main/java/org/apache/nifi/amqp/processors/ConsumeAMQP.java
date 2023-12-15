@@ -335,9 +335,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     @Override
     protected synchronized AMQPConsumer createAMQPWorker(final ProcessContext context, final Connection connection) {
         try {
-            final AMQPConsumer amqpConsumer = new AMQPConsumer(connection, queueName, autoAcknowledge,prefetchCount, getLogger());
-
-            return amqpConsumer;
+            return new AMQPConsumer(connection, queueName, autoAcknowledge, prefetchCount, getLogger());
         } catch (final IOException ioe) {
             throw new ProcessException("Failed to connect to AMQP Broker", ioe);
         }
