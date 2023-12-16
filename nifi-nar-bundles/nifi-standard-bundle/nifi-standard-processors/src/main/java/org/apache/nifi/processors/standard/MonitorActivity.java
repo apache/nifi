@@ -107,7 +107,7 @@ public class MonitorActivity extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor WAIT_FOR_ACTIVITY = new PropertyDescriptor.Builder()
             .name("Initial Inactivity Indicator")
-            .description("When the processor get started or restarted, it is considered there was no activity happened before. "
+            .description("When the processor gets started or restarted, it is considered there was no activity happened before. "
                     + "If true, send inactivity indicator only if there was activity.")
             .required(false)
             .allowableValues("true", "false")
