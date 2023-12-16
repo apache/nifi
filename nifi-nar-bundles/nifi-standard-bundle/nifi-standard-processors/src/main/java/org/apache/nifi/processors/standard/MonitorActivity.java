@@ -105,13 +105,13 @@ public class MonitorActivity extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("Activity restored at time: ${now():format('yyyy/MM/dd HH:mm:ss')} after being inactive for ${inactivityDurationMillis:toNumber():divide(60000)} minutes")
             .build();
-    public static final PropertyDescriptor INITIAL_INACTIVITY_INDICATOR = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor WAIT_FOR_ACTIVITY = new PropertyDescriptor.Builder()
             .name("Initial Inactivity Indicator")
-            .description("If true, will send inactivity indicator after the processor is enabled and Threshold Duration amount of time exceeds; "
-                    + "if false, no inactivity indicator is sent")
+            .description("When the processor get started or restarted, it is considered there was no activity happened before. "
+                    + "If true, send inactivity indicator only if there was activity.")
             .required(false)
             .allowableValues("true", "false")
-            .defaultValue("true")
+            .defaultValue("false")
             .build();
     public static final PropertyDescriptor INACTIVITY_MESSAGE = new PropertyDescriptor.Builder()
             .name("Inactivity Message")
@@ -190,7 +190,7 @@ public class MonitorActivity extends AbstractProcessor {
         properties.add(CONTINUALLY_SEND_MESSAGES);
         properties.add(INACTIVITY_MESSAGE);
         properties.add(ACTIVITY_RESTORED_MESSAGE);
-        properties.add(INITIAL_INACTIVITY_INDICATOR);
+        properties.add(WAIT_FOR_ACTIVITY);
         properties.add(COPY_ATTRIBUTES);
         properties.add(MONITORING_SCOPE);
         properties.add(REPORTING_NODE);
@@ -265,7 +265,7 @@ public class MonitorActivity extends AbstractProcessor {
 
         final ComponentLog logger = getLogger();
         final boolean copyAttributes = context.getProperty(COPY_ATTRIBUTES).asBoolean();
-        final boolean initialInactivityIndicator = context.getProperty(INITIAL_INACTIVITY_INDICATOR).asBoolean();
+        final boolean waitForActivity = context.getProperty(WAIT_FOR_ACTIVITY).asBoolean();
         final boolean isClusterScope = isClusterScope(context, false);
         final boolean isConnectedToCluster = context.isConnectedToCluster();
         final boolean shouldReportOnlyOnPrimary = shouldReportOnlyOnPrimary(isClusterScope, context);
@@ -312,10 +312,9 @@ public class MonitorActivity extends AbstractProcessor {
 
             if (isInactive) {
                 final boolean continual = context.getProperty(CONTINUALLY_SEND_MESSAGES).asBoolean();
-                if (!initialInactivityIndicator) {
-                    sendInactiveMarker = (!inactive.getAndSet(true) || (continual && (now > lastInactiveMessage.get() + thresholdMillis))) && hasSuccessTransfer.get();
-                } else {
-                    sendInactiveMarker = !inactive.getAndSet(true) || (continual && (now > lastInactiveMessage.get() + thresholdMillis));
+                sendInactiveMarker = !inactive.getAndSet(true) || (continual && (now > lastInactiveMessage.get() + thresholdMillis));
+                if (waitForActivity) {
+                    sendInactiveMarker = sendInactiveMarker && hasSuccessTransfer.get();
                 }
             }
 
