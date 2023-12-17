@@ -50,19 +50,14 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
 import static com.fasterxml.jackson.core.JsonEncoding.UTF8;
 import static com.fasterxml.jackson.core.JsonToken.FIELD_NAME;
 import static com.fasterxml.jackson.core.JsonToken.VALUE_NULL;
-import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
-import static java.util.stream.Collectors.collectingAndThen;
-import static java.util.stream.Collectors.toList;
 import static org.apache.nifi.annotation.behavior.InputRequirement.Requirement.INPUT_FORBIDDEN;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL;
@@ -94,9 +89,9 @@ public class GetZendesk extends AbstractZendesk {
     static final String ZENDESK_RESOURCE_NAME = "zendesk-resource";
     static final String ZENDESK_QUERY_START_TIMESTAMP_NAME = "zendesk-query-start-timestamp";
 
-    private static final Set<Relationship> RELATIONSHIPS = singleton(REL_SUCCESS);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
-    private static final PropertyDescriptor ZENDESK_EXPORT_METHOD = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor ZENDESK_EXPORT_METHOD = new PropertyDescriptor.Builder()
         .name(ZENDESK_EXPORT_METHOD_NAME)
         .displayName("Export Method")
         .description("Method for incremental export.")
@@ -104,7 +99,7 @@ public class GetZendesk extends AbstractZendesk {
         .allowableValues(ZendeskExportMethod.class)
         .build();
 
-    private static final PropertyDescriptor ZENDESK_RESOURCE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor ZENDESK_RESOURCE = new PropertyDescriptor.Builder()
         .name(ZENDESK_RESOURCE_NAME)
         .displayName("Resource")
         .description("The particular Zendesk resource which is meant to be exported.")
@@ -112,7 +107,7 @@ public class GetZendesk extends AbstractZendesk {
         .allowableValues(ZendeskResource.class)
         .build();
 
-    private static final PropertyDescriptor ZENDESK_QUERY_START_TIMESTAMP = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor ZENDESK_QUERY_START_TIMESTAMP = new PropertyDescriptor.Builder()
         .name(ZENDESK_QUERY_START_TIMESTAMP_NAME)
         .displayName("Query Start Timestamp")
         .description("Initial timestamp to query Zendesk API from in Unix timestamp seconds format.")
@@ -121,7 +116,7 @@ public class GetZendesk extends AbstractZendesk {
         .required(true)
         .build();
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = Stream.of(
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
         WEB_CLIENT_SERVICE_PROVIDER,
         ZENDESK_SUBDOMAIN,
         ZENDESK_USER,
@@ -130,7 +125,7 @@ public class GetZendesk extends AbstractZendesk {
         ZENDESK_EXPORT_METHOD,
         ZENDESK_RESOURCE,
         ZENDESK_QUERY_START_TIMESTAMP
-    ).collect(collectingAndThen(toList(), Collections::unmodifiableList));
+    );
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final JsonFactory JSON_FACTORY = OBJECT_MAPPER.getFactory();

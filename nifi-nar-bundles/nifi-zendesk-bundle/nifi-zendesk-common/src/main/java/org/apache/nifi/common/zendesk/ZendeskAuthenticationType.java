@@ -19,8 +19,6 @@ package org.apache.nifi.common.zendesk;
 
 import org.apache.nifi.components.DescribedValue;
 
-import java.util.stream.Stream;
-
 import static java.lang.String.format;
 
 public enum ZendeskAuthenticationType implements DescribedValue {
@@ -49,11 +47,6 @@ public enum ZendeskAuthenticationType implements DescribedValue {
         this.value = value;
         this.displayName = displayName;
         this.description = description;
-    }
-
-    public static ZendeskAuthenticationType forName(String authenticationType) {
-        return Stream.of(values()).filter(authType -> authType.getValue().equalsIgnoreCase(authenticationType)).findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("Invalid Zendesk authentication type: " + authenticationType));
     }
 
     @Override

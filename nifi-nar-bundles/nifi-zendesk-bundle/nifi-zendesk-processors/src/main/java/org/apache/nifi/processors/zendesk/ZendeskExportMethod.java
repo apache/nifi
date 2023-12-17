@@ -17,8 +17,9 @@
 
 package org.apache.nifi.processors.zendesk;
 
-import java.util.stream.Stream;
 import org.apache.nifi.components.DescribedValue;
+
+import java.util.stream.Stream;
 
 public enum ZendeskExportMethod implements DescribedValue {
     CURSOR("cursor", "Cursor Based", "%s/cursor.json",

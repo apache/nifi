@@ -47,7 +47,6 @@ import java.io.InputStream;
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -103,7 +102,7 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
             .required(true)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             WEB_CLIENT_SERVICE_PROVIDER,
             ZENDESK_SUBDOMAIN,
             ZENDESK_USER,
@@ -115,7 +114,7 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
             ZENDESK_TICKET_TYPE,
             CACHE_SIZE,
             CACHE_EXPIRATION
-    ));
+    );
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
@@ -185,7 +184,7 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
 
         final String subdomain = context.getProperty(ZENDESK_SUBDOMAIN).evaluateAttributeExpressions().getValue();
         final String user = context.getProperty(ZENDESK_USER).evaluateAttributeExpressions().getValue();
-        final ZendeskAuthenticationType authenticationType = ZendeskAuthenticationType.forName(context.getProperty(ZENDESK_AUTHENTICATION_TYPE).getValue());
+        final ZendeskAuthenticationType authenticationType = context.getProperty(ZENDESK_AUTHENTICATION_TYPE).asDescribedValue(ZendeskAuthenticationType.class);
         final String authenticationCredentials = context.getProperty(ZENDESK_AUTHENTICATION_CREDENTIAL).evaluateAttributeExpressions().getValue();
         final ZendeskAuthenticationContext authenticationContext = new ZendeskAuthenticationContext(subdomain, user, authenticationType, authenticationCredentials);
         final WebClientServiceProvider webClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE_PROVIDER).asControllerService(WebClientServiceProvider.class);
