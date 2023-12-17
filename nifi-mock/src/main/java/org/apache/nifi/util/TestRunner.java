@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
@@ -777,7 +776,7 @@ public interface TestRunner {
      *             {@link #removeControllerService(ControllerService)} method.
      *
      */
-    ValidationResult setProperty(ControllerService service, PropertyDescriptor property, AllowableValue value);
+    ValidationResult setProperty(ControllerService service, PropertyDescriptor property, DescribedValue value);
 
     /**
      * Sets the property with the given name on the given ControllerService

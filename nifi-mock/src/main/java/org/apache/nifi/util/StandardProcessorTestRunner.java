@@ -26,7 +26,6 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -828,7 +827,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public ValidationResult setProperty(final ControllerService service, final PropertyDescriptor property, final AllowableValue value) {
+    public ValidationResult setProperty(final ControllerService service, final PropertyDescriptor property, final DescribedValue value) {
         return setProperty(service, property, value.getValue());
     }
 

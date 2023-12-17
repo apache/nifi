@@ -37,21 +37,21 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_CREATE_TICKETS_RESOURCE;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_CREATE_TICKET_RESOURCE;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_SUBDOMAIN_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_COMMENT_BODY_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_PRIORITY_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_SUBJECT_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_TYPE_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_USER_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_SUBDOMAIN;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_COMMENT_BODY;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_PRIORITY;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_SUBJECT;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_TYPE;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_USER;
 import static org.apache.nifi.processors.zendesk.AbstractZendesk.RECORD_COUNT_ATTRIBUTE_NAME;
+import static org.apache.nifi.processors.zendesk.PutZendeskTicket.RECORD_READER;
 import static org.apache.nifi.processors.zendesk.PutZendeskTicket.REL_FAILURE;
 import static org.apache.nifi.processors.zendesk.PutZendeskTicket.REL_SUCCESS;
-import static org.apache.nifi.processors.zendesk.PutZendeskTicket.ZENDESK_RECORD_READER_NAME;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -77,11 +77,11 @@ public class PutZendeskTicketTest {
         testRunner.addControllerService("web-client-service-provider", webClientServiceProvider);
         testRunner.enableControllerService(webClientServiceProvider);
 
-        testRunner.setProperty(WEB_CLIENT_SERVICE_PROVIDER_NAME, "web-client-service-provider");
-        testRunner.setProperty(ZENDESK_SUBDOMAIN_NAME, "default-zendesk-subdomain");
-        testRunner.setProperty(ZENDESK_USER_NAME, "default-zendesk-user-name");
-        testRunner.setProperty(ZENDESK_AUTHENTICATION_TYPE_NAME, ZendeskAuthenticationType.PASSWORD.getValue());
-        testRunner.setProperty(ZENDESK_AUTHENTICATION_CREDENTIAL_NAME, "default-zendesk-password");
+        testRunner.setProperty(WEB_CLIENT_SERVICE_PROVIDER, "web-client-service-provider");
+        testRunner.setProperty(ZENDESK_SUBDOMAIN, "default-zendesk-subdomain");
+        testRunner.setProperty(ZENDESK_USER, "default-zendesk-user-name");
+        testRunner.setProperty(ZENDESK_AUTHENTICATION_TYPE, ZendeskAuthenticationType.PASSWORD);
+        testRunner.setProperty(ZENDESK_AUTHENTICATION_CREDENTIAL, "default-zendesk-password");
     }
 
     @AfterEach
@@ -131,14 +131,14 @@ public class PutZendeskTicketTest {
 
         testRunner.addControllerService("mock-reader-factory", reader);
         testRunner.enableControllerService(reader);
-        testRunner.setProperty(ZENDESK_RECORD_READER_NAME, "mock-reader-factory");
+        testRunner.setProperty(RECORD_READER, "mock-reader-factory");
 
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
-        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
-        testRunner.setProperty(ZENDESK_TICKET_SUBJECT_NAME, "@{/subject}");
-        testRunner.setProperty(ZENDESK_TICKET_PRIORITY_NAME, "@{/priority}");
-        testRunner.setProperty(ZENDESK_TICKET_TYPE_NAME, "@{/type}");
+        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY, "@{/description}");
+        testRunner.setProperty(ZENDESK_TICKET_SUBJECT, "@{/subject}");
+        testRunner.setProperty(ZENDESK_TICKET_PRIORITY, "@{/priority}");
+        testRunner.setProperty(ZENDESK_TICKET_TYPE, "@{/type}");
 
         // when
         testRunner.enqueue(new byte[0]);
@@ -173,11 +173,11 @@ public class PutZendeskTicketTest {
 
         testRunner.addControllerService("mock-reader-factory", reader);
         testRunner.enableControllerService(reader);
-        testRunner.setProperty(ZENDESK_RECORD_READER_NAME, "mock-reader-factory");
+        testRunner.setProperty(RECORD_READER, "mock-reader-factory");
 
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
-        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
+        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY, "@{/description}");
 
         // when
         testRunner.enqueue(new byte[0]);
@@ -214,11 +214,11 @@ public class PutZendeskTicketTest {
 
         testRunner.addControllerService("mock-reader-factory", reader);
         testRunner.enableControllerService(reader);
-        testRunner.setProperty(ZENDESK_RECORD_READER_NAME, "mock-reader-factory");
+        testRunner.setProperty(RECORD_READER, "mock-reader-factory");
 
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
-        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
+        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY, "@{/description}");
         testRunner.setProperty("/dp1/dynamicPropertyTarget1", "@{/dynamicPropertySource1}");
         testRunner.setProperty("/dp1/dp2/dp3/dynamicPropertyTarget2", "@{/dynamicPropertySource2}");
 
@@ -261,11 +261,11 @@ public class PutZendeskTicketTest {
 
         testRunner.addControllerService("mock-reader-factory", reader);
         testRunner.enableControllerService(reader);
-        testRunner.setProperty(ZENDESK_RECORD_READER_NAME, "mock-reader-factory");
+        testRunner.setProperty(RECORD_READER, "mock-reader-factory");
 
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
-        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
+        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY, "@{/description}");
         testRunner.setProperty("/dp1/dynamicPropertyTarget1", "Constant 1");
         testRunner.setProperty("/dp1/dp2/dp3/dynamicPropertyTarget2", "Constant2");
 
@@ -306,11 +306,11 @@ public class PutZendeskTicketTest {
 
         testRunner.addControllerService("mock-reader-factory", reader);
         testRunner.enableControllerService(reader);
-        testRunner.setProperty(ZENDESK_RECORD_READER_NAME, "mock-reader-factory");
+        testRunner.setProperty(RECORD_READER, "mock-reader-factory");
 
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_BAD_REQUEST).setBody(EMPTY_RESPONSE));
-        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
+        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY, "@{/description}");
 
         // when
         testRunner.enqueue(new byte[0]);
@@ -326,8 +326,8 @@ public class PutZendeskTicketTest {
 
         testRunner.addControllerService("mock-reader-factory", reader);
         testRunner.enableControllerService(reader);
-        testRunner.setProperty(ZENDESK_RECORD_READER_NAME, "mock-reader-factory");
-        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY_NAME, "@{/description}");
+        testRunner.setProperty(RECORD_READER, "mock-reader-factory");
+        testRunner.setProperty(ZENDESK_TICKET_COMMENT_BODY, "@{/description}");
 
         // when
         testRunner.enqueue(new byte[0]);

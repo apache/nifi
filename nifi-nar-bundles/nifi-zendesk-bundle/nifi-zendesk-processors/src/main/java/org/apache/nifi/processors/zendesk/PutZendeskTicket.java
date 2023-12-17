@@ -42,16 +42,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.common.zendesk.ZendeskProperties.APPLICATION_JSON;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.REL_FAILURE_NAME;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE;
@@ -121,7 +117,7 @@ public class PutZendeskTicket extends AbstractZendesk {
             .dependsOn(RECORD_READER)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             WEB_CLIENT_SERVICE_PROVIDER,
             ZENDESK_SUBDOMAIN,
             ZENDESK_USER,
@@ -132,12 +128,17 @@ public class PutZendeskTicket extends AbstractZendesk {
             TICKET_SUBJECT,
             TICKET_PRIORITY,
             TICKET_TYPE
-    ));
+    );
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name(REL_FAILURE_NAME)
+            .name("failure")
             .description("A FlowFile is routed to this relationship if the operation failed and retrying the operation will also fail, such as an invalid data or schema.")
             .build();
+
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
@@ -154,11 +155,6 @@ public class PutZendeskTicket extends AbstractZendesk {
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
     }
-
-    public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            REL_SUCCESS,
-            REL_FAILURE
-    )));
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
