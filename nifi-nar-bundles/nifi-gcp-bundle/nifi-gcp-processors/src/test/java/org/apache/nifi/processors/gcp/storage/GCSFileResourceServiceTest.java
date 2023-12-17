@@ -30,11 +30,11 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,16 +47,16 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class GCSFileResourceServiceTest {
 
     private static final String TEST_NAME = GCSFileResourceServiceTest.class.getSimpleName();
     private static final String CONTROLLER_SERVICE = "GCPCredentialsService";
     private static final String BUCKET = RemoteStorageHelper.generateBucketName();
     private static final String KEY = "test-file";
+    private static final BlobId BLOB_ID = BlobId.of(BUCKET, KEY);
     private static final String TEST_DATA = "test-data";
 
     @Mock
@@ -64,30 +64,21 @@ public class GCSFileResourceServiceTest {
 
     private TestRunner runner;
     private TestGCSFileResourceService service;
-    private AutoCloseable mocksCloseable;
 
     @BeforeEach
     void setup() throws InitializationException {
-        mocksCloseable = MockitoAnnotations.openMocks(this);
-
-        reset(storage);
-        mockBlob();
         service = new TestGCSFileResourceService(storage);
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService(TEST_NAME, service);
     }
 
-    @AfterEach
-    public void cleanup() throws Exception {
-        final AutoCloseable closeable = mocksCloseable;
-        mocksCloseable = null;
-        if (closeable != null) {
-            closeable.close();
-        }
-    }
-
     @Test
-    void testValidBlob() throws InitializationException, IOException {
+    void testValidBlob(@Mock Blob blob) throws InitializationException, IOException {
+        when(blob.getBlobId()).thenReturn(BLOB_ID);
+        when(blob.getSize()).thenReturn((long) TEST_DATA.length());
+        when(storage.get(BLOB_ID)).thenReturn(blob);
+        when(storage.reader(BLOB_ID)).thenReturn(new MockReadChannel(TEST_DATA));
+
         setUpService(KEY, BUCKET);
 
         final FileResource fileResource = service.getFileResource(Collections.emptyMap());
@@ -96,7 +87,12 @@ public class GCSFileResourceServiceTest {
     }
 
     @Test
-    void testValidBlobUsingEL() throws IOException, InitializationException {
+    void testValidBlobUsingEL(@Mock Blob blob) throws IOException, InitializationException {
+        when(blob.getBlobId()).thenReturn(BLOB_ID);
+        when(blob.getSize()).thenReturn((long) TEST_DATA.length());
+        when(storage.get(BLOB_ID)).thenReturn(blob);
+        when(storage.reader(BLOB_ID)).thenReturn(new MockReadChannel(TEST_DATA));
+
         final Map<String, String> attributes = setUpServiceWithEL(KEY, BUCKET);
 
         final FileResource fileResource = service.getFileResource(attributes);
@@ -118,17 +114,6 @@ public class GCSFileResourceServiceTest {
         final Map<String, String> attributes = setUpServiceWithEL("invalid-key", "invalid-bucket");
 
         assertThrows(ProcessException.class, () -> service.getFileResource(attributes));
-    }
-
-    private void mockBlob() {
-        final Blob blob = mock(Blob.class);
-        final BlobId blobId = BlobId.of(BUCKET, KEY);
-
-        when(blob.getBlobId()).thenReturn(blobId);
-        when(blob.getSize()).thenReturn((long) TEST_DATA.length());
-
-        when(storage.get(blobId)).thenReturn(blob);
-        when(storage.reader(blobId)).thenReturn(new MockReadChannel(TEST_DATA));
     }
 
     private void setUpService(String key, String bucket) throws InitializationException {
@@ -165,9 +150,9 @@ public class GCSFileResourceServiceTest {
         }
     }
 
-    private class TestGCSFileResourceService extends GCSFileResourceService {
+    private static class TestGCSFileResourceService extends GCSFileResourceService {
 
-        private Storage storage;
+        private final Storage storage;
 
         public TestGCSFileResourceService(Storage storage) {
             this.storage = storage;
