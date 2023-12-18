@@ -16,7 +16,13 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { ProvenanceEventRequest, ProvenanceOptionsResponse, ProvenanceQueryResponse, ProvenanceRequest } from './index';
+import {
+    GoToProvenanceEventSourceRequest,
+    ProvenanceEventRequest,
+    ProvenanceOptionsResponse,
+    ProvenanceQueryResponse,
+    ProvenanceRequest
+} from './index';
 
 export const resetProvenanceState = createAction('[Provenance Event Listing] Reset Provenance State');
 
@@ -63,6 +69,11 @@ export const provenanceApiError = createAction(
 export const openProvenanceEventDialog = createAction(
     '[Provenance Event Listing] Open Provenance Event Dialog',
     props<{ request: ProvenanceEventRequest }>()
+);
+
+export const goToProvenanceEventSource = createAction(
+    '[Provenance Event Listing] Go To Provenance Event Source',
+    props<{ request: GoToProvenanceEventSourceRequest }>()
 );
 
 export const openSearchDialog = createAction('[Provenance Event Listing] Open Search Dialog');

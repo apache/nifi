@@ -33,7 +33,10 @@
                         <span class="context-menu-item-text">{{ item.text }}</span>
                         <span class="context-menu-group-item-img fa fa-caret-right"></span>
                     </button>
-                    <fd-context-menu #menuComponent [menuId]="item.subMenuId"></fd-context-menu>
+                    <fd-context-menu
+                        #menuComponent
+                        [menuProvider]="menuProvider"
+                        [menuId]="item.subMenuId"></fd-context-menu>
                 </ng-container>
 
                 <ng-template #regularMenuItem>

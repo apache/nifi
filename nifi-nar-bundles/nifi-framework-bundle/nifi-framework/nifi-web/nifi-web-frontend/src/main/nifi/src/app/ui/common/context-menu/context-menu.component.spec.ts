@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ContextMenu } from './context-menu.component';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../state/flow/flow.reducer';
+import { initialState } from '../../../pages/flow-designer/state/flow/flow.reducer';
 
 describe('ContextMenu', () => {
     let component: ContextMenu;

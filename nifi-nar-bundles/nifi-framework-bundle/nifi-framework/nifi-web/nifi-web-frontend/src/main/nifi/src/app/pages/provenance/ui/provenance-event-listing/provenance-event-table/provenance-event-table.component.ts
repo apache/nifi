@@ -35,7 +35,7 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { Lineage, LineageRequest } from '../../../state/lineage';
 import { LineageComponent } from './lineage/lineage.component';
-import { ProvenanceEventRequest } from '../../../state/provenance-event-listing';
+import { GoToProvenanceEventSourceRequest, ProvenanceEventRequest } from '../../../state/provenance-event-listing';
 
 @Component({
     selector: 'provenance-event-table',
@@ -99,6 +99,8 @@ export class ProvenanceEventTable implements AfterViewInit {
     @Output() openSearchCriteria: EventEmitter<void> = new EventEmitter<void>();
     @Output() clearRequest: EventEmitter<void> = new EventEmitter<void>();
     @Output() openEventDialog: EventEmitter<ProvenanceEventRequest> = new EventEmitter<ProvenanceEventRequest>();
+    @Output() goToProvenanceEventSource: EventEmitter<GoToProvenanceEventSourceRequest> =
+        new EventEmitter<GoToProvenanceEventSourceRequest>();
     @Output() resubmitProvenanceQuery: EventEmitter<void> = new EventEmitter<void>();
     @Output() queryLineage: EventEmitter<LineageRequest> = new EventEmitter<LineageRequest>();
     @Output() resetLineage: EventEmitter<void> = new EventEmitter<void>();
@@ -252,31 +254,30 @@ export class ProvenanceEventTable implements AfterViewInit {
         return true;
     }
 
-    getComponentLink(event: ProvenanceEventSummary): string[] {
-        let link: string[];
+    goToClicked(event: ProvenanceEventSummary): void {
+        this.goToEventSource({
+            componentId: event.componentId,
+            groupId: event.groupId
+        });
+    }
 
-        if (event.groupId == event.componentId) {
-            link = ['/process-groups', event.componentId];
-        } else if (event.componentId === 'Connection' || event.componentId === 'Load Balanced Connection') {
-            link = ['/process-groups', event.groupId, 'Connection', event.componentId];
-        } else if (event.componentId === 'Output Port') {
-            link = ['/process-groups', event.groupId, 'OutputPort', event.componentId];
-        } else {
-            link = ['/process-groups', event.groupId, 'Processor', event.componentId];
-        }
-
-        return link;
+    goToEventSource(request: GoToProvenanceEventSourceRequest): void {
+        this.goToProvenanceEventSource.next(request);
     }
 
     showLineageGraph(event: ProvenanceEventSummary): void {
         this.eventId = event.id;
         this.showLineage = true;
 
-        this.queryLineage.next({
+        this.submitLineageQuery({
             lineageRequestType: 'FLOWFILE',
             uuid: event.flowFileUuid,
             clusterNodeId: event.clusterNodeId
         });
+    }
+
+    submitLineageQuery(request: LineageRequest): void {
+        this.queryLineage.next(request);
     }
 
     hideLineageGraph(): void {

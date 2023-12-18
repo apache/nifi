@@ -15,10 +15,12 @@
  * limitations under the License.
  */
 
-import { Component, Input, OnInit, TemplateRef, ViewChild } from '@angular/core';
+import { Injectable } from '@angular/core';
+import { Observable, throwError } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { CanvasUtils } from './canvas-utils.service';
 import { Store } from '@ngrx/store';
-import { CanvasState } from '../../../state';
-import { Observable, Subject } from 'rxjs';
+import { CanvasState } from '../state';
 import {
     centerSelectedComponent,
     deleteComponents,
@@ -33,35 +35,19 @@ import {
     navigateToProvenanceForComponent,
     reloadFlow,
     replayLastProvenanceEvent
-} from '../../../state/flow/flow.actions';
-import { CanvasUtils } from '../../../service/canvas-utils.service';
-import { DeleteComponentRequest, MoveComponentRequest } from '../../../state/flow';
-import { ComponentType } from '../../../../../state/shared';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
-import { CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
+} from '../state/flow/flow.actions';
+import { ComponentType } from '../../../state/shared';
+import { DeleteComponentRequest, MoveComponentRequest } from '../state/flow';
+import {
+    ContextMenu,
+    ContextMenuDefinition,
+    ContextMenuDefinitionProvider,
+    ContextMenuItemDefinition
+} from '../../../ui/common/context-menu/context-menu.component';
+import { selection } from 'd3';
 
-export interface ContextMenuItemDefinition {
-    isSeparator?: boolean;
-    condition?: Function;
-    clazz?: string;
-    text?: string;
-    subMenuId?: string;
-    action?: Function;
-}
-
-export interface ContextMenuDefinition {
-    id: string;
-    menuItems: ContextMenuItemDefinition[];
-}
-
-@Component({
-    selector: 'fd-context-menu',
-    standalone: true,
-    templateUrl: './context-menu.component.html',
-    imports: [NgForOf, AsyncPipe, CdkMenu, CdkMenuItem, NgIf, CdkMenuTrigger],
-    styleUrls: ['./context-menu.component.scss']
-})
-export class ContextMenu implements OnInit {
+@Injectable({ providedIn: 'root' })
+export class CanvasContextMenu implements ContextMenuDefinitionProvider {
     readonly VERSION_MENU = {
         id: 'version',
         menuItems: [
@@ -966,12 +952,6 @@ export class ContextMenu implements OnInit {
 
     private allMenus: Map<string, ContextMenuDefinition>;
 
-    @Input() menuId: string | undefined;
-    @ViewChild('menu', { static: true }) menu!: TemplateRef<any>;
-
-    private showFocused: Subject<boolean> = new Subject();
-    showFocused$: Observable<boolean> = this.showFocused.asObservable();
-
     constructor(
         private store: Store<CanvasState>,
         private canvasUtils: CanvasUtils
@@ -985,79 +965,23 @@ export class ContextMenu implements OnInit {
         this.allMenus.set(this.DOWNLOAD.id, this.DOWNLOAD);
     }
 
-    getMenuItems(menuId: string | undefined): ContextMenuItemDefinition[] {
-        if (menuId) {
-            const menuDefinition: ContextMenuDefinition | undefined = this.allMenus.get(menuId);
+    getMenu(menuId: string): ContextMenuDefinition | undefined {
+        return this.allMenus.get(menuId);
+    }
 
-            if (menuDefinition) {
-                const selection = this.canvasUtils.getSelection();
+    filterMenuItem(menuItem: ContextMenuItemDefinition): boolean {
+        const selection = this.canvasUtils.getSelection();
 
-                // find all applicable menu items for the current selection
-                let applicableMenuItems = menuDefinition.menuItems.filter((menuItem: ContextMenuItemDefinition) => {
-                    // include if the condition matches
-                    if (menuItem.condition) {
-                        return menuItem.condition(this.canvasUtils, selection);
-                    }
-
-                    // include if the sub menu has items
-                    if (menuItem.subMenuId) {
-                        return this.getMenuItems(menuItem.subMenuId).length > 0;
-                    }
-
-                    return true;
-                });
-
-                // remove any extra separators
-                applicableMenuItems = applicableMenuItems.filter(
-                    (menuItem: ContextMenuItemDefinition, index: number) => {
-                        if (menuItem.isSeparator && index > 0) {
-                            // cannot have two consecutive separators
-                            return !applicableMenuItems[index - 1].isSeparator;
-                        }
-
-                        return true;
-                    }
-                );
-
-                return applicableMenuItems.filter((menuItem: ContextMenuItemDefinition, index: number) => {
-                    if (menuItem.isSeparator) {
-                        // a separator cannot be first
-                        if (index === 0) {
-                            return false;
-                        }
-
-                        // a separator cannot be last
-                        if (index >= applicableMenuItems.length - 1) {
-                            return false;
-                        }
-                    }
-
-                    return true;
-                });
-            } else {
-                return [];
-            }
+        // include if the condition matches
+        if (menuItem.condition) {
+            return menuItem.condition(this.canvasUtils, selection);
         }
 
-        return [];
+        // include if there is no condition (non conditional item, separator, sub menu, etc)
+        return true;
     }
 
-    hasSubMenu(menuItemDefinition: ContextMenuItemDefinition): boolean {
-        return !!menuItemDefinition.subMenuId;
-    }
-
-    keydown(event: KeyboardEvent): void {
-        // TODO - Currently the first item in the context menu is auto focused. By default, this is rendered with an
-        // outline. This appears to be an issue with the cdkMenu/cdkMenuItem so we are working around it by manually
-        // overriding styles.
-        this.showFocused.next(true);
-    }
-
-    ngOnInit(): void {
-        this.showFocused.next(false);
-    }
-
-    menuItemClicked(menuItem: ContextMenuItemDefinition, event: MouseEvent) {
+    menuItemClicked(menuItem: ContextMenuItemDefinition, event: MouseEvent): void {
         if (menuItem.action) {
             const selection = this.canvasUtils.getSelection();
             menuItem.action(this.store, selection, this.canvasUtils, event);

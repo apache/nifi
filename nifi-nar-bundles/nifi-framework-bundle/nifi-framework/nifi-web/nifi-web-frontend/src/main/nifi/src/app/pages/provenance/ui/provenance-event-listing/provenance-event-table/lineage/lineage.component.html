@@ -15,4 +15,5 @@
   ~ limitations under the License.
   -->
 
-<div id="lineage"></div>
+<div id="lineage" [cdkContextMenuTriggerFor]="contextMenu.menu"></div>
+<fd-context-menu #contextMenu [menuProvider]="lineageContextmenu" menuId="root"></fd-context-menu>

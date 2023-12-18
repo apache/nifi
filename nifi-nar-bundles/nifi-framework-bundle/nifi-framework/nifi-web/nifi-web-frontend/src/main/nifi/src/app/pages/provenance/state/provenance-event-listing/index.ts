@@ -37,6 +37,12 @@ export interface ProvenanceEventRequest {
     clusterNodeId?: string;
 }
 
+export interface GoToProvenanceEventSourceRequest {
+    eventId?: string;
+    componentId?: string;
+    groupId?: string;
+}
+
 export interface SearchableField {
     field: string;
     id: string;

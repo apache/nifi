@@ -20,7 +20,7 @@ export const lineageFeatureKey = 'lineageGraph';
 export interface LineageRequest {
     eventId?: string;
     lineageRequestType: 'PARENTS' | 'CHILDREN' | 'FLOWFILE';
-    uuid: string;
+    uuid?: string;
     clusterNodeId?: string;
 }
 

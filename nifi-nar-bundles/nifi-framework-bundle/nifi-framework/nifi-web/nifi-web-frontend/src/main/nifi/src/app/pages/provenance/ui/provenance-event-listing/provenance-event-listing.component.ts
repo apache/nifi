@@ -18,6 +18,7 @@
 import { Component, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import {
+    GoToProvenanceEventSourceRequest,
     Provenance,
     ProvenanceEventListingState,
     ProvenanceEventRequest,
@@ -35,6 +36,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter, map, take, tap } from 'rxjs';
 import {
     clearProvenanceRequest,
+    goToProvenanceEventSource,
     openProvenanceEventDialog,
     openSearchDialog,
     resetProvenanceState,
@@ -59,6 +61,7 @@ export class ProvenanceEventListing implements OnDestroy {
     lineage$ = this.store.select(selectLineage);
 
     request!: ProvenanceRequest;
+    stateReset: boolean = false;
 
     constructor(private store: Store<ProvenanceEventListingState>) {
         this.store
@@ -121,6 +124,7 @@ export class ProvenanceEventListing implements OnDestroy {
 
                     return initialRequest;
                 }),
+                filter(() => !this.stateReset),
                 tap((request) => (this.request = request)),
                 takeUntilDestroyed()
             )
@@ -173,6 +177,14 @@ export class ProvenanceEventListing implements OnDestroy {
         );
     }
 
+    goToEventSource(request: GoToProvenanceEventSourceRequest): void {
+        this.store.dispatch(
+            goToProvenanceEventSource({
+                request
+            })
+        );
+    }
+
     resubmitProvenanceQuery(): void {
         this.store.dispatch(
             resubmitProvenanceQuery({
@@ -194,6 +206,7 @@ export class ProvenanceEventListing implements OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.stateReset = true;
         this.store.dispatch(resetProvenanceState());
     }
 }

@@ -15,16 +15,24 @@
  * limitations under the License.
  */
 
-import { Component, DestroyRef, EventEmitter, inject, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, inject, Input, OnInit, Output } from '@angular/core';
 import * as d3 from 'd3';
-import { Lineage, LineageLink, LineageNode } from '../../../../state/lineage';
+import { Lineage, LineageLink, LineageNode, LineageRequest } from '../../../../state/lineage';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ProvenanceEventRequest } from '../../../../state/provenance-event-listing';
+import { GoToProvenanceEventSourceRequest, ProvenanceEventRequest } from '../../../../state/provenance-event-listing';
+import {
+    ContextMenu,
+    ContextMenuDefinition,
+    ContextMenuDefinitionProvider,
+    ContextMenuItemDefinition
+} from '../../../../../../ui/common/context-menu/context-menu.component';
+import { CdkContextMenuTrigger } from '@angular/cdk/menu';
 
 @Component({
     selector: 'lineage',
     standalone: true,
     templateUrl: './lineage.component.html',
+    imports: [ContextMenu, CdkContextMenuTrigger],
     styleUrls: ['./lineage.component.scss']
 })
 export class LineageComponent implements OnInit {
@@ -38,6 +46,7 @@ export class LineageComponent implements OnInit {
             this.addLineage(lineage.results.nodes, lineage.results.links);
         }
     }
+
     @Input() eventId: string | null = null;
 
     @Input() set reset(reset: EventEmitter<void>) {
@@ -48,14 +57,155 @@ export class LineageComponent implements OnInit {
         });
     }
 
+    @Output() submitLineageQuery: EventEmitter<LineageRequest> = new EventEmitter<LineageRequest>();
     @Output() openEventDialog: EventEmitter<ProvenanceEventRequest> = new EventEmitter<ProvenanceEventRequest>();
+    @Output() goToProvenanceEventSource: EventEmitter<GoToProvenanceEventSourceRequest> =
+        new EventEmitter<GoToProvenanceEventSourceRequest>();
+    @Output() closeLineage: EventEmitter<void> = new EventEmitter<void>();
+
+    readonly ROOT_MENU: ContextMenuDefinition = {
+        id: 'root',
+        menuItems: [
+            {
+                condition: function (selection: any) {
+                    return selection.empty();
+                },
+                clazz: 'fa fa-long-arrow-left',
+                text: 'Back to events',
+                action: function (selection: any, self: LineageComponent) {
+                    self.closeLineage.next();
+                }
+            },
+            {
+                condition: function (selection: any) {
+                    return !selection.empty();
+                },
+                clazz: 'fa fa-info-circle',
+                text: 'View details',
+                action: function (selection: any, self: LineageComponent) {
+                    const selectionData: any = selection.datum();
+
+                    // TODO cluster node id
+                    self.openEventDialog.next({
+                        id: selectionData.id
+                    });
+                }
+            },
+            {
+                condition: function (selection: any) {
+                    return !selection.empty();
+                },
+                clazz: 'fa fa-long-arrow-right',
+                text: 'Go to component',
+                action: function (selection: any, self: LineageComponent) {
+                    const selectionData: any = selection.datum();
+                    self.goToProvenanceEventSource.next({
+                        eventId: selectionData.id
+                    });
+                }
+            },
+            {
+                condition: function (selection: any, self: LineageComponent) {
+                    if (selection.empty()) {
+                        return false;
+                    }
+
+                    const selectionData: any = selection.datum();
+                    return self.supportsExpandCollapse(selectionData);
+                },
+                clazz: 'fa fa-binoculars',
+                text: 'Find parents',
+                action: function (selection: any, self: LineageComponent) {
+                    const selectionData: any = selection.datum();
+
+                    // TODO - cluster node id
+                    self.submitLineageQuery.next({
+                        lineageRequestType: 'PARENTS',
+                        eventId: selectionData.id
+                        // clusterNodeId: clusterNodeId
+                    });
+                }
+            },
+            {
+                condition: function (selection: any, self: LineageComponent) {
+                    if (selection.empty()) {
+                        return false;
+                    }
+
+                    const selectionData: any = selection.datum();
+                    return self.supportsExpandCollapse(selectionData);
+                },
+                clazz: 'fa fa-plus-square',
+                text: 'Expand',
+                action: function (selection: any, self: LineageComponent) {
+                    const selectionData: any = selection.datum();
+
+                    // TODO - cluster node id
+                    self.submitLineageQuery.next({
+                        lineageRequestType: 'CHILDREN',
+                        eventId: selectionData.id
+                        // clusterNodeId: clusterNodeId
+                    });
+                }
+            },
+            {
+                condition: function (selection: any, self: LineageComponent) {
+                    if (selection.empty()) {
+                        return false;
+                    }
+
+                    const selectionData: any = selection.datum();
+                    return self.supportsExpandCollapse(selectionData);
+                },
+                clazz: 'fa fa-minus-square',
+                text: 'Collapse',
+                action: function (selection: any, self: LineageComponent) {
+                    const selectionData: any = selection.datum();
+                    self.collapseLineage(selectionData);
+                }
+            }
+        ]
+    };
+
+    private allMenus: Map<string, ContextMenuDefinition>;
 
     lineageElement: any;
     lineageContainerElement: any;
+    lineageContextmenu: ContextMenuDefinitionProvider;
+
     private nodeLookup: Map<string, any> = new Map<string, any>();
     private linkLookup: Map<string, any> = new Map<string, any>();
 
+    constructor() {
+        this.allMenus = new Map<string, ContextMenuDefinition>();
+        this.allMenus.set(this.ROOT_MENU.id, this.ROOT_MENU);
+
+        const self: LineageComponent = this;
+        this.lineageContextmenu = {
+            getMenu(menuId: string): ContextMenuDefinition | undefined {
+                return self.allMenus.get(menuId);
+            },
+            filterMenuItem(menuItem: ContextMenuItemDefinition): boolean {
+                // include if the condition matches
+                if (menuItem.condition) {
+                    const selection: any = d3.select('circle.context');
+                    return menuItem.condition(selection, self);
+                }
+
+                // include if there is no condition (non conditional item, separator, sub menu, etc)
+                return true;
+            },
+            menuItemClicked(menuItem: ContextMenuItemDefinition, event: MouseEvent) {
+                if (menuItem.action) {
+                    const selection: any = d3.select('circle.context');
+                    return menuItem.action(selection, self);
+                }
+            }
+        };
+    }
+
     ngOnInit(): void {
+        const self: LineageComponent = this;
         this.lineageElement = document.getElementById('lineage');
 
         // handle zoom behavior
@@ -64,9 +214,7 @@ export class LineageComponent implements OnInit {
             .scaleExtent([0.2, 8])
             .on('zoom', function (event) {
                 d3.select('g.lineage').attr('transform', function () {
-                    return (
-                        `translate(${event.transform.x}, ${event.transform.y}) scale(${event.transform.k})`
-                    );
+                    return `translate(${event.transform.x}, ${event.transform.y}) scale(${event.transform.k})`;
                 });
             });
 
@@ -79,7 +227,17 @@ export class LineageComponent implements OnInit {
             .call(lineageZoom)
             .on('dblclick.zoom', null);
 
-        svg.append('rect').attr('width', '100%').attr('height', '100%').attr('fill', '#f9fafb');
+        svg.append('rect')
+            .attr('width', '100%')
+            .attr('height', '100%')
+            .attr('fill', '#f9fafb')
+            .on('mousedown', function (event, d) {
+                // hide the context menu if necessary
+                self.clearSelectionContext();
+
+                // prevents browser from using text cursor
+                event.preventDefault();
+            });
 
         svg.append('defs')
             .selectAll('marker')
@@ -117,6 +275,16 @@ export class LineageComponent implements OnInit {
             .attr('transform', 'translate(0, 0) scale(1)')
             .attr('pointer-events', 'all')
             .attr('class', 'lineage');
+    }
+
+    private supportsExpandCollapse(d: any): boolean {
+        return (
+            d.eventType === 'SPAWN' ||
+            d.eventType === 'CLONE' ||
+            d.eventType === 'FORK' ||
+            d.eventType === 'JOIN' ||
+            d.eventType === 'REPLAY'
+        );
     }
 
     private locateDescendants(nodeIds: string[], descendants: Set<string>, depth?: number): void {
@@ -432,12 +600,90 @@ export class LineageComponent implements OnInit {
         this.update();
     }
 
+    private collapseLineage(d: any): void {
+        const eventId: string = d.id;
+        const eventUuid: string = d.flowFileUuid;
+        const eventChildUuids: string[] = d.childUuids;
+        const fanIn: boolean = eventChildUuids.includes(eventUuid);
+
+        // determines if the specified event should be removable based on if the collapsing is fanning in/out
+        const allowEventRemoval = (node: any): boolean => {
+            if (fanIn) {
+                return node.id !== eventId;
+            } else {
+                console.log('allowEventRemoval', node);
+                return node.flowFileUuid !== eventUuid && !node.parentUuids?.includes(eventUuid);
+            }
+        };
+
+        // determines if the specified link should be removable based on if the collapsing is fanning in/out
+        const allowLinkRemoval = (link: any): boolean => {
+            if (fanIn) {
+                return true;
+            } else {
+                return link.flowFileUuid !== eventUuid;
+            }
+        };
+
+        // collapses the specified uuids
+        const collapse = (uuids: string[]): void => {
+            const newUuids: string[] = [];
+
+            // consider each node for being collapsed
+            this.nodeLookup.forEach((node) => {
+                // if this node is in the uuids remove it unless it's the original event or is part of this and another lineage
+                if (uuids.includes(node.flowFileUuid) && allowEventRemoval(node)) {
+                    // remove it from the look lookup
+                    this.nodeLookup.delete(node.id);
+
+                    // include all related outgoing flow file uuids
+                    node.outgoing.forEach((outgoing: any) => {
+                        if (!uuids.includes(outgoing.flowFileUuid)) {
+                            newUuids.push(outgoing.flowFileUuid);
+                        }
+                    });
+                }
+            });
+
+            // update the link data
+            this.linkLookup.forEach((link) => {
+                // if this link is in the uuids remove it
+                if (uuids.includes(link.flowFileUuid) && allowLinkRemoval(link)) {
+                    // remove it from the link lookup
+                    this.linkLookup.delete(link.id);
+
+                    // add a related uuid that needs to be collapse
+                    const next = link.target;
+                    if (!uuids.includes(next.flowFileUuid)) {
+                        newUuids.push(next.flowFileUuid);
+                    }
+                }
+            });
+
+            // collapse any related uuids
+            if (newUuids.length > 0) {
+                collapse(newUuids);
+            }
+        };
+
+        // collapse the specified uuids
+        collapse(eventChildUuids);
+
+        // update the layout
+        this.refresh();
+    }
+
     private formatEventTime(): void {}
+
+    private clearSelectionContext(): void {
+        d3.selectAll('circle.context').classed('context', false);
+    }
 
     private renderFlowFile(flowfiles: any): void {
         const self: LineageComponent = this;
 
         flowfiles.classed('flowfile', true).on('mousedown', function (event: MouseEvent, d: any) {
+            self.clearSelectionContext();
             event.stopPropagation();
         });
 
@@ -515,19 +761,13 @@ export class LineageComponent implements OnInit {
         const self: LineageComponent = this;
 
         events
-            .on('contextmenu', function (event: MouseEvent, d: any) {
-                // select the current node for a visible cue
+            .on('mousedown', function (event: MouseEvent, d: any) {
+                self.clearSelectionContext();
                 d3.select(`#event-node-${d.id}`).classed('context', true);
-
-                // show the context menu
-                // showContextMenu(d, provenanceTableCtrl);
-            })
-            .on('mousedown', function (event: MouseEvent) {
                 event.stopPropagation();
             })
             .on('dblclick', function (event: MouseEvent, d: any) {
                 // show the event details
-
                 // TODO - cluster node id
                 self.openEventDialog.next({
                     id: d.id
