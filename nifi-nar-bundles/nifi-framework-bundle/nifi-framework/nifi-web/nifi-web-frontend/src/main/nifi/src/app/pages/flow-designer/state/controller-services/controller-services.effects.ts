@@ -42,6 +42,8 @@ import { Client } from '../../../../service/client.service';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { EditControllerService } from '../../../../ui/common/controller-service/edit-controller-service/edit-controller-service.component';
 import {
+    ComponentType,
+    ControllerServiceReferencingComponent,
     EditParameterRequest,
     EditParameterResponse,
     InlineServiceCreationRequest,
@@ -275,6 +277,13 @@ export class ControllerServicesEffects {
                             editDialogReference.close('ROUTED');
                             this.router.navigate(commands);
                         }
+                    };
+
+                    editDialogReference.componentInstance.goToReferencingComponent = (
+                        component: ControllerServiceReferencingComponent
+                    ) => {
+                        const route: string[] = this.getRouteForReference(component);
+                        goTo(route, component.referenceType);
                     };
 
                     if (parameterContext != null) {
@@ -606,4 +615,24 @@ export class ControllerServicesEffects {
             ),
         { dispatch: false }
     );
+
+    private getRouteForReference(reference: ControllerServiceReferencingComponent): string[] {
+        if (reference.referenceType == 'ControllerService') {
+            if (reference.groupId == null) {
+                return ['/settings', 'management-controller-services', reference.id];
+            } else {
+                return ['/process-groups', reference.groupId, 'controller-services', reference.id];
+            }
+        } else if (reference.referenceType == 'ReportingTask') {
+            return ['/settings', 'reporting-tasks', reference.id];
+        } else if (reference.referenceType == 'Processor') {
+            return ['/process-groups', reference.groupId, ComponentType.Processor, reference.id];
+        } else if (reference.referenceType == 'FlowAnalysisRule') {
+            return ['/settings', 'flow-analysis-rules', reference.id];
+        } else if (reference.referenceType == 'ParameterProvider') {
+            return ['/settings', 'parameter-providers', reference.id];
+        } else {
+            return ['/settings', 'registry-clients', reference.id];
+        }
+    }
 }

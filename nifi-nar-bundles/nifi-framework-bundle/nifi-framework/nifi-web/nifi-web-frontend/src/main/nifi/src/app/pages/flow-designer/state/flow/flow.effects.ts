@@ -67,6 +67,7 @@ import { CreatePort } from '../../ui/canvas/items/port/create-port/create-port.c
 import { EditPort } from '../../ui/canvas/items/port/edit-port/edit-port.component';
 import {
     ComponentType,
+    ControllerServiceReferencingComponent,
     EditParameterRequest,
     EditParameterResponse,
     InlineServiceCreationRequest,

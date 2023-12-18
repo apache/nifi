@@ -29,6 +29,8 @@ import { Client } from '../../../../service/client.service';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { EditControllerService } from '../../../../ui/common/controller-service/edit-controller-service/edit-controller-service.component';
 import {
+    ComponentType,
+    ControllerServiceReferencingComponent,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     NewPropertyDialogRequest,
@@ -220,12 +222,12 @@ export class ManagementControllerServicesEffects {
                         );
                     };
 
-                    const goTo = (commands: string[]): void => {
+                    const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editControllerServiceForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
                                 data: {
                                     title: 'Controller Service Configuration',
-                                    message: `Save changes before going to this Controller Service?`
+                                    message: `Save changes before going to this ${destination}?`
                                 },
                                 panelClass: 'small-dialog'
                             });
@@ -246,7 +248,14 @@ export class ManagementControllerServicesEffects {
 
                     editDialogReference.componentInstance.goToService = (serviceId: string) => {
                         const commands: string[] = ['/settings', 'management-controller-services', serviceId];
-                        goTo(commands);
+                        goTo(commands, 'Controller Service');
+                    };
+
+                    editDialogReference.componentInstance.goToReferencingComponent = (
+                        component: ControllerServiceReferencingComponent
+                    ) => {
+                        const route: string[] = this.getRouteForReference(component);
+                        goTo(route, component.referenceType);
                     };
 
                     editDialogReference.componentInstance.createNewService = (
@@ -465,4 +474,24 @@ export class ManagementControllerServicesEffects {
             ),
         { dispatch: false }
     );
+
+    private getRouteForReference(reference: ControllerServiceReferencingComponent): string[] {
+        if (reference.referenceType == 'ControllerService') {
+            if (reference.groupId == null) {
+                return ['/settings', 'management-controller-services', reference.id];
+            } else {
+                return ['/process-groups', reference.groupId, 'controller-services', reference.id];
+            }
+        } else if (reference.referenceType == 'ReportingTask') {
+            return ['/settings', 'reporting-tasks', reference.id];
+        } else if (reference.referenceType == 'Processor') {
+            return ['/process-groups', reference.groupId, ComponentType.Processor, reference.id];
+        } else if (reference.referenceType == 'FlowAnalysisRule') {
+            return ['/settings', 'flow-analysis-rules', reference.id];
+        } else if (reference.referenceType == 'ParameterProvider') {
+            return ['/settings', 'parameter-providers', reference.id];
+        } else {
+            return ['/settings', 'registry-clients', reference.id];
+        }
+    }
 }
