@@ -40,9 +40,6 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.Cookie;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -81,8 +78,6 @@ class OidcAuthenticationSuccessHandlerTest {
     private static final String ROOT_PATH = "/";
 
     private static final int SERVER_PORT = 8080;
-
-    private static final String ISSUER = "http://localhost/issuer";
 
     private static final String LOCALHOST_URL = "http://localhost:8080";
 
@@ -183,31 +178,21 @@ class OidcAuthenticationSuccessHandlerTest {
         verify(bearerTokenProvider).getBearerToken(authenticationTokenCaptor.capture());
 
         final LoginAuthenticationToken authenticationToken = authenticationTokenCaptor.getValue();
-        final Instant expiration = Instant.ofEpochMilli(authenticationToken.getExpiration());
+        final Instant expiration = authenticationToken.getExpiration();
 
         final ChronoUnit truncation = ChronoUnit.MINUTES;
         final Instant expirationTruncated = expiration.truncatedTo(truncation);
-        final Instant expected = Instant.now().plus(TOKEN_EXPIRATION).truncatedTo(truncation);
-        assertEquals(expected, expirationTruncated);
+        assertEquals(ACCESS_TOKEN_EXPIRES, expirationTruncated);
     }
 
     void setOidcUser() {
         when(oidcUser.getClaimAsString(eq(USER_NAME_CLAIM))).thenReturn(IDENTITY);
         when(oidcUser.getClaimAsStringList(eq(GROUPS_CLAIM))).thenReturn(Collections.singletonList(AUTHORITY));
-        when(oidcUser.getIssuer()).thenReturn(getIssuer());
     }
 
     StandardOAuth2AuthenticationToken getAuthenticationToken() {
         final OAuth2AccessToken accessToken = new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER, ACCESS_TOKEN, ACCESS_TOKEN_ISSUED, ACCESS_TOKEN_EXPIRES);
         final Collection<? extends GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(AUTHORITY));
         return new StandardOAuth2AuthenticationToken(oidcUser, authorities, OidcRegistrationProperty.REGISTRATION_ID.getProperty(), accessToken);
-    }
-
-    URL getIssuer() {
-        try {
-            return URI.create(ISSUER).toURL();
-        } catch (IllegalArgumentException | MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
