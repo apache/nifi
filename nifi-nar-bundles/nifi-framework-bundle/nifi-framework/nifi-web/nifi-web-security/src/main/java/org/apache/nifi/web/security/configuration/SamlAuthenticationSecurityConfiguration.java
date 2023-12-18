@@ -368,14 +368,11 @@ public class SamlAuthenticationSecurityConfiguration {
     private Saml2AuthenticationSuccessHandler getAuthenticationSuccessHandler() {
         final long authenticationExpiration = (long) FormatUtils.getPreciseTimeDuration(properties.getSamlAuthenticationExpiration(), TimeUnit.MILLISECONDS);
         final Duration expiration = Duration.ofMillis(authenticationExpiration);
-        final String entityId = properties.getSamlServiceProviderEntityId();
-        final String issuer = entityId == null ? Saml2RegistrationProperty.REGISTRATION_ID.getProperty() : entityId;
         final Saml2AuthenticationSuccessHandler handler = new Saml2AuthenticationSuccessHandler(
                 bearerTokenProvider,
                 IdentityMappingUtil.getIdentityMappings(properties),
                 IdentityMappingUtil.getGroupMappings(properties),
-                expiration,
-                issuer
+                expiration
         );
 
         final String identityAttributeName = properties.getSamlIdentityAttributeName();

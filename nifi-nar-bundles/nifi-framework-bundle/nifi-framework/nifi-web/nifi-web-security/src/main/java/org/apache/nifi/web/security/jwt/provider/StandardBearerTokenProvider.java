@@ -30,9 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.GrantedAuthority;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
@@ -48,16 +46,17 @@ import java.util.stream.Collectors;
 public class StandardBearerTokenProvider implements BearerTokenProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(StandardBearerTokenProvider.class);
 
-    private static final String URL_ENCODED_CHARACTER_SET = StandardCharsets.UTF_8.name();
-
     private static final Duration MAXIMUM_EXPIRATION = Duration.ofHours(12);
 
     private static final Duration MINIMUM_EXPIRATION = Duration.ofMinutes(1);
 
     private final JwsSignerProvider jwsSignerProvider;
 
-    public StandardBearerTokenProvider(final JwsSignerProvider jwsSignerProvider) {
+    private final IssuerProvider issuerProvider;
+
+    public StandardBearerTokenProvider(final JwsSignerProvider jwsSignerProvider, final IssuerProvider issuerProvider) {
         this.jwsSignerProvider = jwsSignerProvider;
+        this.issuerProvider = issuerProvider;
     }
 
     /**
@@ -73,7 +72,10 @@ public class StandardBearerTokenProvider implements BearerTokenProvider {
         final String username = loginAuthenticationToken.getName();
 
         final List<String> groups = getGroups(loginAuthenticationToken.getAuthorities());
-        final String issuer = getUrlEncoded(loginAuthenticationToken.getIssuer());
+
+        final URI issuerUri = issuerProvider.getIssuer();
+        final String issuer = issuerUri.toString();
+
         final Date now = new Date();
         final Date expirationTime = getExpirationTime(loginAuthenticationToken);
         final JWTClaimsSet claims = new JWTClaimsSet.Builder()
@@ -91,7 +93,7 @@ public class StandardBearerTokenProvider implements BearerTokenProvider {
     }
 
     private Date getExpirationTime(final LoginAuthenticationToken loginAuthenticationToken) {
-        Instant expiration = Instant.ofEpochMilli(loginAuthenticationToken.getExpiration());
+        Instant expiration = loginAuthenticationToken.getExpiration();
 
         final Instant maximumExpiration = Instant.now().plus(MAXIMUM_EXPIRATION);
         final Instant minimumExpiration = Instant.now().plus(MINIMUM_EXPIRATION);
@@ -128,14 +130,6 @@ public class StandardBearerTokenProvider implements BearerTokenProvider {
 
         LOGGER.debug("Signed Bearer Token using Key [{}] for Subject [{}]", keyIdentifier, claims.getSubject());
         return jwsObject.serialize();
-    }
-
-    private String getUrlEncoded(final String string) {
-        try {
-            return URLEncoder.encode(string, URL_ENCODED_CHARACTER_SET);
-        } catch (final UnsupportedEncodingException e) {
-            throw new IllegalArgumentException(String.format("URL Encoding [%s] Failed", string), e);
-        }
     }
 
     private List<String> getGroups(final Collection<? extends GrantedAuthority> authorities) {

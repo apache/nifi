@@ -34,17 +34,17 @@ import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.web.api.dto.AccessTokenExpirationDTO;
-import org.apache.nifi.web.api.entity.AccessTokenExpirationEntity;
-import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
 import org.apache.nifi.web.api.dto.AccessStatusDTO;
+import org.apache.nifi.web.api.dto.AccessTokenExpirationDTO;
 import org.apache.nifi.web.api.entity.AccessConfigurationEntity;
 import org.apache.nifi.web.api.entity.AccessStatusEntity;
+import org.apache.nifi.web.api.entity.AccessTokenExpirationEntity;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.LogoutException;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.UntrustedProxyException;
+import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.jwt.revocation.JwtLogoutListener;
 import org.apache.nifi.web.security.kerberos.KerberosService;
@@ -83,6 +83,7 @@ import javax.ws.rs.core.UriBuilder;
 import java.net.URI;
 import java.security.cert.X509Certificate;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -352,11 +353,13 @@ public class AccessResource extends ApplicationResource {
                 }
 
                 final String expirationFromProperties = properties.getKerberosAuthenticationExpiration();
-                long expiration = Math.round(FormatUtils.getPreciseTimeDuration(expirationFromProperties, TimeUnit.MILLISECONDS));
+                final long expirationDuration = Math.round(FormatUtils.getPreciseTimeDuration(expirationFromProperties, TimeUnit.MILLISECONDS));
+                final Instant expiration = Instant.now().plusMillis(expirationDuration);
+
                 final String rawIdentity = authentication.getName();
                 final String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
 
-                final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, "KerberosService");
+                final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, Collections.emptySet());
                 final String token = bearerTokenProvider.getBearerToken(loginAuthenticationToken);
                 final URI uri = URI.create(generateResourceUri("access", "kerberos"));
                 setBearerToken(httpServletResponse, token);
@@ -422,10 +425,11 @@ public class AccessResource extends ApplicationResource {
             final AuthenticationResponse authenticationResponse = loginIdentityProvider.authenticate(new LoginCredentials(username, password));
             final String rawIdentity = authenticationResponse.getIdentity();
             final String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
-            final long expiration = authenticationResponse.getExpiration();
+            final long expirationDuration = authenticationResponse.getExpiration();
+            final Instant expiration = Instant.now().plusMillis(expirationDuration);
 
             // create the authentication token
-            loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, authenticationResponse.getIssuer());
+            loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, Collections.emptySet());
         } catch (final InvalidLoginCredentialsException ilce) {
             throw new IllegalArgumentException("The supplied username and password are not valid.", ilce);
         } catch (final IdentityAccessException iae) {
