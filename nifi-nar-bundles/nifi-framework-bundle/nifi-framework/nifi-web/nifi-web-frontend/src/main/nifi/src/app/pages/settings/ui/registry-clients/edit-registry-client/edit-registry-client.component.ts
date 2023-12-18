@@ -31,7 +31,7 @@ import {
     Property,
     TextTipInput
 } from '../../../../../state/shared';
-import { EditRegistryClientDialogRequest } from '../../../state/registry-clients';
+import { EditRegistryClientDialogRequest, EditRegistryClientRequest } from '../../../state/registry-clients';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Client } from '../../../../../service/client.service';
 import { MatSelectModule } from '@angular/material/select';
@@ -66,9 +66,10 @@ export class EditRegistryClient {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
-    @Input() getServiceLink!: (serviceId: string) => Observable<string[]>;
+    @Input() goToService!: (serviceId: string) => void;
     @Input() saving$!: Observable<boolean>;
-    @Output() editRegistryClient: EventEmitter<any> = new EventEmitter<any>();
+    @Output() editRegistryClient: EventEmitter<EditRegistryClientRequest> =
+        new EventEmitter<EditRegistryClientRequest>();
 
     protected readonly TextTip = TextTip;
 
@@ -109,7 +110,7 @@ export class EditRegistryClient {
         };
     }
 
-    createRegistryClientClicked() {
+    submitForm(postUpdateNavigation?: string[]) {
         const payload: any = {
             revision: this.client.getRevision(this.request.registryClient),
             component: {
@@ -131,6 +132,11 @@ export class EditRegistryClient {
                 .map((property) => property.descriptor.name);
         }
 
-        this.editRegistryClient.next(payload);
+        this.editRegistryClient.next({
+            id: this.request.registryClient.id,
+            uri: this.request.registryClient.uri,
+            payload,
+            postUpdateNavigation
+        });
     }
 }

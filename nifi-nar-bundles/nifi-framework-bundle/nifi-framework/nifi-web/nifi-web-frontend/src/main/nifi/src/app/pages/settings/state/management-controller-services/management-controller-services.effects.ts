@@ -34,7 +34,8 @@ import {
     NewPropertyDialogRequest,
     NewPropertyDialogResponse,
     Property,
-    PropertyDescriptor
+    PropertyDescriptor,
+    UpdateControllerServiceRequest
 } from '../../../../state/shared';
 import { NewPropertyDialog } from '../../../../ui/common/new-property-dialog/new-property-dialog.component';
 import { Router } from '@angular/router';
@@ -182,6 +183,7 @@ export class ManagementControllerServicesEffects {
                         data: {
                             controllerService: request.controllerService
                         },
+                        id: serviceId,
                         panelClass: 'large-dialog'
                     });
 
@@ -328,13 +330,14 @@ export class ManagementControllerServicesEffects {
 
                     editDialogReference.componentInstance.editControllerService
                         .pipe(takeUntil(editDialogReference.afterClosed()))
-                        .subscribe((payload: any) => {
+                        .subscribe((updateControllerServiceRequest: UpdateControllerServiceRequest) => {
                             this.store.dispatch(
                                 ManagementControllerServicesActions.configureControllerService({
                                     request: {
                                         id: request.controllerService.id,
                                         uri: request.controllerService.uri,
-                                        payload
+                                        payload: updateControllerServiceRequest.payload,
+                                        postUpdateNavigation: updateControllerServiceRequest.postUpdateNavigation
                                     }
                                 })
                             );
@@ -366,7 +369,8 @@ export class ManagementControllerServicesEffects {
                         ManagementControllerServicesActions.configureControllerServiceSuccess({
                             response: {
                                 id: request.id,
-                                controllerService: response
+                                controllerService: response,
+                                postUpdateNavigation: request.postUpdateNavigation
                             }
                         })
                     ),
@@ -386,8 +390,14 @@ export class ManagementControllerServicesEffects {
         () =>
             this.actions$.pipe(
                 ofType(ManagementControllerServicesActions.configureControllerServiceSuccess),
-                tap(() => {
-                    this.dialog.closeAll();
+                map((action) => action.response),
+                tap((response) => {
+                    if (response.postUpdateNavigation) {
+                        this.router.navigate(response.postUpdateNavigation);
+                        this.dialog.getDialogById(response.id)?.close('ROUTED');
+                    } else {
+                        this.dialog.closeAll();
+                    }
                 })
             ),
         { dispatch: false }
