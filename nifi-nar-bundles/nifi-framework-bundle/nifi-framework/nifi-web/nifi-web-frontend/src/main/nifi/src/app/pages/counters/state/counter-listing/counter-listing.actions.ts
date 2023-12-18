@@ -43,3 +43,5 @@ export const resetCounterSuccess = createAction(
     `${COUNTER_PREFIX} Reset Counter Success`,
     props<{ response: ResetCounterSuccess }>()
 );
+
+export const resetCounterState = createAction(`${COUNTER_PREFIX} Reset Counter State`);
