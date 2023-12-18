@@ -37,6 +37,7 @@ import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     Parameter,
+    ParameterContextReferenceEntity,
     Property,
     PropertyDependency,
     PropertyDescriptor,
@@ -100,8 +101,13 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
-    @Input() getServiceLink!: (serviceId: string) => Observable<string[]>;
+    @Input() parameterContext: ParameterContextReferenceEntity | undefined;
+    @Input() goToParameter!: (parameter: string) => void;
+    @Input() convertToParameter!: (name: string, sensitive: boolean, value: string | null) => Observable<string>;
+    @Input() goToService!: (serviceId: string) => void;
     @Input() supportsSensitiveDynamicProperties: boolean = false;
+
+    private static readonly PARAM_REF_REGEX: RegExp = /#{[a-zA-Z0-9-_. ]+}/;
 
     private destroyRef = inject(DestroyRef);
 
@@ -264,24 +270,12 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                       : 'optional'
             };
 
-            this.populateServiceLink(item);
-
             // store the property item in a map for an efficient lookup later
             this.itemLookup.set(property.property, item);
             return item;
         });
 
         this.setPropertyItems(propertyItems);
-    }
-
-    private populateServiceLink(item: PropertyItem): void {
-        if (this.canGoTo(item) && item.value) {
-            this.getServiceLink(item.value)
-                .pipe(take(1))
-                .subscribe((serviceLink: string[]) => {
-                    item.serviceLink = serviceLink;
-                });
-        }
     }
 
     private setPropertyItems(propertyItems: PropertyItem[]): void {
@@ -310,8 +304,6 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                           ? 'userDefined'
                           : 'optional'
                 };
-
-                this.populateServiceLink(item);
 
                 this.itemLookup.set(property.property, item);
 
@@ -388,7 +380,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         this.editorOpen = true;
     }
 
-    canGoTo(item: PropertyItem): boolean {
+    canGoToService(item: PropertyItem): boolean {
         // TODO - add Input() for supportsGoTo? currently only false in summary table
 
         const descriptor: PropertyDescriptor = item.descriptor;
@@ -401,12 +393,59 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         return false;
     }
 
+    goToServiceClicked(item: PropertyItem): void {
+        // @ts-ignore
+        this.goToService(item.value);
+    }
+
     createNewControllerService(item: PropertyItem): void {
         this.createNewService({ descriptor: item.descriptor })
             .pipe(take(1))
             .subscribe((response) => {
                 item.value = response.value;
                 item.descriptor = response.descriptor;
+                item.dirty = true;
+
+                this.handleChanged();
+            });
+    }
+
+    canGoToParameter(item: PropertyItem): boolean {
+        // TODO - currently parameter context route does not support navigating
+        // directly to a specific parameter so the parameter context link
+        // is not item specific.
+        if (this.parameterContext && item.value) {
+            return this.parameterContext.permissions.canRead && PropertyTable.PARAM_REF_REGEX.test(item.value);
+        }
+
+        return false;
+    }
+
+    goToParameterClicked(item: PropertyItem): void {
+        // @ts-ignore
+        this.goToParameter(item.value);
+    }
+
+    canConvertToParameter(item: PropertyItem): boolean {
+        let canUpdateParameterContext: boolean = false;
+        if (this.parameterContext) {
+            canUpdateParameterContext =
+                this.parameterContext.permissions.canRead && this.parameterContext.permissions.canWrite;
+        }
+
+        let propertyReferencesParameter: boolean = false;
+        if (canUpdateParameterContext && item.value) {
+            propertyReferencesParameter = PropertyTable.PARAM_REF_REGEX.test(item.value);
+        }
+
+        return canUpdateParameterContext && !propertyReferencesParameter;
+    }
+
+    convertToParameterClicked(item: PropertyItem): void {
+        this.convertToParameter(item.property, item.descriptor.sensitive, item.value)
+            .pipe(take(1))
+            .subscribe((propertyValue) => {
+                item.value = propertyValue;
                 item.dirty = true;
 
                 this.handleChanged();
@@ -427,8 +466,6 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         if (item.value != newValue) {
             item.value = newValue;
             item.dirty = true;
-
-            this.populateServiceLink(item);
 
             this.handleChanged();
         }

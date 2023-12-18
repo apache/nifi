@@ -38,11 +38,13 @@ export interface ConfigureControllerServiceRequest {
     id: string;
     uri: string;
     payload: any;
+    postUpdateNavigation?: string[];
 }
 
 export interface ConfigureControllerServiceSuccess {
     id: string;
     controllerService: ControllerServiceEntity;
+    postUpdateNavigation?: string[];
 }
 
 export interface DeleteControllerServiceRequest {

@@ -30,6 +30,8 @@ import { controllerServicesFeatureKey } from '../../state/controller-services';
 import * as fromControllerServices from '../../state/controller-services/controller-services.reducer';
 import { selectUser } from '../../../../state/user/user.selectors';
 import * as fromUser from '../../../../state/user/user.reducer';
+import { parameterFeatureKey } from '../../state/parameter';
+import * as fromParameter from '../../state/parameter/parameter.reducer';
 
 describe('ConnectionManager', () => {
     let service: ConnectionManager;
@@ -38,7 +40,8 @@ describe('ConnectionManager', () => {
         const initialState: CanvasState = {
             [flowFeatureKey]: fromFlow.initialState,
             [transformFeatureKey]: fromTransform.initialState,
-            [controllerServicesFeatureKey]: fromControllerServices.initialState
+            [controllerServicesFeatureKey]: fromControllerServices.initialState,
+            [parameterFeatureKey]: fromParameter.initialState
         };
 
         TestBed.configureTestingModule({

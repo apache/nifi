@@ -42,6 +42,7 @@ import { ExtensionTypesService } from '../../../../service/extension-types.servi
 import { CreateControllerService } from '../../../../ui/common/controller-service/create-controller-service/create-controller-service.component';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { Client } from '../../../../service/client.service';
+import { EditRegistryClientRequest } from './index';
 
 @Injectable()
 export class RegistryClientsEffects {
@@ -174,6 +175,7 @@ export class RegistryClientsEffects {
 
                     const editDialogReference = this.dialog.open(EditRegistryClient, {
                         data: request,
+                        id: registryClientId,
                         panelClass: 'large-dialog'
                     });
 
@@ -214,8 +216,30 @@ export class RegistryClientsEffects {
                         );
                     };
 
-                    editDialogReference.componentInstance.getServiceLink = (serviceId: string) => {
-                        return of(['/settings', 'management-controller-services', serviceId]);
+                    editDialogReference.componentInstance.goToService = (serviceId: string) => {
+                        const commands: string[] = ['/settings', 'management-controller-services', serviceId];
+
+                        if (editDialogReference.componentInstance.editRegistryClientForm.dirty) {
+                            const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
+                                data: {
+                                    title: 'Registry Client Configuration',
+                                    message: `Save changes before going to this Controller Service?`
+                                },
+                                panelClass: 'small-dialog'
+                            });
+
+                            saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
+                                editDialogReference.componentInstance.submitForm(commands);
+                            });
+
+                            saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
+                                editDialogReference.close('ROUTED');
+                                this.router.navigate(commands);
+                            });
+                        } else {
+                            editDialogReference.close('ROUTED');
+                            this.router.navigate(commands);
+                        }
                     };
 
                     editDialogReference.componentInstance.createNewService = (
@@ -292,14 +316,10 @@ export class RegistryClientsEffects {
 
                     editDialogReference.componentInstance.editRegistryClient
                         .pipe(takeUntil(editDialogReference.afterClosed()))
-                        .subscribe((payload: any) => {
+                        .subscribe((editRegistryClientRequest: EditRegistryClientRequest) => {
                             this.store.dispatch(
                                 RegistryClientsActions.configureRegistryClient({
-                                    request: {
-                                        id: registryClientId,
-                                        uri: request.registryClient.uri,
-                                        payload
-                                    }
+                                    request: editRegistryClientRequest
                                 })
                             );
                         });
@@ -320,7 +340,7 @@ export class RegistryClientsEffects {
         { dispatch: false }
     );
 
-    configureControllerService$ = createEffect(() =>
+    configureRegistryClient$ = createEffect(() =>
         this.actions$.pipe(
             ofType(RegistryClientsActions.configureRegistryClient),
             map((action) => action.request),
@@ -330,7 +350,8 @@ export class RegistryClientsEffects {
                         RegistryClientsActions.configureRegistryClientSuccess({
                             response: {
                                 id: request.id,
-                                registryClient: response
+                                registryClient: response,
+                                postUpdateNavigation: request.postUpdateNavigation
                             }
                         })
                     ),
@@ -350,8 +371,14 @@ export class RegistryClientsEffects {
         () =>
             this.actions$.pipe(
                 ofType(RegistryClientsActions.configureRegistryClientSuccess),
-                tap(() => {
-                    this.dialog.closeAll();
+                map((action) => action.response),
+                tap((response) => {
+                    if (response.postUpdateNavigation) {
+                        this.router.navigate(response.postUpdateNavigation);
+                        this.dialog.getDialogById(response.id)?.close('ROUTED');
+                    } else {
+                        this.dialog.closeAll();
+                    }
                 })
             ),
         { dispatch: false }

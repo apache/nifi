@@ -58,6 +58,11 @@ export interface EditControllerServiceDialogRequest {
     controllerService: ControllerServiceEntity;
 }
 
+export interface UpdateControllerServiceRequest {
+    payload: any;
+    postUpdateNavigation?: string[];
+}
+
 export interface ProvenanceEventSummary {
     id: string;
     eventId: number;
@@ -251,6 +256,32 @@ export interface AffectedComponent {
     state: string;
     activeThreadCount?: number;
     validationErrors: string[];
+}
+
+export interface SubmitParameterContextUpdate {
+    id: string;
+    payload: any;
+}
+
+export interface PollParameterContextUpdateSuccess {
+    requestEntity: ParameterContextUpdateRequestEntity;
+}
+
+export interface ParameterContextUpdateRequest {
+    complete: boolean;
+    lastUpdated: string;
+    percentComponent: number;
+    referencingComponents: AffectedComponentEntity[];
+    requestId: string;
+    state: string;
+    updateSteps: any[];
+    uri: string;
+    parameterContext?: any;
+}
+
+export interface ParameterContextUpdateRequestEntity {
+    parameterContextRevision: Revision;
+    request: ParameterContextUpdateRequest;
 }
 
 export interface ElFunction {

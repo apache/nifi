@@ -30,13 +30,14 @@ import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     Parameter,
+    ParameterContextReferenceEntity,
     Property,
     SelectOption,
     TextTipInput
 } from '../../../../../../../state/shared';
 import { Client } from '../../../../../../../service/client.service';
 import { NiFiCommon } from '../../../../../../../service/nifi-common.service';
-import { EditComponentDialogRequest } from '../../../../../state/flow';
+import { EditComponentDialogRequest, UpdateProcessorRequest } from '../../../../../state/flow';
 import { PropertyTable } from '../../../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
@@ -75,9 +76,12 @@ export class EditProcessor {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
-    @Input() getServiceLink!: (serviceId: string) => Observable<string[]>;
+    @Input() parameterContext: ParameterContextReferenceEntity | undefined;
+    @Input() goToParameter!: (parameter: string) => void;
+    @Input() convertToParameter!: (name: string, sensitive: boolean, value: string | null) => Observable<string>;
+    @Input() goToService!: (serviceId: string) => void;
     @Input() saving$!: Observable<boolean>;
-    @Output() editProcessor: EventEmitter<any> = new EventEmitter<any>();
+    @Output() editProcessor: EventEmitter<UpdateProcessorRequest> = new EventEmitter<UpdateProcessorRequest>();
 
     protected readonly TextTip = TextTip;
 
@@ -275,7 +279,7 @@ export class EditProcessor {
         );
     }
 
-    submitForm() {
+    submitForm(postUpdateNavigation?: string[]) {
         const relationshipConfiguration: RelationshipConfiguration =
             this.editProcessorForm.get('relationshipConfiguration')?.value;
         const autoTerminated: string[] = relationshipConfiguration.relationships
@@ -326,6 +330,9 @@ export class EditProcessor {
             payload.component.config.retryCount = relationshipConfiguration.retryCount;
         }
 
-        this.editProcessor.next(payload);
+        this.editProcessor.next({
+            postUpdateNavigation,
+            payload
+        });
     }
 }

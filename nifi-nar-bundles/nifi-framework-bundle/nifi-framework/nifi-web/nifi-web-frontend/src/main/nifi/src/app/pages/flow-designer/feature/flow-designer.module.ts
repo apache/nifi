@@ -27,6 +27,7 @@ import { VersionControlTip } from '../ui/common/tooltips/version-control-tip/ver
 import { canvasFeatureKey, reducers } from '../state';
 import { MatDialogModule } from '@angular/material/dialog';
 import { ControllerServicesEffects } from '../state/controller-services/controller-services.effects';
+import { ParameterEffects } from '../state/parameter/parameter.effects';
 
 @NgModule({
     declarations: [FlowDesigner, VersionControlTip],
@@ -35,7 +36,7 @@ import { ControllerServicesEffects } from '../state/controller-services/controll
         CommonModule,
         FlowDesignerRoutingModule,
         StoreModule.forFeature(canvasFeatureKey, reducers),
-        EffectsModule.forFeature(FlowEffects, TransformEffects, ControllerServicesEffects),
+        EffectsModule.forFeature(FlowEffects, TransformEffects, ControllerServicesEffects, ParameterEffects),
         NgOptimizedImage,
         MatDialogModule
     ]

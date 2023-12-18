@@ -25,7 +25,9 @@ import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     Parameter,
-    Property
+    ParameterContextReferenceEntity,
+    Property,
+    UpdateControllerServiceRequest
 } from '../../../../state/shared';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -68,9 +70,13 @@ export class EditControllerService {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
-    @Input() getServiceLink!: (serviceId: string) => Observable<string[]>;
+    @Input() parameterContext: ParameterContextReferenceEntity | undefined;
+    @Input() goToParameter!: (parameter: string) => void;
+    @Input() convertToParameter!: (name: string, sensitive: boolean, value: string | null) => Observable<string>;
+    @Input() goToService!: (serviceId: string) => void;
     @Input() saving$!: Observable<boolean>;
-    @Output() editControllerService: EventEmitter<any> = new EventEmitter<any>();
+    @Output() editControllerService: EventEmitter<UpdateControllerServiceRequest> =
+        new EventEmitter<UpdateControllerServiceRequest>();
 
     editControllerServiceForm: FormGroup;
 
@@ -130,7 +136,7 @@ export class EditControllerService {
         return this.nifiCommon.formatBundle(entity.component.bundle);
     }
 
-    submitForm() {
+    submitForm(postUpdateNavigation?: string[]) {
         const payload: any = {
             revision: this.client.getRevision(this.request.controllerService),
             component: {
@@ -151,6 +157,9 @@ export class EditControllerService {
                 .map((property) => property.descriptor.name);
         }
 
-        this.editControllerService.next(payload);
+        this.editControllerService.next({
+            payload,
+            postUpdateNavigation
+        });
     }
 }

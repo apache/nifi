@@ -25,16 +25,12 @@ import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
-import { Observable, take, tap } from 'rxjs';
-import {
-    EditParameterContextRequest,
-    ParameterContextEntity,
-    ParameterContextUpdateRequestEntity
-} from '../../../state/parameter-context-listing';
+import { Observable } from 'rxjs';
+import { EditParameterContextRequest, ParameterContextEntity } from '../../../state/parameter-context-listing';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Client } from '../../../../../service/client.service';
 import { ParameterTable } from '../parameter-table/parameter-table.component';
-import { Parameter, ParameterEntity } from '../../../../../state/shared';
+import { Parameter, ParameterContextUpdateRequestEntity, ParameterEntity } from '../../../../../state/shared';
 import { ProcessGroupReferences } from '../process-group-references/process-group-references.component';
 import { ParameterContextInheritance } from '../parameter-context-inheritance/parameter-context-inheritance.component';
 import { ParameterReferences } from '../parameter-references/parameter-references.component';

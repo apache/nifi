@@ -50,7 +50,7 @@
                         [createNewProperty]="createNewProperty"
                         [createNewService]="createNewService"
                         [getParameters]="getParameters"
-                        [getServiceLink]="getServiceLink"
+                        [goToService]="goToService"
                         [supportsSensitiveDynamicProperties]="
                             request.registryClient.component.supportsSensitiveDynamicProperties
                         "></property-table>
@@ -64,7 +64,7 @@
             [disabled]="!editRegistryClientForm.dirty || editRegistryClientForm.invalid || saving.value"
             type="button"
             color="primary"
-            (click)="createRegistryClientClicked()"
+            (click)="submitForm()"
             mat-raised-button>
             <span *nifiSpinner="saving.value">Apply</span>
         </button>

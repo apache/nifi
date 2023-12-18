@@ -237,6 +237,11 @@ export interface EditConnectionDialogRequest extends EditComponentDialogRequest 
     };
 }
 
+export interface UpdateProcessorRequest {
+    payload: any;
+    postUpdateNavigation?: string[];
+}
+
 export interface UpdateComponentRequest {
     requestId?: number;
     id: string;
@@ -244,6 +249,7 @@ export interface UpdateComponentRequest {
     uri: string;
     payload: any;
     restoreOnFailure?: any;
+    postUpdateNavigation?: string[];
 }
 
 export interface UpdateComponentResponse {
@@ -251,6 +257,7 @@ export interface UpdateComponentResponse {
     id: string;
     type: ComponentType;
     response: any;
+    postUpdateNavigation?: string[];
 }
 
 export interface UpdateComponentFailure {
