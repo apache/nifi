@@ -116,6 +116,7 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             .required(true)
             .allowableValues(KustoIngestDataFormat.values())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor IGNORE_FIRST_RECORD = new PropertyDescriptor.Builder()
             .name("Ingestion Ignore First Record")
@@ -217,7 +218,7 @@ public class PutAzureDataExplorer extends AbstractProcessor {
 
         String databaseName = context.getProperty(DATABASE_NAME).getValue();
         String tableName = context.getProperty(TABLE_NAME).getValue();
-        String dataFormat = context.getProperty(DATA_FORMAT).getValue();
+        String dataFormat = context.getProperty(DATA_FORMAT).evaluateAttributeExpressions(flowFile).getValue();
         String mappingName = context.getProperty(MAPPING_NAME).getValue();
         String routePartiallySuccessfulIngestion = context.getProperty(ROUTE_PARTIALLY_SUCCESSFUL_INGESTION).getValue();
         Duration ingestionStatusPollingTimeout = Duration.ofSeconds(context.getProperty(INGESTION_STATUS_POLLING_TIMEOUT).asTimePeriod(TimeUnit.SECONDS));
@@ -260,11 +261,7 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             transferRelationship = FAILURE;
         }
 
-        if (transferRelationship == SUCCESS) {
-            session.transfer(flowFile, SUCCESS);
-        } else {
-            session.transfer(flowFile, FAILURE);
-        }
+        session.transfer(flowFile, transferRelationship);
     }
 
     protected boolean checkIfStreamingPolicyIsEnabledInADX(String entityName, String database) {

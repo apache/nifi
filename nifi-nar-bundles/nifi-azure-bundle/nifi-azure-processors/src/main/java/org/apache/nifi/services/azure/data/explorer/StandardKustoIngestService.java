@@ -129,25 +129,15 @@ public class StandardKustoIngestService extends AbstractControllerService implem
      */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws ProcessException, URISyntaxException {
-
         final String applicationClientId = context.getProperty(APPLICATION_CLIENT_ID).getValue();
         final String applicationKey = context.getProperty(APPLICATION_KEY).getValue();
         final String applicationTenantId = context.getProperty(APPLICATION_TENANT_ID).getValue();
         final String clusterUri = context.getProperty(CLUSTER_URI).getValue();
         final KustoAuthenticationStrategy kustoAuthenticationStrategy = KustoAuthenticationStrategy.valueOf(context.getProperty(AUTHENTICATION_STRATEGY).getValue());
 
-        if (this.queuedIngestClient == null) {
-            this.queuedIngestClient = createKustoQueuedIngestClient(clusterUri, applicationClientId, applicationKey, applicationTenantId, kustoAuthenticationStrategy);
-        }
-
-        if (this.managedStreamingIngestClient == null) {
-            this.managedStreamingIngestClient = createKustoStreamingIngestClient(clusterUri, applicationClientId, applicationKey, applicationTenantId, kustoAuthenticationStrategy);
-        }
-
-        if (this.executionClient == null) {
-            this.executionClient = createKustoExecutionClient(clusterUri, applicationClientId, applicationKey, applicationTenantId, kustoAuthenticationStrategy);
-        }
-
+        this.queuedIngestClient = createKustoQueuedIngestClient(clusterUri, applicationClientId, applicationKey, applicationTenantId, kustoAuthenticationStrategy);
+        this.managedStreamingIngestClient = createKustoStreamingIngestClient(clusterUri, applicationClientId, applicationKey, applicationTenantId, kustoAuthenticationStrategy);
+        this.executionClient = createKustoExecutionClient(clusterUri, applicationClientId, applicationKey, applicationTenantId, kustoAuthenticationStrategy);
     }
 
     @OnStopped
