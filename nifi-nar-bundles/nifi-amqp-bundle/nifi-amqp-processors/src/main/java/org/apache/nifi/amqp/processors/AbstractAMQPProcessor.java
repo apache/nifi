@@ -38,6 +38,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -146,6 +147,11 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
     }
 
     private BlockingQueue<AMQPResource<T>> resourceQueue;
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        config.removeProperty("ssl-client-auth");
+    }
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
