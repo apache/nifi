@@ -106,7 +106,7 @@ public class MonitorActivity extends AbstractProcessor {
             .defaultValue("Activity restored at time: ${now():format('yyyy/MM/dd HH:mm:ss')} after being inactive for ${inactivityDurationMillis:toNumber():divide(60000)} minutes")
             .build();
     public static final PropertyDescriptor WAIT_FOR_ACTIVITY = new PropertyDescriptor.Builder()
-            .name("Initial Inactivity Indicator")
+            .name("Wait For Activity")
             .description("When the processor gets started or restarted, if set to true, only send an inactive indicator if there had been activity beforehand. "
                     + "Otherwise send an inactive indicator even if there had not been activity beforehand.")
             .required(false)
