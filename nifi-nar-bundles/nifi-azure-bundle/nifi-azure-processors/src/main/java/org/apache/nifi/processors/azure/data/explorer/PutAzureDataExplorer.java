@@ -214,7 +214,7 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             return;
         }
 
-        Relationship transferRelationship = Relationship.SELF;
+        Relationship transferRelationship = FAILURE;
 
         String databaseName = context.getProperty(DATABASE_NAME).getValue();
         String tableName = context.getProperty(TABLE_NAME).getValue();
@@ -246,19 +246,15 @@ public class PutAzureDataExplorer extends AbstractProcessor {
                 transferRelationship = SUCCESS;
             } else if (result == KustoIngestionResult.FAILED) {
                 getLogger().error("Ingest Failed - {}", result.getStatus());
-                transferRelationship = FAILURE;
             } else if (result == KustoIngestionResult.PARTIALLY_SUCCEEDED) {
                 getLogger().warn("Ingest Partially succeeded - {}", result.getStatus());
                 flowFile = session.putAttribute(flowFile, "ingestion_status", "partial_success");
-                if (StringUtils.equalsIgnoreCase(routePartiallySuccessfulIngestion, FAILURE.getName())) {
-                    transferRelationship = FAILURE;
-                }else {
+                if (StringUtils.equalsIgnoreCase(routePartiallySuccessfulIngestion, SUCCESS.getName())) {
                     transferRelationship = SUCCESS;
                 }
             }
         } catch (IOException e) {
             getLogger().error("Azure Data Explorer Ingest processing failed", e);
-            transferRelationship = FAILURE;
         }
 
         session.transfer(flowFile, transferRelationship);
