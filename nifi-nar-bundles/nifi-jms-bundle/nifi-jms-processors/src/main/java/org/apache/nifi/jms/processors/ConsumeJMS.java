@@ -239,7 +239,6 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         _propertyDescriptors.add(USER);
         _propertyDescriptors.add(PASSWORD);
         _propertyDescriptors.add(CLIENT_ID);
-        _propertyDescriptors.add(SESSION_CACHE_SIZE);
 
         // change the validator on CHARSET property
         PropertyDescriptor charsetWithELValidatorProperty = new PropertyDescriptor.Builder()

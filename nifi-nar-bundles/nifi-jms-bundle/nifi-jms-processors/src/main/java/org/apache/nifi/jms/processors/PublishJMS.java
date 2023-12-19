@@ -178,7 +178,6 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
         _propertyDescriptors.add(USER);
         _propertyDescriptors.add(PASSWORD);
         _propertyDescriptors.add(CLIENT_ID);
-        _propertyDescriptors.add(SESSION_CACHE_SIZE);
 
         _propertyDescriptors.add(MESSAGE_BODY);
         _propertyDescriptors.add(CHARSET);
