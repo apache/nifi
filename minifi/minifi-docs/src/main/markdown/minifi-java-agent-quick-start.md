@@ -88,16 +88,16 @@ To launch MiNiFi as an application you need to execute the `run-minifi.bat` with
 ### Install MiNiFi as a windows service
 MiNiFi can be installed as a service by executing the `install-service.bat`. By default, the service name will be `minifi`. It can be changed with the `serviceName` parameter:
 ```
-install-service.bat "serviceName=minifi_java"
+install-service.bat "serviceName:minifi_java"
 ```
-The user can be specified which should be used to run the service. For that the `serviceUser` and `serviceUserPassword` parameters need to be used. The username has to be in domain\username format, like `LOCAL\minifi`.  If the service user not provided, the `Local System` account will be used to install the service:
+The user, which should be used to run the service, can be specified. For that, the `serviceUser` and `serviceUserPassword` parameters need to be used. The username has to be in domain\username format, like `LOCAL\minifi`.  If the service user not provided, the `Local System` account will be used to install the service. If the `serviceUserPassword` parameter is provided, the terminal will be closed after the installation because of security reasons. Example command: 
 ```
-install-service.bat "serviceUser=AD\minifi_user" "serviceUserPassword=password"
+install-service.bat "serviceUser:AD\minifi_user" "serviceUserPassword:password"
 ```
 Once MiNiFi get installed as a service, it will always start up after every reboot.
 After the service get installed, it can be started with the `start-service.bat`. If MiNiFi get installed with a custom name, the `serviceName` parameter need to be used to specify it:
 ```
-start-service.bat "serviceName=minifi_java"
+start-service.bat "serviceName:minifi_java"
 ```
 
 # Working with DataFlows
@@ -361,7 +361,7 @@ stop-service.bat
 ```
 If MiNiFi get installed with a custom name, the `serviceName` parameter need to be used to specify it: 
 ```
-stop-service.bat "serviceName=minifi_java"
+stop-service.bat "serviceName:minifi_java"
 ```
 ### Deleting MiNiFi service:
 This command stops the currently running MiNiFi and deregister the service from the windows registry. Does not delete the MiNiFi installation. The service can be deleted with:
@@ -370,5 +370,5 @@ delete-service.bat
 ```
 If MiNiFi get installed with a custom name, the `serviceName` parameter need to be used to specify it: 
 ```
-delete-service.bat "serviceName=minifi_java"
+delete-service.bat "serviceName:minifi_java"
 ```

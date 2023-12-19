@@ -30,8 +30,8 @@ set MINIFI_APP_LOG_FILE_EXTENSION=log
 set MINIFI_BOOTSTRAP_LOG_FILE_NAME=minifi-bootstrap
 set MINIFI_BOOTSTRAP_LOG_FILE_EXTENSION=log
 
-if "%JAVA_MINIFI%"=="" if "%JAVA_HOME%"=="" (
+if not defined JAVA_MINIFI if not defined JAVA_HOME (
   echo Please set JAVA_HOME or JAVA_MINIFI
-) else if "%JAVA_MINIFI%"=="" (
+) else if not defined JAVA_MINIFI (
     set JAVA_MINIFI=%JAVA_HOME%
 )

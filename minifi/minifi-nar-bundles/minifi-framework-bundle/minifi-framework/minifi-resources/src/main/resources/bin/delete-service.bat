@@ -18,9 +18,9 @@ rem
 
 setlocal enabledelayedexpansion
 
-set arg1=%1
-if "!arg1:~1,11!" equ "serviceName" (
-	set "SVC_NAME=!arg1:~13!"
+set "argument=%~1"
+if "!argument:~0,11!" equ "serviceName" (
+    set "SVC_NAME=!argument:~12!"
 ) else (
 	set "SVC_NAME=minifi"
 )

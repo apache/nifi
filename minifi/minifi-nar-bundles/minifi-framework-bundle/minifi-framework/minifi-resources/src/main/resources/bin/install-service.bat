@@ -18,7 +18,7 @@ rem
 call %~sdp0\minifi-env.bat
 setlocal enabledelayedexpansion
 
-if "%JAVA_MINIFI%"=="" (
+if not defined JAVA_MINIFI (
 	goto end
 )
 
@@ -87,7 +87,7 @@ set CLASS_PATH="%CONF_DIR%";"%MINIFI_ROOT%lib\*";"%MINIFI_ROOT%lib\bootstrap\*"
 set LOG_PATH="%MINIFI_ROOT%\logs"
 set LOG_PREFIX=minifi.log
 
-if "%serviceUser%"=="" (
+if not defined serviceUser (
     goto withoutUser
 ) else (
     goto withUser
@@ -98,7 +98,7 @@ if "%serviceUser%"=="" (
 --DisplayName=%SVC_DISPLAY% ^
 --Description=%SVC_DESCRIPTION% ^
 --Install="%SRV_BIN%" ^
---JavaHome=%JAVA_MINIFI% ^
+--JavaHome="%JAVA_MINIFI%" ^
 --Jvm="%JVM%" ^
 --JvmMs="%PR_JVMMS%" ^
 --JvmMx="%PR_JVMMX%" ^
@@ -128,7 +128,7 @@ goto end
 --DisplayName=%SVC_DISPLAY% ^
 --Description=%SVC_DESCRIPTION% ^
 --Install="%SRV_BIN%" ^
---JavaHome=%JAVA_MINIFI% ^
+--JavaHome="%JAVA_MINIFI%" ^
 --Jvm="%JVM%" ^
 --JvmMs="%PR_JVMMS%" ^
 --JvmMx="%PR_JVMMX%" ^
@@ -156,4 +156,15 @@ goto end
 goto end
 
 :end
+ping -n 2 127.0.0.1 > nul
+if defined serviceName (
+    echo The service can be started with: start-service.bat "serviceName:%serviceName%"
+) else (
+    echo The service can be started with: start-service.bat
+)
+if defined serviceUserPassword (
+    echo This terminal will closed in 5 sec due to security reasons.
+    ping -n 5 127.0.0.1 > nul
+    exit
+)
 endlocal
