@@ -51,6 +51,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -327,6 +328,11 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
     @Override
     public Set<Relationship> getRelationships() {
         return isRecordReaderSet && isRecordWriterSet ? RECORD_RELATIONSHIPS : RELATIONSHIPS;
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        config.removeProperty("event-hub-consumer-hostname");
     }
 
     @Override
