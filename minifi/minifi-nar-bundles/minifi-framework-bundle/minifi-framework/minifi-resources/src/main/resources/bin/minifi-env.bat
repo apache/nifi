@@ -18,7 +18,7 @@ rem
 
 
 rem The java implementation to use
-rem set JAVA_HOME="C:\Program Files\Java\jdk1.8.0"
+rem set JAVA_HOME="C:\Program Files\Java\jdk"
 
 set MINIFI_ROOT=%~sdp0..\
 

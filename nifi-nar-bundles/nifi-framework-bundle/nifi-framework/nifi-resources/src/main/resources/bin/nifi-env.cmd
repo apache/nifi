@@ -17,7 +17,7 @@ rem    limitations under the License.
 rem
 
 rem Set Java version
-rem set JAVA_HOME="C:\Program Files\Java\jdk1.8.0"
+rem set JAVA_HOME="C:\Program Files\Java\jdk"
 
 rem Set application home directory based on parent directory of script location
 pushd %~dp0..
