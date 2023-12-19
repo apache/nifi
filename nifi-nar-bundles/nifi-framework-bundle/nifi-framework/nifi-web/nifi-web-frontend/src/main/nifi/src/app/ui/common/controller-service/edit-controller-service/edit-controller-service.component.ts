@@ -21,6 +21,7 @@ import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModu
 import { Client } from '../../../../service/client.service';
 import {
     ControllerServiceEntity,
+    ControllerServiceReferencingComponent,
     EditControllerServiceDialogRequest,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
@@ -74,6 +75,7 @@ export class EditControllerService {
     @Input() goToParameter!: (parameter: string) => void;
     @Input() convertToParameter!: (name: string, sensitive: boolean, value: string | null) => Observable<string>;
     @Input() goToService!: (serviceId: string) => void;
+    @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
     @Input() saving$!: Observable<boolean>;
     @Output() editControllerService: EventEmitter<UpdateControllerServiceRequest> =
         new EventEmitter<UpdateControllerServiceRequest>();

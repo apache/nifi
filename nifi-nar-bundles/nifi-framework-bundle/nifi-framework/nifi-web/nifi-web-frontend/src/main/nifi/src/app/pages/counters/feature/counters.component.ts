@@ -19,6 +19,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import { startUserPolling, stopUserPolling } from '../../../state/user/user.actions';
+import { resetCounterState } from '../state/counter-listing/counter-listing.actions';
 
 @Component({
     selector: 'counters',
@@ -33,6 +34,7 @@ export class Counters implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.store.dispatch(resetCounterState());
         this.store.dispatch(stopUserPolling());
     }
 }

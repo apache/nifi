@@ -44,3 +44,5 @@ export const navigateToViewProcessorStatusHistory = createAction(
     `${SUMMARY_LISTING_PREFIX} Navigate To Processor Status History`,
     props<{ id: string }>()
 );
+
+export const resetSummaryState = createAction(`${SUMMARY_LISTING_PREFIX} Reset Summary State`);

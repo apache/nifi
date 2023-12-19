@@ -17,7 +17,7 @@
 
 import { CounterListingState } from './index';
 import { createReducer, on } from '@ngrx/store';
-import { loadCounters, loadCountersSuccess, resetCounterSuccess } from './counter-listing.actions';
+import { loadCounters, loadCountersSuccess, resetCounterState, resetCounterSuccess } from './counter-listing.actions';
 import { parameterContextListingApiError } from '../../../parameter-contexts/state/parameter-context-listing/parameter-context-listing.actions';
 import { produce } from 'immer';
 
@@ -57,5 +57,8 @@ export const counterListingReducer = createReducer(
                 };
             }
         });
-    })
+    }),
+    on(resetCounterState, (state) => ({
+        ...initialState
+    }))
 );

@@ -16,13 +16,13 @@
  */
 
 import { createReducer, on } from '@ngrx/store';
+import { ProcessGroupStatusSnapshot, ProcessorStatusSnapshotEntity, SummaryListingState } from './index';
 import {
-    AggregateSnapshot,
-    ProcessGroupStatusSnapshot,
-    ProcessorStatusSnapshotEntity,
-    SummaryListingState
-} from './index';
-import { loadSummaryListing, loadSummaryListingSuccess, summaryListingApiError } from './summary-listing.actions';
+    loadSummaryListing,
+    loadSummaryListingSuccess,
+    resetSummaryState,
+    summaryListingApiError
+} from './summary-listing.actions';
 
 export const initialState: SummaryListingState = {
     clusterSummary: null,
@@ -61,6 +61,10 @@ export const summaryListingReducer = createReducer(
         ...state,
         error,
         status: 'error' as const
+    })),
+
+    on(resetSummaryState, (state) => ({
+        ...initialState
     }))
 );
 
