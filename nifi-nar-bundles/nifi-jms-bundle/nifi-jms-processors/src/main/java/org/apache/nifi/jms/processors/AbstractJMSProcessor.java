@@ -31,6 +31,7 @@ import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProviderDefinition;
 import org.apache.nifi.jms.cf.JndiJmsConnectionFactoryHandler;
 import org.apache.nifi.jms.cf.JndiJmsConnectionFactoryProperties;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -109,14 +110,6 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
-    static final PropertyDescriptor SESSION_CACHE_SIZE = new PropertyDescriptor.Builder()
-            .name("Session Cache size")
-            .displayName("Session Cache Size")
-            .description("This property is deprecated and no longer has any effect on the Processor. It will be removed in a later version.")
-            .required(false)
-            .defaultValue("1")
-            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .build();
     static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("character-set")
             .displayName("Character Set")
@@ -185,6 +178,11 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
                 .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                 .dynamic(true)
                 .build();
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        config.removeProperty("Session Cache size");
     }
 
     @Override
