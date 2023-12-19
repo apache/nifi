@@ -22,9 +22,9 @@ import { SummaryTableFilter } from '../common/summary-table-filter/summary-table
 import { SummaryTableFilterModule } from '../common/summary-table-filter/summary-table-filter.module';
 import { ProcessorStatusListingModule } from './processor-status-listing.module';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../counters/state/counter-listing/counter-listing.reducer';
 import { ProcessorStatusTable } from './processor-status-table/processor-status-table.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 
 describe('ProcessorStatusListing', () => {
     let component: ProcessorStatusListing;

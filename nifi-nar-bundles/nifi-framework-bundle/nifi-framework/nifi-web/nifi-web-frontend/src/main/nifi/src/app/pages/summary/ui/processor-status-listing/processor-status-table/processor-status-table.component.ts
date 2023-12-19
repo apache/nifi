@@ -19,18 +19,17 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { ProcessorStatusSnapshot, ProcessorStatusSnapshotEntity } from '../../../state/summary-listing';
 import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
-import { SummaryTableFilterArgs } from '../../common/summary-table-filter/summary-table-filter.component';
+import {
+    SummaryTableFilterArgs,
+    SummaryTableFilterColumn
+} from '../../common/summary-table-filter/summary-table-filter.component';
 import { RouterLink } from '@angular/router';
 import { SummaryTableFilterModule } from '../../common/summary-table-filter/summary-table-filter.module';
 import { NgClass, NgIf } from '@angular/common';
 import { ComponentType } from '../../../../../state/shared';
+import { MultiSort } from '../../common';
 
 export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 'in' | 'out' | 'readWrite' | 'tasks';
-
-export interface MultiSort extends Sort {
-    sortValueIndex: number;
-    totalValues: number;
-}
 
 @Component({
     selector: 'processor-status-table',
@@ -43,7 +42,10 @@ export class ProcessorStatusTable {
     private _initialSortColumn: SupportedColumns = 'name';
     private _initialSortDirection: SortDirection = 'asc';
 
-    filterableColumns: string[] = ['name', 'type'];
+    filterableColumns: SummaryTableFilterColumn[] = [
+        { key: 'name', label: 'name' },
+        { key: 'type', label: 'type' }
+    ];
     totalCount: number = 0;
     filteredCount: number = 0;
 

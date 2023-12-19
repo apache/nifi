@@ -15,4 +15,33 @@
   ~  limitations under the License.
   -->
 
-<p>remote-process-group-status-listing works!</p>
+<ng-container>
+    <div *ngIf="isInitialLoading((loadedTimestamp$ | async)!); else loaded">
+        <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+    </div>
+
+    <ng-template #loaded>
+        <div class="flex flex-col h-full gap-y-2">
+            <div class="flex-1" *ngIf="currentUser$ | async as user">
+                <ng-container>
+                    <remote-process-group-status-table
+                        [remoteProcessGroups]="(rpgStatusSnapshots$ | async)!"
+                        [selectedRemoteProcessGroupId]="selectedRpgId$ | async"
+                        (selectRemoteProcessGroup)="selectRemoteProcessGroup($event)"
+                        (viewStatusHistory)="viewStatusHistory($event)"
+                        initialSortColumn="name"
+                        initialSortDirection="asc"></remote-process-group-status-table>
+                </ng-container>
+            </div>
+            <div class="flex justify-between">
+                <div class="refresh-container flex items-center gap-x-2">
+                    <button class="nifi-button" (click)="refreshSummaryListing()">
+                        <i class="fa fa-refresh" [class.fa-spin]="(summaryListingStatus$ | async) === 'loading'"></i>
+                    </button>
+                    <div>Last updated:</div>
+                    <div class="refresh-timestamp">{{ loadedTimestamp$ | async }}</div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+</ng-container>

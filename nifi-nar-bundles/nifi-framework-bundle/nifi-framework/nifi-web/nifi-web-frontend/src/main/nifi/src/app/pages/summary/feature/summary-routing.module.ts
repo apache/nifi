@@ -49,23 +49,71 @@ const routes: Routes = [
             },
             {
                 path: 'input-ports',
-                component: InputPortStatusListing
+                component: InputPortStatusListing,
+                children: [
+                    {
+                        path: ':id',
+                        component: InputPortStatusListing
+                    }
+                ]
             },
             {
                 path: 'output-ports',
-                component: OutputPortStatusListing
+                component: OutputPortStatusListing,
+                children: [
+                    {
+                        path: ':id',
+                        component: OutputPortStatusListing
+                    }
+                ]
             },
             {
                 path: 'remote-process-groups',
-                component: RemoteProcessGroupStatusListing
+                component: RemoteProcessGroupStatusListing,
+                children: [
+                    {
+                        path: ':id',
+                        component: RemoteProcessGroupStatusListing,
+                        children: [
+                            {
+                                path: 'history',
+                                component: RemoteProcessGroupStatusListing
+                            }
+                        ]
+                    }
+                ]
             },
             {
                 path: 'connections',
-                component: ConnectionStatusListing
+                component: ConnectionStatusListing,
+                children: [
+                    {
+                        path: ':id',
+                        component: ConnectionStatusListing,
+                        children: [
+                            {
+                                path: 'history',
+                                component: ConnectionStatusListing
+                            }
+                        ]
+                    }
+                ]
             },
             {
                 path: 'process-groups',
-                component: ProcessGroupStatusListing
+                component: ProcessGroupStatusListing,
+                children: [
+                    {
+                        path: ':id',
+                        component: ProcessGroupStatusListing,
+                        children: [
+                            {
+                                path: 'history',
+                                component: ProcessGroupStatusListing
+                            }
+                        ]
+                    }
+                ]
             }
         ]
     }

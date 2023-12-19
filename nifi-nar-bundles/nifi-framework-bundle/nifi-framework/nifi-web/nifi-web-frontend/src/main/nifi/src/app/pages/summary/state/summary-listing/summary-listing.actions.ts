@@ -16,7 +16,14 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { SelectProcessorStatusRequest, SummaryListingResponse } from './index';
+import {
+    SelectConnectionStatusRequest,
+    SelectPortStatusRequest,
+    SelectProcessGroupStatusRequest,
+    SelectProcessorStatusRequest,
+    SelectRemoteProcessGroupStatusRequest,
+    SummaryListingResponse
+} from './index';
 
 const SUMMARY_LISTING_PREFIX: string = '[Summary Listing]';
 
@@ -40,8 +47,48 @@ export const selectProcessorStatus = createAction(
     props<{ request: SelectProcessorStatusRequest }>()
 );
 
+export const selectProcessGroupStatus = createAction(
+    `${SUMMARY_LISTING_PREFIX} Select Process Group Status`,
+    props<{ request: SelectProcessGroupStatusRequest }>()
+);
+
+export const selectInputPortStatus = createAction(
+    `${SUMMARY_LISTING_PREFIX} Select Input Port Status`,
+    props<{ request: SelectPortStatusRequest }>()
+);
+
+export const selectOutputPortStatus = createAction(
+    `${SUMMARY_LISTING_PREFIX} Select Output Port Status`,
+    props<{ request: SelectPortStatusRequest }>()
+);
+
+export const selectConnectionStatus = createAction(
+    `${SUMMARY_LISTING_PREFIX} Select Connection Status`,
+    props<{ request: SelectConnectionStatusRequest }>()
+);
+
+export const selectRemoteProcessGroupStatus = createAction(
+    `${SUMMARY_LISTING_PREFIX} Select Remote Process Group Status`,
+    props<{ request: SelectRemoteProcessGroupStatusRequest }>()
+);
+
 export const navigateToViewProcessorStatusHistory = createAction(
     `${SUMMARY_LISTING_PREFIX} Navigate To Processor Status History`,
+    props<{ id: string }>()
+);
+
+export const navigateToViewProcessGroupStatusHistory = createAction(
+    `${SUMMARY_LISTING_PREFIX} Navigate To Process Group Status History`,
+    props<{ id: string }>()
+);
+
+export const navigateToViewConnectionStatusHistory = createAction(
+    `${SUMMARY_LISTING_PREFIX} Navigate To Connection Status History`,
+    props<{ id: string }>()
+);
+
+export const navigateToViewRemoteProcessGroupStatusHistory = createAction(
+    `${SUMMARY_LISTING_PREFIX} Navigate To Remote Process Group Status History`,
     props<{ id: string }>()
 );
 

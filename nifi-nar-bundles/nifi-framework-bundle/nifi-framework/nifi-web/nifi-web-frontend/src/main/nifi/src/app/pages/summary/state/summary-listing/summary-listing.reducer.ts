@@ -16,7 +16,15 @@
  */
 
 import { createReducer, on } from '@ngrx/store';
-import { ProcessGroupStatusSnapshot, ProcessorStatusSnapshotEntity, SummaryListingState } from './index';
+import {
+    ConnectionStatusSnapshotEntity,
+    PortStatusSnapshotEntity,
+    ProcessGroupStatusSnapshot,
+    ProcessGroupStatusSnapshotEntity,
+    ProcessorStatusSnapshotEntity,
+    RemoteProcessGroupStatusSnapshotEntity,
+    SummaryListingState
+} from './index';
 import {
     loadSummaryListing,
     loadSummaryListingSuccess,
@@ -28,6 +36,11 @@ export const initialState: SummaryListingState = {
     clusterSummary: null,
     processGroupStatus: null,
     processorStatusSnapshots: [],
+    processGroupStatusSnapshots: [],
+    inputPortStatusSnapshots: [],
+    outputPortStatusSnapshots: [],
+    connectionStatusSnapshots: [],
+    remoteProcessGroupStatusSnapshots: [],
     status: 'pending',
     error: null,
     loadedTimestamp: ''
@@ -46,6 +59,30 @@ export const summaryListingReducer = createReducer(
             response.status.processGroupStatus.aggregateSnapshot
         );
 
+        // get the root pg entity
+        const root: ProcessGroupStatusSnapshotEntity = {
+            id: response.status.processGroupStatus.id,
+            canRead: response.status.canRead,
+            processGroupStatusSnapshot: response.status.processGroupStatus.aggregateSnapshot
+        };
+
+        const childProcessGroups: ProcessGroupStatusSnapshotEntity[] = flattenProcessGroupStatusSnapshots(
+            response.status.processGroupStatus.aggregateSnapshot
+        );
+
+        const inputPorts: PortStatusSnapshotEntity[] = flattenInputPortStatusSnapshots(
+            response.status.processGroupStatus.aggregateSnapshot
+        );
+        const outputPorts: PortStatusSnapshotEntity[] = flattenOutputPortStatusSnapshots(
+            response.status.processGroupStatus.aggregateSnapshot
+        );
+        const connections: ConnectionStatusSnapshotEntity[] = flattenConnectionStatusSnapshots(
+            response.status.processGroupStatus.aggregateSnapshot
+        );
+        const rpgs: RemoteProcessGroupStatusSnapshotEntity[] = flattenRpgStatusSnapshots(
+            response.status.processGroupStatus.aggregateSnapshot
+        );
+
         return {
             ...state,
             error: null,
@@ -53,7 +90,12 @@ export const summaryListingReducer = createReducer(
             loadedTimestamp: response.status.processGroupStatus.statsLastRefreshed,
             processGroupStatus: response.status,
             clusterSummary: response.clusterSummary,
-            processorStatusSnapshots: processors
+            processorStatusSnapshots: processors,
+            processGroupStatusSnapshots: [root, ...childProcessGroups],
+            inputPortStatusSnapshots: inputPorts,
+            outputPortStatusSnapshots: outputPorts,
+            connectionStatusSnapshots: connections,
+            remoteProcessGroupStatusSnapshots: rpgs
         };
     }),
 
@@ -92,5 +134,70 @@ function flattenProcessorStatusSnapshots(
         return [...processors, ...children];
     } else {
         return processors;
+    }
+}
+
+function flattenProcessGroupStatusSnapshots(snapshot: ProcessGroupStatusSnapshot): ProcessGroupStatusSnapshotEntity[] {
+    const processGroups = [...snapshot.processGroupStatusSnapshots];
+
+    if (snapshot.processGroupStatusSnapshots?.length > 0) {
+        const children = snapshot.processGroupStatusSnapshots
+            .map((pg) => pg.processGroupStatusSnapshot)
+            .flatMap((pg) => flattenProcessGroupStatusSnapshots(pg));
+        return [...processGroups, ...children];
+    } else {
+        return [...processGroups];
+    }
+}
+
+function flattenInputPortStatusSnapshots(snapshot: ProcessGroupStatusSnapshot): PortStatusSnapshotEntity[] {
+    const ports = [...snapshot.inputPortStatusSnapshots];
+
+    if (snapshot.processGroupStatusSnapshots?.length > 0) {
+        const children = snapshot.processGroupStatusSnapshots
+            .map((pg) => pg.processGroupStatusSnapshot)
+            .flatMap((pg) => flattenInputPortStatusSnapshots(pg));
+        return [...ports, ...children];
+    } else {
+        return ports;
+    }
+}
+
+function flattenOutputPortStatusSnapshots(snapshot: ProcessGroupStatusSnapshot): PortStatusSnapshotEntity[] {
+    const ports = [...snapshot.outputPortStatusSnapshots];
+
+    if (snapshot.processGroupStatusSnapshots?.length > 0) {
+        const children = snapshot.processGroupStatusSnapshots
+            .map((pg) => pg.processGroupStatusSnapshot)
+            .flatMap((pg) => flattenOutputPortStatusSnapshots(pg));
+        return [...ports, ...children];
+    } else {
+        return ports;
+    }
+}
+
+function flattenConnectionStatusSnapshots(snapshot: ProcessGroupStatusSnapshot): ConnectionStatusSnapshotEntity[] {
+    const connections = [...snapshot.connectionStatusSnapshots];
+
+    if (snapshot.processGroupStatusSnapshots?.length > 0) {
+        const children = snapshot.processGroupStatusSnapshots
+            .map((pg) => pg.processGroupStatusSnapshot)
+            .flatMap((pg) => flattenConnectionStatusSnapshots(pg));
+        return [...connections, ...children];
+    } else {
+        return connections;
+    }
+}
+
+function flattenRpgStatusSnapshots(snapshot: ProcessGroupStatusSnapshot): RemoteProcessGroupStatusSnapshotEntity[] {
+    const rpgs = [...snapshot.remoteProcessGroupStatusSnapshots];
+
+    if (snapshot.processGroupStatusSnapshots?.length > 0) {
+        const children = snapshot.processGroupStatusSnapshots
+            .map((pg) => pg.processGroupStatusSnapshot)
+            .flatMap((pg) => flattenRpgStatusSnapshots(pg));
+        return [...rpgs, ...children];
+    } else {
+        return rpgs;
     }
 }

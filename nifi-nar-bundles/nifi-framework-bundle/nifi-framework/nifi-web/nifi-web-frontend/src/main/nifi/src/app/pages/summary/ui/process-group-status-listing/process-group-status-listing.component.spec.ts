@@ -18,6 +18,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ProcessGroupStatusListing } from './process-group-status-listing.component';
+import { SummaryTableFilterModule } from '../common/summary-table-filter/summary-table-filter.module';
+import { ProcessGroupStatusTable } from './process-group-status-table/process-group-status-table.component';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 
 describe('ProcessGroupStatusListing', () => {
     let component: ProcessGroupStatusListing;
@@ -25,7 +30,9 @@ describe('ProcessGroupStatusListing', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ProcessGroupStatusListing]
+            declarations: [ProcessGroupStatusListing],
+            imports: [SummaryTableFilterModule, ProcessGroupStatusTable, NoopAnimationsModule],
+            providers: [provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(ProcessGroupStatusListing);
         component = fixture.componentInstance;

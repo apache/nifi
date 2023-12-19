@@ -73,6 +73,66 @@ export class SummaryListingEffects {
         { dispatch: false }
     );
 
+    selectProcessGroupStatus$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(SummaryListingActions.selectProcessGroupStatus),
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/summary', 'process-groups', request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    selectInputPortStatus$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(SummaryListingActions.selectInputPortStatus),
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/summary', 'input-ports', request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    selectOutputPortStatus$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(SummaryListingActions.selectOutputPortStatus),
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/summary', 'output-ports', request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    selectConnectionStatus$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(SummaryListingActions.selectConnectionStatus),
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/summary', 'connections', request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    selectRpgStatus$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(SummaryListingActions.selectRemoteProcessGroupStatus),
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/summary', 'remote-process-groups', request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
     navigateToProcessorStatusHistory$ = createEffect(
         () =>
             this.actions$.pipe(
@@ -85,20 +145,88 @@ export class SummaryListingEffects {
         { dispatch: false }
     );
 
-    completeProcessorStatusHistory$ = createEffect(
+    navigateToViewProcessGroupStatusHistory$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(SummaryListingActions.navigateToViewProcessGroupStatusHistory),
+                map((action) => action.id),
+                tap((id) => {
+                    this.router.navigate(['/summary', 'process-groups', id, 'history']);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToViewConnectionStatusHistory$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(SummaryListingActions.navigateToViewConnectionStatusHistory),
+                map((action) => action.id),
+                tap((id) => {
+                    this.router.navigate(['/summary', 'connections', id, 'history']);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToViewRpgStatusHistory$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(SummaryListingActions.navigateToViewRemoteProcessGroupStatusHistory),
+                map((action) => action.id),
+                tap((id) => {
+                    this.router.navigate(['/summary', 'remote-process-groups', id, 'history']);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    // update the route to remove "/history", selecting the component in the summary list
+    completeStatusHistory$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(StatusHistoryActions.viewStatusHistoryComplete),
                 map((action) => action.request),
-                filter((request) => request.source === 'summary' && request.componentType === ComponentType.Processor),
+                filter((request) => request.source === 'summary'),
                 tap((request) => {
-                    this.store.dispatch(
-                        SummaryListingActions.selectProcessorStatus({
-                            request: {
-                                id: request.componentId
-                            }
-                        })
-                    );
+                    switch (request.componentType) {
+                        case ComponentType.ProcessGroup:
+                            this.store.dispatch(
+                                SummaryListingActions.selectProcessGroupStatus({
+                                    request: {
+                                        id: request.componentId
+                                    }
+                                })
+                            );
+                            break;
+                        case ComponentType.Connection:
+                            this.store.dispatch(
+                                SummaryListingActions.selectConnectionStatus({
+                                    request: {
+                                        id: request.componentId
+                                    }
+                                })
+                            );
+                            break;
+                        case ComponentType.RemoteProcessGroup:
+                            this.store.dispatch(
+                                SummaryListingActions.selectRemoteProcessGroupStatus({
+                                    request: {
+                                        id: request.componentId
+                                    }
+                                })
+                            );
+                            break;
+                        case ComponentType.Processor:
+                        default:
+                            this.store.dispatch(
+                                SummaryListingActions.selectProcessorStatus({
+                                    request: {
+                                        id: request.componentId
+                                    }
+                                })
+                            );
+                    }
                 })
             ),
         { dispatch: false }
