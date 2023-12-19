@@ -23,6 +23,7 @@
                 [loadedTimestamp]="(loadedTimestamp$ | async)!"
                 [events]="provenance.results.provenanceEvents"
                 [oldestEventAvailable]="provenance.results.oldestEvent"
+                [timeOffset]="provenance.results.timeOffset"
                 [resultsMessage]="getResultsMessage(provenance)"
                 [hasRequest]="hasRequest(provenance.request)"
                 [lineage$]="lineage$"

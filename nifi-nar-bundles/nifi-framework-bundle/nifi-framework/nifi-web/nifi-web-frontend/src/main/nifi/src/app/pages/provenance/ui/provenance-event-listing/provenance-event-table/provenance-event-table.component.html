@@ -170,10 +170,26 @@
         <div class="lineage-controls flex">
             <div class="pointer fa fa-long-arrow-left" (click)="hideLineageGraph()" title="Go back to event list"></div>
         </div>
+        <div class="lineage-slider flex flex-col pl-4">
+            <div class="w-80">
+                <mat-slider
+                    [min]="minEventTimestamp"
+                    [max]="maxEventTimestamp"
+                    [step]="eventTimestampStep"
+                    [discrete]="false"
+                    showTickMarks>
+                    <input matSliderThumb [value]="initialEventTimestampThreshold" (input)="handleInput($event)" />
+                </mat-slider>
+            </div>
+            <div class="value">
+                {{ formatLabel(currentEventTimestampThreshold) }}
+            </div>
+        </div>
         <lineage
-            [lineage]="(lineage$ | async)!"
+            [lineage]="(provenanceLineage$ | async)!"
             [eventId]="eventId"
             [reset]="resetLineage"
+            [eventTimestampThreshold]="currentEventTimestampThreshold"
             (openEventDialog)="submitProvenanceEventRequest($event)"
             (goToProvenanceEventSource)="goToEventSource($event)"
             (submitLineageQuery)="submitLineageQuery($event)"

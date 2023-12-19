@@ -28,7 +28,7 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
-import { debounceTime, Observable } from 'rxjs';
+import { debounceTime, Observable, tap } from 'rxjs';
 import { ProvenanceEventSummary } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
@@ -36,6 +36,7 @@ import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { Lineage, LineageRequest } from '../../../state/lineage';
 import { LineageComponent } from './lineage/lineage.component';
 import { GoToProvenanceEventSourceRequest, ProvenanceEventRequest } from '../../../state/provenance-event-listing';
+import { MatSliderModule } from '@angular/material/slider';
 
 @Component({
     selector: 'provenance-event-table',
@@ -55,7 +56,8 @@ import { GoToProvenanceEventSourceRequest, ProvenanceEventRequest } from '../../
         NgxSkeletonLoaderModule,
         AsyncPipe,
         MatPaginatorModule,
-        LineageComponent
+        LineageComponent,
+        MatSliderModule
     ],
     styleUrls: ['./provenance-event-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
 })
@@ -90,11 +92,54 @@ export class ProvenanceEventTable implements AfterViewInit {
         }
     }
     @Input() oldestEventAvailable!: string;
+    @Input() timeOffset!: number;
     @Input() resultsMessage!: string;
     @Input() hasRequest!: boolean;
     @Input() loading!: boolean;
     @Input() loadedTimestamp!: string;
-    @Input() lineage$!: Observable<Lineage | null>;
+    @Input() set lineage$(lineage$: Observable<Lineage | null>) {
+        this.provenanceLineage$ = lineage$.pipe(
+            tap((lineage) => {
+                let minMillis: number = -1;
+                let maxMillis: number = -1;
+
+                lineage?.results.nodes.forEach((node) => {
+                    // ensure this event has an event time
+                    if (minMillis < 0 || minMillis > node.millis) {
+                        minMillis = node.millis;
+                        // minTimestamp = node.timestamp;
+                    }
+                    if (maxMillis < 0 || maxMillis < node.millis) {
+                        maxMillis = node.millis;
+                    }
+                });
+
+                if (this.minEventTimestamp < 0 || minMillis < this.minEventTimestamp) {
+                    this.minEventTimestamp = minMillis;
+                }
+                if (this.maxEventTimestamp < 0 || maxMillis > this.maxEventTimestamp) {
+                    this.maxEventTimestamp = maxMillis;
+                }
+
+                // determine the range for the slider
+                let range: number = this.maxEventTimestamp - this.minEventTimestamp;
+
+                const binCount: number = 10;
+                const remainder: number = range % binCount;
+                if (remainder > 0) {
+                    // if the range doesn't fall evenly into binCount, increase the
+                    // range by the difference to ensure it does
+                    this.maxEventTimestamp += binCount - remainder;
+                    range = this.maxEventTimestamp - this.minEventTimestamp;
+                }
+
+                this.eventTimestampStep = range / binCount;
+
+                this.initialEventTimestampThreshold = this.maxEventTimestamp;
+                this.currentEventTimestampThreshold = this.initialEventTimestampThreshold;
+            })
+        );
+    }
 
     @Output() openSearchCriteria: EventEmitter<void> = new EventEmitter<void>();
     @Output() clearRequest: EventEmitter<void> = new EventEmitter<void>();
@@ -136,7 +181,14 @@ export class ProvenanceEventTable implements AfterViewInit {
     filteredCount: number = 0;
 
     showLineage: boolean = false;
+    provenanceLineage$!: Observable<Lineage | null>;
     eventId: string | null = null;
+
+    minEventTimestamp: number = -1;
+    maxEventTimestamp: number = -1;
+    eventTimestampStep: number = 1;
+    initialEventTimestampThreshold: number = 0;
+    currentEventTimestampThreshold: number = 0;
 
     constructor(
         private formBuilder: FormBuilder,
@@ -282,7 +334,28 @@ export class ProvenanceEventTable implements AfterViewInit {
 
     hideLineageGraph(): void {
         this.showLineage = false;
+        this.minEventTimestamp = -1;
+        this.maxEventTimestamp = -1;
+        this.eventTimestampStep = 1;
+        this.initialEventTimestampThreshold = 0;
+        this.currentEventTimestampThreshold = 0;
         this.resetLineage.next();
+    }
+
+    formatLabel(value: number): string {
+        // get the current user time to properly convert the server time
+        const now: Date = new Date();
+
+        // convert the user offset to millis
+        const userTimeOffset: number = now.getTimezoneOffset() * 60 * 1000;
+
+        // create the proper date by adjusting by the offsets
+        const date: Date = new Date(value + userTimeOffset + this.timeOffset);
+        return this.nifiCommon.formatDateTime(date);
+    }
+
+    handleInput(event: any): void {
+        this.currentEventTimestampThreshold = Number(event.target.value);
     }
 
     refreshClicked(): void {

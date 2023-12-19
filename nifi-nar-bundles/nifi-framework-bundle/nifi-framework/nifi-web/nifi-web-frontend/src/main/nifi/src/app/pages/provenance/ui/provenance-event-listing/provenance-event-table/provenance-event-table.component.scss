@@ -43,5 +43,17 @@
                 text-align: center;
             }
         }
+
+        .lineage-slider {
+            position: absolute;
+            bottom: 10px;
+            left: 5px;
+            z-index: 1;
+
+            .mat-mdc-slider {
+                width: 100%;
+                margin: 0;
+            }
+        }
     }
 }

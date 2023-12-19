@@ -46,9 +46,45 @@ export class LineageComponent implements OnInit {
             this.addLineage(lineage.results.nodes, lineage.results.links);
         }
     }
-
     @Input() eventId: string | null = null;
+    @Input() set eventTimestampThreshold(eventTimestampThreshold: number) {
+        if (this.previousEventTimestampThreshold >= 0) {
+            let nodes: any = this.lineageContainerElement.selectAll('g.node');
+            let links: any = this.lineageContainerElement.selectAll('path.link');
 
+            if (this.previousEventTimestampThreshold > eventTimestampThreshold) {
+                // the threshold is descending
+
+                // determine the nodes to hide
+                const nodesToHide = nodes.filter((d: any) => {
+                    return d.millis > eventTimestampThreshold && d.millis <= this.previousEventTimestampThreshold;
+                });
+                const linksToHide = links.filter((d: any) => {
+                    return d.millis > eventTimestampThreshold && d.millis <= this.previousEventTimestampThreshold;
+                });
+
+                // hide applicable nodes and lines
+                nodesToHide.transition().delay(200).duration(400).style('opacity', 0);
+                linksToHide.transition().duration(400).style('opacity', 0);
+            } else {
+                // the threshold is ascending
+
+                // determine the nodes to show
+                const nodesToShow = nodes.filter((d: any) => {
+                    return d.millis <= eventTimestampThreshold && d.millis > this.previousEventTimestampThreshold;
+                });
+                const linksToShow = links.filter((d: any) => {
+                    return d.millis <= eventTimestampThreshold && d.millis > this.previousEventTimestampThreshold;
+                });
+
+                // show applicable nodes and lines
+                linksToShow.transition().delay(200).duration(400).style('opacity', 1);
+                nodesToShow.transition().duration(400).style('opacity', 1);
+            }
+        }
+
+        this.previousEventTimestampThreshold = eventTimestampThreshold;
+    }
     @Input() set reset(reset: EventEmitter<void>) {
         reset.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
             this.nodeLookup.clear();
@@ -175,6 +211,7 @@ export class LineageComponent implements OnInit {
 
     private nodeLookup: Map<string, any> = new Map<string, any>();
     private linkLookup: Map<string, any> = new Map<string, any>();
+    private previousEventTimestampThreshold: number = -1;
 
     constructor() {
         this.allMenus = new Map<string, ContextMenuDefinition>();
@@ -565,15 +602,6 @@ export class LineageComponent implements OnInit {
         this.nodeLookup.forEach(function (node, id) {
             node.outgoing = [];
             node.incoming = [];
-
-            // // ensure this event has an event time
-            // if (nfCommon.isUndefined(minMillis) || minMillis > node.millis) {
-            //     minMillis = node.millis;
-            //     minTimestamp = node.timestamp;
-            // }
-            // if (nfCommon.isUndefined(maxMillis) || maxMillis < node.millis) {
-            //     maxMillis = node.millis;
-            // }
         });
 
         // go through the links in order to compute the new layout
@@ -588,13 +616,6 @@ export class LineageComponent implements OnInit {
 
         // position the nodes
         this.positionNodes(Array.from(startNodes.values()), 1, [], 50);
-
-        // // update the slider min/max/step values
-        // var step = (maxMillis - minMillis) / config.sliderTickCount;
-        // slider.slider('option', 'min', minMillis).slider('option', 'max', maxMillis).slider('option', 'step', step > 0 ? step : 1).slider('value', maxMillis);
-        //
-        // // populate the event timeline
-        // $('#event-time').text(formatEventTime(maxMillis, provenanceTableCtrl));
 
         // update the layout
         this.update();
@@ -611,7 +632,6 @@ export class LineageComponent implements OnInit {
             if (fanIn) {
                 return node.id !== eventId;
             } else {
-                console.log('allowEventRemoval', node);
                 return node.flowFileUuid !== eventUuid && !node.parentUuids?.includes(eventUuid);
             }
         };
@@ -672,8 +692,6 @@ export class LineageComponent implements OnInit {
         // update the layout
         this.refresh();
     }
-
-    private formatEventTime(): void {}
 
     private clearSelectionContext(): void {
         d3.selectAll('circle.context').classed('context', false);
