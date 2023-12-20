@@ -27,7 +27,8 @@ import {
     inlineCreateControllerServiceSuccess,
     loadManagementControllerServices,
     loadManagementControllerServicesSuccess,
-    managementControllerServicesApiError
+    managementControllerServicesApiError,
+    resetManagementControllerServicesState
 } from './management-controller-services.actions';
 import { produce } from 'immer';
 
@@ -41,6 +42,9 @@ export const initialState: ManagementControllerServicesState = {
 
 export const managementControllerServicesReducer = createReducer(
     initialState,
+    on(resetManagementControllerServicesState, (state) => ({
+        ...initialState
+    })),
     on(loadManagementControllerServices, (state) => ({
         ...state,
         status: 'loading' as const

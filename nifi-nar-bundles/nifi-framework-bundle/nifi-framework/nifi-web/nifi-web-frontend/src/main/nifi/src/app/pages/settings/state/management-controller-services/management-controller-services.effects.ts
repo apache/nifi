@@ -43,6 +43,8 @@ import { NewPropertyDialog } from '../../../../ui/common/new-property-dialog/new
 import { Router } from '@angular/router';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { selectSaving } from './management-controller-services.selectors';
+import { EnableControllerService } from '../../../../ui/common/controller-service/enable-controller-service/enable-controller-service.component';
+import { DisableControllerService } from '../../../../ui/common/controller-service/disable-controller-service/disable-controller-service.component';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
@@ -56,7 +58,7 @@ export class ManagementControllerServicesEffects {
         private router: Router
     ) {}
 
-    loadControllerConfig$ = createEffect(() =>
+    loadManagementControllerServices$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ManagementControllerServicesActions.loadManagementControllerServices),
             switchMap(() =>
@@ -407,6 +409,68 @@ export class ManagementControllerServicesEffects {
                     } else {
                         this.dialog.closeAll();
                     }
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openEnableControllerServiceDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ManagementControllerServicesActions.openEnableControllerServiceDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const serviceId: string = request.id;
+
+                    const enableDialogReference = this.dialog.open(EnableControllerService, {
+                        data: request,
+                        id: serviceId,
+                        panelClass: 'large-dialog'
+                    });
+
+                    enableDialogReference.componentInstance.goToReferencingComponent = (
+                        component: ControllerServiceReferencingComponent
+                    ) => {
+                        const route: string[] = this.getRouteForReference(component);
+                        this.router.navigate(route);
+                    };
+
+                    enableDialogReference.afterClosed().subscribe((response) => {
+                        if (response != 'ROUTED') {
+                            this.store.dispatch(ManagementControllerServicesActions.loadManagementControllerServices());
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openDisableControllerServiceDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ManagementControllerServicesActions.openDisableControllerServiceDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const serviceId: string = request.id;
+
+                    const enableDialogReference = this.dialog.open(DisableControllerService, {
+                        data: request,
+                        id: serviceId,
+                        panelClass: 'large-dialog'
+                    });
+
+                    enableDialogReference.componentInstance.goToReferencingComponent = (
+                        component: ControllerServiceReferencingComponent
+                    ) => {
+                        const route: string[] = this.getRouteForReference(component);
+                        this.router.navigate(route);
+                    };
+
+                    enableDialogReference.afterClosed().subscribe((response) => {
+                        if (response != 'ROUTED') {
+                            this.store.dispatch(ManagementControllerServicesActions.loadManagementControllerServices());
+                        }
+                    });
                 })
             ),
         { dispatch: false }

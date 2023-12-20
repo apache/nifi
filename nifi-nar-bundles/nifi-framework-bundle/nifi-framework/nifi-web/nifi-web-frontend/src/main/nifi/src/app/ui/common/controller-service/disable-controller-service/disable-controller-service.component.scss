@@ -15,27 +15,18 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { GeneralState } from '../../state/general';
-import { Store } from '@ngrx/store';
-import { loadControllerConfig, resetGeneralState } from '../../state/general/general.actions';
-import { selectGeneral } from '../../state/general/general.selectors';
+@use '@angular/material' as mat;
 
-@Component({
-    selector: 'general',
-    templateUrl: './general.component.html',
-    styleUrls: ['./general.component.scss']
-})
-export class General implements OnInit, OnDestroy {
-    general$ = this.store.select(selectGeneral);
+.controller-service-disable-form {
+    @include mat.button-density(-1);
 
-    constructor(private store: Store<GeneralState>) {}
+    .mdc-dialog__content {
+        padding: 0 16px;
+        font-size: 14px;
 
-    ngOnInit(): void {
-        this.store.dispatch(loadControllerConfig());
-    }
-
-    ngOnDestroy(): void {
-        this.store.dispatch(resetGeneralState());
+        .tab-content {
+            height: 475px;
+            overflow-y: auto;
+        }
     }
 }

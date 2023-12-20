@@ -63,6 +63,16 @@ export interface UpdateControllerServiceRequest {
     postUpdateNavigation?: string[];
 }
 
+export interface SetEnableControllerServiceDialogRequest {
+    id: string;
+    controllerService: ControllerServiceEntity;
+}
+
+export interface DisableControllerServiceDialogRequest {
+    id: string;
+    controllerService: ControllerServiceEntity;
+}
+
 export interface ProvenanceEventSummary {
     id: string;
     eventId: number;

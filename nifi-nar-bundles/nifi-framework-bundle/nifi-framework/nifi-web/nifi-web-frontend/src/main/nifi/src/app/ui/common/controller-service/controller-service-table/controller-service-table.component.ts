@@ -79,6 +79,10 @@ export class ControllerServiceTable implements AfterViewInit {
         new EventEmitter<ControllerServiceEntity>();
     @Output() configureControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
+    @Output() enableControllerService: EventEmitter<ControllerServiceEntity> =
+        new EventEmitter<ControllerServiceEntity>();
+    @Output() disableControllerService: EventEmitter<ControllerServiceEntity> =
+        new EventEmitter<ControllerServiceEntity>();
 
     protected readonly TextTip = TextTip;
     protected readonly BulletinsTip = BulletinsTip;
@@ -213,11 +217,21 @@ export class ControllerServiceTable implements AfterViewInit {
     }
 
     canEnable(entity: ControllerServiceEntity): boolean {
-        return this.canOperate(entity) && this.isDisabled(entity) && entity.status.validationStatus === 'VALID';
+        const userAuthorized: boolean = this.canRead(entity) && this.canOperate(entity);
+        return userAuthorized && this.isDisabled(entity) && entity.status.validationStatus === 'VALID';
+    }
+
+    enabledClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
+        this.enableControllerService.next(entity);
     }
 
     canDisable(entity: ControllerServiceEntity): boolean {
-        return this.canOperate(entity) && this.isEnabledOrEnabling(entity);
+        const userAuthorized: boolean = this.canRead(entity) && this.canOperate(entity);
+        return userAuthorized && this.isEnabledOrEnabling(entity);
+    }
+
+    disableClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
+        this.disableControllerService.next(entity);
     }
 
     canChangeVersion(entity: ControllerServiceEntity): boolean {

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { filter, switchMap, take, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -31,8 +31,11 @@ import {
     loadControllerServices,
     navigateToEditService,
     openConfigureControllerServiceDialog,
+    openDisableControllerServiceDialog,
+    openEnableControllerServiceDialog,
     openNewControllerServiceDialog,
     promptControllerServiceDeletion,
+    resetControllerServicesState,
     selectControllerService
 } from '../../state/controller-services/controller-services.actions';
 import { initialState } from '../../state/controller-services/controller-services.reducer';
@@ -44,7 +47,7 @@ import { BreadcrumbEntity } from '../../state/shared';
     templateUrl: './controller-services.component.html',
     styleUrls: ['./controller-services.component.scss']
 })
-export class ControllerServices {
+export class ControllerServices implements OnDestroy {
     serviceState$ = this.store.select(selectControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
 
@@ -154,6 +157,28 @@ export class ControllerServices {
         );
     }
 
+    enableControllerService(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            openEnableControllerServiceDialog({
+                request: {
+                    id: entity.id,
+                    controllerService: entity
+                }
+            })
+        );
+    }
+
+    disableControllerService(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            openDisableControllerServiceDialog({
+                request: {
+                    id: entity.id,
+                    controllerService: entity
+                }
+            })
+        );
+    }
+
     deleteControllerService(entity: ControllerServiceEntity): void {
         this.store.dispatch(
             promptControllerServiceDeletion({
@@ -176,5 +201,9 @@ export class ControllerServices {
                 }
             })
         );
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(resetControllerServicesState());
     }
 }

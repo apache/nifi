@@ -26,7 +26,8 @@ import {
     deleteControllerServiceSuccess,
     inlineCreateControllerServiceSuccess,
     loadControllerServices,
-    loadControllerServicesSuccess
+    loadControllerServicesSuccess,
+    resetControllerServicesState
 } from './controller-services.actions';
 import { produce } from 'immer';
 import { ControllerServicesState } from './index';
@@ -54,6 +55,9 @@ export const initialState: ControllerServicesState = {
 
 export const controllerServicesReducer = createReducer(
     initialState,
+    on(resetControllerServicesState, (state) => ({
+        ...initialState
+    })),
     on(loadControllerServices, (state) => ({
         ...state,
         status: 'loading' as const

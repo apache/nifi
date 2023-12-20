@@ -61,7 +61,7 @@ import {
     Loading Flow
  */
 
-export const resetState = createAction('[Canvas] Reset State');
+export const resetFlowState = createAction('[Canvas] Reset Flow State');
 
 export const reloadFlow = createAction('[Canvas] Reload Flow');
 

@@ -29,6 +29,8 @@ import {
     StopReportingTaskSuccess
 } from './index';
 
+export const resetReportingTasksState = createAction('[Reporting Tasks] Reset Reporting Tasks State');
+
 export const loadReportingTasks = createAction('[Reporting Tasks] Load Reporting Tasks');
 
 export const loadReportingTasksSuccess = createAction(
