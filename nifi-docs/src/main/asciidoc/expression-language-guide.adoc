@@ -1085,13 +1085,13 @@ Expressions will provide the following results:
 
 
 
-.PadLeft Examples
+.PadRight Examples
 |=======================================================================================
 | Expression | Value
 | `${greetings:padRight(10)}` | `hello\_____`
 | `${greetings:padRight(10, '@')}` | `hello@@@@@`
 | `${greetings:padRight(10, 'xy')}` | `helloxyxyx`
-| `${greetings:padLeft(10, 'aVeryLongPaddingString')}` | `helloaVery`
+| `${greetings:padRight(10, 'aVeryLongPaddingString')}` | `helloaVery`
 |=======================================================================================
 
 
