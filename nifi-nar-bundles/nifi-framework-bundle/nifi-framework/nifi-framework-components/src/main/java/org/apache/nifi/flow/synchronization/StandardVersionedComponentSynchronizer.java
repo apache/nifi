@@ -1202,9 +1202,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             destination.addControllerService(newService);
         }
 
-        updateControllerService(newService, proposed, topLevelGroup);
         final Map<String, String> decryptedProperties = getDecryptedProperties(proposed.getProperties());
         createdExtensions.add(new CreatedExtension(newService, decryptedProperties));
+
+        updateControllerService(newService, proposed, topLevelGroup);
 
         return newService;
     }
@@ -1410,7 +1411,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 final boolean sensitive = (descriptor != null && descriptor.isSensitive())
                     || (versionedDescriptor != null && versionedDescriptor.isSensitive());
 
-                String value;
+                final String value;
                 if (descriptor != null && referencesService && (proposedProperties.get(propertyName) != null)) {
                     // Need to determine if the component's property descriptor for this service is already set to an id
                     // of an existing service that is outside the current processor group, and if it is we want to leave
@@ -1433,6 +1434,14 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                         final String serviceVersionedComponentId = proposedProperties.get(propertyName);
                         String instanceId = getServiceInstanceId(serviceVersionedComponentId, group);
                         value = (instanceId == null) ? serviceVersionedComponentId : instanceId;
+
+                        // Find the same property descriptor in the component's CreatedExtension and replace it with the
+                        // instance ID of the service
+                        createdExtensions.stream().filter(ce -> ce.extension.equals(componentNode)).forEach(createdExtension -> {
+                            LOG.debug("Replacing CreatedExtension property {} old value {} with new value {}",
+                                    propertyName, createdExtension.propertyValues.get(propertyName) , value);
+                            createdExtension.propertyValues.replace(propertyName, value);
+                        });
                     } else {
                         value = existingExternalServiceId;
                     }
@@ -1460,8 +1469,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     // so we want to continue on and update the value to null.
                 }
 
-                value = decrypt(value, syncOptions.getPropertyDecryptor());
-                fullPropertyMap.put(propertyName, value);
+                fullPropertyMap.put(propertyName, decrypt(value, syncOptions.getPropertyDecryptor()));
             }
         }
 
@@ -2266,13 +2274,14 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 if (port == null) {
                     final ComponentType proposedType = proposed.getComponentType();
 
+                    final Port newPort;
                     if (proposedType == ComponentType.INPUT_PORT) {
-                        addInputPort(group, proposed, synchronizationOptions.getComponentIdGenerator(), proposed.getName());
+                        newPort = addInputPort(group, proposed, synchronizationOptions.getComponentIdGenerator(), proposed.getName());
                     } else {
-                        addOutputPort(group, proposed, synchronizationOptions.getComponentIdGenerator(), proposed.getName());
+                        newPort = addOutputPort(group, proposed, synchronizationOptions.getComponentIdGenerator(), proposed.getName());
                     }
 
-                    LOG.info("Successfully synchronized {} by adding it to the flow", port);
+                    LOG.info("Successfully synchronized {} by adding it to the flow", newPort);
                 } else if (proposed == null) {
                     final Set<Connectable> stoppedDownstream = stopDownstreamComponents(port, timeout, synchronizationOptions);
                     toRestart.addAll(stoppedDownstream);
@@ -2400,10 +2409,11 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         procNode.setVersionedComponentId(proposed.getIdentifier());
 
         destination.addProcessor(procNode);
-        updateProcessor(procNode, proposed, topLevelGroup);
 
         final Map<String, String> decryptedProperties = getDecryptedProperties(proposed.getProperties());
         createdExtensions.add(new CreatedExtension(procNode, decryptedProperties));
+
+        updateProcessor(procNode, proposed, topLevelGroup);
 
         // Notify the processor node that the configuration (properties, e.g.) has been restored
         final ProcessContext processContext = context.getProcessContextFactory().apply(procNode);
