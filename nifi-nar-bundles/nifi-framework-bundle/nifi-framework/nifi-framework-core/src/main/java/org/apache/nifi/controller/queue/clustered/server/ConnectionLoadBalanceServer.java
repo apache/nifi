@@ -17,6 +17,17 @@
 
 package org.apache.nifi.controller.queue.clustered.server;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.io.socket.SocketUtils;
+import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.security.util.TlsPlatform;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLServerSocket;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -30,19 +41,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicLong;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLServerSocket;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.io.socket.SocketUtils;
-import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.security.util.TlsPlatform;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ConnectionLoadBalanceServer {
     private static final Logger logger = LoggerFactory.getLogger(ConnectionLoadBalanceServer.class);
