@@ -107,7 +107,6 @@ export class ProvenanceEventTable implements AfterViewInit {
                     // ensure this event has an event time
                     if (minMillis < 0 || minMillis > node.millis) {
                         minMillis = node.millis;
-                        // minTimestamp = node.timestamp;
                     }
                     if (maxMillis < 0 || maxMillis < node.millis) {
                         maxMillis = node.millis;
@@ -179,6 +178,7 @@ export class ProvenanceEventTable implements AfterViewInit {
     filterColumnOptions: string[] = ['component name', 'component type', 'type'];
     totalCount: number = 0;
     filteredCount: number = 0;
+    filterApplied: boolean = false;
 
     showLineage: boolean = false;
     provenanceLineage$!: Observable<Lineage | null>;
@@ -205,6 +205,7 @@ export class ProvenanceEventTable implements AfterViewInit {
             ?.valueChanges.pipe(debounceTime(500))
             .subscribe((filterTerm: string) => {
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
+                this.filterApplied = filterTerm.length > 0;
                 this.applyFilter(filterTerm, filterColumn);
             });
 

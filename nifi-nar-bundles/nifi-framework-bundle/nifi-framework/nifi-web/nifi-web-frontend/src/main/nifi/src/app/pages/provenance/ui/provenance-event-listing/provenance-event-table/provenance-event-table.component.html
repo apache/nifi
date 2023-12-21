@@ -18,7 +18,9 @@
 <div class="provenance-event-table h-full">
     <div [class.hidden]="showLineage" class="h-full flex flex-col gap-y-2">
         <div class="flex flex-col">
-            <div class="value font-bold">Displaying {{ filteredCount }} of {{ totalCount }}</div>
+            <div [class.invisible]="!filterApplied" class="value font-bold">
+                Displaying {{ filteredCount }} of {{ totalCount }}
+            </div>
             <div class="flex justify-between">
                 <div>
                     Oldest event available: <span class="value">{{ oldestEventAvailable }}</span>

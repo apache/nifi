@@ -46,11 +46,13 @@ export class LineageComponent implements OnInit {
             this.addLineage(lineage.results.nodes, lineage.results.links);
         }
     }
+
     @Input() eventId: string | null = null;
+
     @Input() set eventTimestampThreshold(eventTimestampThreshold: number) {
         if (this.previousEventTimestampThreshold >= 0) {
-            let nodes: any = this.lineageContainerElement.selectAll('g.node');
-            let links: any = this.lineageContainerElement.selectAll('path.link');
+            let nodes: any = this.lineageContainerElement.selectAll('g.node.rendered');
+            let links: any = this.lineageContainerElement.selectAll('path.link.rendered');
 
             if (this.previousEventTimestampThreshold > eventTimestampThreshold) {
                 // the threshold is descending
@@ -85,11 +87,24 @@ export class LineageComponent implements OnInit {
 
         this.previousEventTimestampThreshold = eventTimestampThreshold;
     }
+
     @Input() set reset(reset: EventEmitter<void>) {
         reset.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
             this.nodeLookup.clear();
             this.linkLookup.clear();
-            this.refresh();
+
+            let nodes: any = this.lineageContainerElement.selectAll('g.node');
+            let links: any = this.lineageContainerElement.selectAll('path.link');
+
+            nodes = nodes.data(this.nodeLookup.values(), function (d: any) {
+                return d.id;
+            });
+            links = links.data(this.linkLookup.values(), function (d: any) {
+                return d.id;
+            });
+
+            nodes.exit().remove();
+            links.exit().remove();
         });
     }
 
@@ -103,59 +118,59 @@ export class LineageComponent implements OnInit {
         id: 'root',
         menuItems: [
             {
-                condition: function (selection: any) {
+                condition: (selection: any) => {
                     return selection.empty();
                 },
                 clazz: 'fa fa-long-arrow-left',
                 text: 'Back to events',
-                action: function (selection: any, self: LineageComponent) {
-                    self.closeLineage.next();
+                action: (selection: any) => {
+                    this.closeLineage.next();
                 }
             },
             {
-                condition: function (selection: any) {
+                condition: (selection: any) => {
                     return !selection.empty();
                 },
                 clazz: 'fa fa-info-circle',
                 text: 'View details',
-                action: function (selection: any, self: LineageComponent) {
+                action: (selection: any) => {
                     const selectionData: any = selection.datum();
 
                     // TODO cluster node id
-                    self.openEventDialog.next({
+                    this.openEventDialog.next({
                         id: selectionData.id
                     });
                 }
             },
             {
-                condition: function (selection: any) {
+                condition: (selection: any) => {
                     return !selection.empty();
                 },
                 clazz: 'fa fa-long-arrow-right',
                 text: 'Go to component',
-                action: function (selection: any, self: LineageComponent) {
+                action: (selection: any) => {
                     const selectionData: any = selection.datum();
-                    self.goToProvenanceEventSource.next({
+                    this.goToProvenanceEventSource.next({
                         eventId: selectionData.id
                     });
                 }
             },
             {
-                condition: function (selection: any, self: LineageComponent) {
+                condition: (selection: any) => {
                     if (selection.empty()) {
                         return false;
                     }
 
                     const selectionData: any = selection.datum();
-                    return self.supportsExpandCollapse(selectionData);
+                    return this.supportsExpandCollapse(selectionData);
                 },
                 clazz: 'fa fa-binoculars',
                 text: 'Find parents',
-                action: function (selection: any, self: LineageComponent) {
+                action: (selection: any) => {
                     const selectionData: any = selection.datum();
 
                     // TODO - cluster node id
-                    self.submitLineageQuery.next({
+                    this.submitLineageQuery.next({
                         lineageRequestType: 'PARENTS',
                         eventId: selectionData.id
                         // clusterNodeId: clusterNodeId
@@ -163,21 +178,21 @@ export class LineageComponent implements OnInit {
                 }
             },
             {
-                condition: function (selection: any, self: LineageComponent) {
+                condition: (selection: any) => {
                     if (selection.empty()) {
                         return false;
                     }
 
                     const selectionData: any = selection.datum();
-                    return self.supportsExpandCollapse(selectionData);
+                    return this.supportsExpandCollapse(selectionData);
                 },
                 clazz: 'fa fa-plus-square',
                 text: 'Expand',
-                action: function (selection: any, self: LineageComponent) {
+                action: (selection: any) => {
                     const selectionData: any = selection.datum();
 
                     // TODO - cluster node id
-                    self.submitLineageQuery.next({
+                    this.submitLineageQuery.next({
                         lineageRequestType: 'CHILDREN',
                         eventId: selectionData.id
                         // clusterNodeId: clusterNodeId
@@ -185,19 +200,19 @@ export class LineageComponent implements OnInit {
                 }
             },
             {
-                condition: function (selection: any, self: LineageComponent) {
+                condition: (selection: any) => {
                     if (selection.empty()) {
                         return false;
                     }
 
                     const selectionData: any = selection.datum();
-                    return self.supportsExpandCollapse(selectionData);
+                    return this.supportsExpandCollapse(selectionData);
                 },
                 clazz: 'fa fa-minus-square',
                 text: 'Collapse',
-                action: function (selection: any, self: LineageComponent) {
+                action: (selection: any) => {
                     const selectionData: any = selection.datum();
-                    self.collapseLineage(selectionData);
+                    this.collapseLineage(selectionData);
                 }
             }
         ]
@@ -226,7 +241,7 @@ export class LineageComponent implements OnInit {
                 // include if the condition matches
                 if (menuItem.condition) {
                     const selection: any = d3.select('circle.context');
-                    return menuItem.condition(selection, self);
+                    return menuItem.condition(selection);
                 }
 
                 // include if there is no condition (non conditional item, separator, sub menu, etc)
@@ -235,7 +250,7 @@ export class LineageComponent implements OnInit {
             menuItemClicked(menuItem: ContextMenuItemDefinition, event: MouseEvent) {
                 if (menuItem.action) {
                     const selection: any = d3.select('circle.context');
-                    return menuItem.action(selection, self);
+                    return menuItem.action(selection);
                 }
             }
         };
@@ -861,32 +876,15 @@ export class LineageComponent implements OnInit {
     private update(): void {
         const { width } = this.lineageElement.getBoundingClientRect();
 
-        let nodes: any = this.lineageContainerElement.selectAll('g.node');
-        let links: any = this.lineageContainerElement.selectAll('path.link');
-
-        // update the node data
-        nodes = nodes.data(Array.from(this.nodeLookup.values()), function (d: any) {
-            return d.id;
-        });
-
-        // exit
-        nodes
-            .exit()
-            .transition()
-            .delay(200)
-            .duration(400)
-            .attr('transform', function (d: any) {
-                if (d.incoming.length === 0) {
-                    return `translate(${width / 2},50)`;
-                } else {
-                    return `translate(${d.incoming[0].source.x},${d.incoming[0].source.y})`;
-                }
-            })
-            .style('opacity', 0)
-            .remove();
+        // select the nodes
+        const nodeSelection: any = this.lineageContainerElement
+            .selectAll('g.node')
+            .data(this.nodeLookup.values(), function (d: any) {
+                return d.id;
+            });
 
         // enter
-        const nodesEntered: any = nodes
+        const nodesEntered: any = nodeSelection
             .enter()
             .append('g')
             .attr('id', function (d: any) {
@@ -915,36 +913,45 @@ export class LineageComponent implements OnInit {
         );
 
         // merge
-        nodes = nodes.merge(nodesEntered);
+        const nodesUpdated = nodeSelection.merge(nodesEntered);
 
         // update the nodes
-        nodes
+        nodesUpdated
             .transition()
             .duration(400)
             .attr('transform', function (d: any) {
                 return `translate(${d.x}, ${d.y})`;
             })
-            .style('opacity', 1);
-
-        // update the link data
-        links = links.data(Array.from(this.linkLookup.values()), function (d: any) {
-            return d.id;
-        });
+            .style('opacity', 1)
+            .on('end', function (this: any) {
+                d3.select(this).classed('rendered', true);
+            });
 
         // exit
-        links
+        nodeSelection
             .exit()
-            .attr('marker-end', '')
             .transition()
+            .delay(200)
             .duration(400)
-            .attr('d', function (d: any) {
-                return `M${d.source.x},${d.source.y}L${d.source.x},${d.source.y}`;
+            .attr('transform', function (d: any) {
+                if (d.incoming.length === 0) {
+                    return `translate(${width / 2},50)`;
+                } else {
+                    return `translate(${d.incoming[0].source.x},${d.incoming[0].source.y})`;
+                }
             })
             .style('opacity', 0)
             .remove();
 
+        // select the links
+        let linkSelection: any = this.lineageContainerElement
+            .selectAll('path.link')
+            .data(this.linkLookup.values(), function (d: any) {
+                return d.id;
+            });
+
         // add new links
-        const linksEntered = links
+        const linksEntered = linkSelection
             .enter()
             .insert('path', '.node')
             .attr('class', 'link')
@@ -957,10 +964,10 @@ export class LineageComponent implements OnInit {
             .style('opacity', 0);
 
         // merge
-        links = links.merge(linksEntered).attr('marker-end', '');
+        const linksUpdated = linkSelection.merge(linksEntered).attr('marker-end', '');
 
         // update the links
-        links
+        linksUpdated
             .transition()
             .delay(200)
             .duration(400)
@@ -970,6 +977,21 @@ export class LineageComponent implements OnInit {
             .attr('d', function (d: any) {
                 return `M${d.source.x},${d.source.y}L${d.target.x},${d.target.y}`;
             })
-            .style('opacity', 1);
+            .style('opacity', 1)
+            .on('end', function (this: any) {
+                d3.select(this).classed('rendered', true);
+            });
+
+        // exit
+        linkSelection
+            .exit()
+            .attr('marker-end', '')
+            .transition()
+            .duration(400)
+            .attr('d', function (d: any) {
+                return `M${d.source.x},${d.source.y}L${d.source.x},${d.source.y}`;
+            })
+            .style('opacity', 0)
+            .remove();
     }
 }

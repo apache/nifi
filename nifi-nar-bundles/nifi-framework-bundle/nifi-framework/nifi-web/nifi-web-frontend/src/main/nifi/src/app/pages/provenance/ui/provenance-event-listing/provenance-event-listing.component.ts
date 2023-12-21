@@ -208,5 +208,6 @@ export class ProvenanceEventListing implements OnDestroy {
     ngOnDestroy(): void {
         this.stateReset = true;
         this.store.dispatch(resetProvenanceState());
+        this.store.dispatch(resetLineage());
     }
 }

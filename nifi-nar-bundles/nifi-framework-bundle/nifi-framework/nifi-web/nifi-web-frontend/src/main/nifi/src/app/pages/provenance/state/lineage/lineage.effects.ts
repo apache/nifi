@@ -50,7 +50,7 @@ export class LineageEffects {
         private dialog: MatDialog
     ) {}
 
-    submitProvenanceQuery$ = createEffect(() =>
+    submitLineageQuery$ = createEffect(() =>
         this.actions$.pipe(
             ofType(LineageActions.submitLineageQuery),
             map((action) => action.request),
@@ -82,7 +82,7 @@ export class LineageEffects {
         )
     );
 
-    submitProvenanceQuerySuccess$ = createEffect(() =>
+    submitLineageQuerySuccess$ = createEffect(() =>
         this.actions$.pipe(
             ofType(LineageActions.submitLineageQuerySuccess),
             map((action) => action.response),
@@ -98,7 +98,7 @@ export class LineageEffects {
         )
     );
 
-    startPollingProvenanceQuery$ = createEffect(() =>
+    startPollingLineageQuery$ = createEffect(() =>
         this.actions$.pipe(
             ofType(LineageActions.startPollingLineageQuery),
             switchMap(() =>
@@ -110,7 +110,7 @@ export class LineageEffects {
         )
     );
 
-    pollProvenanceQuery$ = createEffect(() =>
+    pollLineageQuery$ = createEffect(() =>
         this.actions$.pipe(
             ofType(LineageActions.pollLineageQuery),
             withLatestFrom(this.store.select(selectLineageId), this.store.select(selectClusterNodeId)),
@@ -139,7 +139,7 @@ export class LineageEffects {
         )
     );
 
-    pollProvenanceQuerySuccess$ = createEffect(() =>
+    pollLineageQuerySuccess$ = createEffect(() =>
         this.actions$.pipe(
             ofType(LineageActions.pollLineageQuerySuccess),
             map((action) => action.response),
@@ -155,14 +155,14 @@ export class LineageEffects {
         )
     );
 
-    stopPollingProvenanceQuery$ = createEffect(() =>
+    stopPollingLineageQuery$ = createEffect(() =>
         this.actions$.pipe(
             ofType(LineageActions.stopPollingLineageQuery),
             switchMap((response) => of(LineageActions.deleteLineageQuery()))
         )
     );
 
-    deleteProvenanceQuery$ = createEffect(
+    deleteLineageQuery$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(LineageActions.deleteLineageQuery),
