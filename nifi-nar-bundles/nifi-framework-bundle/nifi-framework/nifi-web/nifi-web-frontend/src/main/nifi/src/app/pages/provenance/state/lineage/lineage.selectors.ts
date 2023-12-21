@@ -15,28 +15,17 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-import { Provenance } from './provenance.component';
+import { createSelector } from '@ngrx/store';
+import { ProvenanceState, selectProvenanceState } from '../index';
+import { Lineage, lineageFeatureKey, LineageState } from './index';
 
-const routes: Routes = [
-    {
-        path: '',
-        component: Provenance,
-        children: [
-            {
-                path: '',
-                loadChildren: () =>
-                    import('../ui/provenance-event-listing/provenance-event-listing.module').then(
-                        (m) => m.ProvenanceEventListingModule
-                    )
-            }
-        ]
-    }
-];
+export const selectLineageState = createSelector(
+    selectProvenanceState,
+    (state: ProvenanceState) => state[lineageFeatureKey]
+);
 
-@NgModule({
-    imports: [RouterModule.forChild(routes)],
-    exports: [RouterModule]
-})
-export class ProvenanceRoutingModule {}
+export const selectStatus = createSelector(selectLineageState, (state: LineageState) => state.status);
+
+export const selectLineage = createSelector(selectLineageState, (state: LineageState) => state.lineage);
+
+export const selectLineageId = createSelector(selectLineage, (state: Lineage | null) => state?.id);

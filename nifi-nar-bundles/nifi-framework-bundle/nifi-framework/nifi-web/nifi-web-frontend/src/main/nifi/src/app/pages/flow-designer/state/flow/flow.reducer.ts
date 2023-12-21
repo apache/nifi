@@ -37,6 +37,7 @@ import {
     loadProcessorSuccess,
     loadRemoteProcessGroupSuccess,
     navigateWithoutTransform,
+    resetState,
     setDragging,
     setNavigationCollapsed,
     setOperationCollapsed,
@@ -138,6 +139,9 @@ export const initialState: FlowState = {
 
 export const flowReducer = createReducer(
     initialState,
+    on(resetState, (state) => ({
+        ...initialState
+    })),
     on(loadProcessGroup, (state, { request }) => ({
         ...state,
         transitionRequired: request.transitionRequired,

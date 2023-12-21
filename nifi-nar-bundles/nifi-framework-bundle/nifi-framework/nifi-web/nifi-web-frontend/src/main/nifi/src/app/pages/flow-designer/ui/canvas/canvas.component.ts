@@ -25,6 +25,7 @@ import {
     editComponent,
     editCurrentProcessGroup,
     loadProcessGroup,
+    resetState,
     selectComponents,
     setSkipTransform,
     startProcessGroupPolling,
@@ -58,6 +59,8 @@ import { filter, map, switchMap, take, withLatestFrom } from 'rxjs';
 import { restoreViewport, zoomFit } from '../../state/transform/transform.actions';
 import { ComponentType } from '../../../../state/shared';
 import { initialState } from '../../state/flow/flow.reducer';
+import { ContextMenuDefinitionProvider } from '../../../../ui/common/context-menu/context-menu.component';
+import { CanvasContextMenu } from '../../service/canvas-context-menu.service';
 
 @Component({
     selector: 'fd-canvas',
@@ -74,7 +77,8 @@ export class Canvas implements OnInit, OnDestroy {
     constructor(
         private viewContainerRef: ViewContainerRef,
         private store: Store<CanvasState>,
-        private canvasView: CanvasView
+        private canvasView: CanvasView,
+        public canvasContextMenu: CanvasContextMenu
     ) {
         this.store
             .select(selectTransform)
@@ -558,6 +562,7 @@ export class Canvas implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.store.dispatch(resetState());
         this.store.dispatch(stopProcessGroupPolling());
     }
 }

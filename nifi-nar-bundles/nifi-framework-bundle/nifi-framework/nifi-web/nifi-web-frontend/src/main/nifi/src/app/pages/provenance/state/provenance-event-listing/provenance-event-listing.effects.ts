@@ -287,6 +287,7 @@ export class ProvenanceEventListingEffects {
         () =>
             this.actions$.pipe(
                 ofType(ProvenanceEventListingActions.openProvenanceEventDialog),
+                map((action) => action.request),
                 withLatestFrom(this.store.select(selectAbout)),
                 tap(([request, about]) => {
                     this.provenanceService.getProvenanceEvent(request.id).subscribe({
@@ -342,6 +343,25 @@ export class ProvenanceEventListingEffects {
         { dispatch: false }
     );
 
+    goToProvenanceEventSource$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ProvenanceEventListingActions.goToProvenanceEventSource),
+                map((action) => action.request),
+                tap((request) => {
+                    if (request.eventId) {
+                        this.provenanceService.getProvenanceEvent(request.eventId).subscribe((response) => {
+                            const event: any = response.provenanceEvent;
+                            this.router.navigate(this.getEventComponentLink(event.groupId, event.componentId));
+                        });
+                    } else if (request.groupId && request.componentId) {
+                        this.router.navigate(this.getEventComponentLink(request.groupId, request.componentId));
+                    }
+                })
+            ),
+        { dispatch: false }
+    );
+
     showOkDialog$ = createEffect(
         () =>
             this.actions$.pipe(
@@ -358,4 +378,20 @@ export class ProvenanceEventListingEffects {
             ),
         { dispatch: false }
     );
+
+    private getEventComponentLink(groupId: string, componentId: string): string[] {
+        let link: string[];
+
+        if (groupId == componentId) {
+            link = ['/process-groups', componentId];
+        } else if (componentId === 'Connection' || componentId === 'Load Balanced Connection') {
+            link = ['/process-groups', groupId, 'Connection', componentId];
+        } else if (componentId === 'Output Port') {
+            link = ['/process-groups', groupId, 'OutputPort', componentId];
+        } else {
+            link = ['/process-groups', groupId, 'Processor', componentId];
+        }
+
+        return link;
+    }
 }

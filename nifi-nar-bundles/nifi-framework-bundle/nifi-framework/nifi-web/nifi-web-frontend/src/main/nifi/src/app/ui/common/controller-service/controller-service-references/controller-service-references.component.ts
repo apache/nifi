@@ -18,7 +18,6 @@
 import { Component, Input } from '@angular/core';
 import {
     BulletinsTipInput,
-    ComponentType,
     ControllerServiceReferencingComponent,
     ControllerServiceReferencingComponentEntity,
     ValidationErrorsTipInput

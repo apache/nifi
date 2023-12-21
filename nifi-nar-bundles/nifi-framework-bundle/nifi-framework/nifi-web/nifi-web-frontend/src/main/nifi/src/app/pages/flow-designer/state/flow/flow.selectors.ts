@@ -113,7 +113,7 @@ export const selectSingleEditedComponent = createSelector(selectCurrentRoute, (r
 
 export const selectEditedCurrentProcessGroup = createSelector(selectCurrentRoute, (route) => {
     if (route?.routeConfig?.path == 'edit') {
-        if (route.params.ids == null && route.params.type == null) {
+        if (route.params.ids == null && route.params.id == null && route.params.type == null) {
             return route.params.processGroupId;
         }
     }

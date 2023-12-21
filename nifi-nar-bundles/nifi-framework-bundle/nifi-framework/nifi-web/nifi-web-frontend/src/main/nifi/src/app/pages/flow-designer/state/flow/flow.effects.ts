@@ -67,7 +67,6 @@ import { CreatePort } from '../../ui/canvas/items/port/create-port/create-port.c
 import { EditPort } from '../../ui/canvas/items/port/edit-port/edit-port.component';
 import {
     ComponentType,
-    ControllerServiceReferencingComponent,
     EditParameterRequest,
     EditParameterResponse,
     InlineServiceCreationRequest,
@@ -1135,13 +1134,14 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.openEditProcessGroupDialog),
                 map((action) => action.request),
-                switchMap((action) =>
+                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                switchMap(([request, currentProcessGroupId]) =>
                     this.flowService.getParameterContexts().pipe(
                         take(1),
-                        map((response) => [action, response.parameterContexts])
+                        map((response) => [request, response.parameterContexts, currentProcessGroupId])
                     )
                 ),
-                tap(([request, parameterContexts]) => {
+                tap(([request, parameterContexts, currentProcessGroupId]) => {
                     const editDialogReference = this.dialog.open(EditProcessGroup, {
                         data: request,
                         panelClass: 'large-dialog'
@@ -1167,18 +1167,28 @@ export class FlowEffects {
 
                     editDialogReference.afterClosed().subscribe(() => {
                         this.store.dispatch(FlowActions.clearFlowApiError());
-                        this.store.dispatch(
-                            FlowActions.selectComponents({
-                                request: {
-                                    components: [
-                                        {
-                                            id: request.entity.id,
-                                            componentType: request.type
-                                        }
-                                    ]
-                                }
-                            })
-                        );
+                        if (request.entity.id === currentProcessGroupId) {
+                            this.store.dispatch(
+                                FlowActions.enterProcessGroup({
+                                    request: {
+                                        id: currentProcessGroupId
+                                    }
+                                })
+                            );
+                        } else {
+                            this.store.dispatch(
+                                FlowActions.selectComponents({
+                                    request: {
+                                        components: [
+                                            {
+                                                id: request.entity.id,
+                                                componentType: request.type
+                                            }
+                                        ]
+                                    }
+                                })
+                            );
+                        }
                     });
                 })
             ),
