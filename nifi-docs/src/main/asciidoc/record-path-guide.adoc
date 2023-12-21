@@ -1122,6 +1122,35 @@ Would yield a value of `2`. We could also use this as a filter, such as:
 Which will return the `id` element with a value of `1234`.
 
 
+=== map
+
+Creates a map of Strings with the given parameters. For example, if we have the following record:
+
+----
+{
+    "firstName": "John",
+    "lastName": "Snow"
+}
+----
+
+We could use the `UpdateRecord` processor with
+
+----
+/fullName => map("firstName", /firstName, "lastName", /lastName)
+----
+
+And that would give us something like:
+
+----
+{
+    "firstName": "John",
+    "lastName": "Snow",
+    "fullName": {"firstName": "John", "lastName": "Snow"}
+}
+----
+
+This function requires an even number of arguments and the record paths must represent simple field values.
+
 [[filter_functions]]
 == Filter Functions
 
