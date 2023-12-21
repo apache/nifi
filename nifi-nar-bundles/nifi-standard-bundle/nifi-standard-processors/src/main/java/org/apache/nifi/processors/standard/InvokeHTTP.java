@@ -225,7 +225,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor SOCKET_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Connection Timeout")
+            .name("Socket Connection Timeout")
             .description("Maximum time to wait for initial socket connection to the HTTP URL.")
             .required(true)
             .defaultValue("5 secs")
