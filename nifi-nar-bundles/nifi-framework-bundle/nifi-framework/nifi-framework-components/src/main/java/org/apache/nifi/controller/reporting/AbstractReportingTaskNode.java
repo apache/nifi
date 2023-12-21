@@ -452,7 +452,7 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
             final List<ControllerServiceCreationDetails> servicesCreated = propertyConfig.getCreatedServices();
             servicesCreated.forEach(serviceFactory::create);
 
-            overwriteProperties(propertyConfig.getProperties());
+            overwriteProperties(propertyConfig.getRawProperties());
         }
     }
 

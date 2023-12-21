@@ -597,7 +597,6 @@ public class InvokeHTTP extends AbstractProcessor {
 
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
-        config.renameProperty("Connection Timeout", SOCKET_CONNECT_TIMEOUT.getName());
         config.renameProperty("Read Timeout", SOCKET_READ_TIMEOUT.getName());
         config.renameProperty("Remote URL", HTTP_URL.getName());
         config.renameProperty("disable-http2", HTTP2_DISABLED.getName());
