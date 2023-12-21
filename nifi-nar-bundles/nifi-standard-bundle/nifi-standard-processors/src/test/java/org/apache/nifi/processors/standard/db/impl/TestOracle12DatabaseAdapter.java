@@ -152,7 +152,6 @@ public class TestOracle12DatabaseAdapter {
         // THEN
         testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, expected);
     }
-
     @Test
     public void testGetCreateTableStatement() {
         assertTrue(db.supportsCreateTableIfNotExists());
@@ -170,6 +169,7 @@ public class TestOracle12DatabaseAdapter {
         String actualStatement = db.getCreateTableStatement(tableSchema, true, true);
         assertEquals(expectedStatement, actualStatement);
     }
+
 
     private void testGetUpsertStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, IllegalArgumentException expected) {
         final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {

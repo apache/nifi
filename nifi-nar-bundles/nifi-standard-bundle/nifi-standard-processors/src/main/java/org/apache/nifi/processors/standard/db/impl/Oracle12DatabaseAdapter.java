@@ -190,13 +190,7 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
         List<String> conflictClause = new ArrayList<>();
 
         for (String columnName : columnsNames) {
-
-            StringBuilder statementStringBuilder = new StringBuilder();
-
-            statementStringBuilder.append(getColumnAssignment(table, columnName, newTableAlias));
-
-            conflictClause.add(statementStringBuilder.toString());
-
+            conflictClause.add(getColumnAssignment(table, columnName, newTableAlias));
         }
 
         return conflictClause;
@@ -269,26 +263,27 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
      */
     @Override
     public String getCreateTableStatement(TableSchema tableSchema, boolean quoteTableName, boolean quoteColumnNames) {
-        StringBuilder createTableStatement = new StringBuilder();
+        StringBuilder createTableStatement = new StringBuilder()
+                .append("DECLARE\n\tsql_stmt long;\nBEGIN\n\tsql_stmt:='CREATE TABLE ")
+                .append(generateTableName(quoteTableName, tableSchema.getCatalogName(), tableSchema.getSchemaName(), tableSchema.getTableName(), tableSchema))
+                .append(" (");
 
         List<ColumnDescription> columns = tableSchema.getColumnsAsList();
-        List<String> columnsAndDatatypes = new ArrayList<>(columns.size());
         Set<String> primaryKeyColumnNames = tableSchema.getPrimaryKeyColumnNames();
-        for (ColumnDescription column : columns) {
-            String sb = (quoteColumnNames ? getColumnQuoteString() : "")
-                    + column.getColumnName()
-                    + (quoteColumnNames ? getColumnQuoteString() : "")
-                    + " " + getSQLForDataType(column.getDataType())
-                    + (column.isNullable() ? "" : " NOT NULL")
-                    + (primaryKeyColumnNames != null && primaryKeyColumnNames.contains(column.getColumnName()) ? " PRIMARY KEY" : "");
-            columnsAndDatatypes.add(sb);
+        for (int i = 0; i < columns.size(); i++) {
+            ColumnDescription column = columns.get(i);
+            createTableStatement
+                    .append((i != 0) ? ", " : "")
+                    .append(quoteColumnNames ? getColumnQuoteString() : "")
+                    .append(column.getColumnName())
+                    .append(quoteColumnNames ? getColumnQuoteString() : "")
+                    .append(" ")
+                    .append(getSQLForDataType(column.getDataType()))
+                    .append(column.isNullable() ? "" : " NOT NULL")
+                    .append(primaryKeyColumnNames != null && primaryKeyColumnNames.contains(column.getColumnName()) ? " PRIMARY KEY" : "");
         }
 
         createTableStatement
-                .append("DECLARE\n\tsql_stmt long;\nBEGIN\n\tsql_stmt:='CREATE TABLE ")
-                .append(generateTableName(quoteTableName, tableSchema.getCatalogName(), tableSchema.getSchemaName(), tableSchema.getTableName(), tableSchema))
-                .append(" (")
-                .append(String.join(", ", columnsAndDatatypes))
                 .append(")';\nEXECUTE IMMEDIATE sql_stmt;\nEXCEPTION\n\tWHEN OTHERS THEN\n\t\tIF SQLCODE = -955 THEN\n\t\t\t")
                 .append("NULL;\n\t\tELSE\n\t\t\tRAISE;\n\t\tEND IF;\nEND;");
 
