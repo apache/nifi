@@ -66,8 +66,8 @@ export class LineageComponent implements OnInit {
                 });
 
                 // hide applicable nodes and lines
-                nodesToHide.transition().delay(200).duration(400).style('opacity', 0);
-                linksToHide.transition().duration(400).style('opacity', 0);
+                nodesToHide.transition().delay(200).duration(400).style('opacity', 0).attr('pointer-events', 'none');
+                linksToHide.transition().duration(400).style('opacity', 0).attr('pointer-events', 'none');
             } else {
                 // the threshold is ascending
 
@@ -80,8 +80,8 @@ export class LineageComponent implements OnInit {
                 });
 
                 // show applicable nodes and lines
-                linksToShow.transition().delay(200).duration(400).style('opacity', 1);
-                nodesToShow.transition().duration(400).style('opacity', 1);
+                linksToShow.transition().delay(200).duration(400).style('opacity', 1).attr('pointer-events', 'all');
+                nodesToShow.transition().duration(400).style('opacity', 1).attr('pointer-events', 'all');
             }
         }
 
