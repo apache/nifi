@@ -16,15 +16,24 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-standard-services</artifactId>
+        <artifactId>nifi-db-schema-registry-bundle</artifactId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
-    
-    <artifactId>nifi-dbcp-service-bundle</artifactId>
-    <packaging>pom</packaging>
-    <modules>
-        <module>nifi-dbcp-service</module>
-        <module>nifi-hikari-dbcp-service</module>
-        <module>nifi-dbcp-service-nar</module>
-    </modules>
+
+    <artifactId>nifi-db-schema-registry-service-nar</artifactId>
+    <packaging>nar</packaging>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-services-api-nar</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-db-schema-registry-service</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 </project>

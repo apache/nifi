@@ -69,7 +69,7 @@ public class DatabaseTableSchemaRegistryTest {
             "CREATE TABLE LONGVARBINARY_TEST (id integer primary key, name LONG VARCHAR FOR BIT DATA)"
     );
 
-    private static final String SERVICE_ID = DBCPServiceSimpleImpl.class.getName();
+    private static final String SERVICE_ID = SimpleDBCPService.class.getName();
 
     private final static String DB_LOCATION = "target/db_schema_reg";
 
@@ -112,7 +112,7 @@ public class DatabaseTableSchemaRegistryTest {
         }
 
         // Mock the DBCP Controller Service so we can control the Results
-        DBCPService setupDbService = spy(new DBCPServiceSimpleImpl(DB_LOCATION));
+        DBCPService setupDbService = spy(new SimpleDBCPService(DB_LOCATION));
 
         final Connection conn = setupDbService.getConnection();
         final Statement stmt = conn.createStatement();
@@ -125,7 +125,7 @@ public class DatabaseTableSchemaRegistryTest {
     }
 
     @AfterAll
-    public static void shutdownDatabase() throws Exception {
+    public static void shutdownDatabase() {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
         } catch (Exception ignore) {
@@ -144,7 +144,7 @@ public class DatabaseTableSchemaRegistryTest {
     @BeforeEach
     public void setService() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
-        DBCPService dbcp = new DBCPServiceSimpleImpl(DB_LOCATION);
+        DBCPService dbcp = new SimpleDBCPService(DB_LOCATION);
         runner.addControllerService(SERVICE_ID, dbcp);
 
         final String url = String.format("jdbc:derby:%s;create=false", DB_LOCATION);
@@ -197,11 +197,18 @@ public class DatabaseTableSchemaRegistryTest {
         assertThrows(SchemaNotFoundException.class, () -> dbSchemaRegistry.retrieveSchema(schemaIdentifier));
     }
 
-    private static class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
+    private static class SimpleDBCPService extends AbstractControllerService implements DBCPService {
 
         private final String databaseLocation;
+        static {
+            try {
+                Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+            } catch (final Exception e) {
+                throw new RuntimeException("Derby driver not found, something is very wrong", e);
+            }
+        }
 
-        public DBCPServiceSimpleImpl(final String databaseLocation) {
+        public SimpleDBCPService(final String databaseLocation) {
             this.databaseLocation = databaseLocation;
         }
 
@@ -213,9 +220,7 @@ public class DatabaseTableSchemaRegistryTest {
         @Override
         public Connection getConnection() throws ProcessException {
             try {
-                Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
                 return DriverManager.getConnection("jdbc:derby:" + databaseLocation + ";create=true");
-
             } catch (final Exception e) {
                 throw new ProcessException("getConnection failed: " + e);
             }

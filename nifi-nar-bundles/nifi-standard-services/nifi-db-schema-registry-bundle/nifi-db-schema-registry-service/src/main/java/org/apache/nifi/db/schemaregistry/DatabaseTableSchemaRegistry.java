@@ -145,7 +145,7 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
                 recordFields.add(createRecordFieldFromColumn(columnResultSet));
             }
 
-            // If no columns are found, check that the table exists
+            // If no columns are found, check that the table e xists
             if (recordFields.isEmpty()) {
                 checkTableExists(databaseMetaData, tableName);
             }
@@ -168,7 +168,7 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
     }
 
     private void checkTableExists(final DatabaseMetaData databaseMetaData, final String tableName) throws SchemaNotFoundException, SQLException {
-        try (final ResultSet tblrs = databaseMetaData.getTables(dbCatalogName, dbSchemaName, tableName, null)) {
+        try (final ResultSet tablesResultSet = databaseMetaData.getTables(dbCatalogName, dbSchemaName, tableName, null)) {
             List<String> qualifiedNameSegments = new ArrayList<>();
             if (dbCatalogName != null) {
                 qualifiedNameSegments.add(dbCatalogName);
@@ -178,7 +178,7 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
             }
             qualifiedNameSegments.add(tableName);
 
-            if (!tblrs.next()) {
+            if (!tablesResultSet.next()) {
                 throw new SchemaNotFoundException("Table "
                         + String.join(".", qualifiedNameSegments)
                         + " not found");
