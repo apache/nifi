@@ -28,6 +28,7 @@ import { SummaryTableFilterModule } from '../../common/summary-table-filter/summ
 import { NgClass, NgIf } from '@angular/common';
 import { ComponentType } from '../../../../../state/shared';
 import { MultiSort } from '../../common';
+import { NiFiCommon } from '../../../../../service/nifi-common.service';
 
 export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 'in' | 'out' | 'readWrite' | 'tasks';
 
@@ -71,10 +72,10 @@ export class ProcessorStatusTable {
     dataSource: MatTableDataSource<ProcessorStatusSnapshotEntity> =
         new MatTableDataSource<ProcessorStatusSnapshotEntity>();
 
-    constructor() {}
+    constructor(private nifiCommon: NiFiCommon) {}
 
     applyFilter(filter: SummaryTableFilterArgs) {
-        this.dataSource.filter = `${filter.filterTerm}|${filter.filterColumn}|${filter.filterStatus}|${filter.primaryOnly}`;
+        this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
     }
 
@@ -102,11 +103,7 @@ export class ProcessorStatusTable {
         if (processors) {
             this.dataSource.data = this.sortEntities(processors, this.multiSort);
             this.dataSource.filterPredicate = (data: ProcessorStatusSnapshotEntity, filter: string): boolean => {
-                const filterArray: string[] = filter.split('|');
-                const filterTerm: string = filterArray[0] || '';
-                const filterColumn: string = filterArray[1];
-                const filterStatus: string = filterArray[2];
-                const primaryOnly: boolean = filterArray[3] === 'true';
+                const { filterTerm, filterColumn, filterStatus, primaryOnly } = JSON.parse(filter);
                 const matchOnStatus: boolean = filterStatus !== 'All';
 
                 if (primaryOnly) {
@@ -124,11 +121,10 @@ export class ProcessorStatusTable {
                 }
 
                 try {
-                    const filterExpression: RegExp = new RegExp(filterTerm, 'i');
                     const field: string = data.processorStatusSnapshot[
                         filterColumn as keyof ProcessorStatusSnapshot
                     ] as string;
-                    return field.search(filterExpression) >= 0;
+                    return this.nifiCommon.stringContains(field, filterTerm, true);
                 } catch (e) {
                     // invalid regex;
                     return false;

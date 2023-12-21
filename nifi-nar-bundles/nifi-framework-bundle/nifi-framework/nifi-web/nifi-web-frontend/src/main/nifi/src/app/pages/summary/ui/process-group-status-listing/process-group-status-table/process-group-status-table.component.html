@@ -77,10 +77,12 @@
                     </td>
                 </ng-container>
 
-                <!-- Process Group column -->
+                <!-- Transferred column -->
                 <ng-container matColumnDef="transferred">
                     <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                        <div class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                        <div
+                            class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1"
+                            title="Count / data size transferred to and from connections in the last 5 min">
                             <span
                                 [ngClass]="{
                                     underline: multiSort.active === 'transferred' && multiSort.sortValueIndex === 0

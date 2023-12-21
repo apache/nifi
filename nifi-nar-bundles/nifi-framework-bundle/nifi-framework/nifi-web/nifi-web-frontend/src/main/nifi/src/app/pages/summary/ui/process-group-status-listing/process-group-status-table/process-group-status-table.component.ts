@@ -90,7 +90,7 @@ export class ProcessGroupStatusTable {
     constructor(private nifiCommon: NiFiCommon) {}
 
     applyFilter(filter: SummaryTableFilterArgs) {
-        this.dataSource.filter = `${filter.filterTerm}|${filter.filterColumn}`;
+        this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
     }
 
@@ -121,20 +121,17 @@ export class ProcessGroupStatusTable {
             this.dataSource.data = this.sortEntities(processGroups, this.multiSort);
 
             this.dataSource.filterPredicate = (data: ProcessGroupStatusSnapshotEntity, filter: string): boolean => {
-                const filterArray: string[] = filter.split('|');
-                const filterTerm: string = filterArray[0] || '';
-                const filterColumn: string = filterArray[1];
+                const { filterTerm, filterColumn } = JSON.parse(filter);
 
                 if (filterTerm === '') {
                     return true;
                 }
 
                 try {
-                    const filterExpression: RegExp = new RegExp(filterTerm, 'i');
                     const field: string = data.processGroupStatusSnapshot[
                         filterColumn as keyof ProcessGroupStatusSnapshot
                     ] as string;
-                    return field.search(filterExpression) >= 0;
+                    return this.nifiCommon.stringContains(field, filterTerm, true);
                 } catch (e) {
                     // invalid regex;
                     return false;

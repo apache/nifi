@@ -99,10 +99,7 @@ export class PortStatusTable {
         if (ports) {
             this.dataSource.data = this.sortEntities(ports, this.multiSort);
             this.dataSource.filterPredicate = (data: PortStatusSnapshotEntity, filter: string) => {
-                const filterArray: string[] = filter.split('|');
-                const filterTerm: string = filterArray[0] || '';
-                const filterColumn: string = filterArray[1];
-                const filterStatus: string = filterArray[2];
+                const { filterTerm, filterColumn, filterStatus } = JSON.parse(filter);
                 const matchOnStatus: boolean = filterStatus !== 'All';
 
                 if (matchOnStatus) {
@@ -115,9 +112,8 @@ export class PortStatusTable {
                 }
 
                 try {
-                    const filterExpression: RegExp = new RegExp(filterTerm, 'i');
                     const field: string = data.portStatusSnapshot[filterColumn as keyof PortStatusSnapshot] as string;
-                    return field.search(filterExpression) >= 0;
+                    return this.nifiCommon.stringContains(field, filterTerm, true);
                 } catch (e) {
                     // invalid regex;
                     return false;
@@ -132,7 +128,7 @@ export class PortStatusTable {
     @Output() selectPort: EventEmitter<PortStatusSnapshotEntity> = new EventEmitter<PortStatusSnapshotEntity>();
 
     applyFilter(filter: SummaryTableFilterArgs) {
-        this.dataSource.filter = `${filter.filterTerm}|${filter.filterColumn}|${filter.filterStatus}`;
+        this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
     }
 

@@ -57,16 +57,14 @@ export class ProvenanceEventTable implements AfterViewInit {
         if (events) {
             this.dataSource.data = this.sortEvents(events, this.sort);
             this.dataSource.filterPredicate = (data: ProvenanceEventSummary, filter: string) => {
-                const filterArray = filter.split('|');
-                const filterTerm = filterArray[0];
-                const filterColumn = filterArray[1];
+                const { filterTerm, filterColumn } = JSON.parse(filter);
 
                 if (filterColumn === this.filterColumnOptions[0]) {
-                    return data.componentName.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0;
+                    return this.nifiCommon.stringContains(data.componentName, filterTerm, true);
                 } else if (filterColumn === this.filterColumnOptions[1]) {
-                    return data.componentType.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0;
+                    return this.nifiCommon.stringContains(data.componentType, filterTerm, true);
                 } else {
-                    return data.eventType.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0;
+                    return this.nifiCommon.stringContains(data.eventType, filterTerm, true);
                 }
             };
             this.totalCount = events.length;
@@ -177,7 +175,7 @@ export class ProvenanceEventTable implements AfterViewInit {
     }
 
     applyFilter(filterTerm: string, filterColumn: string) {
-        this.dataSource.filter = `${filterTerm}|${filterColumn}`;
+        this.dataSource.filter = JSON.stringify({ filterTerm, filterColumn });
         this.filteredCount = this.dataSource.filteredData.length;
     }
 

@@ -96,20 +96,17 @@ export class RemoteProcessGroupStatusTable {
         if (rpgs) {
             this.dataSource.data = this.sortEntities(rpgs, this.multiSort);
             this.dataSource.filterPredicate = (data: RemoteProcessGroupStatusSnapshotEntity, filter: string) => {
-                const filterArray: string[] = filter.split('|');
-                const filterTerm: string = filterArray[0] || '';
-                const filterColumn: string = filterArray[1];
+                const { filterTerm, filterColumn } = JSON.parse(filter);
 
                 if (filterTerm === '') {
                     return true;
                 }
 
                 try {
-                    const filterExpression: RegExp = new RegExp(filterTerm, 'i');
                     const field: string = data.remoteProcessGroupStatusSnapshot[
                         filterColumn as keyof RemoteProcessGroupStatusSnapshot
                     ] as string;
-                    return field.search(filterExpression) >= 0;
+                    return this.nifiCommon.stringContains(field, filterTerm, true);
                 } catch (e) {
                     // invalid regex;
                     return false;
@@ -127,7 +124,7 @@ export class RemoteProcessGroupStatusTable {
         new EventEmitter<RemoteProcessGroupStatusSnapshotEntity>();
 
     applyFilter(filter: SummaryTableFilterArgs) {
-        this.dataSource.filter = `${filter.filterTerm}|${filter.filterColumn}`;
+        this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
     }
 

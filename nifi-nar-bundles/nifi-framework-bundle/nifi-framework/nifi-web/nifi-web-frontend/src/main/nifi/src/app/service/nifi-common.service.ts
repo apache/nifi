@@ -137,6 +137,32 @@ export class NiFiCommon {
     }
 
     /**
+     * Determines if a string contains another, optionally looking case insensitively.
+     *
+     * @param stringToSearch
+     * @param stringToFind
+     * @param caseInsensitive
+     */
+    public stringContains(
+        stringToSearch: string | null | undefined,
+        stringToFind: string | null | undefined,
+        caseInsensitive: boolean = false
+    ): boolean {
+        if (this.isBlank(stringToSearch)) {
+            return false;
+        }
+        if (this.isBlank(stringToFind)) {
+            return true;
+        }
+        if (caseInsensitive) {
+            // @ts-ignore
+            return stringToSearch.toLowerCase().indexOf(stringToFind.toLowerCase()) >= 0;
+        }
+        // @ts-ignore
+        return stringToSearch.indexOf(stringToFind) >= 0;
+    }
+
+    /**
      * Formats the class name of this component.
      *
      * @param dataContext component datum
