@@ -104,10 +104,12 @@ public class ConnectionLoadBalanceServer {
             acceptConnection.stop();
         }
 
-        final Iterator<CommunicateAction> itr = communicationActions.iterator();
-        while (itr.hasNext()) {
-            itr.next().stop();
-            itr.remove();
+        synchronized (communicationActions) { // Must synchronize on Synchronized List when using iterator
+            final Iterator<CommunicateAction> itr = communicationActions.iterator();
+            while (itr.hasNext()) {
+                itr.next().stop();
+                itr.remove();
+            }
         }
     }
 
