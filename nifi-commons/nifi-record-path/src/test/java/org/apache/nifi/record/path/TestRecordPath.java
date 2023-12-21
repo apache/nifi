@@ -1242,6 +1242,26 @@ public class TestRecordPath {
         assertEquals("John Doe: 48", RecordPath.compile("concat(/firstName, ' ', /lastName, ': ', 48)").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
+    @Test
+    public void testMapOf() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("fullName", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("firstName", RecordFieldType.LONG.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("lastName", "Doe");
+        values.put("firstName", "John");
+        final Record record = new MapRecord(schema, values);
+        final FieldValue fv = RecordPath.compile("mapOf('firstName', /firstName, 'lastName', /lastName)").evaluate(record).getSelectedFields().findFirst().get();
+        assertTrue(fv.getField().getDataType().getFieldType().equals(RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()).getFieldType()));
+        assertEquals("MapRecord[{firstName=John, lastName=Doe}]", fv.getValue().toString());
+
+        assertThrows(RecordPathException.class, () -> RecordPath.compile("mapOf('firstName', /firstName, 'lastName')").evaluate(record));
+    }
+
 
     @Test
     public void testCoalesce() {
