@@ -225,7 +225,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor SOCKET_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Socket Connection Timeout")
+            .name("Connection Timeout")
             .description("Maximum time to wait for initial socket connection to the HTTP URL.")
             .required(true)
             .defaultValue("5 secs")
@@ -596,7 +596,6 @@ public class InvokeHTTP extends AbstractProcessor {
 
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
-        config.renameProperty("Connection Timeout", SOCKET_CONNECT_TIMEOUT.getName());
         config.renameProperty("Read Timeout", SOCKET_READ_TIMEOUT.getName());
         config.renameProperty("Remote URL", HTTP_URL.getName());
         config.renameProperty("disable-http2", HTTP2_DISABLED.getName());
