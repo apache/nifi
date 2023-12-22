@@ -102,15 +102,10 @@ export class RemoteProcessGroupStatusTable {
                     return true;
                 }
 
-                try {
-                    const field: string = data.remoteProcessGroupStatusSnapshot[
-                        filterColumn as keyof RemoteProcessGroupStatusSnapshot
-                    ] as string;
-                    return this.nifiCommon.stringContains(field, filterTerm, true);
-                } catch (e) {
-                    // invalid regex;
-                    return false;
-                }
+                const field: string = data.remoteProcessGroupStatusSnapshot[
+                    filterColumn as keyof RemoteProcessGroupStatusSnapshot
+                ] as string;
+                return this.nifiCommon.stringContains(field, filterTerm, true);
             };
 
             this.totalCount = rpgs.length;

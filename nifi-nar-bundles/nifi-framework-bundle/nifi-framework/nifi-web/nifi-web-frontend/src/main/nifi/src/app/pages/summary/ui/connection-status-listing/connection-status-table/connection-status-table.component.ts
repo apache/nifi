@@ -105,15 +105,10 @@ export class ConnectionStatusTable {
                     return true;
                 }
 
-                try {
-                    const field: string = data.connectionStatusSnapshot[
-                        filterColumn as keyof ConnectionStatusSnapshot
-                    ] as string;
-                    return this.nifiCommon.stringContains(field, filterTerm, true);
-                } catch (e) {
-                    // invalid regex;
-                    return false;
-                }
+                const field: string = data.connectionStatusSnapshot[
+                    filterColumn as keyof ConnectionStatusSnapshot
+                ] as string;
+                return this.nifiCommon.stringContains(field, filterTerm, true);
             };
 
             this.totalCount = connections.length;

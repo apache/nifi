@@ -120,15 +120,10 @@ export class ProcessorStatusTable {
                     return true;
                 }
 
-                try {
-                    const field: string = data.processorStatusSnapshot[
-                        filterColumn as keyof ProcessorStatusSnapshot
-                    ] as string;
-                    return this.nifiCommon.stringContains(field, filterTerm, true);
-                } catch (e) {
-                    // invalid regex;
-                    return false;
-                }
+                const field: string = data.processorStatusSnapshot[
+                    filterColumn as keyof ProcessorStatusSnapshot
+                ] as string;
+                return this.nifiCommon.stringContains(field, filterTerm, true);
             };
 
             this.totalCount = processors.length;

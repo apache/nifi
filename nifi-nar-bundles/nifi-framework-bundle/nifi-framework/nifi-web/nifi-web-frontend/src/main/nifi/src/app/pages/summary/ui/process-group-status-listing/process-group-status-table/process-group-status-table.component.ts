@@ -127,15 +127,10 @@ export class ProcessGroupStatusTable {
                     return true;
                 }
 
-                try {
-                    const field: string = data.processGroupStatusSnapshot[
-                        filterColumn as keyof ProcessGroupStatusSnapshot
-                    ] as string;
-                    return this.nifiCommon.stringContains(field, filterTerm, true);
-                } catch (e) {
-                    // invalid regex;
-                    return false;
-                }
+                const field: string = data.processGroupStatusSnapshot[
+                    filterColumn as keyof ProcessGroupStatusSnapshot
+                ] as string;
+                return this.nifiCommon.stringContains(field, filterTerm, true);
             };
 
             this.totalCount = processGroups.length;

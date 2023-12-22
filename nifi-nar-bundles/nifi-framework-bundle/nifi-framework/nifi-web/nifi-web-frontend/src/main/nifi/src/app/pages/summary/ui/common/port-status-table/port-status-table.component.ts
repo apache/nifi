@@ -111,13 +111,8 @@ export class PortStatusTable {
                     return true;
                 }
 
-                try {
-                    const field: string = data.portStatusSnapshot[filterColumn as keyof PortStatusSnapshot] as string;
-                    return this.nifiCommon.stringContains(field, filterTerm, true);
-                } catch (e) {
-                    // invalid regex;
-                    return false;
-                }
+                const field: string = data.portStatusSnapshot[filterColumn as keyof PortStatusSnapshot] as string;
+                return this.nifiCommon.stringContains(field, filterTerm, true);
             };
 
             this.totalCount = ports.length;
