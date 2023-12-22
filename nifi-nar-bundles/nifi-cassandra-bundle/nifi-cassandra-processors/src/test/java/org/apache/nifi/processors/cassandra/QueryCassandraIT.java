@@ -119,7 +119,7 @@ public class QueryCassandraIT {
     public void testSimpleQuery() {
         queryCassandraTestRunner.enqueue("");
         queryCassandraTestRunner.run();
-        Assertions.assertEquals(LOAD_FLOW_FILE_SIZE, queryCassandraTestRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS).size());
+        Assertions.assertEquals(1, queryCassandraTestRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS).size());
         queryCassandraTestRunner.clearTransferState();
     }
 
@@ -128,7 +128,27 @@ public class QueryCassandraIT {
         queryCassandraTestRunner.removeProperty(QueryCassandra.OUTPUT_BATCH_SIZE);
         queryCassandraTestRunner.enqueue("");
         queryCassandraTestRunner.run();
-        Assertions.assertEquals(LOAD_FLOW_FILE_SIZE, queryCassandraTestRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS).size());
+        Assertions.assertEquals(1, queryCassandraTestRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS).size());
+        queryCassandraTestRunner.clearTransferState();
+    }
+
+    @Test
+    public void testWithMaxRowsPerFlowFile() {
+        queryCassandraTestRunner.setProperty(QueryCassandra.MAX_ROWS_PER_FLOW_FILE, "10");
+        queryCassandraTestRunner.enqueue("");
+        queryCassandraTestRunner.run();
+        Assertions.assertEquals(100, queryCassandraTestRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS).size());
+        queryCassandraTestRunner.clearTransferState();
+    }
+
+    @Test
+    public void testWithDefaults() {
+        queryCassandraTestRunner.removeProperty(QueryCassandra.MAX_ROWS_PER_FLOW_FILE);
+        queryCassandraTestRunner.removeProperty(QueryCassandra.OUTPUT_BATCH_SIZE);
+        queryCassandraTestRunner.removeProperty(QueryCassandra.FETCH_SIZE);
+        queryCassandraTestRunner.enqueue("");
+        queryCassandraTestRunner.run();
+        Assertions.assertEquals(1, queryCassandraTestRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS).size());
         queryCassandraTestRunner.clearTransferState();
     }
 
