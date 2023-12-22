@@ -39,6 +39,7 @@ import { AboutEffects } from './state/about/about.effects';
 import { StatusHistoryEffects } from './state/status-history/status-history.effects';
 import { MatDialogModule } from '@angular/material/dialog';
 import { ControllerServiceStateEffects } from './state/contoller-service-state/controller-service-state.effects';
+import { SystemDiagnosticsEffects } from './state/system-diagnostics/system-diagnostics.effects';
 
 // @ts-ignore
 @NgModule({
@@ -62,7 +63,8 @@ import { ControllerServiceStateEffects } from './state/contoller-service-state/c
             ExtensionTypesEffects,
             AboutEffects,
             StatusHistoryEffects,
-            ControllerServiceStateEffects
+            ControllerServiceStateEffects,
+            SystemDiagnosticsEffects
         ),
         StoreDevtoolsModule.instrument({
             maxAge: 25,

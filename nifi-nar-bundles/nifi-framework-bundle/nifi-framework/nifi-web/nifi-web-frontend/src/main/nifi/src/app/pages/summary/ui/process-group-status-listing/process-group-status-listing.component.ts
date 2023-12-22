@@ -40,6 +40,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { openStatusHistoryDialog } from '../../../../state/status-history/status-history.actions';
 import { ComponentType } from '../../../../state/shared';
 import { selectUser } from '../../../../state/user/user.selectors';
+import { getSystemDiagnosticsAndOpenDialog } from '../../../../state/system-diagnostics/system-diagnostics.actions';
 
 @Component({
     selector: 'process-group-status-listing',
@@ -103,6 +104,17 @@ export class ProcessGroupStatusListing {
             SummaryListingActions.selectProcessGroupStatus({
                 request: {
                     id: pg.id
+                }
+            })
+        );
+    }
+
+    openSystemDiagnostics(event: MouseEvent) {
+        event.stopPropagation();
+        this.store.dispatch(
+            getSystemDiagnosticsAndOpenDialog({
+                request: {
+                    nodewise: false
                 }
             })
         );

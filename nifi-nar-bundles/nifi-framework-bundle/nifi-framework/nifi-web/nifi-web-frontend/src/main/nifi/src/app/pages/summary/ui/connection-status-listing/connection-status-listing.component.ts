@@ -38,6 +38,7 @@ import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { openStatusHistoryDialog } from '../../../../state/status-history/status-history.actions';
 import { ComponentType } from '../../../../state/shared';
+import { getSystemDiagnosticsAndOpenDialog } from '../../../../state/system-diagnostics/system-diagnostics.actions';
 
 @Component({
     selector: 'connection-status-listing',
@@ -101,6 +102,17 @@ export class ConnectionStatusListing {
         this.store.dispatch(
             SummaryListingActions.navigateToViewConnectionStatusHistory({
                 id: connection.id
+            })
+        );
+    }
+
+    openSystemDiagnostics(event: MouseEvent) {
+        event.stopPropagation();
+        this.store.dispatch(
+            getSystemDiagnosticsAndOpenDialog({
+                request: {
+                    nodewise: false
+                }
             })
         );
     }

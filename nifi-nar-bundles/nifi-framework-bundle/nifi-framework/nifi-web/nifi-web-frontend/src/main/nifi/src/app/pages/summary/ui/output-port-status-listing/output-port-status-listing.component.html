@@ -41,6 +41,9 @@
                     <div>Last updated:</div>
                     <div class="refresh-timestamp">{{ loadedTimestamp$ | async }}</div>
                 </div>
+                <div>
+                    <a (click)="openSystemDiagnostics($event)">System Diagnostics</a>
+                </div>
             </div>
         </div>
     </ng-template>

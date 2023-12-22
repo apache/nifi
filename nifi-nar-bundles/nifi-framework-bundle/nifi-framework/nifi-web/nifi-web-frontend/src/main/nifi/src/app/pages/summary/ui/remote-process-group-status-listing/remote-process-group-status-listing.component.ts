@@ -33,6 +33,7 @@ import { openStatusHistoryDialog } from '../../../../state/status-history/status
 import { ComponentType } from '../../../../state/shared';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
+import { getSystemDiagnosticsAndOpenDialog } from '../../../../state/system-diagnostics/system-diagnostics.actions';
 
 @Component({
     selector: 'remote-process-group-status-listing',
@@ -96,6 +97,17 @@ export class RemoteProcessGroupStatusListing {
         this.store.dispatch(
             SummaryListingActions.navigateToViewRemoteProcessGroupStatusHistory({
                 id: rpg.id
+            })
+        );
+    }
+
+    openSystemDiagnostics(event: MouseEvent) {
+        event.stopPropagation();
+        this.store.dispatch(
+            getSystemDiagnosticsAndOpenDialog({
+                request: {
+                    nodewise: false
+                }
             })
         );
     }

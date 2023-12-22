@@ -33,6 +33,7 @@ import { ComponentType } from '../../../../state/shared';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
+import { getSystemDiagnosticsAndOpenDialog } from '../../../../state/system-diagnostics/system-diagnostics.actions';
 
 @Component({
     selector: 'processor-status-listing',
@@ -96,6 +97,17 @@ export class ProcessorStatusListing {
             SummaryListingActions.selectProcessorStatus({
                 request: {
                     id: processor.id
+                }
+            })
+        );
+    }
+
+    openSystemDiagnostics(event: MouseEvent) {
+        event.stopPropagation();
+        this.store.dispatch(
+            getSystemDiagnosticsAndOpenDialog({
+                request: {
+                    nodewise: false
                 }
             })
         );
