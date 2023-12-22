@@ -16,10 +16,87 @@
  */
 
 import { Component } from '@angular/core';
+import {
+    selectRemoteProcessGroupIdFromRoute,
+    selectRemoteProcessGroupStatus,
+    selectRemoteProcessGroupStatusSnapshots,
+    selectSummaryListingLoadedTimestamp,
+    selectSummaryListingStatus,
+    selectViewStatusHistory
+} from '../../state/summary-listing/summary-listing.selectors';
+import { selectUser } from '../../../../state/user/user.selectors';
+import { Store } from '@ngrx/store';
+import { RemoteProcessGroupStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
+import { filter, switchMap, take } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { openStatusHistoryDialog } from '../../../../state/status-history/status-history.actions';
+import { ComponentType } from '../../../../state/shared';
+import { initialState } from '../../state/summary-listing/summary-listing.reducer';
+import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
 
 @Component({
     selector: 'remote-process-group-status-listing',
     templateUrl: './remote-process-group-status-listing.component.html',
     styleUrls: ['./remote-process-group-status-listing.component.scss']
 })
-export class RemoteProcessGroupStatusListing {}
+export class RemoteProcessGroupStatusListing {
+    loadedTimestamp$ = this.store.select(selectSummaryListingLoadedTimestamp);
+    summaryListingStatus$ = this.store.select(selectSummaryListingStatus);
+    currentUser$ = this.store.select(selectUser);
+    rpgStatusSnapshots$ = this.store.select(selectRemoteProcessGroupStatusSnapshots);
+    selectedRpgId$ = this.store.select(selectRemoteProcessGroupIdFromRoute);
+
+    constructor(private store: Store<SummaryListingState>) {
+        this.store
+            .select(selectViewStatusHistory)
+            .pipe(
+                filter((id: string) => !!id),
+                switchMap((id: string) =>
+                    this.store.select(selectRemoteProcessGroupStatus(id)).pipe(
+                        filter((connection) => !!connection),
+                        take(1)
+                    )
+                ),
+                takeUntilDestroyed()
+            )
+            .subscribe((rpg) => {
+                if (rpg) {
+                    this.store.dispatch(
+                        openStatusHistoryDialog({
+                            request: {
+                                source: 'summary',
+                                componentType: ComponentType.RemoteProcessGroup,
+                                componentId: rpg.id
+                            }
+                        })
+                    );
+                }
+            });
+    }
+
+    isInitialLoading(loadedTimestamp: string): boolean {
+        return loadedTimestamp == initialState.loadedTimestamp;
+    }
+
+    refreshSummaryListing() {
+        this.store.dispatch(SummaryListingActions.loadSummaryListing({ recursive: true }));
+    }
+
+    selectRemoteProcessGroup(rpg: RemoteProcessGroupStatusSnapshotEntity): void {
+        this.store.dispatch(
+            SummaryListingActions.selectRemoteProcessGroupStatus({
+                request: {
+                    id: rpg.id
+                }
+            })
+        );
+    }
+
+    viewStatusHistory(rpg: RemoteProcessGroupStatusSnapshotEntity): void {
+        this.store.dispatch(
+            SummaryListingActions.navigateToViewRemoteProcessGroupStatusHistory({
+                id: rpg.id
+            })
+        );
+    }
+}

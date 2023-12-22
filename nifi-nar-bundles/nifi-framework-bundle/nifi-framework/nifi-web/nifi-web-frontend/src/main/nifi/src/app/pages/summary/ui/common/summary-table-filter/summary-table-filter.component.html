@@ -30,7 +30,7 @@
                     <mat-label>Filter By</mat-label>
                     <mat-select formControlName="filterColumn">
                         <ng-container *ngFor="let option of filterableColumns">
-                            <mat-option [value]="option"> {{ option }} </mat-option>
+                            <mat-option [value]="option.key"> {{ option.label }} </mat-option>
                         </ng-container>
                     </mat-select>
                 </mat-form-field>

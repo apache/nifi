@@ -16,10 +16,47 @@
  */
 
 import { Component } from '@angular/core';
+import {
+    selectInputPortIdFromRoute,
+    selectInputPortStatusSnapshots,
+    selectSummaryListingLoadedTimestamp,
+    selectSummaryListingStatus
+} from '../../state/summary-listing/summary-listing.selectors';
+import { selectUser } from '../../../../state/user/user.selectors';
+import { PortStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
+import { Store } from '@ngrx/store';
+import { initialState } from '../../state/summary-listing/summary-listing.reducer';
+import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
 
 @Component({
     selector: 'input-port-status-listing',
     templateUrl: './input-port-status-listing.component.html',
     styleUrls: ['./input-port-status-listing.component.scss']
 })
-export class InputPortStatusListing {}
+export class InputPortStatusListing {
+    portStatusSnapshots$ = this.store.select(selectInputPortStatusSnapshots);
+    loadedTimestamp$ = this.store.select(selectSummaryListingLoadedTimestamp);
+    summaryListingStatus$ = this.store.select(selectSummaryListingStatus);
+    currentUser$ = this.store.select(selectUser);
+    selectedPortId$ = this.store.select(selectInputPortIdFromRoute);
+
+    constructor(private store: Store<SummaryListingState>) {}
+
+    isInitialLoading(loadedTimestamp: string): boolean {
+        return loadedTimestamp == initialState.loadedTimestamp;
+    }
+
+    refreshSummaryListing() {
+        this.store.dispatch(SummaryListingActions.loadSummaryListing({ recursive: true }));
+    }
+
+    selectPort(port: PortStatusSnapshotEntity): void {
+        this.store.dispatch(
+            SummaryListingActions.selectInputPortStatus({
+                request: {
+                    id: port.id
+                }
+            })
+        );
+    }
+}

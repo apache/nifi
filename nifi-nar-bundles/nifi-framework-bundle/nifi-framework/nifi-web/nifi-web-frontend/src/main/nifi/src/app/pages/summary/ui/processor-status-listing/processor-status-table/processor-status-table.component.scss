@@ -16,6 +16,11 @@
  */
 .processor-status-table {
     .listing-table {
+        .mat-column-moreDetails {
+            width: 32px;
+            min-width: 32px;
+        }
+
         .mat-column-actions {
             width: 72px;
             min-width: 72px;

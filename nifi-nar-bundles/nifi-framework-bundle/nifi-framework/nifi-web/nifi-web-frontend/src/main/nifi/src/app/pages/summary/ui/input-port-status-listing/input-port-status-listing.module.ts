@@ -18,9 +18,12 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { InputPortStatusListing } from './input-port-status-listing.component';
+import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { ProcessGroupStatusTable } from '../process-group-status-listing/process-group-status-table/process-group-status-table.component';
+import { PortStatusTable } from '../common/port-status-table/port-status-table.component';
 
 @NgModule({
     declarations: [InputPortStatusListing],
-    imports: [CommonModule]
+    imports: [CommonModule, NgxSkeletonLoaderModule, ProcessGroupStatusTable, PortStatusTable]
 })
 export class InputPortStatusListingModule {}

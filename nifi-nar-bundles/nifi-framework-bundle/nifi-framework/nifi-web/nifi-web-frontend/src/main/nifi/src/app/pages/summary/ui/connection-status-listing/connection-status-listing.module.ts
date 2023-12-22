@@ -18,10 +18,13 @@
 import { NgModule } from '@angular/core';
 import { ConnectionStatusListing } from './connection-status-listing.component';
 import { CommonModule } from '@angular/common';
+import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { PortStatusTable } from '../common/port-status-table/port-status-table.component';
+import { ConnectionStatusTable } from './connection-status-table/connection-status-table.component';
 
 @NgModule({
     declarations: [ConnectionStatusListing],
     exports: [ConnectionStatusListing],
-    imports: [CommonModule]
+    imports: [CommonModule, NgxSkeletonLoaderModule, PortStatusTable, ConnectionStatusTable]
 })
 export class ConnectionStatusListingModule {}

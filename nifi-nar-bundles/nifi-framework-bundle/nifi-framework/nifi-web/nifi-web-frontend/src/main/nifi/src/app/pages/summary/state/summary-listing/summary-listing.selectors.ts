@@ -17,7 +17,14 @@
 
 import { createSelector } from '@ngrx/store';
 import { selectSummaryState, SummaryState } from '../index';
-import { ProcessorStatusSnapshotEntity, summaryListingFeatureKey, SummaryListingState } from './index';
+import {
+    ConnectionStatusSnapshotEntity,
+    ProcessGroupStatusSnapshotEntity,
+    ProcessorStatusSnapshotEntity,
+    RemoteProcessGroupStatusSnapshotEntity,
+    summaryListingFeatureKey,
+    SummaryListingState
+} from './index';
 import { selectCurrentRoute } from '../../../../state/router/router.selectors';
 
 export const selectSummaryListing = createSelector(
@@ -55,6 +62,16 @@ export const selectProcessorStatus = (id: string) =>
         processors.find((processor) => id === processor.id)
     );
 
+export const selectConnectionStatus = (id: string) =>
+    createSelector(selectConnectionStatusSnapshots, (connections: ConnectionStatusSnapshotEntity[]) =>
+        connections.find((connection) => id === connection.id)
+    );
+
+export const selectRemoteProcessGroupStatus = (id: string) =>
+    createSelector(selectRemoteProcessGroupStatusSnapshots, (rpgs: RemoteProcessGroupStatusSnapshotEntity[]) =>
+        rpgs.find((rpg) => id === rpg.id)
+    );
+
 export const selectProcessorIdFromRoute = createSelector(selectCurrentRoute, (route) => {
     if (route) {
         return route.params.id;
@@ -67,3 +84,68 @@ export const selectViewStatusHistory = createSelector(selectCurrentRoute, (route
         return route.params.id;
     }
 });
+
+export const selectProcessGroupStatusSnapshots = createSelector(
+    selectSummaryListing,
+    (state: SummaryListingState) => state.processGroupStatusSnapshots
+);
+
+export const selectProcessGroupStatusItem = (id: string) =>
+    createSelector(selectProcessGroupStatusSnapshots, (pgs: ProcessGroupStatusSnapshotEntity[]) =>
+        pgs.find((pg) => id === pg.id)
+    );
+
+export const selectProcessGroupIdFromRoute = createSelector(selectCurrentRoute, (route) => {
+    if (route) {
+        return route.params.id;
+    }
+    return null;
+});
+
+export const selectInputPortIdFromRoute = createSelector(selectCurrentRoute, (route) => {
+    if (route) {
+        return route.params.id;
+    }
+    return null;
+});
+
+export const selectOutputPortIdFromRoute = createSelector(selectCurrentRoute, (route) => {
+    if (route) {
+        return route.params.id;
+    }
+    return null;
+});
+
+export const selectConnectionIdFromRoute = createSelector(selectCurrentRoute, (route) => {
+    if (route) {
+        return route.params.id;
+    }
+    return null;
+});
+
+export const selectRemoteProcessGroupIdFromRoute = createSelector(selectCurrentRoute, (route) => {
+    if (route) {
+        return route.params.id;
+    }
+    return null;
+});
+
+export const selectInputPortStatusSnapshots = createSelector(
+    selectSummaryListing,
+    (state: SummaryListingState) => state.inputPortStatusSnapshots
+);
+
+export const selectOutputPortStatusSnapshots = createSelector(
+    selectSummaryListing,
+    (state: SummaryListingState) => state.outputPortStatusSnapshots
+);
+
+export const selectConnectionStatusSnapshots = createSelector(
+    selectSummaryListing,
+    (state: SummaryListingState) => state.connectionStatusSnapshots
+);
+
+export const selectRemoteProcessGroupStatusSnapshots = createSelector(
+    selectSummaryListing,
+    (state: SummaryListingState) => state.remoteProcessGroupStatusSnapshots
+);

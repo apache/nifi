@@ -19,18 +19,18 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { ProcessorStatusSnapshot, ProcessorStatusSnapshotEntity } from '../../../state/summary-listing';
 import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
-import { SummaryTableFilterArgs } from '../../common/summary-table-filter/summary-table-filter.component';
+import {
+    SummaryTableFilterArgs,
+    SummaryTableFilterColumn
+} from '../../common/summary-table-filter/summary-table-filter.component';
 import { RouterLink } from '@angular/router';
 import { SummaryTableFilterModule } from '../../common/summary-table-filter/summary-table-filter.module';
 import { NgClass, NgIf } from '@angular/common';
 import { ComponentType } from '../../../../../state/shared';
+import { MultiSort } from '../../common';
+import { NiFiCommon } from '../../../../../service/nifi-common.service';
 
 export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 'in' | 'out' | 'readWrite' | 'tasks';
-
-export interface MultiSort extends Sort {
-    sortValueIndex: number;
-    totalValues: number;
-}
 
 @Component({
     selector: 'processor-status-table',
@@ -43,7 +43,10 @@ export class ProcessorStatusTable {
     private _initialSortColumn: SupportedColumns = 'name';
     private _initialSortDirection: SortDirection = 'asc';
 
-    filterableColumns: string[] = ['name', 'type'];
+    filterableColumns: SummaryTableFilterColumn[] = [
+        { key: 'name', label: 'name' },
+        { key: 'type', label: 'type' }
+    ];
     totalCount: number = 0;
     filteredCount: number = 0;
 
@@ -69,10 +72,10 @@ export class ProcessorStatusTable {
     dataSource: MatTableDataSource<ProcessorStatusSnapshotEntity> =
         new MatTableDataSource<ProcessorStatusSnapshotEntity>();
 
-    constructor() {}
+    constructor(private nifiCommon: NiFiCommon) {}
 
     applyFilter(filter: SummaryTableFilterArgs) {
-        this.dataSource.filter = `${filter.filterTerm}|${filter.filterColumn}|${filter.filterStatus}|${filter.primaryOnly}`;
+        this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
     }
 
@@ -100,11 +103,7 @@ export class ProcessorStatusTable {
         if (processors) {
             this.dataSource.data = this.sortEntities(processors, this.multiSort);
             this.dataSource.filterPredicate = (data: ProcessorStatusSnapshotEntity, filter: string): boolean => {
-                const filterArray: string[] = filter.split('|');
-                const filterTerm: string = filterArray[0] || '';
-                const filterColumn: string = filterArray[1];
-                const filterStatus: string = filterArray[2];
-                const primaryOnly: boolean = filterArray[3] === 'true';
+                const { filterTerm, filterColumn, filterStatus, primaryOnly } = JSON.parse(filter);
                 const matchOnStatus: boolean = filterStatus !== 'All';
 
                 if (primaryOnly) {
@@ -121,16 +120,10 @@ export class ProcessorStatusTable {
                     return true;
                 }
 
-                try {
-                    const filterExpression: RegExp = new RegExp(filterTerm, 'i');
-                    const field: string = data.processorStatusSnapshot[
-                        filterColumn as keyof ProcessorStatusSnapshot
-                    ] as string;
-                    return field.search(filterExpression) >= 0;
-                } catch (e) {
-                    // invalid regex;
-                    return false;
-                }
+                const field: string = data.processorStatusSnapshot[
+                    filterColumn as keyof ProcessorStatusSnapshot
+                ] as string;
+                return this.nifiCommon.stringContains(field, filterTerm, true);
             };
 
             this.totalCount = processors.length;

@@ -21,6 +21,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { debounceTime } from 'rxjs';
+import { NiFiCommon } from '../../../../../service/nifi-common.service';
 
 @Component({
     selector: 'counter-table',
@@ -58,14 +59,11 @@ export class CounterTable implements AfterViewInit {
         };
 
         this.dataSource.filterPredicate = (data: CounterEntity, filter: string) => {
-            const filterArray = filter.split('|');
-            const filterTerm = filterArray[0];
-            const filterColumn = filterArray[1];
-
+            const { filterTerm, filterColumn } = JSON.parse(filter);
             if (filterColumn === 'name') {
-                return data.name.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0;
+                return this.nifiCommon.stringContains(data.name, filterTerm, true);
             } else {
-                return data.context.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0;
+                return this.nifiCommon.stringContains(data.context, filterTerm, true);
             }
         };
         this.totalCount = counterEntities.length;
@@ -97,7 +95,10 @@ export class CounterTable implements AfterViewInit {
 
     @ViewChild(MatSort) sort!: MatSort;
 
-    constructor(private formBuilder: FormBuilder) {
+    constructor(
+        private formBuilder: FormBuilder,
+        private nifiCommon: NiFiCommon
+    ) {
         this.filterForm = this.formBuilder.group({ filterTerm: '', filterColumn: 'name' });
     }
 
@@ -119,7 +120,7 @@ export class CounterTable implements AfterViewInit {
     }
 
     applyFilter(filterTerm: string, filterColumn: string) {
-        this.dataSource.filter = `${filterTerm}|${filterColumn}`;
+        this.dataSource.filter = JSON.stringify({ filterTerm, filterColumn });
         this.filteredCount = this.dataSource.filteredData.length;
     }
 

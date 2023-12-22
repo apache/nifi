@@ -17,24 +17,20 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { RemoteProcessGroupStatusListing } from './remote-process-group-status-listing.component';
-import { RemoteProcessGroupStatusTable } from './remote-process-group-status-table/remote-process-group-status-table.component';
-import { SummaryTableFilterModule } from '../common/summary-table-filter/summary-table-filter.module';
+import { ConnectionStatusTable } from './connection-status-table.component';
+import { SummaryTableFilterModule } from '../../common/summary-table-filter/summary-table-filter.module';
+import { MatSortModule } from '@angular/material/sort';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 
-describe('RemoteProcessGroupStatusListing', () => {
-    let component: RemoteProcessGroupStatusListing;
-    let fixture: ComponentFixture<RemoteProcessGroupStatusListing>;
+describe('ConnectionStatusTable', () => {
+    let component: ConnectionStatusTable;
+    let fixture: ComponentFixture<ConnectionStatusTable>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [RemoteProcessGroupStatusListing],
-            imports: [RemoteProcessGroupStatusTable, SummaryTableFilterModule, NoopAnimationsModule],
-            providers: [provideMockStore({ initialState })]
+            imports: [ConnectionStatusTable, SummaryTableFilterModule, MatSortModule, NoopAnimationsModule]
         });
-        fixture = TestBed.createComponent(RemoteProcessGroupStatusListing);
+        fixture = TestBed.createComponent(ConnectionStatusTable);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

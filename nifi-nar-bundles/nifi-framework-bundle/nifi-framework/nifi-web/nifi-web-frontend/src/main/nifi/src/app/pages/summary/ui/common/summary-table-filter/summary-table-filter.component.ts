@@ -19,6 +19,10 @@ import { AfterViewInit, Component, EventEmitter, Input, Output } from '@angular/
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { debounceTime } from 'rxjs';
 
+export interface SummaryTableFilterColumn {
+    key: string;
+    label: string;
+}
 export interface SummaryTableFilterArgs {
     filterTerm: string;
     filterColumn: string;
@@ -35,8 +39,9 @@ export class SummaryTableFilter implements AfterViewInit {
     filterForm: FormGroup;
     private _filteredCount: number = 0;
     private _totalCount: number = 0;
+    private _initialFilterColumn: string = 'name';
 
-    @Input() filterableColumns: string[] = [];
+    @Input() filterableColumns: SummaryTableFilterColumn[] = [];
     @Input() includeStatusFilter: boolean = false;
     @Input() includePrimaryNodeOnlyFilter: boolean = false;
     @Output() filterChanged: EventEmitter<SummaryTableFilterArgs> = new EventEmitter<SummaryTableFilterArgs>();
@@ -45,14 +50,15 @@ export class SummaryTableFilter implements AfterViewInit {
         this.filterForm.get('filterTerm')?.value(term);
     }
     @Input() set filterColumn(column: string) {
+        this._initialFilterColumn = column;
         if (this.filterableColumns?.length > 0) {
-            if (this.filterableColumns.indexOf(column) >= 0) {
-                this.filterForm.get('filterColumn')?.value(column);
+            if (this.filterableColumns.findIndex((col) => col.key === column) >= 0) {
+                this.filterForm.get('filterColumn')?.setValue(column);
             } else {
-                this.filterForm.get('filterColumn')?.value(this.filterableColumns[0]);
+                this.filterForm.get('filterColumn')?.setValue(this.filterableColumns[0].key);
             }
         } else {
-            this.filterForm.get('filterColumn')?.value(this.filterableColumns[0]);
+            this.filterForm.get('filterColumn')?.setValue(this._initialFilterColumn);
         }
     }
 
@@ -81,7 +87,7 @@ export class SummaryTableFilter implements AfterViewInit {
     constructor(private formBuilder: FormBuilder) {
         this.filterForm = this.formBuilder.group({
             filterTerm: '',
-            filterColumn: 'name',
+            filterColumn: this._initialFilterColumn || 'name',
             filterStatus: 'All',
             primaryOnly: false
         });

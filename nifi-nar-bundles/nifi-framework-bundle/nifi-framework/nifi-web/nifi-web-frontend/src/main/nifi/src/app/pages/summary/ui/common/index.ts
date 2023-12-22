@@ -15,15 +15,9 @@
  *  limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { ProcessGroupStatusListing } from './process-group-status-listing.component';
-import { CommonModule } from '@angular/common';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { ProcessGroupStatusTable } from './process-group-status-table/process-group-status-table.component';
+import { Sort } from '@angular/material/sort';
 
-@NgModule({
-    declarations: [ProcessGroupStatusListing],
-    exports: [ProcessGroupStatusListing],
-    imports: [CommonModule, NgxSkeletonLoaderModule, ProcessGroupStatusTable]
-})
-export class ProcessGroupStatusListingModule {}
+export interface MultiSort extends Sort {
+    sortValueIndex: number;
+    totalValues: number;
+}

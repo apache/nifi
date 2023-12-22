@@ -14,14 +14,15 @@
   ~  See the License for the specific language governing permissions and
   ~  limitations under the License.
   -->
-<div class="processor-status-table h-full flex flex-col">
+
+<div class="port-status-table h-full flex flex-col">
     <!-- allow filtering of the table -->
     <summary-table-filter
         [filteredCount]="filteredCount"
         [totalCount]="totalCount"
         [filterableColumns]="filterableColumns"
         [includeStatusFilter]="true"
-        [includePrimaryNodeOnlyFilter]="true"
+        [includePrimaryNodeOnlyFilter]="false"
         (filterChanged)="applyFilter($event)"></summary-table-filter>
 
     <div class="flex-1 relative">
@@ -37,17 +38,7 @@
                 <!-- More Details Column -->
                 <ng-container matColumnDef="moreDetails">
                     <th mat-header-cell *matHeaderCellDef></th>
-                    <td mat-cell *matCellDef="let item">
-                        <ng-container *ngIf="canRead(item)">
-                            <div class="flex items-center gap-x-3">
-                                <!-- TODO - handle read only in configure component? -->
-                                <div
-                                    class="pointer fa fa-info-circle"
-                                    *ngIf="canRead(item)"
-                                    title="View Processor Details"></div>
-                            </div>
-                        </ng-container>
-                    </td>
+                    <td mat-cell *matCellDef="let item"></td>
                 </ng-container>
 
                 <!-- Name Column -->
@@ -57,26 +48,6 @@
                     </th>
                     <td mat-cell *matCellDef="let item" [title]="formatName(item)">
                         {{ formatName(item) }}
-                    </td>
-                </ng-container>
-
-                <!-- Type column -->
-                <ng-container matColumnDef="type">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                        <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Type</div>
-                    </th>
-                    <td mat-cell *matCellDef="let item" [title]="formatType(item)">
-                        {{ formatType(item) }}
-                    </td>
-                </ng-container>
-
-                <!-- Process Group column -->
-                <ng-container matColumnDef="processGroup">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                        <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Process Group</div>
-                    </th>
-                    <td mat-cell *matCellDef="let item" [title]="formatProcessGroup(item)">
-                        {{ formatProcessGroup(item) }}
                     </td>
                 </ng-container>
 
@@ -126,31 +97,6 @@
                     </td>
                 </ng-container>
 
-                <!-- Read Write column -->
-                <ng-container matColumnDef="readWrite">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header title="Data size in the last 5 minutes">
-                        <div class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
-                            <span
-                                [ngClass]="{
-                                    underline: multiSort.active === 'readWrite' && multiSort.sortValueIndex === 0
-                                }"
-                                >Read</span
-                            >
-                            <span>|</span>
-                            <span
-                                [ngClass]="{
-                                    underline: multiSort.active === 'readWrite' && multiSort.sortValueIndex === 1
-                                }"
-                                >Write</span
-                            >
-                            <span class="font-light">5 min</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let item" [title]="formatReadWrite(item)">
-                        {{ formatReadWrite(item) }}
-                    </td>
-                </ng-container>
-
                 <!-- Output column -->
                 <ng-container matColumnDef="out">
                     <th
@@ -175,51 +121,15 @@
                     </td>
                 </ng-container>
 
-                <!-- Tasks column -->
-                <ng-container matColumnDef="tasks">
-                    <th
-                        mat-header-cell
-                        *matHeaderCellDef
-                        mat-sort-header
-                        title="Count / duration in the last 5 minutes">
-                        <div class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
-                            <span
-                                [ngClass]="{
-                                    underline: multiSort.active === 'tasks' && multiSort.sortValueIndex === 0
-                                }"
-                                >Tasks</span
-                            >
-                            <span>|</span>
-                            <span
-                                [ngClass]="{
-                                    underline: multiSort.active === 'tasks' && multiSort.sortValueIndex === 1
-                                }"
-                                >Time</span
-                            >
-                            <span class="font-light">5 min</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let item" [title]="formatTasks(item)">
-                        {{ formatTasks(item) }}
-                    </td>
-                </ng-container>
-
                 <ng-container matColumnDef="actions">
                     <th mat-header-cell *matHeaderCellDef></th>
                     <td mat-cell *matCellDef="let item">
                         <div class="flex items-center gap-x-3">
                             <div
                                 class="pointer fa fa-long-arrow-right"
-                                [routerLink]="getProcessorLink(item)"
+                                [routerLink]="getPortLink(item)"
                                 (click)="$event.stopPropagation()"
-                                title="Go to Processor in {{
-                                    item?.processorStatusSnapshot?.processGroupNamePath
-                                }}"></div>
-
-                            <div
-                                class="pointer fa fa-area-chart"
-                                title="View Status History"
-                                (click)="viewStatusHistoryClicked($event, item)"></div>
+                                title="Go to {{ portType }}} port"></div>
                         </div>
                     </td>
                 </ng-container>

@@ -14,14 +14,14 @@
   ~  See the License for the specific language governing permissions and
   ~  limitations under the License.
   -->
-<div class="processor-status-table h-full flex flex-col">
+<div class="process-group-status-table h-full flex flex-col">
     <!-- allow filtering of the table -->
     <summary-table-filter
         [filteredCount]="filteredCount"
         [totalCount]="totalCount"
         [filterableColumns]="filterableColumns"
-        [includeStatusFilter]="true"
-        [includePrimaryNodeOnlyFilter]="true"
+        [includeStatusFilter]="false"
+        [includePrimaryNodeOnlyFilter]="false"
         (filterChanged)="applyFilter($event)"></summary-table-filter>
 
     <div class="flex-1 relative">
@@ -44,7 +44,7 @@
                                 <div
                                     class="pointer fa fa-info-circle"
                                     *ngIf="canRead(item)"
-                                    title="View Processor Details"></div>
+                                    title="View Process Group Details"></div>
                             </div>
                         </ng-container>
                     </td>
@@ -56,51 +56,50 @@
                         <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
                     </th>
                     <td mat-cell *matCellDef="let item" [title]="formatName(item)">
-                        {{ formatName(item) }}
-                    </td>
-                </ng-container>
-
-                <!-- Type column -->
-                <ng-container matColumnDef="type">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                        <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Type</div>
-                    </th>
-                    <td mat-cell *matCellDef="let item" [title]="formatType(item)">
-                        {{ formatType(item) }}
-                    </td>
-                </ng-container>
-
-                <!-- Process Group column -->
-                <ng-container matColumnDef="processGroup">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                        <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Process Group</div>
-                    </th>
-                    <td mat-cell *matCellDef="let item" [title]="formatProcessGroup(item)">
-                        {{ formatProcessGroup(item) }}
-                    </td>
-                </ng-container>
-
-                <!-- Run Status column -->
-                <ng-container matColumnDef="runStatus">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Run Status</th>
-                    <td mat-cell *matCellDef="let item">
-                        <div class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1.5">
-                            <span [ngClass]="getRunStatusIcon(item)"></span>
-                            <span [title]="formatRunStatus(item)">{{ formatRunStatus(item) }}</span>
-
-                            <ng-container *ngIf="item.processorStatusSnapshot as pg">
-                                <span
-                                    *ngIf="pg.terminatedThreadCount > 0; else activeThreads"
-                                    title="Threads: (Active / Terminated)"
-                                    >({{ pg.activeThreadCount }}/{{ pg.terminatedThreadCount }})</span
-                                >
-                                <ng-template #activeThreads>
-                                    <span *ngIf="pg.activeThreadCount > 0" title="Active Threads"
-                                        >({{ pg.activeThreadCount }})</span
-                                    >
-                                </ng-template>
-                            </ng-container>
+                        <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
+                            {{ formatName(item) }}
                         </div>
+                    </td>
+                </ng-container>
+
+                <!-- Version State column -->
+                <ng-container matColumnDef="versionedFlowState">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                        <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Version State</div>
+                    </th>
+                    <td mat-cell *matCellDef="let item">
+                        <div class="flex items-center gap-x-1.5" [title]="formatVersionedFlowState(item)">
+                            <div [ngClass]="getVersionedFlowStateIcon(item)"></div>
+                            <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap min-w-0">
+                                {{ formatVersionedFlowState(item) }}
+                            </div>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Transferred column -->
+                <ng-container matColumnDef="transferred">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                        <div
+                            class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1"
+                            title="Count / data size transferred to and from connections in the last 5 min">
+                            <span
+                                [ngClass]="{
+                                    underline: multiSort.active === 'transferred' && multiSort.sortValueIndex === 0
+                                }"
+                                >Transferred</span
+                            >
+                            <span
+                                [ngClass]="{
+                                    underline: multiSort.active === 'transferred' && multiSort.sortValueIndex === 1
+                                }"
+                                >(Size)</span
+                            >
+                            <span class="font-light">5 min</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let item" [title]="formatTransferred(item)">
+                        {{ formatTransferred(item) }}
                     </td>
                 </ng-container>
 
@@ -160,18 +159,98 @@
                         title="Count / data size in the last 5 minutes">
                         <div class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
                             <span
-                                [ngClass]="{ underline: multiSort.active === 'out' && multiSort.sortValueIndex === 0 }">
-                                Out
-                            </span>
+                                [ngClass]="{ underline: multiSort.active === 'out' && multiSort.sortValueIndex === 0 }"
+                                >Out</span
+                            >
                             <span
-                                [ngClass]="{ underline: multiSort.active === 'out' && multiSort.sortValueIndex === 1 }">
-                                (Size)
-                            </span>
+                                [ngClass]="{ underline: multiSort.active === 'out' && multiSort.sortValueIndex === 1 }"
+                                >(Size)</span
+                            >
                             <span class="font-light">5 min</span>
                         </div>
                     </th>
                     <td mat-cell *matCellDef="let item" [title]="formatOut(item)">
                         {{ formatOut(item) }}
+                    </td>
+                </ng-container>
+
+                <!-- Sent column -->
+                <ng-container matColumnDef="sent">
+                    <th
+                        mat-header-cell
+                        *matHeaderCellDef
+                        mat-sort-header
+                        title="Count / data size in the last 5 minutes">
+                        <div class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                            <span
+                                [ngClass]="{ underline: multiSort.active === 'sent' && multiSort.sortValueIndex === 0 }"
+                                >Sent</span
+                            >
+                            <span
+                                [ngClass]="{ underline: multiSort.active === 'sent' && multiSort.sortValueIndex === 1 }"
+                                >(Size)</span
+                            >
+                            <span class="font-light">5 min</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let item" [title]="formatSent(item)">
+                        {{ formatSent(item) }}
+                    </td>
+                </ng-container>
+
+                <!-- Received column -->
+                <ng-container matColumnDef="received">
+                    <th
+                        mat-header-cell
+                        *matHeaderCellDef
+                        mat-sort-header
+                        title="Count / data size in the last 5 minutes">
+                        <div class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                            <span
+                                [ngClass]="{
+                                    underline: multiSort.active === 'received' && multiSort.sortValueIndex === 0
+                                }"
+                                >Received</span
+                            >
+                            <span
+                                [ngClass]="{
+                                    underline: multiSort.active === 'received' && multiSort.sortValueIndex === 1
+                                }"
+                                >(Size)</span
+                            >
+                            <span class="font-light">5 min</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let item" [title]="formatReceived(item)">
+                        {{ formatReceived(item) }}
+                    </td>
+                </ng-container>
+
+                <!-- Received column -->
+                <ng-container matColumnDef="activeThreads">
+                    <th
+                        mat-header-cell
+                        *matHeaderCellDef
+                        mat-sort-header
+                        title="Total active thread count within ProcessGroup (% of total active thread count compared to overall active thread count in root ProcessGroup) in the last 5 min">
+                        <div class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                            <span
+                                [ngClass]="{
+                                    underline: multiSort.active === 'activeThreads' && multiSort.sortValueIndex === 0
+                                }"
+                                >Active Threads</span
+                            >
+                            <span
+                                [ngClass]="{
+                                    underline: multiSort.active === 'activeThreads' && multiSort.sortValueIndex === 1
+                                }"
+                                >(%)</span
+                            >
+                            <span class="font-light">5 min</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let item" [title]="formatActiveThreads(item)">
+                        {{ formatActiveThreads(item) }}
                     </td>
                 </ng-container>
 
@@ -181,20 +260,19 @@
                         mat-header-cell
                         *matHeaderCellDef
                         mat-sort-header
-                        title="Count / duration in the last 5 minutes">
+                        title="Total task duration within ProcessGroup (% of total task duration compared to overall task duration in root ProcessGroup) in the last 5 min">
                         <div class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
                             <span
                                 [ngClass]="{
                                     underline: multiSort.active === 'tasks' && multiSort.sortValueIndex === 0
                                 }"
-                                >Tasks</span
+                                >Total Task Duration</span
                             >
-                            <span>|</span>
                             <span
                                 [ngClass]="{
                                     underline: multiSort.active === 'tasks' && multiSort.sortValueIndex === 1
                                 }"
-                                >Time</span
+                                >(%)</span
                             >
                             <span class="font-light">5 min</span>
                         </div>
@@ -210,11 +288,9 @@
                         <div class="flex items-center gap-x-3">
                             <div
                                 class="pointer fa fa-long-arrow-right"
-                                [routerLink]="getProcessorLink(item)"
+                                [routerLink]="getProcessGroupLink(item)"
                                 (click)="$event.stopPropagation()"
-                                title="Go to Processor in {{
-                                    item?.processorStatusSnapshot?.processGroupNamePath
-                                }}"></div>
+                                title="Go to Process Group {{ item?.processGroupStatusSnapshot?.name }}"></div>
 
                             <div
                                 class="pointer fa fa-area-chart"
