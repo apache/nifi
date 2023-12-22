@@ -164,6 +164,34 @@ public class QueryCassandraTest {
     }
 
     @Test
+    public void testProcessorJsonOutputFragmentAttributes() {
+        processor = new MockQueryCassandraTwoRounds();
+        testRunner = TestRunners.newTestRunner(processor);
+        setUpStandardProcessorConfig();
+        testRunner.setIncomingConnection(false);
+        testRunner.setProperty(QueryCassandra.MAX_ROWS_PER_FLOW_FILE, "1");
+
+        // Test JSON output
+        testRunner.setProperty(QueryCassandra.OUTPUT_FORMAT, QueryCassandra.JSON_FORMAT);
+        testRunner.run(1, true, true);
+        testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 2);
+        List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
+        assertNotNull(files);
+        assertEquals(2, files.size(), "Two files should be transferred to success");
+        String indexIdentifier = null;
+        for (int i = 0; i < files.size(); i++) {
+            MockFlowFile flowFile = files.get(i);
+            flowFile.assertAttributeEquals(QueryCassandra.FRAGMENT_INDEX, String.valueOf(i));
+            if (indexIdentifier == null) {
+                indexIdentifier = flowFile.getAttribute(QueryCassandra.FRAGMENT_ID);
+            } else {
+                flowFile.assertAttributeEquals(QueryCassandra.FRAGMENT_ID, indexIdentifier);
+            }
+            flowFile.assertAttributeEquals(QueryCassandra.FRAGMENT_COUNT, String.valueOf(files.size()));
+        }
+    }
+
+    @Test
     public void testProcessorELConfigJsonOutput() {
         setUpStandardProcessorConfig();
         testRunner.setProperty(AbstractCassandraProcessor.CONTACT_POINTS, "${hosts}");
@@ -412,8 +440,10 @@ public class QueryCassandraTest {
 
     @Test
     public void testConvertToAvroStream() throws Exception {
+        processor = new MockQueryCassandraTwoRounds();
+        testRunner = TestRunners.newTestRunner(processor);
         setUpStandardProcessorConfig();
-        ResultSet rs = CassandraQueryTestUtil.createMockResultSet();
+        ResultSet rs = CassandraQueryTestUtil.createMockResultSet(false);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         long numberOfRows = QueryCassandra.convertToAvroStream(rs, 0, baos, 0, null);
         assertEquals(2, numberOfRows);

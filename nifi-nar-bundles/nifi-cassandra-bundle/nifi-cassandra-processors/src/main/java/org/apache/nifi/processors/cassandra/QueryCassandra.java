@@ -48,12 +48,12 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 
@@ -66,12 +66,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -85,13 +87,29 @@ import java.util.concurrent.atomic.AtomicLong;
         + "scheduled to run on a timer, or cron expression, using the standard scheduling methods, or it can be triggered by an incoming FlowFile. "
         + "If it is triggered by an incoming FlowFile, then attributes of that FlowFile will be available when evaluating the "
         + "select query. FlowFile attribute 'executecql.row.count' indicates how many rows were selected.")
-@WritesAttributes({@WritesAttribute(attribute = "executecql.row.count", description = "The number of rows returned by the CQL query")})
+@WritesAttributes({
+        @WritesAttribute(attribute = "executecql.row.count", description = "The number of rows returned by the CQL query"),
+        @WritesAttribute(attribute = "fragment.identifier", description = "If 'Max Rows Per Flow File' is set then all FlowFiles from the same query result set "
+                + "will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
+        @WritesAttribute(attribute = "fragment.count", description = "If 'Max Rows Per Flow File' is set then this is the total number of  "
+                + "FlowFiles produced by a single ResultSet. This can be used in conjunction with the "
+                + "fragment.identifier attribute in order to know how many FlowFiles belonged to the same incoming ResultSet. If Output Batch Size is set, then this "
+                + "attribute will not be populated."),
+        @WritesAttribute(attribute = "fragment.index", description = "If 'Max Rows Per Flow File' is set then the position of this FlowFile in the list of "
+                + "outgoing FlowFiles that were all derived from the same result set FlowFile. This can be "
+                + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
+                + "FlowFiles were produced")
+})
 public class QueryCassandra extends AbstractCassandraProcessor {
 
     public static final String AVRO_FORMAT = "Avro";
     public static final String JSON_FORMAT = "JSON";
 
     public static final String RESULT_ROW_COUNT = "executecql.row.count";
+
+    public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
+    public static final String FRAGMENT_INDEX = FragmentAttributes.FRAGMENT_INDEX.key();
+    public static final String FRAGMENT_COUNT = FragmentAttributes.FRAGMENT_COUNT.key();
 
     public static final PropertyDescriptor CQL_SELECT_QUERY = new PropertyDescriptor.Builder()
             .name("CQL select query")
@@ -248,6 +266,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(fileToProcess).getValue());
         final StopWatch stopWatch = new StopWatch(true);
 
+        final List<FlowFile> resultSetFlowFiles = new LinkedList<>();
+
         try {
             // The documentation for the driver recommends the session remain open the entire time the processor is running
             // and states that it is thread-safe. This is why connectionSession is not in a try-with-resources.
@@ -261,39 +281,37 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             }
             final AtomicLong nrOfRows = new AtomicLong(0L);
 
-            long flowFileCount = 0;
-
             if(fileToProcess == null) {
                 fileToProcess = session.create();
             }
 
+            int fragmentIndex = 0;
+            final String fragmentId = UUID.randomUUID().toString();
+
             while(true) {
 
-                fileToProcess = session.write(fileToProcess, new OutputStreamCallback() {
-                    @Override
-                    public void process(final OutputStream out) throws IOException {
-                        try {
-                            logger.debug("Executing CQL query {}", new Object[]{selectQuery});
-                            if (queryTimeout > 0) {
-                                if (AVRO_FORMAT.equals(outputFormat)) {
-                                    nrOfRows.set(convertToAvroStream(resultSet, maxRowsPerFlowFile,
-                                            out, queryTimeout, TimeUnit.MILLISECONDS));
-                                } else if (JSON_FORMAT.equals(outputFormat)) {
-                                    nrOfRows.set(convertToJsonStream(resultSet, maxRowsPerFlowFile,
-                                            out, charset, queryTimeout, TimeUnit.MILLISECONDS));
-                                }
-                            } else {
-                                if (AVRO_FORMAT.equals(outputFormat)) {
-                                    nrOfRows.set(convertToAvroStream(resultSet, maxRowsPerFlowFile,
-                                            out, 0, null));
-                                } else if (JSON_FORMAT.equals(outputFormat)) {
-                                    nrOfRows.set(convertToJsonStream(resultSet, maxRowsPerFlowFile,
-                                            out, charset, 0, null));
-                                }
+                fileToProcess = session.write(fileToProcess, out -> {
+                    try {
+                        logger.debug("Executing CQL query {}", selectQuery);
+                        if (queryTimeout > 0) {
+                            if (AVRO_FORMAT.equals(outputFormat)) {
+                                nrOfRows.set(convertToAvroStream(resultSet, maxRowsPerFlowFile,
+                                        out, queryTimeout, TimeUnit.MILLISECONDS));
+                            } else if (JSON_FORMAT.equals(outputFormat)) {
+                                nrOfRows.set(convertToJsonStream(resultSet, maxRowsPerFlowFile,
+                                        out, charset, queryTimeout, TimeUnit.MILLISECONDS));
                             }
-                        } catch (final TimeoutException | InterruptedException | ExecutionException e) {
-                            throw new ProcessException(e);
+                        } else {
+                            if (AVRO_FORMAT.equals(outputFormat)) {
+                                nrOfRows.set(convertToAvroStream(resultSet, maxRowsPerFlowFile,
+                                        out, 0, null));
+                            } else if (JSON_FORMAT.equals(outputFormat)) {
+                                nrOfRows.set(convertToJsonStream(resultSet, maxRowsPerFlowFile,
+                                        out, charset, 0, null));
+                            }
                         }
+                    } catch (final TimeoutException | InterruptedException | ExecutionException e) {
+                        throw new ProcessException(e);
                     }
                 });
 
@@ -306,23 +324,37 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
                 if (logger.isDebugEnabled()) {
                     logger.info("{} contains {} records; transferring to 'success'",
-                            new Object[]{fileToProcess, nrOfRows.get()});
+                            fileToProcess, nrOfRows.get());
+                }
+                if (maxRowsPerFlowFile > 0) {
+                    fileToProcess = session.putAttribute(fileToProcess, FRAGMENT_ID, fragmentId);
+                    fileToProcess = session.putAttribute(fileToProcess, FRAGMENT_INDEX, String.valueOf(fragmentIndex));
                 }
                 session.getProvenanceReporter().modifyContent(fileToProcess, "Retrieved " + nrOfRows.get() + " rows",
                         stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-                session.transfer(fileToProcess, REL_SUCCESS);
+                resultSetFlowFiles.add(fileToProcess);
 
                 if (outputBatchSize > 0) {
-                    flowFileCount++;
 
-                    if (flowFileCount == outputBatchSize) {
+                    if (resultSetFlowFiles.size() == outputBatchSize) {
+                        session.transfer(resultSetFlowFiles, REL_SUCCESS);
                         session.commitAsync();
-                        flowFileCount = 0;
-//                        fileToProcess = session.create();
+                        resultSetFlowFiles.clear();
                     }
                 }
+                fragmentIndex++;
                 resultSet.fetchMoreResults().get();
                 if (resultSet.isExhausted()) {
+                    // If we are splitting results but not outputting batches, set count on all FlowFiles
+                    if (outputBatchSize == 0 && maxRowsPerFlowFile > 0) {
+                        for (int i = 0; i < resultSetFlowFiles.size(); i++) {
+                            resultSetFlowFiles.set(i,
+                                    session.putAttribute(resultSetFlowFiles.get(i), FRAGMENT_COUNT, Integer.toString(fragmentIndex)));
+                        }
+                    }
+                    session.transfer(resultSetFlowFiles, REL_SUCCESS);
+                    session.commitAsync();
+                    resultSetFlowFiles.clear();
                     break;
                 }
                 fileToProcess = session.create();
@@ -408,11 +440,6 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         session.commitAsync();
     }
 
-    private void handleException() {
-
-    }
-
-
     @OnUnscheduled
     public void stop(ProcessContext context) {
         super.stop(context);
@@ -463,26 +490,19 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                     } else {
                         rs.fetchMoreResults().get(timeout, timeUnit);
                     }
-                    rowsAvailableWithoutFetching = rs.getAvailableWithoutFetching();
-                }
-
-                if(maxRowsPerFlowFile == 0){
-                    maxRowsPerFlowFile = rowsAvailableWithoutFetching;
                 }
 
                 Row row;
-                //Iterator<Row> it = rs.iterator();
-                while(nrOfRows < maxRowsPerFlowFile){
+                while ((maxRowsPerFlowFile == 0) || nrOfRows < maxRowsPerFlowFile) {
                     try {
                         row = rs.iterator().next();
-                    }catch (NoSuchElementException nsee){
-                        nrOfRows -= 1;
+                    } catch (NoSuchElementException nsee) {
                         break;
                     }
 
                     // iterator().next() is like iterator().one() => return null on end
                     // https://docs.datastax.com/en/drivers/java/2.0/com/datastax/driver/core/ResultSet.html#one--
-                    if(row == null){
+                    if (row == null) {
                         break;
                     }
 
