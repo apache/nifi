@@ -17,33 +17,5 @@
 
 package org.apache.nifi.processors.snowflake.util;
 
-public class SnowflakeInternalStageTypeParameters {
-
-    private final String database;
-    private final String schema;
-    private final String table;
-    private final String stageName;
-
-    public SnowflakeInternalStageTypeParameters(final String database, final String schema, final String table, final String stageName) {
-        this.database = database;
-        this.schema = schema;
-        this.table = table;
-        this.stageName = stageName;
-    }
-
-    public String getDatabase() {
-        return database;
-    }
-
-    public String getSchema() {
-        return schema;
-    }
-
-    public String getTable() {
-        return table;
-    }
-
-    public String getStageName() {
-        return stageName;
-    }
+public record SnowflakeInternalStageTypeParameters(String database, String schema, String table, String stageName) {
 }
