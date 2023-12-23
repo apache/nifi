@@ -33,7 +33,6 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -59,8 +58,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -123,7 +120,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .displayName("Unmatched Column Behavior")
             .description("If an incoming record does not have a field mapping for all of the database table's columns, this property specifies how to handle the situation.")
             .allowableValues(UnmatchedColumnBehavior.class)
-            .defaultValue(UnmatchedColumnBehavior.FAIL_UNMATCHED_COLUMN.getValue())
+            .defaultValue(UnmatchedColumnBehavior.FAIL_UNMATCHED_COLUMN)
             .required(true)
             .build();
 
@@ -132,10 +129,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .displayName("File Format")
             .description("File format to use when writing Iceberg data files." +
                     " If not set, then the 'write.format.default' table property will be used, default value is parquet.")
-            .allowableValues(
-                    new AllowableValue("AVRO"),
-                    new AllowableValue("PARQUET"),
-                    new AllowableValue("ORC"))
+            .allowableValues(new FileFormat[]{FileFormat.AVRO, FileFormat.PARQUET, FileFormat.ORC})
             .build();
 
     static final PropertyDescriptor MAXIMUM_FILE_SIZE = new PropertyDescriptor.Builder()
@@ -192,7 +186,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .description("A FlowFile is routed to this relationship after the data ingestion was successful.")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             RECORD_READER,
             CATALOG,
             CATALOG_NAMESPACE,
@@ -205,12 +199,9 @@ public class PutIceberg extends AbstractIcebergProcessor {
             MINIMUM_COMMIT_WAIT_TIME,
             MAXIMUM_COMMIT_WAIT_TIME,
             MAXIMUM_COMMIT_DURATION
-    ));
+    );
 
-    public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            REL_SUCCESS,
-            REL_FAILURE
-    )));
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -295,8 +286,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             final FileFormat format = getFileFormat(table.properties(), fileFormat);
             final IcebergTaskWriterFactory taskWriterFactory = new IcebergTaskWriterFactory(table, flowFile.getId(), format, maximumFileSize);
             taskWriter = taskWriterFactory.create();
-            final UnmatchedColumnBehavior unmatchedColumnBehavior =
-                    UnmatchedColumnBehavior.valueOf(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
+            final UnmatchedColumnBehavior unmatchedColumnBehavior = context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).asDescribedValue(UnmatchedColumnBehavior.class);
 
             final IcebergRecordConverter recordConverter = new IcebergRecordConverter(table.schema(), reader.getSchema(), format, unmatchedColumnBehavior, getLogger());
 
