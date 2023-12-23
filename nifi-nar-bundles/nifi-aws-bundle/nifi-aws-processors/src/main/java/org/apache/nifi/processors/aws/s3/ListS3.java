@@ -479,7 +479,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         int listCount = 0;
         int totalListCount = 0;
 
-        getLogger().trace("Start listing, listingTimestamp={}", new Object[]{listingTimestamp});
+        getLogger().trace("Start listing, listingTimestamp={}", listingTimestamp);
 
         final S3ObjectWriter writer;
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
@@ -501,7 +501,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                         continue;
                     }
 
-                    getLogger().trace("Listed key={}, lastModified={}", new Object[]{versionSummary.getKey(), lastModified});
+                    getLogger().trace("Listed key={}, lastModified={}", versionSummary.getKey(), lastModified);
 
                     GetObjectTaggingResult taggingResult = getTaggingResult(context, client, versionSummary);
 
@@ -526,7 +526,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
             writer.finishListing();
         } catch (final Exception e) {
-            getLogger().error("Failed to list contents of bucket due to {}", e, e);
+            getLogger().error("Failed to list contents of bucket", e);
             writer.finishListingExceptionally(e);
             session.rollback();
             context.yield();
@@ -534,10 +534,10 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
 
         final long listMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        getLogger().info("Successfully listed S3 bucket {} in {} millis", new Object[]{bucket, listMillis});
+        getLogger().info("Successfully listed S3 bucket {} in {} millis", bucket, listMillis);
 
         if (totalListCount == 0) {
-            getLogger().debug("No new objects in S3 bucket {} to list. Yielding.", new Object[]{bucket});
+            getLogger().debug("No new objects in S3 bucket {} to list. Yielding", bucket);
             context.yield();
         }
     }
@@ -571,7 +571,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         long latestListedTimestampInThisCycle = currentTimestamp;
 
         final Set<String> listedKeys = new HashSet<>();
-        getLogger().trace("Start listing, listingTimestamp={}, currentTimestamp={}, currentKeys={}", new Object[]{listingTimestamp, currentTimestamp, currentKeys});
+        getLogger().trace("Start listing, listingTimestamp={}, currentTimestamp={}, currentKeys={}", listingTimestamp, currentTimestamp, currentKeys);
 
         final S3ObjectWriter writer;
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
@@ -595,7 +595,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                         continue;
                     }
 
-                    getLogger().trace("Listed key={}, lastModified={}, currentKeys={}", new Object[]{versionSummary.getKey(), lastModified, currentKeys});
+                    getLogger().trace("Listed key={}, lastModified={}, currentKeys={}", versionSummary.getKey(), lastModified, currentKeys);
 
                     GetObjectTaggingResult taggingResult = getTaggingResult(context, client, versionSummary);
 
@@ -652,10 +652,10 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         });
 
         final long listMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        getLogger().info("Successfully listed S3 bucket {} in {} millis", new Object[]{bucket, listMillis});
+        getLogger().info("Successfully listed S3 bucket {} in {} millis", bucket, listMillis);
 
         if (totalListCount == 0) {
-            getLogger().debug("No new objects in S3 bucket {} to list. Yielding.", new Object[]{bucket});
+            getLogger().debug("No new objects in S3 bucket {} to list. Yielding", bucket);
             context.yield();
         }
     }
@@ -732,7 +732,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                     listCount++;
 
                     if (listCount >= batchSize && writer.isCheckpoint()) {
-                        getLogger().info("Successfully listed {} new files from S3; routing to success", new Object[]{listCount});
+                        getLogger().info("Successfully listed {} new files from S3; routing to success", listCount);
                         session.commitAsync();
                     }
 
