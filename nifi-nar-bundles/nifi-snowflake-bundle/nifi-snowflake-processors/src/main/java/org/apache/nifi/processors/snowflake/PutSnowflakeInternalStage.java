@@ -17,17 +17,6 @@
 
 package org.apache.nifi.processors.snowflake;
 
-import static org.apache.nifi.processors.snowflake.util.SnowflakeAttributes.ATTRIBUTE_STAGED_FILE_PATH;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -47,6 +36,15 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.snowflake.util.SnowflakeInternalStageType;
 import org.apache.nifi.processors.snowflake.util.SnowflakeInternalStageTypeParameters;
 import org.apache.nifi.processors.snowflake.util.SnowflakeProperties;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.apache.nifi.processors.snowflake.util.SnowflakeAttributes.ATTRIBUTE_STAGED_FILE_PATH;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @WritesAttributes({
@@ -115,19 +113,16 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
             .description("For FlowFiles of failed PUT operation")
             .build();
 
-    static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    static final List<PropertyDescriptor> PROPERTIES = List.of(
             SNOWFLAKE_CONNECTION_PROVIDER,
             INTERNAL_STAGE_TYPE,
             DATABASE,
             SCHEMA,
             TABLE,
             INTERNAL_STAGE
-    ));
+    );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            REL_SUCCESS,
-            REL_FAILURE
-    )));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -146,8 +141,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
             return;
         }
 
-        final SnowflakeInternalStageType internalStageType = SnowflakeInternalStageType.forName(context.getProperty(INTERNAL_STAGE_TYPE)
-                .getValue());
+        final SnowflakeInternalStageType internalStageType = context.getProperty(INTERNAL_STAGE_TYPE).asDescribedValue(SnowflakeInternalStageType.class);
         final SnowflakeInternalStageTypeParameters parameters = getSnowflakeInternalStageTypeParameters(context, flowFile);
         final String internalStageName = internalStageType.getStage(parameters);
         final SnowflakeConnectionProviderService connectionProviderService =

@@ -17,9 +17,10 @@
 
 package org.apache.nifi.processors.snowflake;
 
+import net.snowflake.client.jdbc.SnowflakeConnection;
+
 import java.sql.Connection;
 import java.sql.SQLException;
-import net.snowflake.client.jdbc.SnowflakeConnection;
 
 public class SnowflakeConnectionWrapper implements AutoCloseable {
 

@@ -17,10 +17,10 @@
 
 package org.apache.nifi.snowflake.service.util;
 
+import org.apache.nifi.components.DescribedValue;
+
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Stream;
-import org.apache.nifi.components.DescribedValue;
 
 public enum AccountIdentifierFormat implements DescribedValue {
     FULL_URL("full-url", "Full URL", "Provide an account identifier in a single property") {
@@ -100,10 +100,4 @@ public enum AccountIdentifierFormat implements DescribedValue {
     public abstract String getAccount(final AccountIdentifierFormatParameters parameters);
     public abstract String getHostname(final AccountIdentifierFormatParameters parameters);
 
-    public static AccountIdentifierFormat forName(String provideMethod) {
-        return Stream.of(values()).filter(provider -> provider.getValue().equalsIgnoreCase(provideMethod))
-                .findFirst()
-                .orElseThrow(
-                        () -> new IllegalArgumentException("Invalid AccountIdentifierFormat: " + provideMethod));
-    }
 }

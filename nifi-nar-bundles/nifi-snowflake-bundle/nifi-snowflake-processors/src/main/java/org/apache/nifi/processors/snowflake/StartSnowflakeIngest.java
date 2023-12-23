@@ -17,15 +17,6 @@
 
 package org.apache.nifi.processors.snowflake;
 
-import static org.apache.nifi.processors.snowflake.util.SnowflakeAttributes.ATTRIBUTE_STAGED_FILE_PATH;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import net.snowflake.ingest.SimpleIngestManager;
 import net.snowflake.ingest.connection.IngestResponseException;
 import net.snowflake.ingest.utils.StagedFileWrapper;
@@ -43,6 +34,13 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.List;
+import java.util.Set;
+
+import static org.apache.nifi.processors.snowflake.util.SnowflakeAttributes.ATTRIBUTE_STAGED_FILE_PATH;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @ReadsAttributes({
@@ -74,14 +72,9 @@ public class StartSnowflakeIngest extends AbstractProcessor {
             .description("For FlowFiles of failed ingest request")
             .build();
 
-    static final List<PropertyDescriptor> PROPERTIES = Collections.singletonList(
-            INGEST_MANAGER_PROVIDER
-    );
+    static final List<PropertyDescriptor> PROPERTIES = List.of(INGEST_MANAGER_PROVIDER);
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            REL_SUCCESS,
-            REL_FAILURE
-    )));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
