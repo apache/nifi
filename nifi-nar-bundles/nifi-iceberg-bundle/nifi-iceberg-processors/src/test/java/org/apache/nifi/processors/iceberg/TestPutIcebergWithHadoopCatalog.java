@@ -138,7 +138,7 @@ public class TestPutIcebergWithHadoopCatalog {
         Table table = catalog.loadTable(TABLE_IDENTIFIER);
 
         runner.assertTransferCount(PutIceberg.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).getFirst();
 
         Assertions.assertTrue(table.spec().isPartitioned());
         Assertions.assertEquals("4", flowFile.getAttribute(ICEBERG_RECORD_COUNT));
@@ -165,7 +165,7 @@ public class TestPutIcebergWithHadoopCatalog {
         Table table = catalog.loadTable(TABLE_IDENTIFIER);
 
         runner.assertTransferCount(PutIceberg.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).getFirst();
 
         Assertions.assertTrue(table.spec().isPartitioned());
         Assertions.assertEquals("4", flowFile.getAttribute(ICEBERG_RECORD_COUNT));
@@ -193,7 +193,7 @@ public class TestPutIcebergWithHadoopCatalog {
         Table table = catalog.loadTable(TABLE_IDENTIFIER);
 
         runner.assertTransferCount(PutIceberg.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).getFirst();
 
         Assertions.assertTrue(table.spec().isPartitioned());
         Assertions.assertEquals("4", flowFile.getAttribute(ICEBERG_RECORD_COUNT));
