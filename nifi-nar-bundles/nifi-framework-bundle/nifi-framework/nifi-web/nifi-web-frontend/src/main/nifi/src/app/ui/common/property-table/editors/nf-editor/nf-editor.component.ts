@@ -82,6 +82,7 @@ export class NfEditor implements OnDestroy {
         this.getParametersSet = true;
         this.loadParameters();
     }
+    @Input() width!: number;
 
     @Output() ok: EventEmitter<string> = new EventEmitter<string>();
     @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
