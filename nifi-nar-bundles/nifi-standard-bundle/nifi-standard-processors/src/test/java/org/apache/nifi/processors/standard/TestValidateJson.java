@@ -21,10 +21,10 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.schema.access.JsonSchema;
+import org.apache.nifi.json.schema.JsonSchema;
 import org.apache.nifi.schema.access.JsonSchemaRegistryComponent;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.schema.access.SchemaVersion;
+import org.apache.nifi.json.schema.SchemaVersion;
 import org.apache.nifi.schemaregistry.services.JsonSchemaRegistry;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -241,7 +241,7 @@ class TestValidateJson {
         runner.addControllerService(registryIdentifier, validJsonSchemaRegistry);
         runner.enableControllerService(validJsonSchemaRegistry);
         runner.assertValid(validJsonSchemaRegistry);
-        runner.setProperty(ValidateJson.SCHEMA_ACCESS_STRATEGY, ValidateJson.SCHEMA_NAME_PROPERTY.getValue());
+        runner.setProperty(ValidateJson.SCHEMA_ACCESS_STRATEGY, ValidateJson.JsonSchemaStrategy.SCHEMA_NAME_PROPERTY.getValue());
         runner.setProperty(ValidateJson.SCHEMA_REGISTRY, registryIdentifier);
 
         Map<String, String> attributes = new HashMap<>();
@@ -267,8 +267,8 @@ class TestValidateJson {
 
     private static Stream<Arguments> customValidateArgs() {
         return Stream.of(
-                Arguments.of(ValidateJson.SCHEMA_NAME_PROPERTY.getValue(), "requires that the Schema Registry property be set", "no registry set"),
-                Arguments.of(ValidateJson.SCHEMA_CONTENT_PROPERTY.getValue(), "requires that the JSON Schema property be set", "no content specified")
+                Arguments.of(ValidateJson.JsonSchemaStrategy.SCHEMA_NAME_PROPERTY.getValue(), "requires that the JSON Schema Registry property be set", "no registry set"),
+                Arguments.of(ValidateJson.JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY.getValue(), "requires that the JSON Schema property be set", "no content specified")
         );
     }
 

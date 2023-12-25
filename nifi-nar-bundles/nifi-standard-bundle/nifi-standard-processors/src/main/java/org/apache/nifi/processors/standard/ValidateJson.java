@@ -35,7 +35,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
@@ -51,9 +51,9 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.schema.access.JsonSchema;
+import org.apache.nifi.json.schema.JsonSchema;
 import org.apache.nifi.schema.access.JsonSchemaRegistryComponent;
-import org.apache.nifi.schema.access.SchemaVersion;
+import org.apache.nifi.json.schema.SchemaVersion;
 import org.apache.nifi.schemaregistry.services.JsonSchemaRegistry;
 
 import java.io.IOException;
@@ -92,25 +92,48 @@ import java.util.stream.Collectors;
         }
 )
 public class ValidateJson extends AbstractProcessor {
+    public enum JsonSchemaStrategy implements DescribedValue {
+        SCHEMA_NAME_PROPERTY("Use '" + SCHEMA_NAME_PROPERTY_NAME + "' Property",
+                "The name of the Schema to use is specified by the '" + SCHEMA_NAME_PROPERTY_NAME +
+                        "' Property. The value of this property is used to lookup the Schema in the configured JSON Schema Registry service."),
+        SCHEMA_CONTENT_PROPERTY("Use '" + SCHEMA_CONTENT_PROPERTY_NAME + "' Property",
+                "A URL or file path to the JSON schema or the actual JSON schema is specified by the '" + SCHEMA_CONTENT_PROPERTY_NAME + "' Property. " +
+                        "No matter how the JSON schema is specified, it must be a valid JSON schema");
+
+        JsonSchemaStrategy(String displayName, String description) {
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        private final String displayName;
+        private final String description;
+
+        @Override
+        public String getValue() {
+            return name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
+    }
 
     public static final String SCHEMA_NAME_PROPERTY_NAME = "Schema Name";
     public static final String SCHEMA_CONTENT_PROPERTY_NAME = "JSON Schema";
     public static final String ERROR_ATTRIBUTE_KEY = "json.validation.errors";
-    public static final AllowableValue SCHEMA_NAME_PROPERTY = new AllowableValue("schema-name", "Use '" + SCHEMA_NAME_PROPERTY_NAME + "' Property",
-            "The name of the Schema to use is specified by the '" + SCHEMA_NAME_PROPERTY_NAME +
-                    "' Property. The value of this property is used to lookup the Schema in the configured JSON Schema Registry service.");
-    public static final AllowableValue SCHEMA_CONTENT_PROPERTY = new AllowableValue("schema-content-property", "Use '" + SCHEMA_CONTENT_PROPERTY_NAME + "' Property",
-            "A URL or file path to the JSON schema or the actual JSON schema is specified by the '" + SCHEMA_CONTENT_PROPERTY_NAME + "' Property. " +
-                    "No matter how the JSON schema is specified, it must be a valid JSON schema");
-
-    private static final List<AllowableValue> STRATEGY_LIST = Arrays.asList(SCHEMA_NAME_PROPERTY, SCHEMA_CONTENT_PROPERTY);
 
     public static final PropertyDescriptor SCHEMA_ACCESS_STRATEGY = new PropertyDescriptor.Builder()
-            .name("schema-access-strategy")
+            .name("Schema Access Strategy")
             .displayName("Schema Access Strategy")
             .description("Specifies how to obtain the schema that is to be used for interpreting the data.")
-            .allowableValues(STRATEGY_LIST.toArray(new AllowableValue[0]))
-            .defaultValue(SCHEMA_CONTENT_PROPERTY.getValue())
+            .allowableValues(JsonSchemaStrategy.class)
+            .defaultValue(JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY.getValue())
             .required(true)
             .build();
 
@@ -121,17 +144,17 @@ public class ValidateJson extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("${schema.name}")
-            .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY)
+            .dependsOn(SCHEMA_ACCESS_STRATEGY, JsonSchemaStrategy.SCHEMA_NAME_PROPERTY)
             .required(false)
             .build();
 
     public static final PropertyDescriptor SCHEMA_REGISTRY = new PropertyDescriptor.Builder()
-            .name("schema-registry")
-            .displayName("Schema Registry")
-            .description("Specifies the Controller Service to use for the Schema Registry")
+            .name("JSON Schema Registry")
+            .displayName("JSON Schema Registry")
+            .description("Specifies the Controller Service to use for the JSON Schema Registry")
             .identifiesControllerService(JsonSchemaRegistry.class)
             .required(false)
-            .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY)
+            .dependsOn(SCHEMA_ACCESS_STRATEGY, JsonSchemaStrategy.SCHEMA_NAME_PROPERTY)
             .build();
 
     public static final PropertyDescriptor SCHEMA_CONTENT = new PropertyDescriptor.Builder()
@@ -141,13 +164,13 @@ public class ValidateJson extends AbstractProcessor {
             .required(false)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.URL, ResourceType.TEXT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_CONTENT_PROPERTY)
+            .dependsOn(SCHEMA_ACCESS_STRATEGY, JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY)
             .build();
 
     public static final PropertyDescriptor SCHEMA_VERSION = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(JsonSchemaRegistryComponent.SCHEMA_VERSION)
             .required(false)
-            .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_CONTENT_PROPERTY)
+            .dependsOn(SCHEMA_ACCESS_STRATEGY, JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY)
             .build();
 
     public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(
@@ -248,7 +271,7 @@ public class ValidateJson extends AbstractProcessor {
             return;
         }
 
-        if(isNameStrategy(context)) {
+        if (isNameStrategy(context)) {
             try {
                 final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions(flowFile).getValue();
                 final JsonSchema jsonSchema = jsonSchemaRegistry.retrieveSchema(schemaName);
@@ -290,7 +313,7 @@ public class ValidateJson extends AbstractProcessor {
 
     private boolean isNameStrategy(PropertyContext context) {
         final String schemaAccessStrategy = getSchemaAccessStrategy(context);
-        return SCHEMA_NAME_PROPERTY.getValue().equals(schemaAccessStrategy);
+        return JsonSchemaStrategy.SCHEMA_NAME_PROPERTY.getValue().equals(schemaAccessStrategy);
     }
 
     private String getSchemaAccessStrategy(PropertyContext context) {
@@ -299,6 +322,6 @@ public class ValidateJson extends AbstractProcessor {
 
     private boolean isContentStrategy(PropertyContext context) {
         final String schemaAccessStrategy = getSchemaAccessStrategy(context);
-        return SCHEMA_CONTENT_PROPERTY.getValue().equals(schemaAccessStrategy);
+        return JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY.getValue().equals(schemaAccessStrategy);
     }
 }

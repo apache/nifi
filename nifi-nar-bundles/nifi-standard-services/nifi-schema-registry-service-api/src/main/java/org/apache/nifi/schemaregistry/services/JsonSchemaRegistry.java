@@ -18,7 +18,7 @@ package org.apache.nifi.schemaregistry.services;
 
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.schema.access.JsonSchema;
+import org.apache.nifi.json.schema.JsonSchema;
 import java.io.IOException;
 
 /**

@@ -17,6 +17,7 @@
 package org.apache.nifi.schema.access;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.json.schema.SchemaVersion;
 
 public interface JsonSchemaRegistryComponent {
     PropertyDescriptor SCHEMA_VERSION = new PropertyDescriptor
