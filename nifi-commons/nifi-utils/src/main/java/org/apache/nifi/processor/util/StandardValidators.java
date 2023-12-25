@@ -26,6 +26,7 @@ import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.UriUtils;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -547,7 +548,8 @@ public class StandardValidators {
 
                 try {
                     final String evaluatedInput = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
-                    URI.create(evaluatedInput).toURL();
+                    final URI uri = UriUtils.create(evaluatedInput);
+                    uri.toURL();
                     return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid URL").valid(true).build();
                 } catch (final Exception e) {
                     return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid URL").valid(false).build();

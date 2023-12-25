@@ -46,10 +46,8 @@ import org.mockito.Answers;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
-import java.net.MalformedURLException;
+import java.net.Proxy;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.time.ZonedDateTime;
@@ -799,11 +797,11 @@ public class InvokeHTTPTest {
 
     @ParameterizedTest(name = "{index} => When {0} http://baseUrl/{1}, filename of the response FlowFile should be {2}")
     @MethodSource
-    public void testResponseFlowFileFilenameExtractedFromRemoteUrl(String httpMethod, String relativePath, String expectedFileName) throws MalformedURLException, URISyntaxException {
-        URL targetUrl = new URI("http", null, mockWebServer.getHostName(), mockWebServer.getPort(), String.format("/%s", relativePath), null, null).toURL();
-
+    public void testResponseFlowFileFilenameExtractedFromRemoteUrl(String httpMethod, String relativePath, String expectedFileName) {
+        //Build URL as a string to prevent double encoding
+        final String targetUrl = String.format("http://%s:%d/%s", mockWebServer.getHostName(), mockWebServer.getPort(), relativePath);
         runner.setProperty(InvokeHTTP.HTTP_METHOD, httpMethod);
-        runner.setProperty(InvokeHTTP.HTTP_URL, targetUrl.toString());
+        runner.setProperty(InvokeHTTP.HTTP_URL, targetUrl);
         runner.setProperty(InvokeHTTP.RESPONSE_FLOW_FILE_NAMING_STRATEGY, FlowFileNamingStrategy.URL_PATH.name());
 
         Map<String, String> ffAttributes = new HashMap<>();
