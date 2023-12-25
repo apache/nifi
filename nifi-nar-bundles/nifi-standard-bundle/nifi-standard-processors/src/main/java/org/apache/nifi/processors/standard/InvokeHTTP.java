@@ -85,6 +85,7 @@ import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.UriUtils;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
@@ -839,7 +840,8 @@ public class InvokeHTTP extends AbstractProcessor {
         FlowFile responseFlowFile = null;
         try {
             final String urlProperty = trimToEmpty(context.getProperty(HTTP_URL).evaluateAttributeExpressions(requestFlowFile).getValue());
-            final URL url = URI.create(urlProperty).toURL();
+            final URI uri = UriUtils.create(urlProperty);
+            final URL url = uri.toURL();
 
             Request httpRequest = configureRequest(context, session, requestFlowFile, url);
             logRequest(logger, httpRequest);
