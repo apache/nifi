@@ -16,26 +16,27 @@
  */
 
 import { NgModule } from '@angular/core';
+import { UserListing } from './user-listing.component';
 import { CommonModule } from '@angular/common';
-import { Counters } from './counters.component';
-import { CountersRoutingModule } from './counters-routing.module';
-import { StoreModule } from '@ngrx/store';
-import { countersFeatureKey, reducers } from '../state';
-import { EffectsModule } from '@ngrx/effects';
-import { CounterListingEffects } from '../state/counter-listing/counter-listing.effects';
-import { CounterListingModule } from '../ui/counter-listing/counter-listing.module';
-import { MatDialogModule } from '@angular/material/dialog';
+import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { MatTableModule } from '@angular/material/table';
+import { MatSortModule } from '@angular/material/sort';
+import { MatInputModule } from '@angular/material/input';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatSelectModule } from '@angular/material/select';
+import { UserTable } from './user-table/user-table.component';
 
 @NgModule({
-    declarations: [Counters],
-    exports: [Counters],
+    declarations: [UserListing, UserTable],
+    exports: [UserListing],
     imports: [
         CommonModule,
-        CountersRoutingModule,
-        StoreModule.forFeature(countersFeatureKey, reducers),
-        EffectsModule.forFeature(CounterListingEffects),
-        CounterListingModule,
-        MatDialogModule
+        NgxSkeletonLoaderModule,
+        MatTableModule,
+        MatSortModule,
+        MatInputModule,
+        ReactiveFormsModule,
+        MatSelectModule
     ]
 })
-export class CountersModule {}
+export class UserListingModule {}

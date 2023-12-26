@@ -17,25 +17,25 @@
 
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Counters } from './counters.component';
-import { CountersRoutingModule } from './counters-routing.module';
+import { Users } from './users.component';
+import { UsersRoutingModule } from './users-routing.module';
 import { StoreModule } from '@ngrx/store';
-import { countersFeatureKey, reducers } from '../state';
+import { usersFeatureKey, reducers } from '../state';
 import { EffectsModule } from '@ngrx/effects';
-import { CounterListingEffects } from '../state/counter-listing/counter-listing.effects';
-import { CounterListingModule } from '../ui/counter-listing/counter-listing.module';
 import { MatDialogModule } from '@angular/material/dialog';
+import { UserListingEffects } from '../state/user-listing/user-listing.effects';
+import { UserListingModule } from '../ui/user-listing/user-listing.module';
 
 @NgModule({
-    declarations: [Counters],
-    exports: [Counters],
+    declarations: [Users],
+    exports: [Users],
     imports: [
         CommonModule,
-        CountersRoutingModule,
-        StoreModule.forFeature(countersFeatureKey, reducers),
-        EffectsModule.forFeature(CounterListingEffects),
-        CounterListingModule,
-        MatDialogModule
+        UsersRoutingModule,
+        StoreModule.forFeature(usersFeatureKey, reducers),
+        EffectsModule.forFeature(UserListingEffects),
+        MatDialogModule,
+        UserListingModule
     ]
 })
-export class CountersModule {}
+export class UsersModule {}

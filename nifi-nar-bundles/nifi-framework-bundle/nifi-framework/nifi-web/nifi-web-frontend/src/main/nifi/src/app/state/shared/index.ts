@@ -352,6 +352,34 @@ export interface ControllerServiceEntity {
     component: any;
 }
 
+export interface AccessPolicySummaryEntity {
+    id: string;
+    component: AccessPolicySummary;
+    revision: Revision;
+    permissions: Permissions;
+}
+
+export interface AccessPolicySummary {
+    resource: string;
+    action: string;
+    componentReference?: ComponentReferenceEntity;
+    configurable: boolean;
+}
+
+export interface ComponentReferenceEntity {
+    id: string;
+    parentGroupId?: string;
+    component: ComponentReference;
+    revision: Revision;
+    permissions: Permissions;
+}
+
+export interface ComponentReference {
+    id: string;
+    parentGroupId?: string;
+    name: string;
+}
+
 export interface DocumentedType {
     bundle: Bundle;
     description?: string;

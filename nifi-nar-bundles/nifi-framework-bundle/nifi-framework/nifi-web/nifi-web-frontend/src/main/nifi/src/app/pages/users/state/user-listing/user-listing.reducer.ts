@@ -15,55 +15,34 @@
  *  limitations under the License.
  */
 
-import { CounterListingState } from './index';
+import { UserListingState } from './index';
 import { createReducer, on } from '@ngrx/store';
-import {
-    counterListingApiError,
-    loadCounters,
-    loadCountersSuccess,
-    resetCounterState,
-    resetCounterSuccess
-} from './counter-listing.actions';
-import { produce } from 'immer';
+import { loadTenants, loadTenantsSuccess, resetUsersState } from './user-listing.actions';
 
-export const initialState: CounterListingState = {
-    counters: [],
+export const initialState: UserListingState = {
+    users: [],
+    userGroups: [],
     saving: false,
     loadedTimestamp: '',
     error: null,
     status: 'pending'
 };
 
-export const counterListingReducer = createReducer(
+export const userListingReducer = createReducer(
     initialState,
-    on(loadCounters, (state) => ({
+    on(resetUsersState, (state) => ({
+        ...initialState
+    })),
+    on(loadTenants, (state) => ({
         ...state,
         status: 'loading' as const
     })),
-    on(loadCountersSuccess, (state, { response }) => ({
+    on(loadTenantsSuccess, (state, { response }) => ({
         ...state,
-        counters: response.counters,
+        users: response.users,
+        userGroups: response.userGroups,
         loadedTimestamp: response.loadedTimestamp,
         error: null,
         status: 'success' as const
-    })),
-    on(counterListingApiError, (state, { error }) => ({
-        ...state,
-        saving: false,
-        error,
-        status: 'error' as const
-    })),
-    on(resetCounterSuccess, (state, { response }) => {
-        return produce(state, (draftState) => {
-            const index: number = draftState.counters.findIndex((c: any) => c.id === response.counter.id);
-            if (index > -1) {
-                draftState.counters[index] = {
-                    ...response.counter
-                };
-            }
-        });
-    }),
-    on(resetCounterState, (state) => ({
-        ...initialState
     }))
 );
