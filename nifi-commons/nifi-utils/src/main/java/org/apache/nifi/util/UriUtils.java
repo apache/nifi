@@ -58,10 +58,11 @@ public class UriUtils {
      *  thereby allowing for instantiating a java.net.URI with the quoting of all illegal characters.
      * @param uri String representing a URI.
      * @return Instance of java.net.URI
+     * @throws URISyntaxException Thrown on parsing failures
      */
     public static URI create(String uri) throws URISyntaxException {
         final Matcher matcher = URI_PATTERN.matcher(uri);
-        if(matcher.matches()) {
+        if (matcher.matches()) {
             final String scheme = matcher.group(2);
             final String userInfo = matcher.group(5);
             final String host = matcher.group(6);
