@@ -17,8 +17,49 @@
 
 import { createSelector } from '@ngrx/store';
 import { usersFeatureKey, UsersState, selectUserState } from '../index';
-import { UserListingState } from './index';
+import { SelectedTenant, UserListingState } from './index';
+import { selectCurrentRoute } from '../../../../state/router/router.selectors';
 
 export const selectUserListingState = createSelector(selectUserState, (state: UsersState) => state[usersFeatureKey]);
 
-export const selectUsers = createSelector(selectUserListingState, (state: UserListingState) => state.users);
+export const selectSaving = createSelector(selectUserListingState, (state: UserListingState) => state.saving);
+
+export const selectTenantIdFromRoute = createSelector(selectCurrentRoute, (route) => {
+    if (route) {
+        return route.params.id;
+    }
+    return null;
+});
+
+export const selectSingleEditedTenant = createSelector(selectCurrentRoute, (route) => {
+    if (route?.routeConfig?.path == 'edit') {
+        return route.params.id;
+    }
+    return null;
+});
+
+export const selectTenantForAccessPolicies = createSelector(selectCurrentRoute, (route) => {
+    if (route?.routeConfig?.path == 'policies') {
+        return route.params.id;
+    }
+    return null;
+});
+
+export const selectSelectedTenant = (id: string) =>
+    createSelector(selectUserListingState, (state: UserListingState) => {
+        const user = state.users.find((user) => id == user.id);
+        if (user) {
+            return {
+                id,
+                user
+            } as SelectedTenant;
+        }
+        const userGroup = state.userGroups.find((userGroup) => id == userGroup.id);
+        if (userGroup) {
+            return {
+                id,
+                userGroup
+            } as SelectedTenant;
+        }
+        return null;
+    });

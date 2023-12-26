@@ -25,7 +25,23 @@ const routes: Routes = [
     {
         path: '',
         component: Users,
-        canMatch: [authorizationGuard((user: User) => user.tenantsPermissions.canRead)]
+        canMatch: [authorizationGuard((user: User) => user.tenantsPermissions.canRead)],
+        children: [
+            {
+                path: ':id',
+                component: Users,
+                children: [
+                    {
+                        path: 'edit',
+                        component: Users
+                    },
+                    {
+                        path: 'policies',
+                        component: Users
+                    }
+                ]
+            }
+        ]
     }
 ];
 

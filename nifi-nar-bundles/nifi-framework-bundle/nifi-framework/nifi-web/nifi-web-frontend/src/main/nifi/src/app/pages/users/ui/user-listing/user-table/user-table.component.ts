@@ -22,12 +22,15 @@ import { FormBuilder, FormGroup } from '@angular/forms';
 import { debounceTime } from 'rxjs';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { UserEntity, UserGroupEntity } from '../../../state/user-listing';
+import { User } from '../../../../../state/user';
+import { AccessPolicySummaryEntity } from '../../../../../state/shared';
 
 export interface TenantItem {
     id: string;
     user: string;
     tenantType: 'user' | 'userGroup';
     membership: string[];
+    configurable: boolean;
 }
 
 export interface Tenants {
@@ -64,7 +67,8 @@ export class UserTable implements AfterViewInit {
                 id: user.id,
                 tenantType: 'user',
                 user: user.component.identity,
-                membership: user.component.userGroups.map((userGroup) => userGroup.component.identity)
+                membership: user.component.userGroups.map((userGroup) => userGroup.component.identity),
+                configurable: user.component.configurable
             });
         });
         tenants.userGroups.forEach((userGroup) => {
@@ -73,7 +77,8 @@ export class UserTable implements AfterViewInit {
                 id: userGroup.id,
                 tenantType: 'userGroup',
                 user: userGroup.component.identity,
-                membership: userGroup.component.users.map((user) => user.component.identity)
+                membership: userGroup.component.users.map((user) => user.component.identity),
+                configurable: userGroup.component.configurable
             });
         });
 
@@ -97,10 +102,15 @@ export class UserTable implements AfterViewInit {
         }
     }
 
-    @Output() editUser: EventEmitter<UserEntity> = new EventEmitter<UserEntity>();
-    @Output() editUserGroup: EventEmitter<UserGroupEntity> = new EventEmitter<UserGroupEntity>();
+    @Input() selectedTenantId!: string;
+    @Input() currentUser!: User;
+    @Input() configurableUsersAndGroups!: boolean;
+
+    @Output() selectTenant: EventEmitter<string> = new EventEmitter<string>();
+    @Output() editTenant: EventEmitter<string> = new EventEmitter<string>();
     @Output() deleteUser: EventEmitter<UserEntity> = new EventEmitter<UserEntity>();
     @Output() deleteUserGroup: EventEmitter<UserGroupEntity> = new EventEmitter<UserGroupEntity>();
+    @Output() viewAccessPolicies: EventEmitter<string> = new EventEmitter<string>();
 
     sort: Sort = {
         active: 'user',
@@ -160,5 +170,68 @@ export class UserTable implements AfterViewInit {
 
             return retVal * (isAsc ? 1 : -1);
         });
+    }
+
+    select(item: TenantItem): void {
+        this.selectTenant.next(item.id);
+    }
+
+    isSelected(item: TenantItem): boolean {
+        if (this.selectedTenantId) {
+            return item.id == this.selectedTenantId;
+        }
+        return false;
+    }
+
+    private canModifyTenants(currentUser: User): boolean {
+        return currentUser.tenantsPermissions.canRead && currentUser.tenantsPermissions.canWrite;
+    }
+
+    canEditOrDelete(currentUser: User, item: TenantItem): boolean {
+        return this.canModifyTenants(currentUser) && item.configurable && this.configurableUsersAndGroups;
+    }
+
+    editClicked(item: TenantItem, event: MouseEvent): void {
+        event.stopPropagation();
+        this.editTenant.next(item.id);
+    }
+
+    deleteClicked(item: TenantItem): void {
+        if (item.tenantType === 'user') {
+            const user: UserEntity | undefined = this.userLookup.get(item.id);
+            if (user) {
+                this.deleteUser.next(user);
+            }
+        } else if (item.tenantType === 'userGroup') {
+            const userGroup: UserGroupEntity | undefined = this.userGroupLookup.get(item.id);
+            if (userGroup) {
+                this.deleteUserGroup.next(userGroup);
+            }
+        }
+    }
+
+    private getAccessPolicies(item: TenantItem): AccessPolicySummaryEntity[] {
+        const accessPolicies: AccessPolicySummaryEntity[] = [];
+        if (item.tenantType === 'user') {
+            const user: UserEntity | undefined = this.userLookup.get(item.id);
+            if (user) {
+                accessPolicies.push(...user.component.accessPolicies);
+            }
+        } else if (item.tenantType === 'userGroup') {
+            const userGroup: UserGroupEntity | undefined = this.userGroupLookup.get(item.id);
+            if (userGroup) {
+                accessPolicies.push(...userGroup.component.accessPolicies);
+            }
+        }
+        return accessPolicies;
+    }
+
+    hasAccessPolicies(item: TenantItem): boolean {
+        return !this.nifiCommon.isEmpty(this.getAccessPolicies(item));
+    }
+
+    viewAccessPoliciesClicked(item: TenantItem, event: MouseEvent): void {
+        event.stopPropagation();
+        this.viewAccessPolicies.next(item.id);
     }
 }

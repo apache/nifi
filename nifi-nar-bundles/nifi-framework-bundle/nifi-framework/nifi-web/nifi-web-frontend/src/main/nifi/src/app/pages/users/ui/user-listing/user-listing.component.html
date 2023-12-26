@@ -24,7 +24,15 @@
         <div class="flex flex-col h-full gap-y-2">
             <div class="flex-1" *ngIf="currentUser$ | async as user">
                 <user-table
-                    [tenants]="{ users: userListingState.users, userGroups: userListingState.userGroups }"></user-table>
+                    [tenants]="{ users: userListingState.users, userGroups: userListingState.userGroups }"
+                    [selectedTenantId]="selectedTenantId$ | async"
+                    [currentUser]="(currentUser$ | async)!"
+                    [configurableUsersAndGroups]="true"
+                    (selectTenant)="selectTenant($event)"
+                    (editTenant)="editTenant($event)"
+                    (deleteUser)="deleteUser($event)"
+                    (deleteUserGroup)="deleteUserGroup($event)"
+                    (viewAccessPolicies)="viewAccessPolicies($event)"></user-table>
             </div>
             <div class="flex justify-between">
                 <div class="refresh-container flex items-center gap-x-2">

@@ -21,9 +21,10 @@ import { NiFiState } from '../../../../state';
 import { Store } from '@ngrx/store';
 import { Router } from '@angular/router';
 import * as UserListingActions from './user-listing.actions';
-import { catchError, combineLatest, map, of, switchMap } from 'rxjs';
+import { catchError, combineLatest, from, map, of, switchMap, take, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { UsersService } from '../../service/users.service';
+import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 
 @Injectable()
 export class UserListingEffects {
@@ -56,6 +57,120 @@ export class UserListingEffects {
                             })
                         )
                     )
+                )
+            )
+        )
+    );
+
+    selectTenant$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(UserListingActions.selectTenant),
+                map((action) => action.id),
+                tap((id) => {
+                    this.router.navigate(['/users', id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToEditTenant$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(UserListingActions.navigateToEditTenant),
+                map((action) => action.id),
+                tap((id) => {
+                    this.router.navigate(['/users', id, 'edit']);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToViewAccessPolicies$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(UserListingActions.navigateToViewAccessPolicies),
+                map((action) => action.id),
+                tap((id) => {
+                    this.router.navigate(['/users', id, 'policies']);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    promptDeleteUser$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(UserListingActions.promptDeleteUser),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogReference = this.dialog.open(YesNoDialog, {
+                        data: {
+                            title: 'Delete User Account',
+                            message: `Are you sure you want to delete the user account for '${request.user.component.identity}'?`
+                        },
+                        panelClass: 'small-dialog'
+                    });
+
+                    dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
+                        this.store.dispatch(
+                            UserListingActions.deleteUser({
+                                request
+                            })
+                        );
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    deleteUser$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(UserListingActions.deleteUser),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.usersService.deleteUser(request.user)).pipe(
+                    map((response) => UserListingActions.loadTenants()),
+                    catchError((error) => of(UserListingActions.usersApiError({ error: error.error })))
+                )
+            )
+        )
+    );
+
+    promptDeleteUserGroup$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(UserListingActions.promptDeleteUserGroup),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogReference = this.dialog.open(YesNoDialog, {
+                        data: {
+                            title: 'Delete User Account',
+                            message: `Are you sure you want to delete the user group account for '${request.userGroup.component.identity}'?`
+                        },
+                        panelClass: 'small-dialog'
+                    });
+
+                    dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
+                        this.store.dispatch(
+                            UserListingActions.deleteUserGroup({
+                                request
+                            })
+                        );
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    deleteUserGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(UserListingActions.deleteUserGroup),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.usersService.deleteUserGroup(request.userGroup)).pipe(
+                    map(() => UserListingActions.loadTenants()),
+                    catchError((error) => of(UserListingActions.usersApiError({ error: error.error })))
                 )
             )
         )

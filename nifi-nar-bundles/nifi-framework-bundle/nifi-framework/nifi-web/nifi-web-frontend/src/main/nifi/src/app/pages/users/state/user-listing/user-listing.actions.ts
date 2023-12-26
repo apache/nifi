@@ -16,8 +16,15 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { LoadUserResponse } from '../../../../state/user';
-import { LoadTenantsSuccess } from './index';
+import {
+    DeleteUserGroupRequest,
+    DeleteUserRequest,
+    EditUserGroupRequest,
+    EditUserRequest,
+    LoadTenantsSuccess,
+    UserAccessPoliciesRequest,
+    UserGroupAccessPoliciesRequest
+} from './index';
 
 const USER_PREFIX: string = '[User Listing]';
 
@@ -32,16 +39,48 @@ export const loadTenantsSuccess = createAction(
 
 export const usersApiError = createAction(`${USER_PREFIX} Users Api Error`, props<{ error: string }>());
 
-// export const promptCounterReset = createAction(
-//     `${USER_PREFIX} Prompt Counter Reset`,
-//     props<{ request: ResetCounterRequest }>()
-// );
-//
-// export const resetCounter = createAction(`${USER_PREFIX} Reset Counter`, props<{ request: ResetCounterRequest }>());
-//
-// export const resetCounterSuccess = createAction(
-//     `${USER_PREFIX} Reset Counter Success`,
-//     props<{ response: ResetCounterSuccess }>()
-// );
-//
-// export const resetCounterState = createAction(`${USER_PREFIX} Reset Counter State`);
+export const selectTenant = createAction(`${USER_PREFIX} Select Tenant`, props<{ id: string }>());
+
+export const navigateToEditTenant = createAction(`${USER_PREFIX} Navigate To Edit Tenant`, props<{ id: string }>());
+
+export const openConfigureUserDialog = createAction(
+    `${USER_PREFIX} Open Configure User Dialog`,
+    props<{ request: EditUserRequest }>()
+);
+
+export const openConfigureUserGroupDialog = createAction(
+    `${USER_PREFIX} Open Configure User Group Dialog`,
+    props<{ request: EditUserGroupRequest }>()
+);
+
+export const navigateToViewAccessPolicies = createAction(
+    `${USER_PREFIX} Navigate To View Access Policies`,
+    props<{ id: string }>()
+);
+
+export const openUserAccessPoliciesDialog = createAction(
+    `${USER_PREFIX} Open User Access Policy Dialog`,
+    props<{ request: UserAccessPoliciesRequest }>()
+);
+
+export const openUserGroupAccessPoliciesDialog = createAction(
+    `${USER_PREFIX} Open User Group Access Policy Dialog`,
+    props<{ request: UserGroupAccessPoliciesRequest }>()
+);
+
+export const promptDeleteUser = createAction(
+    `${USER_PREFIX} Prompt Delete User`,
+    props<{ request: DeleteUserRequest }>()
+);
+
+export const deleteUser = createAction(`${USER_PREFIX} Delete User`, props<{ request: DeleteUserRequest }>());
+
+export const promptDeleteUserGroup = createAction(
+    `${USER_PREFIX} Prompt Delete User Group`,
+    props<{ request: DeleteUserGroupRequest }>()
+);
+
+export const deleteUserGroup = createAction(
+    `${USER_PREFIX} Delete User Group`,
+    props<{ request: DeleteUserGroupRequest }>()
+);

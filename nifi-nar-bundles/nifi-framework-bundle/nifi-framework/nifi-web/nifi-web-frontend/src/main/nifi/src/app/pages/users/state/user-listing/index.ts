@@ -53,10 +53,40 @@ export interface Tenant {
     configurable: boolean;
 }
 
+export interface SelectedTenant {
+    id: string;
+    user?: UserEntity;
+    userGroup?: UserGroupEntity;
+}
+
 export interface LoadTenantsSuccess {
     users: UserEntity[];
     userGroups: UserGroupEntity[];
     loadedTimestamp: string;
+}
+
+export interface EditUserRequest {
+    user: UserEntity;
+}
+
+export interface EditUserGroupRequest {
+    userGroup: UserGroupEntity;
+}
+
+export interface UserAccessPoliciesRequest {
+    user: UserEntity;
+}
+
+export interface UserGroupAccessPoliciesRequest {
+    userGroup: UserGroupEntity;
+}
+
+export interface DeleteUserRequest {
+    user: UserEntity;
+}
+
+export interface DeleteUserGroupRequest {
+    userGroup: UserGroupEntity;
 }
 
 export interface UserListingState {
