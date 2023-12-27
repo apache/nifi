@@ -145,6 +145,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     editorOpen: boolean = false;
     editorTrigger: any = null;
     editorItem!: PropertyItem;
+    editorWidth: number = 0;
 
     constructor(
         private changeDetector: ChangeDetectorRef,
@@ -374,10 +375,21 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         return Array.isArray(item.descriptor.allowableValues);
     }
 
-    openEditor(editorTrigger: any, item: PropertyItem): void {
-        this.editorItem = item;
-        this.editorTrigger = editorTrigger;
-        this.editorOpen = true;
+    openEditor(editorTrigger: any, item: PropertyItem, event: MouseEvent): void {
+        if (event.target) {
+            const target: HTMLElement = event.target as HTMLElement;
+
+            // find the table cell regardless of the target of the click
+            const td: HTMLElement | null = target.closest('td');
+            if (td) {
+                const { width } = td.getBoundingClientRect();
+
+                this.editorItem = item;
+                this.editorTrigger = editorTrigger;
+                this.editorOpen = true;
+                this.editorWidth = width;
+            }
+        }
     }
 
     canGoToService(item: PropertyItem): boolean {

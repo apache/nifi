@@ -57,7 +57,7 @@
                         class="pointer"
                         cdkOverlayOrigin
                         #trigger="cdkOverlayOrigin"
-                        (click)="openEditor(trigger, item)">
+                        (click)="openEditor(trigger, item, $event)">
                         <ng-container *ngIf="isNull(item.value); else nonNull">
                             <div class="unset">No value set</div>
                         </ng-container>
@@ -153,12 +153,14 @@
                 *ngIf="hasAllowableValues(editorItem); else nfEditor"
                 [item]="editorItem"
                 [getParameters]="getParameters"
+                [width]="editorWidth"
                 (ok)="savePropertyValue(editorItem, $event)"
                 (cancel)="closeEditor()"></combo-editor>
             <ng-template #nfEditor>
                 <nf-editor
                     [item]="editorItem"
                     [getParameters]="getParameters"
+                    [width]="editorWidth"
                     (ok)="savePropertyValue(editorItem, $event)"
                     (cancel)="closeEditor()"></nf-editor>
             </ng-template>

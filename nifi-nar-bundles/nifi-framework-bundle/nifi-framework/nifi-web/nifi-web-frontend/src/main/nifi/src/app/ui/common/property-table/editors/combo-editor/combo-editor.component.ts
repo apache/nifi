@@ -83,6 +83,7 @@ export class ComboEditor {
         this.supportsParameters = getParameters != null;
         this.initialAllowableValues();
     }
+    @Input() width!: number;
 
     @Output() ok: EventEmitter<any> = new EventEmitter<any>();
     @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
