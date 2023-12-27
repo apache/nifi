@@ -28,7 +28,10 @@ import {
 import { ProcessorStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
 import { selectUser } from '../../../../state/user/user.selectors';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
-import { openStatusHistoryDialog } from '../../../../state/status-history/status-history.actions';
+import {
+    getStatusHistoryAndOpenDialog,
+    openStatusHistoryDialog
+} from '../../../../state/status-history/status-history.actions';
 import { ComponentType } from '../../../../state/shared';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -64,7 +67,7 @@ export class ProcessorStatusListing {
             .subscribe((processor) => {
                 if (processor) {
                     this.store.dispatch(
-                        openStatusHistoryDialog({
+                        getStatusHistoryAndOpenDialog({
                             request: {
                                 source: 'summary',
                                 componentType: ComponentType.Processor,

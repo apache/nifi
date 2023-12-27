@@ -19,10 +19,12 @@ import { StatusHistoryEntity, StatusHistoryState } from './index';
 import { createReducer, on } from '@ngrx/store';
 import {
     clearStatusHistory,
-    loadStatusHistory,
+    reloadStatusHistory,
     loadStatusHistorySuccess,
     statusHistoryApiError,
-    viewStatusHistoryComplete
+    viewStatusHistoryComplete,
+    reloadStatusHistorySuccess,
+    getStatusHistoryAndOpenDialog
 } from './status-history.actions';
 import { produce } from 'immer';
 
@@ -36,12 +38,12 @@ export const initialState: StatusHistoryState = {
 export const statusHistoryReducer = createReducer(
     initialState,
 
-    on(loadStatusHistory, (state) => ({
+    on(reloadStatusHistory, getStatusHistoryAndOpenDialog, (state) => ({
         ...state,
         status: 'loading' as const
     })),
 
-    on(loadStatusHistorySuccess, (state, { response }) => ({
+    on(loadStatusHistorySuccess, reloadStatusHistorySuccess, (state, { response }) => ({
         ...state,
         error: null,
         status: 'success' as const,

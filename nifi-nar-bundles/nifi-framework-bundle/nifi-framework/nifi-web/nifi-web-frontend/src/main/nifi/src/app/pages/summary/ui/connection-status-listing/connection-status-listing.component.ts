@@ -36,7 +36,10 @@ import {
 import { selectUser } from '../../../../state/user/user.selectors';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { openStatusHistoryDialog } from '../../../../state/status-history/status-history.actions';
+import {
+    getStatusHistoryAndOpenDialog,
+    openStatusHistoryDialog
+} from '../../../../state/status-history/status-history.actions';
 import { ComponentType } from '../../../../state/shared';
 import { getSystemDiagnosticsAndOpenDialog } from '../../../../state/system-diagnostics/system-diagnostics.actions';
 
@@ -68,7 +71,7 @@ export class ConnectionStatusListing {
             .subscribe((connection) => {
                 if (connection) {
                     this.store.dispatch(
-                        openStatusHistoryDialog({
+                        getStatusHistoryAndOpenDialog({
                             request: {
                                 source: 'summary',
                                 componentType: ComponentType.Connection,

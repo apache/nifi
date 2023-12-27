@@ -20,14 +20,24 @@ import { StatusHistoryRequest, StatusHistoryResponse } from './index';
 
 const STATUS_HISTORY_PREFIX: string = '[Status History]';
 
-export const loadStatusHistory = createAction(
-    `${STATUS_HISTORY_PREFIX} Load Status History`,
+export const reloadStatusHistory = createAction(
+    `${STATUS_HISTORY_PREFIX} Reload Status History`,
     props<{ request: StatusHistoryRequest }>()
+);
+
+export const getStatusHistoryAndOpenDialog = createAction(
+    `${STATUS_HISTORY_PREFIX} Get Status History and Open Dialog`,
+    props<{ request: StatusHistoryRequest }>()
+);
+
+export const reloadStatusHistorySuccess = createAction(
+    `${STATUS_HISTORY_PREFIX} Reload Status History Success`,
+    props<{ response: StatusHistoryResponse }>()
 );
 
 export const loadStatusHistorySuccess = createAction(
     `${STATUS_HISTORY_PREFIX} Load Status History Success`,
-    props<{ response: StatusHistoryResponse }>()
+    props<{ request: StatusHistoryRequest; response: StatusHistoryResponse }>()
 );
 
 export const openStatusHistoryDialog = createAction(

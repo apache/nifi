@@ -35,12 +35,12 @@
                                     *ngIf="componentDetails$ | async; let componentDetails"
                                     class="flex flex-1 w-full gap-x-4">
                                     <div class="component-details flex flex-col gap-y-3">
-                                        <div
-                                            *ngFor="let entry of Object.entries(componentDetails)"
-                                            class="flex flex-col">
-                                            <div>{{ entry[0] }}</div>
-                                            <div class="value">{{ entry[1] }}</div>
-                                        </div>
+                                        <ng-container *ngFor="let entry of Object.entries(componentDetails)">
+                                            <div *ngIf="entry[0] && entry[1]" class="flex flex-col">
+                                                <div>{{ entry[0] }}</div>
+                                                <div class="value">{{ entry[1] }}</div>
+                                            </div>
+                                        </ng-container>
                                         <div class="flex flex-col">
                                             <div>Start</div>
                                             <div class="value">{{ minDate }}</div>
@@ -89,7 +89,7 @@
                                         </div>
                                     </div>
                                     <div class="chart-panel grow flex flex-col">
-                                        <div *ngIf="fieldDescriptors$ | async">
+                                        <div class="selected-descriptor-container" *ngIf="fieldDescriptors$ | async">
                                             <mat-form-field>
                                                 <mat-select formControlName="fieldDescriptor">
                                                     <ng-container *ngFor="let descriptor of fieldDescriptors">
