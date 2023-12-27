@@ -39,21 +39,21 @@ import { TextTip } from '../../tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
 import {
     controllerServiceActionScopes,
-    EnableControllerServiceState,
+    ControllerServiceState,
     SetEnableRequest,
     SetEnableStep
-} from '../../../../state/enable-contoller-service';
+} from '../../../../state/contoller-service-state';
 import { Store } from '@ngrx/store';
 import {
     resetEnableControllerServiceState,
     setControllerService,
     stopPollingControllerService,
     submitEnableRequest
-} from '../../../../state/enable-contoller-service/enable-controller-service.actions';
+} from '../../../../state/contoller-service-state/controller-service-state.actions';
 import {
     selectControllerService,
     selectControllerServiceSetEnableRequest
-} from '../../../../state/enable-contoller-service/enable-controller-service.selectors';
+} from '../../../../state/contoller-service-state/controller-service-state.selectors';
 
 @Component({
     selector: 'enable-controller-service',
@@ -99,7 +99,7 @@ export class EnableControllerService implements OnDestroy {
 
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: SetEnableControllerServiceDialogRequest,
-        private store: Store<EnableControllerServiceState>,
+        private store: Store<ControllerServiceState>,
         private formBuilder: FormBuilder
     ) {
         // build the form

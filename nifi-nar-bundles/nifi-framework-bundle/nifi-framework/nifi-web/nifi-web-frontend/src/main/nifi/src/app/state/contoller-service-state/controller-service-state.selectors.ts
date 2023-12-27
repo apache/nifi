@@ -16,19 +16,19 @@
  */
 
 import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { enableControllerServiceFeatureKey, EnableControllerServiceState } from './index';
+import { controllerServiceStateFeatureKey, ControllerServiceState } from './index';
 import { ControllerServiceEntity } from '../shared';
 
-export const selectEnableControllerServiceState = createFeatureSelector<EnableControllerServiceState>(
-    enableControllerServiceFeatureKey
+export const selectEnableControllerServiceState = createFeatureSelector<ControllerServiceState>(
+    controllerServiceStateFeatureKey
 );
 
 export const selectControllerService = createSelector(
     selectEnableControllerServiceState,
-    (state: EnableControllerServiceState) => state.controllerService
+    (state: ControllerServiceState) => state.controllerService
 );
 
 export const selectControllerServiceSetEnableRequest = createSelector(
     selectEnableControllerServiceState,
-    (state: EnableControllerServiceState) => state.setEnableRequest
+    (state: ControllerServiceState) => state.setEnableRequest
 );

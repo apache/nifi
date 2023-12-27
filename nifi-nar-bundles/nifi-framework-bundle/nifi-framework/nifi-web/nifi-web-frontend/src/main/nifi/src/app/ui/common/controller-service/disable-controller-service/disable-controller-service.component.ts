@@ -34,22 +34,18 @@ import { ControllerServiceReferences } from '../controller-service-references/co
 import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
 import { TextTip } from '../../tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
-import {
-    EnableControllerServiceState,
-    SetEnableRequest,
-    SetEnableStep
-} from '../../../../state/enable-contoller-service';
+import { ControllerServiceState, SetEnableRequest, SetEnableStep } from '../../../../state/contoller-service-state';
 import { Store } from '@ngrx/store';
 import {
     resetEnableControllerServiceState,
     setControllerService,
     stopPollingControllerService,
     submitDisableRequest
-} from '../../../../state/enable-contoller-service/enable-controller-service.actions';
+} from '../../../../state/contoller-service-state/controller-service-state.actions';
 import {
     selectControllerService,
     selectControllerServiceSetEnableRequest
-} from '../../../../state/enable-contoller-service/enable-controller-service.selectors';
+} from '../../../../state/contoller-service-state/controller-service-state.selectors';
 
 @Component({
     selector: 'disable-controller-service',
@@ -91,7 +87,7 @@ export class DisableControllerService implements OnDestroy {
 
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: SetEnableControllerServiceDialogRequest,
-        private store: Store<EnableControllerServiceState>
+        private store: Store<ControllerServiceState>
     ) {
         this.store.dispatch(
             setControllerService({

@@ -20,7 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { EnableControllerService } from './enable-controller-service.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../../state/enable-contoller-service/enable-controller-service.reducer';
+import { initialState } from '../../../../state/contoller-service-state/controller-service-state.reducer';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { SetEnableControllerServiceDialogRequest } from '../../../../state/shared';
 

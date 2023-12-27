@@ -17,7 +17,7 @@
 
 import { ControllerServiceEntity, ControllerServiceReferencingComponentEntity, SelectOption } from '../shared';
 
-export const enableControllerServiceFeatureKey = 'enableControllerService';
+export const controllerServiceStateFeatureKey = 'enableControllerService';
 
 export const controllerServiceActionScopes: SelectOption[] = [
     {
@@ -73,7 +73,7 @@ export interface SetEnableRequest {
     error?: SetEnableStepFailure;
 }
 
-export interface EnableControllerServiceState {
+export interface ControllerServiceState {
     setEnableRequest: SetEnableRequest;
     controllerService: ControllerServiceEntity | null;
     error: string | null;

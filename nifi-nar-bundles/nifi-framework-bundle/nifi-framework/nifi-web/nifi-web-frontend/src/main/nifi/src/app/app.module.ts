@@ -38,7 +38,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { AboutEffects } from './state/about/about.effects';
 import { StatusHistoryEffects } from './state/status-history/status-history.effects';
 import { MatDialogModule } from '@angular/material/dialog';
-import { EnableControllerServiceEffects } from './state/enable-contoller-service/enable-controller-service.effects';
+import { ControllerServiceStateEffects } from './state/contoller-service-state/controller-service-state.effects';
 
 // @ts-ignore
 @NgModule({
@@ -62,7 +62,7 @@ import { EnableControllerServiceEffects } from './state/enable-contoller-service
             ExtensionTypesEffects,
             AboutEffects,
             StatusHistoryEffects,
-            EnableControllerServiceEffects
+            ControllerServiceStateEffects
         ),
         StoreDevtoolsModule.instrument({
             maxAge: 25,

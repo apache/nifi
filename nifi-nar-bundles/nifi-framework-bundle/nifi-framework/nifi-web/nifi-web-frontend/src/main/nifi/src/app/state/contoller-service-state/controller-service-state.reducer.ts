@@ -16,7 +16,7 @@
  */
 
 import { createReducer, on } from '@ngrx/store';
-import { EnableControllerServiceState, SetEnableStep } from './index';
+import { ControllerServiceState, SetEnableStep } from './index';
 import {
     clearControllerServiceApiError,
     controllerServiceApiError,
@@ -29,10 +29,10 @@ import {
     submitEnableRequest,
     updateReferencingComponentsSuccess,
     updateReferencingServicesSuccess
-} from './enable-controller-service.actions';
+} from './controller-service-state.actions';
 import { produce } from 'immer';
 
-export const initialState: EnableControllerServiceState = {
+export const initialState: ControllerServiceState = {
     setEnableRequest: {
         enable: true,
         currentStep: SetEnableStep.Pending,
@@ -43,7 +43,7 @@ export const initialState: EnableControllerServiceState = {
     status: 'pending'
 };
 
-export const enableControllerServiceReducer = createReducer(
+export const controllerServiceStateReducer = createReducer(
     initialState,
     on(resetEnableControllerServiceState, (state) => ({
         ...initialState

@@ -25,8 +25,8 @@ import { aboutFeatureKey, AboutState } from './about';
 import { aboutReducer } from './about/about.reducer';
 import { statusHistoryFeatureKey, StatusHistoryState } from './status-history';
 import { statusHistoryReducer } from './status-history/status-history.reducer';
-import { enableControllerServiceFeatureKey, EnableControllerServiceState } from './enable-contoller-service';
-import { enableControllerServiceReducer } from './enable-contoller-service/enable-controller-service.reducer';
+import { controllerServiceStateFeatureKey, ControllerServiceState } from './contoller-service-state';
+import { controllerServiceStateReducer } from './contoller-service-state/controller-service-state.reducer';
 
 export interface NiFiState {
     router: RouterReducerState;
@@ -34,7 +34,7 @@ export interface NiFiState {
     [extensionTypesFeatureKey]: ExtensionTypesState;
     [aboutFeatureKey]: AboutState;
     [statusHistoryFeatureKey]: StatusHistoryState;
-    [enableControllerServiceFeatureKey]: EnableControllerServiceState;
+    [controllerServiceStateFeatureKey]: ControllerServiceState;
 }
 
 export const rootReducers: ActionReducerMap<NiFiState> = {
@@ -43,5 +43,5 @@ export const rootReducers: ActionReducerMap<NiFiState> = {
     [extensionTypesFeatureKey]: extensionTypesReducer,
     [aboutFeatureKey]: aboutReducer,
     [statusHistoryFeatureKey]: statusHistoryReducer,
-    [enableControllerServiceFeatureKey]: enableControllerServiceReducer
+    [controllerServiceStateFeatureKey]: controllerServiceStateReducer
 };

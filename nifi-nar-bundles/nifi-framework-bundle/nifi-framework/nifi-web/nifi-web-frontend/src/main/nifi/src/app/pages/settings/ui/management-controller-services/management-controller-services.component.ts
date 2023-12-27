@@ -42,7 +42,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { selectUser } from '../../../../state/user/user.selectors';
 import { NiFiState } from '../../../../state';
 import { state } from '@angular/animations';
-import { resetEnableControllerServiceState } from '../../../../state/enable-contoller-service/enable-controller-service.actions';
+import { resetEnableControllerServiceState } from '../../../../state/contoller-service-state/controller-service-state.actions';
 
 @Component({
     selector: 'management-controller-services',

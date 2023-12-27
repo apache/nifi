@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
-import * as ControllerServiceActions from './enable-controller-service.actions';
+import * as ControllerServiceActions from './controller-service-state.actions';
 import {
     asyncScheduler,
     catchError,
@@ -33,23 +33,20 @@ import {
 } from 'rxjs';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../index';
-import {
-    selectControllerService,
-    selectControllerServiceSetEnableRequest
-} from './enable-controller-service.selectors';
+import { selectControllerService, selectControllerServiceSetEnableRequest } from './controller-service-state.selectors';
 import { OkDialog } from '../../ui/common/ok-dialog/ok-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
-import { EnableControllerServiceService } from '../../service/enable-controller-service.service';
+import { ControllerServiceStateService } from '../../service/controller-service-state.service';
 import { ControllerServiceEntity, ControllerServiceReferencingComponentEntity } from '../shared';
 import { SetEnableRequest, SetEnableStep } from './index';
 
 @Injectable()
-export class EnableControllerServiceEffects {
+export class ControllerServiceStateEffects {
     constructor(
         private actions$: Actions,
         private store: Store<NiFiState>,
         private dialog: MatDialog,
-        private controllerServiceActionService: EnableControllerServiceService
+        private controllerServiceStateService: ControllerServiceStateService
     ) {}
 
     submitEnableRequest$ = createEffect(() =>
@@ -112,7 +109,7 @@ export class EnableControllerServiceEffects {
             switchMap(([request, controllerService, setEnableRequest]) => {
                 if (controllerService) {
                     return from(
-                        this.controllerServiceActionService.setEnable(controllerService, setEnableRequest.enable)
+                        this.controllerServiceStateService.setEnable(controllerService, setEnableRequest.enable)
                     ).pipe(
                         map((response) =>
                             ControllerServiceActions.setEnableControllerServiceSuccess({
@@ -179,7 +176,7 @@ export class EnableControllerServiceEffects {
                 // @ts-ignore
                 const cs: ControllerServiceEntity = controllerService;
 
-                return from(this.controllerServiceActionService.getControllerService(cs.id)).pipe(
+                return from(this.controllerServiceStateService.getControllerService(cs.id)).pipe(
                     map((response) =>
                         ControllerServiceActions.pollControllerServiceSuccess({
                             response: {
@@ -247,7 +244,7 @@ export class EnableControllerServiceEffects {
             switchMap(([action, controllerService, setEnableRequest]) => {
                 if (controllerService) {
                     return from(
-                        this.controllerServiceActionService.updateReferencingServices(
+                        this.controllerServiceStateService.updateReferencingServices(
                             controllerService,
                             setEnableRequest.enable
                         )
@@ -293,7 +290,7 @@ export class EnableControllerServiceEffects {
             switchMap(([action, controllerService, setEnableRequest]) => {
                 if (controllerService) {
                     return from(
-                        this.controllerServiceActionService.updateReferencingSchedulableComponents(
+                        this.controllerServiceStateService.updateReferencingSchedulableComponents(
                             controllerService,
                             setEnableRequest.enable
                         )

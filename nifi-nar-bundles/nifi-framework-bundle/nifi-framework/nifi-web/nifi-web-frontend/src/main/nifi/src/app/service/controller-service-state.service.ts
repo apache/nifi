@@ -27,7 +27,7 @@ import { Client } from './client.service';
 import { NiFiCommon } from './nifi-common.service';
 
 @Injectable({ providedIn: 'root' })
-export class EnableControllerServiceService {
+export class ControllerServiceStateService {
     private static readonly API: string = '../nifi-api';
 
     constructor(
@@ -50,7 +50,7 @@ export class EnableControllerServiceService {
     }
 
     getControllerService(id: string): Observable<any> {
-        return this.httpClient.get(`${EnableControllerServiceService.API}/controller-services/${id}`);
+        return this.httpClient.get(`${ControllerServiceStateService.API}/controller-services/${id}`);
     }
 
     setEnable(controllerService: ControllerServiceEntity, enabled: boolean): Observable<any> {

@@ -24,7 +24,7 @@
         <ng-container *ngIf="enableRequest.currentStep === SetEnableStep.Pending; else enableInProgress">
             <mat-dialog-content>
                 <div class="tab-content py-4 flex gap-x-4">
-                    <div class="w-full flex flex-col gap-y-4">
+                    <div class="w-96 flex flex-col gap-y-4">
                         <div class="flex flex-col">
                             <div>Service</div>
                             <div class="value">{{ controllerService.component.name }}</div>
@@ -46,7 +46,7 @@
                             </mat-form-field>
                         </div>
                     </div>
-                    <div class="w-full flex flex-col">
+                    <div class="w-96 flex flex-col">
                         <div>Referencing Components</div>
                         <div>
                             <controller-service-references
@@ -71,7 +71,7 @@
         <ng-template #enableInProgress>
             <mat-dialog-content>
                 <div class="tab-content py-4 flex gap-x-4">
-                    <div class="w-full flex flex-col gap-y-4">
+                    <div class="w-96 flex flex-col gap-y-4">
                         <div class="flex flex-col">
                             <div>Service</div>
                             <div class="value">{{ controllerService.component.name }}</div>
@@ -86,6 +86,13 @@
                                             getTemplateForStep(SetEnableStep.EnableService, enableRequest)
                                         "></ng-container>
                                 </div>
+                                <div
+                                    *ngIf="
+                                        enableRequest.error && enableRequest.error.step == SetEnableStep.EnableService
+                                    "
+                                    class="text-xs ml-2">
+                                    {{ enableRequest.error.error }}
+                                </div>
                                 <ng-container *ngIf="enableRequest.scope === 'SERVICE_AND_REFERENCING_COMPONENTS'">
                                     <div class="flex justify-between items-center">
                                         <div class="value">Enable referencing controller services</div>
@@ -97,6 +104,14 @@
                                                 )
                                             "></ng-container>
                                     </div>
+                                    <div
+                                        *ngIf="
+                                            enableRequest.error &&
+                                            enableRequest.error.step == SetEnableStep.EnableReferencingServices
+                                        "
+                                        class="text-xs ml-2">
+                                        {{ enableRequest.error.error }}
+                                    </div>
                                     <div class="flex justify-between items-center">
                                         <div class="value">Starting referencing processors and reporting tasks</div>
                                         <ng-container
@@ -107,12 +122,19 @@
                                                 )
                                             "></ng-container>
                                     </div>
+                                    <div
+                                        *ngIf="
+                                            enableRequest.error &&
+                                            enableRequest.error.step == SetEnableStep.StartReferencingComponents
+                                        "
+                                        class="text-xs ml-2">
+                                        {{ enableRequest.error.error }}
+                                    </div>
                                 </ng-container>
                             </div>
                         </div>
-                        <mat-error *ngIf="enableRequest.error">{{ enableRequest.error.error }}</mat-error>
                     </div>
-                    <div class="w-full flex flex-col">
+                    <div class="w-96 flex flex-col">
                         <div>Referencing Components</div>
                         <div>
                             <controller-service-references

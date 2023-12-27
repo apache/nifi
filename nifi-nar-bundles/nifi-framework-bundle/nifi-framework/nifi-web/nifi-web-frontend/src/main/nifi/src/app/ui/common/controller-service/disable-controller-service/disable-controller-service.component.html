@@ -21,7 +21,7 @@
         <ng-container *ngIf="disableRequest.currentStep === SetEnableStep.Pending; else disableInProgress">
             <mat-dialog-content>
                 <div class="tab-content py-4 flex gap-x-4">
-                    <div class="w-full flex flex-col gap-y-4">
+                    <div class="w-96 max-w-full flex flex-col gap-y-4">
                         <div class="flex flex-col">
                             <div>Service</div>
                             <div class="value">{{ controllerService.component.name }}</div>
@@ -31,7 +31,7 @@
                             <div class="value">Service and referencing components</div>
                         </div>
                     </div>
-                    <div class="w-full flex flex-col">
+                    <div class="w-96 max-w-full flex flex-col">
                         <div>Referencing Components</div>
                         <div>
                             <controller-service-references
@@ -49,7 +49,7 @@
         <ng-template #disableInProgress>
             <mat-dialog-content>
                 <div class="tab-content py-4 flex gap-x-4">
-                    <div class="w-full flex flex-col gap-y-4">
+                    <div class="w-96 max-w-full flex flex-col gap-y-4">
                         <div class="flex flex-col">
                             <div>Service</div>
                             <div class="value">{{ controllerService.component.name }}</div>
@@ -64,12 +64,28 @@
                                             getTemplateForStep(SetEnableStep.StopReferencingComponents, disableRequest)
                                         "></ng-container>
                                 </div>
+                                <div
+                                    *ngIf="
+                                        disableRequest.error &&
+                                        disableRequest.error.step == SetEnableStep.StopReferencingComponents
+                                    "
+                                    class="text-xs ml-2">
+                                    {{ disableRequest.error.error }}
+                                </div>
                                 <div class="flex justify-between items-center">
                                     <div class="value">Disabling referencing controller services</div>
                                     <ng-container
                                         *ngTemplateOutlet="
                                             getTemplateForStep(SetEnableStep.DisableReferencingServices, disableRequest)
                                         "></ng-container>
+                                </div>
+                                <div
+                                    *ngIf="
+                                        disableRequest.error &&
+                                        disableRequest.error.step == SetEnableStep.DisableReferencingServices
+                                    "
+                                    class="text-xs ml-2">
+                                    {{ disableRequest.error.error }}
                                 </div>
                                 <div class="flex justify-between items-center">
                                     <div class="value">Disabling this controller service</div>
@@ -78,11 +94,18 @@
                                             getTemplateForStep(SetEnableStep.DisableService, disableRequest)
                                         "></ng-container>
                                 </div>
+                                <div
+                                    *ngIf="
+                                        disableRequest.error &&
+                                        disableRequest.error.step == SetEnableStep.DisableService
+                                    "
+                                    class="text-xs ml-2">
+                                    {{ disableRequest.error.error }}
+                                </div>
                             </div>
                         </div>
-                        <mat-error *ngIf="disableRequest.error">{{ disableRequest.error.error }}</mat-error>
                     </div>
-                    <div class="w-full flex flex-col">
+                    <div class="w-96 max-w-full flex flex-col">
                         <div>Referencing Components</div>
                         <div>
                             <controller-service-references
