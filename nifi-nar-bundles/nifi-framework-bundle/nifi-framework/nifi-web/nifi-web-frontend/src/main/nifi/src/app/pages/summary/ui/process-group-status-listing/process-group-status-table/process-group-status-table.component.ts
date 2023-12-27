@@ -15,25 +15,21 @@
  *  limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
 import { MultiSort } from '../../common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { SummaryTableFilterModule } from '../../common/summary-table-filter/summary-table-filter.module';
-import {
-    ProcessGroupStatusSnapshot,
-    ProcessGroupStatusSnapshotEntity,
-    ProcessorStatusSnapshot,
-    ProcessorStatusSnapshotEntity,
-    VersionedFlowState
-} from '../../../state/summary-listing';
+import { ProcessGroupStatusSnapshot, ProcessGroupStatusSnapshotEntity } from '../../../state/summary-listing';
 import {
     SummaryTableFilterArgs,
     SummaryTableFilterColumn
 } from '../../common/summary-table-filter/summary-table-filter.component';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { RouterLink } from '@angular/router';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { User } from '../../../../../state/user';
 
 export type SupportedColumns =
     | 'name'
@@ -50,17 +46,17 @@ export type SupportedColumns =
 @Component({
     selector: 'process-group-status-table',
     standalone: true,
-    imports: [CommonModule, MatSortModule, MatTableModule, SummaryTableFilterModule, RouterLink],
+    imports: [CommonModule, MatSortModule, MatTableModule, SummaryTableFilterModule, RouterLink, MatPaginatorModule],
     templateUrl: './process-group-status-table.component.html',
     styleUrls: ['./process-group-status-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
 })
-export class ProcessGroupStatusTable {
+export class ProcessGroupStatusTable implements AfterViewInit {
     private _initialSortColumn: SupportedColumns = 'name';
     private _initialSortDirection: SortDirection = 'asc';
 
     filterableColumns: SummaryTableFilterColumn[] = [{ key: 'name', label: 'name' }];
-    totalCount: number = 0;
-    filteredCount: number = 0;
+    totalCount = 0;
+    filteredCount = 0;
 
     multiSort: MultiSort = {
         active: this._initialSortColumn,
@@ -92,6 +88,7 @@ export class ProcessGroupStatusTable {
     applyFilter(filter: SummaryTableFilterArgs) {
         this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
+        this.resetPaginator();
     }
 
     @Input() selectedProcessGroupId!: string;
@@ -138,10 +135,28 @@ export class ProcessGroupStatusTable {
         }
     }
 
+    @Input() summaryListingStatus: string | null = null;
+    @Input() loadedTimestamp: string | null = null;
+    @Input() currentUser: User | null = null;
+
     @Output() viewStatusHistory: EventEmitter<ProcessGroupStatusSnapshotEntity> =
         new EventEmitter<ProcessGroupStatusSnapshotEntity>();
     @Output() selectProcessGroup: EventEmitter<ProcessGroupStatusSnapshotEntity> =
         new EventEmitter<ProcessGroupStatusSnapshotEntity>();
+    @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
+    @Output() viewSystemDiagnostics: EventEmitter<void> = new EventEmitter<void>();
+
+    @ViewChild(MatPaginator) paginator!: MatPaginator;
+
+    ngAfterViewInit(): void {
+        this.dataSource.paginator = this.paginator;
+    }
+
+    resetPaginator(): void {
+        if (this.dataSource.paginator) {
+            this.dataSource.paginator.firstPage();
+        }
+    }
 
     formatName(pg: ProcessGroupStatusSnapshotEntity): string {
         return pg.processGroupStatusSnapshot.name;
@@ -169,6 +184,7 @@ export class ProcessGroupStatusTable {
             label: 'Sync failure'
         }
     };
+
     formatVersionedFlowState(pg: ProcessGroupStatusSnapshotEntity): string {
         if (!pg.processGroupStatusSnapshot.versionedFlowState) {
             return '';
@@ -280,8 +296,8 @@ export class ProcessGroupStatusTable {
             return [];
         }
 
-        let aggregateDuration: number = 0;
-        let aggregateActiveThreads: number = 0;
+        let aggregateDuration = 0;
+        let aggregateActiveThreads = 0;
         if (this.rootProcessGroup) {
             aggregateDuration = this.rootProcessGroup.processingNanos;
             aggregateActiveThreads = this.rootProcessGroup.activeThreadCount;
@@ -289,7 +305,7 @@ export class ProcessGroupStatusTable {
 
         return data.slice().sort((a, b) => {
             const isAsc = sort.direction === 'asc';
-            let retVal: number = 0;
+            let retVal = 0;
             switch (sort.active) {
                 case 'name':
                     retVal = this.nifiCommon.compareString(this.formatName(a), this.formatName(b));
@@ -422,6 +438,7 @@ export class ProcessGroupStatusTable {
     select(pg: ProcessGroupStatusSnapshotEntity): void {
         this.selectProcessGroup.next(pg);
     }
+
     isSelected(pg: ProcessGroupStatusSnapshotEntity): boolean {
         if (this.selectedProcessGroupId) {
             return pg.id === this.selectedProcessGroupId;

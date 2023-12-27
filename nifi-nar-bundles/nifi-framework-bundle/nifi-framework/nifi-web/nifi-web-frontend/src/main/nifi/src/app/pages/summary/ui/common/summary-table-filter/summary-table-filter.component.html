@@ -16,7 +16,9 @@
   -->
 
 <div class="summary-table-filter-container">
-    <div class="value">Displaying {{ filteredCount }} of {{ totalCount }}</div>
+    <div class="value {{ showFilterMatchedLabel ? 'visible' : 'invisible' }}">
+        Filter matched {{ filteredCount }} of {{ totalCount }}
+    </div>
     <form [formGroup]="filterForm">
         <div class="flex pt-1 gap-1 items-baseline">
             <div>

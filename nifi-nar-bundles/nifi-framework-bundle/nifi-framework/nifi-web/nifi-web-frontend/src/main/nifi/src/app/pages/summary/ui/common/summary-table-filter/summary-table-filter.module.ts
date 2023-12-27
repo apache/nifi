@@ -22,7 +22,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { ReactiveFormsModule } from '@angular/forms';
-import { NgForOf, NgIf } from '@angular/common';
+import { NgClass, NgForOf, NgIf } from '@angular/common';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 
 @NgModule({
@@ -35,7 +35,8 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
         ReactiveFormsModule,
         NgForOf,
         NgIf,
-        MatCheckboxModule
+        MatCheckboxModule,
+        NgClass
     ],
     exports: [SummaryTableFilter],
     providers: []

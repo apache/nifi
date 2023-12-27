@@ -14,134 +14,167 @@
   ~  See the License for the specific language governing permissions and
   ~  limitations under the License.
   -->
+<div class="flex flex-col h-full gap-y-2">
+    <div class="flex-1">
+        <ng-container>
+            <div class="port-status-table h-full flex flex-col">
+                <!-- allow filtering of the table -->
+                <summary-table-filter
+                    [filteredCount]="filteredCount"
+                    [totalCount]="totalCount"
+                    [filterableColumns]="filterableColumns"
+                    [includeStatusFilter]="true"
+                    [includePrimaryNodeOnlyFilter]="false"
+                    (filterChanged)="applyFilter($event)"></summary-table-filter>
 
-<div class="port-status-table h-full flex flex-col">
-    <!-- allow filtering of the table -->
-    <summary-table-filter
-        [filteredCount]="filteredCount"
-        [totalCount]="totalCount"
-        [filterableColumns]="filterableColumns"
-        [includeStatusFilter]="true"
-        [includePrimaryNodeOnlyFilter]="false"
-        (filterChanged)="applyFilter($event)"></summary-table-filter>
-
-    <div class="flex-1 relative">
-        <div class="listing-table overflow-y-auto border absolute inset-0">
-            <table
-                mat-table
-                [dataSource]="dataSource"
-                matSort
-                matSortDisableClear
-                (matSortChange)="sortData($event)"
-                [matSortActive]="initialSortColumn"
-                [matSortDirection]="initialSortDirection">
-                <!-- More Details Column -->
-                <ng-container matColumnDef="moreDetails">
-                    <th mat-header-cell *matHeaderCellDef></th>
-                    <td mat-cell *matCellDef="let item"></td>
-                </ng-container>
-
-                <!-- Name Column -->
-                <ng-container matColumnDef="name">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                        <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
-                    </th>
-                    <td mat-cell *matCellDef="let item" [title]="formatName(item)">
-                        {{ formatName(item) }}
-                    </td>
-                </ng-container>
-
-                <!-- Run Status column -->
-                <ng-container matColumnDef="runStatus">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Run Status</th>
-                    <td mat-cell *matCellDef="let item">
-                        <div class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1.5">
-                            <span [ngClass]="getRunStatusIcon(item)"></span>
-                            <span [title]="formatRunStatus(item)">{{ formatRunStatus(item) }}</span>
-
-                            <ng-container *ngIf="item.processorStatusSnapshot as pg">
-                                <span
-                                    *ngIf="pg.terminatedThreadCount > 0; else activeThreads"
-                                    title="Threads: (Active / Terminated)"
-                                    >({{ pg.activeThreadCount }}/{{ pg.terminatedThreadCount }})</span
-                                >
-                                <ng-template #activeThreads>
-                                    <span *ngIf="pg.activeThreadCount > 0" title="Active Threads"
-                                        >({{ pg.activeThreadCount }})</span
-                                    >
-                                </ng-template>
+                <div class="flex-1 relative">
+                    <div class="listing-table overflow-y-auto border absolute inset-0">
+                        <table
+                            mat-table
+                            [dataSource]="dataSource"
+                            matSort
+                            matSortDisableClear
+                            (matSortChange)="sortData($event)"
+                            [matSortActive]="initialSortColumn"
+                            [matSortDirection]="initialSortDirection">
+                            <!-- More Details Column -->
+                            <ng-container matColumnDef="moreDetails">
+                                <th mat-header-cell *matHeaderCellDef></th>
+                                <td mat-cell *matCellDef="let item"></td>
                             </ng-container>
-                        </div>
-                    </td>
-                </ng-container>
 
-                <!-- Input column -->
-                <ng-container matColumnDef="in">
-                    <th
-                        mat-header-cell
-                        *matHeaderCellDef
-                        mat-sort-header
-                        title="Count / data size in the last 5 minutes">
-                        <div class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
-                            <span [ngClass]="{ underline: multiSort.active === 'in' && multiSort.sortValueIndex === 0 }"
-                                >In</span
-                            >
-                            <span [ngClass]="{ underline: multiSort.active === 'in' && multiSort.sortValueIndex === 1 }"
-                                >(Size)</span
-                            >
-                            <span class="font-light">5 min</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let item" [title]="formatIn(item)">
-                        {{ formatIn(item) }}
-                    </td>
-                </ng-container>
+                            <!-- Name Column -->
+                            <ng-container matColumnDef="name">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                                    <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
+                                </th>
+                                <td mat-cell *matCellDef="let item" [title]="formatName(item)">
+                                    {{ formatName(item) }}
+                                </td>
+                            </ng-container>
 
-                <!-- Output column -->
-                <ng-container matColumnDef="out">
-                    <th
-                        mat-header-cell
-                        *matHeaderCellDef
-                        mat-sort-header
-                        title="Count / data size in the last 5 minutes">
-                        <div class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
-                            <span
-                                [ngClass]="{ underline: multiSort.active === 'out' && multiSort.sortValueIndex === 0 }">
-                                Out
-                            </span>
-                            <span
-                                [ngClass]="{ underline: multiSort.active === 'out' && multiSort.sortValueIndex === 1 }">
-                                (Size)
-                            </span>
-                            <span class="font-light">5 min</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let item" [title]="formatOut(item)">
-                        {{ formatOut(item) }}
-                    </td>
-                </ng-container>
+                            <!-- Run Status column -->
+                            <ng-container matColumnDef="runStatus">
+                                <th mat-header-cell *matHeaderCellDef mat-sort-header>Run Status</th>
+                                <td mat-cell *matCellDef="let item">
+                                    <div
+                                        class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1.5 align-middle">
+                                        <span [ngClass]="getRunStatusIcon(item)"></span>
+                                        <span [title]="formatRunStatus(item)">{{ formatRunStatus(item) }}</span>
 
-                <ng-container matColumnDef="actions">
-                    <th mat-header-cell *matHeaderCellDef></th>
-                    <td mat-cell *matCellDef="let item">
-                        <div class="flex items-center gap-x-3">
-                            <div
-                                class="pointer fa fa-long-arrow-right"
-                                [routerLink]="getPortLink(item)"
-                                (click)="$event.stopPropagation()"
-                                title="Go to {{ portType }}} port"></div>
-                        </div>
-                    </td>
-                </ng-container>
+                                        <ng-container *ngIf="item.processorStatusSnapshot as pg">
+                                            <span
+                                                *ngIf="pg.terminatedThreadCount > 0; else activeThreads"
+                                                title="Threads: (Active / Terminated)"
+                                                >({{ pg.activeThreadCount }}/{{ pg.terminatedThreadCount }})</span
+                                            >
+                                            <ng-template #activeThreads>
+                                                <span *ngIf="pg.activeThreadCount > 0" title="Active Threads"
+                                                    >({{ pg.activeThreadCount }})</span
+                                                >
+                                            </ng-template>
+                                        </ng-container>
+                                    </div>
+                                </td>
+                            </ng-container>
 
-                <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-                <tr
-                    mat-row
-                    *matRowDef="let row; let even = even; columns: displayedColumns"
-                    [class.even]="even"
-                    (click)="select(row)"
-                    [class.selected]="isSelected(row)"></tr>
-            </table>
+                            <!-- Input column -->
+                            <ng-container matColumnDef="in">
+                                <th
+                                    mat-header-cell
+                                    *matHeaderCellDef
+                                    mat-sort-header
+                                    title="Count / data size in the last 5 minutes">
+                                    <div
+                                        class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                                        <span
+                                            [ngClass]="{
+                                                underline: multiSort.active === 'in' && multiSort.sortValueIndex === 0
+                                            }"
+                                            >In</span
+                                        >
+                                        <span
+                                            [ngClass]="{
+                                                underline: multiSort.active === 'in' && multiSort.sortValueIndex === 1
+                                            }"
+                                            >(Size)</span
+                                        >
+                                        <span class="font-light">5 min</span>
+                                    </div>
+                                </th>
+                                <td mat-cell *matCellDef="let item" [title]="formatIn(item)">
+                                    {{ formatIn(item) }}
+                                </td>
+                            </ng-container>
+
+                            <!-- Output column -->
+                            <ng-container matColumnDef="out">
+                                <th
+                                    mat-header-cell
+                                    *matHeaderCellDef
+                                    mat-sort-header
+                                    title="Count / data size in the last 5 minutes">
+                                    <div
+                                        class="inline-block overflow-hidden overflow-ellipsis whitespace-nowrap space-x-1">
+                                        <span
+                                            [ngClass]="{
+                                                underline: multiSort.active === 'out' && multiSort.sortValueIndex === 0
+                                            }">
+                                            Out
+                                        </span>
+                                        <span
+                                            [ngClass]="{
+                                                underline: multiSort.active === 'out' && multiSort.sortValueIndex === 1
+                                            }">
+                                            (Size)
+                                        </span>
+                                        <span class="font-light">5 min</span>
+                                    </div>
+                                </th>
+                                <td mat-cell *matCellDef="let item" [title]="formatOut(item)">
+                                    {{ formatOut(item) }}
+                                </td>
+                            </ng-container>
+
+                            <ng-container matColumnDef="actions">
+                                <th mat-header-cell *matHeaderCellDef></th>
+                                <td mat-cell *matCellDef="let item">
+                                    <div class="flex items-center gap-x-3">
+                                        <div
+                                            class="pointer fa fa-long-arrow-right"
+                                            [routerLink]="getPortLink(item)"
+                                            (click)="$event.stopPropagation()"
+                                            title="Go to {{ portType }}} port"></div>
+                                    </div>
+                                </td>
+                            </ng-container>
+
+                            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                            <tr
+                                mat-row
+                                *matRowDef="let row; let even = even; columns: displayedColumns"
+                                [class.even]="even"
+                                (click)="select(row)"
+                                [class.selected]="isSelected(row)"></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </ng-container>
+    </div>
+    <div class="flex justify-between align-middle">
+        <div class="refresh-container flex items-center gap-x-2">
+            <button class="nifi-button" (click)="refresh.next()">
+                <i class="fa fa-refresh" [class.fa-spin]="summaryListingStatus === 'loading'"></i>
+            </button>
+            <div>Last updated:</div>
+            <div class="refresh-timestamp">{{ loadedTimestamp }}</div>
+        </div>
+        <div *ngIf="currentUser?.systemPermissions?.canRead" class="flex items-center flex-1 ml-28">
+            <a (click)="viewSystemDiagnostics.next()">System Diagnostics</a>
+        </div>
+        <div>
+            <mat-paginator [pageSize]="100" [hidePageSize]="true" [showFirstLastButtons]="true"></mat-paginator>
         </div>
     </div>
 </div>

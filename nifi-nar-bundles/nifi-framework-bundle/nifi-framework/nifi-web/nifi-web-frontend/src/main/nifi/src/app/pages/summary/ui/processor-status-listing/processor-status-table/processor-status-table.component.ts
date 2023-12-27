@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { ProcessorStatusSnapshot, ProcessorStatusSnapshotEntity } from '../../../state/summary-listing';
 import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
@@ -29,6 +29,8 @@ import { NgClass, NgIf } from '@angular/common';
 import { ComponentType } from '../../../../../state/shared';
 import { MultiSort } from '../../common';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { User } from '../../../../../state/user';
 
 export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 'in' | 'out' | 'readWrite' | 'tasks';
 
@@ -37,9 +39,9 @@ export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 
     templateUrl: './processor-status-table.component.html',
     styleUrls: ['./processor-status-table.component.scss', '../../../../../../assets/styles/listing-table.scss'],
     standalone: true,
-    imports: [RouterLink, SummaryTableFilterModule, MatTableModule, MatSortModule, NgClass, NgIf]
+    imports: [RouterLink, SummaryTableFilterModule, MatTableModule, MatSortModule, NgClass, NgIf, MatPaginatorModule]
 })
-export class ProcessorStatusTable {
+export class ProcessorStatusTable implements AfterViewInit {
     private _initialSortColumn: SupportedColumns = 'name';
     private _initialSortDirection: SortDirection = 'asc';
 
@@ -47,8 +49,8 @@ export class ProcessorStatusTable {
         { key: 'name', label: 'name' },
         { key: 'type', label: 'type' }
     ];
-    totalCount: number = 0;
-    filteredCount: number = 0;
+    totalCount = 0;
+    filteredCount = 0;
 
     multiSort: MultiSort = {
         active: this._initialSortColumn,
@@ -72,11 +74,18 @@ export class ProcessorStatusTable {
     dataSource: MatTableDataSource<ProcessorStatusSnapshotEntity> =
         new MatTableDataSource<ProcessorStatusSnapshotEntity>();
 
+    @ViewChild(MatPaginator) paginator!: MatPaginator;
+
     constructor(private nifiCommon: NiFiCommon) {}
+
+    ngAfterViewInit(): void {
+        this.dataSource.paginator = this.paginator;
+    }
 
     applyFilter(filter: SummaryTableFilterArgs) {
         this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
+        this.resetPaginator();
     }
 
     @Input() selectedProcessorId!: string;
@@ -131,10 +140,22 @@ export class ProcessorStatusTable {
         }
     }
 
+    @Input() summaryListingStatus: string | null = null;
+    @Input() loadedTimestamp: string | null = null;
+    @Input() currentUser: User | null = null;
+
+    @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
+    @Output() viewSystemDiagnostics: EventEmitter<void> = new EventEmitter<void>();
     @Output() viewStatusHistory: EventEmitter<ProcessorStatusSnapshotEntity> =
         new EventEmitter<ProcessorStatusSnapshotEntity>();
     @Output() selectProcessor: EventEmitter<ProcessorStatusSnapshotEntity> =
         new EventEmitter<ProcessorStatusSnapshotEntity>();
+
+    resetPaginator(): void {
+        if (this.dataSource.paginator) {
+            this.dataSource.paginator.firstPage();
+        }
+    }
 
     formatName(processor: ProcessorStatusSnapshotEntity): string {
         return processor.processorStatusSnapshot.name;
@@ -318,6 +339,7 @@ export class ProcessorStatusTable {
     select(processor: ProcessorStatusSnapshotEntity): void {
         this.selectProcessor.next(processor);
     }
+
     isSelected(processor: ProcessorStatusSnapshotEntity): boolean {
         if (this.selectedProcessorId) {
             return processor.id === this.selectedProcessorId;

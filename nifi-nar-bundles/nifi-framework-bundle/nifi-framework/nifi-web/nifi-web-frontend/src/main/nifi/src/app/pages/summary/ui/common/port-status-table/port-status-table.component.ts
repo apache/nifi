@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
 import { MultiSort } from '../index';
@@ -29,25 +29,27 @@ import {
 import { ComponentType } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { User } from '../../../../../state/user';
 
 export type SupportedColumns = 'name' | 'runStatus' | 'in' | 'out';
 
 @Component({
     selector: 'port-status-table',
     standalone: true,
-    imports: [CommonModule, SummaryTableFilterModule, MatSortModule, MatTableModule, RouterLink],
+    imports: [CommonModule, SummaryTableFilterModule, MatSortModule, MatTableModule, RouterLink, MatPaginatorModule],
     templateUrl: './port-status-table.component.html',
     styleUrls: ['./port-status-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
 })
-export class PortStatusTable {
+export class PortStatusTable implements AfterViewInit {
     private _initialSortColumn: SupportedColumns = 'name';
     private _initialSortDirection: SortDirection = 'asc';
     private _portType!: 'input' | 'output';
 
     filterableColumns: SummaryTableFilterColumn[] = [{ key: 'name', label: 'name' }];
 
-    totalCount: number = 0;
-    filteredCount: number = 0;
+    totalCount = 0;
+    filteredCount = 0;
 
     multiSort: MultiSort = {
         active: this._initialSortColumn,
@@ -60,7 +62,13 @@ export class PortStatusTable {
 
     dataSource: MatTableDataSource<PortStatusSnapshotEntity> = new MatTableDataSource<PortStatusSnapshotEntity>();
 
+    @ViewChild(MatPaginator) paginator!: MatPaginator;
+
     constructor(private nifiCommon: NiFiCommon) {}
+
+    ngAfterViewInit(): void {
+        this.dataSource.paginator = this.paginator;
+    }
 
     @Input() set portType(type: 'input' | 'output') {
         if (type === 'input') {
@@ -120,11 +128,24 @@ export class PortStatusTable {
         }
     }
 
+    @Input() summaryListingStatus: string | null = null;
+    @Input() loadedTimestamp: string | null = null;
+    @Input() currentUser: User | null = null;
+
+    @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
+    @Output() viewSystemDiagnostics: EventEmitter<void> = new EventEmitter<void>();
     @Output() selectPort: EventEmitter<PortStatusSnapshotEntity> = new EventEmitter<PortStatusSnapshotEntity>();
 
     applyFilter(filter: SummaryTableFilterArgs) {
         this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
+        this.resetPaginator();
+    }
+
+    resetPaginator(): void {
+        if (this.dataSource.paginator) {
+            this.dataSource.paginator.firstPage();
+        }
     }
 
     formatName(port: PortStatusSnapshotEntity): string {
@@ -226,7 +247,7 @@ export class PortStatusTable {
         }
         return data.slice().sort((a, b) => {
             const isAsc: boolean = sort.direction === 'asc';
-            let retVal: number = 0;
+            let retVal = 0;
             switch (sort.active) {
                 case 'name':
                     retVal = this.nifiCommon.compareString(a.portStatusSnapshot.name, b.portStatusSnapshot.name);

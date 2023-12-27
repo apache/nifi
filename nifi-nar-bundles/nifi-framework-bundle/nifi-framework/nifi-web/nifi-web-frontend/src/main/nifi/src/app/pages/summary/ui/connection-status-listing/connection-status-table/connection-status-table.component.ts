@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SummaryTableFilterModule } from '../../common/summary-table-filter/summary-table-filter.module';
 import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
@@ -29,13 +29,15 @@ import { ConnectionStatusSnapshot, ConnectionStatusSnapshotEntity } from '../../
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { ComponentType } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { User } from '../../../../../state/user';
 
 export type SupportedColumns = 'name' | 'queue' | 'in' | 'out' | 'threshold' | 'sourceName' | 'destinationName';
 
 @Component({
     selector: 'connection-status-table',
     standalone: true,
-    imports: [CommonModule, SummaryTableFilterModule, MatSortModule, RouterLink, MatTableModule],
+    imports: [CommonModule, SummaryTableFilterModule, MatSortModule, RouterLink, MatTableModule, MatPaginatorModule],
     templateUrl: './connection-status-table.component.html',
     styleUrls: ['./connection-status-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
 })
@@ -49,8 +51,8 @@ export class ConnectionStatusTable {
         { key: 'destinationName', label: 'destination' }
     ];
 
-    totalCount: number = 0;
-    filteredCount: number = 0;
+    totalCount = 0;
+    filteredCount = 0;
 
     multiSort: MultiSort = {
         active: this._initialSortColumn,
@@ -73,7 +75,14 @@ export class ConnectionStatusTable {
 
     dataSource: MatTableDataSource<ConnectionStatusSnapshotEntity> =
         new MatTableDataSource<ConnectionStatusSnapshotEntity>();
+
+    @ViewChild(MatPaginator) paginator!: MatPaginator;
+
     constructor(private nifiCommon: NiFiCommon) {}
+
+    ngAfterViewInit(): void {
+        this.dataSource.paginator = this.paginator;
+    }
 
     @Input() set initialSortColumn(initialSortColumn: SupportedColumns) {
         this._initialSortColumn = initialSortColumn;
@@ -116,14 +125,27 @@ export class ConnectionStatusTable {
         }
     }
 
+    @Input() summaryListingStatus: string | null = null;
+    @Input() loadedTimestamp: string | null = null;
+    @Input() currentUser: User | null = null;
+
+    @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
+    @Output() viewSystemDiagnostics: EventEmitter<void> = new EventEmitter<void>();
     @Output() viewStatusHistory: EventEmitter<ConnectionStatusSnapshotEntity> =
         new EventEmitter<ConnectionStatusSnapshotEntity>();
     @Output() selectConnection: EventEmitter<ConnectionStatusSnapshotEntity> =
         new EventEmitter<ConnectionStatusSnapshotEntity>();
 
+    resetPaginator(): void {
+        if (this.dataSource.paginator) {
+            this.dataSource.paginator.firstPage();
+        }
+    }
+
     applyFilter(filter: SummaryTableFilterArgs) {
         this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
+        this.resetPaginator();
     }
 
     getConnectionLink(connection: ConnectionStatusSnapshotEntity): string[] {
@@ -222,7 +244,7 @@ export class ConnectionStatusTable {
         }
         return data.slice().sort((a, b) => {
             const isAsc: boolean = sort.direction === 'asc';
-            let retVal: number = 0;
+            let retVal = 0;
             switch (sort.active) {
                 case 'name':
                     retVal = this.nifiCommon.compareString(

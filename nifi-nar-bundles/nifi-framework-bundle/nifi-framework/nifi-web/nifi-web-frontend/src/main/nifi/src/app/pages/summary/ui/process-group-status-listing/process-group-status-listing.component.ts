@@ -18,29 +18,20 @@
 import { Component } from '@angular/core';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
-import {
-    ProcessGroupStatusSnapshotEntity,
-    ProcessorStatusSnapshotEntity,
-    SummaryListingState
-} from '../../state/summary-listing';
+import { ProcessGroupStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
 import { Store } from '@ngrx/store';
 import {
     selectProcessGroupIdFromRoute,
     selectProcessGroupStatus,
     selectProcessGroupStatusItem,
     selectProcessGroupStatusSnapshots,
-    selectProcessorStatus,
-    selectProcessorStatusSnapshots,
     selectSummaryListingLoadedTimestamp,
     selectSummaryListingStatus,
     selectViewStatusHistory
 } from '../../state/summary-listing/summary-listing.selectors';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import {
-    getStatusHistoryAndOpenDialog,
-    openStatusHistoryDialog
-} from '../../../../state/status-history/status-history.actions';
+import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
 import { ComponentType } from '../../../../state/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { getSystemDiagnosticsAndOpenDialog } from '../../../../state/system-diagnostics/system-diagnostics.actions';

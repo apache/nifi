@@ -31,6 +31,9 @@ import { RouterLink } from '@angular/router';
 import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { SummaryTableFilterModule } from '../common/summary-table-filter/summary-table-filter.module';
 import { ProcessorStatusTable } from './processor-status-table/processor-status-table.component';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { ProcessGroupStatusTable } from '../process-group-status-listing/process-group-status-table/process-group-status-table.component';
+import { RemoteProcessGroupStatusTable } from '../remote-process-group-status-listing/remote-process-group-status-table/remote-process-group-status-table.component';
 
 @NgModule({
     declarations: [ProcessorStatusListing],
@@ -49,7 +52,10 @@ import { ProcessorStatusTable } from './processor-status-table/processor-status-
         RouterLink,
         NifiTooltipDirective,
         SummaryTableFilterModule,
-        ProcessorStatusTable
+        ProcessorStatusTable,
+        MatPaginatorModule,
+        ProcessGroupStatusTable,
+        RemoteProcessGroupStatusTable
     ]
 })
 export class ProcessorStatusListingModule {}

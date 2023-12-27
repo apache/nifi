@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { AfterViewInit, Component, ViewChild } from '@angular/core';
 import { Store } from '@ngrx/store';
 import {
     selectProcessorIdFromRoute,
@@ -28,14 +28,13 @@ import {
 import { ProcessorStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
-import {
-    getStatusHistoryAndOpenDialog,
-    openStatusHistoryDialog
-} from '../../../../state/status-history/status-history.actions';
+import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
 import { ComponentType } from '../../../../state/shared';
-import { filter, switchMap, take } from 'rxjs';
+import { combineLatest, delay, filter, Subject, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
+import { MatPaginator } from '@angular/material/paginator';
+import { ProcessorStatusTable } from './processor-status-table/processor-status-table.component';
 import { getSystemDiagnosticsAndOpenDialog } from '../../../../state/system-diagnostics/system-diagnostics.actions';
 
 @Component({
@@ -43,13 +42,17 @@ import { getSystemDiagnosticsAndOpenDialog } from '../../../../state/system-diag
     templateUrl: './processor-status-listing.component.html',
     styleUrls: ['./processor-status-listing.component.scss']
 })
-export class ProcessorStatusListing {
+export class ProcessorStatusListing implements AfterViewInit {
     processorStatusSnapshots$ = this.store.select(selectProcessorStatusSnapshots);
     loadedTimestamp$ = this.store.select(selectSummaryListingLoadedTimestamp);
     summaryListingStatus$ = this.store.select(selectSummaryListingStatus);
     selectedProcessorId$ = this.store.select(selectProcessorIdFromRoute);
 
     currentUser$ = this.store.select(selectCurrentUser);
+
+    @ViewChild(MatPaginator) paginator!: MatPaginator;
+    @ViewChild(ProcessorStatusTable) table!: ProcessorStatusTable;
+    private subject: Subject<void> = new Subject<void>();
 
     constructor(private store: Store<SummaryListingState>) {
         this.store
@@ -77,6 +80,23 @@ export class ProcessorStatusListing {
                     );
                 }
             });
+    }
+
+    ngAfterViewInit(): void {
+        combineLatest([this.processorStatusSnapshots$, this.loadedTimestamp$])
+            .pipe(
+                filter(([processors, ts]) => !!processors && !this.isInitialLoading(ts)),
+                delay(0)
+            )
+            .subscribe(() => {
+                this.subject.next();
+            });
+
+        this.subject.subscribe(() => {
+            if (this.table) {
+                this.table.paginator = this.paginator;
+            }
+        });
     }
 
     isInitialLoading(loadedTimestamp: string): boolean {
