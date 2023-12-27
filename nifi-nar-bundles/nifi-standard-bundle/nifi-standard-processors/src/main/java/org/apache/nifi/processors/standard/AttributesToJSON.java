@@ -324,9 +324,9 @@ public class AttributesToJSON extends AbstractProcessor {
         Map<String, Object> formattedAttributes = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : flowFileAttributes.entrySet()) {
             String value = (String) entry.getValue();
-            if(value != null) {
+            if (value != null) {
                 final String trimmedValue = value.trim();
-                if(isPossibleJsonArray(trimmedValue) || isPossibleJsonObject(trimmedValue)) {
+                if (isPossibleJsonArray(trimmedValue) || isPossibleJsonObject(trimmedValue)) {
                     formattedAttributes.put(entry.getKey(), OBJECT_MAPPER.readTree(trimmedValue));
                     continue;
                 }

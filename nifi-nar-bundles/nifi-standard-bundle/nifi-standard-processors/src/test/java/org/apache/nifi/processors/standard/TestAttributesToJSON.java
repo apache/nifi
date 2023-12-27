@@ -566,7 +566,7 @@ public class TestAttributesToJSON {
                 "    \"size\": \"Large\",\n" +
                 "    \"color\": \"Red\"\n" +
                 "}\n";
-        assertDoesNotThrow((ThrowingSupplier<Object>) () -> MAPPER.readValue(jsonBetweenLeadingAndTrailingSpaces, Map.class));
+        assertDoesNotThrow(() -> MAPPER.readValue(jsonBetweenLeadingAndTrailingSpaces, Map.class));
 
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
         testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_CONTENT);
