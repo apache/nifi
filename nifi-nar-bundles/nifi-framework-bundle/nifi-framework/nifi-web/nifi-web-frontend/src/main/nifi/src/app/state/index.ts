@@ -17,8 +17,8 @@
 
 import { routerReducer, RouterReducerState } from '@ngrx/router-store';
 import { ActionReducerMap } from '@ngrx/store';
-import { UserState, userFeatureKey } from './user';
-import { userReducer } from './user/user.reducer';
+import { CurrentUserState, currentUserFeatureKey } from './current-user';
+import { currentUserReducer } from './current-user/current-user.reducer';
 import { extensionTypesFeatureKey, ExtensionTypesState } from './extension-types';
 import { extensionTypesReducer } from './extension-types/extension-types.reducer';
 import { aboutFeatureKey, AboutState } from './about';
@@ -32,7 +32,7 @@ import { systemDiagnosticsReducer } from './system-diagnostics/system-diagnostic
 
 export interface NiFiState {
     router: RouterReducerState;
-    [userFeatureKey]: UserState;
+    [currentUserFeatureKey]: CurrentUserState;
     [extensionTypesFeatureKey]: ExtensionTypesState;
     [aboutFeatureKey]: AboutState;
     [statusHistoryFeatureKey]: StatusHistoryState;
@@ -42,7 +42,7 @@ export interface NiFiState {
 
 export const rootReducers: ActionReducerMap<NiFiState> = {
     router: routerReducer,
-    [userFeatureKey]: userReducer,
+    [currentUserFeatureKey]: currentUserReducer,
     [extensionTypesFeatureKey]: extensionTypesReducer,
     [aboutFeatureKey]: aboutReducer,
     [statusHistoryFeatureKey]: statusHistoryReducer,

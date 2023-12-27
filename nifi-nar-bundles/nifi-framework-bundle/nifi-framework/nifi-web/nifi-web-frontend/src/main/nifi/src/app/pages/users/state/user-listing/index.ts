@@ -15,43 +15,7 @@
  *  limitations under the License.
  */
 
-import { AccessPolicySummaryEntity, Permissions, Revision } from '../../../../state/shared';
-
-export interface UserEntity {
-    id: string;
-    permissions: Permissions;
-    component: User;
-    revision: Revision;
-    uri: string;
-}
-
-export interface User extends Tenant {
-    userGroups: TenantEntity[];
-    accessPolicies: AccessPolicySummaryEntity[];
-}
-
-export interface UserGroupEntity {
-    id: string;
-    permissions: Permissions;
-    component: UserGroup;
-    revision: Revision;
-    uri: string;
-}
-
-export interface UserGroup extends Tenant {
-    users: TenantEntity[];
-    accessPolicies: AccessPolicySummaryEntity[];
-}
-
-export interface TenantEntity {
-    component: Tenant;
-}
-
-export interface Tenant {
-    id: string;
-    identity: string;
-    configurable: boolean;
-}
+import { Revision, UserEntity, UserGroupEntity } from '../../../../state/shared';
 
 export interface SelectedTenant {
     id: string;
@@ -65,19 +29,79 @@ export interface LoadTenantsSuccess {
     loadedTimestamp: string;
 }
 
-export interface EditUserRequest {
-    user: UserEntity;
+export interface CreateUserRequest {
+    revision: Revision;
+    userPayload: any;
+    userGroupUpdate?: {
+        requestId: number;
+        userGroups: string[];
+    };
 }
 
-export interface EditUserGroupRequest {
+export interface CreateUserResponse {
+    user: UserEntity;
+    userGroupUpdate?: {
+        requestId: number;
+        userGroups: string[];
+    };
+}
+
+export interface CreateUserGroupRequest {
+    revision: Revision;
+    userGroupPayload: any;
+}
+
+export interface CreateUserGroupResponse {
     userGroup: UserGroupEntity;
 }
 
-export interface UserAccessPoliciesRequest {
+export interface UpdateUserRequest {
+    revision: Revision;
+    id: string;
+    uri: string;
+    userPayload: any;
+    userGroupUpdate?: {
+        requestId: number;
+        userGroupsAdded: string[];
+        userGroupsRemoved: string[];
+    };
+}
+
+export interface UpdateUserResponse {
+    user: UserEntity;
+    userGroupUpdate?: {
+        requestId: number;
+        userGroupsAdded: string[];
+        userGroupsRemoved: string[];
+    };
+}
+
+export interface UpdateUserGroupRequest {
+    requestId?: number;
+    revision: Revision;
+    id: string;
+    uri: string;
+    userGroupPayload: any;
+}
+
+export interface UpdateUserGroupResponse {
+    requestId?: number;
+    userGroup: UserGroupEntity;
+}
+
+export interface EditUserDialogRequest {
     user: UserEntity;
 }
 
-export interface UserGroupAccessPoliciesRequest {
+export interface EditUserGroupDialogRequest {
+    userGroup: UserGroupEntity;
+}
+
+export interface UserAccessPoliciesDialogRequest {
+    user: UserEntity;
+}
+
+export interface UserGroupAccessPoliciesDialogRequest {
     userGroup: UserGroupEntity;
 }
 

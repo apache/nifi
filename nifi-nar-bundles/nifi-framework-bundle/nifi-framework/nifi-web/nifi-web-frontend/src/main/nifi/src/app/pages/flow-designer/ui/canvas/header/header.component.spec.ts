@@ -36,8 +36,8 @@ import { ClusterSummary, ControllerStatus } from '../../../state/flow';
 import { Search } from './search/search.component';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { selectUser } from '../../../../../state/user/user.selectors';
-import * as fromUser from '../../../../../state/user/user.reducer';
+import { selectCurrentUser } from '../../../../../state/current-user/current-user.selectors';
+import * as fromUser from '../../../../../state/current-user/current-user.reducer';
 
 describe('HeaderComponent', () => {
     let component: HeaderComponent;
@@ -103,7 +103,7 @@ describe('HeaderComponent', () => {
                             value: []
                         },
                         {
-                            selector: selectUser,
+                            selector: selectCurrentUser,
                             value: fromUser.initialState.user
                         }
                     ]

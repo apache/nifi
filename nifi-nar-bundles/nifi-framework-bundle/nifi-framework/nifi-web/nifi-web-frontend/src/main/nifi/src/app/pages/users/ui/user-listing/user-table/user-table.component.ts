@@ -21,9 +21,8 @@ import { Sort } from '@angular/material/sort';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { debounceTime } from 'rxjs';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
-import { UserEntity, UserGroupEntity } from '../../../state/user-listing';
-import { User } from '../../../../../state/user';
-import { AccessPolicySummaryEntity } from '../../../../../state/shared';
+import { CurrentUser } from '../../../../../state/current-user';
+import { AccessPolicySummaryEntity, UserEntity, UserGroupEntity } from '../../../../../state/shared';
 
 export interface TenantItem {
     id: string;
@@ -103,9 +102,10 @@ export class UserTable implements AfterViewInit {
     }
 
     @Input() selectedTenantId!: string;
-    @Input() currentUser!: User;
+    @Input() currentUser!: CurrentUser;
     @Input() configurableUsersAndGroups!: boolean;
 
+    @Output() createTenant: EventEmitter<void> = new EventEmitter<void>();
     @Output() selectTenant: EventEmitter<string> = new EventEmitter<string>();
     @Output() editTenant: EventEmitter<string> = new EventEmitter<string>();
     @Output() deleteUser: EventEmitter<UserEntity> = new EventEmitter<UserEntity>();
@@ -183,12 +183,20 @@ export class UserTable implements AfterViewInit {
         return false;
     }
 
-    private canModifyTenants(currentUser: User): boolean {
-        return currentUser.tenantsPermissions.canRead && currentUser.tenantsPermissions.canWrite;
+    canModifyTenants(currentUser: CurrentUser): boolean {
+        return (
+            currentUser.tenantsPermissions.canRead &&
+            currentUser.tenantsPermissions.canWrite &&
+            this.configurableUsersAndGroups
+        );
     }
 
-    canEditOrDelete(currentUser: User, item: TenantItem): boolean {
-        return this.canModifyTenants(currentUser) && item.configurable && this.configurableUsersAndGroups;
+    createClicked(): void {
+        this.createTenant.next();
+    }
+
+    canEditOrDelete(currentUser: CurrentUser, item: TenantItem): boolean {
+        return this.canModifyTenants(currentUser) && item.configurable;
     }
 
     editClicked(item: TenantItem, event: MouseEvent): void {

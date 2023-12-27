@@ -18,7 +18,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
-import { startUserPolling, stopUserPolling } from '../../../state/user/user.actions';
+import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 import { loadProvenanceOptions } from '../state/provenance-event-listing/provenance-event-listing.actions';
 import { loadAbout } from '../../../state/about/about.actions';
 
@@ -31,12 +31,12 @@ export class Provenance implements OnInit, OnDestroy {
     constructor(private store: Store<NiFiState>) {}
 
     ngOnInit(): void {
-        this.store.dispatch(startUserPolling());
+        this.store.dispatch(startCurrentUserPolling());
         this.store.dispatch(loadProvenanceOptions());
         this.store.dispatch(loadAbout());
     }
 
     ngOnDestroy(): void {
-        this.store.dispatch(stopUserPolling());
+        this.store.dispatch(stopCurrentUserPolling());
     }
 }

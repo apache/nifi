@@ -27,7 +27,7 @@ import { environment } from './environments/environment';
 import { HTTP_INTERCEPTORS, HttpClientModule, HttpClientXsrfModule } from '@angular/common/http';
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { rootReducers } from './state';
-import { UserEffects } from './state/user/user.effects';
+import { CurrentUserEffects } from './state/current-user/current-user.effects';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LoadingInterceptor } from './service/interceptors/loading.interceptor';
 import { AuthInterceptor } from './service/interceptors/auth.interceptor';
@@ -59,7 +59,7 @@ import { SystemDiagnosticsEffects } from './state/system-diagnostics/system-diag
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
         EffectsModule.forRoot(
-            UserEffects,
+            CurrentUserEffects,
             ExtensionTypesEffects,
             AboutEffects,
             StatusHistoryEffects,

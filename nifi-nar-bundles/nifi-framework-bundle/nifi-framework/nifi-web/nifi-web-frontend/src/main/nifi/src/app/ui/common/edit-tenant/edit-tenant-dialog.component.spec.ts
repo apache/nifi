@@ -17,37 +17,44 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { LoginForm } from './login-form.component';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../../state/current-user/current-user.reducer';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { RouterModule } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { MatInputModule } from '@angular/material/input';
+import { EditTenantDialog } from './edit-tenant-dialog.component';
+import { EditParameterRequest } from '../../../state/shared';
+import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
-describe('LoginForm', () => {
-    let component: LoginForm;
-    let fixture: ComponentFixture<LoginForm>;
+describe('EditParameterDialog', () => {
+    let component: EditTenantDialog;
+    let fixture: ComponentFixture<EditTenantDialog>;
+
+    const data: EditParameterRequest = {
+        parameter: {
+            name: 'one',
+            description: 'Description for one.',
+            sensitive: false,
+            value: 'value',
+            provided: false,
+            referencingComponents: [],
+            parameterContext: {
+                id: '95d4f3d2-018b-1000-b7c7-b830c49a8026',
+                permissions: {
+                    canRead: true,
+                    canWrite: true
+                },
+                component: {
+                    id: '95d4f3d2-018b-1000-b7c7-b830c49a8026',
+                    name: 'params 1'
+                }
+            },
+            inherited: false
+        }
+    };
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [LoginForm],
-            imports: [
-                HttpClientTestingModule,
-                BrowserAnimationsModule,
-                MatFormFieldModule,
-                RouterModule,
-                RouterTestingModule,
-                FormsModule,
-                ReactiveFormsModule,
-                MatInputModule
-            ],
-            providers: [provideMockStore({ initialState })]
+            imports: [EditTenantDialog, BrowserAnimationsModule],
+            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
         });
-        fixture = TestBed.createComponent(LoginForm);
+        fixture = TestBed.createComponent(EditTenantDialog);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

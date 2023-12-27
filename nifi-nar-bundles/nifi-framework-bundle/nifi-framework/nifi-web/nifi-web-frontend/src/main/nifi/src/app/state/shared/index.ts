@@ -49,6 +49,58 @@ export interface EditParameterResponse {
     parameter: Parameter;
 }
 
+export interface UserEntity {
+    id: string;
+    permissions: Permissions;
+    component: User;
+    revision: Revision;
+    uri: string;
+}
+
+export interface User extends Tenant {
+    userGroups: TenantEntity[];
+    accessPolicies: AccessPolicySummaryEntity[];
+}
+
+export interface UserGroupEntity {
+    id: string;
+    permissions: Permissions;
+    component: UserGroup;
+    revision: Revision;
+    uri: string;
+}
+
+export interface UserGroup extends Tenant {
+    users: TenantEntity[];
+    accessPolicies: AccessPolicySummaryEntity[];
+}
+
+export interface TenantEntity {
+    id: string;
+    revision: Revision;
+    permissions: Permissions;
+    component: Tenant;
+}
+
+export interface Tenant {
+    id: string;
+    identity: string;
+    configurable: boolean;
+}
+
+export interface EditTenantRequest {
+    user?: UserEntity;
+    userGroup?: UserGroupEntity;
+    existingUsers: UserEntity[];
+    existingUserGroups: UserGroupEntity[];
+}
+
+export interface EditTenantResponse {
+    revision: Revision;
+    user?: any;
+    userGroup?: any;
+}
+
 export interface CreateControllerServiceRequest {
     controllerServiceTypes: DocumentedType[];
 }

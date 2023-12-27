@@ -17,8 +17,8 @@
 
 import { Component, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { selectUser } from '../../../../state/user/user.selectors';
-import { UserEntity, UserGroupEntity, UserListingState } from '../../state/user-listing';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
+import { UserListingState } from '../../state/user-listing';
 import {
     selectSelectedTenant,
     selectSingleEditedTenant,
@@ -28,6 +28,7 @@ import {
 } from '../../state/user-listing/user-listing.selectors';
 import { initialState } from '../../state/user-listing/user-listing.reducer';
 import {
+    openCreateTenantDialog,
     loadTenants,
     navigateToEditTenant,
     navigateToViewAccessPolicies,
@@ -41,6 +42,7 @@ import {
 } from '../../state/user-listing/user-listing.actions';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { UserEntity, UserGroupEntity } from '../../../../state/shared';
 
 @Component({
     selector: 'user-listing',
@@ -50,7 +52,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 export class UserListing implements OnInit {
     userListingState$ = this.store.select(selectUserListingState);
     selectedTenantId$ = this.store.select(selectTenantIdFromRoute);
-    currentUser$ = this.store.select(selectUser);
+    currentUser$ = this.store.select(selectCurrentUser);
 
     constructor(private store: Store<UserListingState>) {
         this.store
@@ -124,6 +126,10 @@ export class UserListing implements OnInit {
 
     isInitialLoading(state: UserListingState): boolean {
         return state.loadedTimestamp == initialState.loadedTimestamp;
+    }
+
+    createTenant(): void {
+        this.store.dispatch(openCreateTenantDialog());
     }
 
     selectTenant(id: string): void {

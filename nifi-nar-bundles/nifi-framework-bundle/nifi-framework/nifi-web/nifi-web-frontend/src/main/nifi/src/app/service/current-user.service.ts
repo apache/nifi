@@ -15,18 +15,17 @@
  * limitations under the License.
  */
 
-import { createAction, props } from '@ngrx/store';
-import { LoadUserResponse, UserState } from './index';
-import { LoadProcessGroupRequest, LoadProcessGroupResponse } from '../../pages/flow-designer/state/flow';
+import { Injectable } from '@angular/core';
+import { Observable, throwError } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 
-export const loadUser = createAction('[User] Load User');
+@Injectable({ providedIn: 'root' })
+export class CurrentUserService {
+    private static readonly API: string = '../nifi-api';
 
-export const loadUserSuccess = createAction('[User] Load User Success', props<{ response: LoadUserResponse }>());
+    constructor(private httpClient: HttpClient) {}
 
-export const userApiError = createAction('[User] User Api Error', props<{ error: string }>());
-
-export const clearUserApiError = createAction('[User] Clear User Api Error');
-
-export const startUserPolling = createAction('[User] Start User Polling');
-
-export const stopUserPolling = createAction('[User] Stop User Polling');
+    getUser(): Observable<any> {
+        return this.httpClient.get(`${CurrentUserService.API}/flow/current-user`);
+    }
+}

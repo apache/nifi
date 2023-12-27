@@ -16,16 +16,21 @@
  */
 
 import { createReducer, on } from '@ngrx/store';
-import { UserState } from './index';
+import { CurrentUserState } from './index';
 import { Permissions } from '../shared';
-import { clearUserApiError, loadUser, loadUserSuccess, userApiError } from './user.actions';
+import {
+    clearCurrentUserApiError,
+    loadCurrentUser,
+    loadCurrentUserSuccess,
+    currentUserApiError
+} from './current-user.actions';
 
 export const NO_PERMISSIONS: Permissions = {
     canRead: false,
     canWrite: false
 };
 
-export const initialState: UserState = {
+export const initialState: CurrentUserState = {
     user: {
         identity: '',
         anonymous: true,
@@ -44,24 +49,24 @@ export const initialState: UserState = {
     status: 'pending'
 };
 
-export const userReducer = createReducer(
+export const currentUserReducer = createReducer(
     initialState,
-    on(loadUser, (state) => ({
+    on(loadCurrentUser, (state) => ({
         ...state,
         status: 'loading' as const
     })),
-    on(loadUserSuccess, (state, { response }) => ({
+    on(loadCurrentUserSuccess, (state, { response }) => ({
         ...state,
         user: response.user,
         error: null,
         status: 'success' as const
     })),
-    on(userApiError, (state, { error }) => ({
+    on(currentUserApiError, (state, { error }) => ({
         ...state,
         error: error,
         status: 'error' as const
     })),
-    on(clearUserApiError, (state) => ({
+    on(clearCurrentUserApiError, (state) => ({
         ...state,
         error: null,
         status: 'pending' as const

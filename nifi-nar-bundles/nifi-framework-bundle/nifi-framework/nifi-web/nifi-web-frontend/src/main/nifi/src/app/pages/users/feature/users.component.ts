@@ -18,7 +18,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
-import { startUserPolling, stopUserPolling } from '../../../state/user/user.actions';
+import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 import { resetUsersState } from '../state/user-listing/user-listing.actions';
 
 @Component({
@@ -30,11 +30,11 @@ export class Users implements OnInit, OnDestroy {
     constructor(private store: Store<NiFiState>) {}
 
     ngOnInit(): void {
-        this.store.dispatch(startUserPolling());
+        this.store.dispatch(startCurrentUserPolling());
     }
 
     ngOnDestroy(): void {
         this.store.dispatch(resetUsersState());
-        this.store.dispatch(stopUserPolling());
+        this.store.dispatch(stopCurrentUserPolling());
     }
 }

@@ -15,9 +15,25 @@
  * limitations under the License.
  */
 
-import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { userFeatureKey, UserState } from './index';
+@use '@angular/material' as mat;
 
-export const selectUserState = createFeatureSelector<UserState>(userFeatureKey);
+.edit-tenant-form {
+    @include mat.button-density(-1);
 
-export const selectUser = createSelector(selectUserState, (state: UserState) => state.user);
+    .mat-mdc-radio-button ~ .mat-mdc-radio-button {
+        margin-left: 16px;
+    }
+
+    .mat-mdc-form-field {
+        width: 100%;
+    }
+
+    .mat-mdc-form-field-error {
+        font-size: 12px;
+    }
+
+    mat-selection-list {
+        max-height: 300px;
+        overflow: auto;
+    }
+}

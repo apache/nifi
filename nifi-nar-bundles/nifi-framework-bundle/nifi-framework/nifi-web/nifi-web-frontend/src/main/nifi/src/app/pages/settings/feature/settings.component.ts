@@ -18,7 +18,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
-import { startUserPolling, stopUserPolling } from '../../../state/user/user.actions';
+import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 import { loadExtensionTypesForSettings } from '../../../state/extension-types/extension-types.actions';
 
 @Component({
@@ -57,11 +57,11 @@ export class Settings implements OnInit, OnDestroy {
     constructor(private store: Store<NiFiState>) {}
 
     ngOnInit(): void {
-        this.store.dispatch(startUserPolling());
+        this.store.dispatch(startCurrentUserPolling());
         this.store.dispatch(loadExtensionTypesForSettings());
     }
 
     ngOnDestroy(): void {
-        this.store.dispatch(stopUserPolling());
+        this.store.dispatch(stopCurrentUserPolling());
     }
 }

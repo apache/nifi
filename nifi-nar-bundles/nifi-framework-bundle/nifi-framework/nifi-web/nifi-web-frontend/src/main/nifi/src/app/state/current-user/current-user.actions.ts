@@ -15,23 +15,20 @@
  * limitations under the License.
  */
 
-import { TestBed } from '@angular/core/testing';
+import { createAction, props } from '@ngrx/store';
+import { LoadCurrentUserResponse } from './index';
 
-import { PollingInterceptor } from './polling.interceptor';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/current-user/current-user.reducer';
+export const loadCurrentUser = createAction('[Current User] Load Current User');
 
-describe('PollingInterceptor', () => {
-    let service: PollingInterceptor;
+export const loadCurrentUserSuccess = createAction(
+    '[Current User] Load Current User Success',
+    props<{ response: LoadCurrentUserResponse }>()
+);
 
-    beforeEach(() => {
-        TestBed.configureTestingModule({
-            providers: [provideMockStore({ initialState })]
-        });
-        service = TestBed.inject(PollingInterceptor);
-    });
+export const currentUserApiError = createAction('[Current User] Current User Api Error', props<{ error: string }>());
 
-    it('should be created', () => {
-        expect(service).toBeTruthy();
-    });
-});
+export const clearCurrentUserApiError = createAction('[Current User] Clear Current User Api Error');
+
+export const startCurrentUserPolling = createAction('[Current User] Start Current User Polling');
+
+export const stopCurrentUserPolling = createAction('[Current User] Stop Current User Polling');

@@ -17,7 +17,19 @@
 
 import { UserListingState } from './index';
 import { createReducer, on } from '@ngrx/store';
-import { loadTenants, loadTenantsSuccess, resetUsersState } from './user-listing.actions';
+import {
+    createUser,
+    createUserComplete,
+    createUserGroup,
+    createUserGroupSuccess,
+    loadTenants,
+    loadTenantsSuccess,
+    resetUsersState,
+    updateUser,
+    updateUserComplete,
+    updateUserGroup,
+    updateUserGroupSuccess
+} from './user-listing.actions';
 
 export const initialState: UserListingState = {
     users: [],
@@ -44,5 +56,25 @@ export const userListingReducer = createReducer(
         loadedTimestamp: response.loadedTimestamp,
         error: null,
         status: 'success' as const
+    })),
+    on(createUser, updateUser, createUserGroup, updateUserGroup, (state) => ({
+        ...state,
+        saving: true
+    })),
+    on(createUserComplete, (state) => ({
+        ...state,
+        saving: false
+    })),
+    on(updateUserComplete, (state) => ({
+        ...state,
+        saving: false
+    })),
+    on(createUserGroupSuccess, (state, { response }) => ({
+        ...state,
+        saving: false
+    })),
+    on(updateUserGroupSuccess, (state, { response }) => ({
+        ...state,
+        saving: response.requestId == null ? false : state.saving
     }))
 );

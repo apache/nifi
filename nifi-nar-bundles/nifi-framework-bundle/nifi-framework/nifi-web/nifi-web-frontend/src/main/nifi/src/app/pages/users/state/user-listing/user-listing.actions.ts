@@ -17,13 +17,21 @@
 
 import { createAction, props } from '@ngrx/store';
 import {
+    CreateUserGroupRequest,
+    CreateUserGroupResponse,
+    CreateUserRequest,
+    CreateUserResponse,
     DeleteUserGroupRequest,
     DeleteUserRequest,
-    EditUserGroupRequest,
-    EditUserRequest,
+    EditUserGroupDialogRequest,
+    EditUserDialogRequest,
     LoadTenantsSuccess,
-    UserAccessPoliciesRequest,
-    UserGroupAccessPoliciesRequest
+    UserAccessPoliciesDialogRequest,
+    UserGroupAccessPoliciesDialogRequest,
+    UpdateUserRequest,
+    UpdateUserResponse,
+    UpdateUserGroupRequest,
+    UpdateUserGroupResponse
 } from './index';
 
 const USER_PREFIX: string = '[User Listing]';
@@ -39,18 +47,75 @@ export const loadTenantsSuccess = createAction(
 
 export const usersApiError = createAction(`${USER_PREFIX} Users Api Error`, props<{ error: string }>());
 
+export const openCreateTenantDialog = createAction(`${USER_PREFIX} Open Create Tenant Dialog`);
+
+export const createUser = createAction(`${USER_PREFIX} Create User`, props<{ request: CreateUserRequest }>());
+
+export const createUserSuccess = createAction(
+    `${USER_PREFIX} Create User Success`,
+    props<{
+        response: CreateUserResponse;
+    }>()
+);
+
+export const createUserComplete = createAction(
+    `${USER_PREFIX} Create User Complete`,
+    props<{
+        response: CreateUserResponse;
+    }>()
+);
+
+export const createUserGroup = createAction(
+    `${USER_PREFIX} Create User Group`,
+    props<{
+        request: CreateUserGroupRequest;
+    }>()
+);
+
+export const createUserGroupSuccess = createAction(
+    `${USER_PREFIX} Create User Group Success`,
+    props<{
+        response: CreateUserGroupResponse;
+    }>()
+);
+
+export const updateUser = createAction(`${USER_PREFIX} Update User`, props<{ request: UpdateUserRequest }>());
+
+export const updateUserSuccess = createAction(
+    `${USER_PREFIX} Update User Success`,
+    props<{
+        response: UpdateUserResponse;
+    }>()
+);
+
+export const updateUserComplete = createAction(`${USER_PREFIX} Update User Complete`);
+
+export const updateUserGroup = createAction(
+    `${USER_PREFIX} Update User Group`,
+    props<{
+        request: UpdateUserGroupRequest;
+    }>()
+);
+
+export const updateUserGroupSuccess = createAction(
+    `${USER_PREFIX} Update User Group Success`,
+    props<{
+        response: UpdateUserGroupResponse;
+    }>()
+);
+
 export const selectTenant = createAction(`${USER_PREFIX} Select Tenant`, props<{ id: string }>());
 
 export const navigateToEditTenant = createAction(`${USER_PREFIX} Navigate To Edit Tenant`, props<{ id: string }>());
 
 export const openConfigureUserDialog = createAction(
     `${USER_PREFIX} Open Configure User Dialog`,
-    props<{ request: EditUserRequest }>()
+    props<{ request: EditUserDialogRequest }>()
 );
 
 export const openConfigureUserGroupDialog = createAction(
     `${USER_PREFIX} Open Configure User Group Dialog`,
-    props<{ request: EditUserGroupRequest }>()
+    props<{ request: EditUserGroupDialogRequest }>()
 );
 
 export const navigateToViewAccessPolicies = createAction(
@@ -60,12 +125,12 @@ export const navigateToViewAccessPolicies = createAction(
 
 export const openUserAccessPoliciesDialog = createAction(
     `${USER_PREFIX} Open User Access Policy Dialog`,
-    props<{ request: UserAccessPoliciesRequest }>()
+    props<{ request: UserAccessPoliciesDialogRequest }>()
 );
 
 export const openUserGroupAccessPoliciesDialog = createAction(
     `${USER_PREFIX} Open User Group Access Policy Dialog`,
-    props<{ request: UserGroupAccessPoliciesRequest }>()
+    props<{ request: UserGroupAccessPoliciesDialogRequest }>()
 );
 
 export const promptDeleteUser = createAction(

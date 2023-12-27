@@ -15,27 +15,34 @@
   ~  limitations under the License.
   -->
 <div class="user-table h-full flex flex-col">
-    <div>
-        <div class="value">Displaying {{ filteredCount }} of {{ totalCount }}</div>
-        <form [formGroup]="filterForm">
-            <div class="flex pt-2">
-                <div class="mr-2">
-                    <mat-form-field>
-                        <mat-label>Filter</mat-label>
-                        <input matInput type="text" class="small" formControlName="filterTerm" />
-                    </mat-form-field>
+    <div class="flex justify-between">
+        <div>
+            <div class="value">Displaying {{ filteredCount }} of {{ totalCount }}</div>
+            <form [formGroup]="filterForm">
+                <div class="flex pt-2">
+                    <div class="mr-2">
+                        <mat-form-field>
+                            <mat-label>Filter</mat-label>
+                            <input matInput type="text" class="small" formControlName="filterTerm" />
+                        </mat-form-field>
+                    </div>
+                    <div>
+                        <mat-form-field>
+                            <mat-label>Filter By</mat-label>
+                            <mat-select formControlName="filterColumn">
+                                <mat-option value="user"> user</mat-option>
+                                <mat-option value="membership"> membership</mat-option>
+                            </mat-select>
+                        </mat-form-field>
+                    </div>
                 </div>
-                <div>
-                    <mat-form-field>
-                        <mat-label>Filter By</mat-label>
-                        <mat-select formControlName="filterColumn">
-                            <mat-option value="user"> user</mat-option>
-                            <mat-option value="membership"> membership</mat-option>
-                        </mat-select>
-                    </mat-form-field>
-                </div>
-            </div>
-        </form>
+            </form>
+        </div>
+        <div class="flex flex-col justify-center">
+            <button *ngIf="canModifyTenants(currentUser)" class="nifi-button" (click)="createClicked()">
+                <i class="fa fa-plus"></i>
+            </button>
+        </div>
     </div>
     <div class="flex-1 relative">
         <div class="listing-table overflow-y-auto border absolute inset-0">
@@ -50,8 +57,8 @@
                 <!-- User column -->
                 <ng-container matColumnDef="user">
                     <th mat-header-cell *matHeaderCellDef mat-sort-header>User</th>
-                    <td mat-cell *matCellDef="let item">
-                        {{ item.user }}
+                    <td mat-cell *matCellDef="let item" class="items-center">
+                        <i *ngIf="item.tenantType === 'userGroup'" class="fa fa-users mr-3"></i>{{ item.user }}
                     </td>
                 </ng-container>
 

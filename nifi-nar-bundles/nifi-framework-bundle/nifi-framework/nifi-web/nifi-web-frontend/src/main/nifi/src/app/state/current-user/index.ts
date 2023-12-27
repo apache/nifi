@@ -17,10 +17,10 @@
 
 import { Permissions, RequiredPermission } from '../shared';
 
-export const userFeatureKey = 'user';
+export const currentUserFeatureKey = 'currentUser';
 
-export interface LoadUserResponse {
-    user: User;
+export interface LoadCurrentUserResponse {
+    user: CurrentUser;
 }
 
 export interface ComponentRestrictionPermission {
@@ -28,7 +28,7 @@ export interface ComponentRestrictionPermission {
     permissions: Permissions;
 }
 
-export interface User {
+export interface CurrentUser {
     identity: string;
     anonymous: boolean;
     canVersionFlows: boolean;
@@ -43,8 +43,8 @@ export interface User {
     componentRestrictionPermissions: ComponentRestrictionPermission[];
 }
 
-export interface UserState {
-    user: User;
+export interface CurrentUserState {
+    user: CurrentUser;
     error: string | null;
     status: 'pending' | 'loading' | 'error' | 'success';
 }

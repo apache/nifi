@@ -32,9 +32,9 @@ import { BulletinsTip } from '../../../ui/common/tooltips/bulletins-tip/bulletin
 import { Position } from '../state/shared';
 import { ComponentType, Permissions } from '../../../state/shared';
 import { NiFiCommon } from '../../../service/nifi-common.service';
-import { User } from '../../../state/user';
-import { initialState as initialUserState } from '../../../state/user/user.reducer';
-import { selectUser } from '../../../state/user/user.selectors';
+import { CurrentUser } from '../../../state/current-user';
+import { initialState as initialUserState } from '../../../state/current-user/current-user.reducer';
+import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
 
 @Injectable({
     providedIn: 'root'
@@ -48,7 +48,7 @@ export class CanvasUtils {
     private currentProcessGroupId: string = initialFlowState.id;
     private parentProcessGroupId: string | null = initialFlowState.flow.processGroupFlow.parentGroupId;
     private canvasPermissions: Permissions = initialFlowState.flow.permissions;
-    private currentUser: User = initialUserState.user;
+    private currentUser: CurrentUser = initialUserState.user;
     private connections: any[] = [];
 
     private readonly humanizeDuration: Humanizer;
@@ -89,7 +89,7 @@ export class CanvasUtils {
             });
 
         this.store
-            .select(selectUser)
+            .select(selectCurrentUser)
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((user) => {
                 this.currentUser = user;

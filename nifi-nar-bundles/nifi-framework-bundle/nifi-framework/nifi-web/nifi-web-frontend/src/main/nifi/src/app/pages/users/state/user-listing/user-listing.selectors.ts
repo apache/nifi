@@ -24,6 +24,10 @@ export const selectUserListingState = createSelector(selectUserState, (state: Us
 
 export const selectSaving = createSelector(selectUserListingState, (state: UserListingState) => state.saving);
 
+export const selectUsers = createSelector(selectUserListingState, (state: UserListingState) => state.users);
+
+export const selectUserGroups = createSelector(selectUserListingState, (state: UserListingState) => state.userGroups);
+
 export const selectTenantIdFromRoute = createSelector(selectCurrentRoute, (route) => {
     if (route) {
         return route.params.id;

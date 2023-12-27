@@ -15,17 +15,9 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { currentUserFeatureKey, CurrentUserState } from './index';
 
-@Injectable({ providedIn: 'root' })
-export class UserService {
-    private static readonly API: string = '../nifi-api';
+export const selectCurrentUserState = createFeatureSelector<CurrentUserState>(currentUserFeatureKey);
 
-    constructor(private httpClient: HttpClient) {}
-
-    getUser(): Observable<any> {
-        return this.httpClient.get(`${UserService.API}/flow/current-user`);
-    }
-}
+export const selectCurrentUser = createSelector(selectCurrentUserState, (state: CurrentUserState) => state.user);

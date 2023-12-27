@@ -28,6 +28,7 @@
                     [selectedTenantId]="selectedTenantId$ | async"
                     [currentUser]="(currentUser$ | async)!"
                     [configurableUsersAndGroups]="true"
+                    (createTenant)="createTenant()"
                     (selectTenant)="selectTenant($event)"
                     (editTenant)="editTenant($event)"
                     (deleteUser)="deleteUser($event)"

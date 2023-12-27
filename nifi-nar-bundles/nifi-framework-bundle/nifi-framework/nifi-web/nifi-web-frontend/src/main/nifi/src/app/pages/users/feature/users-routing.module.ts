@@ -19,13 +19,13 @@ import { RouterModule, Routes } from '@angular/router';
 import { NgModule } from '@angular/core';
 import { Users } from './users.component';
 import { authorizationGuard } from '../../../service/guard/authorization.guard';
-import { User } from '../../../state/user';
+import { CurrentUser } from '../../../state/current-user';
 
 const routes: Routes = [
     {
         path: '',
         component: Users,
-        canMatch: [authorizationGuard((user: User) => user.tenantsPermissions.canRead)],
+        canMatch: [authorizationGuard((user: CurrentUser) => user.tenantsPermissions.canRead)],
         children: [
             {
                 path: ':id',

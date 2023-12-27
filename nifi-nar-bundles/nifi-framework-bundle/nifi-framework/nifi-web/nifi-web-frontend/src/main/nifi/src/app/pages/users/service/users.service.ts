@@ -19,8 +19,14 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { Observable } from 'rxjs';
-import { UserEntity, UserGroupEntity } from '../state/user-listing';
 import { NiFiCommon } from '../../../service/nifi-common.service';
+import { UserEntity, UserGroupEntity } from '../../../state/shared';
+import {
+    CreateUserGroupRequest,
+    CreateUserRequest,
+    UpdateUserGroupRequest,
+    UpdateUserRequest
+} from '../state/user-listing';
 
 @Injectable({ providedIn: 'root' })
 export class UsersService {
@@ -51,6 +57,44 @@ export class UsersService {
 
     getUserGroups(): Observable<any> {
         return this.httpClient.get(`${UsersService.API}/tenants/user-groups`);
+    }
+
+    createUser(request: CreateUserRequest): Observable<any> {
+        const payload: any = {
+            revision: request.revision,
+            component: request.userPayload
+        };
+        return this.httpClient.post(`${UsersService.API}/tenants/users`, payload);
+    }
+
+    createUserGroup(request: CreateUserGroupRequest): Observable<any> {
+        const payload: any = {
+            revision: request.revision,
+            component: request.userGroupPayload
+        };
+        return this.httpClient.post(`${UsersService.API}/tenants/user-groups`, payload);
+    }
+
+    updateUser(request: UpdateUserRequest): Observable<any> {
+        const payload: any = {
+            revision: request.revision,
+            component: {
+                id: request.id,
+                ...request.userPayload
+            }
+        };
+        return this.httpClient.put(this.stripProtocol(request.uri), payload);
+    }
+
+    updateUserGroup(request: UpdateUserGroupRequest): Observable<any> {
+        const payload: any = {
+            revision: request.revision,
+            component: {
+                id: request.id,
+                ...request.userGroupPayload
+            }
+        };
+        return this.httpClient.put(this.stripProtocol(request.uri), payload);
     }
 
     deleteUser(user: UserEntity): Observable<any> {
