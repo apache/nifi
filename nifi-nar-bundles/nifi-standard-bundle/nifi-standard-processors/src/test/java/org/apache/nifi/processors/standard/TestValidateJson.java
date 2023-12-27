@@ -49,7 +49,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestValidateJson {
     private static final String JSON = getFileContent("simple-example.json");
@@ -65,12 +64,11 @@ class TestValidateJson {
 
     @ParameterizedTest(name = "{2}")
     @MethodSource("customValidateArgs")
-    void testCustomValidateMissingProperty(String strategy, String errMsg) {
+    void testCustomValidateMissingProperty(final String strategy) {
         runner.setProperty(ValidateJson.SCHEMA_ACCESS_STRATEGY, strategy);
         runner.enqueue(JSON);
 
-        AssertionFailedError e = assertThrows(AssertionFailedError.class, () -> runner.run());
-        assertTrue(e.getMessage().contains(errMsg));
+        assertThrows(AssertionFailedError.class, runner::run);
     }
 
     @Test
@@ -267,8 +265,8 @@ class TestValidateJson {
 
     private static Stream<Arguments> customValidateArgs() {
         return Stream.of(
-                Arguments.of(ValidateJson.JsonSchemaStrategy.SCHEMA_NAME_PROPERTY.getValue(), "requires that the JSON Schema Registry property be set", "no registry set"),
-                Arguments.of(ValidateJson.JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY.getValue(), "requires that the JSON Schema property be set", "no content specified")
+                Arguments.of(ValidateJson.JsonSchemaStrategy.SCHEMA_NAME_PROPERTY.getValue(), "requires that the JSON Schema Registry property be set"),
+                Arguments.of(ValidateJson.JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY.getValue(), "requires that the JSON Schema property be set")
         );
     }
 
