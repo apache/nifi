@@ -493,7 +493,6 @@ public class UpdateDatabaseTable extends AbstractProcessor implements ColumnName
                                                                         final Set<String> primaryKeyColumnNames, final boolean quoteTableName, final boolean quoteColumnNames) throws IOException {
         // Read in the current table metadata, compare it to the reader's schema, and
         // add any columns from the schema that are missing in the table
-//        final ColumnNameNormalizer normalizer = new ColumnNameNormalizer(translateFieldNames, translationStrategy, translationRegex);
         try (final Statement s = conn.createStatement()) {
             // Determine whether the table exists
             TableSchema tableSchema = null;
