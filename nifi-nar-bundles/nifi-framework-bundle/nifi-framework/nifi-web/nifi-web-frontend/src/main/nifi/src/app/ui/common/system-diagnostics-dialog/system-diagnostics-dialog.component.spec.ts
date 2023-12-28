@@ -22,7 +22,7 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { initialSystemDiagnosticsState } from '../../../state/system-diagnostics/system-diagnostics.reducer';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 
-describe('SystemDiagnosticsDialogComponent', () => {
+describe('SystemDiagnosticsDialog', () => {
     let component: SystemDiagnosticsDialog;
     let fixture: ComponentFixture<SystemDiagnosticsDialog>;
 

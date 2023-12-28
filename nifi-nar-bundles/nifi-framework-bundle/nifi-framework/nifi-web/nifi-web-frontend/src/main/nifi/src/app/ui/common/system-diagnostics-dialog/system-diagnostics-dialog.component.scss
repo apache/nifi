@@ -33,7 +33,7 @@
 
     .tab-content {
         position: relative;
-        height: 460px;
+        height: 480px;
 
         .section-header {
             color: #728e9b;
@@ -63,12 +63,5 @@
 
     mat-dialog-actions {
         margin-top: auto;
-    }
-
-    .repository-storage-container {
-        height: 180px;
-        overflow-y: scroll;
-        border: 1px solid #ccc;
-        padding: 4px;
     }
 }

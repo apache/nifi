@@ -105,8 +105,7 @@ export class ProcessorStatusListing {
         );
     }
 
-    openSystemDiagnostics(event: MouseEvent) {
-        event.stopPropagation();
+    openSystemDiagnostics() {
         this.store.dispatch(
             getSystemDiagnosticsAndOpenDialog({
                 request: {

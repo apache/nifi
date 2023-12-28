@@ -109,8 +109,7 @@ export class ConnectionStatusListing {
         );
     }
 
-    openSystemDiagnostics(event: MouseEvent) {
-        event.stopPropagation();
+    openSystemDiagnostics() {
         this.store.dispatch(
             getSystemDiagnosticsAndOpenDialog({
                 request: {

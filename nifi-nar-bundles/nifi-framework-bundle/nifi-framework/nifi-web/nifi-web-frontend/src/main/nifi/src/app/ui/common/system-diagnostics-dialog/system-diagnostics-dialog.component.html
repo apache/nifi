@@ -107,7 +107,7 @@
                         </div>
                     </mat-tab>
                     <mat-tab label="System">
-                        <div class="tab-content py-4 gap-y-4 h-full w-full flex flex-col">
+                        <div class="tab-content py-4 gap-y-6 h-full w-full flex flex-col">
                             <div class="flex">
                                 <div class="flex flex-col flex-1 gap-y-4">
                                     <div class="flex flex-col gap-y-3">
@@ -136,7 +136,7 @@
                                 </div>
                             </div>
 
-                            <section class="flex flex-1 flex-col">
+                            <section class="flex flex-col pr-4">
                                 <div class="section-header">FlowFile Repository Usage</div>
                                 <div>
                                     <div class="capitalize">Usage:</div>
@@ -157,7 +157,7 @@
                                 </div>
                             </section>
 
-                            <section class="flex flex-1 flex-col">
+                            <section class="flex flex-col pr-4">
                                 <div class="section-header">Content Repository Usage</div>
                                 <div class="repository-storage-container flex flex-col gap-y-2">
                                     <div *ngFor="let repo of systemDiagnostics.contentRepositoryStorageUsage">
@@ -173,7 +173,7 @@
                                 </div>
                             </section>
 
-                            <section class="flex flex-1 flex-col">
+                            <section class="flex flex-col pr-4">
                                 <div class="section-header">Provenance Repository Usage</div>
                                 <div class="repository-storage-container flex flex-col gap-y-2">
                                     <div *ngFor="let repo of systemDiagnostics.provenanceRepositoryStorageUsage">
