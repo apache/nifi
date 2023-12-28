@@ -105,7 +105,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     @Input() goToParameter!: (parameter: string) => void;
     @Input() convertToParameter!: (name: string, sensitive: boolean, value: string | null) => Observable<string>;
     @Input() goToService!: (serviceId: string) => void;
-    @Input() supportsSensitiveDynamicProperties: boolean = false;
+    @Input() supportsSensitiveDynamicProperties = false;
 
     private static readonly PARAM_REF_REGEX: RegExp = /#{[a-zA-Z0-9-_. ]+}/;
 
@@ -122,8 +122,8 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
 
     @ViewChildren('trigger') valueTriggers!: QueryList<CdkOverlayOrigin>;
 
-    isDisabled: boolean = false;
-    isTouched: boolean = false;
+    isDisabled = false;
+    isTouched = false;
     onTouched!: () => void;
     onChange!: (properties: Property[]) => void;
 
@@ -142,10 +142,10 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         0
     );
     public editorPositions: ConnectionPositionPair[] = [this.editorPosition];
-    editorOpen: boolean = false;
+    editorOpen = false;
     editorTrigger: any = null;
     editorItem!: PropertyItem;
-    editorWidth: number = 0;
+    editorWidth = 0;
 
     constructor(
         private changeDetector: ChangeDetectorRef,
@@ -181,7 +181,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     }
 
     initFilter(): void {
-        this.dataSource.filterPredicate = (data: PropertyItem, filter: string) => this.isVisible(data);
+        this.dataSource.filterPredicate = (data: PropertyItem) => this.isVisible(data);
         this.dataSource.filter = ' ';
     }
 
@@ -254,7 +254,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     writeValue(properties: Property[]): void {
         this.itemLookup.clear();
 
-        let i: number = 0;
+        let i = 0;
         const propertyItems: PropertyItem[] = properties.map((property) => {
             // create the property item
             const item: PropertyItem = {
@@ -439,13 +439,13 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     }
 
     canConvertToParameter(item: PropertyItem): boolean {
-        let canUpdateParameterContext: boolean = false;
+        let canUpdateParameterContext = false;
         if (this.parameterContext) {
             canUpdateParameterContext =
                 this.parameterContext.permissions.canRead && this.parameterContext.permissions.canWrite;
         }
 
-        let propertyReferencesParameter: boolean = false;
+        let propertyReferencesParameter = false;
         if (canUpdateParameterContext && item.value) {
             propertyReferencesParameter = PropertyTable.PARAM_REF_REGEX.test(item.value);
         }

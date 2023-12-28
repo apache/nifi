@@ -43,7 +43,7 @@ export class AccessPolicyService {
             users?: TenantEntity[];
         } = {}
     ): Observable<any> {
-        let resource: string = `/${resourceAction.resource}`;
+        let resource = `/${resourceAction.resource}`;
         if (resourceAction.resourceIdentifier) {
             resource += `/${resourceAction.resourceIdentifier}`;
         }

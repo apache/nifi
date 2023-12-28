@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
@@ -89,7 +89,7 @@ export class FlowAnalysisRuleTable {
         return data.sort((a, b) => {
             const isAsc = sort.direction === 'asc';
 
-            let retVal: number = 0;
+            let retVal = 0;
             switch (sort.active) {
                 case 'name':
                     retVal = this.nifiCommon.compareString(a.component.name, b.component.name);
@@ -219,7 +219,7 @@ export class FlowAnalysisRuleTable {
         return userAuthorized && this.isDisabled(entity) && entity.status.validationStatus === 'VALID';
     }
 
-    enabledClicked(entity: FlowAnalysisRuleEntity, event: MouseEvent): void {
+    enabledClicked(entity: FlowAnalysisRuleEntity): void {
         this.enableFlowAnalysisRule.next(entity);
     }
 
@@ -228,7 +228,7 @@ export class FlowAnalysisRuleTable {
         return userAuthorized && this.isEnabled(entity);
     }
 
-    disableClicked(entity: FlowAnalysisRuleEntity, event: MouseEvent): void {
+    disableClicked(entity: FlowAnalysisRuleEntity): void {
         this.disableFlowAnalysisRule.next(entity);
     }
 

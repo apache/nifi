@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { Component, Input, OnInit } from '@angular/core';
-import { CdkDrag, CdkDragEnd, CdkDragStart } from '@angular/cdk/drag-drop';
+import { Component, Input } from '@angular/core';
+import { CdkDrag, CdkDragEnd } from '@angular/cdk/drag-drop';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../state';
 import { INITIAL_SCALE, INITIAL_TRANSLATE } from '../../../../state/transform/transform.reducer';
@@ -35,14 +35,14 @@ import { ComponentType } from '../../../../../../state/shared';
     imports: [CdkDrag],
     styleUrls: ['./new-canvas-item.component.scss']
 })
-export class NewCanvasItem implements OnInit {
+export class NewCanvasItem {
     @Input() type!: ComponentType;
-    @Input() iconClass: string = '';
-    @Input() iconHoverClass: string = '';
+    @Input() iconClass = '';
+    @Input() iconHoverClass = '';
 
-    dragging: boolean = false;
+    dragging = false;
 
-    private hovering: boolean = false;
+    private hovering = false;
 
     private scale: number = INITIAL_SCALE;
     private translate: Position = INITIAL_TRANSLATE;
@@ -67,8 +67,6 @@ export class NewCanvasItem implements OnInit {
             });
     }
 
-    ngOnInit(): void {}
-
     mouseEnter() {
         this.hovering = true;
     }
@@ -81,7 +79,7 @@ export class NewCanvasItem implements OnInit {
         return this.hovering && !this.dragging;
     }
 
-    onDragStarted(event: CdkDragStart): void {
+    onDragStarted(): void {
         this.store.dispatch(
             setDragging({
                 dragging: true

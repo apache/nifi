@@ -39,7 +39,7 @@ export const initialState: ProvenanceEventListingState = {
 
 export const provenanceEventListingReducer = createReducer(
     initialState,
-    on(resetProvenanceState, (state) => ({
+    on(resetProvenanceState, () => ({
         ...initialState
     })),
     on(loadProvenanceOptionsSuccess, (state, { response }) => ({

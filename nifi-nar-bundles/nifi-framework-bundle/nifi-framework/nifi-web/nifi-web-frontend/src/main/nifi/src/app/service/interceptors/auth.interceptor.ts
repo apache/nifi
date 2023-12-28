@@ -28,7 +28,7 @@ import { NiFiCommon } from '../nifi-common.service';
     providedIn: 'root'
 })
 export class AuthInterceptor implements HttpInterceptor {
-    routedToFullScreenError: boolean = false;
+    routedToFullScreenError = false;
 
     constructor(
         private authStorage: AuthStorage,

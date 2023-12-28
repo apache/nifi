@@ -31,7 +31,7 @@ export const initialState: ParameterState = {
 
 export const parameterReducer = createReducer(
     initialState,
-    on(submitParameterContextUpdateRequest, (state, { request }) => ({
+    on(submitParameterContextUpdateRequest, (state) => ({
         ...state,
         saving: true
     })),

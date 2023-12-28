@@ -59,7 +59,7 @@ export const queueReducer = createReducer(
         error,
         status: 'error' as const
     })),
-    on(resetQueueState, (state) => ({
+    on(resetQueueState, () => ({
         ...initialState
     }))
 );

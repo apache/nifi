@@ -35,13 +35,13 @@ import {
     selectAccessPolicyState,
     selectComponentResourceActionFromRoute
 } from '../../state/access-policy/access-policy.selectors';
-import { distinctUntilChanged, filter } from 'rxjs';
+import { distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { ComponentType, isDefinedAndNotNull, SelectOption, TextTipInput } from '../../../../state/shared';
 import { TextTip } from '../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { AccessPolicyEntity, Action, ComponentResourceAction, PolicyStatus, ResourceAction } from '../../state/shared';
+import { AccessPolicyEntity, Action, PolicyStatus, ResourceAction } from '../../state/shared';
 import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { loadTenants, resetTenantsState } from '../../state/tenants/tenants.actions';

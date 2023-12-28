@@ -74,8 +74,8 @@ export class SourceRemoteProcessGroup implements ControlValueAccessor {
 
     protected readonly TextTip = TextTip;
 
-    isDisabled: boolean = false;
-    isTouched: boolean = false;
+    isDisabled = false;
+    isTouched = false;
     onTouched!: () => void;
     onChange!: (outputPort: string) => void;
 
@@ -83,9 +83,7 @@ export class SourceRemoteProcessGroup implements ControlValueAccessor {
     outputPortItems!: SelectOption[];
     selectedOutputPort!: string;
 
-    noPorts: boolean = false;
-
-    constructor() {}
+    noPorts = false;
 
     registerOnChange(onChange: (selectedOutputPort: string) => void): void {
         this.onChange = onChange;

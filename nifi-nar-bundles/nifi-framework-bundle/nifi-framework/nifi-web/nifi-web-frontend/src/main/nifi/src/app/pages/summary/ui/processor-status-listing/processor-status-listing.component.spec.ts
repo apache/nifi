@@ -18,9 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ProcessorStatusListing } from './processor-status-listing.component';
-import { SummaryTableFilter } from '../common/summary-table-filter/summary-table-filter.component';
 import { SummaryTableFilterModule } from '../common/summary-table-filter/summary-table-filter.module';
-import { ProcessorStatusListingModule } from './processor-status-listing.module';
 import { provideMockStore } from '@ngrx/store/testing';
 import { ProcessorStatusTable } from './processor-status-table/processor-status-table.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';

@@ -22,25 +22,24 @@ import { filter, switchMap, take } from 'rxjs';
 import {
     selectFlowAnalysisRuleIdFromRoute,
     selectFlowAnalysisRulesState,
-    selectSingleEditedFlowAnalysisRule,
-    selectRule
+    selectRule,
+    selectSingleEditedFlowAnalysisRule
 } from '../../state/flow-analysis-rules/flow-analysis-rules.selectors';
 import {
+    disableFlowAnalysisRule,
+    enableFlowAnalysisRule,
     loadFlowAnalysisRules,
     navigateToEditFlowAnalysisRule,
     openConfigureFlowAnalysisRuleDialog,
     openNewFlowAnalysisRuleDialog,
     promptFlowAnalysisRuleDeletion,
     resetFlowAnalysisRulesState,
-    selectFlowAnalysisRule,
-    enableFlowAnalysisRule,
-    disableFlowAnalysisRule
+    selectFlowAnalysisRule
 } from '../../state/flow-analysis-rules/flow-analysis-rules.actions';
 import { initialState } from '../../state/flow-analysis-rules/flow-analysis-rules.reducer';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NiFiState } from '../../../../state';
 import { FlowAnalysisRuleEntity, FlowAnalysisRulesState } from '../../state/flow-analysis-rules';
-import { CurrentUser } from '../../../../state/current-user';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 
 @Component({

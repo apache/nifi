@@ -24,7 +24,7 @@ export const INITIAL_TRANSLATE = {
     y: 0
 };
 
-export const INITIAL_SCALE: number = 1;
+export const INITIAL_SCALE = 1;
 
 export const initialState: CanvasTransform = {
     translate: INITIAL_TRANSLATE,

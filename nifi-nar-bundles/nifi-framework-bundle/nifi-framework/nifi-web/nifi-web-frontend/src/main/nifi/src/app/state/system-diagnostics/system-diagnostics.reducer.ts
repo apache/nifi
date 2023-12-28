@@ -56,11 +56,11 @@ export const systemDiagnosticsReducer = createReducer(
         status: 'error' as const
     })),
 
-    on(resetSystemDiagnostics, (state) => ({
+    on(resetSystemDiagnostics, () => ({
         ...initialSystemDiagnosticsState
     })),
 
-    on(viewSystemDiagnosticsComplete, (state) => ({
+    on(viewSystemDiagnosticsComplete, () => ({
         ...initialSystemDiagnosticsState
     }))
 );

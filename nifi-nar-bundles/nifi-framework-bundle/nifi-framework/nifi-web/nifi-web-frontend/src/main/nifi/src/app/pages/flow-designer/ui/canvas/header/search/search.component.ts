@@ -27,8 +27,6 @@ import {
     OriginConnectionPosition,
     OverlayConnectionPosition
 } from '@angular/cdk/overlay';
-import { Store } from '@ngrx/store';
-import { CanvasState } from '../../../../state';
 import { ComponentType } from '../../../../../../state/shared';
 import { NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -58,10 +56,10 @@ export class Search implements OnInit {
     public positions: ConnectionPositionPair[] = [this.position];
 
     searchForm: FormGroup;
-    searchInputVisible: boolean = false;
+    searchInputVisible = false;
 
-    searching: boolean = false;
-    searchingResultsVisible: boolean = false;
+    searching = false;
+    searchingResultsVisible = false;
 
     processorResults: ComponentSearchResult[] = [];
     connectionResults: ComponentSearchResult[] = [];

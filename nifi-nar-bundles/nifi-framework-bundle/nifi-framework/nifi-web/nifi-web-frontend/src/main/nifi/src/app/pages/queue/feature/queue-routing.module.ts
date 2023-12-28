@@ -18,7 +18,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { Queue } from './queue.component';
-import { QueueListingRoutingModule } from '../ui/queue-listing/queue-listing-routing.module';
 
 const routes: Routes = [
     {

@@ -30,7 +30,7 @@ import { selectFlowConfiguration } from '../../../../state/flow-configuration/fl
 import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import * as ParameterProviderActions from '../../state/parameter-providers/parameter-providers.actions';
 import { initialParameterProvidersState } from '../../state/parameter-providers/parameter-providers.reducer';
-import { filter, switchMap, take } from 'rxjs';
+import { switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { isDefinedAndNotNull } from '../../../../state/shared';
 

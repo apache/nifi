@@ -52,10 +52,10 @@ export class LabelManager {
 
     private labels: [] = [];
     private labelContainer: any;
-    private transitionRequired: boolean = false;
+    private transitionRequired = false;
 
     private labelPointDrag: any;
-    private snapEnabled: boolean = true;
+    private snapEnabled = true;
 
     constructor(
         private store: Store<CanvasState>,
@@ -323,14 +323,14 @@ export class LabelManager {
                 const labelData: any = label.datum();
 
                 // determine if the width has changed
-                let different: boolean = false;
-                let widthSet: boolean = !!labelData.component.width;
+                let different = false;
+                const widthSet = !!labelData.component.width;
                 if (widthSet || labelData.dimensions.width !== labelData.component.width) {
                     different = true;
                 }
 
                 // determine if the height has changed
-                let heightSet: boolean = !!labelData.component.height;
+                const heightSet = !!labelData.component.height;
                 if ((!different && heightSet) || labelData.dimensions.height !== labelData.component.height) {
                     different = true;
                 }

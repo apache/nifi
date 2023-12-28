@@ -753,7 +753,7 @@ export class CanvasUtils {
 
         if (isDisconnected) {
             // go through each connection to ensure its source and destination are included
-            connections.forEach(function (connection, id) {
+            connections.forEach((connection) => {
                 if (isDisconnected) {
                     // determine whether this connection and its components are included within the selection
                     isDisconnected =
@@ -949,7 +949,7 @@ export class CanvasUtils {
         return false;
     }
 
-    private binarySearch(length: number, comparator: Function): number {
+    private binarySearch(length: number, comparator: (data: number) => number): number {
         let low = 0;
         let high = length - 1;
         let mid = 0;

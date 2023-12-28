@@ -44,7 +44,7 @@ export const tenantsReducer = createReducer(
         error: error,
         status: 'error' as const
     })),
-    on(resetTenantsState, (state) => ({
+    on(resetTenantsState, () => ({
         ...initialState
     }))
 );

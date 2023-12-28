@@ -35,7 +35,7 @@ import {
     selectAccessPolicyState,
     selectGlobalResourceActionFromRoute
 } from '../../state/access-policy/access-policy.selectors';
-import { distinctUntilChanged, filter } from 'rxjs';
+import { distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
@@ -47,7 +47,7 @@ import {
     TextTipInput
 } from '../../../../state/shared';
 import { TextTip } from '../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { AccessPolicyEntity, Action, PolicyStatus, ResourceAction } from '../../state/shared';
+import { AccessPolicyEntity, Action, PolicyStatus } from '../../state/shared';
 import { loadExtensionTypesForPolicies } from '../../../../state/extension-types/extension-types.actions';
 import { selectRequiredPermissions } from '../../../../state/extension-types/extension-types.selectors';
 import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
@@ -74,8 +74,8 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
     policyForm: FormGroup;
     resourceOptions: SelectOption[];
     requiredPermissionOptions!: SelectOption[];
-    supportsReadWriteAction: boolean = false;
-    supportsResourceIdentifier: boolean = false;
+    supportsReadWriteAction = false;
+    supportsResourceIdentifier = false;
 
     @ViewChild('inheritedFromPolicies') inheritedFromPolicies!: TemplateRef<any>;
     @ViewChild('inheritedFromController') inheritedFromController!: TemplateRef<any>;
@@ -97,7 +97,7 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
             .select(selectRequiredPermissions)
             .pipe(takeUntilDestroyed())
             .subscribe((requiredPermissions: RequiredPermission[]) => {
-                const regardlessOfRestrictions: string = 'regardless of restrictions';
+                const regardlessOfRestrictions = 'regardless of restrictions';
 
                 const options: SelectOption[] = [
                     {

@@ -66,7 +66,7 @@ export class ControllerServiceStateEffects {
         this.actions$.pipe(
             ofType(ControllerServiceActions.submitDisableRequest),
             concatLatestFrom(() => this.store.select(selectControllerService).pipe(isDefinedAndNotNull())),
-            switchMap(([request, controllerService]) => {
+            switchMap(([, controllerService]) => {
                 if (this.hasUnauthorizedReferences(controllerService.component.referencingComponents)) {
                     return of(
                         ControllerServiceActions.setEnableStepFailure({
@@ -90,7 +90,7 @@ export class ControllerServiceStateEffects {
                 this.store.select(selectControllerService),
                 this.store.select(selectControllerServiceSetEnableRequest)
             ]),
-            switchMap(([request, controllerService, setEnableRequest]) => {
+            switchMap(([, controllerService, setEnableRequest]) => {
                 if (controllerService) {
                     return from(
                         this.controllerServiceStateService.setEnable(controllerService, setEnableRequest.enable)
@@ -132,7 +132,7 @@ export class ControllerServiceStateEffects {
             map((action) => action.response),
             // if the current step is DisableService, it's the end of a disable request and there is no need to start polling
             filter((response) => response.currentStep !== SetEnableStep.DisableService),
-            switchMap((response) => of(ControllerServiceActions.startPollingControllerService()))
+            switchMap(() => of(ControllerServiceActions.startPollingControllerService()))
         )
     );
 
@@ -155,7 +155,7 @@ export class ControllerServiceStateEffects {
                 this.store.select(selectControllerService).pipe(isDefinedAndNotNull()),
                 this.store.select(selectControllerServiceSetEnableRequest)
             ]),
-            switchMap(([action, controllerService, setEnableRequest]) =>
+            switchMap(([, controllerService, setEnableRequest]) =>
                 from(this.controllerServiceStateService.getControllerService(controllerService.id)).pipe(
                     map((response) =>
                         ControllerServiceActions.pollControllerServiceSuccess({
@@ -221,7 +221,7 @@ export class ControllerServiceStateEffects {
                 this.store.select(selectControllerService),
                 this.store.select(selectControllerServiceSetEnableRequest)
             ]),
-            switchMap(([action, controllerService, setEnableRequest]) => {
+            switchMap(([, controllerService, setEnableRequest]) => {
                 if (controllerService) {
                     return from(
                         this.controllerServiceStateService.updateReferencingServices(
@@ -267,7 +267,7 @@ export class ControllerServiceStateEffects {
                 this.store.select(selectControllerService),
                 this.store.select(selectControllerServiceSetEnableRequest)
             ]),
-            switchMap(([action, controllerService, setEnableRequest]) => {
+            switchMap(([, controllerService, setEnableRequest]) => {
                 if (controllerService) {
                     return from(
                         this.controllerServiceStateService.updateReferencingSchedulableComponents(
@@ -312,7 +312,7 @@ export class ControllerServiceStateEffects {
             map((action) => action.response),
             // if the current step is StartReferencingComponents, it's the end of an enable request and there is no need to start polling
             filter((response) => response.currentStep !== SetEnableStep.StartReferencingComponents),
-            switchMap((response) => of(ControllerServiceActions.startPollingControllerService()))
+            switchMap(() => of(ControllerServiceActions.startPollingControllerService()))
         )
     );
 

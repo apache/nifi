@@ -17,7 +17,6 @@
 
 import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { CanvasState } from '../../../state';
 import {
     selectBreadcrumbs,
     selectNavigationCollapsed,
@@ -27,10 +26,7 @@ import { NavigationControl } from './navigation-control/navigation-control.compo
 import { OperationControl } from './operation-control/operation-control.component';
 import { AsyncPipe } from '@angular/common';
 import { NiFiState } from '../../../../../state';
-import {
-    selectFlowConfiguration,
-    selectSupportsManagedAuthorizer
-} from '../../../../../state/flow-configuration/flow-configuration.selectors';
+import { selectSupportsManagedAuthorizer } from '../../../../../state/flow-configuration/flow-configuration.selectors';
 
 @Component({
     selector: 'graph-controls',

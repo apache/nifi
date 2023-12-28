@@ -30,6 +30,4 @@ export class DestinationOutputPort {
     @Input() groupName!: string;
 
     name!: string;
-
-    constructor() {}
 }

@@ -54,7 +54,7 @@ export const componentStateReducer = createReducer(
         error,
         status: 'error' as const
     })),
-    on(resetComponentState, (state) => ({
+    on(resetComponentState, () => ({
         ...initialState
     }))
 );

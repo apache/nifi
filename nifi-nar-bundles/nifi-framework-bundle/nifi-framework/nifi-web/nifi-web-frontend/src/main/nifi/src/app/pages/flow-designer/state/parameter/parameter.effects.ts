@@ -89,7 +89,7 @@ export class ParameterEffects {
         this.actions$.pipe(
             ofType(ParameterActions.pollParameterContextUpdateRequest),
             concatLatestFrom(() => this.store.select(selectUpdateRequest)),
-            switchMap(([action, updateRequest]) => {
+            switchMap(([, updateRequest]) => {
                 if (updateRequest) {
                     return from(this.parameterService.pollParameterContextUpdate(updateRequest.request)).pipe(
                         map((response) =>
@@ -132,7 +132,7 @@ export class ParameterEffects {
     stopPollingParameterContextUpdateRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ParameterActions.stopPollingParameterContextUpdateRequest),
-            switchMap((response) => of(ParameterActions.deleteParameterContextUpdateRequest()))
+            switchMap(() => of(ParameterActions.deleteParameterContextUpdateRequest()))
         )
     );
 
@@ -140,7 +140,7 @@ export class ParameterEffects {
         this.actions$.pipe(
             ofType(ParameterActions.deleteParameterContextUpdateRequest),
             concatLatestFrom(() => this.store.select(selectUpdateRequest)),
-            tap(([action, updateRequest]) => {
+            tap(([, updateRequest]) => {
                 if (updateRequest) {
                     this.parameterService.deleteParameterContextUpdate(updateRequest.request).subscribe();
                 }

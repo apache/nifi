@@ -51,7 +51,7 @@ export class NfEl {
                         const description: string = elFunction.querySelector('span.description')?.textContent ?? '';
                         const returnType: string = elFunction.querySelector('span.returnType')?.textContent ?? '';
 
-                        let subject: string = '';
+                        let subject = '';
                         const subjectSpan: Element | null = elFunction.querySelector('span.subject');
                         const subjectless: Element | null = elFunction.querySelector('span.subjectless');
 
@@ -88,7 +88,6 @@ export class NfEl {
                         };
                     });
                 },
-                error: () => {},
                 complete: () => {
                     // build the regex for all functions discovered
                     self.subjectlessFunctionRegex = new RegExp('^((' + self.subjectlessFunctions.join(')|(') + '))$');
@@ -106,7 +105,7 @@ export class NfEl {
                 return {
                     copy: function () {
                         const copy: any[] = [];
-                        for (let i: number = 0; i < states.length; i++) {
+                        for (let i = 0; i < states.length; i++) {
                             copy.push({
                                 context: states[i].context
                             });
@@ -182,7 +181,7 @@ export class NfEl {
 
                     // within an expression
                     if (state.context === NfEl.EXPRESSION) {
-                        const attributeOrSubjectlessFunctionExpression: RegExp =
+                        const attributeOrSubjectlessFunctionExpression =
                             /^[^'"#${}()[\],:;\/*\\\s\t\r\n0-9][^'"#${}()[\],:;\/*\\\s\t\r\n]*/;
 
                         // attempt to extract a function name
@@ -669,19 +668,19 @@ export class NfEl {
         });
     }
 
-    private parameterKeyRegex: RegExp = /^[a-zA-Z0-9-_. ]+/;
+    private parameterKeyRegex = /^[a-zA-Z0-9-_. ]+/;
 
     private parameters: string[] = [];
-    private parameterRegex: RegExp = new RegExp('^$');
+    private parameterRegex = new RegExp('^$');
 
     private parameterDetails: { [key: string]: Parameter } = {};
-    private parametersSupported: boolean = false;
+    private parametersSupported = false;
 
     private subjectlessFunctions: string[] = [];
     private functions: string[] = [];
 
-    private subjectlessFunctionRegex: RegExp = new RegExp('^$');
-    private functionRegex: RegExp = new RegExp('^$');
+    private subjectlessFunctionRegex = new RegExp('^$');
+    private functionRegex = new RegExp('^$');
 
     private functionDetails: { [key: string]: ElFunction } = {};
 
@@ -705,7 +704,7 @@ export class NfEl {
      */
     private handleStart(startChar: string, context: string, stream: StringStream, states: any): null | string {
         // determine the number of sequential start chars
-        let startCharCount: number = 0;
+        let startCharCount = 0;
         stream.eatWhile(function (ch: string) {
             if (ch === startChar) {
                 startCharCount++;
@@ -756,8 +755,8 @@ export class NfEl {
      */
     private handleStringLiteral(stream: StringStream, state: any): string | null {
         const current: string | null = stream.next();
-        let foundTrailing: boolean = false;
-        let foundEscapeChar: boolean = false;
+        let foundTrailing = false;
+        let foundEscapeChar = false;
 
         // locate a closing string delimitor
         const foundStringLiteral: boolean = stream.eatWhile(function (ch: string) {
@@ -809,7 +808,7 @@ export class NfEl {
                 // Find the token at the cursor
                 const cursor: CodeMirror.Position = editor.getCursor();
                 const token: CodeMirror.Token = editor.getTokenAt(cursor);
-                let includeAll: boolean = false;
+                let includeAll = false;
                 const state = token.state.get();
 
                 // whether the current context is within a function
@@ -837,10 +836,10 @@ export class NfEl {
                 }
 
                 // lower case for case-insensitive comparison
-                let value: string = token.string.toLowerCase();
+                const value: string = token.string.toLowerCase();
 
                 // trim to ignore extra whitespace
-                let trimmed: string = value.trim();
+                const trimmed: string = value.trim();
 
                 // identify potential patterns and increment the start location appropriately
                 if (trimmed === '${' || trimmed === ':' || trimmed === '#{') {
@@ -849,7 +848,7 @@ export class NfEl {
                 }
 
                 let options: string[] = self.functions;
-                let useFunctionDetails: boolean = true;
+                let useFunctionDetails = true;
                 if (isSubjectlessFunction(context)) {
                     options = self.subjectlessFunctions;
                 } else if (isParameterReference(context)) {

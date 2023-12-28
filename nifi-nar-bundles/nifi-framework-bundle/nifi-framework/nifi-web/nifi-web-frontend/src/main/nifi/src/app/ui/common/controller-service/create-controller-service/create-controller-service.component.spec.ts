@@ -18,11 +18,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CreateControllerService } from './create-controller-service.component';
-import { CreateControllerServiceDialogRequest, DocumentedType } from '../../../../state/shared';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../state/extension-types/extension-types.reducer';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { CreateControllerServiceDialogRequest } from '../../../../state/shared';
 
 describe('CreateControllerService', () => {
     let component: CreateControllerService;

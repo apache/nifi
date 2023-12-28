@@ -33,7 +33,7 @@ export const initialState: LineageState = {
 
 export const lineageReducer = createReducer(
     initialState,
-    on(resetLineage, (state) => ({
+    on(resetLineage, () => ({
         ...initialState
     })),
     on(submitLineageQuery, (state) => ({

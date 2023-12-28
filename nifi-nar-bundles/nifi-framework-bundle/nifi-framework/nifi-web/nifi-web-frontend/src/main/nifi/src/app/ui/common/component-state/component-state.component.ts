@@ -71,10 +71,10 @@ export class ComponentStateDialog implements AfterViewInit {
 
     filterForm: FormGroup;
 
-    stateDescription: string = '';
-    totalEntries: number = 0;
-    filteredEntries: number = 0;
-    partialResults: boolean = false;
+    stateDescription = '';
+    totalEntries = 0;
+    filteredEntries = 0;
+    partialResults = false;
 
     constructor(
         private store: Store<ComponentStateState>,

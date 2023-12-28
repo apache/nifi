@@ -35,7 +35,7 @@ import { UserAccessPolicies } from '../../ui/user-listing/user-access-policies/u
 
 @Injectable()
 export class UserListingEffects {
-    private requestId: number = 0;
+    private requestId = 0;
 
     constructor(
         private actions$: Actions,
@@ -90,7 +90,7 @@ export class UserListingEffects {
             this.actions$.pipe(
                 ofType(UserListingActions.openCreateTenantDialog),
                 concatLatestFrom(() => [this.store.select(selectUsers), this.store.select(selectUserGroups)]),
-                tap(([action, existingUsers, existingUserGroups]) => {
+                tap(([, existingUsers, existingUserGroups]) => {
                     const editTenantRequest: EditTenantRequest = {
                         existingUsers,
                         existingUserGroups
@@ -232,7 +232,7 @@ export class UserListingEffects {
                             // @ts-ignore
                             createUserResponse.userGroupUpdate.requestId === updateSuccess.response.requestId
                     ),
-                    map((response) => UserListingActions.createUserComplete({ response: createUserResponse }))
+                    map(() => UserListingActions.createUserComplete({ response: createUserResponse }))
                 )
             )
         )
@@ -359,7 +359,7 @@ export class UserListingEffects {
                             }
                         });
 
-                    dialogReference.afterClosed().subscribe((response) => {
+                    dialogReference.afterClosed().subscribe(() => {
                         this.store.dispatch(
                             selectTenant({
                                 id: request.user.id
@@ -499,7 +499,7 @@ export class UserListingEffects {
                             // @ts-ignore
                             updateUserResponse.userGroupUpdate.requestId === updateSuccess.response.requestId
                     ),
-                    map((response) => UserListingActions.updateUserComplete())
+                    map(() => UserListingActions.updateUserComplete())
                 )
             )
         )
@@ -511,7 +511,7 @@ export class UserListingEffects {
             tap(() => {
                 this.dialog.closeAll();
             }),
-            switchMap((request) => of(UserListingActions.loadTenants()))
+            switchMap(() => of(UserListingActions.loadTenants()))
         )
     );
 
@@ -599,7 +599,7 @@ export class UserListingEffects {
             tap(() => {
                 this.dialog.closeAll();
             }),
-            switchMap((request) => of(UserListingActions.loadTenants()))
+            switchMap(() => of(UserListingActions.loadTenants()))
         )
     );
 
@@ -673,7 +673,7 @@ export class UserListingEffects {
             map((action) => action.request),
             switchMap((request) =>
                 from(this.usersService.deleteUser(request.user)).pipe(
-                    map((response) => UserListingActions.loadTenants()),
+                    map(() => UserListingActions.loadTenants()),
                     catchError((error) => of(UserListingActions.usersApiError({ error: error.error })))
                 )
             )

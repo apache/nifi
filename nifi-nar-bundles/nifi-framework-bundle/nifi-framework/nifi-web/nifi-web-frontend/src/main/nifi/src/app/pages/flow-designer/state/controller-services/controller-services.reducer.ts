@@ -55,7 +55,7 @@ export const initialState: ControllerServicesState = {
 
 export const controllerServicesReducer = createReducer(
     initialState,
-    on(resetControllerServicesState, (state) => ({
+    on(resetControllerServicesState, () => ({
         ...initialState
     })),
     on(loadControllerServices, (state) => ({
@@ -77,7 +77,7 @@ export const controllerServicesReducer = createReducer(
         error,
         status: 'error' as const
     })),
-    on(createControllerService, configureControllerService, deleteControllerService, (state, { request }) => ({
+    on(createControllerService, configureControllerService, deleteControllerService, (state) => ({
         ...state,
         saving: true
     })),

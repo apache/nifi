@@ -18,7 +18,7 @@
 import { createAction, props } from '@ngrx/store';
 import { LoadCounterListingResponse, ResetCounterRequest, ResetCounterSuccess } from './index';
 
-const COUNTER_PREFIX: string = '[Counter Listing]';
+const COUNTER_PREFIX = '[Counter Listing]';
 
 export const loadCounters = createAction(`${COUNTER_PREFIX} Load Counter Listing`);
 

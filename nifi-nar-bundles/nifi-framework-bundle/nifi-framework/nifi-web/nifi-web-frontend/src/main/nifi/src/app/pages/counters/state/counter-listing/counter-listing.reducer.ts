@@ -63,7 +63,7 @@ export const counterListingReducer = createReducer(
             }
         });
     }),
-    on(resetCounterState, (state) => ({
+    on(resetCounterState, () => ({
         ...initialState
     }))
 );

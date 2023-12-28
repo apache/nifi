@@ -32,7 +32,7 @@ export class Breadcrumbs {
     @Input() entity: BreadcrumbEntity = initialState.flow.processGroupFlow.breadcrumb;
     @Input() currentProcessGroupId: string = initialState.id;
 
-    private scrolledToProcessGroupId: string = '';
+    private scrolledToProcessGroupId = '';
 
     @ViewChild('currentProcessGroup') set currentProcessGroupBreadcrumb(currentProcessGroupBreadcrumb: ElementRef) {
         // only auto scroll to the breadcrumb for the current pg once as the user may have manually scrolled since

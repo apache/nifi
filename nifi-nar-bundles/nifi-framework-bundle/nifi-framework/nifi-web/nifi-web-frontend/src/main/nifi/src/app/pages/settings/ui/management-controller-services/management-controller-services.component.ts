@@ -102,11 +102,11 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
         this.store.dispatch(loadManagementControllerServices());
     }
 
-    formatScope(entity: ControllerServiceEntity): string {
+    formatScope(): string {
         return 'Controller';
     }
 
-    definedByCurrentGroup(entity: ControllerServiceEntity): boolean {
+    definedByCurrentGroup(): boolean {
         return true;
     }
 
@@ -163,8 +163,7 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
     }
 
     canModifyParent(currentUser: CurrentUser): (entity: ControllerServiceEntity) => boolean {
-        return (entity: ControllerServiceEntity) =>
-            currentUser.controllerPermissions.canRead && currentUser.controllerPermissions.canWrite;
+        return () => currentUser.controllerPermissions.canRead && currentUser.controllerPermissions.canWrite;
     }
 
     selectControllerService(entity: ControllerServiceEntity): void {

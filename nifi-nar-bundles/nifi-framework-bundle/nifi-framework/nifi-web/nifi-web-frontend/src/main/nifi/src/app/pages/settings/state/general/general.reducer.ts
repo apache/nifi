@@ -46,7 +46,7 @@ export const initialState: GeneralState = {
 
 export const generalReducer = createReducer(
     initialState,
-    on(resetGeneralState, (state) => ({
+    on(resetGeneralState, () => ({
         ...initialState
     })),
     on(loadControllerConfig, (state) => ({

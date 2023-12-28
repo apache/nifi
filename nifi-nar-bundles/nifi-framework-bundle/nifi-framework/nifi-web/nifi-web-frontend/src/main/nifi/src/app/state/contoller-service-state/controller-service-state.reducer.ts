@@ -45,7 +45,7 @@ export const initialState: ControllerServiceState = {
 
 export const controllerServiceStateReducer = createReducer(
     initialState,
-    on(resetEnableControllerServiceState, (state) => ({
+    on(resetEnableControllerServiceState, () => ({
         ...initialState
     })),
     on(setControllerService, (state, { request }) => ({

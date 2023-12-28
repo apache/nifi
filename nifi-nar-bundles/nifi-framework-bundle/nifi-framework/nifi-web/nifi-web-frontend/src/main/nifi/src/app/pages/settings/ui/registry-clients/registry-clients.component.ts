@@ -38,7 +38,6 @@ import { selectCurrentUser } from '../../../../state/current-user/current-user.s
 import { NiFiState } from '../../../../state';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { state } from '@angular/animations';
 
 @Component({
     selector: 'registry-clients',

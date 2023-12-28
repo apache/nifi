@@ -34,12 +34,12 @@ import { ComponentType } from '../../../../state/shared';
 })
 export class DraggableBehavior {
     private readonly drag: any;
-    private snapEnabled: boolean = false;
-    private snapAlignmentPixels: number = 8;
+    private snapEnabled = false;
+    private snapAlignmentPixels = 8;
 
     private scale: number = INITIAL_SCALE;
 
-    private updateConnectionRequestId: number = 0;
+    private updateConnectionRequestId = 0;
 
     constructor(
         private store: Store<CanvasState>,
@@ -84,8 +84,8 @@ export class DraggableBehavior {
                         if (minY === null || d.position.y < minY) {
                             minY = d.position.y;
                         }
-                        var componentMaxX = d.position.x + d.dimensions.width;
-                        var componentMaxY = d.position.y + d.dimensions.height;
+                        const componentMaxX = d.position.x + d.dimensions.width;
+                        const componentMaxY = d.position.y + d.dimensions.height;
                         if (maxX === null || componentMaxX > maxX) {
                             maxX = componentMaxX;
                         }

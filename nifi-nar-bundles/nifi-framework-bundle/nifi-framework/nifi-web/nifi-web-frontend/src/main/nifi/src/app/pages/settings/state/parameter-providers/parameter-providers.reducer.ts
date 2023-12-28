@@ -42,7 +42,7 @@ export const initialParameterProvidersState: ParameterProvidersState = {
 export const parameterProvidersReducer = createReducer(
     initialParameterProvidersState,
 
-    on(resetParameterProvidersState, (state: ParameterProvidersState) => ({
+    on(resetParameterProvidersState, () => ({
         ...initialParameterProvidersState
     })),
 
@@ -66,7 +66,7 @@ export const parameterProvidersReducer = createReducer(
         status: 'error' as const
     })),
 
-    on(createParameterProvider, configureParameterProvider, deleteParameterProvider, (state, { request }) => ({
+    on(createParameterProvider, configureParameterProvider, deleteParameterProvider, (state) => ({
         ...state,
         saving: true
     })),

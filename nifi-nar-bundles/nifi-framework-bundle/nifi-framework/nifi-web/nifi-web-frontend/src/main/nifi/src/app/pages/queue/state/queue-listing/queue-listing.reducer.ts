@@ -40,7 +40,7 @@ export const queueListingReducer = createReducer(
         ...state,
         connectionLabel: response.connectionLabel
     })),
-    on(submitQueueListingRequest, (state, { request }) => ({
+    on(submitQueueListingRequest, (state) => ({
         ...state,
         status: 'loading' as const
     })),
@@ -56,7 +56,7 @@ export const queueListingReducer = createReducer(
         error,
         status: 'error' as const
     })),
-    on(resetQueueListingState, (state) => ({
+    on(resetQueueListingState, () => ({
         ...initialState
     }))
 );

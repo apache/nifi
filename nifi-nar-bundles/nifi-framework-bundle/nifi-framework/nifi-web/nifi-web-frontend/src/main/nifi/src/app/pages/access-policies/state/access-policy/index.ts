@@ -16,7 +16,7 @@
  */
 
 import { AccessPolicyEntity, ComponentResourceAction, PolicyStatus, ResourceAction } from '../shared';
-import { TenantEntity, UserEntity, UserGroupEntity } from '../../../../state/shared';
+import { TenantEntity } from '../../../../state/shared';
 
 export const accessPolicyFeatureKey = 'accessPolicy';
 

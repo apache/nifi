@@ -76,8 +76,8 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     dataSource: MatTableDataSource<ParameterItem> = new MatTableDataSource<ParameterItem>();
     selectedItem: ParameterItem | null = null;
 
-    isDisabled: boolean = false;
-    isTouched: boolean = false;
+    isDisabled = false;
+    isTouched = false;
     onTouched!: () => void;
     onChange!: (parameters: ParameterEntity[]) => void;
 
@@ -92,7 +92,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     }
 
     initFilter(): void {
-        this.dataSource.filterPredicate = (data: ParameterItem, filter: string) => this.isVisible(data);
+        this.dataSource.filterPredicate = (data: ParameterItem) => this.isVisible(data);
         this.dataSource.filter = ' ';
     }
 

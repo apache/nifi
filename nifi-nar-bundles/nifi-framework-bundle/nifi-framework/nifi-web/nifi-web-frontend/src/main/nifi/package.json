@@ -10,7 +10,9 @@
         "test:dev": "ng test --karma-config=karma.conf.js --watch=true --browsers=Chrome",
         "prettier": "prettier --config .prettierrc . --check",
         "prettier-format": "prettier --config .prettierrc . --write",
-        "ci": "npm ci --ignore-scripts"
+        "ci": "npm ci --ignore-scripts",
+        "lint": "ng lint --eslint-config .eslintrc.json",
+        "lint:fix": "ng lint --eslint-config .eslintrc.json --fix"
     },
     "private": true,
     "dependencies": {
@@ -43,6 +45,11 @@
     },
     "devDependencies": {
         "@angular-devkit/build-angular": "^16.2.10",
+        "@angular-eslint/builder": "16.3.0",
+        "@angular-eslint/eslint-plugin": "16.3.0",
+        "@angular-eslint/eslint-plugin-template": "16.3.0",
+        "@angular-eslint/schematics": "16.3.0",
+        "@angular-eslint/template-parser": "16.3.0",
         "@angular/cli": "~16.2.10",
         "@angular/compiler-cli": "^16.2.12",
         "@types/codemirror": "^5.60.15",
@@ -50,7 +57,10 @@
         "@types/humanize-duration": "^3.27.3",
         "@types/jasmine": "~4.6.4",
         "@types/webfontloader": "^1.6.38",
+        "@typescript-eslint/eslint-plugin": "5.62.0",
+        "@typescript-eslint/parser": "5.62.0",
         "autoprefixer": "^10.4.16",
+        "eslint": "^8.51.0",
         "eslint-config-prettier": "^9.1.0",
         "eslint-plugin-prettier": "^5.0.1",
         "jasmine-core": "~4.6.0",

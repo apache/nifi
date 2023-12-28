@@ -50,7 +50,7 @@ export class QueueListingEffects {
                     map((response) => {
                         const connection: any = response.component;
 
-                        let connectionLabel: string = 'Connection';
+                        let connectionLabel = 'Connection';
                         if (!this.nifiCommon.isBlank(connection.name)) {
                             connectionLabel = connection.name;
                         } else if (connection.selectedRelationships) {
@@ -63,7 +63,7 @@ export class QueueListingEffects {
                             }
                         });
                     }),
-                    catchError((error) =>
+                    catchError(() =>
                         of(
                             QueueListingActions.loadConnectionLabelSuccess({
                                 response: {
@@ -119,7 +119,7 @@ export class QueueListingEffects {
         this.actions$.pipe(
             ofType(QueueListingActions.resubmitQueueListingRequest),
             concatLatestFrom(() => this.store.select(selectConnectionIdFromRoute)),
-            switchMap(([action, connectionId]) =>
+            switchMap(([, connectionId]) =>
                 of(QueueListingActions.submitQueueListingRequest({ request: { connectionId } }))
             )
         )
@@ -156,7 +156,7 @@ export class QueueListingEffects {
         this.actions$.pipe(
             ofType(QueueListingActions.pollQueueListingRequest),
             concatLatestFrom(() => this.store.select(selectListingRequestEntity).pipe(isDefinedAndNotNull())),
-            switchMap(([action, requestEntity]) => {
+            switchMap(([, requestEntity]) => {
                 return from(this.queueService.pollQueueListingRequest(requestEntity.listingRequest)).pipe(
                     map((response) =>
                         QueueListingActions.pollQueueListingRequestSuccess({
@@ -182,14 +182,14 @@ export class QueueListingEffects {
             ofType(QueueListingActions.pollQueueListingRequestSuccess),
             map((action) => action.response),
             filter((response) => response.requestEntity.listingRequest.finished),
-            switchMap((response) => of(QueueListingActions.stopPollingQueueListingRequest()))
+            switchMap(() => of(QueueListingActions.stopPollingQueueListingRequest()))
         )
     );
 
     stopPollingQueueListingRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(QueueListingActions.stopPollingQueueListingRequest),
-            switchMap((response) => of(QueueListingActions.deleteQueueListingRequest()))
+            switchMap(() => of(QueueListingActions.deleteQueueListingRequest()))
         )
     );
 
@@ -198,7 +198,7 @@ export class QueueListingEffects {
             this.actions$.pipe(
                 ofType(QueueListingActions.deleteQueueListingRequest),
                 concatLatestFrom(() => this.store.select(selectListingRequestEntity)),
-                tap(([action, requestEntity]) => {
+                tap(([, requestEntity]) => {
                     this.dialog.closeAll();
 
                     if (requestEntity) {

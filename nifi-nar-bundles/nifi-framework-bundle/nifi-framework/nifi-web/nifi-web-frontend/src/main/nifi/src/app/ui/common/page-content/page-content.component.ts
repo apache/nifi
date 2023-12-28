@@ -29,7 +29,7 @@ import { NgIf } from '@angular/common';
     styleUrls: ['./page-content.component.scss']
 })
 export class PageContent {
-    @Input() title: string = '';
+    @Input() title = '';
 
     constructor(
         private authStorage: AuthStorage,

@@ -54,7 +54,7 @@ export class QueueService {
     }
 
     downloadContent(flowfileSummary: FlowFileSummary): void {
-        let dataUri: string = `${this.nifiCommon.stripProtocol(flowfileSummary.uri)}/content`;
+        let dataUri = `${this.nifiCommon.stripProtocol(flowfileSummary.uri)}/content`;
 
         const queryParameters: any = {};
 
@@ -70,7 +70,7 @@ export class QueueService {
 
     viewContent(flowfileSummary: FlowFileSummary, contentViewerUrl: string): void {
         // build the uri to the data
-        let dataUri: string = `${this.nifiCommon.stripProtocol(flowfileSummary.uri)}/content`;
+        let dataUri = `${this.nifiCommon.stripProtocol(flowfileSummary.uri)}/content`;
 
         const dataUriParameters: any = {};
 

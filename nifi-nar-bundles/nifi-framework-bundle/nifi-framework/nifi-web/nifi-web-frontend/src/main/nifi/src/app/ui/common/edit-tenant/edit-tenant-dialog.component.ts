@@ -69,7 +69,7 @@ export class EditTenantDialog {
 
     readonly USER: string = 'user';
     readonly USER_GROUP: string = 'userGroup';
-    isUser: boolean = true;
+    isUser = true;
 
     identity: FormControl;
     tenantType: FormControl;
@@ -91,7 +91,7 @@ export class EditTenantDialog {
         if (user || userGroup) {
             this.isNew = false;
 
-            let identity: string = '';
+            let identity = '';
             let tenantType: string = this.USER;
             if (user) {
                 identity = user.component.identity;
@@ -176,7 +176,7 @@ export class EditTenantDialog {
             this.editTenantForm.removeControl('userGroups');
         }
 
-        let users: string[] = [];
+        const users: string[] = [];
         if (this.request.userGroup) {
             users.push(...this.request.userGroup.component.users.map((user) => user.id));
         }
@@ -189,7 +189,7 @@ export class EditTenantDialog {
             this.editTenantForm.removeControl('users');
         }
 
-        let userGroups: string[] = [];
+        const userGroups: string[] = [];
         if (this.request.user) {
             userGroups.push(...this.request.user.component.userGroups.map((userGroup) => userGroup.id));
         }

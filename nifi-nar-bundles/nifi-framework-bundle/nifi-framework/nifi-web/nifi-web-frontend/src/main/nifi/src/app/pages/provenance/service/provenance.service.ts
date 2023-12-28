@@ -55,7 +55,7 @@ export class ProvenanceService {
     }
 
     downloadContent(id: string, direction: string): void {
-        let dataUri: string = `${ProvenanceService.API}/provenance-events/${encodeURIComponent(
+        let dataUri = `${ProvenanceService.API}/provenance-events/${encodeURIComponent(
             id
         )}/content/${encodeURIComponent(direction)}`;
 
@@ -73,9 +73,7 @@ export class ProvenanceService {
 
     viewContent(nifiUrl: string, contentViewerUrl: string, id: string, direction: string): void {
         // build the uri to the data
-        let dataUri: string = `${nifiUrl}provenance-events/${encodeURIComponent(id)}/content/${encodeURIComponent(
-            direction
-        )}`;
+        let dataUri = `${nifiUrl}provenance-events/${encodeURIComponent(id)}/content/${encodeURIComponent(direction)}`;
 
         const dataUriParameters: any = {};
 

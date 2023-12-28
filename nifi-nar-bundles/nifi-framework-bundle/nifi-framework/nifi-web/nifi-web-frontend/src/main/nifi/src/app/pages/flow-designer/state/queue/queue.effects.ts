@@ -203,7 +203,7 @@ export class QueueEffects {
         this.actions$.pipe(
             ofType(QueueActions.pollEmptyQueueRequest),
             concatLatestFrom(() => this.store.select(selectDropRequestEntity).pipe(isDefinedAndNotNull())),
-            switchMap(([action, dropEntity]) => {
+            switchMap(([, dropEntity]) => {
                 return from(this.queueService.pollEmptyQueueRequest(dropEntity.dropRequest)).pipe(
                     map((response) =>
                         QueueActions.pollEmptyQueueRequestSuccess({
@@ -229,14 +229,14 @@ export class QueueEffects {
             ofType(QueueActions.pollEmptyQueueRequestSuccess),
             map((action) => action.response),
             filter((response) => response.dropEntity.dropRequest.finished),
-            switchMap((response) => of(QueueActions.stopPollingEmptyQueueRequest()))
+            switchMap(() => of(QueueActions.stopPollingEmptyQueueRequest()))
         )
     );
 
     stopPollingEmptyQueueRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(QueueActions.stopPollingEmptyQueueRequest),
-            switchMap((response) => of(QueueActions.deleteEmptyQueueRequest()))
+            switchMap(() => of(QueueActions.deleteEmptyQueueRequest()))
         )
     );
 
@@ -244,7 +244,7 @@ export class QueueEffects {
         this.actions$.pipe(
             ofType(QueueActions.deleteEmptyQueueRequest),
             concatLatestFrom(() => this.store.select(selectDropRequestEntity).pipe(isDefinedAndNotNull())),
-            switchMap(([action, dropEntity]) => {
+            switchMap(([, dropEntity]) => {
                 this.dialog.closeAll();
 
                 return from(this.queueService.deleteEmptyQueueRequest(dropEntity.dropRequest)).pipe(
@@ -255,7 +255,7 @@ export class QueueEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError(() =>
                         of(
                             QueueActions.showEmptyQueueResults({
                                 request: {
@@ -282,7 +282,7 @@ export class QueueEffects {
                     const dropRequest: DropRequest = request.dropEntity.dropRequest;
                     const droppedTokens: string[] = dropRequest.dropped.split(/ \/ /);
 
-                    let message: string = `${droppedTokens[0]} FlowFiles (${droppedTokens[1]})`;
+                    let message = `${droppedTokens[0]} FlowFiles (${droppedTokens[1]})`;
 
                     if (dropRequest.percentCompleted < 100) {
                         const originalTokens: string[] = dropRequest.original.split(/ \/ /);
@@ -334,7 +334,7 @@ export class QueueEffects {
         () =>
             this.actions$.pipe(
                 ofType(QueueActions.queueApiError),
-                tap((action) => this.dialog.closeAll())
+                tap(() => this.dialog.closeAll())
             ),
         { dispatch: false }
     );

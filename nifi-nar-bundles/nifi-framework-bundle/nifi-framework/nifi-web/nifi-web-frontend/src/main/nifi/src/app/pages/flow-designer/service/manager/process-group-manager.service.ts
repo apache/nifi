@@ -56,7 +56,7 @@ export class ProcessGroupManager {
 
     private processGroups: [] = [];
     private processGroupContainer: any;
-    private transitionRequired: boolean = false;
+    private transitionRequired = false;
 
     private viewContainerRef: ViewContainerRef | undefined;
 

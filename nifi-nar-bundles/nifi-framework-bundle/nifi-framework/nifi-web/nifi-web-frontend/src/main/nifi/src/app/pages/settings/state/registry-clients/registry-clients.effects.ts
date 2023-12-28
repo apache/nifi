@@ -79,7 +79,7 @@ export class RegistryClientsEffects {
             this.actions$.pipe(
                 ofType(RegistryClientsActions.openNewRegistryClientDialog),
                 concatLatestFrom(() => this.store.select(selectRegistryClientTypes)),
-                tap(([action, registryClientTypes]) => {
+                tap(([, registryClientTypes]) => {
                     const dialogReference = this.dialog.open(CreateRegistryClient, {
                         data: {
                             registryClientTypes

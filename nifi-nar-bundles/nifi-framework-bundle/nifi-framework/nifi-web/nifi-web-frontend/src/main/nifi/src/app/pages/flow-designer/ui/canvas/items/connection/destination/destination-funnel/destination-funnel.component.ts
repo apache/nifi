@@ -25,6 +25,4 @@ import { Component, Input } from '@angular/core';
 })
 export class DestinationFunnel {
     @Input() groupName!: string;
-
-    constructor() {}
 }

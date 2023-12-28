@@ -25,7 +25,7 @@ import { FlowState } from '../../../state/flow';
 import { selectCurrentProcessGroupId } from '../../../state/flow/flow.selectors';
 import { initialState } from '../../../state/flow/flow.reducer';
 
-export const rootGroupGuard: CanActivateFn = (route, state) => {
+export const rootGroupGuard: CanActivateFn = () => {
     const router: Router = inject(Router);
     const flowService: FlowService = inject(FlowService);
     const store: Store<CurrentUserState> = inject(Store<FlowState>);

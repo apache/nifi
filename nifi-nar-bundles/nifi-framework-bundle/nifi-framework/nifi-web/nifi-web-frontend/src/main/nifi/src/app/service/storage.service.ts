@@ -24,8 +24,6 @@ export class Storage {
     private static readonly MILLIS_PER_DAY: number = 86400000;
     private static readonly TWO_DAYS: number = Storage.MILLIS_PER_DAY * 2;
 
-    constructor() {}
-
     /**
      * Checks the expiration for the specified entry.
      *

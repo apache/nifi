@@ -18,7 +18,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { SummaryTableFilter } from './summary-table-filter.component';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { SummaryTableFilterModule } from './summary-table-filter.module';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 

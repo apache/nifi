@@ -57,10 +57,10 @@ export interface Tenants {
     styleUrls: ['./user-table.component.scss']
 })
 export class UserTable implements AfterViewInit {
-    filterTerm: string = '';
+    filterTerm = '';
     filterColumn: 'user' | 'membership' = 'user';
-    totalCount: number = 0;
-    filteredCount: number = 0;
+    totalCount = 0;
+    filteredCount = 0;
 
     displayedColumns: string[] = ['user', 'membership', 'actions'];
     dataSource: MatTableDataSource<TenantItem> = new MatTableDataSource<TenantItem>();
@@ -172,7 +172,7 @@ export class UserTable implements AfterViewInit {
         return data.sort((a, b) => {
             const isAsc = sort.direction === 'asc';
 
-            let retVal: number = 0;
+            let retVal = 0;
             switch (sort.active) {
                 case 'user':
                     retVal = this.nifiCommon.compareString(a.user, b.user);

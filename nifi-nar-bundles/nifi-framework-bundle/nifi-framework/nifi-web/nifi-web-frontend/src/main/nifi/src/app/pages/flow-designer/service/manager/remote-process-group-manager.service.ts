@@ -53,7 +53,7 @@ export class RemoteProcessGroupManager {
 
     private remoteProcessGroups: [] = [];
     private remoteProcessGroupContainer: any;
-    private transitionRequired: boolean = false;
+    private transitionRequired = false;
 
     private viewContainerRef: ViewContainerRef | undefined;
 

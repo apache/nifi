@@ -42,7 +42,7 @@ export const accessPolicyReducer = createReducer(
         ...state,
         resourceAction: request.resourceAction
     })),
-    on(loadAccessPolicy, (state, { request }) => ({
+    on(loadAccessPolicy, (state) => ({
         ...state,
         status: 'loading' as const
     })),
@@ -54,11 +54,11 @@ export const accessPolicyReducer = createReducer(
         saving: false,
         status: 'success' as const
     })),
-    on(addTenantsToPolicy, (state, { request }) => ({
+    on(addTenantsToPolicy, (state) => ({
         ...state,
         saving: true
     })),
-    on(removeTenantFromPolicy, (state, { request }) => ({
+    on(removeTenantFromPolicy, (state) => ({
         ...state,
         saving: true
     })),
@@ -76,7 +76,7 @@ export const accessPolicyReducer = createReducer(
         policyStatus: undefined,
         status: 'error' as const
     })),
-    on(resetAccessPolicyState, (state) => ({
+    on(resetAccessPolicyState, () => ({
         ...initialState
     }))
 );

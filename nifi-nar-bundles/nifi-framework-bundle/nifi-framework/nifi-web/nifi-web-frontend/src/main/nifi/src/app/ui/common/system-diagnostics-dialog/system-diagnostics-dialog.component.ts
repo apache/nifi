@@ -15,16 +15,11 @@
  *  limitations under the License.
  */
 
-import { Component, Inject, OnInit, signal } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule, NgForOf } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import {
-    GarbageCollection,
-    OpenSystemDiagnosticsDialogRequest,
-    RepositoryStorageUsage,
-    SystemDiagnosticsState
-} from '../../../state/system-diagnostics';
+import { MatDialogModule } from '@angular/material/dialog';
+import { GarbageCollection, RepositoryStorageUsage, SystemDiagnosticsState } from '../../../state/system-diagnostics';
 import { Store } from '@ngrx/store';
 import {
     selectSystemDiagnostics,
@@ -34,10 +29,9 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { reloadSystemDiagnostics } from '../../../state/system-diagnostics/system-diagnostics.actions';
 import { NiFiCommon } from '../../../service/nifi-common.service';
-import { filter } from 'rxjs';
 import { TextTip } from '../tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
-import { TextTipInput } from '../../../state/shared';
+import { isDefinedAndNotNull, TextTipInput } from '../../../state/shared';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 @Component({
@@ -63,13 +57,12 @@ export class SystemDiagnosticsDialog implements OnInit {
 
     constructor(
         private store: Store<SystemDiagnosticsState>,
-        private nifiCommon: NiFiCommon,
-        @Inject(MAT_DIALOG_DATA) public request: OpenSystemDiagnosticsDialogRequest
+        private nifiCommon: NiFiCommon
     ) {}
 
     ngOnInit(): void {
-        this.systemDiagnostics$.pipe(filter((diagnostics) => !!diagnostics)).subscribe((diagnostics) => {
-            const sorted = diagnostics!.aggregateSnapshot.garbageCollection.slice();
+        this.systemDiagnostics$.pipe(isDefinedAndNotNull()).subscribe((diagnostics) => {
+            const sorted = diagnostics.aggregateSnapshot.garbageCollection.slice();
             sorted.sort((a, b) => {
                 return this.nifiCommon.compareString(a.name, b.name);
             });

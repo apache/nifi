@@ -24,7 +24,6 @@ import { MatInputModule } from '@angular/material/input';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { CurrentUser } from '../../../../../state/current-user';
 
 describe('PolicyTable', () => {
     let component: PolicyTable;

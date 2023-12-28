@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
@@ -33,8 +33,9 @@ import { CurrentUser } from '../../../../../state/current-user';
     imports: [MatTableModule, NgForOf, NgIf, RouterLink],
     styleUrls: ['./flowfile-table.component.scss']
 })
-export class FlowFileTable implements AfterViewInit {
+export class FlowFileTable {
     @Input() connectionLabel!: string;
+
     @Input() set listingRequest(listingRequest: ListingRequest) {
         if (listingRequest.flowFileSummaries) {
             this.dataSource.data = this.sortFlowFiles(listingRequest.flowFileSummaries);
@@ -47,6 +48,7 @@ export class FlowFileTable implements AfterViewInit {
             this.destinationRunning = listingRequest.destinationRunning;
         }
     }
+
     @Input() currentUser!: CurrentUser;
     @Input() contentViewerAvailable!: boolean;
 
@@ -73,16 +75,14 @@ export class FlowFileTable implements AfterViewInit {
     dataSource: MatTableDataSource<FlowFileSummary> = new MatTableDataSource<FlowFileSummary>();
     selectedUuid: string | null = null;
 
-    sourceRunning: boolean = false;
-    destinationRunning: boolean = false;
+    sourceRunning = false;
+    destinationRunning = false;
 
-    displayObjectCount: number = 0;
-    queueSizeObjectCount: number = 0;
-    queueSizeByteCount: number = 0;
+    displayObjectCount = 0;
+    queueSizeObjectCount = 0;
+    queueSizeByteCount = 0;
 
     constructor(private nifiCommon: NiFiCommon) {}
-
-    ngAfterViewInit(): void {}
 
     sortFlowFiles(summaries: FlowFileSummary[]): FlowFileSummary[] {
         const data: FlowFileSummary[] = summaries.slice();

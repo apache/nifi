@@ -56,11 +56,11 @@ export const statusHistoryReducer = createReducer(
         status: 'error' as const
     })),
 
-    on(clearStatusHistory, (state) => ({
+    on(clearStatusHistory, () => ({
         ...initialState
     })),
 
-    on(viewStatusHistoryComplete, (state) => ({
+    on(viewStatusHistoryComplete, () => ({
         ...initialState
     }))
 );

@@ -35,7 +35,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
 import { MatPaginator } from '@angular/material/paginator';
 import { ProcessorStatusTable } from './processor-status-table/processor-status-table.component';
-import { getSystemDiagnosticsAndOpenDialog } from '../../../../state/system-diagnostics/system-diagnostics.actions';
 
 @Component({
     selector: 'processor-status-listing',

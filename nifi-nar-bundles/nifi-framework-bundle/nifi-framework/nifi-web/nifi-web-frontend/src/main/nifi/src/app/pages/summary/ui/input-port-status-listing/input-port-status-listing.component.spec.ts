@@ -18,11 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { InputPortStatusListing } from './input-port-status-listing.component';
-import { CommonModule } from '@angular/common';
 import { SummaryTableFilterModule } from '../common/summary-table-filter/summary-table-filter.module';
-import { MatSortModule } from '@angular/material/sort';
-import { MatTableModule } from '@angular/material/table';
-import { RouterLink } from '@angular/router';
 import { PortStatusTable } from '../common/port-status-table/port-status-table.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';

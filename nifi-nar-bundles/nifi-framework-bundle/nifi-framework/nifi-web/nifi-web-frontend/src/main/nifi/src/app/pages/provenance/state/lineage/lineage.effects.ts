@@ -101,7 +101,7 @@ export class LineageEffects {
         this.actions$.pipe(
             ofType(LineageActions.pollLineageQuery),
             concatLatestFrom(() => [this.store.select(selectLineageId), this.store.select(selectClusterNodeId)]),
-            switchMap(([action, id, clusterNodeId]) => {
+            switchMap(([, id, clusterNodeId]) => {
                 if (id) {
                     return from(this.provenanceService.getLineageQuery(id, clusterNodeId)).pipe(
                         map((response) =>
@@ -145,7 +145,7 @@ export class LineageEffects {
     stopPollingLineageQuery$ = createEffect(() =>
         this.actions$.pipe(
             ofType(LineageActions.stopPollingLineageQuery),
-            switchMap((response) => of(LineageActions.deleteLineageQuery()))
+            switchMap(() => of(LineageActions.deleteLineageQuery()))
         )
     );
 
@@ -154,7 +154,7 @@ export class LineageEffects {
             this.actions$.pipe(
                 ofType(LineageActions.deleteLineageQuery),
                 concatLatestFrom(() => [this.store.select(selectLineageId), this.store.select(selectClusterNodeId)]),
-                tap(([action, id, clusterNodeId]) => {
+                tap(([, id, clusterNodeId]) => {
                     if (id) {
                         this.provenanceService.deleteLineageQuery(id, clusterNodeId).subscribe();
                     }

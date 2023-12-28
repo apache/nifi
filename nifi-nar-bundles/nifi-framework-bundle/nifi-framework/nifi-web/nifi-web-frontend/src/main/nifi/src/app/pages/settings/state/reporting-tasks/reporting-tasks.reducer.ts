@@ -43,7 +43,7 @@ export const initialState: ReportingTasksState = {
 
 export const reportingTasksReducer = createReducer(
     initialState,
-    on(resetReportingTasksState, (state) => ({
+    on(resetReportingTasksState, () => ({
         ...initialState
     })),
     on(loadReportingTasks, (state) => ({
@@ -72,7 +72,7 @@ export const reportingTasksReducer = createReducer(
             draftState.saving = false;
         });
     }),
-    on(createReportingTask, deleteReportingTask, configureReportingTask, (state, { request }) => ({
+    on(createReportingTask, deleteReportingTask, configureReportingTask, (state) => ({
         ...state,
         saving: true
     })),

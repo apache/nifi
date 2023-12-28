@@ -70,8 +70,8 @@ export class RelationshipSettings implements ControlValueAccessor {
     maxBackoffPeriod!: string;
     retryCount!: number;
 
-    isDisabled: boolean = false;
-    isTouched: boolean = false;
+    isDisabled = false;
+    isTouched = false;
     onTouched!: () => void;
     onChange!: (relationshipConfiguration: RelationshipConfiguration) => void;
 

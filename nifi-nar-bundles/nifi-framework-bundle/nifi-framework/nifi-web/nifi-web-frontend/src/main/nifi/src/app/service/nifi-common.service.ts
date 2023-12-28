@@ -97,8 +97,6 @@ export class NiFiCommon {
         }
     ];
 
-    constructor() {}
-
     /**
      * Extracts the contents of the specified str before the last strToFind. If the
      * strToFind is not found or the first part of the str, an empty string is
@@ -142,10 +140,10 @@ export class NiFiCommon {
      * @argument {string} strToFind The substring to find
      */
     public substringAfterFirst(str: string, strToFind: string) {
-        var result = '';
-        var indexOfStrToFind = str.indexOf(strToFind);
+        let result = '';
+        const indexOfStrToFind = str.indexOf(strToFind);
         if (indexOfStrToFind >= 0) {
-            var indexAfterStrToFind = indexOfStrToFind + strToFind.length;
+            const indexAfterStrToFind = indexOfStrToFind + strToFind.length;
             if (indexAfterStrToFind < str.length) {
                 result = str.substring(indexAfterStrToFind);
             }
@@ -206,7 +204,7 @@ export class NiFiCommon {
     public stringContains(
         stringToSearch: string | null | undefined,
         stringToFind: string | null | undefined,
-        caseInsensitive: boolean = false
+        caseInsensitive = false
     ): boolean {
         if (this.isBlank(stringToSearch)) {
             return false;
@@ -250,7 +248,7 @@ export class NiFiCommon {
      * @param bundle
      */
     public formatBundle(bundle: any): string {
-        let groupString: string = '';
+        let groupString = '';
         if (bundle.group !== 'default') {
             groupString = bundle.group + ' - ';
         }
@@ -382,7 +380,7 @@ export class NiFiCommon {
         // detect if there is millis
         const secondsSpec: string[] = time[2].split(/\./);
         const seconds: number = parseInt(secondsSpec[0], 10);
-        let milliseconds: number = 0;
+        let milliseconds = 0;
         if (secondsSpec.length === 2) {
             milliseconds = parseInt(secondsSpec[1], 10);
         }

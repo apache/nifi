@@ -15,12 +15,11 @@
  *  limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
-import { CurrentUser } from '../../../../../state/current-user';
-import { TenantEntity, UserEntity } from '../../../../../state/shared';
+import { TenantEntity } from '../../../../../state/shared';
 import { NgIf } from '@angular/common';
 import { AccessPolicyEntity } from '../../../state/shared';
 import { RemoveTenantFromPolicyRequest } from '../../../state/access-policy';
@@ -98,7 +97,7 @@ export class PolicyTable {
         return data.sort((a, b) => {
             const isAsc = sort.direction === 'asc';
 
-            let retVal: number = 0;
+            let retVal = 0;
             switch (sort.active) {
                 case 'user':
                     retVal = this.nifiCommon.compareString(a.user, b.user);

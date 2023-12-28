@@ -28,7 +28,7 @@ import {
     SelectComponentAccessPolicyRequest
 } from './index';
 
-const ACCESS_POLICY_PREFIX: string = '[Access Policy]';
+const ACCESS_POLICY_PREFIX = '[Access Policy]';
 
 export const selectGlobalAccessPolicy = createAction(
     `${ACCESS_POLICY_PREFIX} Select Global Access Policy`,

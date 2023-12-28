@@ -132,8 +132,8 @@ export class CreateConnection {
     childOutputPorts$!: Observable<any> | null;
     childInputPorts$!: Observable<any> | null;
 
-    loadBalancePartitionAttributeRequired: boolean = false;
-    loadBalanceCompressionRequired: boolean = false;
+    loadBalancePartitionAttributeRequired = false;
+    loadBalanceCompressionRequired = false;
 
     constructor(
         @Inject(MAT_DIALOG_DATA) private dialogRequest: CreateConnectionDialogRequest,

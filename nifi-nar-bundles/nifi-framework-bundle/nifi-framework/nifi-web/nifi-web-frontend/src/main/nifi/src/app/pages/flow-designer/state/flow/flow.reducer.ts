@@ -145,7 +145,7 @@ export const initialState: FlowState = {
 
 export const flowReducer = createReducer(
     initialState,
-    on(resetFlowState, (state) => ({
+    on(resetFlowState, () => ({
         ...initialState
     })),
     on(loadProcessGroup, (state, { request }) => ({
@@ -307,7 +307,7 @@ export const flowReducer = createReducer(
         ...state,
         skipTransform: skipTransform
     })),
-    on(navigateWithoutTransform, (state, { url }) => ({
+    on(navigateWithoutTransform, (state) => ({
         ...state,
         skipTransform: true
     })),

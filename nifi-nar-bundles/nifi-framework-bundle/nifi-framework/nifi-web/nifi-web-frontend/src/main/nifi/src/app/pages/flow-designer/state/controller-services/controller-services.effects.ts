@@ -104,7 +104,7 @@ export class ControllerServicesEffects {
                     this.store.select(selectControllerServiceTypes),
                     this.store.select(selectCurrentProcessGroupId)
                 ]),
-                tap(([action, controllerServiceTypes, processGroupId]) => {
+                tap(([, controllerServiceTypes, processGroupId]) => {
                     const dialogReference = this.dialog.open(CreateControllerService, {
                         data: {
                             controllerServiceTypes
@@ -255,7 +255,7 @@ export class ControllerServicesEffects {
                         };
 
                         editDialogReference.componentInstance.parameterContext = parameterContext;
-                        editDialogReference.componentInstance.goToParameter = (parameter: string) => {
+                        editDialogReference.componentInstance.goToParameter = () => {
                             const commands: string[] = ['/parameter-contexts', parameterContext.id];
                             goTo(commands, 'Parameter');
                         };
@@ -322,7 +322,7 @@ export class ControllerServicesEffects {
                                         })
                                     );
                                 }),
-                                catchError((error) => {
+                                catchError(() => {
                                     // TODO handle error
                                     return NEVER;
                                 })

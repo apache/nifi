@@ -24,7 +24,7 @@ describe('ControllerServiceApi', () => {
     let component: ControllerServiceApi;
     let fixture: ComponentFixture<ControllerServiceApi>;
 
-    const serviceType: string = 'org.apache.nifi.ssl.StandardRestrictedSSLContextService';
+    const serviceType = 'org.apache.nifi.ssl.StandardRestrictedSSLContextService';
     const serviceBundle: Bundle = {
         group: 'org.apache.nifi',
         artifact: 'nifi-ssl-context-service-nar',

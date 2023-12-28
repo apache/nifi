@@ -37,12 +37,10 @@ export class RunDurationSlider implements ControlValueAccessor {
     runDurationValues: number[] = [0, 25, 50, 100, 250, 500, 1000, 2000];
     runDurationIndex!: number;
 
-    isDisabled: boolean = false;
-    isTouched: boolean = false;
+    isDisabled = false;
+    isTouched = false;
     onTouched!: () => void;
     onChange!: (runDuration: number) => void;
-
-    constructor() {}
 
     registerOnChange(onChange: (runDuration: number) => void): void {
         this.onChange = onChange;

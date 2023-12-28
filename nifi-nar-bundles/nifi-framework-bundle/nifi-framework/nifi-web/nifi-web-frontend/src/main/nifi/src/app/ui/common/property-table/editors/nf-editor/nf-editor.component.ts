@@ -88,13 +88,13 @@ export class NfEditor implements OnDestroy {
 
     protected readonly PropertyHintTip = PropertyHintTip;
 
-    itemSet: boolean = false;
-    getParametersSet: boolean = false;
+    itemSet = false;
+    getParametersSet = false;
 
     nfEditorForm: FormGroup;
-    sensitive: boolean = false;
-    supportsEl: boolean = false;
-    supportsParameters: boolean = false;
+    sensitive = false;
+    supportsEl = false;
+    supportsParameters = false;
 
     mode!: string;
     _getParameters!: (sensitive: boolean) => Observable<Parameter[]>;

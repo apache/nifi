@@ -53,7 +53,7 @@ export class ProvenanceEventDialog {
     @Output() viewContent: EventEmitter<string> = new EventEmitter<string>();
     @Output() replay: EventEmitter<void> = new EventEmitter<void>();
 
-    onlyShowModifiedAttributes: boolean = false;
+    onlyShowModifiedAttributes = false;
 
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: ProvenanceEventDialogRequest,
