@@ -26,7 +26,15 @@ import {
     LoadManagementControllerServicesResponse,
     SelectControllerServiceRequest
 } from './index';
-import { EditControllerServiceDialogRequest } from '../../../../state/shared';
+import {
+    DisableControllerServiceDialogRequest,
+    EditControllerServiceDialogRequest,
+    SetEnableControllerServiceDialogRequest
+} from '../../../../state/shared';
+
+export const resetManagementControllerServicesState = createAction(
+    '[Management Controller Services] Reset Management Controller Services State'
+);
 
 export const loadManagementControllerServices = createAction(
     '[Management Controller Services] Load Management Controller Services'
@@ -79,6 +87,16 @@ export const configureControllerService = createAction(
 export const configureControllerServiceSuccess = createAction(
     '[Management Controller Services] Configure Controller Service Success',
     props<{ response: ConfigureControllerServiceSuccess }>()
+);
+
+export const openEnableControllerServiceDialog = createAction(
+    '[Management Controller Services] Open Enable Controller Service Dialog',
+    props<{ request: SetEnableControllerServiceDialogRequest }>()
+);
+
+export const openDisableControllerServiceDialog = createAction(
+    '[Management Controller Services] Open Disable Controller Service Dialog',
+    props<{ request: DisableControllerServiceDialogRequest }>()
 );
 
 export const promptControllerServiceDeletion = createAction(

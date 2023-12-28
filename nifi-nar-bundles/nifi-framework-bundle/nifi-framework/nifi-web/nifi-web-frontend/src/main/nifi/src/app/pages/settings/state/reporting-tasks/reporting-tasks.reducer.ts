@@ -25,6 +25,7 @@ import {
     loadReportingTasks,
     loadReportingTasksSuccess,
     reportingTasksApiError,
+    resetReportingTasksState,
     startReportingTaskSuccess,
     stopReportingTaskSuccess
 } from './reporting-tasks.actions';
@@ -40,6 +41,9 @@ export const initialState: ReportingTasksState = {
 
 export const reportingTasksReducer = createReducer(
     initialState,
+    on(resetReportingTasksState, (state) => ({
+        ...initialState
+    })),
     on(loadReportingTasks, (state) => ({
         ...state,
         status: 'loading' as const

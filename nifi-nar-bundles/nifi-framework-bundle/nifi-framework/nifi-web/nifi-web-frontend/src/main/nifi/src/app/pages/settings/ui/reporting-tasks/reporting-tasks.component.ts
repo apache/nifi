@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { ReportingTaskEntity, ReportingTasksState } from '../../state/reporting-tasks';
 import {
@@ -26,6 +26,7 @@ import {
     loadReportingTasks,
     openNewReportingTaskDialog,
     promptReportingTaskDeletion,
+    resetReportingTasksState,
     selectReportingTask,
     startReportingTask,
     stopReportingTask
@@ -33,13 +34,14 @@ import {
 import { initialState } from '../../state/reporting-tasks/reporting-tasks.reducer';
 import { selectUser } from '../../../../state/user/user.selectors';
 import { NiFiState } from '../../../../state';
+import { state } from '@angular/animations';
 
 @Component({
     selector: 'reporting-tasks',
     templateUrl: './reporting-tasks.component.html',
     styleUrls: ['./reporting-tasks.component.scss']
 })
-export class ReportingTasks implements OnInit {
+export class ReportingTasks implements OnInit, OnDestroy {
     reportingTaskState$ = this.store.select(selectReportingTasksState);
     selectedReportingTaskId$ = this.store.select(selectReportingTaskIdFromRoute);
     currentUser$ = this.store.select(selectUser);
@@ -101,5 +103,9 @@ export class ReportingTasks implements OnInit {
                 }
             })
         );
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(resetReportingTasksState());
     }
 }

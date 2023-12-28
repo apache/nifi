@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { ManagementControllerServicesState } from '../../state/management-controller-services';
 import {
@@ -28,8 +28,11 @@ import {
     loadManagementControllerServices,
     navigateToEditService,
     openConfigureControllerServiceDialog,
+    openDisableControllerServiceDialog,
+    openEnableControllerServiceDialog,
     openNewControllerServiceDialog,
     promptControllerServiceDeletion,
+    resetManagementControllerServicesState,
     selectControllerService
 } from '../../state/management-controller-services/management-controller-services.actions';
 import { ControllerServiceEntity } from '../../../../state/shared';
@@ -38,13 +41,15 @@ import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { selectUser } from '../../../../state/user/user.selectors';
 import { NiFiState } from '../../../../state';
+import { state } from '@angular/animations';
+import { resetEnableControllerServiceState } from '../../../../state/contoller-service-state/controller-service-state.actions';
 
 @Component({
     selector: 'management-controller-services',
     templateUrl: './management-controller-services.component.html',
     styleUrls: ['./management-controller-services.component.scss']
 })
-export class ManagementControllerServices implements OnInit {
+export class ManagementControllerServices implements OnInit, OnDestroy {
     serviceState$ = this.store.select(selectManagementControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
     currentUser$ = this.store.select(selectUser);
@@ -109,6 +114,28 @@ export class ManagementControllerServices implements OnInit {
         );
     }
 
+    enableControllerService(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            openEnableControllerServiceDialog({
+                request: {
+                    id: entity.id,
+                    controllerService: entity
+                }
+            })
+        );
+    }
+
+    disableControllerService(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            openDisableControllerServiceDialog({
+                request: {
+                    id: entity.id,
+                    controllerService: entity
+                }
+            })
+        );
+    }
+
     deleteControllerService(entity: ControllerServiceEntity): void {
         this.store.dispatch(
             promptControllerServiceDeletion({
@@ -127,5 +154,9 @@ export class ManagementControllerServices implements OnInit {
                 }
             })
         );
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(resetManagementControllerServicesState());
     }
 }

@@ -98,7 +98,7 @@
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>State</th>
                 <td mat-cell *matCellDef="let item">
                     <div class="flex items-center gap-x-2">
-                        <div [ngClass]="getStateIcon(item)"></div>
+                        <div class="flex justify-center" [ngClass]="getStateIcon(item)"></div>
                         <div>{{ formatState(item) }}</div>
                     </div>
                 </td>
@@ -127,8 +127,13 @@
                             <div
                                 class="pointer fa icon icon-enable-false"
                                 *ngIf="canDisable(item)"
+                                (click)="disableClicked(item, $event)"
                                 title="Disable"></div>
-                            <div class="pointer fa fa-flash" *ngIf="canEnable(item)" title="Enable"></div>
+                            <div
+                                class="pointer fa fa-flash"
+                                *ngIf="canEnable(item)"
+                                (click)="enabledClicked(item, $event)"
+                                title="Enable"></div>
                             <div
                                 class="pointer fa fa-exchange"
                                 *ngIf="canChangeVersion(item)"

@@ -72,16 +72,20 @@
                                         [tooltipComponentType]="TextTip"
                                         [tooltipInputData]="getAllowableValueOptionTipData(parameterAllowableValue)"
                                         [delayClose]="false">
-                                        <span class="option-text" [class.unset]="parameterAllowableValue.value == null">{{
-                                            parameterAllowableValue.displayName
-                                        }}</span>
+                                        <span
+                                            class="option-text"
+                                            [class.unset]="parameterAllowableValue.value == null"
+                                            >{{ parameterAllowableValue.displayName }}</span
+                                        >
                                     </mat-option>
                                 </ng-container>
                                 <ng-template #noDescription>
                                     <mat-option [value]="parameterAllowableValue.id" (mousedown)="preventDrag($event)">
-                                        <span class="option-text" [class.unset]="parameterAllowableValue.value == null">{{
-                                            parameterAllowableValue.displayName
-                                        }}</span>
+                                        <span
+                                            class="option-text"
+                                            [class.unset]="parameterAllowableValue.value == null"
+                                            >{{ parameterAllowableValue.displayName }}</span
+                                        >
                                     </mat-option>
                                 </ng-template>
                             </ng-container>

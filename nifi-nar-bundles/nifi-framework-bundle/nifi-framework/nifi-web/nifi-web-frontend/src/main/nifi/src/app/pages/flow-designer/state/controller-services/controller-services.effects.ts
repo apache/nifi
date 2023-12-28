@@ -67,6 +67,8 @@ import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog
 import { selectParameterSaving } from '../parameter/parameter.selectors';
 import * as ParameterActions from '../parameter/parameter.actions';
 import { ParameterService } from '../../service/parameter.service';
+import { EnableControllerService } from '../../../../ui/common/controller-service/enable-controller-service/enable-controller-service.component';
+import { DisableControllerService } from '../../../../ui/common/controller-service/disable-controller-service/disable-controller-service.component';
 
 @Injectable()
 export class ControllerServicesEffects {
@@ -543,6 +545,86 @@ export class ControllerServicesEffects {
                     } else {
                         this.dialog.closeAll();
                     }
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openEnableControllerServiceDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ControllerServicesActions.openEnableControllerServiceDialog),
+                map((action) => action.request),
+                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                tap(([request, currentProcessGroupId]) => {
+                    const serviceId: string = request.id;
+
+                    const enableDialogReference = this.dialog.open(EnableControllerService, {
+                        data: request,
+                        id: serviceId,
+                        panelClass: 'large-dialog'
+                    });
+
+                    enableDialogReference.componentInstance.goToReferencingComponent = (
+                        component: ControllerServiceReferencingComponent
+                    ) => {
+                        enableDialogReference.close('ROUTED');
+
+                        const route: string[] = this.getRouteForReference(component);
+                        this.router.navigate(route);
+                    };
+
+                    enableDialogReference.afterClosed().subscribe((response) => {
+                        if (response != 'ROUTED') {
+                            this.store.dispatch(
+                                ControllerServicesActions.loadControllerServices({
+                                    request: {
+                                        processGroupId: currentProcessGroupId
+                                    }
+                                })
+                            );
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openDisableControllerServiceDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ControllerServicesActions.openDisableControllerServiceDialog),
+                map((action) => action.request),
+                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                tap(([request, currentProcessGroupId]) => {
+                    const serviceId: string = request.id;
+
+                    const enableDialogReference = this.dialog.open(DisableControllerService, {
+                        data: request,
+                        id: serviceId,
+                        panelClass: 'large-dialog'
+                    });
+
+                    enableDialogReference.componentInstance.goToReferencingComponent = (
+                        component: ControllerServiceReferencingComponent
+                    ) => {
+                        enableDialogReference.close('ROUTED');
+
+                        const route: string[] = this.getRouteForReference(component);
+                        this.router.navigate(route);
+                    };
+
+                    enableDialogReference.afterClosed().subscribe((response) => {
+                        if (response != 'ROUTED') {
+                            this.store.dispatch(
+                                ControllerServicesActions.loadControllerServices({
+                                    request: {
+                                        processGroupId: currentProcessGroupId
+                                    }
+                                })
+                            );
+                        }
+                    });
                 })
             ),
         { dispatch: false }

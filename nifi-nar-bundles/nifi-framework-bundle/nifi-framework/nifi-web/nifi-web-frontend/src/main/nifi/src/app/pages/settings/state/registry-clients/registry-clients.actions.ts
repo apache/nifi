@@ -28,6 +28,8 @@ import {
     SelectRegistryClientRequest
 } from './index';
 
+export const resetRegistryClientsState = createAction('[Registry Clients] Reset Registry Clients State');
+
 export const loadRegistryClients = createAction('[Registry Clients] Load Registry Clients');
 
 export const loadRegistryClientsSuccess = createAction(

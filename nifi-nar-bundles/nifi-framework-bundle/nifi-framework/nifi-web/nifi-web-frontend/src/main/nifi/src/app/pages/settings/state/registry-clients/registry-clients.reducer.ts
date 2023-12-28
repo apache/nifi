@@ -27,7 +27,8 @@ import {
     deleteRegistryClientSuccess,
     loadRegistryClients,
     loadRegistryClientsSuccess,
-    registryClientsApiError
+    registryClientsApiError,
+    resetRegistryClientsState
 } from './registry-clients.actions';
 
 export const initialState: RegistryClientsState = {
@@ -40,6 +41,9 @@ export const initialState: RegistryClientsState = {
 
 export const registryClientsReducer = createReducer(
     initialState,
+    on(resetRegistryClientsState, (state) => ({
+        ...initialState
+    })),
     on(loadRegistryClients, (state) => ({
         ...state,
         status: 'loading' as const

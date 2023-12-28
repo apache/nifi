@@ -15,27 +15,20 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { GeneralState } from '../../state/general';
-import { Store } from '@ngrx/store';
-import { loadControllerConfig, resetGeneralState } from '../../state/general/general.actions';
-import { selectGeneral } from '../../state/general/general.selectors';
+import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { controllerServiceStateFeatureKey, ControllerServiceState } from './index';
+import { ControllerServiceEntity } from '../shared';
 
-@Component({
-    selector: 'general',
-    templateUrl: './general.component.html',
-    styleUrls: ['./general.component.scss']
-})
-export class General implements OnInit, OnDestroy {
-    general$ = this.store.select(selectGeneral);
+export const selectEnableControllerServiceState = createFeatureSelector<ControllerServiceState>(
+    controllerServiceStateFeatureKey
+);
 
-    constructor(private store: Store<GeneralState>) {}
+export const selectControllerService = createSelector(
+    selectEnableControllerServiceState,
+    (state: ControllerServiceState) => state.controllerService
+);
 
-    ngOnInit(): void {
-        this.store.dispatch(loadControllerConfig());
-    }
-
-    ngOnDestroy(): void {
-        this.store.dispatch(resetGeneralState());
-    }
-}
+export const selectControllerServiceSetEnableRequest = createSelector(
+    selectEnableControllerServiceState,
+    (state: ControllerServiceState) => state.setEnableRequest
+);

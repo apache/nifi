@@ -21,6 +21,7 @@ import {
     controllerConfigApiError,
     loadControllerConfig,
     loadControllerConfigSuccess,
+    resetGeneralState,
     updateControllerConfigSuccess
 } from './general.actions';
 import { Revision } from '../../../../state/shared';
@@ -45,6 +46,9 @@ export const initialState: GeneralState = {
 
 export const generalReducer = createReducer(
     initialState,
+    on(resetGeneralState, (state) => ({
+        ...initialState
+    })),
     on(loadControllerConfig, (state) => ({
         ...state,
         status: 'loading' as const

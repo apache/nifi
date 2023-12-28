@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import {
     selectRegistryClient,
@@ -29,6 +29,7 @@ import {
     openConfigureRegistryClientDialog,
     openNewRegistryClientDialog,
     promptRegistryClientDeletion,
+    resetRegistryClientsState,
     selectClient
 } from '../../state/registry-clients/registry-clients.actions';
 import { RegistryClientEntity, RegistryClientsState } from '../../state/registry-clients';
@@ -37,13 +38,14 @@ import { selectUser } from '../../../../state/user/user.selectors';
 import { NiFiState } from '../../../../state';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { state } from '@angular/animations';
 
 @Component({
     selector: 'registry-clients',
     templateUrl: './registry-clients.component.html',
     styleUrls: ['./registry-clients.component.scss']
 })
-export class RegistryClients implements OnInit {
+export class RegistryClients implements OnInit, OnDestroy {
     registryClientsState$ = this.store.select(selectRegistryClientsState);
     selectedRegistryClientId$ = this.store.select(selectRegistryClientIdFromRoute);
     currentUser$ = this.store.select(selectUser);
@@ -117,5 +119,9 @@ export class RegistryClients implements OnInit {
                 }
             })
         );
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(resetRegistryClientsState());
     }
 }
