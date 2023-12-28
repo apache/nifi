@@ -35,7 +35,6 @@ import {
     openConfigureUserDialog,
     openConfigureUserGroupDialog,
     openUserAccessPoliciesDialog,
-    openUserGroupAccessPoliciesDialog,
     promptDeleteUser,
     promptDeleteUserGroup,
     selectTenant
@@ -104,15 +103,19 @@ export class UserListing implements OnInit {
                     this.store.dispatch(
                         openUserAccessPoliciesDialog({
                             request: {
-                                user: selectedTenant.user
+                                id: selectedTenant.user.id,
+                                identity: selectedTenant.user.component.identity,
+                                accessPolicies: selectedTenant.user.component.accessPolicies
                             }
                         })
                     );
                 } else if (selectedTenant?.userGroup) {
                     this.store.dispatch(
-                        openUserGroupAccessPoliciesDialog({
+                        openUserAccessPoliciesDialog({
                             request: {
-                                userGroup: selectedTenant.userGroup
+                                id: selectedTenant.userGroup.id,
+                                identity: selectedTenant.userGroup.component.identity,
+                                accessPolicies: selectedTenant.userGroup.component.accessPolicies
                             }
                         })
                     );

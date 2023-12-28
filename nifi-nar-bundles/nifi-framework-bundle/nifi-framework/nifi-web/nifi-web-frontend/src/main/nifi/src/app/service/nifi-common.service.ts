@@ -16,6 +16,7 @@
  */
 
 import { Injectable } from '@angular/core';
+import { SelectOption } from '../state/shared';
 
 @Injectable({
     providedIn: 'root'
@@ -36,6 +37,65 @@ export class NiFiCommon {
     public static readonly BYTES_IN_MEGABYTE: number = 1048576;
     public static readonly BYTES_IN_GIGABYTE: number = 1073741824;
     public static readonly BYTES_IN_TERABYTE: number = 1099511627776;
+
+    private policyTypeListing: SelectOption[] = [
+        {
+            text: 'view the user interface',
+            value: 'flow',
+            description: 'Allows users to view the user interface'
+        },
+        {
+            text: 'access the controller',
+            value: 'controller',
+            description:
+                'Allows users to view/modify the controller including Management Controller Services, Reporting Tasks, Registry Clients, Parameter Providers and nodes in the cluster'
+        },
+        {
+            text: 'access parameter contexts',
+            value: 'parameter-contexts',
+            description: 'Allows users to view/modify Parameter Contexts'
+        },
+        {
+            text: 'query provenance',
+            value: 'provenance',
+            description: 'Allows users to submit a Provenance Search and request Event Lineage'
+        },
+        {
+            text: 'access restricted components',
+            value: 'restricted-components',
+            description: 'Allows users to create/modify restricted components assuming other permissions are sufficient'
+        },
+        {
+            text: 'access all policies',
+            value: 'policies',
+            description: 'Allows users to view/modify the policies for all components'
+        },
+        {
+            text: 'access users/user groups',
+            value: 'tenants',
+            description: 'Allows users to view/modify the users and user groups'
+        },
+        {
+            text: 'retrieve site-to-site details',
+            value: 'site-to-site',
+            description: 'Allows other NiFi instances to retrieve Site-To-Site details of this NiFi'
+        },
+        {
+            text: 'view system diagnostics',
+            value: 'system',
+            description: 'Allows users to view System Diagnostics'
+        },
+        {
+            text: 'proxy user requests',
+            value: 'proxy',
+            description: 'Allows proxy machines to send requests on the behalf of others'
+        },
+        {
+            text: 'access counters',
+            value: 'counters',
+            description: 'Allows users to view/modify Counters'
+        }
+    ];
 
     constructor() {}
 
@@ -434,5 +494,14 @@ export class NiFiCommon {
         }
         const locale: string = (navigator && navigator.language) || 'en';
         return f.toLocaleString(locale, { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+    }
+
+    /**
+     * Gets the policy type for the specified resource.
+     *
+     * @param value
+     */
+    public getPolicyTypeListing(value: string): SelectOption | undefined {
+        return this.policyTypeListing.find((policy: SelectOption) => value === policy.value);
     }
 }

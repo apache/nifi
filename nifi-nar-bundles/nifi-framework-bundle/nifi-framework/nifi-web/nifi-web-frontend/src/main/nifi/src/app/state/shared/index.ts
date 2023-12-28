@@ -412,6 +412,7 @@ export interface AccessPolicySummaryEntity {
 }
 
 export interface AccessPolicySummary {
+    id: string;
     resource: string;
     action: string;
     componentReference?: ComponentReferenceEntity;

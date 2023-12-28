@@ -44,6 +44,7 @@ import { EditTenantRequest, UserGroupEntity } from '../../../../state/shared';
 import { selectTenant } from './user-listing.actions';
 import { Client } from '../../../../service/client.service';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { UserAccessPolicies } from '../../ui/user-listing/user-access-policies/user-access-policies.component';
 
 @Injectable()
 export class UserListingEffects {
@@ -619,6 +620,32 @@ export class UserListingEffects {
                 map((action) => action.id),
                 tap((id) => {
                     this.router.navigate(['/users', id, 'policies']);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openUserAccessPoliciesDialog = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(UserListingActions.openUserAccessPoliciesDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    this.dialog
+                        .open(UserAccessPolicies, {
+                            data: request,
+                            panelClass: 'large-dialog'
+                        })
+                        .afterClosed()
+                        .subscribe((response) => {
+                            if (response != 'ROUTED') {
+                                this.store.dispatch(
+                                    selectTenant({
+                                        id: request.id
+                                    })
+                                );
+                            }
+                        });
                 })
             ),
         { dispatch: false }

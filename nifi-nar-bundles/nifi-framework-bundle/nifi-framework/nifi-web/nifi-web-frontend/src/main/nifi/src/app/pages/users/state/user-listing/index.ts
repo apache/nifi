@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-import { Revision, UserEntity, UserGroupEntity } from '../../../../state/shared';
+import { AccessPolicySummaryEntity, Revision, UserEntity, UserGroupEntity } from '../../../../state/shared';
 
 export interface SelectedTenant {
     id: string;
@@ -97,20 +97,18 @@ export interface EditUserGroupDialogRequest {
     userGroup: UserGroupEntity;
 }
 
-export interface UserAccessPoliciesDialogRequest {
-    user: UserEntity;
-}
-
-export interface UserGroupAccessPoliciesDialogRequest {
-    userGroup: UserGroupEntity;
-}
-
 export interface DeleteUserRequest {
     user: UserEntity;
 }
 
 export interface DeleteUserGroupRequest {
     userGroup: UserGroupEntity;
+}
+
+export interface UserAccessPoliciesDialogRequest {
+    id: string;
+    identity: string;
+    accessPolicies: AccessPolicySummaryEntity[];
 }
 
 export interface UserListingState {

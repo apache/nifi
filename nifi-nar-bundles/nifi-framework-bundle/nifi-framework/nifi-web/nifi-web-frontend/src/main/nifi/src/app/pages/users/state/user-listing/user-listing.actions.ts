@@ -27,7 +27,6 @@ import {
     EditUserDialogRequest,
     LoadTenantsSuccess,
     UserAccessPoliciesDialogRequest,
-    UserGroupAccessPoliciesDialogRequest,
     UpdateUserRequest,
     UpdateUserResponse,
     UpdateUserGroupRequest,
@@ -126,11 +125,6 @@ export const navigateToViewAccessPolicies = createAction(
 export const openUserAccessPoliciesDialog = createAction(
     `${USER_PREFIX} Open User Access Policy Dialog`,
     props<{ request: UserAccessPoliciesDialogRequest }>()
-);
-
-export const openUserGroupAccessPoliciesDialog = createAction(
-    `${USER_PREFIX} Open User Group Access Policy Dialog`,
-    props<{ request: UserGroupAccessPoliciesDialogRequest }>()
 );
 
 export const promptDeleteUser = createAction(
