@@ -39,6 +39,7 @@ import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
 import { Observable } from 'rxjs';
 import { MatListModule } from '@angular/material/list';
 import { Client } from '../../../service/client.service';
+import { NiFiCommon } from '../../../service/nifi-common.service';
 
 @Component({
     selector: 'edit-tenant-dialog',
@@ -75,9 +76,13 @@ export class EditTenantDialog {
     editTenantForm: FormGroup;
     isNew: boolean;
 
+    users: UserEntity[];
+    userGroups: UserGroupEntity[];
+
     constructor(
-        @Inject(MAT_DIALOG_DATA) public request: EditTenantRequest,
+        @Inject(MAT_DIALOG_DATA) private request: EditTenantRequest,
         private formBuilder: FormBuilder,
+        private nifiCommon: NiFiCommon,
         private client: Client
     ) {
         const user: UserEntity | undefined = request.user;
@@ -108,6 +113,13 @@ export class EditTenantDialog {
             ]);
             this.tenantType = new FormControl(this.USER);
         }
+
+        this.users = request.existingUsers.slice().sort((a: UserEntity, b: UserEntity) => {
+            return this.nifiCommon.compareString(a.component.identity, b.component.identity);
+        });
+        this.userGroups = request.existingUserGroups.slice().sort((a: UserGroupEntity, b: UserGroupEntity) => {
+            return this.nifiCommon.compareString(a.component.identity, b.component.identity);
+        });
 
         this.editTenantForm = this.formBuilder.group({
             identity: this.identity,
