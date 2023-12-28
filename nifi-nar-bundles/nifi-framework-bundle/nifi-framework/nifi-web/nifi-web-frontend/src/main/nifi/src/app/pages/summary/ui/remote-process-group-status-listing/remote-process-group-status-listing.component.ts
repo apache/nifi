@@ -29,10 +29,14 @@ import { Store } from '@ngrx/store';
 import { RemoteProcessGroupStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { openStatusHistoryDialog } from '../../../../state/status-history/status-history.actions';
+import {
+    getStatusHistoryAndOpenDialog,
+    openStatusHistoryDialog
+} from '../../../../state/status-history/status-history.actions';
 import { ComponentType } from '../../../../state/shared';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
+import { getSystemDiagnosticsAndOpenDialog } from '../../../../state/system-diagnostics/system-diagnostics.actions';
 
 @Component({
     selector: 'remote-process-group-status-listing',
@@ -62,7 +66,7 @@ export class RemoteProcessGroupStatusListing {
             .subscribe((rpg) => {
                 if (rpg) {
                     this.store.dispatch(
-                        openStatusHistoryDialog({
+                        getStatusHistoryAndOpenDialog({
                             request: {
                                 source: 'summary',
                                 componentType: ComponentType.RemoteProcessGroup,
@@ -96,6 +100,16 @@ export class RemoteProcessGroupStatusListing {
         this.store.dispatch(
             SummaryListingActions.navigateToViewRemoteProcessGroupStatusHistory({
                 id: rpg.id
+            })
+        );
+    }
+
+    openSystemDiagnostics() {
+        this.store.dispatch(
+            getSystemDiagnosticsAndOpenDialog({
+                request: {
+                    nodewise: false
+                }
             })
         );
     }

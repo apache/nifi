@@ -40,6 +40,9 @@
                     <div>Last updated:</div>
                     <div class="refresh-timestamp">{{ loadedTimestamp$ | async }}</div>
                 </div>
+                <div *ngIf="(currentUser$ | async)?.systemPermissions?.canRead">
+                    <a (click)="openSystemDiagnostics()">System Diagnostics</a>
+                </div>
             </div>
         </div>
     </ng-template>

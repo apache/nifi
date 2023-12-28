@@ -28,7 +28,7 @@ import {
     StatusHistoryState
 } from '../../../state/status-history';
 import { Store } from '@ngrx/store';
-import { loadStatusHistory } from '../../../state/status-history/status-history.actions';
+import { reloadStatusHistory } from '../../../state/status-history/status-history.actions';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import {
     selectStatusHistory,
@@ -115,8 +115,6 @@ export class StatusHistory implements OnInit, AfterViewInit {
     }
 
     ngOnInit(): void {
-        this.refresh();
-
         this.statusHistory$.pipe(filter((entity) => !!entity)).subscribe((entity: StatusHistoryEntity) => {
             if (entity) {
                 this.instances = [];
@@ -171,9 +169,6 @@ export class StatusHistory implements OnInit, AfterViewInit {
                 this.maxDate = this.nifiCommon.formatDateTime(new Date(maxDate));
             }
         });
-    }
-
-    ngAfterViewInit(): void {
         this.fieldDescriptors$
             .pipe(
                 filter((descriptors) => !!descriptors),
@@ -184,8 +179,11 @@ export class StatusHistory implements OnInit, AfterViewInit {
 
                 // select the first field description by default
                 this.statusHistoryForm.get('fieldDescriptor')?.setValue(descriptors[0]);
+                this.selectedDescriptor = descriptors[0];
             });
+    }
 
+    ngAfterViewInit(): void {
         // when the selected descriptor changes, update the chart
         this.statusHistoryForm.get('fieldDescriptor')?.valueChanges.subscribe((descriptor: FieldDescriptor) => {
             if (this.instances.length > 0) {
@@ -199,7 +197,7 @@ export class StatusHistory implements OnInit, AfterViewInit {
     }
 
     refresh() {
-        this.store.dispatch(loadStatusHistory({ request: this.request }));
+        this.store.dispatch(reloadStatusHistory({ request: this.request }));
     }
 
     getSelectOptionTipData(descriptor: FieldDescriptor): TextTipInput {

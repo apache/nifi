@@ -36,9 +36,9 @@ export class StatusHistoryEffects {
         private dialog: MatDialog
     ) {}
 
-    loadStatusHistory$ = createEffect(() =>
+    reloadStatusHistory$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(StatusHistoryActions.loadStatusHistory),
+            ofType(StatusHistoryActions.reloadStatusHistory),
             map((action) => action.request),
             switchMap((request: StatusHistoryRequest) =>
                 from(
@@ -46,7 +46,7 @@ export class StatusHistoryEffects {
                         .getProcessorStatusHistory(request.componentType, request.componentId)
                         .pipe(
                             map((response: any) =>
-                                StatusHistoryActions.loadStatusHistorySuccess({
+                                StatusHistoryActions.reloadStatusHistorySuccess({
                                     response: {
                                         statusHistory: {
                                             canRead: response.canRead,
@@ -65,6 +65,47 @@ export class StatusHistoryEffects {
                         )
                 )
             )
+        )
+    );
+
+    getStatusHistoryAndOpenDialog$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(StatusHistoryActions.getStatusHistoryAndOpenDialog),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(
+                    this.statusHistoryService
+                        .getProcessorStatusHistory(request.componentType, request.componentId)
+                        .pipe(
+                            map((response: any) =>
+                                StatusHistoryActions.loadStatusHistorySuccess({
+                                    request,
+                                    response: {
+                                        statusHistory: {
+                                            canRead: response.canRead,
+                                            statusHistory: response.statusHistory
+                                        }
+                                    }
+                                })
+                            ),
+                            catchError((error) =>
+                                of(
+                                    StatusHistoryActions.statusHistoryApiError({
+                                        error: error.error
+                                    })
+                                )
+                            )
+                        )
+                )
+            )
+        )
+    );
+
+    loadStatusHistorySuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(StatusHistoryActions.loadStatusHistorySuccess),
+            map((action) => action.request),
+            switchMap((request) => of(StatusHistoryActions.openStatusHistoryDialog({ request })))
         )
     );
 

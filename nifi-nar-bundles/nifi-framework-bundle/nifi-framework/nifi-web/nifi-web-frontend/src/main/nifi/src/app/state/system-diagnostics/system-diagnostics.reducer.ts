@@ -15,53 +15,52 @@
  *  limitations under the License.
  */
 
-import { StatusHistoryEntity, StatusHistoryState } from './index';
+import { SystemDiagnosticsState } from './index';
 import { createReducer, on } from '@ngrx/store';
 import {
-    clearStatusHistory,
-    reloadStatusHistory,
-    loadStatusHistorySuccess,
-    statusHistoryApiError,
-    viewStatusHistoryComplete,
-    reloadStatusHistorySuccess,
-    getStatusHistoryAndOpenDialog
-} from './status-history.actions';
-import { produce } from 'immer';
+    reloadSystemDiagnostics,
+    loadSystemDiagnosticsSuccess,
+    resetSystemDiagnostics,
+    systemDiagnosticsApiError,
+    viewSystemDiagnosticsComplete,
+    getSystemDiagnosticsAndOpenDialog,
+    reloadSystemDiagnosticsSuccess
+} from './system-diagnostics.actions';
 
-export const initialState: StatusHistoryState = {
-    statusHistory: {} as StatusHistoryEntity,
+export const initialSystemDiagnosticsState: SystemDiagnosticsState = {
+    systemDiagnostics: null,
     status: 'pending',
     error: null,
     loadedTimestamp: ''
 };
 
-export const statusHistoryReducer = createReducer(
-    initialState,
+export const systemDiagnosticsReducer = createReducer(
+    initialSystemDiagnosticsState,
 
-    on(reloadStatusHistory, getStatusHistoryAndOpenDialog, (state) => ({
+    on(reloadSystemDiagnostics, getSystemDiagnosticsAndOpenDialog, (state) => ({
         ...state,
         status: 'loading' as const
     })),
 
-    on(loadStatusHistorySuccess, reloadStatusHistorySuccess, (state, { response }) => ({
+    on(loadSystemDiagnosticsSuccess, reloadSystemDiagnosticsSuccess, (state, { response }) => ({
         ...state,
         error: null,
         status: 'success' as const,
-        loadedTimestamp: response.statusHistory.statusHistory.generated,
-        statusHistory: response.statusHistory
+        loadedTimestamp: response.systemDiagnostics.aggregateSnapshot.statsLastRefreshed,
+        systemDiagnostics: response.systemDiagnostics
     })),
 
-    on(statusHistoryApiError, (state, { error }) => ({
+    on(systemDiagnosticsApiError, (state, { error }) => ({
         ...state,
         error,
         status: 'error' as const
     })),
 
-    on(clearStatusHistory, (state) => ({
-        ...initialState
+    on(resetSystemDiagnostics, (state) => ({
+        ...initialSystemDiagnosticsState
     })),
 
-    on(viewStatusHistoryComplete, (state) => ({
-        ...initialState
+    on(viewSystemDiagnosticsComplete, (state) => ({
+        ...initialSystemDiagnosticsState
     }))
 );

@@ -28,11 +28,15 @@ import {
 import { ProcessorStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
 import { selectUser } from '../../../../state/user/user.selectors';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
-import { openStatusHistoryDialog } from '../../../../state/status-history/status-history.actions';
+import {
+    getStatusHistoryAndOpenDialog,
+    openStatusHistoryDialog
+} from '../../../../state/status-history/status-history.actions';
 import { ComponentType } from '../../../../state/shared';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
+import { getSystemDiagnosticsAndOpenDialog } from '../../../../state/system-diagnostics/system-diagnostics.actions';
 
 @Component({
     selector: 'processor-status-listing',
@@ -63,7 +67,7 @@ export class ProcessorStatusListing {
             .subscribe((processor) => {
                 if (processor) {
                     this.store.dispatch(
-                        openStatusHistoryDialog({
+                        getStatusHistoryAndOpenDialog({
                             request: {
                                 source: 'summary',
                                 componentType: ComponentType.Processor,
@@ -96,6 +100,16 @@ export class ProcessorStatusListing {
             SummaryListingActions.selectProcessorStatus({
                 request: {
                     id: processor.id
+                }
+            })
+        );
+    }
+
+    openSystemDiagnostics() {
+        this.store.dispatch(
+            getSystemDiagnosticsAndOpenDialog({
+                request: {
+                    nodewise: false
                 }
             })
         );

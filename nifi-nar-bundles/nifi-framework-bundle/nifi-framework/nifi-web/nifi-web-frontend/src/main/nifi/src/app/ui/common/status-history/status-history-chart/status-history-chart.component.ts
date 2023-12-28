@@ -621,13 +621,14 @@ export class StatusHistoryChart {
         const marginTop: any = controlContainer.computedStyleMap().get('margin-top');
         const statusHistory = document.getElementsByClassName('status-history')![0];
         const dialogContent = statusHistory.getElementsByClassName('dialog-content')![0];
+        const descriptorContainer = document.getElementsByClassName('selected-descriptor-container')![0];
         const dialogStyles: any = dialogContent.computedStyleMap();
         const bodyHeight = document.body.getBoundingClientRect().height;
 
         return (
             bodyHeight -
             controlContainer.clientHeight -
-            50 -
+            descriptorContainer.clientHeight -
             parseInt(marginTop.value, 10) -
             parseInt(dialogStyles.get('top')?.value) -
             parseInt(dialogStyles.get('bottom')?.value)
