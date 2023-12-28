@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.util;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
@@ -25,7 +26,6 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.provenance.upload.FileResource;
-import org.apache.nifi.provenance.upload.UploadContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -229,17 +229,49 @@ public class MockProvenanceReporter implements ProvenanceReporter {
     }
 
     @Override
-    public void upload(final FlowFile flowFile, final FileResource fileResource, final UploadContext uploadContext) {
-        final String transitUri = uploadContext.getTransitUri();
-        final String details = uploadContext.getDetails();
-        final long transmissionMillis = uploadContext.getTransmissionMillis();
-        final boolean force = uploadContext.isForce();
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri) {
+        upload(flowFile, fileResource, transitUri, null, -1L, true);
 
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final String details) {
+        upload(flowFile, fileResource, transitUri, details, -1L, true);
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final long transmissionMillis) {
+        upload(flowFile, fileResource, transitUri, transmissionMillis, true);
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final String details, final long transmissionMillis) {
+        upload(flowFile, fileResource, transitUri, details, transmissionMillis, true);
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final boolean force) {
+        upload(flowFile, fileResource, transitUri, null, -1L, force);
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final String details, final boolean force) {
+        upload(flowFile, fileResource, transitUri, details, -1L, force);
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final long transmissionMillis, final boolean force) {
+        upload(flowFile, fileResource, transitUri, null, transmissionMillis, force);
+    }
+
+    @Override
+    public void upload(FlowFile flowFile, FileResource fileResource, String transitUri, String details, long transmissionMillis, boolean force) {
         try {
+            final String enrichedDetails = StringUtils.isNotBlank(details) ? details + " " + fileResource.toString() : fileResource.toString();
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.UPLOAD)
                     .setTransitUri(transitUri)
                     .setEventDuration(transmissionMillis)
-                    .setDetails(details)
+                    .setDetails(enrichedDetails)
                     .build();
             if (force) {
                 sharedSessionState.addProvenanceEvents(Collections.singleton(record));

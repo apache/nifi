@@ -20,15 +20,26 @@ package org.apache.nifi.provenance.upload;
  * Holds information of a file resource for UPLOAD
  * provenance events.
  */
-public interface FileResource {
+public class FileResource {
 
-    /**
-     * @return the location
-     */
-    String getLocation();
+    private final String location;
+    private final Long size;
 
-    /**
-     * @return the size in bytes
-     */
-    Long getSize();
+    public FileResource(final String location, final Long size) {
+        this.location = location;
+        this.size = size;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public Long getSize() {
+        return size;
+    }
+
+    @Override
+    public String toString() {
+        return "FileResource[location=" + location + ", size=" + size + "]";
+    }
 }

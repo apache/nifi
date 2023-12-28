@@ -25,7 +25,6 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.upload.FileResource;
-import org.apache.nifi.provenance.upload.UploadContext;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,7 +121,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
      * be created by the session itself, as well as by the Processor
      *
      * @param parents parents
-     * @param child   child
+     * @param child child
      * @return record
      */
     @Override
@@ -230,6 +229,11 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
+    public void send(final FlowFile flowFile, final String transitUri, final boolean force) {
+        send(flowFile, transitUri, -1L, force);
+    }
+
+    @Override
     public void send(final FlowFile flowFile, final String transitUri) {
         send(flowFile, transitUri, null, -1L, true);
     }
@@ -279,39 +283,67 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
-    public void upload(final FlowFile flowFile, final FileResource fileResource, final UploadContext uploadContext) {
-        final String transitUri = uploadContext.getTransitUri();
-        final String enrichedDetails = StringUtils.isNotBlank(uploadContext.getDetails()) ? uploadContext.getDetails() + " " + fileResource.toString()
-                : fileResource.toString();
-        final long transmissionMillis = uploadContext.getTransmissionMillis();
-        final boolean force = uploadContext.isForce();
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri) {
+        upload(flowFile, fileResource, transitUri, null, -1L, true);
+    }
 
+    @Override
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final String details) {
+        upload(flowFile, fileResource, transitUri, details, -1L, true);
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final long transmissionMillis) {
+        upload(flowFile, fileResource, transitUri, transmissionMillis, true);
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final String details, final long transmissionMillis) {
+        upload(flowFile, fileResource, transitUri, details, transmissionMillis, true);
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final boolean force) {
+        upload(flowFile, fileResource, transitUri, null, -1L, force);
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final String details, final boolean force) {
+        upload(flowFile, fileResource, transitUri, details, -1L, force);
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final long transmissionMillis, final boolean force) {
+        upload(flowFile, fileResource, transitUri, null, transmissionMillis, force);
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final String details, final long transmissionMillis, final boolean force) {
         try {
+            final String enrichedDetails = StringUtils.isNotBlank(details) ? details + " " + fileResource.toString() : fileResource.toString();
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.UPLOAD)
                     .setTransitUri(transitUri)
                     .setEventDuration(transmissionMillis)
                     .setDetails(enrichedDetails)
                     .build();
+            // If the transmissionMillis field has been populated, use zero as the value of commitNanos (the call to System.nanoTime() is expensive but the value will be ignored).
+            final long commitNanos = transmissionMillis < 0 ? System.nanoTime() : 0L;
+            final ProvenanceEventRecord enriched = eventEnricher == null ? record : eventEnricher.enrich(record, flowFile, commitNanos);
 
             if (force) {
-                repository.registerEvent(record);
+                repository.registerEvent(enriched);
             } else {
-                events.add(record);
+                events.add(enriched);
             }
 
             bytesSent += fileResource.getSize();
             flowFilesSent++;
         } catch (final Exception e) {
-            logger.error("Failed to generate Provenance Event due to ", e);
+            logger.error("Failed to generate Provenance Event due to " + e);
             if (logger.isDebugEnabled()) {
                 logger.error("", e);
             }
         }
-    }
-
-    @Override
-    public void send(final FlowFile flowFile, final String transitUri, final boolean force) {
-        send(flowFile, transitUri, -1L, force);
     }
 
     @Override

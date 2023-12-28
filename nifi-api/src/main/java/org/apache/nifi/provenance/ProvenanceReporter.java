@@ -20,7 +20,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.upload.FileResource;
-import org.apache.nifi.provenance.upload.UploadContext;
 
 import java.util.Collection;
 
@@ -324,11 +323,163 @@ public interface ProvenanceReporter {
      * destination. The external resource may be a remote system or may be a
      * local destination, such as the local file system but is external to NiFi.
      *
-     * @param flowFile the FlowFile that was received
+     * @param flowFile the FlowFile that was sent
      * @param fileResource the FileResource that was uploaded
-     * @param uploadContext contains parameters to emit an {@link ProvenanceEventType#UPLOAD UPLOAD} event
+     * @param transitUri A URI that provides information about the System and
+     * Protocol information over which the transfer occurred. The intent of this
+     * field is such that both the sender and the receiver can publish the
+     * events to an external Enterprise-wide system that is then able to
+     * correlate the SEND and RECEIVE events.
      */
-    void upload(FlowFile flowFile, FileResource fileResource, UploadContext uploadContext);
+    void upload(FlowFile flowFile, FileResource fileResource, String transitUri);
+
+    /**
+     * Emits a Provenance Event of type {@link ProvenanceEventType#UPLOAD UPLOAD}
+     * that indicates that an external resource was sent to an external
+     * destination. The external resource may be a remote system or may be a
+     * local destination, such as the local file system but is external to NiFi.
+     *
+     * @param flowFile the FlowFile that was sent
+     * @param fileResource the FileResource that was uploaded
+     * @param transitUri A URI that provides information about the System and
+     * Protocol information over which the transfer occurred. The intent of this
+     * field is such that both the sender and the receiver can publish the
+     * events to an external Enterprise-wide system that is then able to
+     * correlate the SEND and RECEIVE events.
+     * @param details additional details related to the SEND event, such as a
+     * remote system's Distinguished Name
+     */
+    void upload(FlowFile flowFile, FileResource fileResource, String transitUri, String details);
+
+    /**
+     * Emits a Provenance Event of type {@link ProvenanceEventType#UPLOAD UPLOAD}
+     * that indicates that an external resource was sent to an external
+     * destination. The external resource may be a remote system or may be a
+     * local destination, such as the local file system but is external to NiFi.
+     *
+     * @param flowFile the FlowFile that was sent
+     * @param fileResource the FileResource that was uploaded
+     * @param transitUri A URI that provides information about the System and
+     * Protocol information over which the transfer occurred. The intent of this
+     * field is such that both the sender and the receiver can publish the
+     * events to an external Enterprise-wide system that is then able to
+     * correlate the SEND and RECEIVE events.
+     * @param transmissionMillis the number of milliseconds spent sending the
+     * data to the remote system
+     */
+    void upload(FlowFile flowFile, FileResource fileResource, String transitUri, long transmissionMillis);
+
+    /**
+     * Emits a Provenance Event of type {@link ProvenanceEventType#UPLOAD UPLOAD}
+     * that indicates that an external resource was sent to an external
+     * destination. The external resource may be a remote system or may be a
+     * local destination, such as the local file system but is external to NiFi.
+     *
+     * @param flowFile the FlowFile that was sent
+     * @param fileResource the FileResource that was uploaded
+     * @param transitUri A URI that provides information about the System and
+     * Protocol information over which the transfer occurred. The intent of this
+     * field is such that both the sender and the receiver can publish the
+     * events to an external Enterprise-wide system that is then able to
+     * correlate the SEND and RECEIVE events.
+     * @param details additional details related to the SEND event, such as a
+     * remote system's Distinguished Name
+     * @param transmissionMillis the number of milliseconds spent sending the
+     * data to the remote system
+     */
+    void upload(FlowFile flowFile, FileResource fileResource, String transitUri, String details, long transmissionMillis);
+
+    /**
+     * Emits a Provenance Event of type {@link ProvenanceEventType#UPLOAD UPLOAD}
+     * that indicates that an external resource was sent to an external
+     * destination. The external resource may be a remote system or may be a
+     * local destination, such as the local file system but is external to NiFi.
+     *
+     * @param flowFile the FlowFile that was sent
+     * @param fileResource the FileResource that was uploaded
+     * @param transitUri A URI that provides information about the System and
+     * Protocol information over which the transfer occurred. The intent of this
+     * field is such that both the sender and the receiver can publish the
+     * events to an external Enterprise-wide system that is then able to
+     * correlate the SEND and RECEIVE events.
+     * @param force if <code>true</code>, this event will be added to the
+     * Provenance Repository immediately and will still be persisted if the
+     * {@link org.apache.nifi.processor.ProcessSession ProcessSession} to which this
+     * ProvenanceReporter is associated is rolled back. Otherwise, the Event
+     * will be recorded only on a successful session commit.
+     */
+    void upload(FlowFile flowFile, FileResource fileResource, String transitUri, boolean force);
+
+    /**
+     * Emits a Provenance Event of type {@link ProvenanceEventType#UPLOAD UPLOAD}
+     * that indicates that an external resource was sent to an external
+     * destination. The external resource may be a remote system or may be a
+     * local destination, such as the local file system but is external to NiFi.
+     *
+     * @param flowFile the FlowFile that was sent
+     * @param fileResource the FileResource that was uploaded
+     * @param transitUri A URI that provides information about the System and
+     * Protocol information over which the transfer occurred. The intent of this
+     * field is such that both the sender and the receiver can publish the
+     * events to an external Enterprise-wide system that is then able to
+     * correlate the SEND and RECEIVE events.
+     * @param details additional details related to the SEND event, such as a
+     * remote system's Distinguished Name
+     * @param force if <code>true</code>, this event will be added to the
+     * Provenance Repository immediately and will still be persisted if the
+     * {@link org.apache.nifi.processor.ProcessSession ProcessSession} to which this
+     * ProvenanceReporter is associated is rolled back. Otherwise, the Event
+     * will be recorded only on a successful session commit.
+     */
+    void upload(FlowFile flowFile, FileResource fileResource, String transitUri, String details, boolean force);
+
+    /**
+     * Emits a Provenance Event of type {@link ProvenanceEventType#UPLOAD UPLOAD}
+     * that indicates that an external resource was sent to an external
+     * destination. The external resource may be a remote system or may be a
+     * local destination, such as the local file system but is external to NiFi.
+     *
+     * @param flowFile the FlowFile that was sent
+     * @param fileResource the FileResource that was uploaded
+     * @param transitUri A URI that provides information about the System and
+     * Protocol information over which the transfer occurred. The intent of this
+     * field is such that both the sender and the receiver can publish the
+     * events to an external Enterprise-wide system that is then able to
+     * correlate the SEND and RECEIVE events.
+     * @param transmissionMillis the number of milliseconds spent sending the
+     * data to the remote system
+     * @param force if <code>true</code>, this event will be added to the
+     * Provenance Repository immediately and will still be persisted if the
+     * {@link org.apache.nifi.processor.ProcessSession ProcessSession} to which this
+     * ProvenanceReporter is associated is rolled back. Otherwise, the Event
+     * will be recorded only on a successful session commit.
+     */
+    void upload(FlowFile flowFile, FileResource fileResource, String transitUri, long transmissionMillis, boolean force);
+
+    /**
+     * Emits a Provenance Event of type {@link ProvenanceEventType#UPLOAD UPLOAD}
+     * that indicates that an external resource was sent to an external
+     * destination. The external resource may be a remote system or may be a
+     * local destination, such as the local file system but is external to NiFi.
+     *
+     * @param flowFile the FlowFile that was sent
+     * @param fileResource the FileResource that was uploaded
+     * @param transitUri A URI that provides information about the System and
+     * Protocol information over which the transfer occurred. The intent of this
+     * field is such that both the sender and the receiver can publish the
+     * events to an external Enterprise-wide system that is then able to
+     * correlate the SEND and RECEIVE events.
+     * @param details additional details related to the SEND event, such as a
+     * remote system's Distinguished Name
+     * @param transmissionMillis the number of milliseconds spent sending the
+     * data to the remote system
+     * @param force if <code>true</code>, this event will be added to the
+     * Provenance Repository immediately and will still be persisted if the
+     * {@link org.apache.nifi.processor.ProcessSession ProcessSession} to which this
+     * ProvenanceReporter is associated is rolled back. Otherwise, the Event
+     * will be recorded only on a successful session commit.
+     */
+    void upload(FlowFile flowFile, FileResource fileResource, String transitUri, String details, long transmissionMillis, boolean force);
 
     /**
      * Emits a Provenance Event of type {@link ProvenanceEventType#REMOTE_INVOCATION}
