@@ -29,7 +29,7 @@ export class StatusHistoryService {
         private client: Client
     ) {}
 
-    getProcessorStatusHistory(componentType: ComponentType, componentId: string) {
+    getComponentStatusHistory(componentType: ComponentType, componentId: string) {
         let componentPath: string;
         switch (componentType) {
             case ComponentType.Processor:
@@ -50,5 +50,9 @@ export class StatusHistoryService {
         return this.httpClient.get(
             `${StatusHistoryService.API}/flow/${componentPath}/${encodeURIComponent(componentId)}/status/history`
         );
+    }
+
+    getNodeStatusHistory() {
+        return this.httpClient.get(`${StatusHistoryService.API}/controller/status/history`);
     }
 }

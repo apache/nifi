@@ -20,6 +20,7 @@ import { FlowService } from '../../service/flow.service';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
 import * as ParameterActions from '../parameter/parameter.actions';
+import * as StatusHistoryActions from '../../../../state/status-history/status-history.actions';
 import {
     asyncScheduler,
     catchError,
@@ -102,6 +103,8 @@ import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.c
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
 import { selectParameterSaving } from '../parameter/parameter.selectors';
 import { ParameterService } from '../../service/parameter.service';
+import { navigateToViewStatusHistoryForComponent } from './flow.actions';
+import { dispatch } from 'd3';
 
 @Injectable()
 export class FlowEffects {
@@ -668,6 +671,49 @@ export class FlowEffects {
                 withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
                 tap(([action, processGroupId]) => {
                     this.router.navigate(['/process-groups', processGroupId, 'edit']);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToViewStatusHistoryForComponent$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.navigateToViewStatusHistoryForComponent),
+                map((action) => action.request),
+                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                tap(([request, currentProcessGroupId]) => {
+                    this.router.navigate([
+                        '/process-groups',
+                        currentProcessGroupId,
+                        request.type,
+                        request.id,
+                        'history'
+                    ]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    completeStatusHistoryForComponent$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(StatusHistoryActions.viewStatusHistoryComplete),
+                map((action) => action.request),
+                filter((request) => request.source === 'canvas'),
+                tap((request) => {
+                    this.store.dispatch(
+                        FlowActions.selectComponents({
+                            request: {
+                                components: [
+                                    {
+                                        id: request.componentId,
+                                        componentType: request.componentType
+                                    }
+                                ]
+                            }
+                        })
+                    );
                 })
             ),
         { dispatch: false }
@@ -1943,8 +1989,8 @@ export class FlowEffects {
                                     })
                                 );
                             } else if (response.nodeSnapshots) {
-                                let replayedCount: number = 0;
-                                let unavailableCount: number = 0;
+                                let replayedCount = 0;
+                                let unavailableCount = 0;
 
                                 response.nodeSnapshots.forEach((nodeResponse: any) => {
                                     if (nodeResponse.snapshot.eventAvailable) {

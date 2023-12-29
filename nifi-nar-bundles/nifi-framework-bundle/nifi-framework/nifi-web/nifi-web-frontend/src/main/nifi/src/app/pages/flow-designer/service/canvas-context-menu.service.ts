@@ -16,8 +16,6 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
 import { CanvasUtils } from './canvas-utils.service';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../state';
@@ -33,18 +31,17 @@ import {
     navigateToEditComponent,
     navigateToEditCurrentProcessGroup,
     navigateToProvenanceForComponent,
+    navigateToViewStatusHistoryForComponent,
     reloadFlow,
     replayLastProvenanceEvent
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
 import { DeleteComponentRequest, MoveComponentRequest } from '../state/flow';
 import {
-    ContextMenu,
     ContextMenuDefinition,
     ContextMenuDefinitionProvider,
     ContextMenuItemDefinition
 } from '../../../ui/common/context-menu/context-menu.component';
-import { selection } from 'd3';
 
 @Injectable({ providedIn: 'root' })
 export class CanvasContextMenu implements ContextMenuDefinitionProvider {
@@ -550,14 +547,21 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 isSeparator: true
             },
             {
-                condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - supportsStats
-                    return false;
+                condition: (canvasUtils: CanvasUtils, selection: any) => {
+                    return canvasUtils.canViewStatusHistory(selection);
                 },
                 clazz: 'fa fa-area-chart',
                 text: 'View status history',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - showStats
+                action: (store: Store<CanvasState>, selection: any) => {
+                    const selectionData = selection.datum();
+                    store.dispatch(
+                        navigateToViewStatusHistoryForComponent({
+                            request: {
+                                type: selectionData.type,
+                                id: selectionData.id
+                            }
+                        })
+                    );
                 }
             },
             {

@@ -16,9 +16,9 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { StatusHistoryRequest, StatusHistoryResponse } from './index';
+import { NodeStatusHistoryRequest, StatusHistoryRequest, StatusHistoryResponse } from './index';
 
-const STATUS_HISTORY_PREFIX: string = '[Status History]';
+const STATUS_HISTORY_PREFIX = '[Status History]';
 
 export const reloadStatusHistory = createAction(
     `${STATUS_HISTORY_PREFIX} Reload Status History`,
@@ -30,6 +30,11 @@ export const getStatusHistoryAndOpenDialog = createAction(
     props<{ request: StatusHistoryRequest }>()
 );
 
+export const getNodeStatusHistoryAndOpenDialog = createAction(
+    `${STATUS_HISTORY_PREFIX} Get Node Status History and Open Dialog`,
+    props<{ request: NodeStatusHistoryRequest }>()
+);
+
 export const reloadStatusHistorySuccess = createAction(
     `${STATUS_HISTORY_PREFIX} Reload Status History Success`,
     props<{ response: StatusHistoryResponse }>()
@@ -37,12 +42,12 @@ export const reloadStatusHistorySuccess = createAction(
 
 export const loadStatusHistorySuccess = createAction(
     `${STATUS_HISTORY_PREFIX} Load Status History Success`,
-    props<{ request: StatusHistoryRequest; response: StatusHistoryResponse }>()
+    props<{ request: StatusHistoryRequest | NodeStatusHistoryRequest; response: StatusHistoryResponse }>()
 );
 
 export const openStatusHistoryDialog = createAction(
     `${STATUS_HISTORY_PREFIX} Open Status History Dialog`,
-    props<{ request: StatusHistoryRequest }>()
+    props<{ request: StatusHistoryRequest | NodeStatusHistoryRequest }>()
 );
 
 export const statusHistoryApiError = createAction(
@@ -55,4 +60,9 @@ export const clearStatusHistory = createAction(`${STATUS_HISTORY_PREFIX} Clear S
 export const viewStatusHistoryComplete = createAction(
     `${STATUS_HISTORY_PREFIX} View Status History Complete`,
     props<{ request: StatusHistoryRequest }>()
+);
+
+export const viewNodeStatusHistoryComplete = createAction(
+    `${STATUS_HISTORY_PREFIX} View Node Status History Complete`,
+    props<{ request: NodeStatusHistoryRequest }>()
 );

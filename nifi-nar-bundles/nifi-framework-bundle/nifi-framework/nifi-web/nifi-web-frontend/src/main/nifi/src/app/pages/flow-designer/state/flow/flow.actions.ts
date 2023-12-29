@@ -56,6 +56,7 @@ import {
     NavigateToControllerServicesRequest,
     ReplayLastProvenanceEventRequest
 } from './index';
+import { StatusHistoryRequest } from '../../../../state/status-history';
 
 /*
     Loading Flow
@@ -237,6 +238,15 @@ export const createComponentComplete = createAction(
     props<{ response: CreateComponentResponse }>()
 );
 
+export const navigateToViewStatusHistoryForComponent = createAction(
+    '[Canvas] Navigate To Status History For Component',
+    props<{ request: OpenComponentDialogRequest }>()
+);
+
+export const viewStatusHistoryForComponent = createAction(
+    '[Canvas] View Status History for Component',
+    props<{ request: StatusHistoryRequest }>()
+);
 /*
     Update Component Actions
  */
