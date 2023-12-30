@@ -44,8 +44,6 @@ public enum TranslationStrategy implements DescribedValue {
             return "Spaces will be removed from column name with empty string Ex. 'User Name' become 'USERNAME'";
         }
     },
-
-    //    REMOVE_ALL_SPECIAL_CHAR("REMOVE_ALL_SPECIAL_CHAR","Remove All Special Character","Remove All Special Character"),
     REMOVE_ALL_SPECIAL_CHAR {
         @Override
         public String getDisplayName() {

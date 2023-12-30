@@ -59,7 +59,7 @@ public class ColumnNameNormalizerUtilityTest {
     void testNormalizingColumnName_Regex() {
         String inputColumnName = "Your @Input -String Here";
         Pattern translationPattern = Pattern.compile("[@-]");
-        String expectedNormalized = translationPattern.matcher(inputColumnName.toUpperCase()).replaceAll( "");
+        String expectedNormalized = "YOUR INPUT STRING HERE";
         String normalized = ColumnNameNormalizerUtility.getNormalizedName(inputColumnName,true, TranslationStrategy.PATTERN, translationPattern);
 
         assertEquals(expectedNormalized, normalized);
