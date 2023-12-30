@@ -20,7 +20,7 @@ import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateEntity;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
 import java.util.Set;
 

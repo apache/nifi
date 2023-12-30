@@ -15,7 +15,7 @@
 -->
 <html lang="en">
     <head>
-        <title>{{info.title}}-{{info.version}}</title>
+        <title>{{appName}}-{{version}}</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
         <link rel="shortcut icon" href="images/nifi16.ico"/>
         <script type="text/javascript" src="../../nifi/assets/jquery/dist/jquery.min.js"></script>
@@ -160,6 +160,7 @@
                 background-color: #7098ad;
                 margin-right: 10px;
                 font-weight: bold;
+                text-transform: uppercase;
             }
 
             div.endpoint div.path {
@@ -472,12 +473,12 @@
     <body>
         <div class="header">
             <img class="logo" src="images/bgNifiLogo.png" alt="NiFi Logo"/>
-            <div class="title">{{basePath}}</div>
-            <div class="sub-title">{{info.title}} {{info.version}}</div>
+            <div class="title">{{appName}}</div>
+            <div class="sub-title">{{version}}</div>
             <div class="clear"></div>
         </div>
         <div class="clear"></div>
-        <div class="overview">{{info.description}}</div>
+        <div class="overview">{{appDescription}}</div>
         <div class="section">
             <div class="section-header">
                 <div class="title link">Access</div>
@@ -703,12 +704,31 @@
             <div id="version-endpoints" class="section-endpoints hidden"></div>
         </div>
         <div class="unorganized hidden">
-            {{#each paths}}
-                {{> endpoint}}
-            {{/each}}
+            {{#apiInfo}}
+            {{#apis}}
+            {{#operations}}
+            {{#operation}}
+                <div class="endpoints">
+                    <span class="path hidden">{{path}}</span>
+                    <div class="endpoint {{httpMethod}}">
+                        <div class="operation-handle">
+                            <div class="method">{{httpMethod}}</div>
+                            <div class="path mono">{{path}}</div>
+                            <div class="summary">{{summary}}</div>
+                            <div class="clear"></div>
+                        </div>
+                        {{> operation}}
+                    </div>
+                </div>
+            {{/operation}}
+            {{/operations}}
+            {{/apis}}
+            {{/apiInfo}}
         </div>
-        {{#each definitions}}
-            {{> type}}
-        {{/each}}
+        {{#models}}
+        {{#model}}
+          {{> model}}
+        {{/model}}
+        {{/models}}
     </body>
 </html>

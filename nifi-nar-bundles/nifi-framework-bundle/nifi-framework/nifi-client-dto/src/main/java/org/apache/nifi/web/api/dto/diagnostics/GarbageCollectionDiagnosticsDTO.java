@@ -20,7 +20,7 @@ package org.apache.nifi.web.api.dto.diagnostics;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 import io.swagger.annotations.ApiModelProperty;
 

@@ -19,7 +19,7 @@ package org.apache.nifi.web.api.dto;
 import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Set;
 
 @XmlType(name = "parameterContextUpdateRequest")

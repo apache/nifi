@@ -21,7 +21,7 @@ import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ParameterProviderReferencingComponentDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a response to the API.

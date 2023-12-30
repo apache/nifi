@@ -18,7 +18,7 @@ package org.apache.nifi.web.api.dto.search;
 
 import io.swagger.annotations.ApiModelProperty;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * The result's group level of a performed search.

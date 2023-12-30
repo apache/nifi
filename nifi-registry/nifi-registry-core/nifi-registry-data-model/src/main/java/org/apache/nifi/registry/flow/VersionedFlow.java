@@ -19,7 +19,7 @@ package org.apache.nifi.registry.flow;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import jakarta.validation.constraints.Min;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.registry.bucket.BucketItem;
 import org.apache.nifi.registry.bucket.BucketItemType;
 import org.apache.nifi.registry.revision.entity.RevisableEntity;

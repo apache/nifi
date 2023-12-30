@@ -18,7 +18,7 @@ package org.apache.nifi.web.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * A query for bulletin board. Will filter the resulting bulletin board according to the criteria in this query.

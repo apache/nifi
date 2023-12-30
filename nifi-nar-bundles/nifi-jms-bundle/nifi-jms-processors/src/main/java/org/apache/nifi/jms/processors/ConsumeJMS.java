@@ -52,7 +52,7 @@ import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.support.JmsHeaders;
 
-import javax.jms.Session;
+import jakarta.jms.Session;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;

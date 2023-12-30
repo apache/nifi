@@ -43,7 +43,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.net.ssl.SSLContext;
-import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -879,14 +878,6 @@ public class AccessResource extends ApplicationResource {
 
     protected URI getRequestUri() {
         return uriInfo.getRequestUri();
-    }
-
-    private void forwardToMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse, final String message) throws Exception {
-        httpServletRequest.setAttribute("title", OIDC_ERROR_TITLE);
-        httpServletRequest.setAttribute("messages", message);
-
-        final ServletContext uiContext = httpServletRequest.getServletContext().getContext("/nifi-registry");
-        uiContext.getRequestDispatcher("/WEB-INF/pages/message-page.jsp").forward(httpServletRequest, httpServletResponse);
     }
 
     private String createAccessToken(IdentityProvider identityProvider, AuthenticationRequest authenticationRequest)

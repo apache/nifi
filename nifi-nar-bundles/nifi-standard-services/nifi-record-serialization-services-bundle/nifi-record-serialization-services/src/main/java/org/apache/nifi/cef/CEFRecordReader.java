@@ -105,7 +105,7 @@ final class CEFRecordReader implements RecordReader {
             return null;
         }
 
-        final CommonEvent event = parser.parse(line, true, acceptEmptyExtensions, locale);
+        final CommonEvent event = parser.parse(line, false, acceptEmptyExtensions, locale);
 
         if (event == null) {
             logger.debug("Event parsing resulted no event");

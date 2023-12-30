@@ -30,7 +30,7 @@
                 <include>ch.qos.logback:logback-classic</include>
                 <include>ch.qos.logback:logback-core</include>
                 <!-- Servlet API -->
-                <include>javax.servlet:javax.servlet-api</include>
+                <include>jakarta.servlet:jakarta.servlet-api</include>
                 <include>org.eclipse.jetty.toolchain:jetty-schemas</include>
                 <!-- Apache NiFi -->
                 <include>org.apache.nifi:nifi-api</include>

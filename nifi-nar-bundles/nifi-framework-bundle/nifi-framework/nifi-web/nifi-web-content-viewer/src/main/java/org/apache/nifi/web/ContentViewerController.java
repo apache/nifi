@@ -21,13 +21,14 @@ import com.ibm.icu.text.CharsetMatch;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URI;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.core.UriBuilder;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.ws.rs.core.UriBuilder;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -81,22 +82,13 @@ public class ContentViewerController extends HttpServlet {
         try {
             contentRequest = getContentRequest(request);
         } catch (final Exception e) {
-            request.setAttribute("title", "Error");
-            request.setAttribute("messages", "Unable to interpret content request.");
-
-            // forward to the error page
-            final ServletContext viewerContext = servletContext.getContext("/nifi");
-            viewerContext.getRequestDispatcher("/message").forward(request, response);
+            logger.warn("Content loading failed", e);
+            response.sendError(HttpURLConnection.HTTP_INTERNAL_ERROR, "Content loading failed");
             return;
         }
 
         if (contentRequest.getDataUri() == null) {
-            request.setAttribute("title", "Error");
-            request.setAttribute("messages", "The data reference must be specified.");
-
-            // forward to the error page
-            final ServletContext viewerContext = servletContext.getContext("/nifi");
-            viewerContext.getRequestDispatcher("/message").forward(request, response);
+            response.sendError(HttpURLConnection.HTTP_BAD_REQUEST, "Data Reference URI must be specified");
             return;
         }
 
@@ -104,29 +96,17 @@ public class ContentViewerController extends HttpServlet {
         final DownloadableContent downloadableContent;
         try {
             downloadableContent = contentAccess.getContent(contentRequest);
-        } catch (final ResourceNotFoundException rnfe) {
-            request.setAttribute("title", "Error");
-            request.setAttribute("messages", "Unable to find the specified content");
-
-            // forward to the error page
-            final ServletContext viewerContext = servletContext.getContext("/nifi");
-            viewerContext.getRequestDispatcher("/message").forward(request, response);
+        } catch (final ResourceNotFoundException e) {
+            logger.warn("Content not found", e);
+            response.sendError(HttpURLConnection.HTTP_NOT_FOUND, "Content not found");
             return;
-        } catch (final AccessDeniedException ade) {
-            request.setAttribute("title", "Access Denied");
-            request.setAttribute("messages", "Unable to approve access to the specified content: " + ade.getMessage());
-
-            // forward to the error page
-            final ServletContext viewerContext = servletContext.getContext("/nifi");
-            viewerContext.getRequestDispatcher("/message").forward(request, response);
+        } catch (final AccessDeniedException e) {
+            logger.warn("Content access denied", e);
+            response.sendError(HttpURLConnection.HTTP_FORBIDDEN, "Content access denied");
             return;
         } catch (final Exception e) {
-            request.setAttribute("title", "Error");
-            request.setAttribute("messages", "An unexpected error has occurred: " + e.getMessage());
-
-            // forward to the error page
-            final ServletContext viewerContext = servletContext.getContext("/nifi");
-            viewerContext.getRequestDispatcher("/message").forward(request, response);
+            logger.warn("Content retrieval failed", e);
+            response.sendError(HttpURLConnection.HTTP_INTERNAL_ERROR, "Content retrieval failed");
             return;
         }
 
@@ -143,12 +123,7 @@ public class ContentViewerController extends HttpServlet {
         try {
             displayMode = DisplayMode.valueOf(mode);
         } catch (final IllegalArgumentException iae) {
-            request.setAttribute("title", "Error");
-            request.setAttribute("messages", "Invalid display mode: " + mode);
-
-            // forward to the error page
-            final ServletContext viewerContext = servletContext.getContext("/nifi");
-            viewerContext.getRequestDispatcher("/message").forward(request, response);
+            response.sendError(HttpURLConnection.HTTP_BAD_REQUEST, "Display mode not supported [%s]".formatted(mode));
             return;
         }
 
@@ -264,26 +239,11 @@ public class ContentViewerController extends HttpServlet {
                     });
 
                     try {
-                        // generate the content
-                        final ServletContext viewerContext = servletContext.getContext(contentViewerUri);
+                        final ServletContext viewerContext = (ServletContext) servletContext.getAttribute(contentViewerUri);
                         viewerContext.getRequestDispatcher("/view-content").include(request, response);
                     } catch (final Exception e) {
-                        String message = e.getMessage() != null ? e.getMessage() : e.toString();
-                        message = "Unable to generate view of data: " + message;
-
-                        // log the error
-                        logger.error(message);
-                        if (logger.isDebugEnabled()) {
-                            logger.error(StringUtils.EMPTY, e);
-                        }
-
-                        // populate the request attributes
-                        request.setAttribute("title", "Error");
-                        request.setAttribute("messages", message);
-
-                        // forward to the error page
-                        final ServletContext viewerContext = servletContext.getContext("/nifi");
-                        viewerContext.getRequestDispatcher("/message").forward(request, response);
+                        logger.error("Content preparation failed for Content Viewer [{}]", contentViewerUri, e);
+                        response.sendError(HttpURLConnection.HTTP_INTERNAL_ERROR, "Content preparation failed");
                         return;
                     }
 

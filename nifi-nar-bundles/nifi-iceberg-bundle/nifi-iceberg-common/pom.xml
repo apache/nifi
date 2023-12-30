@@ -90,12 +90,6 @@
             <artifactId>iceberg-orc</artifactId>
             <version>${iceberg.version}</version>
         </dependency>
-        <!-- Add Jetty 10 websocket for Hadoop YarnClientImpl.shellToContainer -->
-        <dependency>
-            <groupId>org.eclipse.jetty.websocket</groupId>
-            <artifactId>websocket-jetty-client</artifactId>
-            <version>${jetty.version}</version>
-        </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-client</artifactId>
@@ -125,6 +119,10 @@
                 <exclusion>
                     <groupId>org.eclipse.jetty.websocket</groupId>
                     <artifactId>websocket-client</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.eclipse.jetty</groupId>
+                    <artifactId>jetty-util</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

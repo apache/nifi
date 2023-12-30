@@ -19,9 +19,11 @@ package org.apache.nifi.web.security.configuration;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.StandardAuthenticationEntryPoint;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationFilter;
+import org.apache.nifi.web.security.csrf.CsrfCookieFilter;
 import org.apache.nifi.web.security.csrf.CsrfCookieRequestMatcher;
 import org.apache.nifi.web.security.csrf.SkipReplicatedCsrfFilter;
 import org.apache.nifi.web.security.csrf.StandardCookieCsrfTokenRepository;
+import org.apache.nifi.web.security.csrf.StandardCsrfTokenRequestAttributeHandler;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationFilter;
 import org.apache.nifi.web.security.log.AuthenticationUserFilter;
 import org.apache.nifi.web.security.oidc.client.web.OidcBearerTokenRefreshFilter;
@@ -38,6 +40,7 @@ import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationCodeGrantFilter;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
@@ -50,6 +53,7 @@ import org.springframework.security.saml2.provider.service.web.authentication.lo
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.ExceptionTranslationFilter;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
 
@@ -99,14 +103,13 @@ public class WebSecurityConfiguration {
             final Saml2LocalLogoutFilter saml2LocalLogoutFilter
     ) throws Exception {
         http
-                .logout().disable()
-                .anonymous().disable()
-                .requestCache().disable()
-                .rememberMe().disable()
-                .sessionManagement().disable()
-                .headers().disable()
-                .servletApi().disable()
-                .securityContext().disable()
+                .logout(AbstractHttpConfigurer::disable)
+                .rememberMe(AbstractHttpConfigurer::disable)
+                .requestCache(AbstractHttpConfigurer::disable)
+                .servletApi(AbstractHttpConfigurer::disable)
+                .securityContext(AbstractHttpConfigurer::disable)
+                .sessionManagement(AbstractHttpConfigurer::disable)
+                .headers(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
                                 "/access",
@@ -120,6 +123,7 @@ public class WebSecurityConfiguration {
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(new SkipReplicatedCsrfFilter(), CsrfFilter.class)
+                .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(
                                 new StandardCookieCsrfTokenRepository()
@@ -127,6 +131,7 @@ public class WebSecurityConfiguration {
                         .requireCsrfProtectionMatcher(
                                 new AndRequestMatcher(CsrfFilter.DEFAULT_CSRF_MATCHER, new CsrfCookieRequestMatcher())
                         )
+                        .csrfTokenRequestHandler(new StandardCsrfTokenRequestAttributeHandler())
                 )
                 .exceptionHandling(exceptionHandling -> exceptionHandling
                         .authenticationEntryPoint(authenticationEntryPoint)

@@ -19,7 +19,7 @@ package org.apache.nifi.web.security.anonymous;
 import org.apache.nifi.web.security.NiFiAuthenticationFilter;
 import org.springframework.security.core.Authentication;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Extracts an anonymous authentication request from a specified servlet request.

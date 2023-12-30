@@ -22,8 +22,8 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
-import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
+import jakarta.servlet.ServletContext;
+import jakarta.ws.rs.core.Context;
 
 public class C2ResourceConfig extends ResourceConfig {
 

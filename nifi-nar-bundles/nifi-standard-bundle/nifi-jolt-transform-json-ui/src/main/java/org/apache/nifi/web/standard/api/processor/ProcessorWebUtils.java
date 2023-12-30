@@ -26,9 +26,9 @@ import org.apache.nifi.web.NiFiWebRequestContext;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.CacheControl;
-import javax.ws.rs.core.Response;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.CacheControl;
+import jakarta.ws.rs.core.Response;
 
 
 class ProcessorWebUtils {

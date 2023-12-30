@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.entity;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;

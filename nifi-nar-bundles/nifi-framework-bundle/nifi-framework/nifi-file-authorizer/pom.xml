@@ -32,8 +32,8 @@
         </resources>
         <plugins>
             <plugin>
-                <groupId>org.jvnet.jaxb2.maven2</groupId>
-                <artifactId>maven-jaxb2-plugin</artifactId>
+                <groupId>org.patrodyne.jvnet</groupId>
+                <artifactId>hisrc-higherjaxb40-maven-plugin</artifactId>
                 <executions>
                     <execution>
                         <id>authorizations</id>

@@ -19,7 +19,7 @@ package org.apache.nifi.web.api.dto.status;
 
 import io.swagger.annotations.ApiModelProperty;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * General DTO for serializing the status of a component.

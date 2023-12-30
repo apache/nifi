@@ -17,7 +17,7 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.status.FlowAnalysisRuleStatusDTO;

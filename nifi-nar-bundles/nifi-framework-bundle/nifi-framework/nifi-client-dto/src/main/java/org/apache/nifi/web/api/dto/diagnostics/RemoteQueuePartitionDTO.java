@@ -19,7 +19,7 @@ package org.apache.nifi.web.api.dto.diagnostics;
 
 import io.swagger.annotations.ApiModelProperty;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 @XmlType(name = "remoteQueuePartition")
 public class RemoteQueuePartitionDTO {

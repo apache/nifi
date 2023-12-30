@@ -1,0 +1,133 @@
+{{!--
+    Licensed to the Apache Software Foundation (ASF) under one or more
+    contributor license agreements.  See the NOTICE file distributed with
+    this work for additional information regarding copyright ownership.
+    The ASF licenses this file to You under the Apache License, Version 2.0
+    (the "License"); you may not use this file except in compliance with
+    the License.  You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+--}}
+<div class="operation hidden">
+    {{#if description}}
+    <div class="description">
+        {{description}}
+    </div>
+    {{/if}}
+    <div class="title">Request</div>
+    <div class="mediatypes details">
+      <div class="mediatype">
+        <div class="title">consumes:</div>
+        <div class="mono">
+        {{#consumes}}
+          {{mediaType}}
+          {{#if hasMore}}, {{/if}}
+        {{/consumes}}
+        {{^consumes}}*/*{{/consumes}}
+        </div>
+        <div class="clear"></div>
+      </div>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Location</th>
+                <th>Type</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+
+        {{#pathParams}}
+        <tr>
+            <td>{{baseName}}</td>
+            <td>Path</td>
+            <td>{{dataFormat}}</td>
+            <td>{{unescapedDescription}}</td>
+        </tr>
+        {{/pathParams}}
+
+        {{#queryParams}}
+        <tr>
+            <td>{{baseName}}</td>
+            <td>Query</td>
+            <td>{{dataFormat}}</td>
+            <td>{{unescapedDescription}}</td>
+        </tr>
+        {{/queryParams}}
+
+        {{#formParams}}
+        <tr>
+            <td>{{baseName}}</td>
+            <td>Form</td>
+            <td>{{dataFormat}}</td>
+            <td>{{unescapedDescription}}</td>
+        </tr>
+        {{/formParams}}
+
+        {{#headerParams}}
+        <tr>
+            <td>{{baseName}}</td>
+            <td>Request Header</td>
+            <td>{{dataFormat}}</td>
+            <td>{{unescapedDescription}}</td>
+        </tr>
+        {{/headerParams}}
+
+        {{#bodyParams}}
+        <tr>
+            <td>{{baseName}}</td>
+            <td>Request Body</td>
+            <td>
+            {{^isPrimitiveType}}
+              <a class="type-link" href="javascript:void(0);">{{baseType}}</a>
+            {{/isPrimitiveType}}
+            </td>
+            <td>{{unescapedDescription}}</td>
+        </tr>
+        {{/bodyParams}}
+
+        </tbody>
+    </table>
+    <div class="title">Response</div>
+    <div class="mediatypes details">
+        <div class="mediatype">
+          <div class="title">produces:</div>
+          <div class="mono">
+          {{#produces}}
+            {{mediaType}}
+            {{#if hasMore}}, {{/if}}
+          {{/produces}}
+          {{^produces}}*/*{{/produces}}
+          </div>
+          <div class="clear"></div>
+      </div>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Status Code</th>
+                <th>Type</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#responses}}
+            <tr>
+                <td>{{code}}</td>
+                <td>
+                {{#simpleType}}
+                  {{dataType}}
+                {{/simpleType}}
+                </td>
+                <td>{{description}}</td>
+            </tr>
+            {{/responses}}
+        </tbody>
+    </table>
+</div>

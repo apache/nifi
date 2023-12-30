@@ -59,7 +59,7 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -717,41 +717,41 @@ public class TestListenHTTP {
         mff.assertAttributeExists("http.multipart.size");
         mff.assertAttributeEquals("http.multipart.fragments.sequence.number", "1");
         mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
-        mff.assertAttributeExists("http.headers.multipart.content-disposition");
+        mff.assertAttributeExists("http.headers.multipart.Content-Disposition");
 
         mff = findFlowFile(flowFilesForRelationship, "p2");
         mff.assertAttributeEquals("http.multipart.name", "p2");
         mff.assertAttributeExists("http.multipart.size");
         mff.assertAttributeExists("http.multipart.fragments.sequence.number");
         mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
-        mff.assertAttributeExists("http.headers.multipart.content-disposition");
+        mff.assertAttributeExists("http.headers.multipart.Content-Disposition");
 
         mff = findFlowFile(flowFilesForRelationship, "file1");
         mff.assertAttributeEquals("http.multipart.name", "file1");
         mff.assertAttributeEquals("http.multipart.filename", "my-file-text.txt");
-        mff.assertAttributeEquals("http.headers.multipart.content-type", "text/plain");
+        mff.assertAttributeEquals("http.headers.multipart.Content-Type", "text/plain");
         mff.assertAttributeExists("http.multipart.size");
         mff.assertAttributeExists("http.multipart.fragments.sequence.number");
         mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
-        mff.assertAttributeExists("http.headers.multipart.content-disposition");
+        mff.assertAttributeExists("http.headers.multipart.Content-Disposition");
 
         mff = findFlowFile(flowFilesForRelationship, "file2");
         mff.assertAttributeEquals("http.multipart.name", "file2");
         mff.assertAttributeEquals("http.multipart.filename", "my-file-data.json");
-        mff.assertAttributeEquals("http.headers.multipart.content-type", "application/json");
+        mff.assertAttributeEquals("http.headers.multipart.Content-Type", "application/json");
         mff.assertAttributeExists("http.multipart.size");
         mff.assertAttributeExists("http.multipart.fragments.sequence.number");
         mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
-        mff.assertAttributeExists("http.headers.multipart.content-disposition");
+        mff.assertAttributeExists("http.headers.multipart.Content-Disposition");
 
         mff = findFlowFile(flowFilesForRelationship, "file3");
         mff.assertAttributeEquals("http.multipart.name", "file3");
         mff.assertAttributeEquals("http.multipart.filename", "my-file-binary.bin");
-        mff.assertAttributeEquals("http.headers.multipart.content-type", "application/octet-stream");
+        mff.assertAttributeEquals("http.headers.multipart.Content-Type", "application/octet-stream");
         mff.assertAttributeExists("http.multipart.size");
         mff.assertAttributeExists("http.multipart.fragments.sequence.number");
         mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
-        mff.assertAttributeExists("http.headers.multipart.content-disposition");
+        mff.assertAttributeExists("http.headers.multipart.Content-Disposition");
 
         final Path tempDirectoryPath = Paths.get(System.getProperty("java.io.tmpdir"));
         final long multiPartTempFiles = Files.find(tempDirectoryPath, 1,

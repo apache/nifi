@@ -20,7 +20,7 @@ import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.util.NumberUtil;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * The details for a process group within this NiFi flow.

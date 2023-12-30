@@ -33,7 +33,7 @@ import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.util.WebUtils;
 
-import javax.ws.rs.client.Client;
+import jakarta.ws.rs.client.Client;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;

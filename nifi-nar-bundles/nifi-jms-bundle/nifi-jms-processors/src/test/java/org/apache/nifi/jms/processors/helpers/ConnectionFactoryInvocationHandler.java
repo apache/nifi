@@ -24,9 +24,8 @@ import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.concurrent.ThreadSafe;
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
+import jakarta.jms.Connection;
+import jakarta.jms.ConnectionFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +34,6 @@ import org.slf4j.LoggerFactory;
  * {@link ConnectionFactory}'s invocation handler to be used to create {@link Proxy} instances. This handler stores
  * useful information to validate the proper resources handling of underlying connection factory.
  */
-@ThreadSafe
 public final class ConnectionFactoryInvocationHandler implements InvocationHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionFactoryInvocationHandler.class);

@@ -90,19 +90,8 @@
                 <version>${jolt.version}</version>
             </dependency>
             <dependency>
-                <groupId>javax.servlet.jsp</groupId>
-                <artifactId>javax.servlet.jsp-api</artifactId>
-                <version>2.3.3</version>
-            </dependency>
-            <dependency>
-                <groupId>javax.servlet</groupId>
-                <artifactId>javax.servlet-api</artifactId>
-                <version>3.1.0</version>
-            </dependency>
-            <dependency>
-                <groupId>javax.ws.rs</groupId>
-                <artifactId>javax.ws.rs-api</artifactId>
-                <version>2.1.1</version>
+                <groupId>jakarta.ws.rs</groupId>
+                <artifactId>jakarta.ws.rs-api</artifactId>
             </dependency>
             <dependency>
                 <groupId>com.yammer.metrics</groupId>
@@ -220,33 +209,6 @@
                 <groupId>com.github.wnameless.json</groupId>
                 <artifactId>json-flattener</artifactId>
                 <version>0.16.6</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.bval</groupId>
-                <artifactId>bval-jsr</artifactId>
-                <version>1.1.2</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.apache.tomcat</groupId>
-                        <artifactId>tomcat-el-api</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.apache.geronimo.specs</groupId>
-                        <artifactId>geronimo-annotation_1.2_spec</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.apache.geronimo.specs</groupId>
-                        <artifactId>geronimo-jcdi_1.1.spec</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.apache.geronimo.specs</groupId>
-                        <artifactId>geronimo-jpa_2.0.spec</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.apache.bval</groupId>
-                        <artifactId>bval-xstream</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.krakens</groupId>
