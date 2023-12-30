@@ -22,8 +22,8 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.requests.ContentLengthFilter;
 import org.apache.nifi.web.server.log.RequestAuthenticationFilter;
-import org.eclipse.jetty.servlet.FilterHolder;
-import org.eclipse.jetty.servlets.DoSFilter;
+import org.eclipse.jetty.ee10.servlet.FilterHolder;
+import org.eclipse.jetty.ee10.servlets.DoSFilter;
 import org.springframework.security.web.header.HeaderWriter;
 import org.springframework.security.web.header.HeaderWriterFilter;
 import org.springframework.security.web.header.writers.ContentSecurityPolicyHeaderWriter;
@@ -32,7 +32,7 @@ import org.springframework.security.web.header.writers.XContentTypeOptionsHeader
 import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
 import org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter;
 
-import javax.servlet.Filter;
+import jakarta.servlet.Filter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

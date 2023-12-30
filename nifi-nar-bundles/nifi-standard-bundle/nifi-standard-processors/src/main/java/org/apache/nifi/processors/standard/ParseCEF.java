@@ -27,7 +27,6 @@ import com.fluenda.parcefone.event.CEFHandlingException;
 import com.fluenda.parcefone.event.CommonEvent;
 import com.fluenda.parcefone.event.MacAddress;
 import com.fluenda.parcefone.parser.CEFParser;
-import org.apache.bval.jsr.ApacheValidationProvider;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -54,7 +53,6 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 
-import javax.validation.Validation;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -199,9 +197,6 @@ public class ParseCEF extends AbstractProcessor {
         .description("Any FlowFile that is successfully parsed as a CEF message will be transferred to this Relationship.")
         .build();
 
-    // Create a Bean validator to be shared by the parser instances.
-    final javax.validation.Validator validator = Validation.byProvider(ApacheValidationProvider.class).configure().buildValidatorFactory().getValidator();
-
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor>properties = new ArrayList<>();
@@ -254,7 +249,7 @@ public class ParseCEF extends AbstractProcessor {
             return;
         }
 
-        final CEFParser parser = new CEFParser(validator);
+        final CEFParser parser = new CEFParser();
 
         final byte[] buffer = new byte[(int) flowFile.getSize()];
         session.read(flowFile, new InputStreamCallback() {
@@ -270,9 +265,8 @@ public class ParseCEF extends AbstractProcessor {
             // parcefoneLocale defaults to en_US, so this should not fail. But we force failure in case the custom
             // validator failed to identify an invalid Locale
             final Locale parcefoneLocale = Locale.forLanguageTag(context.getProperty(DATETIME_REPRESENTATION).getValue());
-            final boolean validateData = context.getProperty(VALIDATE_DATA).asBoolean();
             final boolean acceptEmptyExtensions = context.getProperty(ACCEPT_EMPTY_EXTENSIONS).asBoolean();
-            event = parser.parse(buffer, validateData, acceptEmptyExtensions, parcefoneLocale);
+            event = parser.parse(buffer, false, acceptEmptyExtensions, parcefoneLocale);
 
         } catch (Exception e) {
             // This should never trigger but adding in here as a fencing mechanism to

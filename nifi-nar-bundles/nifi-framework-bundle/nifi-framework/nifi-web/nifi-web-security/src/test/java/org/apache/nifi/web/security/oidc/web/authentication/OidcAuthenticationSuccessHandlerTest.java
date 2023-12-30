@@ -38,8 +38,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.Cookie;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.Cookie;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;

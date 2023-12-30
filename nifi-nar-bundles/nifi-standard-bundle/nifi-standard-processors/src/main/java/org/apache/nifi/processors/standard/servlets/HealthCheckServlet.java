@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.processors.standard.servlets;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.Path;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.ws.rs.Path;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
@@ -28,7 +27,7 @@ import java.nio.charset.StandardCharsets;
 public class HealthCheckServlet extends HttpServlet {
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         response.setStatus(HttpServletResponse.SC_OK);
         response.getOutputStream().write("OK".getBytes(StandardCharsets.UTF_8));
     }

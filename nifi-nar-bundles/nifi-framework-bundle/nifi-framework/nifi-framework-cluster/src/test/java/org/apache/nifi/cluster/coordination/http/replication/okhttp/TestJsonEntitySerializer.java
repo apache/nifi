@@ -33,7 +33,7 @@ import org.apache.nifi.web.api.entity.ProcessorEntity;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
+import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -43,7 +43,7 @@ public class TestJsonEntitySerializer {
     @Test
     public void testSerializeProcessor() throws IOException {
         final ObjectMapper jsonCodec = new ObjectMapper();
-        jsonCodec.registerModule(new JaxbAnnotationModule());
+        jsonCodec.registerModule(new JakartaXmlBindAnnotationModule());
         jsonCodec.setSerializationInclusion(Include.NON_NULL);
 
         // Test that we can properly serialize a ProcessorEntity because it has many nested levels, including a Map
@@ -69,7 +69,7 @@ public class TestJsonEntitySerializer {
     @Test
     public void testBulletinEntity() throws Exception {
         final ObjectMapper jsonCodec = new ObjectMapper();
-        jsonCodec.registerModule(new JaxbAnnotationModule());
+        jsonCodec.registerModule(new JakartaXmlBindAnnotationModule());
         jsonCodec.setSerializationInclusion(Include.NON_NULL);
         jsonCodec.setConfig(jsonCodec.getSerializationConfig().with(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY));
 

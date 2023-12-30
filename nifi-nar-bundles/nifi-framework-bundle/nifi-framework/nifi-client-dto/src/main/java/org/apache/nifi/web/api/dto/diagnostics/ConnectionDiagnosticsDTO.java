@@ -19,7 +19,7 @@ package org.apache.nifi.web.api.dto.diagnostics;
 import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
 
 @XmlType(name="connectionDiagnostics")

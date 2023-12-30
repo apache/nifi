@@ -20,7 +20,7 @@ package org.apache.nifi.cluster.protocol.message;
 import org.apache.nifi.cluster.coordination.node.NodeWorkload;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.Map;
 
 @XmlRootElement(name = "clusterWorkloadResponse")

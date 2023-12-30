@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.jms.cf;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
@@ -33,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLContext;
 import java.net.URISyntaxException;
 import java.util.Collections;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -336,7 +336,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(ImmutableMap.of("hostName", HOSTNAME, "port", PORT), cfProvider.getConfiguredProperties());
+        assertEquals(Map.of("hostName", HOSTNAME, "port", PORT), cfProvider.getConfiguredProperties());
     }
 
     @Test
@@ -352,7 +352,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(ImmutableMap.of(), cfProvider.getConfiguredProperties());
+        assertEquals(Map.of(), cfProvider.getConfiguredProperties());
     }
 
     @Test
@@ -368,7 +368,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(ImmutableMap.of("hostName", "myhost01", "port", "1234"), cfProvider.getConfiguredProperties());
+        assertEquals(Map.of("hostName", "myhost01", "port", "1234"), cfProvider.getConfiguredProperties());
     }
 
     @Test
@@ -384,7 +384,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(ImmutableMap.of("brokerURL", SINGLE_ACTIVEMQ_BROKER), cfProvider.getConfiguredProperties());
+        assertEquals(Map.of("brokerURL", SINGLE_ACTIVEMQ_BROKER), cfProvider.getConfiguredProperties());
     }
 
     @Test
@@ -400,7 +400,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(ImmutableMap.of("brokerURL", MULTIPLE_ACTIVEMQ_BROKERS), cfProvider.getConfiguredProperties());
+        assertEquals(Map.of("brokerURL", MULTIPLE_ACTIVEMQ_BROKERS), cfProvider.getConfiguredProperties());
     }
 
     @Test
@@ -439,16 +439,16 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(ImmutableMap.builder()
-                        .put("brokerURL", SINGLE_ACTIVEMQ_BROKER)
-                        .put("trustStore", trustStoreFile)
-                        .put("trustStorePassword", trustStorePassword)
-                        .put("trustStoreType", trustStoreType)
-                        .put("keyStore", keyStoreFile)
-                        .put("keyStorePassword", keyStorePassword)
-                        .put("keyStoreKeyPassword", keyPassword)
-                        .put("keyStoreType", keyStoreType)
-                        .build(),
+        assertEquals(Map.of(
+                        "brokerURL", SINGLE_ACTIVEMQ_BROKER,
+                        "trustStore", trustStoreFile,
+                        "trustStorePassword", trustStorePassword,
+                        "trustStoreType", trustStoreType,
+                        "keyStore", keyStoreFile,
+                        "keyStorePassword", keyStorePassword,
+                        "keyStoreKeyPassword", keyPassword,
+                        "keyStoreType", keyStoreType
+                        ),
                 cfProvider.getConfiguredProperties());
     }
 
@@ -465,7 +465,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(ImmutableMap.of("serverUrl", SINGLE_TIBCO_BROKER), cfProvider.getConfiguredProperties());
+        assertEquals(Map.of("serverUrl", SINGLE_TIBCO_BROKER), cfProvider.getConfiguredProperties());
     }
 
     @Test
@@ -481,7 +481,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(ImmutableMap.of("serverUrl", MULTIPLE_TIBCO_BROKERS), cfProvider.getConfiguredProperties());
+        assertEquals(Map.of("serverUrl", MULTIPLE_TIBCO_BROKERS), cfProvider.getConfiguredProperties());
     }
 
     @Test
@@ -497,7 +497,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(ImmutableMap.of("connectionNameList", SINGLE_IBM_MQ_BROKER), cfProvider.getConfiguredProperties());
+        assertEquals(Map.of("connectionNameList", SINGLE_IBM_MQ_BROKER), cfProvider.getConfiguredProperties());
     }
 
     @Test
@@ -513,7 +513,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(ImmutableMap.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS), cfProvider.getConfiguredProperties());
+        assertEquals(Map.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS), cfProvider.getConfiguredProperties());
     }
 
     @Test
@@ -529,7 +529,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(ImmutableMap.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS), cfProvider.getConfiguredProperties());
+        assertEquals(Map.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS), cfProvider.getConfiguredProperties());
     }
 
     @Test
@@ -545,7 +545,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(ImmutableMap.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS), cfProvider.getConfiguredProperties());
+        assertEquals(Map.of("connectionNameList", MULTIPLE_IBM_MQ_BROKERS), cfProvider.getConfiguredProperties());
     }
 
     @Test
@@ -561,7 +561,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(ImmutableMap.of("connectionNameList", HOSTNAME + "(" + PORT + ")"), cfProvider.getConfiguredProperties());
+        assertEquals(Map.of("connectionNameList", HOSTNAME + "(" + PORT + ")"), cfProvider.getConfiguredProperties());
     }
 
     @Test
@@ -580,7 +580,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(ImmutableMap.of("dynamicProperty", "dynamicValue", "hostName", HOSTNAME, "port", PORT), cfProvider.getConfiguredProperties());
+        assertEquals(Map.of("dynamicProperty", "dynamicValue", "hostName", HOSTNAME, "port", PORT), cfProvider.getConfiguredProperties());
     }
 
     @Test
@@ -596,7 +596,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(ImmutableMap.of("remoteURI", SINGLE_QPID_JMS_BROKER), cfProvider.getConfiguredProperties());
+        assertEquals(Map.of("remoteURI", SINGLE_QPID_JMS_BROKER), cfProvider.getConfiguredProperties());
     }
 
     @Test
@@ -620,6 +620,6 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.enableControllerService(cfProvider);
 
-        assertEquals(ImmutableMap.of("remoteURI", SINGLE_QPID_JMS_BROKER, "sslContext", sslContext), cfProvider.getConfiguredProperties());
+        assertEquals(Map.of("remoteURI", SINGLE_QPID_JMS_BROKER, "sslContext", sslContext), cfProvider.getConfiguredProperties());
     }
 }

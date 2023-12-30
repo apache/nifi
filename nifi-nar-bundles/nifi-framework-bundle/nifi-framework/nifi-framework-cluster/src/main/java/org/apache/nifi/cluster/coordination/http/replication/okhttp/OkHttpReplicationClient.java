@@ -20,7 +20,7 @@ package org.apache.nifi.cluster.coordination.http.replication.okhttp;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonInclude.Value;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
+import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -40,10 +40,10 @@ import java.util.zip.GZIPInputStream;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.HttpMethod;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
 import okhttp3.Call;
 import okhttp3.ConnectionPool;
 import okhttp3.Headers;
@@ -79,7 +79,7 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
 
     public OkHttpReplicationClient(final NiFiProperties properties) {
         jsonCodec.setDefaultPropertyInclusion(Value.construct(Include.NON_NULL, Include.ALWAYS));
-        jsonCodec.setAnnotationIntrospector(new JaxbAnnotationIntrospector(jsonCodec.getTypeFactory()));
+        jsonCodec.setAnnotationIntrospector(new JakartaXmlBindAnnotationIntrospector(jsonCodec.getTypeFactory()));
 
         jsonSerializer = new JsonEntitySerializer(jsonCodec);
         xmlSerializer = new XmlEntitySerializer();

@@ -30,8 +30,7 @@ import org.mockito.Captor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.net.ssl.SSLContext;
-import java.io.File;
-import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,9 +45,9 @@ import static org.mockito.Mockito.when;
 public class StoreScannerTest {
     private SslContextFactory sslContextFactory;
     private static TlsConfiguration tlsConfiguration;
-    private static File keyStoreFile;
-    private static File trustStoreFile;
-    private static Map<File, StoreScanner> filesToScannerMap;
+    private static Path keyStoreFile;
+    private static Path trustStoreFile;
+    private static Map<Path, StoreScanner> filesToScannerMap;
 
     @Captor
     private ArgumentCaptor<Consumer<SslContextFactory>> consumerArgumentCaptor;
@@ -56,19 +55,19 @@ public class StoreScannerTest {
     @BeforeAll
     public static void initClass() {
         tlsConfiguration = new TemporaryKeyStoreBuilder().build();
-        keyStoreFile = Paths.get(tlsConfiguration.getKeystorePath()).toFile();
-        trustStoreFile = Paths.get(tlsConfiguration.getTruststorePath()).toFile();
+        keyStoreFile = Paths.get(tlsConfiguration.getKeystorePath());
+        trustStoreFile = Paths.get(tlsConfiguration.getTruststorePath());
     }
 
     @BeforeEach
-    public void init() throws IOException {
+    public void init() {
         sslContextFactory = mock(SslContextFactory.class);
         Resource keyStoreResource = mock(Resource.class);
-        when(keyStoreResource.getFile()).thenReturn(keyStoreFile);
+        when(keyStoreResource.getPath()).thenReturn(keyStoreFile);
         when(sslContextFactory.getKeyStoreResource()).thenReturn(keyStoreResource);
 
         Resource trustStoreResource = mock(Resource.class);
-        when(trustStoreResource.getFile()).thenReturn(trustStoreFile);
+        when(trustStoreResource.getPath()).thenReturn(trustStoreFile);
         when(sslContextFactory.getTrustStoreResource()).thenReturn(trustStoreResource);
 
         final StoreScanner keyStoreScanner = new StoreScanner(sslContextFactory, tlsConfiguration, sslContextFactory.getKeyStoreResource());
@@ -80,10 +79,10 @@ public class StoreScannerTest {
 
     @Test
     public void testFileAdded() throws Exception {
-        for (final Map.Entry<File, StoreScanner> entry : filesToScannerMap.entrySet()) {
-            final File file = entry.getKey();
+        for (final Map.Entry<Path, StoreScanner> entry : filesToScannerMap.entrySet()) {
+            final Path file = entry.getKey();
             final StoreScanner scanner = entry.getValue();
-            scanner.fileAdded(file.getAbsolutePath());
+            scanner.fileAdded(file.toAbsolutePath().toString());
 
             verify(sslContextFactory).reload(consumerArgumentCaptor.capture());
 
@@ -96,10 +95,10 @@ public class StoreScannerTest {
 
     @Test
     public void testFileChanged() throws Exception {
-        for (final Map.Entry<File, StoreScanner> entry : filesToScannerMap.entrySet()) {
-            final File file = entry.getKey();
+        for (final Map.Entry<Path, StoreScanner> entry : filesToScannerMap.entrySet()) {
+            final Path file = entry.getKey();
             final StoreScanner scanner = entry.getValue();
-            scanner.fileChanged(file.getAbsolutePath());
+            scanner.fileChanged(file.toAbsolutePath().toString());
 
             verify(sslContextFactory).reload(consumerArgumentCaptor.capture());
 
@@ -112,10 +111,10 @@ public class StoreScannerTest {
 
     @Test
     public void testFileRemoved() throws Exception {
-        for (final Map.Entry<File, StoreScanner> entry : filesToScannerMap.entrySet()) {
-            final File file = entry.getKey();
+        for (final Map.Entry<Path, StoreScanner> entry : filesToScannerMap.entrySet()) {
+            final Path file = entry.getKey();
             final StoreScanner scanner = entry.getValue();
-            scanner.fileRemoved(file.getAbsolutePath());
+            scanner.fileRemoved(file.toAbsolutePath().toString());
 
             verify(sslContextFactory).reload(consumerArgumentCaptor.capture());
 
@@ -128,7 +127,7 @@ public class StoreScannerTest {
 
     @Test
     public void testReload() throws Exception {
-        for (final Map.Entry<File, StoreScanner> entry : filesToScannerMap.entrySet()) {
+        for (final Map.Entry<Path, StoreScanner> entry : filesToScannerMap.entrySet()) {
             final StoreScanner scanner = entry.getValue();
             scanner.reload();
 

@@ -299,7 +299,6 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) jersey-media-jaxb (org.glassfish.jersey.media:jersey-media-jaxb:jar:2.27 - https://jersey.github.io/)
     (CDDL 1.1) (GPL2 w/ CPE) jersey-media-json-jackson (org.glassfish.jersey.media:jersey-media-json-jackson:jar:2.27 - https://jersey.github.io/)
     (CDDL 1.1) (GPL2 w/ CPE) jersey-server (org.glassfish.jersey.core:jersey-server:jar:2.27 - https://jersey.github.io/)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-spring4 (org.glassfish.jersey.ext:jersey-spring4:jar:2.27 - https://jersey.github.io/)
     (CDDL 1.1) (GPL2 w/ CPE) OSGi resource locator bundle (org.glassfish.hk2:osgi-resource-locator:jar:1.0.1 - https://glassfish.org/osgi-resource-locator)
 
 

@@ -19,8 +19,9 @@ package org.apache.nifi.websocket.jetty;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.eclipse.jetty.websocket.api.Callback;
 import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.WebSocketAdapter;
+import org.eclipse.jetty.websocket.api.Session.Listener.AbstractAutoDemanding;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -89,10 +90,10 @@ public class TestJettyWebSocketServer {
         final AtomicBoolean connected = new AtomicBoolean();
 
         final WebSocketClient client = new WebSocketClient();
-        final WebSocketAdapter adapter = new WebSocketAdapter() {
+        final Session.Listener.AutoDemanding adapter = new AbstractAutoDemanding() {
             @Override
-            public void onWebSocketConnect(Session session) {
-                super.onWebSocketConnect(session);
+            public void onWebSocketOpen(Session session) {
+                super.onWebSocketOpen(session);
                 connected.set(true);
             }
 
@@ -109,7 +110,7 @@ public class TestJettyWebSocketServer {
             final URI uri = getWebSocketUri(server.getListeningPort());
             final Future<Session> connectSession = client.connect(adapter, uri);
             final Session session = connectSession.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            session.getRemote().sendString(command);
+            session.sendText(command, new Callback.Completable());
             session.close();
 
             assertTrue(connected.get(), "Connection not found");

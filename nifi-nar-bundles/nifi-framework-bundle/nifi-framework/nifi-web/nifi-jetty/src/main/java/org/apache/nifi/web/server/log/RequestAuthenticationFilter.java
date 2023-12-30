@@ -17,19 +17,19 @@
 package org.apache.nifi.web.server.log;
 
 import org.apache.nifi.web.security.log.AuthenticationUserAttribute;
-import org.eclipse.jetty.security.DefaultUserIdentity;
-import org.eclipse.jetty.security.UserAuthentication;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.UserIdentity;
+import org.eclipse.jetty.security.AuthenticationState;
+import org.eclipse.jetty.security.authentication.LoginAuthenticator;
+import org.eclipse.jetty.security.internal.DefaultUserIdentity;
+import org.eclipse.jetty.security.UserIdentity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.security.auth.Subject;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.security.Principal;
 
@@ -58,18 +58,15 @@ public class RequestAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse, final FilterChain filterChain) throws ServletException, IOException {
         filterChain.doFilter(httpServletRequest, httpServletResponse);
 
-        if (httpServletRequest instanceof Request) {
-            final Request request = (Request) httpServletRequest;
-            final Object usernameAttribute = httpServletRequest.getAttribute(AuthenticationUserAttribute.USERNAME.getName());
-            if (usernameAttribute == null) {
-                logger.debug("Username not found Remote Address [{}]", httpServletRequest.getRemoteAddr());
-            } else {
-                final String username = usernameAttribute.toString();
-                final Principal principal = new UserPrincipal(username);
-                final UserIdentity userIdentity = new DefaultUserIdentity(DEFAULT_SUBJECT, principal, DEFAULT_ROLES);
-                final UserAuthentication authentication = new UserAuthentication(METHOD, userIdentity);
-                request.setAuthentication(authentication);
-            }
+        final Object usernameAttribute = httpServletRequest.getAttribute(AuthenticationUserAttribute.USERNAME.getName());
+        if (usernameAttribute == null) {
+            logger.debug("Username not found Remote Address [{}]", httpServletRequest.getRemoteAddr());
+        } else {
+            final String username = usernameAttribute.toString();
+            final Principal principal = new UserPrincipal(username);
+            final UserIdentity userIdentity = new DefaultUserIdentity(DEFAULT_SUBJECT, principal, DEFAULT_ROLES);
+            final AuthenticationState.Succeeded authenticationState = new LoginAuthenticator.UserAuthenticationSucceeded(METHOD, userIdentity);
+            httpServletRequest.setAttribute(AuthenticationState.class.getName(), authenticationState);
         }
     }
 }

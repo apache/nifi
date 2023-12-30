@@ -39,12 +39,11 @@ import org.apache.nifi.websocket.jetty.dto.SessionInfo;
 import org.apache.nifi.websocket.jetty.util.HeaderMapExtractor;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.HttpProxy;
-import org.eclipse.jetty.client.dynamic.HttpClientTransportDynamic;
+import org.eclipse.jetty.client.transport.HttpClientTransportDynamic;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.io.ClientConnector;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.WebSocketPolicy;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 
@@ -470,7 +469,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         return webSocketUri.toString();
     }
 
-    private void configurePolicy(final ConfigurationContext context, final WebSocketPolicy policy) {
+    private void configurePolicy(final ConfigurationContext context, final WebSocketClient policy) {
         final int inputBufferSize = context.getProperty(INPUT_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxTextMessageSize = context.getProperty(MAX_TEXT_MESSAGE_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxBinaryMessageSize = context.getProperty(MAX_BINARY_MESSAGE_SIZE).asDataSize(DataUnit.B).intValue();

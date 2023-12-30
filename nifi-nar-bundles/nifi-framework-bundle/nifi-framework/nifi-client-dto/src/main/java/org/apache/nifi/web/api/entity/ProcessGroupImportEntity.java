@@ -20,7 +20,7 @@ package org.apache.nifi.web.api.entity;
 import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * Entity for importing a process group that has been previously downloaded

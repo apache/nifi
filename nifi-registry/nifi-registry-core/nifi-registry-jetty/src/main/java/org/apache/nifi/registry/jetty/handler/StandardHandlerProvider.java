@@ -19,6 +19,7 @@ package org.apache.nifi.registry.jetty.handler;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.apache.nifi.registry.security.crypto.CryptoKeyProvider;
+import org.eclipse.jetty.ee10.webapp.MetaInfConfiguration;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.ee10.servlet.DefaultServlet;
@@ -32,6 +33,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,8 +45,6 @@ import java.util.regex.Pattern;
  * Standard Jetty Handler Provider responsible for loading web applications
  */
 public class StandardHandlerProvider implements HandlerProvider {
-    private static final String DEFAULTS_DESCRIPTOR = "org/apache/nifi-registry/web/webdefault.xml";
-
     private static final int MAX_FORM_CONTENT_SIZE = 600000;
 
     private static final String UI_CONTEXT_PATH = "/nifi-registry";
@@ -61,9 +61,11 @@ public class StandardHandlerProvider implements HandlerProvider {
 
     private static final String HTML_DOCS_PATH = "/html/*";
 
+    private static final String HTML_DOCS_RELATIVE_DIRECTORY = "html";
+
     private static final String REST_API_DOCS_PATH = "/rest-api/*";
 
-    private static final String REST_API_DOCS_RELATIVE_PATH = "webapp/docs";
+    private static final String REST_API_DOCS_RELATIVE_PATH = "webapp/docs/rest-api";
 
     private static final String OIDC_SUPPORTED_PARAMETER = "oidc-supported";
 
@@ -71,13 +73,15 @@ public class StandardHandlerProvider implements HandlerProvider {
 
     private static final String KEY_PROVIDER_PARAMETER = "nifi-registry.key";
 
-    private static final String RESOURCE_BASE_PARAMETER = "resourceBase";
+    private static final String RESOURCE_BASE_PARAMETER = "baseResource";
 
     private static final String DIR_ALLOWED_PARAMETER = "dirAllowed";
 
     private static final String WEB_INF_JAR_PATTERN_ATTRIBUTE = "org.eclipse.jetty.server.webapp.WebInfIncludeJarPattern";
 
     private static final String WEB_INF_JAR_PATTERN = ".*/spring-[^/]*\\.jar$";
+
+    private static final String CONTAINER_JAR_PATTERN = ".*/jetty-jakarta-servlet-api-[^/]*\\.jar$|.*jakarta.servlet.jsp.jstl-[^/]*\\.jar";
 
     private final CryptoKeyProvider cryptoKeyProvider;
 
@@ -116,11 +120,11 @@ public class StandardHandlerProvider implements HandlerProvider {
         handlers.addHandler(apiContext);
 
         final WebAppContext docsContext = getWebAppContext(libDirectory, workDirectory, ClassLoader.getSystemClassLoader(), DOCS_FILE_PATTERN, DOCS_CONTEXT_PATH);
-        final File docsDir = getDocsDir();
+        final Path docsDir = getDocsDirectory();
         final ServletHolder docsServletHolder = getDocsServletHolder(docsDir);
         docsContext.addServlet(docsServletHolder, HTML_DOCS_PATH);
 
-        final File apiDocsDir = getApiDocsDir(apiContext);
+        final Path apiDocsDir = getApiDocsDirectory(apiContext);
         final ServletHolder apiDocsServletHolder = getDocsServletHolder(apiDocsDir);
         docsContext.addServlet(apiDocsServletHolder, REST_API_DOCS_PATH);
 
@@ -150,9 +154,9 @@ public class StandardHandlerProvider implements HandlerProvider {
         final File applicationFile = getApplicationFile(libDirectory, applicationFilePattern);
         final WebAppContext webAppContext = new WebAppContext(applicationFile.getPath(), contextPath);
         webAppContext.setContextPath(contextPath);
-        webAppContext.setDefaultsDescriptor(DEFAULTS_DESCRIPTOR);
         webAppContext.setMaxFormContentSize(MAX_FORM_CONTENT_SIZE);
         webAppContext.setAttribute(WEB_INF_JAR_PATTERN_ATTRIBUTE, WEB_INF_JAR_PATTERN);
+        webAppContext.setAttribute(MetaInfConfiguration.CONTAINER_JAR_PATTERN, CONTAINER_JAR_PATTERN);
         webAppContext.setErrorHandler(getErrorHandler());
 
         final File tempDirectory = getTempDirectory(workDirectory, applicationFile.getName());
@@ -232,31 +236,32 @@ public class StandardHandlerProvider implements HandlerProvider {
         }
     }
 
-    private File getDocsDir() {
-        File docsDir;
+    private Path getDocsDirectory() {
+        final Path docsDirectoryPath = Paths.get(docsDirectory);
+        Path docsDir;
         try {
-            docsDir = Paths.get(docsDirectory).toRealPath().toFile();
+            docsDir = docsDirectoryPath.toRealPath();
         } catch (IOException e) {
-            docsDir = new File(docsDirectory).getAbsoluteFile();
-            if (!docsDir.mkdirs()) {
-                final String message = String.format("Documentation Directory [%s] creation failed", docsDir.getAbsolutePath());
+            docsDir = docsDirectoryPath;
+            if (!docsDir.toFile().mkdirs()) {
+                final String message = String.format("Documentation Directory [%s] creation failed", docsDirectory);
                 throw new IllegalStateException(message);
             }
         }
-        return docsDir;
+        return docsDir.resolve(HTML_DOCS_RELATIVE_DIRECTORY);
     }
 
-    private ServletHolder getDocsServletHolder(final File directory) {
-        final ServletHolder servletHolder = new ServletHolder(directory.getPath(), DefaultServlet.class);
-        servletHolder.setInitParameter(RESOURCE_BASE_PARAMETER, directory.getPath());
+    private ServletHolder getDocsServletHolder(final Path directory) {
+        final ServletHolder servletHolder = new ServletHolder(directory.getFileName().toString(), DefaultServlet.class);
+        servletHolder.setInitParameter(RESOURCE_BASE_PARAMETER, directory.toString());
         servletHolder.setInitParameter(DIR_ALLOWED_PARAMETER, Boolean.FALSE.toString());
         return servletHolder;
     }
 
-    private File getApiDocsDir(final WebAppContext apiContext) {
+    private Path getApiDocsDirectory(final WebAppContext apiContext) {
         final File apiDocsDir = new File(apiContext.getTempDirectory(), REST_API_DOCS_RELATIVE_PATH);
         if (apiDocsDir.canRead() || apiDocsDir.mkdirs()) {
-            return apiDocsDir;
+            return apiDocsDir.toPath();
         }
         throw new IllegalStateException(String.format("REST API Documentation Directory [%s] not readable", apiDocsDir.getAbsolutePath()));
     }

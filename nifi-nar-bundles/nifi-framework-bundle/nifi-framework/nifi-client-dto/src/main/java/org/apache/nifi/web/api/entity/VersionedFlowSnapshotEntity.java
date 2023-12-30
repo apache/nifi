@@ -21,7 +21,7 @@ import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "versionedFlowSnapshotEntity")
 public class VersionedFlowSnapshotEntity extends Entity {

@@ -41,7 +41,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.function.Function;
-import javax.xml.bind.DatatypeConverter;
+import jakarta.xml.bind.DatatypeConverter;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.FlowFileFilter;

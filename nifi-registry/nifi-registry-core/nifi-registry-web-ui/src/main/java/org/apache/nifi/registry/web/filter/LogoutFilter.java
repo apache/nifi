@@ -20,9 +20,10 @@ import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.FilterConfig;
 import jakarta.servlet.ServletContext;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 
 /**
@@ -33,19 +34,19 @@ public class LogoutFilter implements Filter {
     private ServletContext servletContext;
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
+    public void init(FilterConfig filterConfig) {
         servletContext = filterConfig.getServletContext();
     }
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException {
         final boolean supportsOidc = Boolean.parseBoolean(servletContext.getInitParameter("oidc-supported"));
+
+        final HttpServletResponse httpServletResponse = (HttpServletResponse) response;
         if (supportsOidc) {
-            final ServletContext apiContext = servletContext.getContext("/nifi-registry-api");
-            apiContext.getRequestDispatcher("/access/oidc/logout").forward(request, response);
+            httpServletResponse.sendRedirect("/nifi-registry-api/access/oidc/logout");
         } else {
-            final ServletContext apiContext = servletContext.getContext("/nifi-registry-api");
-            apiContext.getRequestDispatcher("/access/logout/complete").forward(request, response);
+            httpServletResponse.sendRedirect("/nifi-registry-api/access/logout/complete");
         }
     }
 

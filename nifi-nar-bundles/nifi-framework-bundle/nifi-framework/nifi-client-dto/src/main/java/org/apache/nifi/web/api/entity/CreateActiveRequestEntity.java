@@ -19,7 +19,7 @@ package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "createActiveRequestEntity")
 public class CreateActiveRequestEntity extends Entity {

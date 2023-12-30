@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.c2.service;
 
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MediaType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

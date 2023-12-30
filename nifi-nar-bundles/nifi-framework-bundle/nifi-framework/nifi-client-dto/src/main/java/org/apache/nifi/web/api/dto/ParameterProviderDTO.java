@@ -21,7 +21,7 @@ import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;

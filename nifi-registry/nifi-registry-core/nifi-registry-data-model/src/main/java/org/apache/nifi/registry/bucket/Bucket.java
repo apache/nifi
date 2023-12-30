@@ -21,7 +21,7 @@ import io.swagger.annotations.ApiModelProperty;
 import java.util.Objects;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.registry.authorization.Permissions;
 import org.apache.nifi.registry.link.LinkableEntity;
 import org.apache.nifi.registry.revision.entity.RevisableEntity;

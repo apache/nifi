@@ -50,7 +50,7 @@ import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.WebApplicationException;
+import jakarta.ws.rs.WebApplicationException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;

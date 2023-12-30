@@ -18,7 +18,7 @@ package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Run status for a given ControllerService.

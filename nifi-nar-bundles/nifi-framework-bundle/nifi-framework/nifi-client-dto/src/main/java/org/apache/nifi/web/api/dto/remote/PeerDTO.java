@@ -18,7 +18,7 @@ package org.apache.nifi.web.api.dto.remote;
 
 import io.swagger.annotations.ApiModelProperty;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Details of a Site-to-Site peer within this NiFi.

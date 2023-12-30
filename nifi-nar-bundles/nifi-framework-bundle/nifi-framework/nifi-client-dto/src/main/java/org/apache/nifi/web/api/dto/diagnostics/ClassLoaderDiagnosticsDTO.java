@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.dto.diagnostics;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 import org.apache.nifi.web.api.dto.BundleDTO;
 

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.jetty.configuration.connector;
 
-import org.apache.nifi.jetty.configuration.connector.alpn.ALPNServerConnectionFactory;
+import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.http.HttpScheme;
 import org.eclipse.jetty.http2.HTTP2Cipher;
 import org.eclipse.jetty.http2.server.HTTP2ServerConnectionFactory;
@@ -45,6 +45,14 @@ public class StandardServerConnectorFactory implements ServerConnectorFactory {
     private static final String[] INCLUDE_ALL_SECURITY_PROTOCOLS = new String[0];
 
     private static final Set<ApplicationLayerProtocol> DEFAULT_APPLICATION_LAYER_PROTOCOLS = Collections.singleton(ApplicationLayerProtocol.HTTP_1_1);
+
+    private static final String ALPN_PROTOCOL = "alpn";
+
+    private static final String[] APPLICATION_PROTOCOLS = new String[]{
+            ALPN_PROTOCOL,
+            ApplicationLayerProtocol.H2.getProtocol(),
+            ApplicationLayerProtocol.HTTP_1_1.getProtocol()
+    };
 
     private final Server server;
 
@@ -90,7 +98,7 @@ public class StandardServerConnectorFactory implements ServerConnectorFactory {
         } else {
             final List<ConnectionFactory> connectionFactories = new ArrayList<>();
             if (applicationLayerProtocols.contains(ApplicationLayerProtocol.H2)) {
-                final ALPNServerConnectionFactory alpnServerConnectionFactory = new ALPNServerConnectionFactory();
+                final ALPNServerConnectionFactory alpnServerConnectionFactory = new ALPNServerConnectionFactory(APPLICATION_PROTOCOLS);
                 final HTTP2ServerConnectionFactory http2ServerConnectionFactory = new HTTP2ServerConnectionFactory(httpConfiguration);
 
                 connectionFactories.add(alpnServerConnectionFactory);

@@ -20,7 +20,7 @@ package org.apache.nifi.minifi.c2.service;
 import org.apache.nifi.minifi.c2.api.Configuration;
 import org.apache.nifi.minifi.c2.api.ConfigurationProviderException;
 
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MediaType;
 
 public class ConfigurationProviderValue {
     private final Configuration configuration;

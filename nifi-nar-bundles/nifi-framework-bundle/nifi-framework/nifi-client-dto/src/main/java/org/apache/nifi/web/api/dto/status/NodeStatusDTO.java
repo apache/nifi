@@ -19,7 +19,7 @@ package org.apache.nifi.web.api.dto.status;
 import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.NodeDTO;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * DTO for serializing the node status.

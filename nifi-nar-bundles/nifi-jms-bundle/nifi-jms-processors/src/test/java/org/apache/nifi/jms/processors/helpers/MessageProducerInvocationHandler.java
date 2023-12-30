@@ -21,7 +21,7 @@ import java.lang.reflect.Method;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.jms.MessageProducer;
+import jakarta.jms.MessageProducer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

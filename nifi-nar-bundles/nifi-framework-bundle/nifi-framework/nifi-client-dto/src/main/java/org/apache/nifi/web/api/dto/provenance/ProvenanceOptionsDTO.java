@@ -18,7 +18,7 @@ package org.apache.nifi.web.api.dto.provenance;
 
 import io.swagger.annotations.ApiModelProperty;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
 
 /**

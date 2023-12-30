@@ -18,7 +18,7 @@ package org.apache.nifi.web.api.dto.action.component.details;
 
 import io.swagger.annotations.ApiModelProperty;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Extension details for an action.

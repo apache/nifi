@@ -68,18 +68,17 @@ import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.core.CacheControl;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
-import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriInfo;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.ws.rs.core.CacheControl;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.ResponseBuilder;
+import jakarta.ws.rs.core.UriBuilder;
+import jakarta.ws.rs.core.UriInfo;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -95,7 +94,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static javax.ws.rs.core.Response.Status.NOT_FOUND;
+import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
@@ -114,8 +113,6 @@ public abstract class ApplicationResource {
     public static final String VERSION = "version";
     public static final String CLIENT_ID = "clientId";
     public static final String DISCONNECTED_NODE_ACKNOWLEDGED = "disconnectedNodeAcknowledged";
-    static final String LOGIN_ERROR_TITLE = "Unable to continue login sequence";
-    static final String LOGOUT_ERROR_TITLE = "Unable to continue logout sequence";
 
     protected static final String NON_GUARANTEED_ENDPOINT = "Note: This endpoint is subject to change as NiFi and it's REST API evolve.";
 
@@ -139,23 +136,6 @@ public abstract class ApplicationResource {
 
     private static final int MAX_CACHE_SOFT_LIMIT = 500;
     private final Cache<CacheKey, Request<? extends Entity>> twoPhaseCommitCache = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
-
-    protected void forwardToLoginMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse, final String message) throws Exception {
-        forwardToMessagePage(httpServletRequest, httpServletResponse, LOGIN_ERROR_TITLE, message);
-    }
-
-    protected void forwardToLogoutMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse, final String message) throws Exception {
-        forwardToMessagePage(httpServletRequest, httpServletResponse, LOGOUT_ERROR_TITLE, message);
-    }
-
-    protected void forwardToMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse,
-                                      final String title, final String message) throws Exception {
-        httpServletRequest.setAttribute("title", title);
-        httpServletRequest.setAttribute("messages", message);
-
-        final ServletContext uiContext = httpServletRequest.getServletContext().getContext("/nifi");
-        uiContext.getRequestDispatcher("/WEB-INF/pages/message-page.jsp").forward(httpServletRequest, httpServletResponse);
-    }
 
     /**
      * Generate a resource uri based off of the specified parameters.
@@ -283,10 +263,6 @@ public abstract class ApplicationResource {
 
     protected URI getAbsolutePath() {
         return uriInfo.getAbsolutePath();
-    }
-
-    protected URI getRequestUri() {
-        return uriInfo.getRequestUri();
     }
 
     protected MultivaluedMap<String, String> getRequestParameters() {

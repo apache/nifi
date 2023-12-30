@@ -57,8 +57,8 @@ import org.glassfish.jersey.server.filter.EncodingFilter;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
-import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
+import jakarta.servlet.ServletContext;
+import jakarta.ws.rs.core.Context;
 
 public class NiFiWebApiResourceConfig extends ResourceConfig {
 

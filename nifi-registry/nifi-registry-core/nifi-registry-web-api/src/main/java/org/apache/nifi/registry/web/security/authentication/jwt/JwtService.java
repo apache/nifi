@@ -105,7 +105,7 @@ public class JwtService {
 
                     return key.getKey().getBytes(StandardCharsets.UTF_8);
                 }
-            }).parseClaimsJws(base64EncodedToken);
+            }).build().parseClaimsJws(base64EncodedToken);
         } catch (final MalformedJwtException | UnsupportedJwtException | SignatureException | ExpiredJwtException | IllegalArgumentException e) {
             // TODO: Exercise all exceptions to ensure none leak key material to logs
             final String errorMessage = "Unable to validate the access token.";

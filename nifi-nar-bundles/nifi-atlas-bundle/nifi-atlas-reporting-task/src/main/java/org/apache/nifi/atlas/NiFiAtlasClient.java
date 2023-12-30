@@ -17,7 +17,6 @@
 package org.apache.nifi.atlas;
 
 import com.sun.jersey.api.client.UniformInterfaceException;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
 import org.apache.atlas.AtlasClientV2;
 import org.apache.atlas.AtlasErrorCode;
 import org.apache.atlas.AtlasServiceException;
@@ -33,7 +32,6 @@ import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.core.MultivaluedMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -170,9 +168,9 @@ public class NiFiAtlasClient implements AutoCloseable {
     private AtlasTypesDef getTypeDefs(String ... typeNames) throws AtlasServiceException {
         final AtlasTypesDef typeDefs = new AtlasTypesDef();
         for (int i = 0; i < typeNames.length; i++) {
-            final MultivaluedMap<String, String> searchParams = new MultivaluedMapImpl();
-            searchParams.add(SearchFilter.PARAM_NAME, typeNames[i]);
-            final AtlasTypesDef typeDef = atlasClient.getAllTypeDefs(new SearchFilter(searchParams));
+            final SearchFilter searchFilter = new SearchFilter();
+            searchFilter.setParam(SearchFilter.PARAM_NAME, typeNames[i]);
+            final AtlasTypesDef typeDef = atlasClient.getAllTypeDefs(searchFilter);
             typeDefs.getEntityDefs().addAll(typeDef.getEntityDefs());
         }
         logger.debug("typeDefs={}", typeDefs);

@@ -18,7 +18,7 @@ package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.Collection;
 
 @XmlRootElement(name = "replayLastEventSnapshot")

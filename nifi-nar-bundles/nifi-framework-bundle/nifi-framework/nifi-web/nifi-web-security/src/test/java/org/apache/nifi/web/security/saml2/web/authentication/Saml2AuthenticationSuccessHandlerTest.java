@@ -31,8 +31,8 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.Cookie;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.Cookie;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.regex.Pattern;

@@ -384,12 +384,6 @@ public class TestParseCEF {
         final TestRunner runner = TestRunners.newTestRunner(new ParseCEF());
         runner.setProperty(ParseCEF.FIELDS_DESTINATION, ParseCEF.DESTINATION_CONTENT);
         runner.setProperty(ParseCEF.TIME_REPRESENTATION, ParseCEF.UTC);
-        runner.enqueue(invalidEvent.getBytes());
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(ParseCEF.REL_FAILURE, 1);
-
-        runner.clearTransferState();
         runner.setProperty(ParseCEF.VALIDATE_DATA, "false");
         runner.enqueue(invalidEvent.getBytes());
         runner.run();

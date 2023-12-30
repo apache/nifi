@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.jms.cf;
 
-import javax.jms.ConnectionFactory;
+import jakarta.jms.ConnectionFactory;
 
 /**
  * Defines a strategy to create implementations to load and initialize third

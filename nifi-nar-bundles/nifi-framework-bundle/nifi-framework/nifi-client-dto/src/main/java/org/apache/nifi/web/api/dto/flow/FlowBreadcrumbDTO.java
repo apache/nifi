@@ -19,7 +19,7 @@ package org.apache.nifi.web.api.dto.flow;
 import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Breadcrumb for the flow.

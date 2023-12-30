@@ -29,16 +29,15 @@ import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 import javax.net.ssl.SSLContext;
-import javax.servlet.ServletException;
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
@@ -49,8 +48,8 @@ import java.util.function.Function;
 
 public class PrometheusServer {
     private static ComponentLog logger;
-    private Server server;
-    private ServletContextHandler handler;
+    private final Server server;
+    private final ServletContextHandler handler;
     private ReportingContext context;
 
     private List<Function<ReportingContext, CollectorRegistry>> metricsCollectors;
@@ -58,7 +57,7 @@ public class PrometheusServer {
     class MetricsServlet extends HttpServlet {
 
         @Override
-        protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
+        protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) throws IOException {
             if (logger.isDebugEnabled()) {
                 logger.debug("PrometheusServer Do get called");
             }
@@ -85,8 +84,9 @@ public class PrometheusServer {
         PrometheusServer.logger = logger;
         metricsCollectors = Collections.emptyList();
         this.server = new Server(addr);
-        this.handler = new ServletContextHandler(server, "/metrics");
+        this.handler = new ServletContextHandler("/metrics");
         this.handler.addServlet(new ServletHolder(new MetricsServlet()), "/");
+        this.server.setHandler(this.handler);
         try {
             this.server.start();
         } catch (Exception e) {
@@ -100,8 +100,9 @@ public class PrometheusServer {
     public PrometheusServer(int addr, SSLContextService sslContextService, ComponentLog logger, boolean needClientAuth, boolean wantClientAuth) throws Exception {
         PrometheusServer.logger = logger;
         this.server = new Server();
-        this.handler = new ServletContextHandler(server, "/metrics");
+        this.handler = new ServletContextHandler("/metrics");
         this.handler.addServlet(new ServletHolder(new MetricsServlet()), "/");
+        this.server.setHandler(this.handler);
 
         SslContextFactory.Server sslFactory = createSslFactory(sslContextService, needClientAuth, wantClientAuth);
         HttpConfiguration httpsConfiguration = new HttpConfiguration();

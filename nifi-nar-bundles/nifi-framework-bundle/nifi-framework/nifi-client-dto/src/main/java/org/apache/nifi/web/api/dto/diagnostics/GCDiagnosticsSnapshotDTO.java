@@ -19,7 +19,7 @@ package org.apache.nifi.web.api.dto.diagnostics;
 
 import java.util.Date;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 import io.swagger.annotations.ApiModelProperty;
 
