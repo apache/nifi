@@ -100,7 +100,7 @@ class EncryptContentAgeTest {
     @Test
     void testVerifySuccessful() {
         runner.setProperty(EncryptContentAge.PUBLIC_KEY_RECIPIENTS, PUBLIC_KEY_ENCODED);
-        runner.setProperty(EncryptContentAge.PUBLIC_KEY_SOURCE, KeySource.PROPERTIES.getValue());
+        runner.setProperty(EncryptContentAge.PUBLIC_KEY_SOURCE, KeySource.PROPERTIES);
 
         assertVerificationResultOutcomeEquals(ConfigVerificationResult.Outcome.SUCCESSFUL);
     }
@@ -108,14 +108,14 @@ class EncryptContentAgeTest {
     @Test
     void testVerifyFailedChecksumInvalid() {
         runner.setProperty(EncryptContentAge.PUBLIC_KEY_RECIPIENTS, PUBLIC_KEY_CHECKSUM_INVALID);
-        runner.setProperty(EncryptContentAge.PUBLIC_KEY_SOURCE, KeySource.PROPERTIES.getValue());
+        runner.setProperty(EncryptContentAge.PUBLIC_KEY_SOURCE, KeySource.PROPERTIES);
 
         assertVerificationResultOutcomeEquals(ConfigVerificationResult.Outcome.FAILED);
     }
 
     @Test
     void testVerifyFailedResourcesNotFound() {
-        runner.setProperty(EncryptContentAge.PUBLIC_KEY_SOURCE, KeySource.RESOURCES.getValue());
+        runner.setProperty(EncryptContentAge.PUBLIC_KEY_SOURCE, KeySource.RESOURCES);
 
         assertVerificationResultOutcomeEquals(ConfigVerificationResult.Outcome.FAILED);
     }
@@ -123,8 +123,8 @@ class EncryptContentAgeTest {
     @Test
     void testRunSuccessAscii() throws GeneralSecurityException, IOException {
         runner.setProperty(EncryptContentAge.PUBLIC_KEY_RECIPIENTS, PUBLIC_KEY_ENCODED);
-        runner.setProperty(EncryptContentAge.PUBLIC_KEY_SOURCE, KeySource.PROPERTIES.getValue());
-        runner.setProperty(EncryptContentAge.FILE_ENCODING, FileEncoding.ASCII.getValue());
+        runner.setProperty(EncryptContentAge.PUBLIC_KEY_SOURCE, KeySource.PROPERTIES);
+        runner.setProperty(EncryptContentAge.FILE_ENCODING, FileEncoding.ASCII);
 
         runner.enqueue(WORD);
         runner.run();
@@ -136,8 +136,8 @@ class EncryptContentAgeTest {
     @Test
     void testRunSuccessBinary() throws GeneralSecurityException, IOException {
         runner.setProperty(EncryptContentAge.PUBLIC_KEY_RECIPIENTS, PUBLIC_KEY_ENCODED);
-        runner.setProperty(EncryptContentAge.PUBLIC_KEY_SOURCE, KeySource.PROPERTIES.getValue());
-        runner.setProperty(EncryptContentAge.FILE_ENCODING, FileEncoding.BINARY.getValue());
+        runner.setProperty(EncryptContentAge.PUBLIC_KEY_SOURCE, KeySource.PROPERTIES);
+        runner.setProperty(EncryptContentAge.FILE_ENCODING, FileEncoding.BINARY);
 
         runner.enqueue(WORD);
         runner.run();
@@ -152,8 +152,8 @@ class EncryptContentAgeTest {
         Files.writeString(tempFile, PUBLIC_KEY_ENCODED);
 
         runner.setProperty(EncryptContentAge.PUBLIC_KEY_RECIPIENT_RESOURCES, tempFile.toString());
-        runner.setProperty(EncryptContentAge.PUBLIC_KEY_SOURCE, KeySource.RESOURCES.getValue());
-        runner.setProperty(EncryptContentAge.FILE_ENCODING, FileEncoding.BINARY.getValue());
+        runner.setProperty(EncryptContentAge.PUBLIC_KEY_SOURCE, KeySource.RESOURCES);
+        runner.setProperty(EncryptContentAge.FILE_ENCODING, FileEncoding.BINARY);
 
         runner.enqueue(WORD);
         runner.run();
@@ -167,7 +167,7 @@ class EncryptContentAgeTest {
         final Path tempFile = createTempFile(tempDir);
 
         runner.setProperty(EncryptContentAge.PUBLIC_KEY_RECIPIENT_RESOURCES, tempFile.toString());
-        runner.setProperty(EncryptContentAge.PUBLIC_KEY_SOURCE, KeySource.RESOURCES.getValue());
+        runner.setProperty(EncryptContentAge.PUBLIC_KEY_SOURCE, KeySource.RESOURCES);
 
         runner.enqueue(WORD);
 
@@ -231,13 +231,11 @@ class EncryptContentAgeTest {
 
     private DecryptingChannelFactory getDecryptingChannelFactory(final FileEncoding fileEncoding) {
         final Provider provider = AgeProviderResolver.getCipherProvider();
-        final DecryptingChannelFactory decryptingChannelFactory;
-        if (FileEncoding.ASCII == fileEncoding) {
-            decryptingChannelFactory = new ArmoredDecryptingChannelFactory(provider);
-        } else {
-            decryptingChannelFactory = new StandardDecryptingChannelFactory(provider);
-        }
-        return decryptingChannelFactory;
+
+        return switch (fileEncoding) {
+            case ASCII -> new ArmoredDecryptingChannelFactory(provider);
+            case BINARY -> new StandardDecryptingChannelFactory(provider);
+        };
     }
 
     private Path createTempFile(final Path tempDir) throws IOException {

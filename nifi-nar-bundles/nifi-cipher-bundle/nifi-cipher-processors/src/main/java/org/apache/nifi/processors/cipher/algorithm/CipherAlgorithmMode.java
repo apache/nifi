@@ -23,9 +23,7 @@ import org.apache.nifi.components.DescribedValue;
  */
 public enum CipherAlgorithmMode implements DescribedValue {
     CBC("Cipher Blocking Chaining Mode"),
-
     CTR("Counter Mode"),
-
     GCM("Galois/Counter Mode supporting Authenticated Encryption with Associated Data");
 
     private final String description;

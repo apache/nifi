@@ -53,9 +53,6 @@ import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.KeySpec;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -78,7 +75,7 @@ public class DecryptContent extends AbstractProcessor {
             .description("Block cipher mode of operation for decryption using the Advanced Encryption Standard")
             .required(true)
             .allowableValues(CipherAlgorithmMode.class)
-            .defaultValue(CipherAlgorithmMode.GCM.getValue())
+            .defaultValue(CipherAlgorithmMode.GCM)
             .build();
 
     static final PropertyDescriptor CIPHER_ALGORITHM_PADDING = new PropertyDescriptor.Builder()
@@ -87,7 +84,7 @@ public class DecryptContent extends AbstractProcessor {
             .description("Padding specification used in cipher operation for decryption using the Advanced Encryption Standard")
             .required(true)
             .allowableValues(CipherAlgorithmPadding.class)
-            .defaultValue(CipherAlgorithmPadding.NO_PADDING.getValue())
+            .defaultValue(CipherAlgorithmPadding.NO_PADDING)
             .build();
 
     static final PropertyDescriptor KEY_SPECIFICATION_FORMAT = new PropertyDescriptor.Builder()
@@ -96,7 +93,7 @@ public class DecryptContent extends AbstractProcessor {
             .description("Format describing the configured Key Specification")
             .required(true)
             .allowableValues(KeySpecificationFormat.class)
-            .defaultValue(KeySpecificationFormat.PASSWORD.getValue())
+            .defaultValue(KeySpecificationFormat.PASSWORD)
             .build();
 
     static final PropertyDescriptor KEY_SPECIFICATION = new PropertyDescriptor.Builder()
@@ -118,17 +115,14 @@ public class DecryptContent extends AbstractProcessor {
             .description("Decryption failed")
             .build();
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             CIPHER_ALGORITHM_MODE,
             CIPHER_ALGORITHM_PADDING,
             KEY_SPECIFICATION_FORMAT,
             KEY_SPECIFICATION
-    ));
+    );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            SUCCESS,
-            FAILURE
-    )));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(SUCCESS, FAILURE);
 
     private static final SymmetricCipher SYMMETRIC_CIPHER = SymmetricCipher.AES;
 
@@ -167,13 +161,11 @@ public class DecryptContent extends AbstractProcessor {
             return;
         }
 
-        final String specificationFormat = context.getProperty(KEY_SPECIFICATION_FORMAT).getValue();
-        final KeySpecificationFormat keySpecificationFormat = KeySpecificationFormat.valueOf(specificationFormat);
+        final KeySpecificationFormat keySpecificationFormat = context.getProperty(KEY_SPECIFICATION_FORMAT).asDescribedValue(KeySpecificationFormat.class);
 
         final String cipherTransformation = getCipherTransformation(context);
         final Cipher cipher = getCipher(cipherTransformation);
-        final String algorithmMode = context.getProperty(CIPHER_ALGORITHM_MODE).getValue();
-        final CipherAlgorithmMode cipherAlgorithmMode = CipherAlgorithmMode.valueOf(algorithmMode);
+        final CipherAlgorithmMode cipherAlgorithmMode = context.getProperty(CIPHER_ALGORITHM_MODE).asDescribedValue(CipherAlgorithmMode.class);
 
         final KeySpec keySpec = getKeySpec(context, keySpecificationFormat);
         final StreamCallback callback = new DecryptCallback(cipher, cipherAlgorithmMode, keySpec);
@@ -314,8 +306,7 @@ public class DecryptContent extends AbstractProcessor {
 
             if (keySpec instanceof SecretKeySpec) {
                 key = (SecretKeySpec) keySpec;
-            } else if (algorithmParameterSpec instanceof SerializedParameterSpec) {
-                final SerializedParameterSpec serializedParameterSpec = (SerializedParameterSpec) algorithmParameterSpec;
+            } else if (algorithmParameterSpec instanceof SerializedParameterSpec serializedParameterSpec) {
                 final byte[] parameters = serializedParameterSpec.getParameters();
                 key = getDerivedKey(parameters);
             } else {
