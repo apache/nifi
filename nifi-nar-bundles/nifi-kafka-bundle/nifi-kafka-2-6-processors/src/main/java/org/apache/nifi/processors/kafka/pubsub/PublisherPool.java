@@ -19,9 +19,9 @@ package org.apache.nifi.processors.kafka.pubsub;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.kafka.shared.property.PublishStrategy;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 
 import java.io.Closeable;
@@ -45,7 +45,7 @@ public class PublisherPool implements Closeable {
     private final Charset headerCharacterSet;
     private final PublishStrategy publishStrategy;
     private final RecordSetWriterFactory recordKeyWriterFactory;
-    private Supplier<String> transactionalIdSupplier;
+    private final Supplier<String> transactionalIdSupplier;
 
     private volatile boolean closed = false;
 
@@ -86,7 +86,7 @@ public class PublisherPool implements Closeable {
         }
 
         final Producer<byte[], byte[]> producer = new KafkaProducer<>(properties);
-        final PublisherLease lease = new PublisherLease(producer, maxMessageSize, maxAckWaitMillis, logger,
+        return new PublisherLease(producer, maxMessageSize, maxAckWaitMillis, logger,
                 useTransactions, attributeNameRegex, headerCharacterSet, publishStrategy, recordKeyWriterFactory) {
             private volatile boolean closed = false;
 
@@ -112,8 +112,6 @@ public class PublisherPool implements Closeable {
                 }
             }
         };
-
-        return lease;
     }
 
     public synchronized boolean isClosed() {

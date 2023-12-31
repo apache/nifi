@@ -93,7 +93,7 @@ public class TestConsumeKafka_2_6 {
         runner.setProperty(ConsumeKafka_2_6.AUTO_OFFSET_RESET, ConsumeKafka_2_6.OFFSET_EARLIEST);
 
         runner.setProperty(ConsumeKafka_2_6.SECURITY_PROTOCOL, SecurityProtocol.SASL_PLAINTEXT.name());
-        runner.setProperty(ConsumeKafka_2_6.SASL_MECHANISM, SaslMechanism.GSSAPI.getValue());
+        runner.setProperty(ConsumeKafka_2_6.SASL_MECHANISM, SaslMechanism.GSSAPI);
         runner.assertNotValid();
 
         runner.setProperty(ConsumeKafka_2_6.KERBEROS_SERVICE_NAME, "kafka");

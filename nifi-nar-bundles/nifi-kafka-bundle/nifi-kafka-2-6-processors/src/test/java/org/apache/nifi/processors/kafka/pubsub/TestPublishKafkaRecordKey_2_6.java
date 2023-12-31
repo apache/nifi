@@ -46,13 +46,12 @@ public class TestPublishKafkaRecordKey_2_6 {
     private static final String TOPIC_NAME = "unit-test";
 
     private PublisherPool mockPool;
-    private PublisherLease mockLease;
     private TestRunner runner;
 
     @BeforeEach
     public void setup() throws InitializationException, IOException {
         mockPool = mock(PublisherPool.class);
-        mockLease = mock(PublisherLease.class);
+        PublisherLease mockLease = mock(PublisherLease.class);
         Mockito.doCallRealMethod().when(mockLease).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
             any(RecordSchema.class), any(String.class), any(String.class), nullable(Function.class), any(PublishMetadataStrategy.class));
 
@@ -89,9 +88,9 @@ public class TestPublishKafkaRecordKey_2_6 {
         runner.assertValid();
         runner.setProperty(PublishKafkaRecord_2_6.PUBLISH_STRATEGY, "foo");
         runner.assertNotValid();
-        runner.setProperty(PublishKafkaRecord_2_6.PUBLISH_STRATEGY, PublishStrategy.USE_VALUE.getValue());
+        runner.setProperty(PublishKafkaRecord_2_6.PUBLISH_STRATEGY, PublishStrategy.USE_VALUE);
         runner.assertValid();
-        runner.setProperty(PublishKafkaRecord_2_6.PUBLISH_STRATEGY, PublishStrategy.USE_WRAPPER.getValue());
+        runner.setProperty(PublishKafkaRecord_2_6.PUBLISH_STRATEGY, PublishStrategy.USE_WRAPPER);
         runner.assertValid();
         runner.setProperty(PublishKafkaRecord_2_6.RECORD_KEY_WRITER, "no-record-writer");
         runner.assertNotValid();

@@ -38,7 +38,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class KafkaClientCustomValidationFunctionTest {
 
     private static final String JAAS_CONFIG_JNDI_LOGIN_MODULE = "com.sun.security.auth.module.JndiLoginModule required debug=true;";
-
     private static final String JAAS_CONFIG_PLACEHOLDER = "jaas.config";
 
     TestRunner runner;
@@ -63,7 +62,7 @@ class KafkaClientCustomValidationFunctionTest {
     @Test
     void testApplyKerberosSaslWithoutCredentialsInvalid() {
         runner.setProperty(KafkaClientComponent.SECURITY_PROTOCOL, SecurityProtocol.SASL_PLAINTEXT.name());
-        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.GSSAPI.getValue());
+        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.GSSAPI);
 
         final ValidationContext validationContext = getValidationContext();
         final Collection<ValidationResult> results = validationFunction.apply(validationContext);
@@ -74,7 +73,7 @@ class KafkaClientCustomValidationFunctionTest {
     @Test
     void testApplyKerberosSaslSystemPropertyWithoutServiceNameInvalid() {
         runner.setProperty(KafkaClientComponent.SECURITY_PROTOCOL, SecurityProtocol.SASL_PLAINTEXT.name());
-        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.GSSAPI.getValue());
+        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.GSSAPI);
 
         System.setProperty(KafkaClientCustomValidationFunction.JAVA_SECURITY_AUTH_LOGIN_CONFIG, JAAS_CONFIG_PLACEHOLDER);
 
@@ -87,7 +86,7 @@ class KafkaClientCustomValidationFunctionTest {
     @Test
     void testApplyKerberosSaslSystemPropertyValid() {
         runner.setProperty(KafkaClientComponent.SECURITY_PROTOCOL, SecurityProtocol.SASL_PLAINTEXT.name());
-        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.GSSAPI.getValue());
+        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.GSSAPI);
         runner.setProperty(KafkaClientComponent.KERBEROS_SERVICE_NAME, KafkaClientComponent.KERBEROS_SERVICE_NAME.getName());
 
         System.setProperty(KafkaClientCustomValidationFunction.JAVA_SECURITY_AUTH_LOGIN_CONFIG, JAAS_CONFIG_PLACEHOLDER);
@@ -101,7 +100,7 @@ class KafkaClientCustomValidationFunctionTest {
     @Test
     void testApplyPlainUsernameWithoutPasswordInvalid() {
         runner.setProperty(KafkaClientComponent.SASL_USERNAME, KafkaClientComponent.SASL_USERNAME.getName());
-        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.PLAIN.getValue());
+        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.PLAIN);
 
         final ValidationContext validationContext = getValidationContext();
         final Collection<ValidationResult> results = validationFunction.apply(validationContext);
@@ -112,7 +111,7 @@ class KafkaClientCustomValidationFunctionTest {
     @Test
     void testApplyPlainPasswordWithoutUsernameInvalid() {
         runner.setProperty(KafkaClientComponent.SASL_PASSWORD, KafkaClientComponent.SASL_PASSWORD.getName());
-        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.PLAIN.getValue());
+        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.PLAIN);
 
         final ValidationContext validationContext = getValidationContext();
         final Collection<ValidationResult> results = validationFunction.apply(validationContext);
