@@ -38,6 +38,8 @@ import org.apache.nifi.csv.CSVRecordSetWriter;
 import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
+import org.apache.nifi.kafka.shared.property.KeyEncoding;
+import org.apache.nifi.kafka.shared.property.KeyFormat;
 import org.apache.nifi.kafka.shared.property.OutputStrategy;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -54,7 +56,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -63,6 +64,7 @@ import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.BOOTSTRAP_SERVERS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -137,7 +139,7 @@ public class TestConsumeKafkaMock {
         runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafkaRecord_2_6.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
-        final MockFlowFile flowFile = flowFiles.iterator().next();
+        final MockFlowFile flowFile = flowFiles.getFirst();
         assertEquals("ALPHA,BETA\na1,a2\nb1,b2\n", flowFile.getContent());
     }
 
@@ -155,7 +157,7 @@ public class TestConsumeKafkaMock {
         runner.run(1);
         runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafkaRecord_2_6.REL_SUCCESS);
-        final MockFlowFile flowFile = flowFiles.iterator().next();
+        final MockFlowFile flowFile = flowFiles.getFirst();
         assertEquals(valueRecordSet, flowFile.getContent());
         assertNull(flowFile.getAttribute("kafka.key"));
         assertEquals("0", flowFile.getAttribute("kafka.partition"));
@@ -178,7 +180,7 @@ public class TestConsumeKafkaMock {
         runner.run(1);
         runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafkaRecord_2_6.REL_SUCCESS);
-        final MockFlowFile flowFile = flowFiles.iterator().next();
+        final MockFlowFile flowFile = flowFiles.getFirst();
         assertEquals(valueRecordSet, flowFile.getContent());
         assertEquals(key, flowFile.getAttribute("kafka.key"));
         assertEquals("0", flowFile.getAttribute("kafka.partition"));
@@ -202,7 +204,7 @@ public class TestConsumeKafkaMock {
         runner.run(1);
         runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafkaRecord_2_6.REL_SUCCESS);
-        final MockFlowFile flowFile = flowFiles.iterator().next();
+        final MockFlowFile flowFile = flowFiles.getFirst();
         assertEquals(valueRecordSet, flowFile.getContent());
         assertEquals(key, flowFile.getAttribute("kafka.key"));
         assertEquals("0", flowFile.getAttribute("kafka.partition"));
@@ -232,13 +234,13 @@ public class TestConsumeKafkaMock {
         runner.run(1);
         runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafkaRecord_2_6.REL_SUCCESS);
-        final MockFlowFile flowFile = flowFiles.iterator().next();
+        final MockFlowFile flowFile = flowFiles.getFirst();
         // consume strategy "use-wrapper" emits ArrayNode due to JsonRecordSetWriter
         final JsonNode nodeFlowFile = mapper.readTree(flowFile.getContent());
-        assertTrue(nodeFlowFile instanceof ArrayNode);
+        assertInstanceOf(ArrayNode.class, nodeFlowFile);
         assertEquals(1, nodeFlowFile.size());
         // extract the NiFi json object representation of Kafka input record
-        final JsonNode flowFileValue = nodeFlowFile.iterator().next();
+        final JsonNode flowFileValue = nodeFlowFile.get(0);
         // wrapper object contains "key", "value", "headers", "metadata"
         assertEquals(4, flowFileValue.size());
         final JsonNode nodeWrapperKey = Objects.requireNonNull(flowFileValue.get("key"));
@@ -258,15 +260,15 @@ public class TestConsumeKafkaMock {
         assertNotNull(nodeWrapperMetadata.get("offset"));
         assertNotNull(nodeWrapperMetadata.get("timestamp"));
         // validate value
-        assertTrue(nodeWrapperValue instanceof ObjectNode);
+        assertInstanceOf(ObjectNode.class, nodeWrapperValue);
         assertEquals(textToKafkaValue, mapper.writeValueAsString(nodeWrapperValue));
         // validate key
-        assertTrue(nodeWrapperKey instanceof ArrayNode);
+        assertInstanceOf(ArrayNode.class, nodeWrapperKey);
         ArrayNode arrayNodeKey = (ArrayNode) nodeWrapperKey;
         assertEquals(textToKafkaKey.length(), arrayNodeKey.size());
         final ByteArrayOutputStream os = new ByteArrayOutputStream();
         arrayNodeKey.forEach(b -> os.write(b.asInt()));
-        assertEquals(textToKafkaKey, new String(os.toByteArray(), UTF_8));
+        assertEquals(textToKafkaKey, os.toString(UTF_8));
         // validate flowfile attributes
         assertNull(flowFile.getAttribute("foo"));
         assertEquals(TEST_TOPIC, flowFile.getAttribute("kafka.topic"));
@@ -300,13 +302,13 @@ public class TestConsumeKafkaMock {
 
         runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafkaRecord_2_6.REL_SUCCESS);
-        final MockFlowFile flowFile = flowFiles.iterator().next();
+        final MockFlowFile flowFile = flowFiles.getFirst();
         // consume strategy "use-wrapper" emits ArrayNode due to JsonRecordSetWriter
         final JsonNode nodeFlowFile = mapper.readTree(flowFile.getContent());
-        assertTrue(nodeFlowFile instanceof ArrayNode);
+        assertInstanceOf(ArrayNode.class, nodeFlowFile);
         assertEquals(1, nodeFlowFile.size());
         // extract the NiFi json object representation of Kafka input record
-        final JsonNode flowFileValue = nodeFlowFile.iterator().next();
+        final JsonNode flowFileValue = nodeFlowFile.get(0);
         // wrapper object contains "key", "value", "headers", "metadata"
         assertEquals(4, flowFileValue.size());
         final JsonNode nodeWrapperHeaders = Objects.requireNonNull(flowFileValue.get("headers"));
@@ -342,18 +344,18 @@ public class TestConsumeKafkaMock {
 
         runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafkaRecord_2_6.REL_SUCCESS);
-        final MockFlowFile flowFile = flowFiles.iterator().next();
+        final MockFlowFile flowFile = flowFiles.getFirst();
         // consume strategy "use-wrapper" emits ArrayNode due to JsonRecordSetWriter
         final JsonNode nodeFlowFile = mapper.readTree(flowFile.getContent());
-        assertTrue(nodeFlowFile instanceof ArrayNode);
+        assertInstanceOf(ArrayNode.class, nodeFlowFile);
         assertEquals(1, nodeFlowFile.size());
         // extract the NiFi json object representation of Kafka input record
-        final JsonNode flowFileValue = nodeFlowFile.iterator().next();
+        final JsonNode flowFileValue = nodeFlowFile.get(0);
         // wrapper object contains "key", "value", "headers", "metadata"
         assertEquals(4, flowFileValue.size());
         final JsonNode nodeWrapperKey = Objects.requireNonNull(flowFileValue.get("key"));
         // validate key
-        assertTrue(nodeWrapperKey instanceof TextNode);
+        assertInstanceOf(TextNode.class, nodeWrapperKey);
         TextNode textNodeKey = (TextNode) nodeWrapperKey;
         assertEquals(textToKafkaKey.length(), textNodeKey.asText().length());
         assertEquals(textToKafkaKey, textNodeKey.textValue());
@@ -388,13 +390,13 @@ public class TestConsumeKafkaMock {
 
         runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafkaRecord_2_6.REL_SUCCESS);
-        final MockFlowFile flowFile = flowFiles.iterator().next();
+        final MockFlowFile flowFile = flowFiles.getFirst();
         // consume strategy "use-wrapper" emits ArrayNode due to JsonRecordSetWriter
         final JsonNode nodeFlowFile = mapper.readTree(flowFile.getContent());
-        assertTrue(nodeFlowFile instanceof ArrayNode);
+        assertInstanceOf(ArrayNode.class, nodeFlowFile);
         assertEquals(1, nodeFlowFile.size());
         // extract the NiFi json object representation of Kafka input record
-        final JsonNode flowFileValue = nodeFlowFile.iterator().next();
+        final JsonNode flowFileValue = nodeFlowFile.get(0);
         // wrapper object contains "key", "value", "headers", "metadata"
         assertEquals(4, flowFileValue.size());
         final JsonNode nodeWrapperKey = Objects.requireNonNull(flowFileValue.get("key"));
@@ -414,10 +416,10 @@ public class TestConsumeKafkaMock {
         assertNotNull(nodeWrapperMetadata.get("offset"));
         assertNotNull(nodeWrapperMetadata.get("timestamp"));
         // validate value
-        assertTrue(nodeWrapperValue instanceof ObjectNode);
+        assertInstanceOf(ObjectNode.class, nodeWrapperValue);
         assertEquals(textToKafkaValue, mapper.writeValueAsString(nodeWrapperValue));
         // validate key
-        assertTrue(nodeWrapperKey instanceof ObjectNode);
+        assertInstanceOf(ObjectNode.class, nodeWrapperKey);
         ObjectNode objectNodeKey = (ObjectNode) nodeWrapperKey;
         assertTrue(objectNodeKey.get("key").asBoolean());
         // validate flowfile attributes
@@ -444,9 +446,9 @@ public class TestConsumeKafkaMock {
         runner.run(1);
         runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafkaRecord_2_6.REL_SUCCESS);
-        final MockFlowFile flowFile = flowFiles.iterator().next();
+        final MockFlowFile flowFile = flowFiles.getFirst();
         final JsonNode nodeFlowFiles = mapper.readTree(flowFile.getContent());
-        final JsonNode nodeFlowFile = nodeFlowFiles.iterator().next();
+        final JsonNode nodeFlowFile = nodeFlowFiles.get(0);
         final JsonNode nodeWrapperKey = Objects.requireNonNull(nodeFlowFile.get("key"));
         assertEquals(key, nodeWrapperKey.asText());
         assertTrue(nodeFlowFile.get("value").isNull());
@@ -498,11 +500,10 @@ public class TestConsumeKafkaMock {
         final Pattern patternTopic = (topic == null) ? null : Pattern.compile(topic);
         final String groupId = context.getProperty(ConsumerConfig.GROUP_ID_CONFIG).getValue();
         final OutputStrategy outputStrategy = OutputStrategy.valueOf(context.getProperty("output-strategy").getValue());
-        final String keyFormat = context.getProperty("key-format").getValue();
+        final KeyFormat keyFormat = context.getProperty("key-format").asDescribedValue(KeyFormat.class);
         final RecordReaderFactory keyReaderFactory = context.getProperty("key-record-reader")
                 .asControllerService(RecordReaderFactory.class);
         return new ConsumerPool(
-                1,
                 readerFactory,
                 writerFactory,
                 Collections.emptyMap(),
@@ -515,7 +516,7 @@ public class TestConsumeKafkaMock {
                 UTF_8,
                 null,
                 false,
-                UTF_8.name().toLowerCase(Locale.ROOT),
+                KeyEncoding.UTF8,
                 null,
                 true,
                 outputStrategy,

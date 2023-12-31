@@ -76,13 +76,13 @@ public class TestConsumeKafkaRecordKey_2_6 {
         runner.assertValid();
         runner.setProperty(ConsumeKafkaRecord_2_6.OUTPUT_STRATEGY, "foo");
         runner.assertNotValid();
-        runner.setProperty(ConsumeKafkaRecord_2_6.OUTPUT_STRATEGY, OutputStrategy.USE_VALUE.getValue());
+        runner.setProperty(ConsumeKafkaRecord_2_6.OUTPUT_STRATEGY, OutputStrategy.USE_VALUE);
         runner.assertValid();
-        runner.setProperty(ConsumeKafkaRecord_2_6.OUTPUT_STRATEGY, OutputStrategy.USE_WRAPPER.getValue());
+        runner.setProperty(ConsumeKafkaRecord_2_6.OUTPUT_STRATEGY, OutputStrategy.USE_WRAPPER);
         runner.assertValid();
         runner.setProperty(ConsumeKafkaRecord_2_6.KEY_FORMAT, "foo");
         runner.assertNotValid();
-        runner.setProperty(ConsumeKafkaRecord_2_6.KEY_FORMAT, KeyFormat.RECORD.getValue());
+        runner.setProperty(ConsumeKafkaRecord_2_6.KEY_FORMAT, KeyFormat.RECORD);
         runner.assertValid();
         runner.setProperty(ConsumeKafkaRecord_2_6.KEY_RECORD_READER, "no-record-reader");
         runner.assertNotValid();

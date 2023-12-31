@@ -38,14 +38,14 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.kafka.shared.attribute.StandardTransitUriProvider;
-import org.apache.nifi.kafka.shared.property.PublishStrategy;
-import org.apache.nifi.kafka.shared.transaction.TransactionIdSupplier;
-import org.apache.nifi.kafka.shared.validation.KafkaClientCustomValidationFunction;
-import org.apache.nifi.kafka.shared.property.FailureStrategy;
-import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.component.KafkaPublishComponent;
+import org.apache.nifi.kafka.shared.property.FailureStrategy;
+import org.apache.nifi.kafka.shared.property.PublishStrategy;
+import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
+import org.apache.nifi.kafka.shared.transaction.TransactionIdSupplier;
 import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
+import org.apache.nifi.kafka.shared.validation.KafkaClientCustomValidationFunction;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -69,10 +69,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -84,9 +81,9 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
+import static org.apache.nifi.expression.ExpressionLanguageScope.ENVIRONMENT;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
-import static org.apache.nifi.expression.ExpressionLanguageScope.ENVIRONMENT;
 import static org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute.KAFKA_CONSUMER_OFFSETS_COMMITTED;
 
 @Tags({"Apache", "Kafka", "Record", "csv", "json", "avro", "logs", "Put", "Send", "Message", "PubSub", "2.6"})
@@ -163,12 +160,12 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
         .required(true)
         .build();
 
-    static final PropertyDescriptor PUBLISH_STRATEGY = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor PUBLISH_STRATEGY = new Builder()
             .name("publish-strategy")
             .displayName("Publish Strategy")
             .description("The format used to publish the incoming FlowFile record to Kafka.")
             .required(true)
-            .defaultValue(PublishStrategy.USE_VALUE.getValue())
+            .defaultValue(PublishStrategy.USE_VALUE)
             .allowableValues(PublishStrategy.class)
             .build();
 
@@ -178,7 +175,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
         .description("The name of a field in the Input Records that should be used as the Key for the Kafka message.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
-        .dependsOn(PUBLISH_STRATEGY, PublishStrategy.USE_VALUE.getValue())
+        .dependsOn(PUBLISH_STRATEGY, PublishStrategy.USE_VALUE)
         .required(false)
         .build();
 
@@ -189,7 +186,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
         .required(true)
         .expressionLanguageSupported(NONE)
         .allowableValues(DELIVERY_BEST_EFFORT, DELIVERY_ONE_NODE, DELIVERY_REPLICATED)
-        .defaultValue(DELIVERY_REPLICATED.getValue())
+        .defaultValue(DELIVERY_REPLICATED)
         .build();
 
     static final PropertyDescriptor METADATA_WAIT_TIME = new Builder()
@@ -228,7 +225,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
         .displayName("Partitioner class")
         .description("Specifies which class to use to compute a partition id for a message. Corresponds to Kafka's 'partitioner.class' property.")
         .allowableValues(ROUND_ROBIN_PARTITIONING, RANDOM_PARTITIONING, RECORD_PATH_PARTITIONING, EXPRESSION_LANGUAGE_PARTITIONING)
-        .defaultValue(RANDOM_PARTITIONING.getValue())
+        .defaultValue(RANDOM_PARTITIONING)
         .required(false)
         .build();
 
@@ -259,7 +256,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
             + "If not specified, no FlowFile attributes will be added as headers.")
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
         .expressionLanguageSupported(NONE)
-        .dependsOn(PUBLISH_STRATEGY, PublishStrategy.USE_VALUE.getValue())
+        .dependsOn(PUBLISH_STRATEGY, PublishStrategy.USE_VALUE)
         .required(false)
         .build();
     static final PropertyDescriptor USE_TRANSACTIONS = new Builder()
@@ -292,12 +289,12 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
         .defaultValue("UTF-8")
         .required(false)
         .build();
-    static final PropertyDescriptor RECORD_KEY_WRITER = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor RECORD_KEY_WRITER = new Builder()
             .name("record-key-writer")
             .displayName("Record Key Writer")
             .description("The Record Key Writer to use for outgoing FlowFiles")
             .identifiesControllerService(RecordSetWriterFactory.class)
-            .dependsOn(PUBLISH_STRATEGY, PublishStrategy.USE_WRAPPER.getValue())
+            .dependsOn(PUBLISH_STRATEGY, PublishStrategy.USE_WRAPPER)
             .build();
     static final PropertyDescriptor RECORD_METADATA_STRATEGY = new Builder()
         .name("Record Metadata Strategy")
@@ -306,8 +303,8 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
             "Partitioner class properties")
         .required(true)
         .allowableValues(RECORD_METADATA_FROM_PROPERTIES, RECORD_METADATA_FROM_RECORD)
-        .defaultValue(RECORD_METADATA_FROM_PROPERTIES.getValue())
-        .dependsOn(PUBLISH_STRATEGY, PublishStrategy.USE_WRAPPER.getValue())
+        .defaultValue(RECORD_METADATA_FROM_PROPERTIES)
+        .dependsOn(PUBLISH_STRATEGY, PublishStrategy.USE_WRAPPER)
         .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -320,51 +317,41 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
         .description("Any FlowFile that cannot be sent to Kafka will be routed to this Relationship")
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES;
-    private static final Set<Relationship> RELATIONSHIPS;
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            BOOTSTRAP_SERVERS,
+            TOPIC,
+            RECORD_READER,
+            RECORD_WRITER,
+            USE_TRANSACTIONS,
+            TRANSACTIONAL_ID_PREFIX,
+            FAILURE_STRATEGY,
+            DELIVERY_GUARANTEE,
+            PUBLISH_STRATEGY,
+            RECORD_KEY_WRITER,
+            RECORD_METADATA_STRATEGY,
+            ATTRIBUTE_NAME_REGEX,
+            MESSAGE_HEADER_ENCODING,
+            SECURITY_PROTOCOL,
+            SASL_MECHANISM,
+            SELF_CONTAINED_KERBEROS_USER_SERVICE,
+            KERBEROS_SERVICE_NAME,
+            SASL_USERNAME,
+            SASL_PASSWORD,
+            TOKEN_AUTHENTICATION,
+            AWS_PROFILE_NAME,
+            SSL_CONTEXT_SERVICE,
+            MESSAGE_KEY_FIELD,
+            MAX_REQUEST_SIZE,
+            ACK_WAIT_TIME,
+            METADATA_WAIT_TIME,
+            PARTITION_CLASS,
+            PARTITION,
+            COMPRESSION_CODEC
+    );
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
 
     private volatile PublisherPool publisherPool = null;
     private final RecordPathCache recordPathCache = new RecordPathCache(25);
-
-    static {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(BOOTSTRAP_SERVERS);
-        properties.add(TOPIC);
-        properties.add(RECORD_READER);
-        properties.add(RECORD_WRITER);
-        properties.add(USE_TRANSACTIONS);
-        properties.add(TRANSACTIONAL_ID_PREFIX);
-        properties.add(FAILURE_STRATEGY);
-        properties.add(DELIVERY_GUARANTEE);
-        properties.add(PUBLISH_STRATEGY);
-        properties.add(RECORD_KEY_WRITER);
-        properties.add(RECORD_METADATA_STRATEGY);
-        properties.add(ATTRIBUTE_NAME_REGEX);
-        properties.add(MESSAGE_HEADER_ENCODING);
-        properties.add(SECURITY_PROTOCOL);
-        properties.add(SASL_MECHANISM);
-        properties.add(SELF_CONTAINED_KERBEROS_USER_SERVICE);
-        properties.add(KERBEROS_SERVICE_NAME);
-        properties.add(SASL_USERNAME);
-        properties.add(SASL_PASSWORD);
-        properties.add(TOKEN_AUTHENTICATION);
-        properties.add(AWS_PROFILE_NAME);
-        properties.add(SSL_CONTEXT_SERVICE);
-        properties.add(MESSAGE_KEY_FIELD);
-        properties.add(MAX_REQUEST_SIZE);
-        properties.add(ACK_WAIT_TIME);
-        properties.add(METADATA_WAIT_TIME);
-        properties.add(PARTITION_CLASS);
-        properties.add(PARTITION);
-        properties.add(COMPRESSION_CODEC);
-
-        PROPERTIES = Collections.unmodifiableList(properties);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        RELATIONSHIPS = Collections.unmodifiableSet(relationships);
-    }
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -452,7 +439,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
         final boolean useTransactions = context.getProperty(USE_TRANSACTIONS).asBoolean();
         final String transactionalIdPrefix = context.getProperty(TRANSACTIONAL_ID_PREFIX).evaluateAttributeExpressions().getValue();
         Supplier<String> transactionalIdSupplier = new TransactionIdSupplier(transactionalIdPrefix);
-        final PublishStrategy publishStrategy = PublishStrategy.valueOf(context.getProperty(PUBLISH_STRATEGY).getValue());
+        final PublishStrategy publishStrategy = context.getProperty(PUBLISH_STRATEGY).asDescribedValue(PublishStrategy.class);
 
         final String charsetName = context.getProperty(MESSAGE_HEADER_ENCODING).evaluateAttributeExpressions().getValue();
         final Charset charset = Charset.forName(charsetName);
@@ -629,12 +616,10 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
     }
 
     private PublishFailureStrategy getFailureStrategy(final ProcessContext context) {
-        final String strategy = context.getProperty(FAILURE_STRATEGY).getValue();
-        if (FailureStrategy.ROLLBACK.getValue().equals(strategy)) {
-            return (session, flowFiles) -> session.rollback();
-        } else {
-            return (session, flowFiles) -> session.transfer(flowFiles, REL_FAILURE);
-        }
+        return switch (context.getProperty(FAILURE_STRATEGY).asDescribedValue(FailureStrategy.class)) {
+            case ROUTE_TO_FAILURE -> (session, flowFiles) -> session.transfer(flowFiles, REL_FAILURE);
+            case ROLLBACK -> (session, flowFiles) -> session.rollback();
+        };
     }
 
     @Override

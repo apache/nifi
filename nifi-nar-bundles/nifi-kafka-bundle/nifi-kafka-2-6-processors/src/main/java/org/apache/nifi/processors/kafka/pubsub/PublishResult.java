@@ -27,7 +27,7 @@ public interface PublishResult {
 
     Exception getReasonForFailure(FlowFile flowFile);
 
-    public static PublishResult EMPTY = new PublishResult() {
+    PublishResult EMPTY = new PublishResult() {
         @Override
         public boolean isFailure() {
             return false;

@@ -51,7 +51,6 @@ import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,29 +73,26 @@ public class TestKafkaRecordSink_2_6 {
     public void testRecordFormat() throws IOException, InitializationException {
         MockKafkaRecordSink_2_6 task = initTask();
 
-        List<RecordField> recordFields = Arrays.asList(
+        RecordSchema recordSchema = new SimpleRecordSchema(List.of(
                 new RecordField("field1", RecordFieldType.INT.getDataType()),
                 new RecordField("field2", RecordFieldType.STRING.getDataType())
-        );
-        RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
-
-        Map<String, Object> row1 = new HashMap<>();
-        row1.put("field1", 15);
-        row1.put("field2", "Hello");
-
-        Map<String, Object> row2 = new HashMap<>();
-        row2.put("field1", 6);
-        row2.put("field2", "World!");
-
-        RecordSet recordSet = new ListRecordSet(recordSchema, Arrays.asList(
-                new MapRecord(recordSchema, row1),
-                new MapRecord(recordSchema, row2)
         ));
+
+        MapRecord row1 = new MapRecord(recordSchema, Map.of(
+        "field1", 15,
+        "field2", "Hello"
+        ));
+        MapRecord row2 = new MapRecord(recordSchema, Map.of(
+        "field1", 6,
+        "field2", "World!"
+        ));
+
+        RecordSet recordSet = new ListRecordSet(recordSchema, List.of(row1, row2));
 
         task.sendData(recordSet, new HashMap<>(), true);
 
         assertEquals(2, task.dataSent.size());
-        String[] lines = new String(task.dataSent.get(0)).split("\n");
+        String[] lines = new String(task.dataSent.getFirst()).split("\n");
         assertNotNull(lines);
         assertEquals(1, lines.length);
         String[] data = lines[0].split(",");
@@ -193,7 +189,7 @@ public class TestKafkaRecordSink_2_6 {
                                 producerRecord.key() != null ? producerRecord.key().length : 0,
                                 data.length);
                         callback.onCompletion(recordMetadata, null);
-                        return new FutureTask(() -> {}, recordMetadata);
+                        return new FutureTask<>(() -> {}, recordMetadata);
                     });
             return mockProducer;
         }
@@ -206,6 +202,4 @@ public class TestKafkaRecordSink_2_6 {
             return true;
         }
     }
-
-
 }

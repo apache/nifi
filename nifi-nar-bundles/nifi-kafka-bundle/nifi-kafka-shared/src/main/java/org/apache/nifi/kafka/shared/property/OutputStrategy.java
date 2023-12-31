@@ -23,13 +23,10 @@ import org.apache.nifi.components.DescribedValue;
  */
 public enum OutputStrategy implements DescribedValue {
     USE_VALUE("USE_VALUE", "Use Content as Value", "Write only the Kafka Record value to the FlowFile record."),
-
     USE_WRAPPER("USE_WRAPPER", "Use Wrapper", "Write the Kafka Record key, value, headers, and metadata into the FlowFile record. (See processor usage for more information.)");
 
     private final String value;
-
     private final String displayName;
-
     private final String description;
 
     OutputStrategy(final String value, final String displayName, final String description) {

@@ -65,7 +65,7 @@ class StandardKafkaPropertyProviderTest {
         final SecurityProtocol securityProtocol = SecurityProtocol.SASL_PLAINTEXT;
 
         runner.setProperty(KafkaClientComponent.SECURITY_PROTOCOL, securityProtocol.name());
-        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.SCRAM_SHA_256.getValue());
+        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.SCRAM_SHA_256);
         final PropertyContext propertyContext = runner.getProcessContext();
 
         final Map<String, Object> properties = provider.getProperties(propertyContext);
