@@ -33,7 +33,7 @@
         </div>
         <div *ngIf="isUser; else isUserGroup">
             <mat-label>Member of</mat-label>
-            <mat-selection-list formControlName="userGroups">
+            <mat-selection-list formControlName="userGroups" class="border">
                 <mat-list-option *ngFor="let userGroup of userGroups" togglePosition="before" [value]="userGroup.id"
                     >{{ userGroup.component.identity }}
                 </mat-list-option>
@@ -42,7 +42,7 @@
         <ng-template #isUserGroup>
             <div>
                 <mat-label>Members</mat-label>
-                <mat-selection-list formControlName="users">
+                <mat-selection-list formControlName="users" class="border">
                     <mat-list-option *ngFor="let user of users" togglePosition="before" [value]="user.id"
                         >{{ user.component.identity }}
                     </mat-list-option>

@@ -15,15 +15,36 @@
  *  limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { UserListing } from './user-listing.component';
-import { CommonModule } from '@angular/common';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { UserTable } from './user-table/user-table.component';
+import { AccessPolicySummary, Permissions, Revision, TenantEntity } from '../../../../state/shared';
 
-@NgModule({
-    declarations: [UserListing],
-    exports: [UserListing],
-    imports: [CommonModule, NgxSkeletonLoaderModule, UserTable]
-})
-export class UserListingModule {}
+export enum PolicyStatus {
+    Found = 'Found',
+    Inherited = 'Inherited',
+    NotFound = 'NotFound',
+    Forbidden = 'Forbidden'
+}
+
+export enum Action {
+    Read = 'read',
+    Write = 'write'
+}
+
+export interface ResourceAction {
+    resource: string;
+    resourceIdentifier?: string;
+    action: Action;
+}
+
+export interface AccessPolicyEntity {
+    id: string;
+    component: AccessPolicy;
+    revision: Revision;
+    uri: string;
+    permissions: Permissions;
+    generated: string;
+}
+
+export interface AccessPolicy extends AccessPolicySummary {
+    users: TenantEntity[];
+    userGroups: TenantEntity[];
+}

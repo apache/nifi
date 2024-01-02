@@ -1,4 +1,4 @@
-/*
+/*!
  *  Licensed to the Apache Software Foundation (ASF) under one or more
  *  contributor license agreements.  See the NOTICE file distributed with
  *  this work for additional information regarding copyright ownership.
@@ -15,15 +15,26 @@
  *  limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { UserListing } from './user-listing.component';
-import { CommonModule } from '@angular/common';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { UserTable } from './user-table/user-table.component';
+.global-access-policies {
+    a {
+        font-size: 16px;
+    }
 
-@NgModule({
-    declarations: [UserListing],
-    exports: [UserListing],
-    imports: [CommonModule, NgxSkeletonLoaderModule, UserTable]
-})
-export class UserListingModule {}
+    .resource-select {
+        .mat-mdc-form-field {
+            width: 300px;
+        }
+    }
+
+    .resource-identifier-select {
+        .mat-mdc-form-field {
+            width: 375px;
+        }
+    }
+
+    .action-select {
+        .mat-mdc-form-field {
+            width: 150px;
+        }
+    }
+}

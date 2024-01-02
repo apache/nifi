@@ -16,14 +16,24 @@
  */
 
 import { NgModule } from '@angular/core';
-import { UserListing } from './user-listing.component';
 import { CommonModule } from '@angular/common';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { UserTable } from './user-table/user-table.component';
+import { AccessPolicies } from './access-policies.component';
+import { AccessPoliciesRoutingModule } from './access-policies-routing.module';
+import { StoreModule } from '@ngrx/store';
+import { reducers, accessPoliciesFeatureKey } from '../state';
+import { EffectsModule } from '@ngrx/effects';
+import { MatDialogModule } from '@angular/material/dialog';
+import { AccessPolicyEffects } from '../state/access-policy/access-policy.effects';
 
 @NgModule({
-    declarations: [UserListing],
-    exports: [UserListing],
-    imports: [CommonModule, NgxSkeletonLoaderModule, UserTable]
+    declarations: [AccessPolicies],
+    exports: [AccessPolicies],
+    imports: [
+        CommonModule,
+        AccessPoliciesRoutingModule,
+        StoreModule.forFeature(accessPoliciesFeatureKey, reducers),
+        EffectsModule.forFeature(AccessPolicyEffects),
+        MatDialogModule
+    ]
 })
-export class UserListingModule {}
+export class AccessPoliciesModule {}

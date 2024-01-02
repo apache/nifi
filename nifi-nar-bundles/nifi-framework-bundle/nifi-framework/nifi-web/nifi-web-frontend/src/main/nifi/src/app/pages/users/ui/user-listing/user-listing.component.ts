@@ -42,6 +42,8 @@ import {
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserEntity, UserGroupEntity } from '../../../../state/shared';
+import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
+import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 
 @Component({
     selector: 'user-listing',
@@ -49,6 +51,7 @@ import { UserEntity, UserGroupEntity } from '../../../../state/shared';
     styleUrls: ['./user-listing.component.scss']
 })
 export class UserListing implements OnInit {
+    flowConfiguration$ = this.store.select(selectFlowConfiguration);
     userListingState$ = this.store.select(selectUserListingState);
     selectedTenantId$ = this.store.select(selectTenantIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
@@ -124,6 +127,7 @@ export class UserListing implements OnInit {
     }
 
     ngOnInit(): void {
+        this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(loadTenants());
     }
 

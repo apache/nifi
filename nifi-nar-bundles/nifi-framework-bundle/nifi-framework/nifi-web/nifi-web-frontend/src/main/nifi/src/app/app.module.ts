@@ -40,6 +40,7 @@ import { StatusHistoryEffects } from './state/status-history/status-history.effe
 import { MatDialogModule } from '@angular/material/dialog';
 import { ControllerServiceStateEffects } from './state/contoller-service-state/controller-service-state.effects';
 import { SystemDiagnosticsEffects } from './state/system-diagnostics/system-diagnostics.effects';
+import { FlowConfigurationEffects } from './state/flow-configuration/flow-configuration.effects';
 
 // @ts-ignore
 @NgModule({
@@ -62,6 +63,7 @@ import { SystemDiagnosticsEffects } from './state/system-diagnostics/system-diag
             CurrentUserEffects,
             ExtensionTypesEffects,
             AboutEffects,
+            FlowConfigurationEffects,
             StatusHistoryEffects,
             ControllerServiceStateEffects,
             SystemDiagnosticsEffects

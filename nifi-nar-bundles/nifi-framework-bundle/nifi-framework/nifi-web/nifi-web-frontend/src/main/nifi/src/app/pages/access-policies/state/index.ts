@@ -15,15 +15,20 @@
  *  limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { UserListing } from './user-listing.component';
-import { CommonModule } from '@angular/common';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { UserTable } from './user-table/user-table.component';
+import { Action, combineReducers, createFeatureSelector } from '@ngrx/store';
+import { accessPolicyFeatureKey, AccessPolicyState } from './access-policy';
+import { accessPolicyReducer } from './access-policy/access-policy.reducer';
 
-@NgModule({
-    declarations: [UserListing],
-    exports: [UserListing],
-    imports: [CommonModule, NgxSkeletonLoaderModule, UserTable]
-})
-export class UserListingModule {}
+export const accessPoliciesFeatureKey = 'accessPolicies';
+
+export interface AccessPoliciesState {
+    [accessPolicyFeatureKey]: AccessPolicyState;
+}
+
+export function reducers(state: AccessPoliciesState | undefined, action: Action) {
+    return combineReducers({
+        [accessPolicyFeatureKey]: accessPolicyReducer
+    })(state, action);
+}
+
+export const selectAccessPoliciesState = createFeatureSelector<AccessPoliciesState>(accessPoliciesFeatureKey);

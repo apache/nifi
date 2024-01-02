@@ -15,15 +15,31 @@
  *  limitations under the License.
  */
 
+import { RouterModule, Routes } from '@angular/router';
 import { NgModule } from '@angular/core';
-import { UserListing } from './user-listing.component';
-import { CommonModule } from '@angular/common';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { UserTable } from './user-table/user-table.component';
+import { AccessPolicies } from './access-policies.component';
+import { authorizationGuard } from '../../../service/guard/authorization.guard';
+import { CurrentUser } from '../../../state/current-user';
+
+const routes: Routes = [
+    {
+        path: '',
+        component: AccessPolicies,
+        canMatch: [authorizationGuard((user: CurrentUser) => user.tenantsPermissions.canRead)],
+        children: [
+            {
+                path: '',
+                loadChildren: () =>
+                    import('../ui/global-access-policies/global-access-policies.module').then(
+                        (m) => m.GlobalAccessPoliciesModule
+                    )
+            }
+        ]
+    }
+];
 
 @NgModule({
-    declarations: [UserListing],
-    exports: [UserListing],
-    imports: [CommonModule, NgxSkeletonLoaderModule, UserTable]
+    imports: [RouterModule.forChild(routes)],
+    exports: [RouterModule]
 })
-export class UserListingModule {}
+export class AccessPoliciesRoutingModule {}

@@ -15,15 +15,24 @@
  *  limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { UserListing } from './user-listing.component';
-import { CommonModule } from '@angular/common';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { UserTable } from './user-table/user-table.component';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { NiFiState } from '../../../state';
+import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 
-@NgModule({
-    declarations: [UserListing],
-    exports: [UserListing],
-    imports: [CommonModule, NgxSkeletonLoaderModule, UserTable]
+@Component({
+    selector: 'access-policies',
+    templateUrl: './access-policies.component.html',
+    styleUrls: ['./access-policies.component.scss']
 })
-export class UserListingModule {}
+export class AccessPolicies implements OnInit, OnDestroy {
+    constructor(private store: Store<NiFiState>) {}
+
+    ngOnInit(): void {
+        this.store.dispatch(startCurrentUserPolling());
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(stopCurrentUserPolling());
+    }
+}

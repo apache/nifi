@@ -33,8 +33,12 @@ export interface LoadExtensionTypesForSettingsResponse {
     parameterProviderTypes: DocumentedType[];
 }
 
-export interface CreateExtensionRequest {
-    types: DocumentedType[];
+export interface LoadExtensionTypesForPoliciesResponse {
+    processorTypes: DocumentedType[];
+    controllerServiceTypes: DocumentedType[];
+    reportingTaskTypes: DocumentedType[];
+    flowAnalysisRuleTypes: DocumentedType[];
+    parameterProviderTypes: DocumentedType[];
 }
 
 export interface ExtensionTypesState {

@@ -17,29 +17,31 @@
 
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
-import * as AboutActions from './about.actions';
+import * as FlowConfigurationActions from './flow-configuration.actions';
 import { catchError, from, map, of, switchMap } from 'rxjs';
-import { AboutService } from '../../service/about.service';
+import { FlowConfigurationService } from '../../service/flow-configuration.service';
 
 @Injectable()
-export class AboutEffects {
+export class FlowConfigurationEffects {
     constructor(
         private actions$: Actions,
-        private aboutService: AboutService
+        private flowConfigurationService: FlowConfigurationService
     ) {}
 
-    loadAbout$ = createEffect(() =>
+    loadFlowConfiguration$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(AboutActions.loadAbout),
+            ofType(FlowConfigurationActions.loadFlowConfiguration),
             switchMap(() => {
                 return from(
-                    this.aboutService.getAbout().pipe(
+                    this.flowConfigurationService.getFlowConfiguration().pipe(
                         map((response) =>
-                            AboutActions.loadAboutSuccess({
+                            FlowConfigurationActions.loadFlowConfigurationSuccess({
                                 response
                             })
                         ),
-                        catchError((error) => of(AboutActions.aboutApiError({ error: error.error })))
+                        catchError((error) =>
+                            of(FlowConfigurationActions.flowConfigurationApiError({ error: error.error }))
+                        )
                     )
                 );
             })

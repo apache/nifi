@@ -131,7 +131,15 @@
                         <i class="fa fa-fw fa-users mr-2"></i>
                         Users
                     </button>
-                    <button mat-menu-item class="global-menu-item">
+                    <button
+                        mat-menu-item
+                        class="global-menu-item"
+                        [routerLink]="['/access-policies']"
+                        [disabled]="
+                            !user.tenantsPermissions.canRead ||
+                            !user.policiesPermissions.canRead ||
+                            !user.policiesPermissions.canWrite
+                        ">
                         <i class="fa fa-fw fa-key mr-2"></i>
                         Policies
                     </button>
