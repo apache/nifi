@@ -103,8 +103,6 @@ import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.c
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
 import { selectParameterSaving } from '../parameter/parameter.selectors';
 import { ParameterService } from '../../service/parameter.service';
-import { navigateToViewStatusHistoryForComponent } from './flow.actions';
-import { dispatch } from 'd3';
 
 @Injectable()
 export class FlowEffects {
