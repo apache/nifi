@@ -15,68 +15,74 @@
   ~ limitations under the License.
   -->
 
-<div class="user-access-policies p-4 flex flex-col justify-between gap-y-3" tabindex="0">
-    <h3 class="text-lg">User Policies</h3>
-    <div class="flex flex-col">
-        <div>User</div>
-        <div class="value">{{ request.identity }}</div>
-    </div>
-    <div class="listing-table">
-        <div class="h-96 overflow-y-auto overflow-x-hidden border">
-            <table
-                mat-table
-                [dataSource]="dataSource"
-                matSort
-                matSortDisableClear
-                (matSortChange)="updateSort($event)"
-                [matSortActive]="sort.active"
-                [matSortDirection]="sort.direction">
-                <!-- Policy Column -->
-                <ng-container matColumnDef="policy">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Policy</th>
-                    <td mat-cell *matCellDef="let item">
-                        <div *ngIf="item.permissions.canRead; else noPermissions">
-                            {{ formatPolicy(item) }}
-                        </div>
-                        <ng-template #noPermissions>
-                            <div class="unset">{{ item.id }}</div>
-                        </ng-template>
-                    </td>
-                </ng-container>
+<div class="user-access-policies" tabindex="0">
+    <h3 mat-dialog-title>User Policies</h3>
+    <mat-dialog-content>
+        <div class="flex flex-col justify-between gap-y-3">
+            <div class="flex flex-col">
+                <div>User</div>
+                <div class="value">{{ request.identity }}</div>
+            </div>
+            <div class="listing-table">
+                <div class="h-96 overflow-y-auto overflow-x-hidden border">
+                    <table
+                        mat-table
+                        [dataSource]="dataSource"
+                        matSort
+                        matSortDisableClear
+                        (matSortChange)="updateSort($event)"
+                        [matSortActive]="sort.active"
+                        [matSortDirection]="sort.direction">
+                        <!-- Policy Column -->
+                        <ng-container matColumnDef="policy">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Policy</th>
+                            <td mat-cell *matCellDef="let item">
+                                <div *ngIf="item.permissions.canRead; else noPermissions">
+                                    {{ formatPolicy(item) }}
+                                </div>
+                                <ng-template #noPermissions>
+                                    <div class="unset">{{ item.id }}</div>
+                                </ng-template>
+                            </td>
+                        </ng-container>
 
-                <!-- Action Column -->
-                <ng-container matColumnDef="action">
-                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Action</th>
-                    <td mat-cell *matCellDef="let item">
-                        {{ item.component.action }}
-                    </td>
-                </ng-container>
+                        <!-- Action Column -->
+                        <ng-container matColumnDef="action">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Action</th>
+                            <td mat-cell *matCellDef="let item">
+                                {{ item.component.action }}
+                            </td>
+                        </ng-container>
 
-                <!-- Actions Column -->
-                <ng-container matColumnDef="actions">
-                    <th mat-header-cell *matHeaderCellDef></th>
-                    <td mat-cell *matCellDef="let item">
-                        <div
-                            class="pointer fa fa-long-arrow-right"
-                            *ngIf="canGoToPolicyTarget(item)"
-                            [routerLink]="getPolicyTargetLink(item)"
-                            mat-dialog-close="ROUTED"
-                            title="Go to"></div>
-                    </td>
-                </ng-container>
+                        <!-- Actions Column -->
+                        <ng-container matColumnDef="actions">
+                            <th mat-header-cell *matHeaderCellDef></th>
+                            <td mat-cell *matCellDef="let item">
+                                <div
+                                    class="pointer fa fa-long-arrow-right"
+                                    *ngIf="canGoToPolicyTarget(item)"
+                                    [routerLink]="getPolicyTargetLink(item)"
+                                    mat-dialog-close="ROUTED"
+                                    title="Go to"></div>
+                            </td>
+                        </ng-container>
 
-                <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-                <tr
-                    mat-row
-                    *matRowDef="let row; let even = even; columns: displayedColumns"
-                    (click)="selectPolicy(row)"
-                    [class.selected]="isSelected(row)"
-                    [class.even]="even"></tr>
-            </table>
+                        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                        <tr
+                            mat-row
+                            *matRowDef="let row; let even = even; columns: displayedColumns"
+                            (click)="selectPolicy(row)"
+                            [class.selected]="isSelected(row)"
+                            [class.even]="even"></tr>
+                    </table>
+                </div>
+            </div>
+            <div class="value">
+                Some policies may be inherited by descendant components unless explicitly overridden.
+            </div>
         </div>
-    </div>
-    <div class="value">Some policies may be inherited by descendant components unless explicitly overridden.</div>
-    <div class="flex justify-end gap-x-2">
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
         <button color="primary" mat-raised-button mat-dialog-close>Close</button>
-    </div>
+    </mat-dialog-actions>
 </div>

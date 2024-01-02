@@ -22,20 +22,22 @@
 
     font-size: 14px;
 
-    table {
-        width: auto;
+    .listing-table {
+        table {
+            width: auto;
 
-        td,
-        th {
-            cursor: default;
-        }
+            td,
+            th {
+                cursor: default;
+            }
 
-        .mat-column-action {
-            width: 75px;
-        }
+            .mat-column-action {
+                width: 75px;
+            }
 
-        .mat-column-actions {
-            width: 50px;
+            .mat-column-actions {
+                width: 50px;
+            }
         }
     }
 }

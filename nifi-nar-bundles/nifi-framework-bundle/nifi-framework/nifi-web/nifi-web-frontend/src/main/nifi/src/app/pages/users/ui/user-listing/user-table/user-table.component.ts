@@ -150,7 +150,7 @@ export class UserTable implements AfterViewInit {
     }
 
     formatMembership(item: TenantItem): string {
-        return item.membership.join(', ');
+        return item.membership.sort((a, b) => this.nifiCommon.compareString(a, b)).join(', ');
     }
 
     sortUsers(items: TenantItem[], sort: Sort): TenantItem[] {

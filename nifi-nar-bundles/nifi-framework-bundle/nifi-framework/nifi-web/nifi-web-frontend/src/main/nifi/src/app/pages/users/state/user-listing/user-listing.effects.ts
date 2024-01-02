@@ -394,7 +394,7 @@ export class UserListingEffects {
                         UserListingActions.updateUserSuccess({
                             response: {
                                 user: response,
-                                userGroupUpdate: response.userGroupUpdate
+                                userGroupUpdate: request.userGroupUpdate
                             }
                         })
                     ),
@@ -465,7 +465,9 @@ export class UserListingEffects {
                                         ...ug.component.users
                                             .filter((user) => user.id != response.user.id)
                                             .map((user) => {
-                                                id: user.id;
+                                                return {
+                                                    id: user.id
+                                                };
                                             })
                                     ];
 
@@ -476,6 +478,7 @@ export class UserListingEffects {
                                             id: ug.id,
                                             uri: ug.uri,
                                             userGroupPayload: {
+                                                ...ug.component,
                                                 users
                                             }
                                         }
