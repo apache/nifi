@@ -25,13 +25,13 @@ import { FlowAnalysisRules } from '../ui/flow-analysis-rules/flow-analysis-rules
 import { RegistryClients } from '../ui/registry-clients/registry-clients.component';
 import { ParameterProviders } from '../ui/parameter-providers/parameter-providers.component';
 import { authorizationGuard } from '../../../service/guard/authorization.guard';
-import { User } from '../../../state/user';
+import { CurrentUser } from '../../../state/current-user';
 
 const routes: Routes = [
     {
         path: '',
         component: Settings,
-        canMatch: [authorizationGuard((user: User) => user.controllerPermissions.canRead)],
+        canMatch: [authorizationGuard((user: CurrentUser) => user.controllerPermissions.canRead)],
         children: [
             { path: '', pathMatch: 'full', redirectTo: 'general' },
             { path: 'general', component: General },

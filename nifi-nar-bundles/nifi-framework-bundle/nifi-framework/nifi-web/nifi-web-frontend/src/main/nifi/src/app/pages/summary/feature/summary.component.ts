@@ -18,7 +18,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
-import { startUserPolling, stopUserPolling } from '../../../state/user/user.actions';
+import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 import { loadSummaryListing, resetSummaryState } from '../state/summary-listing/summary-listing.actions';
 
 interface TabLink {
@@ -44,12 +44,12 @@ export class Summary implements OnInit, OnDestroy {
     constructor(private store: Store<NiFiState>) {}
 
     ngOnInit(): void {
-        this.store.dispatch(startUserPolling());
+        this.store.dispatch(startCurrentUserPolling());
         this.store.dispatch(loadSummaryListing({ recursive: true }));
     }
 
     ngOnDestroy(): void {
         this.store.dispatch(resetSummaryState());
-        this.store.dispatch(stopUserPolling());
+        this.store.dispatch(stopCurrentUserPolling());
     }
 }

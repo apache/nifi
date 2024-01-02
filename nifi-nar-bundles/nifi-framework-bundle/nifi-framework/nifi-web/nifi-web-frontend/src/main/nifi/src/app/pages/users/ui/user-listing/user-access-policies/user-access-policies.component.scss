@@ -15,9 +15,29 @@
  * limitations under the License.
  */
 
-import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { userFeatureKey, UserState } from './index';
+@use '@angular/material' as mat;
 
-export const selectUserState = createFeatureSelector<UserState>(userFeatureKey);
+.user-access-policies {
+    @include mat.button-density(-1);
 
-export const selectUser = createSelector(selectUserState, (state: UserState) => state.user);
+    font-size: 14px;
+
+    .listing-table {
+        table {
+            width: auto;
+
+            td,
+            th {
+                cursor: default;
+            }
+
+            .mat-column-action {
+                width: 75px;
+            }
+
+            .mat-column-actions {
+                width: 50px;
+            }
+        }
+    }
+}

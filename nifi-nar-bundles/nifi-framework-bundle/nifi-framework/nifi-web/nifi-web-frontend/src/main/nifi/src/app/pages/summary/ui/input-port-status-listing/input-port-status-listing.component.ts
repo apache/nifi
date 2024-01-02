@@ -22,7 +22,7 @@ import {
     selectSummaryListingLoadedTimestamp,
     selectSummaryListingStatus
 } from '../../state/summary-listing/summary-listing.selectors';
-import { selectUser } from '../../../../state/user/user.selectors';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { PortStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
 import { Store } from '@ngrx/store';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
@@ -38,7 +38,7 @@ export class InputPortStatusListing {
     portStatusSnapshots$ = this.store.select(selectInputPortStatusSnapshots);
     loadedTimestamp$ = this.store.select(selectSummaryListingLoadedTimestamp);
     summaryListingStatus$ = this.store.select(selectSummaryListingStatus);
-    currentUser$ = this.store.select(selectUser);
+    currentUser$ = this.store.select(selectCurrentUser);
     selectedPortId$ = this.store.select(selectInputPortIdFromRoute);
 
     constructor(private store: Store<SummaryListingState>) {}

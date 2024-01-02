@@ -42,7 +42,7 @@ import {
     openStatusHistoryDialog
 } from '../../../../state/status-history/status-history.actions';
 import { ComponentType } from '../../../../state/shared';
-import { selectUser } from '../../../../state/user/user.selectors';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { getSystemDiagnosticsAndOpenDialog } from '../../../../state/system-diagnostics/system-diagnostics.actions';
 
 @Component({
@@ -54,7 +54,7 @@ export class ProcessGroupStatusListing {
     processGroupStatusSnapshots$ = this.store.select(selectProcessGroupStatusSnapshots);
     loadedTimestamp$ = this.store.select(selectSummaryListingLoadedTimestamp);
     summaryListingStatus$ = this.store.select(selectSummaryListingStatus);
-    currentUser$ = this.store.select(selectUser);
+    currentUser$ = this.store.select(selectCurrentUser);
     selectedProcessGroupId$ = this.store.select(selectProcessGroupIdFromRoute);
     processGroupStatus$ = this.store.select(selectProcessGroupStatus);
 

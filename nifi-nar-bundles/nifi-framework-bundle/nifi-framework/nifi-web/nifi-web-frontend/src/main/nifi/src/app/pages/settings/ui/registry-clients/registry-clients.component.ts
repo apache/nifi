@@ -34,7 +34,7 @@ import {
 } from '../../state/registry-clients/registry-clients.actions';
 import { RegistryClientEntity, RegistryClientsState } from '../../state/registry-clients';
 import { initialState } from '../../state/registry-clients/registry-clients.reducer';
-import { selectUser } from '../../../../state/user/user.selectors';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NiFiState } from '../../../../state';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -48,7 +48,7 @@ import { state } from '@angular/animations';
 export class RegistryClients implements OnInit, OnDestroy {
     registryClientsState$ = this.store.select(selectRegistryClientsState);
     selectedRegistryClientId$ = this.store.select(selectRegistryClientIdFromRoute);
-    currentUser$ = this.store.select(selectUser);
+    currentUser$ = this.store.select(selectCurrentUser);
 
     constructor(private store: Store<NiFiState>) {
         this.store

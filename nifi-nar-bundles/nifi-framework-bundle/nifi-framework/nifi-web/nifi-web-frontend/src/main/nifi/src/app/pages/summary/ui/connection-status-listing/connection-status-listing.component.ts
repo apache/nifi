@@ -33,7 +33,7 @@ import {
     selectSummaryListingStatus,
     selectViewStatusHistory
 } from '../../state/summary-listing/summary-listing.selectors';
-import { selectUser } from '../../../../state/user/user.selectors';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -51,7 +51,7 @@ import { getSystemDiagnosticsAndOpenDialog } from '../../../../state/system-diag
 export class ConnectionStatusListing {
     loadedTimestamp$ = this.store.select(selectSummaryListingLoadedTimestamp);
     summaryListingStatus$ = this.store.select(selectSummaryListingStatus);
-    currentUser$ = this.store.select(selectUser);
+    currentUser$ = this.store.select(selectCurrentUser);
     connectionStatusSnapshots$ = this.store.select(selectConnectionStatusSnapshots);
     selectedConnectionId$ = this.store.select(selectConnectionIdFromRoute);
 

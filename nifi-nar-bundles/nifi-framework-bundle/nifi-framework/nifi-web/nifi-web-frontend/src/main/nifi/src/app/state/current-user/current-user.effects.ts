@@ -17,44 +17,46 @@
 
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
-import * as UserActions from './user.actions';
+import * as UserActions from './current-user.actions';
 import { asyncScheduler, catchError, from, interval, map, of, switchMap, takeUntil } from 'rxjs';
-import { UserService } from '../../service/user.service';
+import { CurrentUserService } from '../../service/current-user.service';
 
 @Injectable()
-export class UserEffects {
+export class CurrentUserEffects {
     constructor(
         private actions$: Actions,
-        private userService: UserService
+        private userService: CurrentUserService
     ) {}
 
-    loadUser$ = createEffect(() =>
+    loadCurrentUser$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(UserActions.loadUser),
+            ofType(UserActions.loadCurrentUser),
             switchMap(() => {
                 return from(
                     this.userService.getUser().pipe(
                         map((response) =>
-                            UserActions.loadUserSuccess({
+                            UserActions.loadCurrentUserSuccess({
                                 response: {
                                     user: response
                                 }
                             })
                         ),
-                        catchError((error) => of(UserActions.userApiError({ error: error.error })))
+                        catchError((error) => of(UserActions.currentUserApiError({ error: error.error })))
                     )
                 );
             })
         )
     );
 
-    startUserPolling$ = createEffect(() =>
+    startCurrentUserPolling$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(UserActions.startUserPolling),
+            ofType(UserActions.startCurrentUserPolling),
             switchMap(() =>
-                interval(30000, asyncScheduler).pipe(takeUntil(this.actions$.pipe(ofType(UserActions.stopUserPolling))))
+                interval(30000, asyncScheduler).pipe(
+                    takeUntil(this.actions$.pipe(ofType(UserActions.stopCurrentUserPolling)))
+                )
             ),
-            switchMap(() => of(UserActions.loadUser()))
+            switchMap(() => of(UserActions.loadCurrentUser()))
         )
     );
 }

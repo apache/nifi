@@ -19,15 +19,15 @@ import { CanMatchFn, Route, Router, UrlSegment } from '@angular/router';
 import { inject } from '@angular/core';
 import { map } from 'rxjs';
 import { Store } from '@ngrx/store';
-import { User, UserState } from '../../state/user';
-import { selectUser } from '../../state/user/user.selectors';
+import { CurrentUser, CurrentUserState } from '../../state/current-user';
+import { selectCurrentUser } from '../../state/current-user/current-user.selectors';
 
-export const authorizationGuard = (authorizationCheck: (user: User) => boolean): CanMatchFn => {
+export const authorizationGuard = (authorizationCheck: (user: CurrentUser) => boolean): CanMatchFn => {
     return (route: Route, state: UrlSegment[]) => {
         const router: Router = inject(Router);
-        const store: Store<UserState> = inject(Store<UserState>);
+        const store: Store<CurrentUserState> = inject(Store<CurrentUserState>);
 
-        return store.select(selectUser).pipe(
+        return store.select(selectCurrentUser).pipe(
             map((currentUser) => {
                 if (authorizationCheck(currentUser)) {
                     return true;

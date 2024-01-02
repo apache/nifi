@@ -15,18 +15,25 @@
  * limitations under the License.
  */
 
-import { createAction, props } from '@ngrx/store';
-import { LoadUserResponse, UserState } from './index';
-import { LoadProcessGroupRequest, LoadProcessGroupResponse } from '../../pages/flow-designer/state/flow';
+@use '@angular/material' as mat;
 
-export const loadUser = createAction('[User] Load User');
+.edit-tenant-form {
+    @include mat.button-density(-1);
 
-export const loadUserSuccess = createAction('[User] Load User Success', props<{ response: LoadUserResponse }>());
+    .mat-mdc-radio-button ~ .mat-mdc-radio-button {
+        margin-left: 16px;
+    }
 
-export const userApiError = createAction('[User] User Api Error', props<{ error: string }>());
+    .mat-mdc-form-field {
+        width: 100%;
+    }
 
-export const clearUserApiError = createAction('[User] Clear User Api Error');
+    .mat-mdc-form-field-error {
+        font-size: 12px;
+    }
 
-export const startUserPolling = createAction('[User] Start User Polling');
-
-export const stopUserPolling = createAction('[User] Stop User Polling');
+    mat-selection-list {
+        max-height: 300px;
+        overflow: auto;
+    }
+}

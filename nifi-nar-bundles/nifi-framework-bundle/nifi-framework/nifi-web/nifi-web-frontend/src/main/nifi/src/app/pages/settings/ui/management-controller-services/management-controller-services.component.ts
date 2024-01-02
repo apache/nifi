@@ -39,7 +39,7 @@ import { ControllerServiceEntity } from '../../../../state/shared';
 import { initialState } from '../../state/management-controller-services/management-controller-services.reducer';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { selectUser } from '../../../../state/user/user.selectors';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NiFiState } from '../../../../state';
 import { state } from '@angular/animations';
 import { resetEnableControllerServiceState } from '../../../../state/contoller-service-state/controller-service-state.actions';
@@ -52,7 +52,7 @@ import { resetEnableControllerServiceState } from '../../../../state/contoller-s
 export class ManagementControllerServices implements OnInit, OnDestroy {
     serviceState$ = this.store.select(selectManagementControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
-    currentUser$ = this.store.select(selectUser);
+    currentUser$ = this.store.select(selectCurrentUser);
 
     constructor(private store: Store<NiFiState>) {
         this.store

@@ -20,17 +20,17 @@ import { inject } from '@angular/core';
 import { AuthService } from '../auth.service';
 import { AuthStorage } from '../auth-storage.service';
 import { take } from 'rxjs';
-import { UserService } from '../user.service';
+import { CurrentUserService } from '../current-user.service';
 import { Store } from '@ngrx/store';
-import { UserState } from '../../state/user';
-import { loadUserSuccess } from '../../state/user/user.actions';
-import { selectUserState } from '../../state/user/user.selectors';
+import { CurrentUserState } from '../../state/current-user';
+import { loadCurrentUserSuccess } from '../../state/current-user/current-user.actions';
+import { selectCurrentUserState } from '../../state/current-user/current-user.selectors';
 
 export const authenticationGuard: CanMatchFn = (route, state) => {
     const authStorage: AuthStorage = inject(AuthStorage);
     const authService: AuthService = inject(AuthService);
-    const userService: UserService = inject(UserService);
-    const store: Store<UserState> = inject(Store<UserState>);
+    const userService: CurrentUserService = inject(CurrentUserService);
+    const store: Store<CurrentUserState> = inject(Store<CurrentUserState>);
 
     const handleAuthentication: Promise<boolean> = new Promise((resolve) => {
         if (authStorage.hasToken()) {
@@ -77,7 +77,7 @@ export const authenticationGuard: CanMatchFn = (route, state) => {
     return new Promise<boolean>((resolve) => {
         handleAuthentication.finally(() => {
             store
-                .select(selectUserState)
+                .select(selectCurrentUserState)
                 .pipe(take(1))
                 .subscribe((userState) => {
                     if (userState.status == 'pending') {
@@ -88,7 +88,7 @@ export const authenticationGuard: CanMatchFn = (route, state) => {
                                 next: (response) => {
                                     // store the loaded user
                                     store.dispatch(
-                                        loadUserSuccess({
+                                        loadCurrentUserSuccess({
                                             response: {
                                                 user: response
                                             }

@@ -26,7 +26,7 @@ import {
     selectViewStatusHistory
 } from '../../state/summary-listing/summary-listing.selectors';
 import { ProcessorStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
-import { selectUser } from '../../../../state/user/user.selectors';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 import {
     getStatusHistoryAndOpenDialog,
@@ -49,7 +49,7 @@ export class ProcessorStatusListing {
     summaryListingStatus$ = this.store.select(selectSummaryListingStatus);
     selectedProcessorId$ = this.store.select(selectProcessorIdFromRoute);
 
-    currentUser$ = this.store.select(selectUser);
+    currentUser$ = this.store.select(selectCurrentUser);
 
     constructor(private store: Store<SummaryListingState>) {
         this.store

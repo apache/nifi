@@ -115,7 +115,11 @@
                         Node Status History
                     </button>
                     <mat-divider></mat-divider>
-                    <button mat-menu-item class="global-menu-item">
+                    <button
+                        mat-menu-item
+                        class="global-menu-item"
+                        [routerLink]="['/users']"
+                        [disabled]="!user.tenantsPermissions.canRead">
                         <i class="fa fa-fw fa-users mr-2"></i>
                         Users
                     </button>

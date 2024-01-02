@@ -26,8 +26,8 @@ import {
     selectCurrentProcessGroupId,
     selectLastRefreshed
 } from '../../../state/flow/flow.selectors';
-import { selectUser } from '../../../../../state/user/user.selectors';
-import { User } from '../../../../../state/user';
+import { selectCurrentUser } from '../../../../../state/current-user/current-user.selectors';
+import { CurrentUser } from '../../../../../state/current-user';
 import { AuthStorage } from '../../../../../service/auth-storage.service';
 import { AuthService } from '../../../../../service/auth.service';
 import { LoadingService } from '../../../../../service/loading.service';
@@ -63,7 +63,7 @@ export class HeaderComponent {
     lastRefreshed$ = this.store.select(selectLastRefreshed);
     clusterSummary$ = this.store.select(selectClusterSummary);
     controllerBulletins$ = this.store.select(selectControllerBulletins);
-    currentUser$ = this.store.select(selectUser);
+    currentUser$ = this.store.select(selectCurrentUser);
     currentProcessGroupId$ = this.store.select(selectCurrentProcessGroupId);
 
     constructor(
@@ -73,7 +73,7 @@ export class HeaderComponent {
         public loadingService: LoadingService
     ) {}
 
-    allowLogin(user: User): boolean {
+    allowLogin(user: CurrentUser): boolean {
         return user.anonymous && location.protocol === 'https:';
     }
 

@@ -26,8 +26,8 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { selectFlowState } from '../../state/flow/flow.selectors';
 import { controllerServicesFeatureKey } from '../../state/controller-services';
 import * as fromControllerServices from '../../state/controller-services/controller-services.reducer';
-import { selectUser } from '../../../../state/user/user.selectors';
-import * as fromUser from '../../../../state/user/user.reducer';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
+import * as fromUser from '../../../../state/current-user/current-user.reducer';
 import { parameterFeatureKey } from '../../state/parameter';
 import * as fromParameter from '../../state/parameter/parameter.reducer';
 
@@ -52,7 +52,7 @@ describe('SelectableBehavior', () => {
                             value: initialState[flowFeatureKey]
                         },
                         {
-                            selector: selectUser,
+                            selector: selectCurrentUser,
                             value: fromUser.initialState.user
                         }
                     ]

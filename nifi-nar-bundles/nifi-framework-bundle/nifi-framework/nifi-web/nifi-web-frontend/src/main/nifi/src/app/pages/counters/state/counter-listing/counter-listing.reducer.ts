@@ -17,8 +17,13 @@
 
 import { CounterListingState } from './index';
 import { createReducer, on } from '@ngrx/store';
-import { loadCounters, loadCountersSuccess, resetCounterState, resetCounterSuccess } from './counter-listing.actions';
-import { parameterContextListingApiError } from '../../../parameter-contexts/state/parameter-context-listing/parameter-context-listing.actions';
+import {
+    counterListingApiError,
+    loadCounters,
+    loadCountersSuccess,
+    resetCounterState,
+    resetCounterSuccess
+} from './counter-listing.actions';
 import { produce } from 'immer';
 
 export const initialState: CounterListingState = {
@@ -42,7 +47,7 @@ export const counterListingReducer = createReducer(
         error: null,
         status: 'success' as const
     })),
-    on(parameterContextListingApiError, (state, { error }) => ({
+    on(counterListingApiError, (state, { error }) => ({
         ...state,
         saving: false,
         error,

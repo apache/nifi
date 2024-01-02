@@ -21,7 +21,7 @@ import { ControllerEntity, GeneralState, UpdateControllerConfigRequest } from '.
 import { Store } from '@ngrx/store';
 import { updateControllerConfig } from '../../../state/general/general.actions';
 import { Client } from '../../../../../service/client.service';
-import { selectUser } from '../../../../../state/user/user.selectors';
+import { selectCurrentUser } from '../../../../../state/current-user/current-user.selectors';
 
 @Component({
     selector: 'general-form',
@@ -36,7 +36,7 @@ export class GeneralForm {
         this.controllerForm.get('timerDrivenThreadCount')?.setValue(controller.component.maxTimerDrivenThreadCount);
     }
 
-    currentUser$ = this.store.select(selectUser);
+    currentUser$ = this.store.select(selectCurrentUser);
     controllerForm: FormGroup;
 
     constructor(

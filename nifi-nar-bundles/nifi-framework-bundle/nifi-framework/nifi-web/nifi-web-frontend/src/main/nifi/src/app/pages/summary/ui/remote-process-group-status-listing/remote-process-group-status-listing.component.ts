@@ -24,7 +24,7 @@ import {
     selectSummaryListingStatus,
     selectViewStatusHistory
 } from '../../state/summary-listing/summary-listing.selectors';
-import { selectUser } from '../../../../state/user/user.selectors';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { Store } from '@ngrx/store';
 import { RemoteProcessGroupStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
 import { filter, switchMap, take } from 'rxjs';
@@ -46,7 +46,7 @@ import { getSystemDiagnosticsAndOpenDialog } from '../../../../state/system-diag
 export class RemoteProcessGroupStatusListing {
     loadedTimestamp$ = this.store.select(selectSummaryListingLoadedTimestamp);
     summaryListingStatus$ = this.store.select(selectSummaryListingStatus);
-    currentUser$ = this.store.select(selectUser);
+    currentUser$ = this.store.select(selectCurrentUser);
     rpgStatusSnapshots$ = this.store.select(selectRemoteProcessGroupStatusSnapshots);
     selectedRpgId$ = this.store.select(selectRemoteProcessGroupIdFromRoute);
 

@@ -21,7 +21,7 @@ import { Store } from '@ngrx/store';
 import { loadCounters, promptCounterReset } from '../../state/counter-listing/counter-listing.actions';
 import { selectCounterListingState } from '../../state/counter-listing/counter-listing.selectors';
 import { initialState } from '../../state/counter-listing/counter-listing.reducer';
-import { selectUser } from '../../../../state/user/user.selectors';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 
 @Component({
     selector: 'counter-listing',
@@ -30,7 +30,7 @@ import { selectUser } from '../../../../state/user/user.selectors';
 })
 export class CounterListing implements OnInit {
     counterListingState$ = this.store.select(selectCounterListingState);
-    currentUser$ = this.store.select(selectUser);
+    currentUser$ = this.store.select(selectCurrentUser);
 
     constructor(private store: Store<CounterListingState>) {}
 
