@@ -125,19 +125,25 @@ export class RemoteProcessGroupStatusTable implements AfterViewInit {
     @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
     @Output() viewStatusHistory: EventEmitter<RemoteProcessGroupStatusSnapshotEntity> =
         new EventEmitter<RemoteProcessGroupStatusSnapshotEntity>();
-    @Output() selectRemoteProcessGroup: EventEmitter<RemoteProcessGroupStatusSnapshotEntity> =
-        new EventEmitter<RemoteProcessGroupStatusSnapshotEntity>();
+    @Output() selectRemoteProcessGroup: EventEmitter<RemoteProcessGroupStatusSnapshotEntity | null> =
+        new EventEmitter<RemoteProcessGroupStatusSnapshotEntity | null>();
 
     applyFilter(filter: SummaryTableFilterArgs) {
         this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
         this.resetPaginator();
+        this.select(null);
     }
 
     resetPaginator(): void {
         if (this.dataSource.paginator) {
             this.dataSource.paginator.firstPage();
         }
+    }
+
+    paginationChanged(): void {
+        // clear out any selection
+        this.select(null);
     }
 
     getRemoteProcessGroupLink(rpg: RemoteProcessGroupStatusSnapshotEntity): string[] {
@@ -149,7 +155,7 @@ export class RemoteProcessGroupStatusTable implements AfterViewInit {
         ];
     }
 
-    select(rpg: RemoteProcessGroupStatusSnapshotEntity) {
+    select(rpg: RemoteProcessGroupStatusSnapshotEntity | null) {
         this.selectRemoteProcessGroup.next(rpg);
     }
 

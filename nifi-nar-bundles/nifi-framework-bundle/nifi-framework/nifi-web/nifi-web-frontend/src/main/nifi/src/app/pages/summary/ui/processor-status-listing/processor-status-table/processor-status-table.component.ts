@@ -30,7 +30,6 @@ import { ComponentType } from '../../../../../state/shared';
 import { MultiSort } from '../../common';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
-import { CurrentUser } from '../../../../../state/current-user';
 
 export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 'in' | 'out' | 'readWrite' | 'tasks';
 
@@ -86,6 +85,7 @@ export class ProcessorStatusTable implements AfterViewInit {
         this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
         this.resetPaginator();
+        this.select(null);
     }
 
     @Input() selectedProcessorId!: string;
@@ -146,13 +146,18 @@ export class ProcessorStatusTable implements AfterViewInit {
     @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
     @Output() viewStatusHistory: EventEmitter<ProcessorStatusSnapshotEntity> =
         new EventEmitter<ProcessorStatusSnapshotEntity>();
-    @Output() selectProcessor: EventEmitter<ProcessorStatusSnapshotEntity> =
-        new EventEmitter<ProcessorStatusSnapshotEntity>();
+    @Output() selectProcessor: EventEmitter<ProcessorStatusSnapshotEntity | null> =
+        new EventEmitter<ProcessorStatusSnapshotEntity | null>();
 
     resetPaginator(): void {
         if (this.dataSource.paginator) {
             this.dataSource.paginator.firstPage();
         }
+    }
+
+    paginationChanged(): void {
+        // clear out any selection
+        this.select(null);
     }
 
     formatName(processor: ProcessorStatusSnapshotEntity): string {
@@ -334,7 +339,7 @@ export class ProcessorStatusTable implements AfterViewInit {
         }
     }
 
-    select(processor: ProcessorStatusSnapshotEntity): void {
+    select(processor: ProcessorStatusSnapshotEntity | null): void {
         this.selectProcessor.next(processor);
     }
 

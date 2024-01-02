@@ -131,18 +131,25 @@ export class PortStatusTable implements AfterViewInit {
     @Input() loadedTimestamp: string | null = null;
 
     @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
-    @Output() selectPort: EventEmitter<PortStatusSnapshotEntity> = new EventEmitter<PortStatusSnapshotEntity>();
+    @Output() selectPort: EventEmitter<PortStatusSnapshotEntity | null> =
+        new EventEmitter<PortStatusSnapshotEntity | null>();
 
     applyFilter(filter: SummaryTableFilterArgs) {
         this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
         this.resetPaginator();
+        this.select(null);
     }
 
     resetPaginator(): void {
         if (this.dataSource.paginator) {
             this.dataSource.paginator.firstPage();
         }
+    }
+
+    paginationChanged(): void {
+        // clear out any selection
+        this.select(null);
     }
 
     formatName(port: PortStatusSnapshotEntity): string {
@@ -186,7 +193,7 @@ export class PortStatusTable implements AfterViewInit {
         return ['/process-groups', port.portStatusSnapshot.groupId, componentType, port.id];
     }
 
-    select(port: PortStatusSnapshotEntity): void {
+    select(port: PortStatusSnapshotEntity | null): void {
         this.selectPort.next(port);
     }
 

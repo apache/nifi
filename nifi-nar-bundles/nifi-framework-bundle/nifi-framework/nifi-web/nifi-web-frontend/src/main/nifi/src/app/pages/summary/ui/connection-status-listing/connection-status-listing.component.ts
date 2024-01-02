@@ -82,11 +82,11 @@ export class ConnectionStatusListing {
         this.store.dispatch(SummaryListingActions.loadSummaryListing({ recursive: true }));
     }
 
-    selectConnection(connection: ConnectionStatusSnapshotEntity): void {
+    selectConnection(connection: ConnectionStatusSnapshotEntity | null): void {
         this.store.dispatch(
             SummaryListingActions.selectConnectionStatus({
                 request: {
-                    id: connection.id
+                    id: connection ? connection.id : null
                 }
             })
         );

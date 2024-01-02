@@ -171,7 +171,11 @@
             <div class="refresh-timestamp">{{ loadedTimestamp }}</div>
         </div>
         <div>
-            <mat-paginator [pageSize]="100" [hidePageSize]="true" [showFirstLastButtons]="true"></mat-paginator>
+            <mat-paginator
+                [pageSize]="100"
+                [hidePageSize]="true"
+                [showFirstLastButtons]="true"
+                (page)="paginationChanged()"></mat-paginator>
         </div>
     </div>
 </div>

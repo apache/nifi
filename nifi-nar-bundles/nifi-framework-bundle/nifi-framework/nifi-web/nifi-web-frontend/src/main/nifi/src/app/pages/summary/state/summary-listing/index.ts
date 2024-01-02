@@ -146,7 +146,7 @@ export interface ProcessGroupStatusSnapshot extends BaseSnapshot {
     versionedFlowState?: VersionedFlowState;
 }
 
-export interface AggregateSnapshot extends ProcessGroupStatusSnapshot {}
+export type AggregateSnapshot = ProcessGroupStatusSnapshot;
 
 export interface PortStatusSnapshot extends BaseSnapshot {
     runStatus: string;
@@ -170,23 +170,23 @@ export interface SummaryListingResponse {
 }
 
 export interface SelectProcessorStatusRequest {
-    id: string;
+    id: string | null;
 }
 
 export interface SelectProcessGroupStatusRequest {
-    id: string;
+    id: string | null;
 }
 
 export interface SelectPortStatusRequest {
-    id: string;
+    id: string | null;
 }
 
 export interface SelectConnectionStatusRequest {
-    id: string;
+    id: string | null;
 }
 
 export interface SelectRemoteProcessGroupStatusRequest {
-    id: string;
+    id: string | null;
 }
 
 export interface SummaryListingState {

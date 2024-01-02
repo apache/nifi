@@ -82,11 +82,11 @@ export class RemoteProcessGroupStatusListing {
         this.store.dispatch(SummaryListingActions.loadSummaryListing({ recursive: true }));
     }
 
-    selectRemoteProcessGroup(rpg: RemoteProcessGroupStatusSnapshotEntity): void {
+    selectRemoteProcessGroup(rpg: RemoteProcessGroupStatusSnapshotEntity | null): void {
         this.store.dispatch(
             SummaryListingActions.selectRemoteProcessGroupStatus({
                 request: {
-                    id: rpg.id
+                    id: rpg ? rpg.id : null
                 }
             })
         );

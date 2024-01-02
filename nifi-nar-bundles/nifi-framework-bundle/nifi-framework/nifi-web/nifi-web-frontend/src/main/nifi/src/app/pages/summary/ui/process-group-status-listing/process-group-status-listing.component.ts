@@ -92,11 +92,11 @@ export class ProcessGroupStatusListing {
         );
     }
 
-    selectProcessGroup(pg: ProcessGroupStatusSnapshotEntity): void {
+    selectProcessGroup(pg: ProcessGroupStatusSnapshotEntity | null): void {
         this.store.dispatch(
             SummaryListingActions.selectProcessGroupStatus({
                 request: {
-                    id: pg.id
+                    id: pg ? pg.id : null
                 }
             })
         );

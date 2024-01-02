@@ -130,8 +130,8 @@ export class ConnectionStatusTable {
     @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
     @Output() viewStatusHistory: EventEmitter<ConnectionStatusSnapshotEntity> =
         new EventEmitter<ConnectionStatusSnapshotEntity>();
-    @Output() selectConnection: EventEmitter<ConnectionStatusSnapshotEntity> =
-        new EventEmitter<ConnectionStatusSnapshotEntity>();
+    @Output() selectConnection: EventEmitter<ConnectionStatusSnapshotEntity | null> =
+        new EventEmitter<ConnectionStatusSnapshotEntity | null>();
 
     resetPaginator(): void {
         if (this.dataSource.paginator) {
@@ -143,6 +143,12 @@ export class ConnectionStatusTable {
         this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
         this.resetPaginator();
+        this.select(null);
+    }
+
+    paginationChanged(): void {
+        // clear out any selection
+        this.select(null);
     }
 
     getConnectionLink(connection: ConnectionStatusSnapshotEntity): string[] {
@@ -154,7 +160,7 @@ export class ConnectionStatusTable {
         ];
     }
 
-    select(connection: ConnectionStatusSnapshotEntity): void {
+    select(connection: ConnectionStatusSnapshotEntity | null): void {
         this.selectConnection.next(connection);
     }
 

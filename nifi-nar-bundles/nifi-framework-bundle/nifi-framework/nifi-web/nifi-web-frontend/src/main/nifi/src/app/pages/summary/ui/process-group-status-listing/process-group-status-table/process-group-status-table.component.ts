@@ -88,6 +88,7 @@ export class ProcessGroupStatusTable implements AfterViewInit {
         this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
         this.resetPaginator();
+        this.select(null);
     }
 
     @Input() selectedProcessGroupId!: string;
@@ -139,8 +140,8 @@ export class ProcessGroupStatusTable implements AfterViewInit {
 
     @Output() viewStatusHistory: EventEmitter<ProcessGroupStatusSnapshotEntity> =
         new EventEmitter<ProcessGroupStatusSnapshotEntity>();
-    @Output() selectProcessGroup: EventEmitter<ProcessGroupStatusSnapshotEntity> =
-        new EventEmitter<ProcessGroupStatusSnapshotEntity>();
+    @Output() selectProcessGroup: EventEmitter<ProcessGroupStatusSnapshotEntity | null> =
+        new EventEmitter<ProcessGroupStatusSnapshotEntity | null>();
     @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
 
     @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -153,6 +154,11 @@ export class ProcessGroupStatusTable implements AfterViewInit {
         if (this.dataSource.paginator) {
             this.dataSource.paginator.firstPage();
         }
+    }
+
+    paginationChanged(): void {
+        // clear out any selection
+        this.select(null);
     }
 
     formatName(pg: ProcessGroupStatusSnapshotEntity): string {
@@ -432,7 +438,7 @@ export class ProcessGroupStatusTable implements AfterViewInit {
         return ['/process-groups', pg.id];
     }
 
-    select(pg: ProcessGroupStatusSnapshotEntity): void {
+    select(pg: ProcessGroupStatusSnapshotEntity | null): void {
         this.selectProcessGroup.next(pg);
     }
 
