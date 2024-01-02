@@ -45,7 +45,7 @@ import org.apache.nifi.record.path.functions.FieldName;
 import org.apache.nifi.record.path.functions.FilterFunction;
 import org.apache.nifi.record.path.functions.Format;
 import org.apache.nifi.record.path.functions.Hash;
-import org.apache.nifi.record.path.functions.Map;
+import org.apache.nifi.record.path.functions.MapOf;
 import org.apache.nifi.record.path.functions.PadLeft;
 import org.apache.nifi.record.path.functions.PadRight;
 import org.apache.nifi.record.path.functions.Replace;
@@ -271,11 +271,11 @@ public class RecordPathCompiler {
 
                         return new Concat(argPaths, absolute);
                     }
-                    case "map": {
+                    case "mapOf": {
                         final int numArgs = argumentListTree.getChildCount();
 
                         if(numArgs % 2 != 0) {
-                            throw new RecordPathException("The map function requires an even number of arguments");
+                            throw new RecordPathException("The mapOf function requires an even number of arguments");
                         }
 
                         final RecordPathSegment[] argPaths = new RecordPathSegment[numArgs];
@@ -283,7 +283,7 @@ public class RecordPathCompiler {
                             argPaths[i] = buildPath(argumentListTree.getChild(i), null, absolute);
                         }
 
-                        return new Map(argPaths, absolute);
+                        return new MapOf(argPaths, absolute);
                     }
                     case "toLowerCase": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);

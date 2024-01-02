@@ -33,11 +33,11 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-public class Map extends RecordPathSegment {
+public class MapOf extends RecordPathSegment {
     private final RecordPathSegment[] valuePaths;
 
-    public Map(final RecordPathSegment[] valuePaths, final boolean absolute) {
-        super("map", null, absolute);
+    public MapOf(final RecordPathSegment[] valuePaths, final boolean absolute) {
+        super("mapOf", null, absolute);
         this.valuePaths = valuePaths;
     }
 
@@ -56,7 +56,7 @@ public class Map extends RecordPathSegment {
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
         final Record record = new MapRecord(schema, values);
-        final RecordField field = new RecordField("map", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()));
+        final RecordField field = new RecordField("mapOf", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()));
 
         final FieldValue responseValue = new StandardFieldValue(record, field, null);
         return Stream.of(responseValue);
