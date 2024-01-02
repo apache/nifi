@@ -33,7 +33,6 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { ComponentType } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
-import { User } from '../../../../../state/user';
 
 export type SupportedColumns = 'name' | 'uri' | 'transmitting' | 'sent' | 'received';
 
@@ -122,10 +121,8 @@ export class RemoteProcessGroupStatusTable implements AfterViewInit {
 
     @Input() summaryListingStatus: string | null = null;
     @Input() loadedTimestamp: string | null = null;
-    @Input() currentUser: User | null = null;
 
     @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
-    @Output() viewSystemDiagnostics: EventEmitter<void> = new EventEmitter<void>();
     @Output() viewStatusHistory: EventEmitter<RemoteProcessGroupStatusSnapshotEntity> =
         new EventEmitter<RemoteProcessGroupStatusSnapshotEntity>();
     @Output() selectRemoteProcessGroup: EventEmitter<RemoteProcessGroupStatusSnapshotEntity> =

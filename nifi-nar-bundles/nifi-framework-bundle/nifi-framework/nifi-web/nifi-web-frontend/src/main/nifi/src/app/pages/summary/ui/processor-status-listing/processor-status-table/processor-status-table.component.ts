@@ -30,7 +30,7 @@ import { ComponentType } from '../../../../../state/shared';
 import { MultiSort } from '../../common';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
-import { User } from '../../../../../state/user';
+import { CurrentUser } from '../../../../../state/current-user';
 
 export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 'in' | 'out' | 'readWrite' | 'tasks';
 
@@ -142,10 +142,8 @@ export class ProcessorStatusTable implements AfterViewInit {
 
     @Input() summaryListingStatus: string | null = null;
     @Input() loadedTimestamp: string | null = null;
-    @Input() currentUser: User | null = null;
 
     @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
-    @Output() viewSystemDiagnostics: EventEmitter<void> = new EventEmitter<void>();
     @Output() viewStatusHistory: EventEmitter<ProcessorStatusSnapshotEntity> =
         new EventEmitter<ProcessorStatusSnapshotEntity>();
     @Output() selectProcessor: EventEmitter<ProcessorStatusSnapshotEntity> =

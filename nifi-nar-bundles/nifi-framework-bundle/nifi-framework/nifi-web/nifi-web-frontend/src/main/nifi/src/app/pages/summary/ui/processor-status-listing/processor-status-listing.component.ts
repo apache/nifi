@@ -124,14 +124,4 @@ export class ProcessorStatusListing implements AfterViewInit {
             })
         );
     }
-
-    openSystemDiagnostics() {
-        this.store.dispatch(
-            getSystemDiagnosticsAndOpenDialog({
-                request: {
-                    nodewise: false
-                }
-            })
-        );
-    }
 }

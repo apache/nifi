@@ -25,12 +25,10 @@
             [connections]="(connectionStatusSnapshots$ | async)!"
             [selectedConnectionId]="selectedConnectionId$ | async"
             [loadedTimestamp]="loadedTimestamp$ | async"
-            [currentUser]="currentUser$ | async"
             [summaryListingStatus]="summaryListingStatus$ | async"
             (selectConnection)="selectConnection($event)"
             (viewStatusHistory)="viewStatusHistory($event)"
             (refresh)="refreshSummaryListing()"
-            (viewSystemDiagnostics)="openSystemDiagnostics()"
             initialSortColumn="sourceName"
             initialSortDirection="asc"></connection-status-table>
     </ng-template>

@@ -24,12 +24,10 @@
             [processors]="(processorStatusSnapshots$ | async)!"
             [selectedProcessorId]="selectedProcessorId$ | async"
             [loadedTimestamp]="loadedTimestamp$ | async"
-            [currentUser]="currentUser$ | async"
             [summaryListingStatus]="summaryListingStatus$ | async"
             (viewStatusHistory)="viewStatusHistory($event)"
             (selectProcessor)="selectProcessor($event)"
             (refresh)="refreshSummaryListing()"
-            (viewSystemDiagnostics)="openSystemDiagnostics()"
             initialSortColumn="name"
             initialSortDirection="asc"></processor-status-table>
     </ng-template>

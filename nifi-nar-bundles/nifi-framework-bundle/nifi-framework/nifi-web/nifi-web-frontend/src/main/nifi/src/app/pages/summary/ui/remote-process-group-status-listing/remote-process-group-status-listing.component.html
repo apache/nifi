@@ -25,12 +25,10 @@
             [remoteProcessGroups]="(rpgStatusSnapshots$ | async)!"
             [selectedRemoteProcessGroupId]="selectedRpgId$ | async"
             [loadedTimestamp]="loadedTimestamp$ | async"
-            [currentUser]="currentUser$ | async"
             [summaryListingStatus]="summaryListingStatus$ | async"
             (selectRemoteProcessGroup)="selectRemoteProcessGroup($event)"
             (viewStatusHistory)="viewStatusHistory($event)"
             (refresh)="refreshSummaryListing()"
-            (viewSystemDiagnostics)="openSystemDiagnostics()"
             initialSortColumn="name"
             initialSortDirection="asc"></remote-process-group-status-table>
     </ng-template>

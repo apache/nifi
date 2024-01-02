@@ -30,7 +30,6 @@ import { ComponentType } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
-import { User } from '../../../../../state/user';
 
 export type SupportedColumns = 'name' | 'runStatus' | 'in' | 'out';
 
@@ -130,10 +129,8 @@ export class PortStatusTable implements AfterViewInit {
 
     @Input() summaryListingStatus: string | null = null;
     @Input() loadedTimestamp: string | null = null;
-    @Input() currentUser: User | null = null;
 
     @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
-    @Output() viewSystemDiagnostics: EventEmitter<void> = new EventEmitter<void>();
     @Output() selectPort: EventEmitter<PortStatusSnapshotEntity> = new EventEmitter<PortStatusSnapshotEntity>();
 
     applyFilter(filter: SummaryTableFilterArgs) {

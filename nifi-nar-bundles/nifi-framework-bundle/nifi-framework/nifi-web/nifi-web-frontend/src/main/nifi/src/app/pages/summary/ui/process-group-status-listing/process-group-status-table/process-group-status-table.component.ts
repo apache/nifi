@@ -29,7 +29,6 @@ import {
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { RouterLink } from '@angular/router';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
-import { User } from '../../../../../state/user';
 
 export type SupportedColumns =
     | 'name'
@@ -137,14 +136,12 @@ export class ProcessGroupStatusTable implements AfterViewInit {
 
     @Input() summaryListingStatus: string | null = null;
     @Input() loadedTimestamp: string | null = null;
-    @Input() currentUser: User | null = null;
 
     @Output() viewStatusHistory: EventEmitter<ProcessGroupStatusSnapshotEntity> =
         new EventEmitter<ProcessGroupStatusSnapshotEntity>();
     @Output() selectProcessGroup: EventEmitter<ProcessGroupStatusSnapshotEntity> =
         new EventEmitter<ProcessGroupStatusSnapshotEntity>();
     @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
-    @Output() viewSystemDiagnostics: EventEmitter<void> = new EventEmitter<void>();
 
     @ViewChild(MatPaginator) paginator!: MatPaginator;
 

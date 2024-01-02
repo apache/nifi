@@ -25,12 +25,10 @@
             [ports]="(portStatusSnapshots$ | async)!"
             [selectedPortId]="selectedPortId$ | async"
             [loadedTimestamp]="loadedTimestamp$ | async"
-            [currentUser]="currentUser$ | async"
             [summaryListingStatus]="summaryListingStatus$ | async"
             portType="input"
             (selectPort)="selectPort($event)"
             (refresh)="refreshSummaryListing()"
-            (viewSystemDiagnostics)="openSystemDiagnostics()"
             initialSortColumn="name"
             initialSortDirection="asc"></port-status-table>
     </ng-template>

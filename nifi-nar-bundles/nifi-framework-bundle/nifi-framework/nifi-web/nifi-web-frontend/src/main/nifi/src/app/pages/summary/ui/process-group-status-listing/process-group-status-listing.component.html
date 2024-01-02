@@ -26,12 +26,10 @@
             [selectedProcessGroupId]="selectedProcessGroupId$ | async"
             [rootProcessGroup]="(processGroupStatus$ | async)?.processGroupStatus?.aggregateSnapshot!"
             [loadedTimestamp]="loadedTimestamp$ | async"
-            [currentUser]="currentUser$ | async"
             [summaryListingStatus]="summaryListingStatus$ | async"
             (viewStatusHistory)="viewStatusHistory($event)"
             (selectProcessGroup)="selectProcessGroup($event)"
             (refresh)="refreshSummaryListing()"
-            (viewSystemDiagnostics)="openSystemDiagnostics()"
             initialSortColumn="name"
             initialSortDirection="asc"></process-group-status-table>
     </ng-template>

@@ -17,18 +17,13 @@
 
 import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
-import {
-    ConnectionStatusSnapshotEntity,
-    PortStatusSnapshotEntity,
-    SummaryListingState
-} from '../../state/summary-listing';
+import { ConnectionStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
 import {
     selectConnectionIdFromRoute,
     selectConnectionStatus,
     selectConnectionStatusSnapshots,
-    selectProcessorStatus,
     selectSummaryListingLoadedTimestamp,
     selectSummaryListingStatus,
     selectViewStatusHistory
@@ -36,12 +31,8 @@ import {
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import {
-    getStatusHistoryAndOpenDialog,
-    openStatusHistoryDialog
-} from '../../../../state/status-history/status-history.actions';
+import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
 import { ComponentType } from '../../../../state/shared';
-import { getSystemDiagnosticsAndOpenDialog } from '../../../../state/system-diagnostics/system-diagnostics.actions';
 
 @Component({
     selector: 'connection-status-listing',
@@ -105,16 +96,6 @@ export class ConnectionStatusListing {
         this.store.dispatch(
             SummaryListingActions.navigateToViewConnectionStatusHistory({
                 id: connection.id
-            })
-        );
-    }
-
-    openSystemDiagnostics() {
-        this.store.dispatch(
-            getSystemDiagnosticsAndOpenDialog({
-                request: {
-                    nodewise: false
-                }
             })
         );
     }
