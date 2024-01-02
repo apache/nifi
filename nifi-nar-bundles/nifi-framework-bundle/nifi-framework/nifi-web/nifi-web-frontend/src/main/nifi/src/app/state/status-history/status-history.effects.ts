@@ -43,7 +43,7 @@ export class StatusHistoryEffects {
             switchMap((request: StatusHistoryRequest) =>
                 from(
                     this.statusHistoryService
-                        .getProcessorStatusHistory(request.componentType, request.componentId)
+                        .getComponentStatusHistory(request.componentType, request.componentId)
                         .pipe(
                             map((response: any) =>
                                 StatusHistoryActions.reloadStatusHistorySuccess({
@@ -75,7 +75,7 @@ export class StatusHistoryEffects {
             switchMap((request) =>
                 from(
                     this.statusHistoryService
-                        .getProcessorStatusHistory(request.componentType, request.componentId)
+                        .getComponentStatusHistory(request.componentType, request.componentId)
                         .pipe(
                             map((response: any) =>
                                 StatusHistoryActions.loadStatusHistorySuccess({
@@ -96,6 +96,37 @@ export class StatusHistoryEffects {
                                 )
                             )
                         )
+                )
+            )
+        )
+    );
+
+    getNodeStatusHistoryAndOpenDialog$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(StatusHistoryActions.getNodeStatusHistoryAndOpenDialog),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(
+                    this.statusHistoryService.getNodeStatusHistory().pipe(
+                        map((response: any) =>
+                            StatusHistoryActions.loadStatusHistorySuccess({
+                                request,
+                                response: {
+                                    statusHistory: {
+                                        canRead: response.canRead,
+                                        statusHistory: response.statusHistory
+                                    }
+                                }
+                            })
+                        ),
+                        catchError((error) =>
+                            of(
+                                StatusHistoryActions.statusHistoryApiError({
+                                    error: error.error
+                                })
+                            )
+                        )
+                    )
                 )
             )
         )
@@ -122,15 +153,25 @@ export class StatusHistoryEffects {
 
                     dialogReference.afterClosed().subscribe((response) => {
                         if (response !== 'ROUTED') {
-                            this.store.dispatch(
-                                StatusHistoryActions.viewStatusHistoryComplete({
-                                    request: {
-                                        source: request.source,
-                                        componentType: request.componentType,
-                                        componentId: request.componentId
-                                    }
-                                })
-                            );
+                            if ('componentType' in request) {
+                                this.store.dispatch(
+                                    StatusHistoryActions.viewStatusHistoryComplete({
+                                        request: {
+                                            source: request.source,
+                                            componentType: request.componentType,
+                                            componentId: request.componentId
+                                        }
+                                    })
+                                );
+                            } else {
+                                this.store.dispatch(
+                                    StatusHistoryActions.viewNodeStatusHistoryComplete({
+                                        request: {
+                                            source: request.source
+                                        }
+                                    })
+                                );
+                            }
                         }
                     });
                 })

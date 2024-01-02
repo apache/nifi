@@ -38,6 +38,7 @@ import { AsyncPipe, NgIf, NgOptimizedImage } from '@angular/common';
 import { MatDividerModule } from '@angular/material/divider';
 import { RouterLink } from '@angular/router';
 import { FlowStatus } from './flow-status/flow-status.component';
+import * as StatusHistoryActions from '../../../../../state/status-history/status-history.actions';
 
 @Component({
     selector: 'fd-header',
@@ -83,5 +84,15 @@ export class HeaderComponent {
 
     logout(): void {
         this.authService.logout();
+    }
+
+    viewNodeStatusHistory(): void {
+        this.store.dispatch(
+            StatusHistoryActions.getNodeStatusHistoryAndOpenDialog({
+                request: {
+                    source: 'menu'
+                }
+            })
+        );
     }
 }

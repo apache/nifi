@@ -228,7 +228,7 @@ export class CanvasUtils {
         // get the selection data
         const selectionData: any = selection.datum();
 
-        let supportsModification: boolean = false;
+        let supportsModification = false;
         if (this.isProcessor(selection) || this.isInputPort(selection) || this.isOutputPort(selection)) {
             supportsModification = !(
                 selectionData.status.aggregateSnapshot.runStatus === 'Running' ||
@@ -246,8 +246,8 @@ export class CanvasUtils {
         } else if (this.isLabel(selection)) {
             supportsModification = true;
         } else if (this.isConnection(selection)) {
-            let isSourceConfigurable: boolean = false;
-            let isDestinationConfigurable: boolean = false;
+            let isSourceConfigurable = false;
+            let isDestinationConfigurable = false;
 
             const sourceComponentId: string = this.getConnectionSourceComponentId(selectionData);
             const source: any = d3.select('#id-' + sourceComponentId);
@@ -286,7 +286,7 @@ export class CanvasUtils {
         }
 
         const self: CanvasUtils = this;
-        let isDeletable: boolean = true;
+        let isDeletable = true;
         selection.each(function (this: any) {
             if (!self.isDeletable(d3.select(this))) {
                 isDeletable = false;
@@ -488,6 +488,24 @@ export class CanvasUtils {
     }
 
     /**
+     * Determines whether the current user can view the status history for the selected component.
+     *
+     * @param {selection} selection
+     */
+    public canViewStatusHistory(selection: any): boolean {
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        return (
+            this.isProcessor(selection) ||
+            this.isConnection(selection) ||
+            this.isRemoteProcessGroup(selection) ||
+            this.isProcessGroup(selection)
+        );
+    }
+
+    /**
      * Gets the currently selected components and connections.
      *
      * @returns {selection}     The currently selected components and connections
@@ -639,7 +657,7 @@ export class CanvasUtils {
         const connections: Map<string, any> = new Map<string, any>();
         const components: Map<string, any> = new Map<string, any>();
 
-        let isDisconnected: boolean = true;
+        let isDisconnected = true;
 
         // include connections
         selection
@@ -894,7 +912,7 @@ export class CanvasUtils {
      * @param tooltipData
      */
     public canvasTooltip<C>(viewContainerRef: ViewContainerRef, type: Type<C>, selection: any, tooltipData: any): void {
-        let closeTimer: number = -1;
+        let closeTimer = -1;
         let tooltipRef: ComponentRef<C> | undefined;
 
         selection
@@ -1034,7 +1052,7 @@ export class CanvasUtils {
      * @param {string} cacheName
      */
     public multilineEllipsis(selection: any, lineCount: number, text: string, cacheName: string) {
-        let i: number = 1;
+        let i = 1;
         const words: string[] = text.split(/\s+/).reverse();
 
         // get the appropriate position
@@ -1047,7 +1065,7 @@ export class CanvasUtils {
 
         // go through each word
         let word = words.pop();
-        while (!!word) {
+        while (word) {
             // add the current word
             line.push(word);
 
@@ -1069,7 +1087,7 @@ export class CanvasUtils {
                 if (++i >= lineCount) {
                     // get the remainder using the current word and
                     // reversing whats left
-                    var remainder = [word].concat(words.reverse());
+                    const remainder = [word].concat(words.reverse());
 
                     // apply ellipsis to the last line
                     this.ellipsis(tspan, remainder.join(' '), cacheName);
@@ -1103,7 +1121,7 @@ export class CanvasUtils {
         // if there is active threads show the count, otherwise hide
         if (activeThreads > 0 || terminatedThreads > 0) {
             const generateThreadsTip = function () {
-                var tip = activeThreads + ' active threads';
+                let tip = activeThreads + ' active threads';
                 if (terminatedThreads > 0) {
                     tip += ' (' + terminatedThreads + ' terminated)';
                 }

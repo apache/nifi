@@ -25,6 +25,10 @@ export interface StatusHistoryRequest {
     componentType: ComponentType;
 }
 
+export interface NodeStatusHistoryRequest {
+    source: string;
+}
+
 export interface FieldDescriptor {
     description: string;
     field: string;

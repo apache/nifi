@@ -29,7 +29,10 @@ const routes: Routes = [
             {
                 path: ':type/:id',
                 component: Canvas,
-                children: [{ path: 'edit', component: Canvas }]
+                children: [
+                    { path: 'edit', component: Canvas },
+                    { path: 'history', component: Canvas }
+                ]
             }
         ]
     }

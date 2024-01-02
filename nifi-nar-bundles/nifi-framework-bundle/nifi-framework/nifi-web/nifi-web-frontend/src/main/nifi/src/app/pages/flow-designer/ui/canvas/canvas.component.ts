@@ -53,7 +53,8 @@ import {
     selectRemoteProcessGroup,
     selectSingleEditedComponent,
     selectSingleSelectedComponent,
-    selectSkipTransform
+    selectSkipTransform,
+    selectViewStatusHistoryComponent
 } from '../../state/flow/flow.selectors';
 import { filter, map, switchMap, take, withLatestFrom } from 'rxjs';
 import { restoreViewport, zoomFit } from '../../state/transform/transform.actions';
@@ -61,6 +62,7 @@ import { ComponentType } from '../../../../state/shared';
 import { initialState } from '../../state/flow/flow.reducer';
 import { ContextMenuDefinitionProvider } from '../../../../ui/common/context-menu/context-menu.component';
 import { CanvasContextMenu } from '../../service/canvas-context-menu.service';
+import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
 
 @Component({
     selector: 'fd-canvas',
@@ -72,7 +74,7 @@ export class Canvas implements OnInit, OnDestroy {
     private canvas: any;
 
     private scale: number = INITIAL_SCALE;
-    private canvasClicked: boolean = false;
+    private canvasClicked = false;
 
     constructor(
         private viewContainerRef: ViewContainerRef,
@@ -238,6 +240,28 @@ export class Canvas implements OnInit, OnDestroy {
                         }
                     })
                 );
+            });
+
+        this.store
+            .select(selectCurrentProcessGroupId)
+            .pipe(
+                filter((processGroupId) => processGroupId != initialState.id),
+                switchMap(() => this.store.select(selectViewStatusHistoryComponent)),
+                filter((selectedComponent) => selectedComponent != null),
+                takeUntilDestroyed()
+            )
+            .subscribe((component) => {
+                if (component) {
+                    this.store.dispatch(
+                        getStatusHistoryAndOpenDialog({
+                            request: {
+                                source: 'canvas',
+                                componentType: component.componentType,
+                                componentId: component.id
+                            }
+                        })
+                    );
+                }
             });
     }
 
