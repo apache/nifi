@@ -37,13 +37,14 @@ export interface SummaryTableFilterArgs {
 })
 export class SummaryTableFilter implements AfterViewInit {
     filterForm: FormGroup;
-    private _filteredCount: number = 0;
-    private _totalCount: number = 0;
-    private _initialFilterColumn: string = 'name';
+    private _filteredCount = 0;
+    private _totalCount = 0;
+    private _initialFilterColumn = 'name';
+    showFilterMatchedLabel = false;
 
     @Input() filterableColumns: SummaryTableFilterColumn[] = [];
-    @Input() includeStatusFilter: boolean = false;
-    @Input() includePrimaryNodeOnlyFilter: boolean = false;
+    @Input() includeStatusFilter = false;
+    @Input() includePrimaryNodeOnlyFilter = false;
     @Output() filterChanged: EventEmitter<SummaryTableFilterArgs> = new EventEmitter<SummaryTableFilterArgs>();
 
     @Input() set filterTerm(term: string) {
@@ -133,5 +134,6 @@ export class SummaryTableFilter implements AfterViewInit {
             filterTerm,
             primaryOnly
         });
+        this.showFilterMatchedLabel = filterTerm?.length > 0 || filterStatus !== 'All' || primaryOnly;
     }
 }

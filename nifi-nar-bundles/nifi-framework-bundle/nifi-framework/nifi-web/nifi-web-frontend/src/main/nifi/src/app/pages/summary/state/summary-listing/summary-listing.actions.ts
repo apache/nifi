@@ -25,7 +25,7 @@ import {
     SummaryListingResponse
 } from './index';
 
-const SUMMARY_LISTING_PREFIX: string = '[Summary Listing]';
+const SUMMARY_LISTING_PREFIX = '[Summary Listing]';
 
 export const loadSummaryListing = createAction(
     `${SUMMARY_LISTING_PREFIX} Load Summary Listing`,
@@ -47,9 +47,15 @@ export const selectProcessorStatus = createAction(
     props<{ request: SelectProcessorStatusRequest }>()
 );
 
+export const clearProcessorStatusSelection = createAction(`${SUMMARY_LISTING_PREFIX} Clear Processor Status Selection`);
+
 export const selectProcessGroupStatus = createAction(
     `${SUMMARY_LISTING_PREFIX} Select Process Group Status`,
     props<{ request: SelectProcessGroupStatusRequest }>()
+);
+
+export const clearProcessGroupStatusSelection = createAction(
+    `${SUMMARY_LISTING_PREFIX} Clear Process Group Status Selection`
 );
 
 export const selectInputPortStatus = createAction(
@@ -57,9 +63,17 @@ export const selectInputPortStatus = createAction(
     props<{ request: SelectPortStatusRequest }>()
 );
 
+export const clearInputPortStatusSelection = createAction(
+    `${SUMMARY_LISTING_PREFIX} Clear Input Port Status Selection`
+);
+
 export const selectOutputPortStatus = createAction(
     `${SUMMARY_LISTING_PREFIX} Select Output Port Status`,
     props<{ request: SelectPortStatusRequest }>()
+);
+
+export const clearOutputPortStatusSelection = createAction(
+    `${SUMMARY_LISTING_PREFIX} Clear Output Port Status Selection`
 );
 
 export const selectConnectionStatus = createAction(
@@ -67,9 +81,17 @@ export const selectConnectionStatus = createAction(
     props<{ request: SelectConnectionStatusRequest }>()
 );
 
+export const clearConnectionStatusSelection = createAction(
+    `${SUMMARY_LISTING_PREFIX} Clear Connection Status Selection`
+);
+
 export const selectRemoteProcessGroupStatus = createAction(
     `${SUMMARY_LISTING_PREFIX} Select Remote Process Group Status`,
     props<{ request: SelectRemoteProcessGroupStatusRequest }>()
+);
+
+export const clearRemoteProcessGroupStatusSelection = createAction(
+    `${SUMMARY_LISTING_PREFIX} Clear Remote Process Group Status Selection`
 );
 
 export const navigateToViewProcessorStatusHistory = createAction(

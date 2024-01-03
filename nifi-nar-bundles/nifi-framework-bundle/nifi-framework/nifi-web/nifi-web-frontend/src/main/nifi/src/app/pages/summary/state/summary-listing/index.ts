@@ -146,7 +146,7 @@ export interface ProcessGroupStatusSnapshot extends BaseSnapshot {
     versionedFlowState?: VersionedFlowState;
 }
 
-export interface AggregateSnapshot extends ProcessGroupStatusSnapshot {}
+export type AggregateSnapshot = ProcessGroupStatusSnapshot;
 
 export interface PortStatusSnapshot extends BaseSnapshot {
     runStatus: string;

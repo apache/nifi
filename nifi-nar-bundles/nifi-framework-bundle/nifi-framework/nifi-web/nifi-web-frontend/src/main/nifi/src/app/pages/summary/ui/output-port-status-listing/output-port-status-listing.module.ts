@@ -20,10 +20,11 @@ import { CommonModule } from '@angular/common';
 import { OutputPortStatusListing } from './output-port-status-listing.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { PortStatusTable } from '../common/port-status-table/port-status-table.component';
+import { ProcessorStatusTable } from '../processor-status-listing/processor-status-table/processor-status-table.component';
 
 @NgModule({
     declarations: [OutputPortStatusListing],
     exports: [OutputPortStatusListing],
-    imports: [CommonModule, NgxSkeletonLoaderModule, PortStatusTable]
+    imports: [CommonModule, NgxSkeletonLoaderModule, PortStatusTable, ProcessorStatusTable]
 })
 export class OutputPortStatusListingModule {}

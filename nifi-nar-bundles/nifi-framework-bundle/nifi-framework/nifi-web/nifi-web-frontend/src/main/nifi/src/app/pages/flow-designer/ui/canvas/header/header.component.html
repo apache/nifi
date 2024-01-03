@@ -114,6 +114,14 @@
                         <i class="fa fa-fw fa-area-chart mr-2"></i>
                         Node Status History
                     </button>
+                    <button
+                        mat-menu-item
+                        class="global-menu-item"
+                        [disabled]="!user.systemPermissions.canRead"
+                        (click)="viewSystemDiagnostics()">
+                        <i class="fa fa-fw mr-2"></i>
+                        System Diagnostics
+                    </button>
                     <mat-divider></mat-divider>
                     <button
                         mat-menu-item

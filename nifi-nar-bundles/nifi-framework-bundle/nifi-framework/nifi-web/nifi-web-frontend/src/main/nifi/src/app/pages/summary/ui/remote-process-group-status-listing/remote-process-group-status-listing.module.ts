@@ -20,10 +20,11 @@ import { RemoteProcessGroupStatusListing } from './remote-process-group-status-l
 import { CommonModule } from '@angular/common';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { RemoteProcessGroupStatusTable } from './remote-process-group-status-table/remote-process-group-status-table.component';
+import { ProcessorStatusTable } from '../processor-status-listing/processor-status-table/processor-status-table.component';
 
 @NgModule({
     declarations: [RemoteProcessGroupStatusListing],
     exports: [RemoteProcessGroupStatusListing],
-    imports: [CommonModule, NgxSkeletonLoaderModule, RemoteProcessGroupStatusTable]
+    imports: [CommonModule, NgxSkeletonLoaderModule, RemoteProcessGroupStatusTable, ProcessorStatusTable]
 })
 export class RemoteProcessGroupStatusListingModule {}

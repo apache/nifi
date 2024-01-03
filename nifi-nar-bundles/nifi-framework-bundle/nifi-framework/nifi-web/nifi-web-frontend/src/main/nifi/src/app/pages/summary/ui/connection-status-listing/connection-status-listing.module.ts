@@ -21,10 +21,11 @@ import { CommonModule } from '@angular/common';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { PortStatusTable } from '../common/port-status-table/port-status-table.component';
 import { ConnectionStatusTable } from './connection-status-table/connection-status-table.component';
+import { ProcessorStatusTable } from '../processor-status-listing/processor-status-table/processor-status-table.component';
 
 @NgModule({
     declarations: [ConnectionStatusListing],
     exports: [ConnectionStatusListing],
-    imports: [CommonModule, NgxSkeletonLoaderModule, PortStatusTable, ConnectionStatusTable]
+    imports: [CommonModule, NgxSkeletonLoaderModule, PortStatusTable, ConnectionStatusTable, ProcessorStatusTable]
 })
 export class ConnectionStatusListingModule {}

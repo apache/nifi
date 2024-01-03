@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SummaryTableFilterModule } from '../../common/summary-table-filter/summary-table-filter.module';
 import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
@@ -26,27 +26,27 @@ import {
 import { MultiSort } from '../../common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import {
-    PortStatusSnapshot,
     RemoteProcessGroupStatusSnapshot,
     RemoteProcessGroupStatusSnapshotEntity
 } from '../../../state/summary-listing';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { ComponentType } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 
 export type SupportedColumns = 'name' | 'uri' | 'transmitting' | 'sent' | 'received';
 
 @Component({
     selector: 'remote-process-group-status-table',
     standalone: true,
-    imports: [CommonModule, SummaryTableFilterModule, MatSortModule, MatTableModule, RouterLink],
+    imports: [CommonModule, SummaryTableFilterModule, MatSortModule, MatTableModule, RouterLink, MatPaginatorModule],
     templateUrl: './remote-process-group-status-table.component.html',
     styleUrls: [
         './remote-process-group-status-table.component.scss',
         '../../../../../../assets/styles/listing-table.scss'
     ]
 })
-export class RemoteProcessGroupStatusTable {
+export class RemoteProcessGroupStatusTable implements AfterViewInit {
     private _initialSortColumn: SupportedColumns = 'name';
     private _initialSortDirection: SortDirection = 'asc';
 
@@ -55,8 +55,8 @@ export class RemoteProcessGroupStatusTable {
         { key: 'targetUri', label: 'uri' }
     ];
 
-    totalCount: number = 0;
-    filteredCount: number = 0;
+    totalCount = 0;
+    filteredCount = 0;
 
     multiSort: MultiSort = {
         active: this._initialSortColumn,
@@ -69,6 +69,12 @@ export class RemoteProcessGroupStatusTable {
 
     dataSource: MatTableDataSource<RemoteProcessGroupStatusSnapshotEntity> =
         new MatTableDataSource<RemoteProcessGroupStatusSnapshotEntity>();
+
+    @ViewChild(MatPaginator) paginator!: MatPaginator;
+
+    ngAfterViewInit(): void {
+        this.dataSource.paginator = this.paginator;
+    }
 
     constructor(private nifiCommon: NiFiCommon) {}
 
@@ -113,14 +119,32 @@ export class RemoteProcessGroupStatusTable {
         }
     }
 
+    @Input() summaryListingStatus: string | null = null;
+    @Input() loadedTimestamp: string | null = null;
+
+    @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
     @Output() viewStatusHistory: EventEmitter<RemoteProcessGroupStatusSnapshotEntity> =
         new EventEmitter<RemoteProcessGroupStatusSnapshotEntity>();
     @Output() selectRemoteProcessGroup: EventEmitter<RemoteProcessGroupStatusSnapshotEntity> =
         new EventEmitter<RemoteProcessGroupStatusSnapshotEntity>();
+    @Output() clearSelection: EventEmitter<void> = new EventEmitter<void>();
 
     applyFilter(filter: SummaryTableFilterArgs) {
         this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
+        this.resetPaginator();
+        this.selectNone();
+    }
+
+    resetPaginator(): void {
+        if (this.dataSource.paginator) {
+            this.dataSource.paginator.firstPage();
+        }
+    }
+
+    paginationChanged(): void {
+        // clear out any selection
+        this.selectNone();
     }
 
     getRemoteProcessGroupLink(rpg: RemoteProcessGroupStatusSnapshotEntity): string[] {
@@ -134,6 +158,10 @@ export class RemoteProcessGroupStatusTable {
 
     select(rpg: RemoteProcessGroupStatusSnapshotEntity) {
         this.selectRemoteProcessGroup.next(rpg);
+    }
+
+    private selectNone() {
+        this.clearSelection.next();
     }
 
     isSelected(rpg: RemoteProcessGroupStatusSnapshotEntity): boolean {
@@ -231,7 +259,7 @@ export class RemoteProcessGroupStatusTable {
 
         return data.slice().sort((a, b) => {
             const isAsc: boolean = sort.direction === 'asc';
-            let retVal: number = 0;
+            let retVal = 0;
             switch (sort.active) {
                 case 'name':
                     retVal = this.nifiCommon.compareString(

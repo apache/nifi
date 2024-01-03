@@ -73,6 +73,17 @@ export class SummaryListingEffects {
         { dispatch: false }
     );
 
+    clearProcessorStatusSelection$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(SummaryListingActions.clearProcessorStatusSelection),
+                tap(() => {
+                    this.router.navigate(['/summary', 'processors']);
+                })
+            ),
+        { dispatch: false }
+    );
+
     selectProcessGroupStatus$ = createEffect(
         () =>
             this.actions$.pipe(
@@ -80,6 +91,17 @@ export class SummaryListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     this.router.navigate(['/summary', 'process-groups', request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    clearProcessGroupStatusSelection$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(SummaryListingActions.clearProcessGroupStatusSelection),
+                tap(() => {
+                    this.router.navigate(['/summary', 'process-groups']);
                 })
             ),
         { dispatch: false }
@@ -97,6 +119,17 @@ export class SummaryListingEffects {
         { dispatch: false }
     );
 
+    clearInputPortStatusSelection$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(SummaryListingActions.clearInputPortStatusSelection),
+                tap(() => {
+                    this.router.navigate(['/summary', 'input-ports']);
+                })
+            ),
+        { dispatch: false }
+    );
+
     selectOutputPortStatus$ = createEffect(
         () =>
             this.actions$.pipe(
@@ -104,6 +137,17 @@ export class SummaryListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     this.router.navigate(['/summary', 'output-ports', request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    clearOutputPortStatusSelection$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(SummaryListingActions.clearOutputPortStatusSelection),
+                tap(() => {
+                    this.router.navigate(['/summary', 'output-ports']);
                 })
             ),
         { dispatch: false }
@@ -121,6 +165,17 @@ export class SummaryListingEffects {
         { dispatch: false }
     );
 
+    clearConnectionStatusSelection$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(SummaryListingActions.clearConnectionStatusSelection),
+                tap(() => {
+                    this.router.navigate(['/summary', 'connections']);
+                })
+            ),
+        { dispatch: false }
+    );
+
     selectRpgStatus$ = createEffect(
         () =>
             this.actions$.pipe(
@@ -128,6 +183,17 @@ export class SummaryListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     this.router.navigate(['/summary', 'remote-process-groups', request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    clearRpgStatusSelection = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(SummaryListingActions.clearRemoteProcessGroupStatusSelection),
+                tap(() => {
+                    this.router.navigate(['/summary', 'remote-process-groups']);
                 })
             ),
         { dispatch: false }

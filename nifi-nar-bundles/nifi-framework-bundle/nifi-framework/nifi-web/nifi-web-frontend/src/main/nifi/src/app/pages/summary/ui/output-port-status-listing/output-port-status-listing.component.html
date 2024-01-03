@@ -21,30 +21,16 @@
     </div>
 
     <ng-template #loaded>
-        <div class="flex flex-col h-full gap-y-2">
-            <div class="flex-1" *ngIf="currentUser$ | async as user">
-                <ng-container>
-                    <port-status-table
-                        [ports]="(portStatusSnapshots$ | async)!"
-                        [selectedPortId]="selectedPortId$ | async"
-                        portType="output"
-                        (selectPort)="selectPort($event)"
-                        initialSortColumn="name"
-                        initialSortDirection="asc"></port-status-table>
-                </ng-container>
-            </div>
-            <div class="flex justify-between">
-                <div class="refresh-container flex items-center gap-x-2">
-                    <button class="nifi-button" (click)="refreshSummaryListing()">
-                        <i class="fa fa-refresh" [class.fa-spin]="(summaryListingStatus$ | async) === 'loading'"></i>
-                    </button>
-                    <div>Last updated:</div>
-                    <div class="refresh-timestamp">{{ loadedTimestamp$ | async }}</div>
-                </div>
-                <div *ngIf="(currentUser$ | async)?.systemPermissions?.canRead">
-                    <a (click)="openSystemDiagnostics()">System Diagnostics</a>
-                </div>
-            </div>
-        </div>
+        <port-status-table
+            [ports]="(portStatusSnapshots$ | async)!"
+            [selectedPortId]="selectedPortId$ | async"
+            [loadedTimestamp]="loadedTimestamp$ | async"
+            [summaryListingStatus]="summaryListingStatus$ | async"
+            portType="output"
+            (selectPort)="selectPort($event)"
+            (clearSelection)="clearSelection()"
+            (refresh)="refreshSummaryListing()"
+            initialSortColumn="name"
+            initialSortDirection="asc"></port-status-table>
     </ng-template>
 </ng-container>

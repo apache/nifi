@@ -38,7 +38,8 @@ import { AsyncPipe, NgIf, NgOptimizedImage } from '@angular/common';
 import { MatDividerModule } from '@angular/material/divider';
 import { RouterLink } from '@angular/router';
 import { FlowStatus } from './flow-status/flow-status.component';
-import * as StatusHistoryActions from '../../../../../state/status-history/status-history.actions';
+import { getNodeStatusHistoryAndOpenDialog } from '../../../../../state/status-history/status-history.actions';
+import { getSystemDiagnosticsAndOpenDialog } from '../../../../../state/system-diagnostics/system-diagnostics.actions';
 
 @Component({
     selector: 'fd-header',
@@ -88,9 +89,19 @@ export class HeaderComponent {
 
     viewNodeStatusHistory(): void {
         this.store.dispatch(
-            StatusHistoryActions.getNodeStatusHistoryAndOpenDialog({
+            getNodeStatusHistoryAndOpenDialog({
                 request: {
                     source: 'menu'
+                }
+            })
+        );
+    }
+
+    viewSystemDiagnostics() {
+        this.store.dispatch(
+            getSystemDiagnosticsAndOpenDialog({
+                request: {
+                    nodewise: false
                 }
             })
         );

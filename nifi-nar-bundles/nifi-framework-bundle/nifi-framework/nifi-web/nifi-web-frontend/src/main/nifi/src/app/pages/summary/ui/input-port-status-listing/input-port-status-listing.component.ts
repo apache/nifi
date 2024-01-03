@@ -27,7 +27,6 @@ import { PortStatusSnapshotEntity, SummaryListingState } from '../../state/summa
 import { Store } from '@ngrx/store';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
-import { getSystemDiagnosticsAndOpenDialog } from '../../../../state/system-diagnostics/system-diagnostics.actions';
 
 @Component({
     selector: 'input-port-status-listing',
@@ -61,13 +60,7 @@ export class InputPortStatusListing {
         );
     }
 
-    openSystemDiagnostics() {
-        this.store.dispatch(
-            getSystemDiagnosticsAndOpenDialog({
-                request: {
-                    nodewise: false
-                }
-            })
-        );
+    clearSelection() {
+        this.store.dispatch(SummaryListingActions.clearInputPortStatusSelection());
     }
 }
