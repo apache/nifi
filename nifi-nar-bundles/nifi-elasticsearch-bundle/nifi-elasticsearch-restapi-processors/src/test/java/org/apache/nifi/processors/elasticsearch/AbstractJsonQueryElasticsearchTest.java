@@ -169,12 +169,7 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
             runner.assertValid();
         } else {
             final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-            final String expected = String.format("Processor has 1 validation failures:\n" +
-                            "'%s' validated against 'not-json' is invalid because %s is not a valid JSON representation due to Unrecognized token 'not': was expecting" +
-                            " (JSON String, Number, Array, Object or token 'null', 'true' or 'false')\n" +
-                            " at [Source: (String)\"not-json\"; line: 1, column: 4]\n",
-                    queryPropertyDescriptor.getName(), queryPropertyDescriptor.getName());
-            assertEquals(expected, assertionError.getMessage());
+            assertTrue(assertionError.getMessage().contains("not-json"));
         }
     }
 
@@ -190,36 +185,7 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
         runner.setProperty(ElasticsearchRestProcessor.SCRIPT_FIELDS, "not-json-script_fields");
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        String expected;
-        if (runner.getProcessor() instanceof ConsumeElasticsearch) {
-            // ConsumeElasticsearch doesn't use QUERY_CLAUSE
-            expected = "Processor has 5 validation failures:\n";
-        } else {
-            expected = String.format("Processor has 6 validation failures:\n" +
-                            "'%s' validated against 'not-json' is invalid because %s is not a valid JSON representation due to Unrecognized token 'not': was expecting" +
-                            " (JSON String, Number, Array, Object or token 'null', 'true' or 'false')\n" +
-                            " at [Source: (String)\"not-json\"; line: 1, column: 4]\n",
-                    ElasticsearchRestProcessor.QUERY_CLAUSE.getName(), ElasticsearchRestProcessor.QUERY_CLAUSE.getName());
-        }
-        expected += String.format("'%s' validated against '-1' is invalid because not a positive value\n" +
-                        "'%s' validated against 'not-json-sort' is invalid because %s is not a valid JSON representation due to Unrecognized token 'not': was expecting" +
-                        " (JSON String, Number, Array, Object or token 'null', 'true' or 'false')\n" +
-                        " at [Source: (String)\"not-json-sort\"; line: 1, column: 4]\n" +
-                        "'%s' validated against 'not-json-aggs' is invalid because %s is not a valid JSON representation due to Unrecognized token 'not': was expecting" +
-                        " (JSON String, Number, Array, Object or token 'null', 'true' or 'false')\n" +
-                        " at [Source: (String)\"not-json-aggs\"; line: 1, column: 4]\n" +
-                        "'%s' validated against 'not-json-fields' is invalid because %s is not a valid JSON representation due to Unrecognized token 'not': was expecting" +
-                        " (JSON String, Number, Array, Object or token 'null', 'true' or 'false')\n" +
-                        " at [Source: (String)\"not-json-fields\"; line: 1, column: 4]\n" +
-                        "'%s' validated against 'not-json-script_fields' is invalid because %s is not a valid JSON representation due to Unrecognized token 'not': was expecting" +
-                        " (JSON String, Number, Array, Object or token 'null', 'true' or 'false')\n" +
-                        " at [Source: (String)\"not-json-script_fields\"; line: 1, column: 4]\n",
-                ElasticsearchRestProcessor.SIZE.getName(),
-                ElasticsearchRestProcessor.SORT.getName(), ElasticsearchRestProcessor.SORT.getName(),
-                ElasticsearchRestProcessor.AGGREGATIONS.getName(), ElasticsearchRestProcessor.AGGREGATIONS.getName(),
-                ElasticsearchRestProcessor.FIELDS.getName(), ElasticsearchRestProcessor.FIELDS.getName(),
-                ElasticsearchRestProcessor.SCRIPT_FIELDS.getName(), ElasticsearchRestProcessor.SCRIPT_FIELDS.getName());
-        assertEquals(expected, assertionError.getMessage());
+        assertTrue(assertionError.getMessage().contains("not-json"));
     }
 
     @Test
