@@ -115,13 +115,17 @@ export class ProcessorStatusListing implements AfterViewInit {
         );
     }
 
-    selectProcessor(processor: ProcessorStatusSnapshotEntity | null): void {
+    selectProcessor(processor: ProcessorStatusSnapshotEntity): void {
         this.store.dispatch(
             SummaryListingActions.selectProcessorStatus({
                 request: {
-                    id: processor ? processor.id : null
+                    id: processor.id
                 }
             })
         );
+    }
+
+    clearSelection() {
+        this.store.dispatch(SummaryListingActions.clearProcessorStatusSelection());
     }
 }

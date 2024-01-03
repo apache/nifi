@@ -27,6 +27,7 @@
             [loadedTimestamp]="loadedTimestamp$ | async"
             [summaryListingStatus]="summaryListingStatus$ | async"
             (selectConnection)="selectConnection($event)"
+            (clearSelection)="clearSelection()"
             (viewStatusHistory)="viewStatusHistory($event)"
             (refresh)="refreshSummaryListing()"
             initialSortColumn="sourceName"

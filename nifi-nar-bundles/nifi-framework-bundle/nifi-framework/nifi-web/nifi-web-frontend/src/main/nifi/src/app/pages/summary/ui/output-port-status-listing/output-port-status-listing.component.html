@@ -28,6 +28,7 @@
             [summaryListingStatus]="summaryListingStatus$ | async"
             portType="output"
             (selectPort)="selectPort($event)"
+            (clearSelection)="clearSelection()"
             (refresh)="refreshSummaryListing()"
             initialSortColumn="name"
             initialSortDirection="asc"></port-status-table>

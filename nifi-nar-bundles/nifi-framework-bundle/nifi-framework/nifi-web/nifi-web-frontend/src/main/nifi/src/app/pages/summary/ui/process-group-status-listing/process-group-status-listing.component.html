@@ -29,6 +29,7 @@
             [summaryListingStatus]="summaryListingStatus$ | async"
             (viewStatusHistory)="viewStatusHistory($event)"
             (selectProcessGroup)="selectProcessGroup($event)"
+            (clearSelection)="clearSelection()"
             (refresh)="refreshSummaryListing()"
             initialSortColumn="name"
             initialSortDirection="asc"></process-group-status-table>

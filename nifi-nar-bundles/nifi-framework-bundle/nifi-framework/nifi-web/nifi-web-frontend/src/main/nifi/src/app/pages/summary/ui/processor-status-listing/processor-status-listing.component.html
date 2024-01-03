@@ -27,6 +27,7 @@
             [summaryListingStatus]="summaryListingStatus$ | async"
             (viewStatusHistory)="viewStatusHistory($event)"
             (selectProcessor)="selectProcessor($event)"
+            (clearSelection)="clearSelection()"
             (refresh)="refreshSummaryListing()"
             initialSortColumn="name"
             initialSortDirection="asc"></processor-status-table>

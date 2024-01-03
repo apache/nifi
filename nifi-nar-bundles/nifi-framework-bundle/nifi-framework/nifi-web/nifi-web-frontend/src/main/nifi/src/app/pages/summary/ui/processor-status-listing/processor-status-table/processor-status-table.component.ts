@@ -85,7 +85,7 @@ export class ProcessorStatusTable implements AfterViewInit {
         this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
         this.resetPaginator();
-        this.select(null);
+        this.selectNone();
     }
 
     @Input() selectedProcessorId!: string;
@@ -146,8 +146,9 @@ export class ProcessorStatusTable implements AfterViewInit {
     @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
     @Output() viewStatusHistory: EventEmitter<ProcessorStatusSnapshotEntity> =
         new EventEmitter<ProcessorStatusSnapshotEntity>();
-    @Output() selectProcessor: EventEmitter<ProcessorStatusSnapshotEntity | null> =
-        new EventEmitter<ProcessorStatusSnapshotEntity | null>();
+    @Output() selectProcessor: EventEmitter<ProcessorStatusSnapshotEntity> =
+        new EventEmitter<ProcessorStatusSnapshotEntity>();
+    @Output() clearSelection: EventEmitter<void> = new EventEmitter<void>();
 
     resetPaginator(): void {
         if (this.dataSource.paginator) {
@@ -157,7 +158,7 @@ export class ProcessorStatusTable implements AfterViewInit {
 
     paginationChanged(): void {
         // clear out any selection
-        this.select(null);
+        this.selectNone();
     }
 
     formatName(processor: ProcessorStatusSnapshotEntity): string {
@@ -339,7 +340,7 @@ export class ProcessorStatusTable implements AfterViewInit {
         }
     }
 
-    select(processor: ProcessorStatusSnapshotEntity | null): void {
+    select(processor: ProcessorStatusSnapshotEntity): void {
         this.selectProcessor.next(processor);
     }
 
@@ -353,5 +354,9 @@ export class ProcessorStatusTable implements AfterViewInit {
     viewStatusHistoryClicked(event: MouseEvent, processor: ProcessorStatusSnapshotEntity): void {
         event.stopPropagation();
         this.viewStatusHistory.next(processor);
+    }
+
+    private selectNone() {
+        this.clearSelection.next();
     }
 }

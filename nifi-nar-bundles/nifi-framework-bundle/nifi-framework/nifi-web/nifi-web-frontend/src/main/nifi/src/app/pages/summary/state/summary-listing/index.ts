@@ -170,23 +170,23 @@ export interface SummaryListingResponse {
 }
 
 export interface SelectProcessorStatusRequest {
-    id: string | null;
+    id: string;
 }
 
 export interface SelectProcessGroupStatusRequest {
-    id: string | null;
+    id: string;
 }
 
 export interface SelectPortStatusRequest {
-    id: string | null;
+    id: string;
 }
 
 export interface SelectConnectionStatusRequest {
-    id: string | null;
+    id: string;
 }
 
 export interface SelectRemoteProcessGroupStatusRequest {
-    id: string | null;
+    id: string;
 }
 
 export interface SummaryListingState {

@@ -125,14 +125,15 @@ export class RemoteProcessGroupStatusTable implements AfterViewInit {
     @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
     @Output() viewStatusHistory: EventEmitter<RemoteProcessGroupStatusSnapshotEntity> =
         new EventEmitter<RemoteProcessGroupStatusSnapshotEntity>();
-    @Output() selectRemoteProcessGroup: EventEmitter<RemoteProcessGroupStatusSnapshotEntity | null> =
-        new EventEmitter<RemoteProcessGroupStatusSnapshotEntity | null>();
+    @Output() selectRemoteProcessGroup: EventEmitter<RemoteProcessGroupStatusSnapshotEntity> =
+        new EventEmitter<RemoteProcessGroupStatusSnapshotEntity>();
+    @Output() clearSelection: EventEmitter<void> = new EventEmitter<void>();
 
     applyFilter(filter: SummaryTableFilterArgs) {
         this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
         this.resetPaginator();
-        this.select(null);
+        this.selectNone();
     }
 
     resetPaginator(): void {
@@ -143,7 +144,7 @@ export class RemoteProcessGroupStatusTable implements AfterViewInit {
 
     paginationChanged(): void {
         // clear out any selection
-        this.select(null);
+        this.selectNone();
     }
 
     getRemoteProcessGroupLink(rpg: RemoteProcessGroupStatusSnapshotEntity): string[] {
@@ -155,8 +156,12 @@ export class RemoteProcessGroupStatusTable implements AfterViewInit {
         ];
     }
 
-    select(rpg: RemoteProcessGroupStatusSnapshotEntity | null) {
+    select(rpg: RemoteProcessGroupStatusSnapshotEntity) {
         this.selectRemoteProcessGroup.next(rpg);
+    }
+
+    private selectNone() {
+        this.clearSelection.next();
     }
 
     isSelected(rpg: RemoteProcessGroupStatusSnapshotEntity): boolean {

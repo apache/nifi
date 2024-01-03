@@ -50,13 +50,17 @@ export class InputPortStatusListing {
         this.store.dispatch(SummaryListingActions.loadSummaryListing({ recursive: true }));
     }
 
-    selectPort(port: PortStatusSnapshotEntity | null): void {
+    selectPort(port: PortStatusSnapshotEntity): void {
         this.store.dispatch(
             SummaryListingActions.selectInputPortStatus({
                 request: {
-                    id: port ? port.id : null
+                    id: port.id
                 }
             })
         );
+    }
+
+    clearSelection() {
+        this.store.dispatch(SummaryListingActions.clearInputPortStatusSelection());
     }
 }

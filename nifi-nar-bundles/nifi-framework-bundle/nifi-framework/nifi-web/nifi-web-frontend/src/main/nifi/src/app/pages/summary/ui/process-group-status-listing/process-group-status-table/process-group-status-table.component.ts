@@ -88,7 +88,7 @@ export class ProcessGroupStatusTable implements AfterViewInit {
         this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
         this.resetPaginator();
-        this.select(null);
+        this.selectNone();
     }
 
     @Input() selectedProcessGroupId!: string;
@@ -140,8 +140,9 @@ export class ProcessGroupStatusTable implements AfterViewInit {
 
     @Output() viewStatusHistory: EventEmitter<ProcessGroupStatusSnapshotEntity> =
         new EventEmitter<ProcessGroupStatusSnapshotEntity>();
-    @Output() selectProcessGroup: EventEmitter<ProcessGroupStatusSnapshotEntity | null> =
-        new EventEmitter<ProcessGroupStatusSnapshotEntity | null>();
+    @Output() selectProcessGroup: EventEmitter<ProcessGroupStatusSnapshotEntity> =
+        new EventEmitter<ProcessGroupStatusSnapshotEntity>();
+    @Output() clearSelection: EventEmitter<void> = new EventEmitter<void>();
     @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
 
     @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -158,7 +159,7 @@ export class ProcessGroupStatusTable implements AfterViewInit {
 
     paginationChanged(): void {
         // clear out any selection
-        this.select(null);
+        this.selectNone();
     }
 
     formatName(pg: ProcessGroupStatusSnapshotEntity): string {
@@ -438,7 +439,7 @@ export class ProcessGroupStatusTable implements AfterViewInit {
         return ['/process-groups', pg.id];
     }
 
-    select(pg: ProcessGroupStatusSnapshotEntity | null): void {
+    select(pg: ProcessGroupStatusSnapshotEntity): void {
         this.selectProcessGroup.next(pg);
     }
 
@@ -452,5 +453,9 @@ export class ProcessGroupStatusTable implements AfterViewInit {
     viewStatusHistoryClicked(event: MouseEvent, pg: ProcessGroupStatusSnapshotEntity): void {
         event.stopPropagation();
         this.viewStatusHistory.next(pg);
+    }
+
+    private selectNone() {
+        this.clearSelection.next();
     }
 }

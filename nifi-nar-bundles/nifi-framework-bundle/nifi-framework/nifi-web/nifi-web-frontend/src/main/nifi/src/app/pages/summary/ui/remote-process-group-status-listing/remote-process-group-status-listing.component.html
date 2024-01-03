@@ -27,6 +27,7 @@
             [loadedTimestamp]="loadedTimestamp$ | async"
             [summaryListingStatus]="summaryListingStatus$ | async"
             (selectRemoteProcessGroup)="selectRemoteProcessGroup($event)"
+            (clearSelection)="clearSelection()"
             (viewStatusHistory)="viewStatusHistory($event)"
             (refresh)="refreshSummaryListing()"
             initialSortColumn="name"
