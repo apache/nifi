@@ -58,6 +58,11 @@ const routes: Routes = [
         loadChildren: () => import('./pages/summary/feature/summary.module').then((m) => m.SummaryModule)
     },
     {
+        path: 'bulletins',
+        canMatch: [authenticationGuard],
+        loadChildren: () => import('./pages/bulletins/feature/bulletins.module').then((m) => m.BulletinsModule)
+    },
+    {
         path: '',
         canMatch: [authenticationGuard],
         loadChildren: () =>

@@ -269,6 +269,7 @@ export interface BulletinEntity {
         sourceName: string;
         timestamp: string;
         nodeAddress?: string;
+        sourceType: string;
     };
 }
 
@@ -367,7 +368,12 @@ export enum ComponentType {
     OutputPort = 'OutputPort',
     Label = 'Label',
     Funnel = 'Funnel',
-    Connection = 'Connection'
+    Connection = 'Connection',
+    ControllerService = 'ControllerService',
+    ReportingTask = 'ReportingTask',
+    FlowAnalysisRule = 'FlowAnalysisRule',
+    ParameterProvider = 'ParameterProvider',
+    FlowRegistryClient = 'FlowRegistryClient'
 }
 
 export interface ControllerServiceReferencingComponent {
