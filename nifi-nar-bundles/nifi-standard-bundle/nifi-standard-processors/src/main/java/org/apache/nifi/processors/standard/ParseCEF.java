@@ -43,6 +43,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -153,18 +154,6 @@ public class ParseCEF extends AbstractProcessor {
             .allowableValues("true", "false")
             .build();
 
-    public static final PropertyDescriptor VALIDATE_DATA = new PropertyDescriptor.Builder()
-            .name("VALIDATE_DATA")
-            .displayName("Validate the CEF event")
-            .description("If set to true, the event will be validated against the CEF standard (revision 23). If the event is invalid, the "
-                    + "FlowFile will be routed to the failure relationship. If this property is set to false, the event will be processed "
-                    + "without validating the data.")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .required(true)
-            .defaultValue("true")
-            .allowableValues("true", "false")
-            .build();
-
     public static final String UTC = "UTC";
     public static final String LOCAL_TZ = "Local Timezone (system Default)";
     public static final PropertyDescriptor TIME_REPRESENTATION = new PropertyDescriptor.Builder()
@@ -198,13 +187,18 @@ public class ParseCEF extends AbstractProcessor {
         .build();
 
     @Override
+    public void migrateProperties(final PropertyConfiguration propertyConfiguration) {
+        // Data Validation disabled due to ParCEFone dependency on javax.validation incompatibility with current Jakarta libraries
+        propertyConfiguration.removeProperty("VALIDATE_DATA");
+    }
+
+    @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor>properties = new ArrayList<>();
         properties.add(FIELDS_DESTINATION);
         properties.add(APPEND_RAW_MESSAGE_TO_JSON);
         properties.add(INCLUDE_CUSTOM_EXTENSIONS);
         properties.add(ACCEPT_EMPTY_EXTENSIONS);
-        properties.add(VALIDATE_DATA);
         properties.add(TIME_REPRESENTATION);
         properties.add(DATETIME_REPRESENTATION);
         return properties;

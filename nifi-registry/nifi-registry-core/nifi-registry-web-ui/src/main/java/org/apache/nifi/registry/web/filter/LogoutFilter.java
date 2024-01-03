@@ -31,6 +31,10 @@ import java.io.IOException;
  */
 public class LogoutFilter implements Filter {
 
+    private static final String OIDC_LOGOUT_URL = "/nifi-registry-api/access/oidc/logout";
+
+    private static final String LOGOUT_COMPLETE_URL = "/nifi-registry-api/access/logout/complete";
+
     private ServletContext servletContext;
 
     @Override
@@ -44,9 +48,9 @@ public class LogoutFilter implements Filter {
 
         final HttpServletResponse httpServletResponse = (HttpServletResponse) response;
         if (supportsOidc) {
-            httpServletResponse.sendRedirect("/nifi-registry-api/access/oidc/logout");
+            httpServletResponse.sendRedirect(OIDC_LOGOUT_URL);
         } else {
-            httpServletResponse.sendRedirect("/nifi-registry-api/access/logout/complete");
+            httpServletResponse.sendRedirect(LOGOUT_COMPLETE_URL);
         }
     }
 

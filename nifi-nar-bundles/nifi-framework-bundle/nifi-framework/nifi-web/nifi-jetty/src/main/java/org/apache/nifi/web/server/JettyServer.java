@@ -27,10 +27,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -103,6 +105,7 @@ import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.RequestLog;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.ee10.servlet.DefaultServlet;
 import org.eclipse.jetty.ee10.servlet.ErrorPageErrorHandler;
@@ -149,6 +152,11 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private static final String NAR_DEPENDENCIES_PATH = "NAR-INF/bundled-dependencies";
     private static final String WAR_EXTENSION = ".war";
     private static final int WEB_APP_MAX_FORM_CONTENT_SIZE = 600000;
+
+    private static final String APPLICATION_URL_FORMAT = "%s://%s:%d/nifi";
+    private static final String HTTPS_SCHEME = "https";
+    private static final String HTTP_SCHEME = "http";
+    private static final String HOST_UNSPECIFIED = "0.0.0.0";
 
     private final DeploymentManager deploymentManager = new DeploymentManager();
 
@@ -657,7 +665,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
     private File getWebApiDocsDir() {
         // load the rest documentation
-        final File webApiDocsDir = new File(webApiContext.getTempDirectory(), "webapp/docs");
+        final File webApiDocsDir = new File(webApiContext.getTempDirectory(), "webapp/docs/rest-api");
         if (!webApiDocsDir.exists()) {
             final boolean made = webApiDocsDir.mkdirs();
             if (!made) {
@@ -706,6 +714,20 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         } catch (final Throwable e) {
             startUpFailure(e);
         }
+    }
+
+    protected List<URI> getApplicationUrls() {
+        return Arrays.stream(server.getConnectors())
+                .map(connector -> (ServerConnector) connector)
+                .map(serverConnector -> {
+                    final SslConnectionFactory sslConnectionFactory = serverConnector.getConnectionFactory(SslConnectionFactory.class);
+                    final String scheme = sslConnectionFactory == null ? HTTP_SCHEME : HTTPS_SCHEME;
+                    final int port = serverConnector.getLocalPort();
+                    final String connectorHost = serverConnector.getHost();
+                    final String host = StringUtils.defaultIfEmpty(connectorHost, HOST_UNSPECIFIED);
+                    return URI.create(String.format(APPLICATION_URL_FORMAT, scheme, host, port));
+                })
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -830,6 +852,15 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                     }
                     logger.error("Failed to start Flow Service", e);
                     throw new Exception("Failed to start Flow Service" + e); // cannot wrap the exception as they are not defined in a classloader accessible to the caller
+                }
+            }
+
+            final List<URI> applicationUrls = getApplicationUrls();
+            if (applicationUrls.isEmpty()) {
+                logger.warn("Started Server without connectors");
+            } else {
+                for (final URI applicationUrl : applicationUrls) {
+                    logger.info("Started Server on {}", applicationUrl);
                 }
             }
         } catch (Exception ex) {
