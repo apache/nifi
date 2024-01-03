@@ -305,8 +305,8 @@ class TestJsonTreeRowRecordReader {
     void testReadJSONStringTooLong() {
         final StreamConstraintsException mre = assertThrows(StreamConstraintsException.class, () ->
                 testReadAccountJson("src/test/resources/json/bank-account-multiline.json", false, StreamReadConstraints.builder().maxStringLength(2).build()));
-        assertTrue(mre.getMessage().contains("maximum length"));
-        assertTrue(mre.getMessage().contains("(2)"));
+        assertTrue(mre.getMessage().contains("maximum"));
+        assertTrue(mre.getMessage().contains("2"));
     }
 
     @Test

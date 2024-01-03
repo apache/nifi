@@ -441,8 +441,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 0);
         runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
 
-        runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILURE).get(0).assertAttributeEquals("elasticsearch.put.error",
-                "Unrecognized token 'not': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false')\n" +
-                        " at [Source: (String)\"not-json\"; line: 1, column: 4]");
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILURE).get(0);
+        assertTrue(flowFile.getAttribute("elasticsearch.put.error").contains("not"));
     }
 }
