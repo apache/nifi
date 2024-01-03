@@ -424,6 +424,88 @@ that there are no longer any invocations of the `transform` method running when 
 
 
 
+[[documenting_use_cases]]
+== Documenting Use Cases
+
+No matter how powerful a piece of software is, it has no value unless people are able to use it. To that end, documentation of Processors is
+very important. While a description of the Processor should be provided in the `ProcessorDetails` class and each PropertyDescriptor is expected to have a description,
+it is usually helpful to also call out specific use cases that can be performed by the Processor. This is particularly important for Processors that perform
+more generalized transformations on objects, where a single Processor may be capable of performing multiple tasks, based on its configuration.
+
+[[use_case_decorator]]
+=== The `@use_case` Decorator
+
+The `@use_case` decorator, defined in the `nifiapi.documentation` module can facilitate this. The decorator takes four arguments:
+
+- `description`: A simple 1 (at most 2) sentence description of the use case. Generally, this should not include any extraneous details,
+                 such as caveats, etc. Those can be provided using the `notes` argument. The description is required.
+- `notes`: Most of the time, 1-2 sentences is sufficient to describe a use case. Those 1-2 sentence should then be returned
+           by the `description`. In the event that the description is not sufficient, details may be provided to
+           further explain, by providing caveats, etc. This is optional.
+- `keywords`: An array of keywords that can be associated with the use case. This is optional.
+- `configuration`: A description of how to configure the Processor for this particular use case. This may include explicit values to set for some properties,
+                    and may include instructions on how to choose the appropriate value for other properties. The configuration is required.
+
+A single Processor may have multiple `@use_case` decorators.
+
+
+[[multi_processor_use_case_decorator]]
+=== The `@multi_processor_use_case` Decorator
+
+When designing and creating Processors, it is important to keep in mind the idea of loose coupling. One Processor should not be dependent on another Processor
+in order to perform its task. That being said, it is often advantageous to build Processors that are designed to work well together. For example, a Processor that
+is able to perform a listing of files in a directory can provide an important capability in and of itself. Similarly, a Processor that is able to ingest the contents
+of a specific file and make that file's contents the contents of a FlowFile is also an important capability in and of itself. But far more powerful than either of these
+individual capabilities is the notion of being able to compose a flow that lists all files in a directory and then ingests each of those files as a FlowFile. This is
+done by using a combination of the two. As such, it is important that the two Processors be able to work together in such a way that the output of the first is
+easily understood as the input of the second.
+
+In this case, it makes sense to document this composition of Processors as a use case so that users can understand how to compose such a pipeline. This is accomplished
+by using the `@multi_processor_use_case` decorator. This decorator is very similar to the <<use_case_decorator>> but instead of a `configuration` element, it has a
+`configurations` element, which is a `list` of `ProcessorConfiguration` objects, where each `ProcessorConfiguration` object has both a `processor_type`, which is the
+name of the Processor, and a `configuration` that explains how to configure that particular Processor. The `configuration` element typically also explains how to connect
+outbound Relationships.
+
+For example, we might use these decorators as such:
+----
+@use_case(description="Retrieve the contents of a given file on disk and create a FlowFile from it without modifying the file",
+          keywords=["file", "filesystem"],
+          configuration="""
+                Set the 'Filename' property to the fully qualified path of the file to ingest
+                Set the 'Completion Strategy' to 'None'
+          """)
+@use_case(description="Retrieve the contents of a given file on disk and create a FlowFile from it, deleting the local file upon success",
+          keywords=["file", "filesystem"],
+          configuration="""
+                Set the 'Filename' property to the fully qualified path of the file to ingest
+                Set the 'Completion Strategy' to 'Delete'
+          """)
+@multi_processor_use_case(
+      description="Ingest all files from a landing directory on the filesystem and delete them after ingesting them.",
+      keywords=["file", "filesystem", "landing directory"],
+      configurations=[
+          ProcessorConfiguration(
+              processor_type="org.apache.nifi.processors.standard.ListFile",
+              configuration="""
+                  Set 'Input Directory' to the directory that files should be ingested from
+                  Set 'Input Directory Location' to 'Local'
+                  """
+          ),
+          ProcessorConfiguration(
+              processor_type="FetchFile",
+              configuration="""
+                Set the 'Filename' property to `${absolute.path}/${filename}`
+                Set the 'Completion Strategy' to 'Delete'
+              """
+          )
+      ])
+class FetchFile(FlowFileTransform):
+----
+
+Note that in this case, we are able to specifically tell the user that the Filename property of FetchFile should be set to the value `${absolute.path}/${filename}`
+because we know that the ListFile Processor will produce these attributes for us.
+
+
 [[requirements]]
 == Requirements
 

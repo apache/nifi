@@ -76,4 +76,46 @@
         </plugins>
     </build>
 
+    <profiles>
+        <profile>
+            <id>python-unit-tests</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.1.1</version>
+                        <executions>
+                            <execution>
+                                <id>python-test</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>python3</executable>
+                                    <environmentVariables>
+                                        <PYTHONPATH>src/main/python/framework:../nifi-python-extension-api/src/main/python/src</PYTHONPATH>
+                                    </environmentVariables>
+                                    <arguments>
+                                        <argument>-m</argument>
+                                        <argument>unittest</argument>
+                                        <argument>discover</argument>
+                                        <argument>-s</argument>
+                                        <argument>src/test/python/framework</argument>
+                                        <argument>-p</argument>
+                                        <argument>Test*.py</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
 </project>

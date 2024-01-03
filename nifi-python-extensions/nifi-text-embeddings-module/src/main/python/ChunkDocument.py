@@ -18,6 +18,8 @@ import json
 from langchain.text_splitter import Language
 from nifiapi.flowfiletransform import FlowFileTransform, FlowFileTransformResult
 from nifiapi.properties import PropertyDescriptor, StandardValidators, PropertyDependency, ExpressionLanguageScope
+from nifiapi.documentation import use_case, multi_processor_use_case, ProcessorConfiguration
+
 
 SPLIT_BY_CHARACTER = 'Split by Character'
 SPLIT_CODE = 'Split Code'
@@ -26,14 +28,86 @@ RECURSIVELY_SPLIT_BY_CHARACTER = 'Recursively Split by Character'
 TEXT_KEY = "text"
 METADATA_KEY = "metadata"
 
+@use_case(
+    description="Create chunks of text from a single larger chunk.",
+    notes="The input for this use case is expected to be a FlowFile whose content is a JSON Lines document, with each line having a 'text' and a 'metadata' element.",
+    keywords=["embedding", "vector", "text", "rag", "retrieval augmented generation"],
+    configuration="""
+        Set "Input Format" to "Plain Text"
+        Set "Element Strategy" to "Single Document"
+        """
+)
+@multi_processor_use_case(
+    description="""
+        Chunk Plaintext data in order to prepare it for storage in a vector store. The output is in "json-lines" format,
+        containing the chunked data as text, as well as metadata pertaining to the chunk.""",
+    notes="The input for this use case is expected to be a FlowFile whose content is a plaintext document.",
+    keywords=["embedding", "vector", "text", "rag", "retrieval augmented generation"],
+    configurations=[
+        ProcessorConfiguration(
+            processor_type="ParseDocument",
+            configuration="""
+                  Set "Input Format" to "Plain Text"
+                  Set "Element Strategy" to "Single Document"
 
+                  Connect the 'success' Relationship to ChunkDocument.
+                  """
+        ),
+        ProcessorConfiguration(
+            processor_type="ChunkDocument",
+            configuration="""
+                  Set the following properties:
+                    "Chunking Strategy" = "Recursively Split by Character"
+                    "Separator" = "\\n\\n,\\n, ,"
+                    "Separator Format" = "Plain Text"
+                    "Chunk Size" = "4000"
+                    "Chunk Overlap" = "200"
+                    "Keep Separator" = "false"
+
+                  Connect the 'success' Relationship to the appropriate destination to store data in the desired vector store.
+                  """
+        )
+    ])
+@multi_processor_use_case(
+    description="""
+        Parse and chunk the textual contents of a PDF document in order to prepare it for storage in a vector store. The output is in "json-lines" format,
+        containing the chunked data as text, as well as metadata pertaining to the chunk.""",
+    notes="The input for this use case is expected to be a FlowFile whose content is a PDF document.",
+    keywords=["pdf", "embedding", "vector", "text", "rag", "retrieval augmented generation"],
+    configurations=[
+        ProcessorConfiguration(
+            processor_type="ParseDocument",
+            configuration="""
+                  Set "Input Format" to "PDF"
+                  Set "Element Strategy" to "Single Document"
+                  Set "Include Extracted Metadata" to "false"
+
+                  Connect the 'success' Relationship to ChunkDocument.
+                  """
+        ),
+        ProcessorConfiguration(
+            processor_type="ChunkDocument",
+            configuration="""
+                  Set the following properties:
+                    "Chunking Strategy" = "Recursively Split by Character"
+                    "Separator" = "\\n\\n,\\n, ,"
+                    "Separator Format" = "Plain Text"
+                    "Chunk Size" = "4000"
+                    "Chunk Overlap" = "200"
+                    "Keep Separator" = "false"
+
+                  Connect the 'success' Relationship to the appropriate destination to store data in the desired vector store.
+                  """
+        )
+    ])
 class ChunkDocument(FlowFileTransform):
     class Java:
         implements = ['org.apache.nifi.python.processor.FlowFileTransform']
     class ProcessorDetails:
         version = '2.0.0-SNAPSHOT'
-        description = """Splits incoming documents into chunks that are appropriately sized for creating Text Embeddings. The input is expected to be in "json-lines" format, with
-            each line having a 'text' and a 'metadata' element. Each line will then be split into one or more lines in the output."""
+        description = """Chunks incoming documents that are formatted as JSON Lines into chunks that are appropriately sized for creating Text Embeddings.
+            The input is expected to be in "json-lines" format, with each line having a 'text' and a 'metadata' element.
+            Each line will then be split into one or more lines in the output."""
         tags = ["text", "split", "chunk", "langchain", "embeddings", "vector", "machine learning", "ML", "artificial intelligence", "ai", "document"]
         dependencies = ['langchain']
 

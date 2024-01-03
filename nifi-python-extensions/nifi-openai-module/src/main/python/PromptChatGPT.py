@@ -47,7 +47,7 @@ class PromptChatGPT(FlowFileTransform):
     PROMPT = PropertyDescriptor(
         name="Prompt",
         description="The prompt to issue to ChatGPT. This may use FlowFile attributes via Expression Language and may also reference the FlowFile content by using the literal " +
-                    f"{FLOWFILE_CONTENT_REFERENCE} (including braces) in the prompt. If the FlowFile's content is JSON formatted, a reference may also include JSONPath Expressions "
+                    "{flowfile_content} (including braces) in the prompt. If the FlowFile's content is JSON formatted, a reference may also include JSONPath Expressions "
                     "to reference specific fields in the FlowFile content, such as {$.page_content}",
         validators=[StandardValidators.NON_EMPTY_VALIDATOR],
         expression_language_scope=ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,

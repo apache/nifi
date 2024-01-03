@@ -19,6 +19,7 @@ package org.apache.nifi.nar;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.python.PythonProcessorDetails;
 
 import java.net.URL;
 import java.util.List;
@@ -150,6 +151,14 @@ public interface ExtensionManager {
      * @return the temp component instance
      */
     ConfigurableComponent getTempComponent(String classType, BundleCoordinate bundleCoordinate);
+
+    /**
+     * Returns the details about the Python Processor with the given type and version
+     * @param processorType the type of the Processor
+     * @param version the version of the Processor
+     * @return the details for the Python Processor, or <code>null</code> if no Processor can be given that match the given type and version
+     */
+    PythonProcessorDetails getPythonProcessorDetails(String processorType, String version);
 
     /**
      * Logs the available class loaders.

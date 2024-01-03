@@ -66,16 +66,18 @@ public abstract class PythonProcessorProxy extends AbstractProcessor implements 
         REL_ORIGINAL,
         REL_FAILURE);
 
-    public PythonProcessorProxy(final String processorType, final Supplier<PythonProcessorBridge> bridgeFactory) {
+    public PythonProcessorProxy(final String processorType, final Supplier<PythonProcessorBridge> bridgeFactory, final boolean initialize) {
         this.processorType = processorType;
 
         Thread.ofVirtual().name("Initialize " + processorType).start(() -> {
             this.bridge = bridgeFactory.get();
 
-            // If initialization context has already been set, initialize bridge.
-            final PythonProcessorInitializationContext pythonInitContext = initContext;
-            if (pythonInitContext != null) {
-                this.bridge.initialize(pythonInitContext);
+            if (initialize) {
+                // If initialization context has already been set, initialize bridge.
+                final PythonProcessorInitializationContext pythonInitContext = initContext;
+                if (pythonInitContext != null) {
+                    this.bridge.initialize(pythonInitContext);
+                }
             }
         });
     }
