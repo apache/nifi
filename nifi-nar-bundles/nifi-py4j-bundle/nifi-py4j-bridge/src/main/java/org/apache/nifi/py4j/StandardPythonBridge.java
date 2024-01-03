@@ -132,20 +132,21 @@ public class StandardPythonBridge implements PythonBridge {
     }
 
     @Override
-    public AsyncLoadedProcessor createProcessor(final String identifier, final String type, final String version, final boolean preferIsolatedProcess) {
+    public AsyncLoadedProcessor createProcessor(final String identifier, final String type, final String version, final boolean preferIsolatedProcess, final boolean initialize) {
         final PythonProcessorDetails processorDetails = getProcessorTypes().stream()
             .filter(details -> details.getProcessorType().equals(type))
+            .filter(details -> details.getProcessorVersion().equals(version))
             .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("Unknown Python Processor type: " + type));
+            .orElseThrow(() -> new IllegalArgumentException("Unknown Python Processor type [%s] or version [%s]".formatted(type, version)));
 
         final String implementedInterface = processorDetails.getInterface();
         final Supplier<PythonProcessorBridge> processorBridgeFactory = () -> createProcessorBridge(identifier, type, version, preferIsolatedProcess);
 
         if (FlowFileTransform.class.getName().equals(implementedInterface)) {
-            return new FlowFileTransformProxy(type, processorBridgeFactory);
+            return new FlowFileTransformProxy(type, processorBridgeFactory, initialize);
         }
         if (RecordTransform.class.getName().equals(implementedInterface)) {
-            return new RecordTransformProxy(type, processorBridgeFactory);
+            return new RecordTransformProxy(type, processorBridgeFactory, initialize);
         }
         return null;
     }
