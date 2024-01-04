@@ -23,14 +23,21 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ACCOUNT_KEY;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ACCOUNT_NAME;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.CREDENTIALS_TYPE;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.PROXY_CONFIGURATION_SERVICE;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SAS_TOKEN;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID;
 
 /**
  * Provides credentials details for Azure Storage processors
@@ -41,81 +48,12 @@ import java.util.Map;
 @CapabilityDescription("Provides credentials for Azure Storage processors using Azure Storage client library v12.")
 public class AzureStorageCredentialsControllerService_v12 extends AbstractControllerService implements AzureStorageCredentialsService_v12 {
 
-    public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AzureStorageUtils.ACCOUNT_NAME)
-            .description(AzureStorageUtils.ACCOUNT_NAME_BASE_DESCRIPTION)
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .build();
-
     public static final PropertyDescriptor ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.ENDPOINT_SUFFIX)
-            .displayName("Endpoint Suffix")
-            .description("Storage accounts in public Azure always use a common FQDN suffix. " +
-                    "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions).")
-            .required(true)
             .defaultValue(AzureServiceEndpoints.DEFAULT_BLOB_ENDPOINT_SUFFIX)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
-    public static final PropertyDescriptor CREDENTIALS_TYPE = new PropertyDescriptor.Builder()
-            .name("credentials-type")
-            .displayName("Credentials Type")
-            .description("Credentials type to be used for authenticating to Azure")
-            .required(true)
-            .allowableValues(new AzureStorageCredentialsType[]{
-                    AzureStorageCredentialsType.ACCOUNT_KEY, AzureStorageCredentialsType.SAS_TOKEN,
-                    AzureStorageCredentialsType.MANAGED_IDENTITY, AzureStorageCredentialsType.SERVICE_PRINCIPAL
-            })
-            .defaultValue(AzureStorageCredentialsType.SAS_TOKEN)
-            .build();
-
-    public static final PropertyDescriptor ACCOUNT_KEY = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AzureStorageUtils.ACCOUNT_KEY)
-            .displayName("Account Key")
-            .description(AzureStorageUtils.ACCOUNT_KEY_BASE_DESCRIPTION)
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.ACCOUNT_KEY)
-            .build();
-
-    public static final PropertyDescriptor SAS_TOKEN = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AzureStorageUtils.PROP_SAS_TOKEN)
-            .description(AzureStorageUtils.SAS_TOKEN_BASE_DESCRIPTION)
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SAS_TOKEN)
-            .build();
-
-    public static final PropertyDescriptor MANAGED_IDENTITY_CLIENT_ID = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID)
-            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.MANAGED_IDENTITY)
-            .build();
-
-    public static final PropertyDescriptor SERVICE_PRINCIPAL_TENANT_ID = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID)
-            .required(true)
-            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL)
-            .build();
-
-    public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_ID = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID)
-            .required(true)
-            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL)
-            .build();
-
-    public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_SECRET = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET)
-            .required(true)
-            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL)
-            .build();
-
-    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AzureStorageUtils.PROXY_CONFIGURATION_SERVICE)
-            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL, AzureStorageCredentialsType.MANAGED_IDENTITY)
-            .build();
-
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             ACCOUNT_NAME,
             ENDPOINT_SUFFIX,
             CREDENTIALS_TYPE,
@@ -126,7 +64,7 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
             SERVICE_PRINCIPAL_CLIENT_ID,
             SERVICE_PRINCIPAL_CLIENT_SECRET,
             PROXY_CONFIGURATION_SERVICE
-    ));
+    );
 
     private ConfigurationContext context;
 

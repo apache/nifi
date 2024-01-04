@@ -26,26 +26,27 @@ public enum AzureStorageCredentialsType implements DescribedValue {
     SERVICE_PRINCIPAL("Service Principal", "Azure Active Directory Service Principal with Client Id / Client Secret of a registered application"),
     ACCESS_TOKEN("Access Token", "Access Token provided by custom controller service implementations");
 
-    private final String label;
+    private final String displayName;
     private final String description;
 
-    AzureStorageCredentialsType(String label, String description) {
-        this.label = label;
+    AzureStorageCredentialsType(String displayName, String description) {
+        this.displayName = displayName;
         this.description = description;
     }
 
     @Override
     public String getValue() {
-        return this.name();
+        return name();
     }
 
     @Override
     public String getDisplayName() {
-        return this.label;
+        return displayName;
     }
 
     @Override
     public String getDescription() {
-        return this.description;
+        return description;
     }
 }
+
