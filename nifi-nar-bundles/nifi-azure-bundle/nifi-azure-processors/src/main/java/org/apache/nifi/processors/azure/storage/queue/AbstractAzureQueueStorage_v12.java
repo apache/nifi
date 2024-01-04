@@ -62,12 +62,7 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
 
     public static final PropertyDescriptor ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.ENDPOINT_SUFFIX)
-            .displayName("Endpoint Suffix")
-            .description("Storage accounts in public Azure always use a common FQDN suffix. " +
-                    "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions).")
-            .required(true)
             .defaultValue(AzureServiceEndpoints.DEFAULT_QUEUE_ENDPOINT_SUFFIX)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     public static final PropertyDescriptor STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
