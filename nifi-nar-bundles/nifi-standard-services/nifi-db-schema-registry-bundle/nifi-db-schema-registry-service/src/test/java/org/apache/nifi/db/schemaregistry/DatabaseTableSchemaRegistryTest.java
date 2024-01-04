@@ -77,24 +77,24 @@ public class DatabaseTableSchemaRegistryTest {
     private static final PropertyDescriptor DATABASE_URL = new PropertyDescriptor.Builder()
             .name("Database Connection URL")
             .addValidator(new ConnectionUrlValidator())
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     private static final PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
             .name("Database User")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     private static final PropertyDescriptor DB_PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     private static final PropertyDescriptor DB_DRIVERNAME = new PropertyDescriptor.Builder()
             .name("Database Driver Class Name")
             .addValidator(new DriverClassValidator())
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     private TestRunner runner;

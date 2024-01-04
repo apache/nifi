@@ -69,7 +69,7 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
             .description("The name of the catalog used to locate the desired table. This may not apply for the database that you are querying. In this case, leave the field empty. Note that if the "
                     + "property is set and the database is case-sensitive, the catalog name must match the database's catalog name exactly.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -80,7 +80,7 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
                     + "property is set and the database is case-sensitive, the schema name must match the database's schema name exactly. Also notice that if the same table name exists in multiple "
                     + "schemas and Schema Name is not specified, the service will find those tables and give an error if the different tables have the same column name(s).")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -122,7 +122,7 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
 
     RecordSchema retrieveSchemaByName(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
         final Optional<String> schemaName = schemaIdentifier.getName();
-        if (schemaName.isEmpty()) {
+        if (!schemaName.isPresent()) {
             throw new SchemaNotFoundException("Cannot retrieve schema because Schema Name is not present");
         }
 
