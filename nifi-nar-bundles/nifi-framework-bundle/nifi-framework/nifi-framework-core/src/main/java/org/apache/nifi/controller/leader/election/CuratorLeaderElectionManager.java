@@ -238,7 +238,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             final TimedBuffer<TimestampedLong> buffer = entry.getValue();
 
             final TimestampedLong aggregateValue = buffer.getAggregateValue(System.currentTimeMillis() - TimeUnit.MILLISECONDS.convert(duration, unit));
-            final int leadershipChanges = aggregateValue.getValue().intValue();
+            final int leadershipChanges = (aggregateValue == null) ? 0 : aggregateValue.getValue().intValue();
             leadershipChangesPerRole.put(roleName, leadershipChanges);
         }
 
