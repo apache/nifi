@@ -1191,8 +1191,6 @@
                                 !PutBoxFileIT,
                                 !ListBoxFileIT,
                                 !JsonConfigBasedBoxClientServiceIT,
-                                !QueryIoTDBIT,
-                                !PutIoTDBRecordIT,
                                 !StandardProcessSessionIT#testCloneThenWriteCountsClaimReferencesProperly,
                                 !StandardProcessSessionIT#testUpdateFlowFileRepoFailsOnSessionCommit,
                                 !JMSPublisherConsumerIT#testMultipleThreads,
