@@ -17,7 +17,6 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import jakarta.xml.bind.annotation.XmlType;
