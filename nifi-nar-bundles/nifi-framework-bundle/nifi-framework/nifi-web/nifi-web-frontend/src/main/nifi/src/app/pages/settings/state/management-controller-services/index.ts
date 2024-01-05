@@ -16,6 +16,7 @@
  */
 
 import { Bundle, ControllerServiceEntity, Revision } from '../../../../state/shared';
+import { ReportingTaskEntity } from '../reporting-tasks';
 
 export const managementControllerServicesFeatureKey = 'managementControllerServices';
 
@@ -38,6 +39,19 @@ export interface ConfigureControllerServiceRequest {
     id: string;
     uri: string;
     payload: any;
+    postUpdateNavigation?: string[];
+}
+
+export interface ConfigureReportingTaskRequest {
+    id: string;
+    uri: string;
+    payload: any;
+    postUpdateNavigation?: string[];
+}
+
+export interface ConfigureReportingTaskSuccess {
+    id: string;
+    reportingTask: ReportingTaskEntity;
     postUpdateNavigation?: string[];
 }
 
