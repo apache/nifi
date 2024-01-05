@@ -38,11 +38,16 @@ import {
     loadRemoteProcessGroupSuccess,
     navigateWithoutTransform,
     resetFlowState,
+    runOnce,
+    runOnceSuccess,
     setDragging,
     setNavigationCollapsed,
     setOperationCollapsed,
     setSkipTransform,
     setTransitionRequired,
+    startComponent,
+    startComponentSuccess,
+    stopComponentSuccess,
     updateComponent,
     updateComponentFailure,
     updateComponentSuccess,
@@ -225,33 +230,7 @@ export const flowReducer = createReducer(
     ),
     on(createComponentSuccess, groupComponentsSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
-            let collection: any[] | null = null;
-            switch (response.type) {
-                case ComponentType.Processor:
-                    collection = draftState.flow.processGroupFlow.flow.processors;
-                    break;
-                case ComponentType.ProcessGroup:
-                    collection = draftState.flow.processGroupFlow.flow.processGroups;
-                    break;
-                case ComponentType.RemoteProcessGroup:
-                    collection = draftState.flow.processGroupFlow.flow.remoteProcessGroups;
-                    break;
-                case ComponentType.InputPort:
-                    collection = draftState.flow.processGroupFlow.flow.inputPorts;
-                    break;
-                case ComponentType.OutputPort:
-                    collection = draftState.flow.processGroupFlow.flow.outputPorts;
-                    break;
-                case ComponentType.Label:
-                    collection = draftState.flow.processGroupFlow.flow.labels;
-                    break;
-                case ComponentType.Funnel:
-                    collection = draftState.flow.processGroupFlow.flow.funnels;
-                    break;
-                case ComponentType.Connection:
-                    collection = draftState.flow.processGroupFlow.flow.connections;
-                    break;
-            }
+            const collection: any[] | null = getComponentCollection(draftState, response.type);
 
             if (collection) {
                 collection.push(response.payload);
@@ -263,39 +242,13 @@ export const flowReducer = createReducer(
         dragging: false,
         saving: false
     })),
-    on(updateComponent, updateProcessor, updateConnection, (state) => ({
+    on(updateComponent, updateProcessor, updateConnection, startComponent, runOnce, (state) => ({
         ...state,
         saving: true
     })),
     on(updateComponentSuccess, updateProcessorSuccess, updateConnectionSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
-            let collection: any[] | null = null;
-            switch (response.type) {
-                case ComponentType.Processor:
-                    collection = draftState.flow.processGroupFlow.flow.processors;
-                    break;
-                case ComponentType.ProcessGroup:
-                    collection = draftState.flow.processGroupFlow.flow.processGroups;
-                    break;
-                case ComponentType.RemoteProcessGroup:
-                    collection = draftState.flow.processGroupFlow.flow.remoteProcessGroups;
-                    break;
-                case ComponentType.InputPort:
-                    collection = draftState.flow.processGroupFlow.flow.inputPorts;
-                    break;
-                case ComponentType.OutputPort:
-                    collection = draftState.flow.processGroupFlow.flow.outputPorts;
-                    break;
-                case ComponentType.Label:
-                    collection = draftState.flow.processGroupFlow.flow.labels;
-                    break;
-                case ComponentType.Funnel:
-                    collection = draftState.flow.processGroupFlow.flow.funnels;
-                    break;
-                case ComponentType.Connection:
-                    collection = draftState.flow.processGroupFlow.flow.connections;
-                    break;
-            }
+            const collection: any[] | null = getComponentCollection(draftState, response.type);
 
             if (collection) {
                 const componentIndex: number = collection.findIndex((f: any) => response.id === f.id);
@@ -310,33 +263,7 @@ export const flowReducer = createReducer(
     on(updateComponentFailure, (state, { response }) => {
         return produce(state, (draftState) => {
             if (response.restoreOnFailure) {
-                let collection: any[] | null = null;
-                switch (response.type) {
-                    case ComponentType.Processor:
-                        collection = draftState.flow.processGroupFlow.flow.processors;
-                        break;
-                    case ComponentType.ProcessGroup:
-                        collection = draftState.flow.processGroupFlow.flow.processGroups;
-                        break;
-                    case ComponentType.RemoteProcessGroup:
-                        collection = draftState.flow.processGroupFlow.flow.remoteProcessGroups;
-                        break;
-                    case ComponentType.InputPort:
-                        collection = draftState.flow.processGroupFlow.flow.inputPorts;
-                        break;
-                    case ComponentType.OutputPort:
-                        collection = draftState.flow.processGroupFlow.flow.outputPorts;
-                        break;
-                    case ComponentType.Label:
-                        collection = draftState.flow.processGroupFlow.flow.labels;
-                        break;
-                    case ComponentType.Funnel:
-                        collection = draftState.flow.processGroupFlow.flow.funnels;
-                        break;
-                    case ComponentType.Connection:
-                        collection = draftState.flow.processGroupFlow.flow.connections;
-                        break;
-                }
+                const collection: any[] | null = getComponentCollection(draftState, response.type);
 
                 if (collection) {
                     const componentIndex: number = collection.findIndex((f: any) => response.id === f.id);
@@ -356,33 +283,7 @@ export const flowReducer = createReducer(
     on(deleteComponentsSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             response.forEach((deleteResponse) => {
-                let collection: any[] | null = null;
-                switch (deleteResponse.type) {
-                    case ComponentType.Processor:
-                        collection = draftState.flow.processGroupFlow.flow.processors;
-                        break;
-                    case ComponentType.ProcessGroup:
-                        collection = draftState.flow.processGroupFlow.flow.processGroups;
-                        break;
-                    case ComponentType.RemoteProcessGroup:
-                        collection = draftState.flow.processGroupFlow.flow.remoteProcessGroups;
-                        break;
-                    case ComponentType.InputPort:
-                        collection = draftState.flow.processGroupFlow.flow.inputPorts;
-                        break;
-                    case ComponentType.OutputPort:
-                        collection = draftState.flow.processGroupFlow.flow.outputPorts;
-                        break;
-                    case ComponentType.Label:
-                        collection = draftState.flow.processGroupFlow.flow.labels;
-                        break;
-                    case ComponentType.Funnel:
-                        collection = draftState.flow.processGroupFlow.flow.funnels;
-                        break;
-                    case ComponentType.Connection:
-                        collection = draftState.flow.processGroupFlow.flow.connections;
-                        break;
-                }
+                const collection: any[] | null = getComponentCollection(draftState, deleteResponse.type);
 
                 if (collection) {
                     const componentIndex: number = collection.findIndex((f: any) => deleteResponse.id === f.id);
@@ -416,5 +317,70 @@ export const flowReducer = createReducer(
     on(setOperationCollapsed, (state, { operationCollapsed }) => ({
         ...state,
         operationCollapsed: operationCollapsed
-    }))
+    })),
+    on(startComponentSuccess, stopComponentSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const collection: any[] | null = getComponentCollection(draftState, response.type);
+
+            if (collection) {
+                const componentIndex: number = collection.findIndex((f: any) => response.component.id === f.id);
+                if (componentIndex > -1) {
+                    collection[componentIndex] = {
+                        ...collection[componentIndex],
+                        ...response.component
+                    };
+                }
+            }
+
+            draftState.saving = false;
+        });
+    }),
+    on(runOnceSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const collection: any[] | null = getComponentCollection(draftState, ComponentType.Processor);
+
+            if (collection) {
+                const componentIndex: number = collection.findIndex((f: any) => response.component.id === f.id);
+                if (componentIndex > -1) {
+                    collection[componentIndex] = {
+                        ...collection[componentIndex],
+                        ...response.component
+                    };
+                }
+            }
+
+            draftState.saving = false;
+        });
+    })
 );
+
+function getComponentCollection(draftState: FlowState, componentType: ComponentType): any[] | null {
+    let collection: any[] | null = null;
+    switch (componentType) {
+        case ComponentType.Processor:
+            collection = draftState.flow.processGroupFlow.flow.processors;
+            break;
+        case ComponentType.ProcessGroup:
+            collection = draftState.flow.processGroupFlow.flow.processGroups;
+            break;
+        case ComponentType.RemoteProcessGroup:
+            collection = draftState.flow.processGroupFlow.flow.remoteProcessGroups;
+            break;
+        case ComponentType.InputPort:
+            collection = draftState.flow.processGroupFlow.flow.inputPorts;
+            break;
+        case ComponentType.OutputPort:
+            collection = draftState.flow.processGroupFlow.flow.outputPorts;
+            break;
+        case ComponentType.Label:
+            collection = draftState.flow.processGroupFlow.flow.labels;
+            break;
+        case ComponentType.Funnel:
+            collection = draftState.flow.processGroupFlow.flow.funnels;
+            break;
+        case ComponentType.Connection:
+            collection = draftState.flow.processGroupFlow.flow.connections;
+            break;
+    }
+    return collection;
+}

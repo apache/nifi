@@ -25,6 +25,7 @@ import {
     asyncScheduler,
     catchError,
     combineLatest,
+    debounceTime,
     filter,
     from,
     interval,
@@ -2055,5 +2056,208 @@ export class FlowEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    startCurrentProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startCurrentProcessGroup),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([, pgId]) => {
+                return of(
+                    FlowActions.startComponent({
+                        request: {
+                            id: pgId,
+                            type: ComponentType.ProcessGroup
+                        }
+                    })
+                );
+            }),
+            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+        )
+    );
+
+    startComponents$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startComponents),
+            map((action) => action.request),
+            mergeMap((request) => [
+                ...request.components.map((component) => {
+                    return FlowActions.startComponent({
+                        request: component
+                    });
+                })
+            ])
+        )
+    );
+
+    startComponent$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startComponent),
+            map((action) => action.request),
+            mergeMap((request) => {
+                switch (request.type) {
+                    case ComponentType.InputPort:
+                    case ComponentType.OutputPort:
+                    case ComponentType.Processor:
+                    case ComponentType.RemoteProcessGroup:
+                        if ('uri' in request && 'revision' in request) {
+                            return from(this.flowService.startComponent(request)).pipe(
+                                map((response) => {
+                                    return FlowActions.startComponentSuccess({
+                                        response: {
+                                            type: request.type,
+                                            component: response
+                                        }
+                                    });
+                                })
+                            );
+                        }
+                        return of(
+                            FlowActions.flowApiError({
+                                error: `Starting ${request.type} requires both uri and revision properties`
+                            })
+                        );
+                    case ComponentType.ProcessGroup:
+                        return combineLatest([
+                            this.flowService.startProcessGroup(request),
+                            this.flowService.startRemoteProcessGroupsInProcessGroup(request)
+                        ]).pipe(
+                            map(([startPgResponse]) => {
+                                return FlowActions.startComponentSuccess({
+                                    response: {
+                                        type: request.type,
+                                        component: startPgResponse
+                                    }
+                                });
+                            })
+                        );
+                    default:
+                        return of(FlowActions.flowApiError({ error: `${request.type} does not support starting` }));
+                }
+            }),
+            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+        )
+    );
+
+    startComponentSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startComponentSuccess),
+            debounceTime(200), // may be starting many at a time, debounce to reduce attempts to reload the flow
+            switchMap(() => of(FlowActions.reloadFlow()))
+        )
+    );
+
+    stopCurrentProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.stopCurrentProcessGroup),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([, pgId]) => {
+                return of(
+                    FlowActions.stopComponent({
+                        request: {
+                            id: pgId,
+                            type: ComponentType.ProcessGroup
+                        }
+                    })
+                );
+            })
+        )
+    );
+
+    stopComponents$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.stopComponents),
+            map((action) => action.request),
+            mergeMap((request) => [
+                ...request.components.map((component) => {
+                    return FlowActions.stopComponent({
+                        request: component
+                    });
+                })
+            ])
+        )
+    );
+
+    stopComponent$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.stopComponent),
+            map((action) => action.request),
+            mergeMap((request) => {
+                switch (request.type) {
+                    case ComponentType.InputPort:
+                    case ComponentType.OutputPort:
+                    case ComponentType.Processor:
+                    case ComponentType.RemoteProcessGroup:
+                        if ('uri' in request && 'revision' in request) {
+                            return from(this.flowService.stopComponent(request)).pipe(
+                                map((response) => {
+                                    return FlowActions.stopComponentSuccess({
+                                        response: {
+                                            type: request.type,
+                                            component: response
+                                        }
+                                    });
+                                })
+                            );
+                        }
+                        return of(
+                            FlowActions.flowApiError({
+                                error: `Stopping ${request.type} requires both uri and revision properties`
+                            })
+                        );
+                    case ComponentType.ProcessGroup:
+                        return combineLatest([
+                            this.flowService.stopProcessGroup(request),
+                            this.flowService.stopRemoteProcessGroupsInProcessGroup(request)
+                        ]).pipe(
+                            map(([stopPgResponse]) => {
+                                return FlowActions.stopComponentSuccess({
+                                    response: {
+                                        type: request.type,
+                                        component: stopPgResponse
+                                    }
+                                });
+                            })
+                        );
+                    default:
+                        return of(FlowActions.flowApiError({ error: `${request.type} does not support stopping` }));
+                }
+            }),
+            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+        )
+    );
+
+    stopComponentSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.stopComponentSuccess),
+            debounceTime(200), // may be stopping many at a time, debounce to reduce attempts to reload the flow
+            switchMap(() => of(FlowActions.reloadFlow()))
+        )
+    );
+
+    runOnce$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.runOnce),
+            map((action) => action.request),
+            switchMap((request) => {
+                return from(this.flowService.runOnce(request)).pipe(
+                    map((response) =>
+                        FlowActions.runOnceSuccess({
+                            response: {
+                                component: response
+                            }
+                        })
+                    )
+                );
+            }),
+            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+        )
+    );
+
+    runOnceSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.runOnceSuccess),
+            switchMap(() => of(FlowActions.reloadFlow()))
+        )
     );
 }

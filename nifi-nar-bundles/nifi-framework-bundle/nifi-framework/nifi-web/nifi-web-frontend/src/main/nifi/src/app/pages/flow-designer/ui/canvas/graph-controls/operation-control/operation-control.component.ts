@@ -21,14 +21,23 @@ import {
     getParameterContextsAndOpenGroupComponentsDialog,
     navigateToEditComponent,
     navigateToEditCurrentProcessGroup,
-    setOperationCollapsed
+    setOperationCollapsed,
+    startComponents,
+    startCurrentProcessGroup,
+    stopComponents,
+    stopCurrentProcessGroup
 } from '../../../../state/flow/flow.actions';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../state';
 import { CanvasUtils } from '../../../../service/canvas-utils.service';
 import { initialState } from '../../../../state/flow/flow.reducer';
 import { Storage } from '../../../../../../service/storage.service';
-import { DeleteComponentRequest, MoveComponentRequest } from '../../../../state/flow';
+import {
+    DeleteComponentRequest,
+    MoveComponentRequest,
+    StartComponentRequest,
+    StopComponentRequest
+} from '../../../../state/flow';
 import { NgIf } from '@angular/common';
 import { BreadcrumbEntity } from '../../../../state/shared';
 
@@ -218,21 +227,61 @@ export class OperationControl {
     }
 
     canStart(selection: any): boolean {
-        // TODO - isRunnable
-        return false;
+        return this.canvasUtils.areRunnable(selection);
     }
 
     start(selection: any): void {
-        // TODO - start
+        if (selection.empty()) {
+            // attempting to start the current process group
+            this.store.dispatch(startCurrentProcessGroup());
+        } else {
+            const components: StartComponentRequest[] = [];
+            const startable = this.canvasUtils.getStartable(selection);
+            startable.each((d: any) => {
+                components.push({
+                    id: d.id,
+                    uri: d.uri,
+                    type: d.type,
+                    revision: d.revision
+                });
+            });
+            this.store.dispatch(
+                startComponents({
+                    request: {
+                        components
+                    }
+                })
+            );
+        }
     }
 
     canStop(selection: any): boolean {
-        // TODO - isStoppable
-        return false;
+        return this.canvasUtils.areStoppable(selection);
     }
 
     stop(selection: any): void {
-        // TODO - stop
+        if (selection.empty()) {
+            // attempting to start the current process group
+            this.store.dispatch(stopCurrentProcessGroup());
+        } else {
+            const components: StopComponentRequest[] = [];
+            selection.each((d: any) => {
+                components.push({
+                    id: d.id,
+                    uri: d.uri,
+                    type: d.type,
+                    revision: d.revision
+                });
+                // const d = selection.datum();
+            });
+            this.store.dispatch(
+                stopComponents({
+                    request: {
+                        components
+                    }
+                })
+            );
+        }
     }
 
     canCopy(selection: any): boolean {

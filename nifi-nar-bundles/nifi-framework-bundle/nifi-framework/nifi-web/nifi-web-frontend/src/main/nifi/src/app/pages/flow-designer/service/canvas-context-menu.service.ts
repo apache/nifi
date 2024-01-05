@@ -33,10 +33,20 @@ import {
     navigateToProvenanceForComponent,
     navigateToViewStatusHistoryForComponent,
     reloadFlow,
-    replayLastProvenanceEvent
+    replayLastProvenanceEvent,
+    runOnce,
+    startComponents,
+    startCurrentProcessGroup,
+    stopComponents,
+    stopCurrentProcessGroup
 } from '../state/flow/flow.actions';
 import { ComponentType } from '../../../state/shared';
-import { DeleteComponentRequest, MoveComponentRequest } from '../state/flow';
+import {
+    DeleteComponentRequest,
+    MoveComponentRequest,
+    StartComponentRequest,
+    StopComponentRequest
+} from '../state/flow';
 import {
     ContextMenuDefinition,
     ContextMenuDefinitionProvider,
@@ -389,36 +399,86 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 isSeparator: true
             },
             {
-                condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - isRunnable
-                    return false;
+                condition: (canvasUtils: CanvasUtils, selection: any) => {
+                    return this.canvasUtils.areRunnable(selection);
                 },
                 clazz: 'fa fa-play',
                 text: 'Start',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - start
+                action: (store: Store<CanvasState>, selection: any) => {
+                    if (selection.empty()) {
+                        // attempting to start the current process group
+                        this.store.dispatch(startCurrentProcessGroup());
+                    } else {
+                        const components: StartComponentRequest[] = [];
+                        const startable = this.canvasUtils.getStartable(selection);
+                        startable.each((d: any) => {
+                            components.push({
+                                id: d.id,
+                                uri: d.uri,
+                                type: d.type,
+                                revision: d.revision
+                            });
+                        });
+                        this.store.dispatch(
+                            startComponents({
+                                request: {
+                                    components
+                                }
+                            })
+                        );
+                    }
                 }
             },
             {
-                condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - isStoppable
-                    return false;
+                condition: (canvasUtils: CanvasUtils, selection: any) => {
+                    return this.canvasUtils.areStoppable(selection);
                 },
                 clazz: 'fa fa-stop',
                 text: 'Stop',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - stop
+                action: (store: Store<CanvasState>, selection: any) => {
+                    if (selection.empty()) {
+                        // attempting to start the current process group
+                        this.store.dispatch(stopCurrentProcessGroup());
+                    } else {
+                        const components: StopComponentRequest[] = [];
+                        selection.each((d: any) => {
+                            components.push({
+                                id: d.id,
+                                uri: d.uri,
+                                type: d.type,
+                                revision: d.revision
+                            });
+                            // const d = selection.datum();
+                        });
+                        this.store.dispatch(
+                            stopComponents({
+                                request: {
+                                    components
+                                }
+                            })
+                        );
+                    }
                 }
             },
             {
-                condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - isRunnableProcessor
-                    return false;
+                condition: (canvasUtils: CanvasUtils, selection: any) => {
+                    if (selection.size() !== 1) {
+                        return false;
+                    }
+                    return this.canvasUtils.areRunnable(selection) && this.canvasUtils.isProcessor(selection);
                 },
                 clazz: 'fa fa-caret-right',
                 text: 'Run Once',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - runOnce
+                action: (store: Store<CanvasState>, selection: any) => {
+                    const d: any = selection.datum();
+                    this.store.dispatch(
+                        runOnce({
+                            request: {
+                                uri: d.uri,
+                                revision: d.revision
+                            }
+                        })
+                    );
                 }
             },
             {
@@ -455,25 +515,64 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - canStartTransmission
-                    return false;
+                condition: (canvasUtils: CanvasUtils, selection: any) => {
+                    if (!this.canvasUtils.canOperate(selection)) {
+                        return false;
+                    }
+                    return this.canvasUtils.canAllStartTransmitting(selection);
                 },
                 clazz: 'fa fa-bullseye',
                 text: 'Enable transmission',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - enableTransmission
+                action: (store: Store<CanvasState>, selection: d3.Selection<any, any, any, any>) => {
+                    const components: StartComponentRequest[] = [];
+                    const startable = this.canvasUtils.getStartable(selection);
+                    startable.each((d: any) => {
+                        components.push({
+                            id: d.id,
+                            uri: d.uri,
+                            type: d.type,
+                            revision: d.revision
+                        });
+                    });
+
+                    this.store.dispatch(
+                        startComponents({
+                            request: {
+                                components
+                            }
+                        })
+                    );
                 }
             },
             {
-                condition: function (canvasUtils: CanvasUtils, selection: any) {
-                    // TODO - canStopTransmission
-                    return false;
+                condition: (canvasUtils: CanvasUtils, selection: any) => {
+                    if (!this.canvasUtils.canOperate(selection)) {
+                        return false;
+                    }
+                    return this.canvasUtils.canAllStopTransmitting(selection);
                 },
                 clazz: 'icon icon-transmit-false',
                 text: 'Disable transmission',
-                action: function (store: Store<CanvasState>) {
-                    // TODO - disableTransmission
+                action: (store: Store<CanvasState>, selection: d3.Selection<any, any, any, any>) => {
+                    const components: StopComponentRequest[] = [];
+
+                    const stoppable = this.canvasUtils.getStoppable(selection);
+                    stoppable.each((d: any) => {
+                        components.push({
+                            id: d.id,
+                            uri: d.uri,
+                            type: d.type,
+                            revision: d.revision
+                        });
+                        // const d = selection.datum();
+                    });
+                    this.store.dispatch(
+                        stopComponents({
+                            request: {
+                                components
+                            }
+                        })
+                    );
                 }
             },
             {
