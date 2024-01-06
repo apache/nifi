@@ -18,6 +18,7 @@
  */
 package org.apache.nifi.processors.azure.cosmos.document;
 
+import com.azure.cosmos.ConsistencyLevel;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -60,4 +61,15 @@ public final class AzureCosmosDBUtils {
                 CONSISTENCY_CONSISTENT_PREFIX, CONSISTENCY_EVENTUAL)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
+
+    public static ConsistencyLevel determineConsistencyLevel(final String consistency) {
+        return switch (consistency) {
+            case CONSISTENCY_STRONG -> ConsistencyLevel.STRONG;
+            case CONSISTENCY_CONSISTENT_PREFIX -> ConsistencyLevel.CONSISTENT_PREFIX;
+            case CONSISTENCY_BOUNDED_STALENESS -> ConsistencyLevel.BOUNDED_STALENESS;
+            case CONSISTENCY_EVENTUAL -> ConsistencyLevel.EVENTUAL;
+            case CONSISTENCY_SESSION -> ConsistencyLevel.SESSION;
+            default -> ConsistencyLevel.SESSION;
+        };
+    }
 }

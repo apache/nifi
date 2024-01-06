@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.azure.cosmos.document;
 
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
-import com.azure.cosmos.util.CosmosPagedIterable;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
@@ -53,25 +52,21 @@ public class ITPutAzureCosmosDBRecord extends ITAbstractAzureCosmosDBDocument {
 
     @AfterEach
     public void cleanupTestCase() {
-        try{
+        try {
             clearTestData();
             closeClient();
-        } catch(Exception e) {
+        } catch (Exception ignored) {
 
         }
     }
+
     private List<JsonNode> getDataFromTestDB() {
         logger.info("getDataFromTestDB for test result validation");
         CosmosQueryRequestOptions queryOptions = new CosmosQueryRequestOptions();
-        List<JsonNode> results = new ArrayList<>();
 
-        CosmosPagedIterable<JsonNode> response = container.queryItems(
-            "select * from c order by c._ts", queryOptions, JsonNode.class );
-
-        response.forEach(data -> {
-            results.add(data);
-        });
-        return results;
+        return container
+                .queryItems("select * from c order by c._ts", queryOptions, JsonNode.class)
+                .stream().toList();
     }
 
     private MockRecordParser recordReader;
@@ -99,32 +94,36 @@ public class ITPutAzureCosmosDBRecord extends ITAbstractAzureCosmosDBDocument {
         final RecordSchema personSchema = new SimpleRecordSchema(personFields);
         recordReader.addSchemaField("person", RecordFieldType.RECORD);
 
-        recordReader.addRecord("1", "A", new MapRecord(personSchema, new HashMap<String,Object>() {
+        recordReader.addRecord("1", "A", new MapRecord(personSchema, new HashMap<String, Object>() {
             private static final long serialVersionUID = -3185956498135742190L;
+
             {
                 put("name", "John Doe");
                 put("age", 48);
                 put("sport", "Soccer");
             }
         }));
-        recordReader.addRecord("2", "B", new MapRecord(personSchema, new HashMap<String,Object>() {
+        recordReader.addRecord("2", "B", new MapRecord(personSchema, new HashMap<String, Object>() {
             private static final long serialVersionUID = 1L;
+
             {
                 put("name", "Jane Doe");
                 put("age", 47);
                 put("sport", "Tennis");
             }
         }));
-        recordReader.addRecord("3", "A", new MapRecord(personSchema, new HashMap<String,Object>() {
+        recordReader.addRecord("3", "A", new MapRecord(personSchema, new HashMap<String, Object>() {
             private static final long serialVersionUID = -1329194249439570573L;
+
             {
                 put("name", "Sally Doe");
                 put("age", 47);
                 put("sport", "Curling");
             }
         }));
-        recordReader.addRecord("4", "C", new MapRecord(personSchema, new HashMap<String,Object>() {
+        recordReader.addRecord("4", "C", new MapRecord(personSchema, new HashMap<String, Object>() {
             private static final long serialVersionUID = -1329194249439570574L;
+
             {
                 put("name", "Jimmy Doe");
                 put("age", 14);
@@ -148,10 +147,10 @@ public class ITPutAzureCosmosDBRecord extends ITAbstractAzureCosmosDBDocument {
         recordReader.addSchemaField("sport", RecordFieldType.STRING);
 
         recordReader.addRecord("1", "A", "John Doe", 48, "Soccer");
-        recordReader.addRecord("2", "B","Jane Doe", 47, "Tennis");
+        recordReader.addRecord("2", "B", "Jane Doe", 47, "Tennis");
         recordReader.addRecord("3", "B", "Sally Doe", 47, "Curling");
         recordReader.addRecord("4", "A", "Jimmy Doe", 14, null);
-        recordReader.addRecord("5", "C","Pizza Doe", 14, null);
+        recordReader.addRecord("5", "C", "Pizza Doe", 14, null);
 
         runner.enqueue("");
         runner.run();

@@ -41,13 +41,13 @@ public class Metric {
     }
 
     public void setCount(long value){
-        this.count = Long.valueOf((long)value);
+        this.count = (long) value;
     }
     public void setCount(double value){
-        this.count = Long.valueOf((long)value);
+        this.count = (long) value;
     }
     public void setCount(int value){
-        this.count = Long.valueOf((long)value);
+        this.count = (long) value;
     }
 
     public Long getCount() {

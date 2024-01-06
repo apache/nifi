@@ -19,7 +19,6 @@ package org.apache.nifi.services.azure.data.explorer;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -32,7 +31,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -53,7 +51,7 @@ public class StandardKustoQueryService extends AbstractControllerService impleme
             .displayName("Authentication Strategy")
             .description("Authentication method for access to Azure Data Explorer")
             .required(true)
-            .defaultValue(KustoAuthenticationStrategy.MANAGED_IDENTITY.getValue())
+            .defaultValue(KustoAuthenticationStrategy.MANAGED_IDENTITY)
             .allowableValues(KustoAuthenticationStrategy.class)
             .build();
 
@@ -71,7 +69,7 @@ public class StandardKustoQueryService extends AbstractControllerService impleme
             .description("Azure Data Explorer Application Tenant Identifier for Authentication")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .dependsOn(AUTHENTICATION_STRATEGY, KustoAuthenticationStrategy.APPLICATION_CREDENTIALS.getValue())
+            .dependsOn(AUTHENTICATION_STRATEGY, KustoAuthenticationStrategy.APPLICATION_CREDENTIALS)
             .build();
 
     public static final PropertyDescriptor APPLICATION_KEY = new PropertyDescriptor.Builder()
@@ -81,10 +79,10 @@ public class StandardKustoQueryService extends AbstractControllerService impleme
             .required(true)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .dependsOn(AUTHENTICATION_STRATEGY, KustoAuthenticationStrategy.APPLICATION_CREDENTIALS.getValue())
+            .dependsOn(AUTHENTICATION_STRATEGY, KustoAuthenticationStrategy.APPLICATION_CREDENTIALS)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             CLUSTER_URI,
             AUTHENTICATION_STRATEGY,
             APPLICATION_CLIENT_ID,
@@ -144,20 +142,18 @@ public class StandardKustoQueryService extends AbstractControllerService impleme
 
     @SuppressWarnings("unchecked")
     private ConnectionStringBuilder getConnectionStringBuilder(final ConfigurationContext context) {
-        final ConnectionStringBuilder builder;
-
         final String clusterUrl = context.getProperty(CLUSTER_URI).getValue();
         final String clientId = context.getProperty(APPLICATION_CLIENT_ID).getValue();
+        final KustoAuthenticationStrategy kustoAuthenticationStrategy = context.getProperty(AUTHENTICATION_STRATEGY).asDescribedValue(KustoAuthenticationStrategy.class);
 
-        final KustoAuthenticationStrategy kustoAuthenticationStrategy = KustoAuthenticationStrategy.valueOf(context.getProperty(AUTHENTICATION_STRATEGY).getValue());
-
-        if (KustoAuthenticationStrategy.MANAGED_IDENTITY == kustoAuthenticationStrategy) {
-            builder = ConnectionStringBuilder.createWithAadManagedIdentity(clusterUrl, clientId);
-        } else {
-            final String applicationKey = context.getProperty(APPLICATION_KEY).getValue();
-            final String tenantId = context.getProperty(APPLICATION_TENANT_ID).getValue();
-            builder = ConnectionStringBuilder.createWithAadApplicationCredentials(clusterUrl, clientId, applicationKey, tenantId);
-        }
+        final ConnectionStringBuilder builder = switch (kustoAuthenticationStrategy) {
+            case APPLICATION_CREDENTIALS -> {
+                final String applicationKey = context.getProperty(APPLICATION_KEY).getValue();
+                final String tenantId = context.getProperty(APPLICATION_TENANT_ID).getValue();
+                yield ConnectionStringBuilder.createWithAadApplicationCredentials(clusterUrl, clientId, applicationKey, tenantId);
+            }
+            case MANAGED_IDENTITY -> ConnectionStringBuilder.createWithAadManagedIdentity(clusterUrl, clientId);
+        };
 
         final String vendor = System.getProperty("java.vendor");
         final String version = System.getProperty("java.version");

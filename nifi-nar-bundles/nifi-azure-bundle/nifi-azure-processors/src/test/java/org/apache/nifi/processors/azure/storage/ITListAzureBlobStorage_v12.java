@@ -130,7 +130,7 @@ public class ITListAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListAzureBlobStorage_v12.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListAzureBlobStorage_v12.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListAzureBlobStorage_v12.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "4");
     }
 
@@ -174,7 +174,7 @@ public class ITListAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         runProcessor();
 
         runner.assertAllFlowFilesTransferred(ListAzureBlobStorage_v12.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListAzureBlobStorage_v12.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListAzureBlobStorage_v12.REL_SUCCESS).getFirst();
         assertFlowFileCommonBlobAttributes(flowFile, getContainerName(), "blob5");
         assertFlowFileResultBlobAttributes(flowFile, "Test".length());
     }

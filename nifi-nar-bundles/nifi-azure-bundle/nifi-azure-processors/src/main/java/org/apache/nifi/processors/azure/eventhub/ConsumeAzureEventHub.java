@@ -70,6 +70,7 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
+import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 
@@ -79,11 +80,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -186,7 +184,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             .description("Specify where to start receiving messages if offset is not stored in Azure Storage.")
             .required(true)
             .allowableValues(INITIAL_OFFSET_START_OF_STREAM, INITIAL_OFFSET_END_OF_STREAM)
-            .defaultValue(INITIAL_OFFSET_END_OF_STREAM.getValue())
+            .defaultValue(INITIAL_OFFSET_END_OF_STREAM)
             .build();
     static final PropertyDescriptor PREFETCH_COUNT = new PropertyDescriptor.Builder()
             .name("event-hub-prefetch-count")
@@ -275,40 +273,28 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
                     " the contents of the message will be routed to this Relationship as its own individual FlowFile.")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS;
-    private static final Set<Relationship> RECORD_RELATIONSHIPS;
-    private static final List<PropertyDescriptor> PROPERTIES;
-
-    static {
-        PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-                NAMESPACE,
-                EVENT_HUB_NAME,
-                SERVICE_BUS_ENDPOINT,
-                TRANSPORT_TYPE,
-                ACCESS_POLICY_NAME,
-                POLICY_PRIMARY_KEY,
-                USE_MANAGED_IDENTITY,
-                CONSUMER_GROUP,
-                RECORD_READER,
-                RECORD_WRITER,
-                INITIAL_OFFSET,
-                PREFETCH_COUNT,
-                BATCH_SIZE,
-                RECEIVE_TIMEOUT,
-                STORAGE_ACCOUNT_NAME,
-                STORAGE_ACCOUNT_KEY,
-                STORAGE_SAS_TOKEN,
-                STORAGE_CONTAINER_NAME,
-                PROXY_CONFIGURATION_SERVICE
-        ));
-
-        Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        RELATIONSHIPS = Collections.unmodifiableSet(relationships);
-
-        relationships.add(REL_PARSE_FAILURE);
-        RECORD_RELATIONSHIPS = Collections.unmodifiableSet(relationships);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
+    private static final Set<Relationship> RECORD_RELATIONSHIPS = Set.of(REL_SUCCESS, REL_PARSE_FAILURE);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(NAMESPACE,
+            EVENT_HUB_NAME,
+            SERVICE_BUS_ENDPOINT,
+            TRANSPORT_TYPE,
+            ACCESS_POLICY_NAME,
+            POLICY_PRIMARY_KEY,
+            USE_MANAGED_IDENTITY,
+            CONSUMER_GROUP,
+            RECORD_READER,
+            RECORD_WRITER,
+            INITIAL_OFFSET,
+            PREFETCH_COUNT,
+            BATCH_SIZE,
+            RECEIVE_TIMEOUT,
+            STORAGE_ACCOUNT_NAME,
+            STORAGE_ACCOUNT_KEY,
+            STORAGE_SAS_TOKEN,
+            STORAGE_CONTAINER_NAME,
+            PROXY_CONFIGURATION_SERVICE
+    );
 
     private volatile ProcessSessionFactory processSessionFactory;
     private volatile EventProcessorClient eventProcessorClient;
@@ -435,7 +421,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         final Long receiveTimeout = context.getProperty(RECEIVE_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         final Duration maxWaitTime = Duration.ofMillis(receiveTimeout);
         final Integer maxBatchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
-        final AmqpTransportType transportType = AmqpTransportType.fromString(context.getProperty(TRANSPORT_TYPE).getValue());
+        final AmqpTransportType transportType = context.getProperty(TRANSPORT_TYPE).asDescribedValue(AzureEventHubTransportType.class).asAzureType();
 
         final EventProcessorClientBuilder eventProcessorClientBuilder = new EventProcessorClientBuilder()
                 .transportType(transportType)
@@ -522,8 +508,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         final PartitionContext partitionContext = errorContext.getPartitionContext();
         final Throwable throwable = errorContext.getThrowable();
 
-        if (throwable instanceof AmqpException) {
-            final AmqpException amqpException = (AmqpException) throwable;
+        if (throwable instanceof AmqpException amqpException) {
             if (amqpException.getErrorCondition() == AmqpErrorCondition.LINK_STOLEN) {
                 getLogger().info("Partition was stolen by another consumer instance from the consumer group. Namespace [{}] Event Hub [{}] Consumer Group [{}] Partition [{}]. {}",
                         partitionContext.getFullyQualifiedNamespace(),

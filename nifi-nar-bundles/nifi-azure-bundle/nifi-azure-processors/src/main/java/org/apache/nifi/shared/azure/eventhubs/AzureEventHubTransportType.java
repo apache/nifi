@@ -16,23 +16,24 @@
  */
 package org.apache.nifi.shared.azure.eventhubs;
 
+import com.azure.core.amqp.AmqpTransportType;
 import org.apache.nifi.components.DescribedValue;
 
 /**
  * Azure Event Hubs Transport Type allowable values based on AmqpTransportType values from the Azure SDK
  */
 public enum AzureEventHubTransportType implements DescribedValue {
-    AMQP("Amqp", "AMQP over TCP on ports 5671 and 5672"),
-
-    AMQP_WEB_SOCKETS("AmqpWebSockets", "AMQP over HTTPS with WebSockets on port 443");
+    AMQP("Amqp", "AMQP over TCP on ports 5671 and 5672", AmqpTransportType.AMQP),
+    AMQP_WEB_SOCKETS("AmqpWebSockets", "AMQP over HTTPS with WebSockets on port 443", AmqpTransportType.AMQP_WEB_SOCKETS);
 
     private final String value;
-
     private final String description;
+    private final AmqpTransportType azureType;
 
-    AzureEventHubTransportType(final String value, final String description) {
+    AzureEventHubTransportType(final String value, final String description, final AmqpTransportType azureType) {
         this.value = value;
         this.description = description;
+        this.azureType = azureType;
     }
 
     @Override
@@ -48,5 +49,9 @@ public enum AzureEventHubTransportType implements DescribedValue {
     @Override
     public String getDescription() {
         return description;
+    }
+
+    public AmqpTransportType asAzureType() {
+        return this.azureType;
     }
 }

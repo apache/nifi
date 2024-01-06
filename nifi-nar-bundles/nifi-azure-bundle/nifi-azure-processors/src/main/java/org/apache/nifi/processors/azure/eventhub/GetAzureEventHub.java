@@ -54,12 +54,12 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
+import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.util.StopWatch;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -159,26 +159,21 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
             .description("Any FlowFile that is successfully received from the event hub will be transferred to this Relationship.")
             .build();
 
-    private final static List<PropertyDescriptor> propertyDescriptors;
-    private final static Set<Relationship> relationships;
-
-    static {
-        propertyDescriptors = List.of(
-                NAMESPACE,
-                EVENT_HUB_NAME,
-                SERVICE_BUS_ENDPOINT,
-                TRANSPORT_TYPE,
-                ACCESS_POLICY,
-                POLICY_PRIMARY_KEY,
-                USE_MANAGED_IDENTITY,
-                CONSUMER_GROUP,
-                ENQUEUE_TIME,
-                RECEIVER_FETCH_SIZE,
-                RECEIVER_FETCH_TIMEOUT,
-                PROXY_CONFIGURATION_SERVICE
-        );
-        relationships = Collections.singleton(REL_SUCCESS);
-    }
+    private final static List<PropertyDescriptor> propertyDescriptors = List.of(
+            NAMESPACE,
+            EVENT_HUB_NAME,
+            SERVICE_BUS_ENDPOINT,
+            TRANSPORT_TYPE,
+            ACCESS_POLICY,
+            POLICY_PRIMARY_KEY,
+            USE_MANAGED_IDENTITY,
+            CONSUMER_GROUP,
+            ENQUEUE_TIME,
+            RECEIVER_FETCH_SIZE,
+            RECEIVER_FETCH_TIMEOUT,
+            PROXY_CONFIGURATION_SERVICE
+    );
+    private final static Set<Relationship> relationships = Set.of(REL_SUCCESS);
 
     private final Map<String, EventPosition> partitionEventPositions = new ConcurrentHashMap<>();
 
@@ -365,7 +360,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
         final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
         final boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
         final String fullyQualifiedNamespace = String.format("%s%s", namespace, serviceBusEndpoint);
-        final AmqpTransportType transportType = AmqpTransportType.fromString(context.getProperty(TRANSPORT_TYPE).getValue());
+        final AmqpTransportType transportType = context.getProperty(TRANSPORT_TYPE).asDescribedValue(AzureEventHubTransportType.class).asAzureType();
 
         final EventHubClientBuilder eventHubClientBuilder = new EventHubClientBuilder();
         eventHubClientBuilder.transportType(transportType);

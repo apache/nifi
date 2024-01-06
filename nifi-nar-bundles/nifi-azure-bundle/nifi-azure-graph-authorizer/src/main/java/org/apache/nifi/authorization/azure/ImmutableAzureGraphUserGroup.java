@@ -17,7 +17,9 @@
 
 package org.apache.nifi.authorization.azure;
 
-import static java.util.stream.Collectors.toMap;
+import org.apache.nifi.authorization.Group;
+import org.apache.nifi.authorization.User;
+import org.apache.nifi.authorization.UserAndGroups;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,9 +27,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.nifi.authorization.Group;
-import org.apache.nifi.authorization.User;
-import org.apache.nifi.authorization.UserAndGroups;
+import static java.util.stream.Collectors.toMap;
 
 public class ImmutableAzureGraphUserGroup {
     private final Set<User> users;
@@ -119,9 +119,7 @@ public class ImmutableAzureGraphUserGroup {
         final Map<String, Group> groupsByObjectId = new HashMap<>();
         final Map<String, Group> groupsByDisplayName = new HashMap<>();
         final Map<String, Set<Group>> groupsByUserObjectId =
-            users.stream().collect(toMap(User::getIdentifier, user -> {
-                return new HashSet<Group>();
-            }));
+            users.stream().collect(toMap(User::getIdentifier, user -> new HashSet<>()));
 
         groups.forEach(group -> {
             groupsByObjectId.put(group.getIdentifier(), group);

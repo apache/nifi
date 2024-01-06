@@ -31,16 +31,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
-import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AzureGraphUserGroupProviderIT {
     private static final Logger logger = LoggerFactory.getLogger(AzureGraphUserGroupProviderIT.class);
@@ -92,7 +91,7 @@ public class AzureGraphUserGroupProviderIT {
     private UserGroupProviderInitializationContext initContext;
 
     @BeforeEach
-    public void setup() throws IOException {
+    public void setup() {
         authContext = Mockito.mock(AuthorizerConfigurationContext.class);
         initContext = Mockito.mock(UserGroupProviderInitializationContext.class);
 
@@ -115,7 +114,6 @@ public class AzureGraphUserGroupProviderIT {
             testingProvider.onConfigured(authContext);
         } catch (final Exception exc) {
             logger.error("Error during setup; tests cannot run on this system.");
-            return;
         }
     }
 
@@ -132,11 +130,11 @@ public class AzureGraphUserGroupProviderIT {
 
         setupTestingProvider();
 
-        assertTrue(testingProvider.getGroups().size() > 0);
-        assertTrue(testingProvider.getUsers().size() > 0);
+        assertFalse(testingProvider.getGroups().isEmpty());
+        assertFalse(testingProvider.getUsers().isEmpty());
         UserAndGroups uag  = testingProvider.getUserAndGroups(getKnownTestUserName());
         assertNotNull(uag.getUser());
-        assertTrue(uag.getGroups().size() > 0);
+        assertFalse(uag.getGroups().isEmpty());
 
     }
 
@@ -149,15 +147,15 @@ public class AzureGraphUserGroupProviderIT {
 
         setupTestingProvider();
 
-        assertTrue(testingProvider.getGroups().size() > 0);
-        assertTrue(testingProvider.getUsers().size() > 0);
+        assertFalse(testingProvider.getGroups().isEmpty());
+        assertFalse(testingProvider.getUsers().isEmpty());
         UserAndGroups uag  = testingProvider.getUserAndGroups(getKnownTestUserName());
         assertNotNull(uag.getUser());
-        assertTrue(uag.getGroups().size() > 0);
+        assertFalse(uag.getGroups().isEmpty());
 
         String knownGroupName = getKnownTestGroupName();
-        List<Group> search = testingProvider.getGroups().stream().filter(g-> g.getName().equals(knownGroupName)).collect(Collectors.toList());
-        assertTrue(search.size() > 0);
+        List<Group> search = testingProvider.getGroups().stream().filter(g-> g.getName().equals(knownGroupName)).toList();
+        assertFalse(search.isEmpty());
     }
 
     @Test
@@ -169,9 +167,9 @@ public class AzureGraphUserGroupProviderIT {
         .thenReturn(new MockPropertyValue(prefix));
 
         setupTestingProvider();
-        assertTrue(testingProvider.getGroups().size() > 0);
-        List<Group> search = testingProvider.getGroups().stream().filter(g-> g.getName().equals(knownGroupName)).collect(Collectors.toList());
-        assertTrue(search.size() > 0);
+        assertFalse(testingProvider.getGroups().isEmpty());
+        List<Group> search = testingProvider.getGroups().stream().filter(g-> g.getName().equals(knownGroupName)).toList();
+        assertFalse(search.isEmpty());
     }
 
     @Test
@@ -183,9 +181,9 @@ public class AzureGraphUserGroupProviderIT {
             .thenReturn(new MockPropertyValue(suffix));
 
         setupTestingProvider();
-        assertTrue(testingProvider.getGroups().size() > 0);
-        List<Group> search = testingProvider.getGroups().stream().filter(g-> g.getName().equals(knownGroupName)).collect(Collectors.toList());
-        assertTrue(search.size() > 0);
+        assertFalse(testingProvider.getGroups().isEmpty());
+        List<Group> search = testingProvider.getGroups().stream().filter(g-> g.getName().equals(knownGroupName)).toList();
+        assertFalse(search.isEmpty());
     }
 
     @Test
@@ -197,9 +195,9 @@ public class AzureGraphUserGroupProviderIT {
             .thenReturn(new MockPropertyValue(substring));
 
         setupTestingProvider();
-        assertTrue(testingProvider.getGroups().size() > 0);
-        List<Group> search = testingProvider.getGroups().stream().filter( g-> g.getName().equals(knownGroupName)).collect(Collectors.toList());
-        assertTrue(search.size() > 0);
+        assertFalse(testingProvider.getGroups().isEmpty());
+        List<Group> search = testingProvider.getGroups().stream().filter( g-> g.getName().equals(knownGroupName)).toList();
+        assertFalse(search.isEmpty());
     }
 
     @Test
@@ -213,8 +211,8 @@ public class AzureGraphUserGroupProviderIT {
             .thenReturn(new MockPropertyValue(getGroupListInclusion()));
 
         setupTestingProvider();
-        assertTrue(testingProvider.getGroups().size() > 0);
-        Set<Group> search = testingProvider.getGroups().stream().collect(Collectors.toSet());
+        assertFalse(testingProvider.getGroups().isEmpty());
+        Set<Group> search = new HashSet<>(testingProvider.getGroups());
         // check there is no duplicate group
         assertEquals(search.size(), testingProvider.getGroups().size());
     }

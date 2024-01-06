@@ -24,10 +24,6 @@ import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
 import com.azure.storage.file.datalake.models.DownloadRetryOptions;
 import com.azure.storage.file.datalake.models.FileRange;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -47,6 +43,9 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({PutAzureDataLakeStorage.class, DeleteAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
@@ -118,7 +117,7 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             .defaultValue("0")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             ADLS_CREDENTIALS_SERVICE,
             FILESYSTEM,
             DIRECTORY,
@@ -127,7 +126,7 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             RANGE_LENGTH,
             NUM_RETRIES,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
-    ));
+    );
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -161,7 +160,6 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             if (fileClient.getProperties().isDirectory()) {
                 throw new ProcessException(FILE.getDisplayName() + " (" + fileName + ") points to a directory. Full path: " + fileClient.getFilePath());
             }
-
 
             flowFile = session.write(flowFile, os -> fileClient.readWithResponse(os, fileRange, retryOptions, null, false, null, Context.NONE));
             session.getProvenanceReporter().modifyContent(flowFile);

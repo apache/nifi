@@ -37,9 +37,7 @@ import org.apache.nifi.processors.azure.storage.utils.DataLakeServiceClientFacto
 import org.apache.nifi.services.azure.storage.ADLSCredentialsDetails;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -91,10 +89,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
             .description("Files that could not be written to Azure storage for some reason are transferred to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            REL_SUCCESS,
-            REL_FAILURE
-    )));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
 
     public static final String TEMP_FILE_DIRECTORY = "_nifitempdirectory";
 
@@ -119,12 +114,9 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
         final Map<String, String> attributes = flowFile != null ? flowFile.getAttributes() : Collections.emptyMap();
 
         final ADLSCredentialsService credentialsService = context.getProperty(ADLS_CREDENTIALS_SERVICE).asControllerService(ADLSCredentialsService.class);
-
         final ADLSCredentialsDetails credentialsDetails = credentialsService.getCredentialsDetails(attributes);
 
-        final DataLakeServiceClient storageClient = clientFactory.getStorageClient(credentialsDetails);
-
-        return storageClient;
+        return clientFactory.getStorageClient(credentialsDetails);
     }
 
     public static String evaluateFileSystemProperty(ProcessContext context, FlowFile flowFile) {
