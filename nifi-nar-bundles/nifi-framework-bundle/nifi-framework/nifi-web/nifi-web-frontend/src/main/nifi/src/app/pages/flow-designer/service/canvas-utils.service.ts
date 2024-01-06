@@ -35,6 +35,9 @@ import { NiFiCommon } from '../../../service/nifi-common.service';
 import { CurrentUser } from '../../../state/current-user';
 import { initialState as initialUserState } from '../../../state/current-user/current-user.reducer';
 import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
+import { FlowConfiguration } from '../../../state/flow-configuration';
+import { initialState as initialFlowConfigurationState } from '../../../state/flow-configuration/flow-configuration.reducer';
+import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
 
 @Injectable({
     providedIn: 'root'
@@ -49,6 +52,7 @@ export class CanvasUtils {
     private parentProcessGroupId: string | null = initialFlowState.flow.processGroupFlow.parentGroupId;
     private canvasPermissions: Permissions = initialFlowState.flow.permissions;
     private currentUser: CurrentUser = initialUserState.user;
+    private flowConfiguration: FlowConfiguration | null = initialFlowConfigurationState.flowConfiguration;
     private connections: any[] = [];
 
     private readonly humanizeDuration: Humanizer;
@@ -93,6 +97,13 @@ export class CanvasUtils {
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((user) => {
                 this.currentUser = user;
+            });
+
+        this.store
+            .select(selectFlowConfiguration)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((flowConfiguration) => {
+                this.flowConfiguration = flowConfiguration;
             });
     }
 
@@ -451,6 +462,40 @@ export class CanvasUtils {
      */
     public isFunnel(selection: any): boolean {
         return selection.size() === 1 && selection.classed('funnel');
+    }
+
+    /**
+     * Determines whether the user can configure or open the policy management page.
+     */
+    public canManagePolicies(selection: any): boolean {
+        // ensure 0 or 1 components selected
+        if (selection.size() <= 1) {
+            // if something is selected, ensure it's not a connection
+            if (!selection.empty() && this.isConnection(selection)) {
+                return false;
+            }
+
+            // ensure access to read tenants
+            return this.canAccessTenants();
+        }
+
+        return false;
+    }
+
+    public supportsManagedAuthorizer(): boolean {
+        if (this.flowConfiguration) {
+            return this.flowConfiguration.supportsManagedAuthorizer;
+        }
+        return false;
+    }
+
+    /**
+     * Determines whether the current user can access tenants.
+     *
+     * @returns {boolean}
+     */
+    public canAccessTenants(): boolean {
+        return this.currentUser.tenantsPermissions.canRead === true;
     }
 
     /**

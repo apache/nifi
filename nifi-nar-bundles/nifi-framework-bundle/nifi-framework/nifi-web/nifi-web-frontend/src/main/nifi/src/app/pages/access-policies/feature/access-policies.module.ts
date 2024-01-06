@@ -24,6 +24,8 @@ import { reducers, accessPoliciesFeatureKey } from '../state';
 import { EffectsModule } from '@ngrx/effects';
 import { MatDialogModule } from '@angular/material/dialog';
 import { AccessPolicyEffects } from '../state/access-policy/access-policy.effects';
+import { TenantsEffects } from '../state/tenants/tenants.effects';
+import { PolicyComponentEffects } from '../state/policy-component/policy-component.effects';
 
 @NgModule({
     declarations: [AccessPolicies],
@@ -32,7 +34,7 @@ import { AccessPolicyEffects } from '../state/access-policy/access-policy.effect
         CommonModule,
         AccessPoliciesRoutingModule,
         StoreModule.forFeature(accessPoliciesFeatureKey, reducers),
-        EffectsModule.forFeature(AccessPolicyEffects),
+        EffectsModule.forFeature(AccessPolicyEffects, TenantsEffects, PolicyComponentEffects),
         MatDialogModule
     ]
 })

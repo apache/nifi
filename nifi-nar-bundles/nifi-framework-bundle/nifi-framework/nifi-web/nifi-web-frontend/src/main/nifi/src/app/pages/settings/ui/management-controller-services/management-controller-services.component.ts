@@ -41,8 +41,9 @@ import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NiFiState } from '../../../../state';
-import { state } from '@angular/animations';
-import { resetEnableControllerServiceState } from '../../../../state/contoller-service-state/controller-service-state.actions';
+import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
+import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
+import { CurrentUser } from '../../../../state/current-user';
 
 @Component({
     selector: 'management-controller-services',
@@ -53,6 +54,7 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
     serviceState$ = this.store.select(selectManagementControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
+    flowConfiguration$ = this.store.select(selectFlowConfiguration);
 
     constructor(private store: Store<NiFiState>) {
         this.store
@@ -82,6 +84,7 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
+        this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(loadManagementControllerServices());
     }
 
@@ -144,6 +147,11 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
                 }
             })
         );
+    }
+
+    canModifyParent(currentUser: CurrentUser): (entity: ControllerServiceEntity) => boolean {
+        return (entity: ControllerServiceEntity) =>
+            currentUser.controllerPermissions.canRead && currentUser.controllerPermissions.canWrite;
     }
 
     selectControllerService(entity: ControllerServiceEntity): void {

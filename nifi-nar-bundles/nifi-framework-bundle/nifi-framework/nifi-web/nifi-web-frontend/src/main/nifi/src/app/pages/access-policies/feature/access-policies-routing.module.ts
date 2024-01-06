@@ -28,10 +28,17 @@ const routes: Routes = [
         canMatch: [authorizationGuard((user: CurrentUser) => user.tenantsPermissions.canRead)],
         children: [
             {
-                path: '',
+                path: 'global',
                 loadChildren: () =>
                     import('../ui/global-access-policies/global-access-policies.module').then(
                         (m) => m.GlobalAccessPoliciesModule
+                    )
+            },
+            {
+                path: '',
+                loadChildren: () =>
+                    import('../ui/component-access-policies/component-access-policies.module').then(
+                        (m) => m.ComponentAccessPoliciesModule
                     )
             }
         ]

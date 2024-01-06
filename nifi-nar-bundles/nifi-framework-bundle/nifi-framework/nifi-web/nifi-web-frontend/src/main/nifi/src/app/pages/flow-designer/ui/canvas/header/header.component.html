@@ -134,7 +134,7 @@
                     <button
                         mat-menu-item
                         class="global-menu-item"
-                        [routerLink]="['/access-policies']"
+                        [routerLink]="['/access-policies', 'global']"
                         [disabled]="
                             !user.tenantsPermissions.canRead ||
                             !user.policiesPermissions.canRead ||

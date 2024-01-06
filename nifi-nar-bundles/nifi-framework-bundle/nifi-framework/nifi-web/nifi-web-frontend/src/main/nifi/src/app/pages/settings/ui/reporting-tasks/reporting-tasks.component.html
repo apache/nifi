@@ -30,6 +30,8 @@
                 <reporting-task-table
                     [selectedReportingTaskId]="selectedReportingTaskId$ | async"
                     [reportingTasks]="reportingTaskState.reportingTasks"
+                    [currentUser]="currentUser"
+                    [flowConfiguration]="(flowConfiguration$ | async)!"
                     (configureReportingTask)="configureReportingTask($event)"
                     (selectReportingTask)="selectReportingTask($event)"
                     (deleteReportingTask)="deleteReportingTask($event)"

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { filter, switchMap, take, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -41,19 +41,25 @@ import {
 import { initialState } from '../../state/controller-services/controller-services.reducer';
 import { ControllerServiceEntity } from '../../../../state/shared';
 import { BreadcrumbEntity } from '../../state/shared';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
+import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
+import { NiFiState } from '../../../../state';
+import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 
 @Component({
     selector: 'controller-services',
     templateUrl: './controller-services.component.html',
     styleUrls: ['./controller-services.component.scss']
 })
-export class ControllerServices implements OnDestroy {
+export class ControllerServices implements OnInit, OnDestroy {
     serviceState$ = this.store.select(selectControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
+    currentUser$ = this.store.select(selectCurrentUser);
+    flowConfiguration$ = this.store.select(selectFlowConfiguration);
 
     private currentProcessGroupId!: string;
 
-    constructor(private store: Store<ControllerServicesState>) {
+    constructor(private store: Store<NiFiState>) {
         // load the controller services using the process group id from the route
         this.store
             .select(selectProcessGroupIdFromRoute)
@@ -96,6 +102,10 @@ export class ControllerServices implements OnDestroy {
                     );
                 }
             });
+    }
+
+    ngOnInit(): void {
+        this.store.dispatch(loadFlowConfiguration());
     }
 
     isInitialLoading(state: ControllerServicesState): boolean {
@@ -187,6 +197,28 @@ export class ControllerServices implements OnDestroy {
                 }
             })
         );
+    }
+
+    canModifyParent(breadcrumb: BreadcrumbEntity): (entity: ControllerServiceEntity) => boolean {
+        const breadcrumbs: BreadcrumbEntity[] = [];
+
+        let currentBreadcrumb: BreadcrumbEntity | undefined = breadcrumb;
+        while (currentBreadcrumb != null) {
+            breadcrumbs.push(currentBreadcrumb);
+            currentBreadcrumb = currentBreadcrumb.parentBreadcrumb;
+        }
+
+        return (entity: ControllerServiceEntity): boolean => {
+            const entityBreadcrumb: BreadcrumbEntity | undefined = breadcrumbs.find(
+                (bc) => bc.id === entity.parentGroupId
+            );
+
+            if (entityBreadcrumb) {
+                return entityBreadcrumb.permissions.canWrite;
+            }
+
+            return false;
+        };
     }
 
     selectControllerService(entity: ControllerServiceEntity): void {

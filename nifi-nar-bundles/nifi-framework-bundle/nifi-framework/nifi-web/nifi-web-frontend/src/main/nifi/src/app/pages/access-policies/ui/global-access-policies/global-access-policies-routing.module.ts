@@ -26,7 +26,10 @@ const routes: Routes = [
         path: ':action/:resource',
         canMatch: [
             authorizationGuard(
-                (user: CurrentUser) => user.policiesPermissions.canRead && user.policiesPermissions.canWrite
+                (user: CurrentUser) =>
+                    user.tenantsPermissions.canRead &&
+                    user.policiesPermissions.canRead &&
+                    user.policiesPermissions.canWrite
             )
         ],
         component: GlobalAccessPolicies,

@@ -35,6 +35,13 @@ export interface ResourceAction {
     action: Action;
 }
 
+export interface ComponentResourceAction {
+    resource: string;
+    resourceIdentifier: string;
+    policy: string;
+    action: Action;
+}
+
 export interface AccessPolicyEntity {
     id: string;
     component: AccessPolicy;

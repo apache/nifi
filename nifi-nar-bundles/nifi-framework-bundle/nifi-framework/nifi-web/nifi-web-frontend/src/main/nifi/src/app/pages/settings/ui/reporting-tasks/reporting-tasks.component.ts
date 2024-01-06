@@ -40,6 +40,8 @@ import {
 import { initialState } from '../../state/reporting-tasks/reporting-tasks.reducer';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NiFiState } from '../../../../state';
+import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
+import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 
 @Component({
     selector: 'reporting-tasks',
@@ -50,6 +52,7 @@ export class ReportingTasks implements OnInit, OnDestroy {
     reportingTaskState$ = this.store.select(selectReportingTasksState);
     selectedReportingTaskId$ = this.store.select(selectReportingTaskIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
+    flowConfiguration$ = this.store.select(selectFlowConfiguration);
 
     constructor(private store: Store<NiFiState>) {
         this.store
@@ -79,6 +82,7 @@ export class ReportingTasks implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
+        this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(loadReportingTasks());
     }
 

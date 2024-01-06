@@ -39,10 +39,6 @@ export const flowConfigurationReducer = createReducer(
     on(loadFlowConfigurationSuccess, (state, { response }) => ({
         ...state,
         flowConfiguration: response.flowConfiguration,
-        // flowConfiguration: {
-        //     ...response.flowConfiguration,
-        //     supportsConfigurableAuthorizer: false
-        // },
         error: null,
         status: 'success' as const
     })),

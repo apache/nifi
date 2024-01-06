@@ -24,18 +24,14 @@ import * as AccessPolicyActions from './access-policy.actions';
 import { catchError, combineLatest, filter, from, map, of, switchMap, take, tap, withLatestFrom } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { AccessPolicyService } from '../../service/access-policy.service';
-import { AccessPolicyEntity, PolicyStatus, ResourceAction } from '../shared';
-import {
-    selectAccessPolicy,
-    selectResourceAction,
-    selectSaving,
-    selectUserGroups,
-    selectUsers
-} from './access-policy.selectors';
+import { AccessPolicyEntity, ComponentResourceAction, PolicyStatus, ResourceAction } from '../shared';
+import { selectAccessPolicy, selectResourceAction, selectSaving } from './access-policy.selectors';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { TenantEntity } from '../../../../state/shared';
 import { AddTenantToPolicyDialog } from '../../ui/common/add-tenant-to-policy-dialog/add-tenant-to-policy-dialog.component';
 import { AddTenantsToPolicyRequest } from './index';
+import { ComponentAccessPolicies } from '../../ui/component-access-policies/component-access-policies.component';
+import { selectUserGroups, selectUsers } from '../tenants/tenants.selectors';
 
 @Injectable()
 export class AccessPolicyEffects {
@@ -173,14 +169,19 @@ export class AccessPolicyEffects {
         )
     );
 
-    selectAccessPolicy$ = createEffect(
+    selectGlobalAccessPolicy$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(AccessPolicyActions.selectAccessPolicy),
+                ofType(AccessPolicyActions.selectGlobalAccessPolicy),
                 map((action) => action.request),
                 tap((request) => {
                     const resourceAction: ResourceAction = request.resourceAction;
-                    const commands: string[] = ['/access-policies', resourceAction.action, resourceAction.resource];
+                    const commands: string[] = [
+                        '/access-policies',
+                        'global',
+                        resourceAction.action,
+                        resourceAction.resource
+                    ];
                     if (resourceAction.resourceIdentifier) {
                         commands.push(resourceAction.resourceIdentifier);
                     }
@@ -191,31 +192,24 @@ export class AccessPolicyEffects {
         { dispatch: false }
     );
 
-    loadTenants$ = createEffect(() =>
-        this.actions$.pipe(
-            ofType(AccessPolicyActions.loadTenants),
-            switchMap(() =>
-                combineLatest([this.accessPoliciesService.getUsers(), this.accessPoliciesService.getUserGroups()]).pipe(
-                    map(([usersResponse, userGroupsResponse]) =>
-                        AccessPolicyActions.loadTenantsSuccess({
-                            response: {
-                                users: usersResponse.users,
-                                userGroups: userGroupsResponse.userGroups
-                            }
-                        })
-                    ),
-                    catchError((error) =>
-                        of(
-                            AccessPolicyActions.accessPolicyApiError({
-                                response: {
-                                    error: error.error
-                                }
-                            })
-                        )
-                    )
-                )
-            )
-        )
+    selectComponentAccessPolicy$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(AccessPolicyActions.selectComponentAccessPolicy),
+                map((action) => action.request),
+                tap((request) => {
+                    const resourceAction: ComponentResourceAction = request.resourceAction;
+                    const commands: string[] = [
+                        '/access-policies',
+                        resourceAction.action,
+                        resourceAction.policy,
+                        resourceAction.resource,
+                        resourceAction.resourceIdentifier
+                    ];
+                    this.router.navigate(commands);
+                })
+            ),
+        { dispatch: false }
     );
 
     openAddTenantToPolicyDialog$ = createEffect(

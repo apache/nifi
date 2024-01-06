@@ -15,8 +15,8 @@
   ~  limitations under the License.
   -->
 
-<ng-container *ngIf="globalAccessPoliciesState$ | async; let globalAccessPoliciesState">
-    <div *ngIf="isInitialLoading(globalAccessPoliciesState); else loaded">
+<ng-container *ngIf="accessPolicyState$ | async; let accessPolicyState">
+    <div *ngIf="isInitialLoading(accessPolicyState); else loaded">
         <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
     </div>
 
@@ -25,7 +25,7 @@
             class="global-access-policies flex flex-col h-full gap-y-2"
             *ngIf="flowConfiguration$ | async; let flowConfiguration">
             <div class="value">
-                <div class="mb-2" [ngSwitch]="globalAccessPoliciesState.policyStatus">
+                <div class="mb-2" [ngSwitch]="accessPolicyState.policyStatus">
                     <ng-container *ngSwitchCase="PolicyStatus.NotFound">
                         No policy for the specified resource.
                         <ng-container *ngIf="flowConfiguration.supportsConfigurableAuthorizer">
@@ -33,12 +33,12 @@
                         </ng-container>
                     </ng-container>
                     <ng-container *ngSwitchCase="PolicyStatus.Inherited">
-                        <ng-container *ngIf="globalAccessPoliciesState.accessPolicy">
+                        <ng-container *ngIf="accessPolicyState.accessPolicy">
                             <ng-container
                                 *ngTemplateOutlet="
-                                    getTemplateForInheritedPolicy(globalAccessPoliciesState.accessPolicy);
+                                    getTemplateForInheritedPolicy(accessPolicyState.accessPolicy);
                                     context: {
-                                        $implicit: globalAccessPoliciesState.accessPolicy,
+                                        $implicit: accessPolicyState.accessPolicy,
                                         supportsConfigurableAuthorizer: flowConfiguration.supportsConfigurableAuthorizer
                                     }
                                 "></ng-container>
@@ -102,13 +102,13 @@
                 <div *ngIf="flowConfiguration.supportsConfigurableAuthorizer" class="flex gap-x-2 items-center">
                     <button
                         class="nifi-button"
-                        [disabled]="globalAccessPoliciesState.policyStatus !== PolicyStatus.Found"
+                        [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
                         (click)="addTenantToPolicy()">
                         <i class="fa fa-user-plus"></i>
                     </button>
                     <button
                         class="nifi-button"
-                        [disabled]="globalAccessPoliciesState.policyStatus !== PolicyStatus.Found"
+                        [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
                         (click)="deletePolicy()">
                         <i class="fa fa-trash"></i>
                     </button>
@@ -116,21 +116,20 @@
             </div>
             <div class="flex-1 -mt-2" *ngIf="currentUser$ | async as user">
                 <policy-table
-                    [policy]="globalAccessPoliciesState.accessPolicy"
-                    [currentUser]="user"
+                    [policy]="accessPolicyState.accessPolicy"
                     [supportsPolicyModification]="
                         flowConfiguration.supportsConfigurableAuthorizer &&
-                        globalAccessPoliciesState.policyStatus === PolicyStatus.Found
+                        accessPolicyState.policyStatus === PolicyStatus.Found
                     "
                     (removeTenantFromPolicy)="removeTenantFromPolicy($event)"></policy-table>
             </div>
             <div class="flex justify-between">
                 <div class="refresh-container flex items-center gap-x-2">
                     <button class="nifi-button" (click)="refreshGlobalAccessPolicy()">
-                        <i class="fa fa-refresh" [class.fa-spin]="globalAccessPoliciesState.status === 'loading'"></i>
+                        <i class="fa fa-refresh" [class.fa-spin]="accessPolicyState.status === 'loading'"></i>
                     </button>
                     <div>Last updated:</div>
-                    <div class="refresh-timestamp">{{ globalAccessPoliciesState.loadedTimestamp }}</div>
+                    <div class="refresh-timestamp">{{ accessPolicyState.loadedTimestamp }}</div>
                 </div>
             </div>
         </div>

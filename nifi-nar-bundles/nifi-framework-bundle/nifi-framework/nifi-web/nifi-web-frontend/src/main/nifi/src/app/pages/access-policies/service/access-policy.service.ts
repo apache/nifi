@@ -19,7 +19,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { Observable } from 'rxjs';
-import { AccessPolicyEntity, ResourceAction } from '../state/shared';
+import { AccessPolicyEntity, ComponentResourceAction, ResourceAction } from '../state/shared';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { TenantEntity } from '../../../state/shared';
 
@@ -69,11 +69,17 @@ export class AccessPolicyService {
     }
 
     getAccessPolicy(resourceAction: ResourceAction): Observable<any> {
-        const path: string[] = [encodeURIComponent(resourceAction.action), encodeURIComponent(resourceAction.resource)];
+        const path: string[] = [resourceAction.action, resourceAction.resource];
         if (resourceAction.resourceIdentifier) {
-            path.push(encodeURIComponent(resourceAction.resourceIdentifier));
+            path.push(resourceAction.resourceIdentifier);
         }
         return this.httpClient.get(`${AccessPolicyService.API}/policies/${path.join('/')}`);
+    }
+
+    getPolicyComponent(resourceAction: ComponentResourceAction): Observable<any> {
+        return this.httpClient.get(
+            `${AccessPolicyService.API}/${resourceAction.resource}/${resourceAction.resourceIdentifier}`
+        );
     }
 
     updateAccessPolicy(accessPolicy: AccessPolicyEntity, users: TenantEntity[], userGroups: TenantEntity[]) {

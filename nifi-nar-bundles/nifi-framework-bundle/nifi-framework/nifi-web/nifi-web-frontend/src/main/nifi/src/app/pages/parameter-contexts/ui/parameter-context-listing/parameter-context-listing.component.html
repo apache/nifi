@@ -30,6 +30,8 @@
                 <parameter-context-table
                     [parameterContexts]="parameterContextListingState.parameterContexts"
                     [selectedParameterContextId]="selectedParameterContextId$ | async"
+                    [currentUser]="(currentUser$ | async)!"
+                    [flowConfiguration]="(flowConfiguration$ | async)!"
                     (selectParameterContext)="selectParameterContext($event)"
                     (editParameterContext)="editParameterContext($event)"
                     (deleteParameterContext)="deleteParameterContext($event)"></parameter-context-table>

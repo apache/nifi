@@ -19,7 +19,7 @@ import { createSelector } from '@ngrx/store';
 import { AccessPoliciesState, selectAccessPoliciesState } from '../index';
 import { accessPolicyFeatureKey, AccessPolicyState } from './index';
 import { selectCurrentRoute } from '../../../../state/router/router.selectors';
-import { ResourceAction } from '../shared';
+import { ComponentResourceAction, ResourceAction } from '../shared';
 
 export const selectAccessPolicyState = createSelector(
     selectAccessPoliciesState,
@@ -38,16 +38,26 @@ export const selectAccessPolicy = createSelector(
 
 export const selectSaving = createSelector(selectAccessPolicyState, (state: AccessPolicyState) => state.saving);
 
-export const selectUsers = createSelector(selectAccessPolicyState, (state: AccessPolicyState) => state.users);
-
-export const selectUserGroups = createSelector(selectAccessPolicyState, (state: AccessPolicyState) => state.userGroups);
-
-export const selectResourceActionFromRoute = createSelector(selectCurrentRoute, (route) => {
+export const selectGlobalResourceActionFromRoute = createSelector(selectCurrentRoute, (route) => {
     let selectedResourceAction: ResourceAction | null = null;
     if (route?.params.action && route?.params.resource) {
         // always select the action and resource from the route
         selectedResourceAction = {
             action: route.params.action,
+            resource: route.params.resource,
+            resourceIdentifier: route.params.resourceIdentifier
+        };
+    }
+    return selectedResourceAction;
+});
+
+export const selectComponentResourceActionFromRoute = createSelector(selectCurrentRoute, (route) => {
+    let selectedResourceAction: ComponentResourceAction | null = null;
+    if (route?.params.action && route?.params.policy && route?.params.resource && route?.params.resourceIdentifier) {
+        // always select the action and resource from the route
+        selectedResourceAction = {
+            action: route.params.action,
+            policy: route.params.policy,
             resource: route.params.resource,
             resourceIdentifier: route.params.resourceIdentifier
         };

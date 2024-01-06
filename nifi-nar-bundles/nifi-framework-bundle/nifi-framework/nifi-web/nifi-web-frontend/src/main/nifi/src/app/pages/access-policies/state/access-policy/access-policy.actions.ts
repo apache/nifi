@@ -20,19 +20,24 @@ import {
     LoadAccessPolicyError,
     LoadAccessPolicyRequest,
     AccessPolicyResponse,
-    SelectAccessPolicyRequest,
+    SelectGlobalAccessPolicyRequest,
     SetAccessPolicyRequest,
     ResetAccessPolicy,
     RemoveTenantFromPolicyRequest,
     AddTenantsToPolicyRequest,
-    LoadTenantsSuccess
+    SelectComponentAccessPolicyRequest
 } from './index';
 
 const ACCESS_POLICY_PREFIX: string = '[Access Policy]';
 
-export const selectAccessPolicy = createAction(
-    `${ACCESS_POLICY_PREFIX} Select Access Policy`,
-    props<{ request: SelectAccessPolicyRequest }>()
+export const selectGlobalAccessPolicy = createAction(
+    `${ACCESS_POLICY_PREFIX} Select Global Access Policy`,
+    props<{ request: SelectGlobalAccessPolicyRequest }>()
+);
+
+export const selectComponentAccessPolicy = createAction(
+    `${ACCESS_POLICY_PREFIX} Select Component Access Policy`,
+    props<{ request: SelectComponentAccessPolicyRequest }>()
 );
 
 export const setAccessPolicy = createAction(
@@ -57,13 +62,6 @@ export const createAccessPolicy = createAction(`${ACCESS_POLICY_PREFIX} Create A
 export const createAccessPolicySuccess = createAction(
     `${ACCESS_POLICY_PREFIX} Create Access Policy Success`,
     props<{ response: AccessPolicyResponse }>()
-);
-
-export const loadTenants = createAction(`${ACCESS_POLICY_PREFIX} Load Tenants`);
-
-export const loadTenantsSuccess = createAction(
-    `${ACCESS_POLICY_PREFIX} Load Tenants Success`,
-    props<{ response: LoadTenantsSuccess }>()
 );
 
 export const openAddTenantToPolicyDialog = createAction(`${ACCESS_POLICY_PREFIX} Open Add Tenant To Policy Dialog`);

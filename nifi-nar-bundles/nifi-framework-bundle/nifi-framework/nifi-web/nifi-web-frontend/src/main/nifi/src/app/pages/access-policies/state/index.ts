@@ -18,16 +18,24 @@
 import { Action, combineReducers, createFeatureSelector } from '@ngrx/store';
 import { accessPolicyFeatureKey, AccessPolicyState } from './access-policy';
 import { accessPolicyReducer } from './access-policy/access-policy.reducer';
+import { tenantsFeatureKey, TenantsState } from './tenants';
+import { tenantsReducer } from './tenants/tenants.reducer';
+import { policyComponentFeatureKey, PolicyComponentState } from './policy-component';
+import { policyComponentReducer } from './policy-component/policy-component.reducer';
 
 export const accessPoliciesFeatureKey = 'accessPolicies';
 
 export interface AccessPoliciesState {
     [accessPolicyFeatureKey]: AccessPolicyState;
+    [tenantsFeatureKey]: TenantsState;
+    [policyComponentFeatureKey]: PolicyComponentState;
 }
 
 export function reducers(state: AccessPoliciesState | undefined, action: Action) {
     return combineReducers({
-        [accessPolicyFeatureKey]: accessPolicyReducer
+        [accessPolicyFeatureKey]: accessPolicyReducer,
+        [tenantsFeatureKey]: tenantsReducer,
+        [policyComponentFeatureKey]: policyComponentReducer
     })(state, action);
 }
 

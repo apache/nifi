@@ -53,6 +53,7 @@
                     <button
                         class="nifi-button mr-2"
                         type="button"
+                        *ngIf="supportsManagedAuthorizer()"
                         [disabled]="!canManageAccess(selection)"
                         (click)="manageAccess(selection)">
                         <i class="fa fa-key"></i>

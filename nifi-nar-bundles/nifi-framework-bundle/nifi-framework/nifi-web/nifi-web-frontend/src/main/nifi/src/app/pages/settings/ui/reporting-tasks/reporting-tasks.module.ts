@@ -24,6 +24,7 @@ import { MatTableModule } from '@angular/material/table';
 import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { ReportingTaskTable } from './reporting-task-table/reporting-task-table.component';
 import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
+import { RouterLink } from '@angular/router';
 
 @NgModule({
     declarations: [ReportingTasks, ReportingTaskTable],
@@ -34,7 +35,8 @@ import { ControllerServiceTable } from '../../../../ui/common/controller-service
         MatSortModule,
         MatTableModule,
         NifiTooltipDirective,
-        ControllerServiceTable
+        ControllerServiceTable,
+        RouterLink
     ]
 })
 export class ReportingTasksModule {}

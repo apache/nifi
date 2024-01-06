@@ -23,18 +23,13 @@ import {
     accessPolicyApiError,
     loadAccessPolicy,
     loadAccessPolicySuccess,
-    loadTenants,
-    loadTenantsSuccess,
     removeTenantFromPolicy,
     resetAccessPolicyState,
     resetAccessPolicy,
     setAccessPolicy
 } from './access-policy.actions';
-import { TenantEntity } from '../../../../state/shared';
 
 export const initialState: AccessPolicyState = {
-    users: [],
-    userGroups: [],
     saving: false,
     loadedTimestamp: '',
     error: null,
@@ -57,16 +52,6 @@ export const accessPolicyReducer = createReducer(
         policyStatus: response.policyStatus,
         loadedTimestamp: response.accessPolicy.generated,
         saving: false,
-        status: 'success' as const
-    })),
-    on(loadTenants, (state) => ({
-        ...state,
-        status: 'loading' as const
-    })),
-    on(loadTenantsSuccess, (state, { response }) => ({
-        ...state,
-        users: response.users,
-        userGroups: response.userGroups,
         status: 'success' as const
     })),
     on(addTenantsToPolicy, (state, { request }) => ({

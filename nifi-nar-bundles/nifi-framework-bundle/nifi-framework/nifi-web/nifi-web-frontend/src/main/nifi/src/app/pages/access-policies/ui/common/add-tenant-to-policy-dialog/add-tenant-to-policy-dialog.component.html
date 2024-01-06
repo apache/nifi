@@ -18,7 +18,7 @@
 <h2 mat-dialog-title>Add Users/Groups To Policy</h2>
 <form class="add-tenant-to-policy-form" [formGroup]="addTenantsForm">
     <mat-dialog-content>
-        <div>
+        <div *ngIf="filteredUsers.length > 0">
             <mat-label>Users</mat-label>
             <mat-selection-list formControlName="users" class="border">
                 <mat-list-option *ngFor="let user of filteredUsers" togglePosition="before" [value]="user.id"
@@ -26,7 +26,7 @@
                 </mat-list-option>
             </mat-selection-list>
         </div>
-        <div class="mt-4">
+        <div *ngIf="filteredUserGroups.length > 0" [class.mt-4]="filteredUsers.length > 0">
             <mat-label>User Groups</mat-label>
             <mat-selection-list formControlName="userGroups" class="border">
                 <mat-list-option
@@ -36,6 +36,9 @@
                     <i class="fa fa-users mr-3"></i>{{ userGroup.component.identity }}
                 </mat-list-option>
             </mat-selection-list>
+        </div>
+        <div *ngIf="filteredUsers.length === 0 && filteredUserGroups.length === 0" class="value">
+            All users and groups are assigned to this policy.
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">

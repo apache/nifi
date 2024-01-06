@@ -87,7 +87,6 @@ export class AddTenantToPolicyDialog {
     @Input() saving$!: Observable<boolean>;
 
     @Output() addTenants: EventEmitter<AddTenantsToPolicyRequest> = new EventEmitter<AddTenantsToPolicyRequest>();
-    @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
 
     private destroyRef = inject(DestroyRef);
 
@@ -102,16 +101,10 @@ export class AddTenantToPolicyDialog {
         @Inject(MAT_DIALOG_DATA) private request: AddTenantToPolicyDialogRequest,
         private formBuilder: FormBuilder
     ) {
-        console.log(request);
-
         this.addTenantsForm = this.formBuilder.group({
             users: new FormControl([]),
             userGroups: new FormControl([])
         });
-    }
-
-    cancelClicked(): void {
-        this.cancel.next();
     }
 
     addClicked(): void {

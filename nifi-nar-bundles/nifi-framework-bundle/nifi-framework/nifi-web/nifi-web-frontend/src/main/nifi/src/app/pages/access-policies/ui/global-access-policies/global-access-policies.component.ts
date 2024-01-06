@@ -20,20 +20,19 @@ import { Store } from '@ngrx/store';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import {
     createAccessPolicy,
-    loadTenants,
     openAddTenantToPolicyDialog,
     promptDeleteAccessPolicy,
     promptRemoveTenantFromPolicy,
     reloadAccessPolicy,
     resetAccessPolicyState,
-    selectAccessPolicy,
+    selectGlobalAccessPolicy,
     setAccessPolicy
 } from '../../state/access-policy/access-policy.actions';
 import { AccessPolicyState, RemoveTenantFromPolicyRequest } from '../../state/access-policy';
 import { initialState } from '../../state/access-policy/access-policy.reducer';
 import {
     selectAccessPolicyState,
-    selectResourceActionFromRoute
+    selectGlobalResourceActionFromRoute
 } from '../../state/access-policy/access-policy.selectors';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -47,6 +46,8 @@ import { selectRequiredPermissions } from '../../../../state/extension-types/ext
 import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { SetEnableStep } from '../../../../state/contoller-service-state';
+import { AccessPoliciesState } from '../../state';
+import { loadTenants, resetTenantsState } from '../../state/tenants/tenants.actions';
 
 @Component({
     selector: 'global-access-policies',
@@ -55,7 +56,7 @@ import { SetEnableStep } from '../../../../state/contoller-service-state';
 })
 export class GlobalAccessPolicies implements OnInit, OnDestroy {
     flowConfiguration$ = this.store.select(selectFlowConfiguration);
-    globalAccessPoliciesState$ = this.store.select(selectAccessPolicyState);
+    accessPolicyState$ = this.store.select(selectAccessPolicyState);
     currentUser$ = this.store.select(selectCurrentUser);
 
     protected readonly TextTip = TextTip;
@@ -74,7 +75,7 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
     @ViewChild('inheritedFromNoRestrictions') inheritedFromNoRestrictions!: TemplateRef<any>;
 
     constructor(
-        private store: Store<AccessPolicyState>,
+        private store: Store<AccessPoliciesState>,
         private formBuilder: FormBuilder,
         private nifiCommon: NiFiCommon
     ) {
@@ -123,7 +124,7 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
             });
 
         this.store
-            .select(selectResourceActionFromRoute)
+            .select(selectGlobalResourceActionFromRoute)
             .pipe(
                 filter((resourceAction) => resourceAction != null),
                 takeUntilDestroyed()
@@ -186,7 +187,7 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
         }
 
         this.store.dispatch(
-            selectAccessPolicy({
+            selectGlobalAccessPolicy({
                 request: {
                     resourceAction: {
                         resource: this.policyForm.get('resource')?.value,
@@ -224,7 +225,7 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
 
     actionChanged(): void {
         this.store.dispatch(
-            selectAccessPolicy({
+            selectGlobalAccessPolicy({
                 request: {
                     resourceAction: {
                         resource: this.policyForm.get('resource')?.value,
@@ -238,7 +239,7 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
 
     resourceIdentifierChanged(): void {
         this.store.dispatch(
-            selectAccessPolicy({
+            selectGlobalAccessPolicy({
                 request: {
                     resourceAction: {
                         resource: this.policyForm.get('resource')?.value,
@@ -286,7 +287,6 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
 
     ngOnDestroy(): void {
         this.store.dispatch(resetAccessPolicyState());
+        this.store.dispatch(resetTenantsState());
     }
-
-    protected readonly SetEnableStep = SetEnableStep;
 }

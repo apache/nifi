@@ -1,0 +1,147 @@
+<!--
+  ~  Licensed to the Apache Software Foundation (ASF) under one or more
+  ~  contributor license agreements.  See the NOTICE file distributed with
+  ~  this work for additional information regarding copyright ownership.
+  ~  The ASF licenses this file to You under the Apache License, Version 2.0
+  ~  (the "License"); you may not use this file except in compliance with
+  ~  the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  -->
+
+<ng-container *ngIf="accessPolicyState$ | async; let accessPolicyState">
+    <div *ngIf="isInitialLoading(accessPolicyState); else loaded">
+        <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+    </div>
+
+    <ng-template #loaded>
+        <ng-container *ngIf="policyComponentState$ | async; let policyComponentState">
+            <div
+                class="component-access-policies flex flex-col h-full gap-y-2"
+                *ngIf="flowConfiguration$ | async; let flowConfiguration">
+                <div class="value">
+                    <div class="mb-2" [ngSwitch]="accessPolicyState.policyStatus">
+                        <ng-container *ngSwitchCase="PolicyStatus.NotFound">
+                            No policy for the specified resource.
+                            <ng-container *ngIf="flowConfiguration.supportsConfigurableAuthorizer">
+                                <a (click)="createNewPolicy()">Create</a> a new policy.
+                            </ng-container>
+                        </ng-container>
+                        <ng-container *ngSwitchCase="PolicyStatus.Inherited">
+                            <ng-container *ngIf="accessPolicyState.accessPolicy">
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        getTemplateForInheritedPolicy(accessPolicyState.accessPolicy);
+                                        context: {
+                                            $implicit: accessPolicyState.accessPolicy,
+                                            supportsConfigurableAuthorizer:
+                                                flowConfiguration.supportsConfigurableAuthorizer
+                                        }
+                                    "></ng-container>
+                            </ng-container>
+                        </ng-container>
+                        <ng-container *ngSwitchCase="PolicyStatus.Forbidden">
+                            Not authorized to access the policy for the specified resource.
+                        </ng-container>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center">
+                    <form [formGroup]="policyForm">
+                        <div class="flex gap-x-2">
+                            <div class="flex gap-x-1 -mt-2">
+                                <div class="operation-context-logo flex flex-col">
+                                    <i class="icon" [class]="getContextIcon()"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <div class="operation-context-name">{{ policyComponentState.label }}</div>
+                                    <div class="operation-context-type">{{ getContextType() }}</div>
+                                </div>
+                            </div>
+                            <div class="policy-select">
+                                <mat-form-field>
+                                    <mat-label>Policy</mat-label>
+                                    <mat-select
+                                        formControlName="policyAction"
+                                        (selectionChange)="policyActionChanged($event.value)">
+                                        <mat-option
+                                            *ngFor="let option of policyActionOptions"
+                                            [disabled]="!isComponentPolicy(option, policyComponentState)"
+                                            [value]="option.value"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            [tooltipInputData]="getSelectOptionTipData(option)"
+                                            [delayClose]="false"
+                                            >{{ option.text }}
+                                        </mat-option>
+                                    </mat-select>
+                                </mat-form-field>
+                            </div>
+                        </div>
+                    </form>
+                    <div *ngIf="flowConfiguration.supportsConfigurableAuthorizer" class="flex gap-x-2">
+                        <button
+                            class="nifi-button"
+                            [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
+                            (click)="addTenantToPolicy()">
+                            <i class="fa fa-user-plus"></i>
+                        </button>
+                        <button
+                            class="nifi-button"
+                            [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
+                            (click)="deletePolicy()">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex-1 -mt-2" *ngIf="currentUser$ | async as user">
+                    <policy-table
+                        [policy]="accessPolicyState.accessPolicy"
+                        [supportsPolicyModification]="
+                            flowConfiguration.supportsConfigurableAuthorizer &&
+                            accessPolicyState.policyStatus === PolicyStatus.Found
+                        "
+                        (removeTenantFromPolicy)="removeTenantFromPolicy($event)"></policy-table>
+                </div>
+                <div class="flex justify-between">
+                    <div class="refresh-container flex items-center gap-x-2">
+                        <button class="nifi-button" (click)="refreshGlobalAccessPolicy()">
+                            <i class="fa fa-refresh" [class.fa-spin]="accessPolicyState.status === 'loading'"></i>
+                        </button>
+                        <div>Last updated:</div>
+                        <div class="refresh-timestamp">{{ accessPolicyState.loadedTimestamp }}</div>
+                    </div>
+                </div>
+            </div>
+        </ng-container>
+    </ng-template>
+</ng-container>
+<ng-template #inheritedFromPolicies let-policy let-supportsConfigurableAuthorizer>
+    No component specific administrators.
+    <ng-container *ngIf="supportsConfigurableAuthorizer">
+        <a (click)="createNewPolicy()">Add</a> policy for additional administrators.
+    </ng-container>
+</ng-template>
+<ng-template #inheritedFromController let-policy let-supportsConfigurableAuthorizer>
+    Showing effective policy inherited from the controller.
+    <ng-container *ngIf="supportsConfigurableAuthorizer">
+        <a (click)="createNewPolicy()">Override</a> this policy.
+    </ng-container>
+</ng-template>
+<ng-template #inheritedFromGlobalParameterContexts let-policy let-supportsConfigurableAuthorizer>
+    Showing effective policy inherited from global parameter context policy.
+    <ng-container *ngIf="supportsConfigurableAuthorizer">
+        <a (click)="createNewPolicy()">Override</a> this policy.
+    </ng-container>
+</ng-template>
+<ng-template #inheritedFromProcessGroup let-policy let-supportsConfigurableAuthorizer>
+    Showing effective policy inherited from <a [routerLink]="getInheritedProcessGroupRoute(policy)">Process Group</a>.
+    <ng-container *ngIf="supportsConfigurableAuthorizer">
+        <a (click)="createNewPolicy()">Override</a> this policy.
+    </ng-container>
+</ng-template>

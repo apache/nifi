@@ -16,11 +16,16 @@
  */
 
 import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { flowConfigurationFeatureKey, FlowConfigurationState } from './index';
+import { FlowConfiguration, flowConfigurationFeatureKey, FlowConfigurationState } from './index';
 
 export const selectFlowConfigurationState = createFeatureSelector<FlowConfigurationState>(flowConfigurationFeatureKey);
 
 export const selectFlowConfiguration = createSelector(
     selectFlowConfigurationState,
     (state: FlowConfigurationState) => state.flowConfiguration
+);
+
+export const selectSupportsManagedAuthorizer = createSelector(
+    selectFlowConfiguration,
+    (flowConfiguration: FlowConfiguration | null) => flowConfiguration?.supportsManagedAuthorizer
 );

@@ -674,6 +674,18 @@ export class FlowEffects {
         { dispatch: false }
     );
 
+    navigateToManageComponentPolicies$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.navigateToManageComponentPolicies),
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/access-policies', 'read', 'component', request.resource, request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
     navigateToViewStatusHistoryForComponent$ = createEffect(
         () =>
             this.actions$.pipe(

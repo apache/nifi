@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-import { AccessPolicyEntity, PolicyStatus, ResourceAction } from '../shared';
+import { AccessPolicyEntity, ComponentResourceAction, PolicyStatus, ResourceAction } from '../shared';
 import { TenantEntity, UserEntity, UserGroupEntity } from '../../../../state/shared';
 
 export const accessPolicyFeatureKey = 'accessPolicy';
@@ -24,8 +24,12 @@ export interface SetAccessPolicyRequest {
     resourceAction: ResourceAction;
 }
 
-export interface SelectAccessPolicyRequest {
+export interface SelectGlobalAccessPolicyRequest {
     resourceAction: ResourceAction;
+}
+
+export interface SelectComponentAccessPolicyRequest {
+    resourceAction: ComponentResourceAction;
 }
 
 export interface LoadAccessPolicyRequest {
@@ -50,11 +54,6 @@ export interface RemoveTenantFromPolicyRequest {
     tenant: TenantEntity;
 }
 
-export interface LoadTenantsSuccess {
-    users: UserEntity[];
-    userGroups: UserGroupEntity[];
-}
-
 export interface AddTenantToPolicyDialogRequest {
     accessPolicy: AccessPolicyEntity;
 }
@@ -68,8 +67,6 @@ export interface AccessPolicyState {
     resourceAction?: ResourceAction;
     policyStatus?: PolicyStatus;
     accessPolicy?: AccessPolicyEntity;
-    users: UserEntity[];
-    userGroups: UserGroupEntity[];
     saving: boolean;
     loadedTimestamp: string;
     error: string | null;
