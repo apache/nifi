@@ -30,8 +30,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -55,7 +53,7 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
             .required(true)
             .sensitive(false)
             .allowableValues(DEFAULT_CREDENTIAL, MANAGED_IDENTITY)
-            .defaultValue(DEFAULT_CREDENTIAL.toString())
+            .defaultValue(DEFAULT_CREDENTIAL)
             .build();
 
     public static final PropertyDescriptor MANAGED_IDENTITY_CLIENT_ID = new PropertyDescriptor.Builder()
@@ -70,14 +68,9 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
             .dependsOn(CREDENTIAL_CONFIGURATION_STRATEGY, MANAGED_IDENTITY)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES;
-
-    static {
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(CREDENTIAL_CONFIGURATION_STRATEGY);
-        props.add(MANAGED_IDENTITY_CLIENT_ID);
-        PROPERTIES = Collections.unmodifiableList(props);
-    }
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            CREDENTIAL_CONFIGURATION_STRATEGY, MANAGED_IDENTITY_CLIENT_ID
+    );
 
     private TokenCredential credentials;
 
@@ -95,9 +88,9 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
     public void onConfigured(final ConfigurationContext context) {
         final String configurationStrategy = context.getProperty(CREDENTIAL_CONFIGURATION_STRATEGY).getValue();
 
-        if (DEFAULT_CREDENTIAL.equals(configurationStrategy)) {
+        if (DEFAULT_CREDENTIAL.getValue().equals(configurationStrategy)) {
             credentials = getDefaultAzureCredential();
-        } else if (MANAGED_IDENTITY.equals(configurationStrategy)) {
+        } else if (MANAGED_IDENTITY.getValue().equals(configurationStrategy)) {
             credentials = getManagedIdentityCredential(context);
         } else {
             final String errorMsg = String.format("Configuration Strategy [%s] not recognized", configurationStrategy);
@@ -113,10 +106,9 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
     private TokenCredential getManagedIdentityCredential(final ConfigurationContext context) {
         final String clientId = context.getProperty(MANAGED_IDENTITY_CLIENT_ID).getValue();
 
-        final TokenCredential managedIdentityCredential = new ManagedIdentityCredentialBuilder()
+        return new ManagedIdentityCredentialBuilder()
                 .clientId(clientId)
                 .build();
-        return managedIdentityCredential;
     }
 
     @Override

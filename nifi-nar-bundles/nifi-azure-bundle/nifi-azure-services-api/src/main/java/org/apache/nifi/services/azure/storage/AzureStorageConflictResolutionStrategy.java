@@ -20,11 +20,7 @@ import org.apache.nifi.components.DescribedValue;
 
 public enum AzureStorageConflictResolutionStrategy implements DescribedValue {
     FAIL_RESOLUTION("fail", "Fail if the blob already exists"),
-    IGNORE_RESOLUTION("ignore",
-            String.format(
-                "Ignore if the blob already exists; the 'azure.error' attribute will be set to the value 'BLOB_ALREADY_EXISTS'"
-            )
-    ),
+    IGNORE_RESOLUTION("ignore", "Ignore if the blob already exists; the 'azure.error' attribute will be set to the value 'BLOB_ALREADY_EXISTS'"),
     REPLACE_RESOLUTION("replace", "Replace blob contents if the blob already exist");
 
     private final String label;

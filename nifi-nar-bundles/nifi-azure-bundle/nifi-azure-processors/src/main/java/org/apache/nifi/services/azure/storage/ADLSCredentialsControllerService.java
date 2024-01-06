@@ -34,7 +34,6 @@ import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -85,7 +84,7 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
 
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = AzureStorageUtils.PROXY_CONFIGURATION_SERVICE;
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             ACCOUNT_NAME,
             ENDPOINT_SUFFIX,
             AzureStorageUtils.ACCOUNT_KEY,
@@ -96,7 +95,7 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
             SERVICE_PRINCIPAL_CLIENT_ID,
             SERVICE_PRINCIPAL_CLIENT_SECRET,
             PROXY_CONFIGURATION_SERVICE
-    ));
+    );
 
     private ConfigurationContext context;
 

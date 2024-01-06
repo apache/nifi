@@ -16,22 +16,6 @@
  */
 package org.apache.nifi.reporting.azure.loganalytics;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.text.MessageFormat;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.regex.Pattern;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -42,13 +26,28 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.text.MessageFormat;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Base64;
+import java.util.List;
+import java.util.regex.Pattern;
+
 /**
  * Abstract ReportingTask to send metrics from Apache NiFi and JVM to Azure
  * Monitor.
  */
 public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractReportingTask {
 
-    private static final Charset UTF8 = Charset.forName("UTF-8");
+    private static final Charset UTF8 = StandardCharsets.UTF_8;
     private static final String HMAC_SHA256_ALG = "HmacSHA256";
 
     // DateTimeFormatter.RFC_1123_DATE_TIME does not work in every case, such as when a
@@ -90,6 +89,16 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT).build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            LOG_ANALYTICS_WORKSPACE_ID,
+            LOG_ANALYTICS_WORKSPACE_KEY,
+            APPLICATION_ID,
+            INSTANCE_ID,
+            PROCESS_GROUP_IDS,
+            JOB_NAME,
+            LOG_ANALYTICS_URL_ENDPOINT_FORMAT
+    );
+
     protected String createAuthorization(String workspaceId, String key, int contentLength, String rfc1123Date) {
         try {
             String signature = String.format("POST\n%d\napplication/json\nx-ms-date:%s\n/api/logs", contentLength,
@@ -105,15 +114,7 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(LOG_ANALYTICS_WORKSPACE_ID);
-        properties.add(LOG_ANALYTICS_WORKSPACE_KEY);
-        properties.add(APPLICATION_ID);
-        properties.add(INSTANCE_ID);
-        properties.add(PROCESS_GROUP_IDS);
-        properties.add(JOB_NAME);
-        properties.add(LOG_ANALYTICS_URL_ENDPOINT_FORMAT);
-        return properties;
+        return PROPERTIES;
     }
 
     /**
@@ -135,7 +136,7 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
     }
 
     protected void sendToLogAnalytics(final HttpPost request, final String workspaceId, final String linuxPrimaryKey,
-            final String rawJson) throws IllegalArgumentException, RuntimeException, IOException {
+            final String rawJson) throws RuntimeException, IOException {
 
         final int bodyLength = rawJson.getBytes(UTF8).length;
         final ZonedDateTime zNow = ZonedDateTime.now(ZoneOffset.UTC);

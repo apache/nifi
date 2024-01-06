@@ -256,7 +256,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     }
 
     private void configureCredentialsType(AzureStorageCredentialsType credentialsType) {
-        runner.setProperty(credentialsService, CREDENTIALS_TYPE, credentialsType.getAllowableValue());
+        runner.setProperty(credentialsService, CREDENTIALS_TYPE, credentialsType);
     }
 
     private void configureAccountKey() {

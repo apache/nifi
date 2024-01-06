@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_ERROR_CODE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_IGNORED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
@@ -168,13 +169,13 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         runProcessor(BLOB_DATA);
 
         MockFlowFile flowFile = assertFailure(BLOB_DATA, BlobErrorCode.BLOB_ALREADY_EXISTS);
-        assertEquals(flowFile.getAttribute(ATTR_NAME_IGNORED), null);
+        assertNull(flowFile.getAttribute(ATTR_NAME_IGNORED));
     }
 
     @Test
     public void testPutBlobToExistingBlobConflictStrategyIgnore() throws Exception {
         uploadBlob(BLOB_NAME, BLOB_DATA);
-        runner.setProperty(AzureStorageUtils.CONFLICT_RESOLUTION, AzureStorageConflictResolutionStrategy.IGNORE_RESOLUTION.getValue());
+        runner.setProperty(AzureStorageUtils.CONFLICT_RESOLUTION, AzureStorageConflictResolutionStrategy.IGNORE_RESOLUTION);
 
         runProcessor(BLOB_DATA);
 
@@ -185,7 +186,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
     @Test
     public void testPutBlobToExistingBlobConflictStrategyReplace() throws Exception {
         uploadBlob(BLOB_NAME, BLOB_DATA);
-        runner.setProperty(AzureStorageUtils.CONFLICT_RESOLUTION, AzureStorageConflictResolutionStrategy.REPLACE_RESOLUTION.getValue());
+        runner.setProperty(AzureStorageUtils.CONFLICT_RESOLUTION, AzureStorageConflictResolutionStrategy.REPLACE_RESOLUTION);
 
         runProcessor(BLOB_DATA);
 
@@ -203,7 +204,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
 
     @Test
     public void testPutBlob64BLocalCSE() {
-        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL);
         runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
         runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY, KEY_64B_VALUE);
         runner.assertNotValid();
@@ -211,7 +212,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
 
     @Test
     public void testPutBlob128BLocalCSE() throws Exception {
-        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL);
         runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
         runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY, KEY_128B_VALUE);
         runProcessor(BLOB_DATA);
@@ -220,7 +221,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
 
     @Test
     public void testPutBlob192BLocalCSE() throws Exception {
-        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL);
         runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
         runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY, KEY_192B_VALUE);
         runProcessor(BLOB_DATA);
@@ -229,7 +230,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
 
     @Test
     public void testPutBlob256BLocalCSE() throws Exception {
-        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL);
         runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
         runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY, KEY_256B_VALUE);
         runProcessor(BLOB_DATA);
@@ -238,7 +239,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
 
     @Test
     public void testPutBlob384BLocalCSE() throws Exception {
-        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL);
         runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
         runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY, KEY_384B_VALUE);
         runProcessor(BLOB_DATA);
@@ -247,7 +248,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
 
     @Test
     public void testPutBlob512BLocalCSE() throws Exception {
-        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL);
         runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
         runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY, KEY_512B_VALUE);
         runProcessor(BLOB_DATA);
@@ -264,7 +265,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         runner.setProperty(service, StandardFileResourceService.FILE_PATH, String.format("${%s}", attributeName));
         runner.enableControllerService(service);
 
-        runner.setProperty(ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE, ResourceTransferSource.FILE_RESOURCE_SERVICE.getValue());
+        runner.setProperty(ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE, ResourceTransferSource.FILE_RESOURCE_SERVICE);
         runner.setProperty(ResourceTransferProperties.FILE_RESOURCE_SERVICE, serviceId);
 
         Path tempFilePath = Files.createTempFile("ITPutAzureBlobStorage_v12_testPutBlobFromLocalFile_", "");
@@ -276,7 +277,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         runProcessor(EMPTY_CONTENT, attributes);
 
         runner.assertAllFlowFilesTransferred(PutAzureBlobStorage_v12.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutAzureBlobStorage_v12.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutAzureBlobStorage_v12.REL_SUCCESS).getFirst();
         assertFlowFileCommonBlobAttributes(flowFile, getContainerName(), BLOB_NAME);
         assertFlowFileResultBlobAttributes(flowFile, BLOB_DATA.length);
 
@@ -294,7 +295,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         runner.setProperty(service, StandardFileResourceService.FILE_PATH, String.format("${%s}", attributeName));
         runner.enableControllerService(service);
 
-        runner.setProperty(ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE, ResourceTransferSource.FILE_RESOURCE_SERVICE.getValue());
+        runner.setProperty(ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE, ResourceTransferSource.FILE_RESOURCE_SERVICE);
         runner.setProperty(ResourceTransferProperties.FILE_RESOURCE_SERVICE, serviceId);
 
         String filePath = "nonexistent.txt";
@@ -320,18 +321,16 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         runner.run();
     }
 
-    private MockFlowFile assertSuccess(String containerName, String blobName, byte[] blobData) throws Exception {
-        MockFlowFile flowFile = assertFlowFile(containerName, blobName, blobData);
+    private void assertSuccess(String containerName, String blobName, byte[] blobData) throws Exception {
+        assertFlowFile(containerName, blobName, blobData);
         assertAzureBlob(containerName, blobName, blobData);
         assertProvenanceEvents();
-        return flowFile;
     }
 
-    private MockFlowFile assertSuccessForCSE(String containerName, String blobName, byte[] blobData) throws Exception {
-        MockFlowFile flowFile = assertFlowFile(containerName, blobName, blobData);
+    private void assertSuccessForCSE(String containerName, String blobName, byte[] blobData) throws Exception {
+        assertFlowFile(containerName, blobName, blobData);
         assertAzureBlobExists(containerName, blobName);
         assertProvenanceEvents();
-        return flowFile;
     }
 
     private MockFlowFile assertIgnored(String containerName, String blobName) throws Exception {
@@ -343,7 +342,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
     private MockFlowFile assertFlowFile(String containerName, String blobName, byte[] blobData) throws Exception {
         runner.assertAllFlowFilesTransferred(PutAzureBlobStorage_v12.REL_SUCCESS, 1);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutAzureBlobStorage_v12.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutAzureBlobStorage_v12.REL_SUCCESS).getFirst();
 
         assertFlowFileCommonBlobAttributes(flowFile, containerName, blobName);
         if (blobData != null) {
@@ -378,7 +377,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
     private MockFlowFile assertFailure(byte[] blobData, BlobErrorCode errorCode) throws Exception {
         runner.assertAllFlowFilesTransferred(PutAzureBlobStorage_v12.REL_FAILURE, 1);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteAzureBlobStorage_v12.REL_FAILURE).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteAzureBlobStorage_v12.REL_FAILURE).getFirst();
         flowFile.assertContentEquals(blobData);
         flowFile.assertAttributeEquals(ATTR_NAME_ERROR_CODE, errorCode.toString());
         return flowFile;

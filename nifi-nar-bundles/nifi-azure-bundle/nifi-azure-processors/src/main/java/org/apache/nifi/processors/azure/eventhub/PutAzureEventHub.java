@@ -48,13 +48,13 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 import org.apache.nifi.processors.azure.storage.utils.FlowFileResultCarrier;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
+import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -119,28 +119,19 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
             .description("Any FlowFile that could not be sent to the event hub will be transferred to this Relationship.")
             .build();
 
-    private final static List<PropertyDescriptor> propertyDescriptors;
-    private final static Set<Relationship> relationships;
-
-    static {
-        final List<PropertyDescriptor> configuredDescriptors = new ArrayList<>();
-        configuredDescriptors.add(NAMESPACE);
-        configuredDescriptors.add(EVENT_HUB_NAME);
-        configuredDescriptors.add(SERVICE_BUS_ENDPOINT);
-        configuredDescriptors.add(TRANSPORT_TYPE);
-        configuredDescriptors.add(ACCESS_POLICY);
-        configuredDescriptors.add(POLICY_PRIMARY_KEY);
-        configuredDescriptors.add(USE_MANAGED_IDENTITY);
-        configuredDescriptors.add(PARTITIONING_KEY_ATTRIBUTE_NAME);
-        configuredDescriptors.add(MAX_BATCH_SIZE);
-        configuredDescriptors.add(PROXY_CONFIGURATION_SERVICE);
-        propertyDescriptors = Collections.unmodifiableList(configuredDescriptors);
-
-        final Set<Relationship> configuredRelationships = new HashSet<>();
-        configuredRelationships.add(REL_SUCCESS);
-        configuredRelationships.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(configuredRelationships);
-    }
+    private final static List<PropertyDescriptor> propertyDescriptors = List.of(
+            NAMESPACE,
+            EVENT_HUB_NAME,
+            SERVICE_BUS_ENDPOINT,
+            TRANSPORT_TYPE,
+            ACCESS_POLICY,
+            POLICY_PRIMARY_KEY,
+            USE_MANAGED_IDENTITY,
+            PARTITIONING_KEY_ATTRIBUTE_NAME,
+            MAX_BATCH_SIZE,
+            PROXY_CONFIGURATION_SERVICE
+    );
+    private final static Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
 
     private EventHubProducerClient eventHubProducerClient;
 
@@ -196,7 +187,7 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
         final String namespace = context.getProperty(NAMESPACE).getValue();
         final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
-        final AmqpTransportType transportType = AmqpTransportType.fromString(context.getProperty(TRANSPORT_TYPE).getValue());
+        final AmqpTransportType transportType = context.getProperty(TRANSPORT_TYPE).asDescribedValue(AzureEventHubTransportType.class).asAmqpTransportType();
 
         try {
             final EventHubClientBuilder eventHubClientBuilder = new EventHubClientBuilder();
@@ -228,9 +219,9 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
     ) {
         try {
             for (final FlowFileResultCarrier<Relationship> flowFileResult : flowFileResults) {
-                final FlowFile flowFile = flowFileResult.getFlowFile();
+                final FlowFile flowFile = flowFileResult.flowFile();
 
-                if (flowFileResult.getResult() == REL_SUCCESS) {
+                if (flowFileResult.result() == REL_SUCCESS) {
                     final String namespace = context.getProperty(NAMESPACE).getValue();
                     final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
                     final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
@@ -238,7 +229,7 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
                     session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
                     session.transfer(flowFile, REL_SUCCESS);
                 } else {
-                    final Throwable processException = flowFileResult.getException();
+                    final Throwable processException = flowFileResult.exception();
                     getLogger().error("Send failed {}", flowFile, processException);
                     session.transfer(session.penalize(flowFile), REL_FAILURE);
                 }

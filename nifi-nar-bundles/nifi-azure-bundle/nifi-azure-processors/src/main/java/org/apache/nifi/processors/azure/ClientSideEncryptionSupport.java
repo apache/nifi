@@ -38,20 +38,19 @@ import org.apache.nifi.util.StringUtils;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 public interface ClientSideEncryptionSupport {
-    List<KeyOperation> KEY_OPERATIONS = Arrays.asList(KeyOperation.WRAP_KEY, KeyOperation.UNWRAP_KEY);
+    List<KeyOperation> KEY_OPERATIONS = List.of(KeyOperation.WRAP_KEY, KeyOperation.UNWRAP_KEY);
 
     PropertyDescriptor CSE_KEY_TYPE = new PropertyDescriptor.Builder()
             .name("Client-Side Encryption Key Type")
             .displayName("Client-Side Encryption Key Type")
             .required(true)
             .allowableValues(ClientSideEncryptionMethod.class)
-            .defaultValue(ClientSideEncryptionMethod.NONE.getValue())
+            .defaultValue(ClientSideEncryptionMethod.NONE)
             .description("Specifies the key type to use for client-side encryption.")
             .build();
 
@@ -77,8 +76,7 @@ public interface ClientSideEncryptionSupport {
 
     default Collection<ValidationResult> validateClientSideEncryptionProperties(ValidationContext validationContext) {
         final List<ValidationResult> validationResults = new ArrayList<>();
-        final String cseKeyTypeValue = validationContext.getProperty(CSE_KEY_TYPE).getValue();
-        final ClientSideEncryptionMethod cseKeyType = ClientSideEncryptionMethod.valueOf(cseKeyTypeValue);
+        final ClientSideEncryptionMethod cseKeyType = validationContext.getProperty(CSE_KEY_TYPE).asDescribedValue(ClientSideEncryptionMethod.class);
         final String cseKeyId = validationContext.getProperty(CSE_KEY_ID).getValue();
         final String cseLocalKey = validationContext.getProperty(CSE_LOCAL_KEY).getValue();
         if (cseKeyType != ClientSideEncryptionMethod.NONE && StringUtils.isBlank(cseKeyId)) {
@@ -116,8 +114,7 @@ public interface ClientSideEncryptionSupport {
     }
 
     default boolean isClientSideEncryptionEnabled(PropertyContext context) {
-        final String cseKeyTypeValue = context.getProperty(CSE_KEY_TYPE).getValue();
-        final ClientSideEncryptionMethod cseKeyType = ClientSideEncryptionMethod.valueOf(cseKeyTypeValue);
+        final ClientSideEncryptionMethod cseKeyType = context.getProperty(CSE_KEY_TYPE).asDescribedValue(ClientSideEncryptionMethod.class);
         return cseKeyType != ClientSideEncryptionMethod.NONE;
     }
 
@@ -144,18 +141,14 @@ public interface ClientSideEncryptionSupport {
         final int keySize256 = 32;
         final int keySize384 = 48;
         final int keySize512 = 64;
-        switch (keyBytes.length) {
-            case keySize128:
-                return Optional.of(KeyWrapAlgorithm.A128KW.toString());
-            case keySize192:
-                return Optional.of(KeyWrapAlgorithm.A192KW.toString());
-            case keySize256:
-            case keySize384:
-            case keySize512:
-                // Default to longest allowed key length for wrap
-                return Optional.of(KeyWrapAlgorithm.A256KW.toString());
-            default:
-                return Optional.empty();
-        }
+
+        return switch (keyBytes.length) {
+            case keySize128 -> Optional.of(KeyWrapAlgorithm.A128KW.toString());
+            case keySize192 -> Optional.of(KeyWrapAlgorithm.A192KW.toString());
+            case keySize256, keySize384, keySize512 ->
+                // Default to the longest allowed key length for wrap
+                    Optional.of(KeyWrapAlgorithm.A256KW.toString());
+            default -> Optional.empty();
+        };
     }
 }

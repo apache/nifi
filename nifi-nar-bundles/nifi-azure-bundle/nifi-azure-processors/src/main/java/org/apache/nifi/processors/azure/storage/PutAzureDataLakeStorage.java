@@ -44,8 +44,6 @@ import org.apache.nifi.util.StringUtils;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,8 +61,8 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_PRIMARY_URI;
-import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FILE_RESOURCE_SERVICE;
+import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
 import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileResource;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
@@ -104,7 +102,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             .addValidator(new DirectoryValidator("Base Temporary Path"))
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             ADLS_CREDENTIALS_SERVICE,
             FILESYSTEM,
             DIRECTORY,
@@ -114,7 +112,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             RESOURCE_TRANSFER_SOURCE,
             FILE_RESOURCE_SERVICE,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
-    ));
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -226,7 +224,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
      * This method serves as a "commit" for the upload process. Upon upload, a 0-byte file is created, then the payload is appended to it.
      * Because of that, a work-in-progress file is available for readers before the upload is complete. It is not an efficient approach in
      * case of conflicts because FlowFiles are uploaded unnecessarily, but it is a calculated risk because consistency is more important.
-     *
+     * <p>
      * Visible for testing
      *
      * @param sourceFileClient client of the temporary file

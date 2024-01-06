@@ -262,7 +262,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         runner.setProperty(service, StandardFileResourceService.FILE_PATH, String.format("${%s}", attributeName));
         runner.enableControllerService(service);
 
-        runner.setProperty(ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE, ResourceTransferSource.FILE_RESOURCE_SERVICE.getValue());
+        runner.setProperty(ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE, ResourceTransferSource.FILE_RESOURCE_SERVICE);
         runner.setProperty(ResourceTransferProperties.FILE_RESOURCE_SERVICE, serviceId);
 
         Path tempFilePath = Files.createTempFile("ITPutAzureDataLakeStorage_testPutFileFromLocalFile_", "");
@@ -325,7 +325,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     private MockFlowFile assertFlowFile(byte[] fileData) throws Exception {
         runner.assertAllFlowFilesTransferred(PutAzureDataLakeStorage.REL_SUCCESS, 1);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutAzureDataLakeStorage.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutAzureDataLakeStorage.REL_SUCCESS).getFirst();
 
         flowFile.assertContentEquals(fileData);
 

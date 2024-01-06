@@ -17,10 +17,6 @@
 package org.apache.nifi.processors.azure.storage.utils;
 
 import com.azure.core.http.ProxyOptions;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.util.Collection;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -32,6 +28,10 @@ import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.proxy.SocksVersion;
 import org.apache.nifi.services.azure.storage.AzureStorageConflictResolutionStrategy;
 import reactor.netty.http.client.HttpClient;
+
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.util.Collection;
 
 public final class AzureStorageUtils {
     public static final String STORAGE_ACCOUNT_NAME_PROPERTY_DESCRIPTOR_NAME = "storage-account-name";
@@ -128,7 +128,7 @@ public final class AzureStorageUtils {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .allowableValues(AzureStorageConflictResolutionStrategy.class)
-            .defaultValue(AzureStorageConflictResolutionStrategy.FAIL_RESOLUTION.getValue())
+            .defaultValue(AzureStorageConflictResolutionStrategy.FAIL_RESOLUTION)
             .description("Specifies whether an existing blob will have its contents replaced upon conflict.")
             .build();
 
@@ -215,7 +215,6 @@ public final class AzureStorageUtils {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(propertyContext);
 
         if (proxyConfiguration != ProxyConfiguration.DIRECT_CONFIGURATION) {
-
             final ProxyOptions proxyOptions = new ProxyOptions(
                     getProxyType(proxyConfiguration),
                     new InetSocketAddress(proxyConfiguration.getProxyServerHost(), proxyConfiguration.getProxyServerPort()));
