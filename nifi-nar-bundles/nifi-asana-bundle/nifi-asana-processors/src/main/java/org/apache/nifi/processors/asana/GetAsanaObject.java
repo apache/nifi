@@ -16,33 +16,6 @@
  */
 package org.apache.nifi.processors.asana;
 
-import static java.lang.String.format;
-import static java.lang.String.join;
-import static java.util.Collections.singletonMap;
-import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECT_EVENTS;
-import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECT_MEMBERS;
-import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECT_STATUS_ATTACHMENTS;
-import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECT_STATUS_UPDATES;
-import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_STORIES;
-import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_TASKS;
-import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_TASK_ATTACHMENTS;
-import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_TEAM_MEMBERS;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
 import org.apache.http.entity.ContentType;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -82,6 +55,32 @@ import org.apache.nifi.processors.asana.utils.AsanaTeamFetcher;
 import org.apache.nifi.processors.asana.utils.AsanaTeamMemberFetcher;
 import org.apache.nifi.processors.asana.utils.AsanaUserFetcher;
 import org.apache.nifi.reporting.InitializationException;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+
+import static java.lang.String.format;
+import static java.lang.String.join;
+import static java.util.Collections.singletonMap;
+import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECT_EVENTS;
+import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECT_MEMBERS;
+import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECT_STATUS_ATTACHMENTS;
+import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECT_STATUS_UPDATES;
+import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_STORIES;
+import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_TASKS;
+import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_TASK_ATTACHMENTS;
+import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_TEAM_MEMBERS;
 
 @TriggerSerially
 @PrimaryNodeOnly
@@ -128,7 +127,7 @@ public class GetAsanaObject extends AbstractProcessor {
             .description("Specify what kind of objects to be collected from Asana")
             .required(true)
             .allowableValues(AsanaObjectType.class)
-            .defaultValue(AV_COLLECT_TASKS.getValue())
+            .defaultValue(AV_COLLECT_TASKS)
             .build();
 
     protected static final PropertyDescriptor PROP_ASANA_PROJECT = new PropertyDescriptor.Builder()
@@ -191,7 +190,7 @@ public class GetAsanaObject extends AbstractProcessor {
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
-    protected static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
+    protected static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             PROP_ASANA_CLIENT_SERVICE,
             PROP_DISTRIBUTED_CACHE_SERVICE,
             PROP_ASANA_OBJECT_TYPE,
@@ -200,7 +199,7 @@ public class GetAsanaObject extends AbstractProcessor {
             PROP_ASANA_TEAM_NAME,
             PROP_ASANA_TAG,
             PROP_ASANA_OUTPUT_BATCH_SIZE
-    ));
+    );
 
     protected static final Relationship REL_NEW = new Relationship.Builder()
             .name(REL_NAME_NEW)
@@ -219,11 +218,11 @@ public class GetAsanaObject extends AbstractProcessor {
                     + "are carried by the asana.gid attribute of the generated FlowFiles.")
             .build();
 
-    protected static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    protected static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_NEW,
             REL_UPDATED,
             REL_REMOVED
-    )));
+    );
     protected static final GenericObjectSerDe<String> STATE_MAP_KEY_SERIALIZER = new GenericObjectSerDe<>();
     protected static final GenericObjectSerDe<Map<String, String>> STATE_MAP_VALUE_SERIALIZER = new GenericObjectSerDe<>();
 
@@ -342,40 +341,26 @@ public class GetAsanaObject extends AbstractProcessor {
     }
 
     protected AsanaObjectFetcher createObjectFetcher(final ProcessContext context, AsanaClient client) {
-        final String objectType = context.getProperty(PROP_ASANA_OBJECT_TYPE).getValue();
+        final AsanaObjectType objectType = context.getProperty(PROP_ASANA_OBJECT_TYPE).asDescribedValue(AsanaObjectType.class);
         final String projectName = context.getProperty(PROP_ASANA_PROJECT).getValue();
         final String sectionName = context.getProperty(PROP_ASANA_SECTION).getValue();
         final String teamName = context.getProperty(PROP_ASANA_TEAM_NAME).getValue();
         final String tagName = context.getProperty(PROP_ASANA_TAG).getValue();
 
-        switch (AsanaObjectType.fromValue(objectType)) {
-            case AV_COLLECT_TASKS:
-                return new AsanaTaskFetcher(client, projectName, sectionName, tagName);
-            case AV_COLLECT_PROJECTS:
-                return new AsanaProjectFetcher(client);
-            case AV_COLLECT_PROJECT_EVENTS:
-                return new AsanaProjectEventFetcher(client, projectName);
-            case AV_COLLECT_PROJECT_MEMBERS:
-                return new AsanaProjectMembershipFetcher(client, projectName);
-            case AV_COLLECT_PROJECT_STATUS_ATTACHMENTS:
-                return new AsanaProjectStatusAttachmentFetcher(client, projectName);
-            case AV_COLLECT_PROJECT_STATUS_UPDATES:
-                return new AsanaProjectStatusFetcher(client, projectName);
-            case AV_COLLECT_STORIES:
-                return new AsanaStoryFetcher(client, projectName, sectionName, tagName);
-            case AV_COLLECT_TAGS:
-                return new AsanaTagFetcher(client);
-            case AV_COLLECT_TASK_ATTACHMENTS:
-                return new AsanaTaskAttachmentFetcher(client, projectName, sectionName, tagName);
-            case AV_COLLECT_TEAMS:
-                return new AsanaTeamFetcher(client);
-            case AV_COLLECT_TEAM_MEMBERS:
-                return new AsanaTeamMemberFetcher(client, teamName);
-            case AV_COLLECT_USERS:
-                return new AsanaUserFetcher(client);
-        }
-
-        throw new ProcessException("Cannot fetch objects of type: " + objectType);
+        return switch (objectType) {
+            case AV_COLLECT_TASKS -> new AsanaTaskFetcher(client, projectName, sectionName, tagName);
+            case AV_COLLECT_PROJECTS -> new AsanaProjectFetcher(client);
+            case AV_COLLECT_PROJECT_EVENTS -> new AsanaProjectEventFetcher(client, projectName);
+            case AV_COLLECT_PROJECT_MEMBERS -> new AsanaProjectMembershipFetcher(client, projectName);
+            case AV_COLLECT_PROJECT_STATUS_ATTACHMENTS -> new AsanaProjectStatusAttachmentFetcher(client, projectName);
+            case AV_COLLECT_PROJECT_STATUS_UPDATES -> new AsanaProjectStatusFetcher(client, projectName);
+            case AV_COLLECT_STORIES -> new AsanaStoryFetcher(client, projectName, sectionName, tagName);
+            case AV_COLLECT_TAGS -> new AsanaTagFetcher(client);
+            case AV_COLLECT_TASK_ATTACHMENTS -> new AsanaTaskAttachmentFetcher(client, projectName, sectionName, tagName);
+            case AV_COLLECT_TEAMS -> new AsanaTeamFetcher(client);
+            case AV_COLLECT_TEAM_MEMBERS -> new AsanaTeamMemberFetcher(client, teamName);
+            case AV_COLLECT_USERS -> new AsanaUserFetcher(client);
+        };
     }
 
     private Optional<Map<String, String>> recoverState(final ProcessContext context) {
