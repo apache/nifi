@@ -19,9 +19,9 @@ package org.apache.nifi.components;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceDefinition;
 import org.apache.nifi.components.resource.ResourceReference;
-import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.components.resource.StandardResourceDefinition;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 
@@ -38,7 +38,6 @@ import java.util.Set;
 /**
  * An immutable object for holding information about a type of component
  * property.
- *
  */
 public final class PropertyDescriptor implements Comparable<PropertyDescriptor> {
 
@@ -123,15 +122,15 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         this.name = builder.name;
         this.description = builder.description;
         this.defaultValue = builder.defaultValue;
-        this.allowableValues = builder.allowableValues == null ? null : Collections.unmodifiableList(new ArrayList<>(builder.allowableValues));
+        this.allowableValues = builder.allowableValues == null ? null : List.copyOf(builder.allowableValues);
         this.required = builder.required;
         this.sensitive = builder.sensitive;
         this.dynamic = builder.dynamic;
         this.dynamicallyModifiesClasspath = builder.dynamicallyModifiesClasspath;
         this.expressionLanguageScope = builder.expressionLanguageScope;
         this.controllerServiceDefinition = builder.controllerServiceDefinition;
-        this.validators = Collections.unmodifiableList(new ArrayList<>(builder.validators));
-        this.dependencies = builder.dependencies == null ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(builder.dependencies));
+        this.validators = List.copyOf(builder.validators);
+        this.dependencies = builder.dependencies == null ? Collections.emptySet() : Set.copyOf(builder.dependencies);
         this.resourceDefinition = builder.resourceDefinition;
     }
 
@@ -148,7 +147,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
      * If this descriptor has a set of allowable values then the given value is
      * only checked against the allowable values.
      *
-     * @param input the value to validate
+     * @param input   the value to validate
      * @param context the context of validation
      * @return the result of validating the input
      */
@@ -188,15 +187,15 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             final ControllerService service = context.getControllerServiceLookup().getControllerService(input);
             if (service == null) {
                 return new ValidationResult.Builder()
-                    .input(input)
-                    .subject(getDisplayName())
-                    .valid(false)
-                    .explanation("Property references a Controller Service that does not exist")
-                    .build();
+                        .input(input)
+                        .subject(getDisplayName())
+                        .valid(false)
+                        .explanation("Property references a Controller Service that does not exist")
+                        .build();
             } else {
                 return new ValidationResult.Builder()
-                    .valid(true)
-                    .build();
+                        .valid(true)
+                        .build();
             }
         }
 
@@ -293,15 +292,13 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         }
 
         /**
-         * Specifies the initial value and the default value that will be used
-         * if the user does not specify a value. When {@link #build()} is
-         * called, if Allowable Values have been set (see
-         * {@link #allowableValues(AllowableValue...)}) and this value is not
-         * one of those Allowable Values, an Exception will be thrown. If the
-         * Allowable Values have been set using the
-         * {@link #allowableValues(AllowableValue...)} method, the default value
-         * should be set to the "Value" of the {@link AllowableValue} object
-         * (see {@link AllowableValue#getValue()}).
+         * Specifies the initial value and the default value that will be used if the user does not specify a value.
+         * <p>
+         * When {@link #build()} is called, if Allowable Values have been set (see {@link #allowableValues(DescribedValue...)} and overloads)
+         * and this value is not one of those Allowable Values, an Exception will be thrown.
+         * If the Allowable Values have been set, the default value should be set to
+         * the "Value" of the {@link DescribedValue} object (see {@link DescribedValue#getValue()}).
+         * There's an overload available for this (see {@link #defaultValue(DescribedValue)}).
          *
          * @param value default value
          * @return the builder
@@ -314,21 +311,28 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         }
 
         /**
-         * Specifies the initial value and the default value that will be used
-         * if the user does not specify a value. When {@link #build()} is
-         * called, if Allowable Values have been set (see
-         * {@link #allowableValues(AllowableValue...)})
-         * and the "Value" of the {@link DescribedValue} object is not
-         * the "Value" of one of those Allowable Values, an Exception will be thrown.
-         * If the Allowable Values have been set using the
-         * {@link #allowableValues(AllowableValue...)} method, the default value
-         * should be set providing the {@link AllowableValue} to this method.
+         * Specifies the initial value and the default value that will be used if the user does not specify a value.
+         * <p>
+         * Sets the default value to the "Value" of the {@link DescribedValue} object.
+         * When {@link #build()} is called, if Allowable Values have been set (see {@link #allowableValues(DescribedValue...)} and overloads)
+         * and this value is not one of those Allowable Values, an Exception will be thrown.
+         * In case there is not a restricted set of Allowable Values {@link #defaultValue(String)} may be used.
          *
          * @param value default value holder
          * @return the builder
          */
         public Builder defaultValue(final DescribedValue value) {
             return defaultValue(value != null ? value.getValue() : null);
+        }
+
+        /**
+         * Clears the initial value and default value from this Property.
+         *
+         * @return the builder
+         */
+        public Builder clearDefaultValue() {
+            this.defaultValue = null;
+            return this;
         }
 
         public Builder dynamic(final boolean dynamic) {
@@ -342,17 +346,17 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
          * libraries for the given component.
          * <p/>
          * NOTE: If a component contains a PropertyDescriptor where dynamicallyModifiesClasspath is set to true,
-         *  the component may also be annotated with @RequiresInstanceClassloading, in which case every class will
-         *  be loaded by a separate InstanceClassLoader for each processor instance.<br/>
-         *  It also allows to load native libraries from the extra classpath.
-         *  <p/>
-         *  One can chose to omit the annotation. In this case the loading of native libraries from the extra classpath
-         *  is not supported.
-         *  Also by default, classes will be loaded by a common NarClassLoader, however it's possible to acquire an
-         *  InstanceClassLoader by calling Thread.currentThread().getContextClassLoader() which can be used manually
-         *  to load required classes on an instance-by-instance basis
-         *  (by calling {@link Class#forName(String, boolean, ClassLoader)} for example).
-         *
+         * the component may also be annotated with @RequiresInstanceClassloading, in which case every class will
+         * be loaded by a separate InstanceClassLoader for each processor instance.<br/>
+         * It also allows to load native libraries from the extra classpath.
+         * <p/>
+         * One can choose to omit the annotation. In this case the loading of native libraries from the extra classpath
+         * is not supported.
+         * Also by default, classes will be loaded by a common NarClassLoader, however it's possible to acquire an
+         * InstanceClassLoader by calling Thread.currentThread().getContextClassLoader() which can be used manually
+         * to load required classes on an instance-by-instance basis
+         * (by calling {@link Class#forName(String, boolean, ClassLoader)} for example).
+         * <p>
          * Any property descriptor that dynamically modifies the classpath should also make use of the {@link #identifiesExternalResource(ResourceCardinality, ResourceType, ResourceType...)} method
          * to indicate that the property descriptor references external resources and optionally restrict which types of resources and how many resources the property allows.
          *
@@ -365,68 +369,99 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         }
 
         /**
-         * @param values contrained set of values
+         * Sets the Allowable Values for this Property.
+         *
+         * @param values constrained set of values
          * @return the builder
          */
         public Builder allowableValues(final Set<String> values) {
             if (null != values) {
-                this.allowableValues = new ArrayList<>();
-
-                for (final String value : values) {
-                    this.allowableValues.add(new AllowableValue(value, value));
-                }
+                this.allowableValues = values.stream().map(AllowableValue::new).toList();
             }
             return this;
         }
 
+        /**
+         * Sets the Allowable Values for this Property.
+         * <p>
+         * Uses the {@link Enum#name()} of each value as "Value" for the {@link AllowableValue}.
+         * In case the enum value is a {@link DescribedValue}, uses the information provided instead
+         * (see {@link DescribedValue#getValue()}, {@link DescribedValue#getDisplayName()}, {@link DescribedValue#getDescription()}).
+         *
+         * @param values constrained set of values
+         * @return the builder
+         */
         public <E extends Enum<E>> Builder allowableValues(final E[] values) {
             if (null != values) {
-                this.allowableValues = new ArrayList<>();
-                for (final E value : values) {
-                    allowableValues.add(new AllowableValue(value.name(), value.name()));
-                }
+                this.allowableValues = Arrays.stream(values)
+                        .map(enumValue -> enumValue instanceof DescribedValue describedValue
+                                ? AllowableValue.fromDescribedValue(describedValue) : new AllowableValue(enumValue.name()))
+                        .toList();
             }
             return this;
         }
 
         /**
-         * Stores allowable values from an enum class.
-         * @param enumClass an enum class that implements the DescribedValue interface and contains a set of values
-         * @param <E> generic parameter for an enum class that implements the DescribedValue interface
+         * Sets the Allowable Values for this Property.
+         * <p>
+         * Uses the {@link Enum#name()} of each value from {@link Class#getEnumConstants()} as "Value" for the {@link AllowableValue}.
+         * In case the enum value is a {@link DescribedValue}, uses the information provided instead
+         * (see {@link DescribedValue#getValue()}, {@link DescribedValue#getDisplayName()}, {@link DescribedValue#getDescription()}).
+         *
+         * @param enumClass an enum class that contains a set of values and optionally implements the DescribedValue interface
+         * @param <E>       generic parameter for an enum class, that may implement the DescribedValue interface
          * @return the builder
          */
-        public <E extends Enum<E> & DescribedValue> Builder allowableValues(final Class<E> enumClass) {
-            this.allowableValues = new ArrayList<>();
-            for (E enumValue : enumClass.getEnumConstants()) {
-                this.allowableValues.add(new AllowableValue(enumValue.getValue(), enumValue.getDisplayName(), enumValue.getDescription()));
-            }
-            return this;
+        public <E extends Enum<E>> Builder allowableValues(final Class<E> enumClass) {
+            return allowableValues(enumClass.getEnumConstants());
         }
 
         /**
-         * Stores allowable values from a set of enum values.
-         * @param enumValues a set of enum values that implements the DescribedValue interface
-         * @param <E> generic parameter for the enum values' class that implements the DescribedValue interface
+         * Sets the Allowable Values for this Property.
+         * <p>
+         * Uses the {@link Enum#name()} of each value of the {@link EnumSet} as "Value" for the {@link AllowableValue}.
+         * In case the enum value is a {@link DescribedValue}, uses the information provided instead
+         * (see {@link DescribedValue#getValue()}, {@link DescribedValue#getDisplayName()}, {@link DescribedValue#getDescription()}).
+         *
+         * @param enumValues an enum set that contains a set of values and optionally implements the DescribedValue interface
+         * @param <E>        generic parameter for an enum class, that may implement the DescribedValue interface
          * @return the builder
          */
-        public <E extends Enum<E> & DescribedValue> Builder allowableValues(final EnumSet<E> enumValues) {
-            this.allowableValues = new ArrayList<>();
-            for (E enumValue : enumValues) {
-                this.allowableValues.add(new AllowableValue(enumValue.getValue(), enumValue.getDisplayName(), enumValue.getDescription()));
+        public <E extends Enum<E>> Builder allowableValues(final EnumSet<E> enumValues) {
+            if (null != enumValues) {
+                this.allowableValues = enumValues.stream()
+                        .map(enumValue -> enumValue instanceof DescribedValue describedValue
+                                ? AllowableValue.fromDescribedValue(describedValue) : new AllowableValue(enumValue.name()))
+                        .toList();
             }
             return this;
         }
 
         /**
+         * Sets the Allowable Values for this Property.
+         *
          * @param values constrained set of values
          * @return the builder
          */
         public Builder allowableValues(final String... values) {
             if (null != values) {
-                this.allowableValues = new ArrayList<>();
-                for (final String value : values) {
-                    allowableValues.add(new AllowableValue(value, value));
-                }
+                this.allowableValues = Arrays.stream(values).map(AllowableValue::new).toList();
+            }
+            return this;
+        }
+
+        /**
+         * Sets the Allowable Values for this Property.
+         * <p>
+         * Uses the information provided by each {@link DescribedValue} (see {@link DescribedValue#getValue()}, {@link DescribedValue#getDisplayName()},
+         * {@link DescribedValue#getDescription()}) to populate the {@link AllowableValue}s.
+         *
+         * @param values constrained set of values
+         * @return the builder
+         */
+        public Builder allowableValues(final DescribedValue... values) {
+            if (null != values) {
+                this.allowableValues = Arrays.stream(values).map(AllowableValue::fromDescribedValue).toList();
             }
             return this;
         }
@@ -438,19 +473,6 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
          */
         public Builder clearAllowableValues() {
             this.allowableValues = null;
-            return this;
-        }
-
-        /**
-         * Sets the Allowable Values for this Property
-         *
-         * @param values contrained set of values
-         * @return the builder
-         */
-        public Builder allowableValues(final AllowableValue... values) {
-            if (null != values) {
-                this.allowableValues = Arrays.asList(values);
-            }
             return this;
         }
 
@@ -498,7 +520,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
          * Service that implements the given interface
          *
          * @param controllerServiceDefinition the interface that is implemented
-         * by the Controller Service
+         *                                    by the Controller Service
          * @return the builder
          */
         public Builder identifiesControllerService(final Class<? extends ControllerService> controllerServiceDefinition) {
@@ -533,12 +555,12 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
          *     </li>
          *     <li>If the ResourceCardinality is MULTIPLE, the given property value may consist of one or more resources, each separted by a comma and optional white space.</li>
          * </ul>
-         *
+         * <p>
          * Generally, any property descriptor that makes use of the {@link #dynamicallyModifiesClasspath(boolean)} method to dynamically update its classpath should also
          * make use of this method, specifying which types of resources are allowed and how many.
          *
-         * @param cardinality specifies how many resources the property should allow
-         * @param resourceType the type of resource that is allowed
+         * @param cardinality             specifies how many resources the property should allow
+         * @param resourceType            the type of resource that is allowed
          * @param additionalResourceTypes if more than one type of resource is allowed, any resource type in addition to the given resource type may be provided
          * @return the builder
          */
@@ -558,15 +580,15 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
          * Establishes a relationship between this Property and the given property by declaring that this Property is only relevant if the given Property has a non-null value.
          * Furthermore, if one or more explicit Allowable Values are provided, this Property will not be relevant unless the given Property's value is equal to one of the given Allowable Values.
          * If this method is called multiple times, each with a different dependency, then a relationship is established such that this Property is relevant only if all dependencies are satisfied.
-         *
+         * <p>
          * In the case that this property is NOT considered to be relevant (meaning that it depends on a property whose value is not specified, or whose value does not match one of the given
          * Allowable Values), the property will not be shown in the component's configuration in the User Interface. Additionally, this property's value will not be considered for
          * validation. That is, if this property is configured with an invalid value and this property depends on Property Foo, and Property Foo does not have a value set, then the component
          * will still be valid, because the value of this property is irrelevant.
-         *
+         * <p>
          * If the given property is not relevant (because its dependencies are not satisfied), this property is also considered not to be valid.
          *
-         * @param property the property that must be set in order for this property to become relevant
+         * @param property        the property that must be set in order for this property to become relevant
          * @param dependentValues the possible values for the given property for which this Property is relevant
          * @return the builder
          */
@@ -593,16 +615,16 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
          * Establishes a relationship between this Property and the given property by declaring that this Property is only relevant if the given Property has a value equal to one of the given
          * <code>String</code> arguments.
          * If this method is called multiple times, each with a different dependency, then a relationship is established such that this Property is relevant only if all dependencies are satisfied.
-         *
+         * <p>
          * In the case that this property is NOT considered to be relevant (meaning that it depends on a property whose value is not specified, or whose value does not match one of the given
          * Allowable Values), the property will not be shown in the component's configuration in the User Interface. Additionally, this property's value will not be considered for
          * validation. That is, if this property is configured with an invalid value and this property depends on Property Foo, and Property Foo does not have a value set, then the component
          * will still be valid, because the value of this property is irrelevant.
-         *
+         * <p>
          * If the given property is not relevant (because its dependencies are not satisfied), this property is also considered not to be valid.
          *
-         * @param property the property that must be set in order for this property to become relevant
-         * @param firstDependentValue the first value for the given property for which this Property is relevant
+         * @param property                  the property that must be set in order for this property to become relevant
+         * @param firstDependentValue       the first value for the given property for which this Property is relevant
          * @param additionalDependentValues any other values for the given property for which this Property is relevant
          * @return the builder
          */
@@ -621,25 +643,25 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
          * Establishes a relationship between this Property and the given property by declaring that this Property is only relevant if the given Property has a value equal to one of the given
          * {@link DescribedValue} arguments.
          * If this method is called multiple times, each with a different dependency, then a relationship is established such that this Property is relevant only if all dependencies are satisfied.
-         *
+         * <p>
          * In the case that this property is NOT considered to be relevant (meaning that it depends on a property whose value is not specified, or whose value does not match one of the given
          * Described Values), the property will not be shown in the component's configuration in the User Interface. Additionally, this property's value will not be considered for
          * validation. That is, if this property is configured with an invalid value and this property depends on Property Foo, and Property Foo does not have a value set, then the component
          * will still be valid, because the value of this property is irrelevant.
-         *
+         * <p>
          * If the given property is not relevant (because its dependencies are not satisfied), this property is also considered not to be valid.
          *
-         * @param property the property that must be set in order for this property to become relevant
-         * @param firstDependentValue the first value for the given property for which this Property is relevant
+         * @param property                  the property that must be set in order for this property to become relevant
+         * @param firstDependentValue       the first value for the given property for which this Property is relevant
          * @param additionalDependentValues any other values for the given property for which this Property is relevant
          * @return the builder
          */
         public Builder dependsOn(final PropertyDescriptor property, final DescribedValue firstDependentValue, final DescribedValue... additionalDependentValues) {
             final AllowableValue[] dependentValues = new AllowableValue[additionalDependentValues.length + 1];
-            dependentValues[0] = toAllowableValue(firstDependentValue);
+            dependentValues[0] = AllowableValue.fromDescribedValue(firstDependentValue);
             int i = 1;
             for (final DescribedValue additionalDependentValue : additionalDependentValues) {
-                dependentValues[i++] = toAllowableValue(additionalDependentValue);
+                dependentValues[i++] = AllowableValue.fromDescribedValue(additionalDependentValue);
             }
 
             return dependsOn(property, dependentValues);
@@ -655,16 +677,11 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             return this;
         }
 
-        private AllowableValue toAllowableValue(DescribedValue describedValue) {
-            return new AllowableValue(describedValue.getValue(), describedValue.getDisplayName(), describedValue.getDescription());
-        }
-
         /**
          * @return a PropertyDescriptor as configured
-         *
          * @throws IllegalStateException if allowable values are configured but
-         * no default value is set, or the default value is not contained within
-         * the allowable values.
+         *                               no default value is set, or the default value is not contained within
+         *                               the allowable values.
          */
         public PropertyDescriptor build() {
             if (name == null) {
@@ -740,18 +757,14 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
 
     @Override
     public boolean equals(final Object other) {
-        if (other == null) {
-            return false;
-        }
-        if (!(other instanceof PropertyDescriptor)) {
-            return false;
-        }
         if (this == other) {
             return true;
         }
+        if (other instanceof PropertyDescriptor otherPropertyDescriptor) {
+            return this.name.equals(otherPropertyDescriptor.name);
+        }
 
-        final PropertyDescriptor desc = (PropertyDescriptor) other;
-        return this.name.equals(desc.name);
+        return false;
     }
 
     @Override
@@ -768,7 +781,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
 
         private static final String POSITIVE_EXPLANATION = "Given value found in allowed set";
         private static final String NEGATIVE_EXPLANATION = "Given value not found in allowed set '%1$s'";
-        private static final String VALUE_DEMARCATOR = ", ";
+        private static final String VALUE_DELIMITER = ", ";
         private final String validStrings;
         private final Collection<String> validValues;
 
@@ -780,20 +793,8 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
          * @throws NullPointerException if the given validValues is null
          */
         private ConstrainedSetValidator(final Collection<AllowableValue> validValues) {
-            String validVals = "";
-            if (!validValues.isEmpty()) {
-                final StringBuilder valuesBuilder = new StringBuilder();
-                for (final AllowableValue value : validValues) {
-                    valuesBuilder.append(value).append(VALUE_DEMARCATOR);
-                }
-                validVals = valuesBuilder.substring(0, valuesBuilder.length() - VALUE_DEMARCATOR.length());
-            }
-            validStrings = validVals;
-
-            this.validValues = new ArrayList<>(validValues.size());
-            for (final AllowableValue value : validValues) {
-                this.validValues.add(value.getValue());
-            }
+            this.validValues = validValues.stream().map(AllowableValue::getValue).toList();
+            this.validStrings = String.join(VALUE_DELIMITER, this.validValues);
         }
 
         @Override
@@ -824,13 +825,13 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         @Override
         public ValidationResult validate(final String subject, final String configuredInput, final ValidationContext context) {
             final ValidationResult.Builder resultBuilder = new ValidationResult.Builder()
-                .input(configuredInput)
-                .subject(subject);
+                    .input(configuredInput)
+                    .subject(subject);
 
             if (configuredInput == null) {
                 return resultBuilder.valid(false)
-                    .explanation("No value specified")
-                    .build();
+                        .explanation("No value specified")
+                        .build();
             }
 
             // If Expression Language is supported and is used in the property value, we cannot perform validation against the configured
@@ -843,8 +844,8 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
                     resultBuilder.input(input);
                 } else {
                     return resultBuilder.valid(true)
-                        .explanation("Expression Language is present, so validation of property value cannot be performed")
-                        .build();
+                            .explanation("Expression Language is present, so validation of property value cannot be performed")
+                            .build();
                 }
             }
 
@@ -854,15 +855,15 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             final boolean allowsText = resourceDefinition.getResourceTypes().contains(ResourceType.TEXT);
             if (allowsText) {
                 return resultBuilder.valid(true)
-                    .explanation("Property allows for Resource Type of Text, so validation of property value cannot be performed")
-                    .build();
+                        .explanation("Property allows for Resource Type of Text, so validation of property value cannot be performed")
+                        .build();
             }
 
             final String[] splits = input.split(",");
             if (resourceDefinition.getCardinality() == ResourceCardinality.SINGLE && splits.length > 1) {
                 return resultBuilder.valid(false)
-                    .explanation("Property only supports a single Resource but " + splits.length + " resources were specified")
-                    .build();
+                        .explanation("Property only supports a single Resource but " + splits.length + " resources were specified")
+                        .build();
             }
 
             final Set<ResourceType> resourceTypes = resourceDefinition.getResourceTypes();
@@ -885,25 +886,25 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
 
                 if (!resourceTypes.contains(resourceReference.getResourceType())) {
                     return resultBuilder.valid(false)
-                        .explanation("Specified Resource is a " + resourceReference.getResourceType().name() + " but this property does not allow this type of resource")
-                        .build();
+                            .explanation("Specified Resource is a " + resourceReference.getResourceType().name() + " but this property does not allow this type of resource")
+                            .build();
                 }
             }
 
             if (count == 0) {
                 return resultBuilder.valid(false)
-                    .explanation("No resources were specified")
-                    .build();
+                        .explanation("No resources were specified")
+                        .build();
             }
 
             if (!nonExistentResources.isEmpty()) {
                 return resultBuilder.valid(false)
-                    .explanation("The specified resource(s) do not exist or could not be accessed: " + nonExistentResources)
-                    .build();
+                        .explanation("The specified resource(s) do not exist or could not be accessed: " + nonExistentResources)
+                        .build();
             }
 
             return resultBuilder.valid(true)
-                .build();
+                    .build();
         }
     }
 }

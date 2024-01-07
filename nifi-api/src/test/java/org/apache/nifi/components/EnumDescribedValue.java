@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.components;
 
-public enum EnumAllowableValue implements DescribedValue {
+public enum EnumDescribedValue implements DescribedValue {
 
     GREEN {
         @Override
