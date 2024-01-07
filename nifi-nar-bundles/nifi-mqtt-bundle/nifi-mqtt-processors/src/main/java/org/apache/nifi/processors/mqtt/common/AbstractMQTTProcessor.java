@@ -48,7 +48,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.EnumUtils.isValidEnumIgnoreCase;
-import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_CLEAN_SESSION_FALSE;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_CLEAN_SESSION_TRUE;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_MQTT_VERSION_310;
@@ -264,10 +263,6 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             boolean sameSchemeValidationErrorAdded = false;
             boolean sslValidationErrorAdded = false;
             for(URI brokerUri : brokerUris) {
-                if (!EMPTY.equals(brokerUri.getPath())) {
-                    results.add(new ValidationResult.Builder().subject(PROP_BROKER_URI.getName()).valid(false)
-                            .explanation("the broker URI cannot have a path. It currently is: " + brokerUri.getPath()).build());
-                }
                 final String scheme = brokerUri.getScheme();
                 if (!isValidEnumIgnoreCase(MqttProtocolScheme.class, scheme)) {
                     results.add(new ValidationResult.Builder().subject(PROP_BROKER_URI.getName()).valid(false)

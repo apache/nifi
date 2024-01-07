@@ -68,7 +68,9 @@ public class TestConsumeMQTT {
     private static final int PUBLISH_WAIT_MS = 0;
     private static final String THIS_IS_NOT_JSON = "ThisIsNotAJSON";
     private static final String BROKER_URI = "tcp://localhost:1883";
-    private static final String SSL_BROKER_URI = "ssl://localhost:1883";
+    private static final String SSL_BROKER_URI = "ssl://localhost:8883";
+    private static final String WS_BROKER_URI = "ws://localhost:15675/ws";
+    private static final String WSS_BROKER_URI = "wss://localhost:15676/ws";
     private static final String CLUSTERED_BROKER_URI = "tcp://localhost:1883,tcp://localhost:1884";
     private static final String SSL_CLUSTERED_BROKER_URI = "ssl://localhost:1883,ssl://localhost:1884";
     private static final String INVALID_BROKER_URI = "http://localhost:1883";
@@ -135,6 +137,9 @@ public class TestConsumeMQTT {
 
         testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, CLUSTERED_BROKER_URI);
         testRunner.assertValid();
+
+        testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, WS_BROKER_URI);
+        testRunner.assertValid();
     }
 
     @Test
@@ -153,6 +158,9 @@ public class TestConsumeMQTT {
         testRunner.assertValid();
 
         testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, SSL_BROKER_URI);
+        testRunner.assertValid();
+
+        testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, WSS_BROKER_URI);
         testRunner.assertValid();
     }
 
