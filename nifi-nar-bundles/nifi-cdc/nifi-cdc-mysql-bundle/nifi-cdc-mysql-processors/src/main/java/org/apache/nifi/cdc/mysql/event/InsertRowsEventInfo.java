@@ -26,15 +26,11 @@ import java.io.Serializable;
  */
 public class InsertRowsEventInfo extends BaseBinlogRowEventInfo<Serializable[]> {
 
-    private WriteRowsEventData data;
-
     public InsertRowsEventInfo(TableInfo tableInfo, Long timestamp, String binlogFilename, Long binlogPosition, WriteRowsEventData data) {
         super(tableInfo, INSERT_EVENT, timestamp, binlogFilename, binlogPosition, data.getIncludedColumns(), data.getRows());
-        this.data = data;
     }
 
     public InsertRowsEventInfo(TableInfo tableInfo, Long timestamp, String binlogGtidSet, WriteRowsEventData data) {
         super(tableInfo, INSERT_EVENT, timestamp, binlogGtidSet, data.getIncludedColumns(), data.getRows());
-        this.data = data;
     }
 }

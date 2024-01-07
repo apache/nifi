@@ -795,7 +795,7 @@ public class CaptureChangeMySQLTest {
         testRunner.setProperty(CaptureChangeMySQL.DATABASE_NAME_PATTERN, MY_DB);
         testRunner.setProperty(CaptureChangeMySQL.TABLE_NAME_PATTERN, USER_TABLE);
         testRunner.setProperty(CaptureChangeMySQL.INCLUDE_BEGIN_COMMIT, Boolean.TRUE.toString());
-        testRunner.setProperty(CaptureChangeMySQL.EVENTS_PER_FLOWFILE_STRATEGY, FlowFileEventWriteStrategy.ONE_TRANSACTION_PER_FLOWFILE.name());
+        testRunner.setProperty(CaptureChangeMySQL.EVENTS_PER_FLOWFILE_STRATEGY, FlowFileEventWriteStrategy.ONE_TRANSACTION_PER_FLOWFILE);
 
         testRunner.run(1, false, true);
 

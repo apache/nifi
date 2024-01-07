@@ -20,11 +20,9 @@ import com.github.shyiko.mysql.binlog.network.SSLMode;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsPlatform;
 
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * Standard implementation of Connection Properties Provider
@@ -72,7 +70,7 @@ public class StandardConnectionPropertiesProvider implements ConnectionPropertie
 
             if (tlsConfiguration == null) {
                 // Set preferred protocols based on Java platform configuration
-                final String protocols = TlsPlatform.getPreferredProtocols().stream().collect(Collectors.joining(COMMA_SEPARATOR));
+                final String protocols = String.join(COMMA_SEPARATOR, TlsPlatform.getPreferredProtocols());
                 properties.put(SecurityProperty.ENABLED_TLS_PROTOCOLS.getProperty(), protocols);
             } else {
                 final Map<String, String> certificateProperties = getCertificateProperties();
@@ -86,7 +84,7 @@ public class StandardConnectionPropertiesProvider implements ConnectionPropertie
     private Map<String, String> getCertificateProperties() {
         final Map<String, String> properties = new LinkedHashMap<>();
 
-        final String protocols = Arrays.stream(tlsConfiguration.getEnabledProtocols()).collect(Collectors.joining(COMMA_SEPARATOR));
+        final String protocols = String.join(COMMA_SEPARATOR, tlsConfiguration.getEnabledProtocols());
         properties.put(SecurityProperty.ENABLED_TLS_PROTOCOLS.getProperty(), protocols);
 
         if (tlsConfiguration.isKeystorePopulated()) {
