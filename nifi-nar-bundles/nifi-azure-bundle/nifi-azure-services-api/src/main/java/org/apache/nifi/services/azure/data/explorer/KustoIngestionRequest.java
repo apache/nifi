@@ -21,27 +21,27 @@ import java.time.Duration;
 
 public class KustoIngestionRequest {
 
-    private boolean streamingEnabled;
-    private boolean pollOnIngestionStatus;
-    private InputStream inputStream;
-    private String dataFormat;
-    private String mappingName;
-    private String databaseName;
-    private String tableName;
-    private String ignoreFirstRecord;
-    private Duration ingestionStatusPollingTimeout;
-    private Duration ingestionStatusPollingInterval;
+    private final boolean streamingEnabled;
+    private final boolean pollOnIngestionStatus;
+    private final InputStream inputStream;
+    private final String dataFormat;
+    private final String mappingName;
+    private final String databaseName;
+    private final String tableName;
+    private final boolean ignoreFirstRecord;
+    private final Duration ingestionStatusPollingTimeout;
+    private final Duration ingestionStatusPollingInterval;
 
-    public KustoIngestionRequest(boolean isStreamingEnabled,
-                                 boolean pollOnIngestionStatus,
-                                 InputStream inputStream,
-                                 String databaseName,
-                                 String tableName,
-                                 String dataFormat,
-                                 String mappingName,
-                                 String ignoreFirstRecord,
-                                 Duration ingestionStatusPollingTimeout,
-                                 Duration ingestionStatusPollingInterval) {
+    public KustoIngestionRequest(final boolean isStreamingEnabled,
+                                 final boolean pollOnIngestionStatus,
+                                 final InputStream inputStream,
+                                 final String databaseName,
+                                 final String tableName,
+                                 final String dataFormat,
+                                 final String mappingName,
+                                 final boolean ignoreFirstRecord,
+                                 final Duration ingestionStatusPollingTimeout,
+                                 final Duration ingestionStatusPollingInterval) {
         this.streamingEnabled = isStreamingEnabled;
         this.inputStream = inputStream;
         this.pollOnIngestionStatus = pollOnIngestionStatus;
@@ -74,7 +74,7 @@ public class KustoIngestionRequest {
         return tableName;
     }
 
-    public String getIgnoreFirstRecord() {
+    public boolean isIgnoreFirstRecord() {
         return ignoreFirstRecord;
     }
 

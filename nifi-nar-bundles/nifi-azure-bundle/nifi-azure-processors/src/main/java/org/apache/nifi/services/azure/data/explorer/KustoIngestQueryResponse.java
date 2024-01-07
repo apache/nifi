@@ -16,18 +16,15 @@
  */
 package org.apache.nifi.services.azure.data.explorer;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 public class KustoIngestQueryResponse {
 
-    private boolean streamingPolicyEnabled;
-
-    private boolean ingestorRoleEnabled;
-
     private boolean error;
 
-    private String errorMessage;
+    private Map<Integer, List<String>> queryResult;
 
     public boolean isError() {
         return error;
@@ -37,39 +34,16 @@ public class KustoIngestQueryResponse {
         this.error = error;
     }
 
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
     public Map<Integer, List<String>> getQueryResult() {
         return queryResult;
     }
 
-    private Map<Integer, List<String>> queryResult;
-
     public KustoIngestQueryResponse(final Map<Integer,List<String>> queryResult) {
         this.error = false;
-        this.queryResult = queryResult;
+        this.queryResult = Collections.unmodifiableMap(queryResult);
     }
 
-    public KustoIngestQueryResponse(final boolean error, final String errorMessage) {
+    public KustoIngestQueryResponse(final boolean error) {
         this.error = error;
-        this.errorMessage = errorMessage;
-    }
-
-    public boolean isStreamingPolicyEnabled() {
-        return streamingPolicyEnabled;
-    }
-
-    public void setStreamingPolicyEnabled(boolean streamingPolicyEnabled) {
-        this.streamingPolicyEnabled = streamingPolicyEnabled;
-    }
-
-    public boolean isIngestorRoleEnabled() {
-        return ingestorRoleEnabled;
-    }
-
-    public void setIngestorRoleEnabled(boolean ingestorRoleEnabled) {
-        this.ingestorRoleEnabled = ingestorRoleEnabled;
     }
 }

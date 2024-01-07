@@ -17,10 +17,17 @@
 package org.apache.nifi.services.azure.data.explorer;
 
 public enum KustoIngestionResult {
-    SUCCEEDED("Succeeded"),PARTIALLY_SUCCEEDED("PartiallySucceeded"),FAILED("Failed"),DEFAULT("Default");
-    private String status;
+    SUCCEEDED("Succeeded"),
 
-    KustoIngestionResult(String status) {
+    PARTIALLY_SUCCEEDED("PartiallySucceeded"),
+
+    FAILED("Failed"),
+
+    DEFAULT("Default");
+
+    private final String status;
+
+    KustoIngestionResult(final String status) {
         this.status = status;
     }
 
@@ -36,5 +43,4 @@ public enum KustoIngestionResult {
     public String getStatus() {
         return status;
     }
-
 }

@@ -16,18 +16,34 @@
  */
 package org.apache.nifi.services.azure.data.explorer;
 
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ControllerService;
 
-@Tags({"azure", "adx", "explorer", "kusto", "ingest"})
-@CapabilityDescription("Connection-Service for Azure ADX (Kusto) ingestion cluster to ingest data.")
+/**
+ * Kusto Ingest Service interface for Azure Data Explorer
+ */
 public interface KustoIngestService extends ControllerService {
+    /**
+     * Ingest data stream and return result status
+     *
+     * @param kustoIngestionRequest Kusto Ingestion Request with input stream
+     * @return Ingestion Result with status
+     */
     KustoIngestionResult ingestData(KustoIngestionRequest kustoIngestionRequest);
 
-    KustoIngestQueryResponse executeQuery(String databaseName, String query);
+    /**
+     * Is Streaming Policy Enabled for specified database
+     *
+     * @param databaseName Database Name to be checked
+     * @return Streaming Policy Enabled status
+     */
+    boolean isStreamingPolicyEnabled(String databaseName);
 
-    KustoIngestQueryResponse isStreamingEnabled(String databaseName, String query);
-
-    KustoIngestQueryResponse isIngestorPrivilegeEnabled(String databaseName, String query);
+    /**
+     * Is Database Table Readable for specified database and table name
+     *
+     * @param databaseName Database Name to be checked
+     * @param table Table Name to be checked
+     * @return Table Readable status
+     */
+    boolean isTableReadable(String databaseName, String table);
 }

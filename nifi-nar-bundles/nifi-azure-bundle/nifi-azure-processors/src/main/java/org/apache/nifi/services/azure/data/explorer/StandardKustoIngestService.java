@@ -55,13 +55,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
-@Tags({"Azure", "ADX", "Kusto", "ingest", "azure"})
+@Tags({"Azure", "Data", "Explorer", "ADX", "Kusto", "ingest", "azure"})
 @CapabilityDescription("Sends batches of flowfile content or stream flowfile content to an Azure ADX cluster.")
 public class StandardKustoIngestService extends AbstractControllerService implements KustoIngestService {
 
-    public static final PropertyDescriptor AUTHENTICATION_STRATEGY = new PropertyDescriptor
-            .Builder().name("Authentication Strategy")
+    public static final PropertyDescriptor AUTHENTICATION_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Authentication Strategy")
             .displayName("Authentication Strategy")
             .description("Authentication method for access to Azure Data Explorer")
             .required(true)
@@ -69,16 +70,16 @@ public class StandardKustoIngestService extends AbstractControllerService implem
             .allowableValues(KustoAuthenticationStrategy.class)
             .build();
 
-    public static final PropertyDescriptor APPLICATION_CLIENT_ID = new PropertyDescriptor
-            .Builder().name("Application Client ID")
+    public static final PropertyDescriptor APPLICATION_CLIENT_ID = new PropertyDescriptor.Builder()
+            .name("Application Client ID")
             .displayName("Application Client ID")
             .description("Azure Data Explorer Application Client Identifier for Authentication")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor APPLICATION_KEY = new PropertyDescriptor
-            .Builder().name("Application Key")
+    public static final PropertyDescriptor APPLICATION_KEY = new PropertyDescriptor.Builder()
+            .name("Application Key")
             .displayName("Application Key")
             .description("Azure Data Explorer Application Key for Authentication")
             .required(true)
@@ -96,22 +97,27 @@ public class StandardKustoIngestService extends AbstractControllerService implem
             .dependsOn(AUTHENTICATION_STRATEGY, KustoAuthenticationStrategy.APPLICATION_CREDENTIALS.getValue())
             .build();
 
-    public static final PropertyDescriptor CLUSTER_URI = new PropertyDescriptor
-            .Builder().name("Cluster URI")
+    public static final PropertyDescriptor CLUSTER_URI = new PropertyDescriptor.Builder()
+            .name("Cluster URI")
             .displayName("Cluster URI")
             .description("Azure Data Explorer Cluster URI")
             .required(true)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             AUTHENTICATION_STRATEGY,
             APPLICATION_CLIENT_ID,
             APPLICATION_KEY,
             APPLICATION_TENANT_ID,
-            CLUSTER_URI));
+            CLUSTER_URI
+    );
 
-    public static final Pair<String, String> NIFI_SINK = Pair.of("processor", StandardKustoIngestService.class.getSimpleName());
+    private static final String STREAMING_POLICY_SHOW_COMMAND = ".show database %s policy streamingingestion";
+
+    private static final String COUNT_TABLE_COMMAND = "%s | count";
+
+    private static final Pair<String, String> NIFI_SINK = Pair.of("processor", StandardKustoIngestService.class.getSimpleName());
 
     private volatile QueuedIngestClient queuedIngestClient;
 
@@ -124,9 +130,6 @@ public class StandardKustoIngestService extends AbstractControllerService implem
         return PROPERTY_DESCRIPTORS;
     }
 
-    /**
-     * @param context the configuration context
-     */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws ProcessException, URISyntaxException {
         final String applicationClientId = context.getProperty(APPLICATION_CLIENT_ID).getValue();
@@ -146,7 +149,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
             try {
                 this.queuedIngestClient.close();
             } catch (IOException e) {
-                getLogger().error("Closing Azure ADX Queued Ingest Client failed", e);
+                getLogger().error("Closing Azure Data Explorer Queued Ingest Client failed", e);
             } finally {
                 this.queuedIngestClient = null;
             }
@@ -155,7 +158,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
             try {
                 this.managedStreamingIngestClient.close();
             } catch (IOException e) {
-                getLogger().error("Closing Azure ADX Managed Streaming Ingest Client failed", e);
+                getLogger().error("Closing Azure Data Explorer Managed Streaming Ingest Client failed", e);
             } finally {
                 this.managedStreamingIngestClient = null;
             }
@@ -164,7 +167,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
             try {
                 this.executionClient.close();
             } catch (IOException e) {
-                getLogger().error("Closing Azure ADX Execution Client failed", e);
+                getLogger().error("Closing Azure Data Explorer Execution Client failed", e);
             } finally {
                 this.executionClient = null;
             }
@@ -191,10 +194,10 @@ public class StandardKustoIngestService extends AbstractControllerService implem
         return IngestClientFactory.createManagedStreamingIngestClient(ingestConnectionStringBuilder, streamingConnectionStringBuilder);
     }
 
-    public KustoIngestionResult ingestData(KustoIngestionRequest kustoIngestionRequest) {
-        StreamSourceInfo info = new StreamSourceInfo(kustoIngestionRequest.getInputStream());
-        //ingest data
-        IngestionResult ingestionResult;
+    @Override
+    public KustoIngestionResult ingestData(final KustoIngestionRequest kustoIngestionRequest) {
+        final StreamSourceInfo info = new StreamSourceInfo(kustoIngestionRequest.getInputStream());
+
         IngestionProperties ingestionProperties = new IngestionProperties(kustoIngestionRequest.getDatabaseName(),
                 kustoIngestionRequest.getTableName());
 
@@ -206,8 +209,9 @@ public class StandardKustoIngestService extends AbstractControllerService implem
         ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FAILURES_AND_SUCCESSES);
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
         ingestionProperties.setFlushImmediately(false);
-        ingestionProperties.setIgnoreFirstRecord(StringUtils.equalsIgnoreCase(kustoIngestionRequest.getIgnoreFirstRecord(), "YES"));
+        ingestionProperties.setIgnoreFirstRecord(kustoIngestionRequest.isIgnoreFirstRecord());
 
+        final IngestionResult ingestionResult;
         try {
             if (kustoIngestionRequest.isStreamingEnabled()) {
                 ingestionResult = managedStreamingIngestClient.ingestFromStream(info, ingestionProperties);
@@ -219,7 +223,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
                 long ingestionStatusPollingInterval = kustoIngestionRequest.getIngestionStatusPollingInterval().toMillis();
                 return pollOnIngestionStatus(ingestionResult, timeoutMillis, ingestionStatusPollingInterval);
             } else {
-                return KustoIngestionResult.fromString("Succeeded");
+                return KustoIngestionResult.SUCCEEDED;
             }
         } catch (IngestionClientException | IngestionServiceException | URISyntaxException e) {
             throw new ProcessException("Azure Data Explorer Ingest failed", e);
@@ -231,16 +235,17 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
     private KustoIngestionResult pollOnIngestionStatus(IngestionResult ingestionResult, long timeoutMillis, long ingestionStatusPollingInterval) throws URISyntaxException, InterruptedException {
         List<IngestionStatus> statuses = initializeKustoIngestionStatusAsPending();
-        long startTime = System.currentTimeMillis();
+        final long startTime = System.currentTimeMillis();
         // Calculate the end time based on the timeout duration
-        long endTime = startTime + timeoutMillis;
+        final long endTime = startTime + timeoutMillis;
         while (System.currentTimeMillis() < endTime) {
             // Get the status of the ingestion operation
-            List<IngestionStatus> statuses1 = ingestionResult.getIngestionStatusCollection();
-            if (statuses1.get(0).status == OperationStatus.Succeeded
-                    || statuses1.get(0).status == OperationStatus.Failed
-                    || statuses1.get(0).status == OperationStatus.PartiallySucceeded) {
-                statuses = statuses1;
+            final List<IngestionStatus> currentStatuses = ingestionResult.getIngestionStatusCollection();
+            final OperationStatus operationStatus = currentStatuses.getFirst().status;
+            if (operationStatus == OperationStatus.Succeeded
+                    || operationStatus == OperationStatus.Failed
+                    || operationStatus == OperationStatus.PartiallySucceeded) {
+                statuses = currentStatuses;
                 break;
             }
             // Sleep for before checking again
@@ -250,13 +255,46 @@ public class StandardKustoIngestService extends AbstractControllerService implem
         if (System.currentTimeMillis() - startTime >= timeoutMillis) {
             throw new ProcessException(String.format("Timeout of %s exceeded while waiting for ingestion status", ingestionStatusPollingInterval));
         }
-        return KustoIngestionResult.fromString(statuses.get(0).status.toString());
+        return KustoIngestionResult.fromString(statuses.getFirst().status.toString());
+    }
+
+    @Override
+    public boolean isStreamingPolicyEnabled(final String databaseName) {
+        final String query = String.format(STREAMING_POLICY_SHOW_COMMAND, databaseName);
+        final KustoIngestQueryResponse kustoIngestQueryResponse = executeQuery(databaseName, query);
+
+        boolean streamingPolicyEnabled = false;
+        if (!kustoIngestQueryResponse.getQueryResult().isEmpty()) {
+            final List<String> row = kustoIngestQueryResponse.getQueryResult().get(0);
+            if (!row.isEmpty()) {
+                final String streamingPolicy = row.get(2);
+                if (!streamingPolicy.isEmpty()) {
+                    streamingPolicyEnabled = true;
+                }
+            }
+        }
+        return streamingPolicyEnabled;
+    }
+
+    @Override
+    public boolean isTableReadable(final String databaseName, final String tableName) {
+        final String query = String.format(COUNT_TABLE_COMMAND, tableName);
+        final KustoIngestQueryResponse kustoIngestQueryResponse = executeQuery(databaseName, query);
+        return !kustoIngestQueryResponse.isError();
     }
 
     protected List<IngestionStatus> initializeKustoIngestionStatusAsPending(){
         IngestionStatus ingestionStatus = new IngestionStatus();
         ingestionStatus.status = OperationStatus.Pending;
         return Collections.singletonList(ingestionStatus);
+    }
+
+    protected Client createKustoExecutionClient(final String clusterUrl,
+                                                final String appId,
+                                                final String appKey,
+                                                final String appTenant,
+                                                final KustoAuthenticationStrategy kustoAuthStrategy) throws URISyntaxException {
+        return ClientFactory.createClient(createKustoEngineConnectionString(clusterUrl, appId, appKey, appTenant, kustoAuthStrategy));
     }
 
     private ConnectionStringBuilder createKustoEngineConnectionString(final String clusterUrl,
@@ -275,18 +313,10 @@ public class StandardKustoIngestService extends AbstractControllerService implem
         return builder;
     }
 
-    protected Client createKustoExecutionClient(final String clusterUrl,
-                                                final String appId,
-                                                final String appKey,
-                                                final String appTenant,
-                                                final KustoAuthenticationStrategy kustoAuthStrategy) throws URISyntaxException {
-        return ClientFactory.createClient(createKustoEngineConnectionString(clusterUrl, appId, appKey, appTenant, kustoAuthStrategy));
-    }
-
-    @Override
-    public KustoIngestQueryResponse executeQuery(String databaseName, String query) {
+    private KustoIngestQueryResponse executeQuery(final String databaseName, final String query) {
         Objects.requireNonNull(databaseName, "Database Name required");
         Objects.requireNonNull(query, "Query required");
+
         KustoIngestQueryResponse kustoIngestQueryResponse;
         try {
             KustoResultSetTable kustoResultSetTable = this.executionClient.execute(databaseName, query).getPrimaryResults();
@@ -304,96 +334,76 @@ public class StandardKustoIngestService extends AbstractControllerService implem
                 response.put(rowCount++, rowData);
             }
             kustoIngestQueryResponse = new KustoIngestQueryResponse(response);
-        } catch (DataServiceException | DataClientException e) {
+        } catch (final DataServiceException | DataClientException e) {
             getLogger().error("Azure Data Explorer Ingest execution failed", e);
-            kustoIngestQueryResponse = new KustoIngestQueryResponse(true, e.getMessage());
-        }
-        return kustoIngestQueryResponse;
-    }
-
-    @Override
-    public KustoIngestQueryResponse isStreamingEnabled(String databaseName, String query) {
-        KustoIngestQueryResponse kustoIngestQueryResponse = executeQuery(databaseName, query);
-        kustoIngestQueryResponse.setStreamingPolicyEnabled(false);
-        if (!kustoIngestQueryResponse.getQueryResult().isEmpty()) {
-            List<String> row = kustoIngestQueryResponse.getQueryResult().get(0);
-            if (!row.isEmpty()) {
-                String streamingPolicy = row.get(2);
-                if (!streamingPolicy.isEmpty()) {
-                    kustoIngestQueryResponse.setStreamingPolicyEnabled(true);
-                }
-            }
-        }
-        return kustoIngestQueryResponse;
-    }
-
-    @Override
-    public KustoIngestQueryResponse isIngestorPrivilegeEnabled(String databaseName, String query) {
-        KustoIngestQueryResponse kustoIngestQueryResponse = executeQuery(databaseName, query);
-        if (kustoIngestQueryResponse.isError()) {
-            kustoIngestQueryResponse.setIngestorRoleEnabled(false);
-        }else {
-            kustoIngestQueryResponse.setIngestorRoleEnabled(true);
+            kustoIngestQueryResponse = new KustoIngestQueryResponse(true);
         }
         return kustoIngestQueryResponse;
     }
 
     private IngestionMapping.IngestionMappingKind setDataFormatAndMapping(String dataFormat, IngestionProperties ingestionProperties) {
-        IngestionMapping.IngestionMappingKind ingestionMappingKind = null;
-        switch (IngestionProperties.DataFormat.valueOf(dataFormat)) {
-            case AVRO:
+        final IngestionProperties.DataFormat dataFormatFound = getDataFormat(dataFormat);
+        return switch (dataFormatFound) {
+            case AVRO -> {
                 ingestionProperties.setDataFormat(IngestionProperties.DataFormat.AVRO);
-                ingestionMappingKind = IngestionProperties.DataFormat.AVRO.getIngestionMappingKind();
-                break;
-            case APACHEAVRO:
+                yield IngestionProperties.DataFormat.AVRO.getIngestionMappingKind();
+            }
+            case APACHEAVRO -> {
                 ingestionProperties.setDataFormat(IngestionProperties.DataFormat.APACHEAVRO);
-                ingestionMappingKind = IngestionProperties.DataFormat.APACHEAVRO.getIngestionMappingKind();
-                break;
-            case CSV:
+                yield IngestionProperties.DataFormat.APACHEAVRO.getIngestionMappingKind();
+            }
+            case CSV -> {
                 ingestionProperties.setDataFormat(IngestionProperties.DataFormat.CSV);
-                ingestionMappingKind = IngestionProperties.DataFormat.CSV.getIngestionMappingKind();
-                break;
-            case JSON:
+                yield IngestionProperties.DataFormat.CSV.getIngestionMappingKind();
+            }
+            case JSON -> {
                 ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
-                ingestionMappingKind = IngestionProperties.DataFormat.JSON.getIngestionMappingKind();
-                break;
-            case MULTIJSON:
+                yield IngestionProperties.DataFormat.JSON.getIngestionMappingKind();
+            }
+            case MULTIJSON -> {
                 ingestionProperties.setDataFormat(IngestionProperties.DataFormat.MULTIJSON);
-                ingestionMappingKind = IngestionProperties.DataFormat.MULTIJSON.getIngestionMappingKind();
-                break;
-            case ORC:
+                yield IngestionProperties.DataFormat.MULTIJSON.getIngestionMappingKind();
+            }
+            case ORC -> {
                 ingestionProperties.setDataFormat(IngestionProperties.DataFormat.ORC);
-                ingestionMappingKind = IngestionProperties.DataFormat.ORC.getIngestionMappingKind();
-                break;
-            case PARQUET:
+                yield IngestionProperties.DataFormat.ORC.getIngestionMappingKind();
+            }
+            case PARQUET -> {
                 ingestionProperties.setDataFormat(IngestionProperties.DataFormat.PARQUET);
-                ingestionMappingKind = IngestionProperties.DataFormat.PARQUET.getIngestionMappingKind();
-                break;
-            case PSV:
+                yield IngestionProperties.DataFormat.PARQUET.getIngestionMappingKind();
+            }
+            case PSV -> {
                 ingestionProperties.setDataFormat(IngestionProperties.DataFormat.PSV);
-                ingestionMappingKind = IngestionProperties.DataFormat.PSV.getIngestionMappingKind();
-                break;
-            case SCSV:
+                yield IngestionProperties.DataFormat.PSV.getIngestionMappingKind();
+            }
+            case SCSV -> {
                 ingestionProperties.setDataFormat(IngestionProperties.DataFormat.SCSV);
-                ingestionMappingKind = IngestionProperties.DataFormat.SCSV.getIngestionMappingKind();
-                break;
-            case SOHSV:
+                yield IngestionProperties.DataFormat.SCSV.getIngestionMappingKind();
+            }
+            case SOHSV -> {
                 ingestionProperties.setDataFormat(IngestionProperties.DataFormat.SOHSV);
-                ingestionMappingKind = IngestionProperties.DataFormat.SOHSV.getIngestionMappingKind();
-                break;
-            case TSV:
+                yield IngestionProperties.DataFormat.SOHSV.getIngestionMappingKind();
+            }
+            case TSV -> {
                 ingestionProperties.setDataFormat(IngestionProperties.DataFormat.TSV);
-                ingestionMappingKind = IngestionProperties.DataFormat.TSV.getIngestionMappingKind();
-                break;
-            case TSVE:
+                yield IngestionProperties.DataFormat.TSV.getIngestionMappingKind();
+            }
+            case TSVE -> {
                 ingestionProperties.setDataFormat(IngestionProperties.DataFormat.TSVE);
-                ingestionMappingKind = IngestionProperties.DataFormat.TSVE.getIngestionMappingKind();
-                break;
-            case TXT:
+                yield IngestionProperties.DataFormat.TSVE.getIngestionMappingKind();
+            }
+            case TXT -> {
                 ingestionProperties.setDataFormat(IngestionProperties.DataFormat.TXT);
-                ingestionMappingKind = IngestionProperties.DataFormat.TXT.getIngestionMappingKind();
-                break;
-        }
-        return ingestionMappingKind;
+                yield IngestionProperties.DataFormat.TXT.getIngestionMappingKind();
+            }
+            default -> null;
+        };
+    }
+
+    private IngestionProperties.DataFormat getDataFormat(final String dataFormat) {
+        final Optional<IngestionProperties.DataFormat> dataFormatFound = Arrays.stream(IngestionProperties.DataFormat.values())
+                .filter(value -> value.getKustoValue().equalsIgnoreCase(dataFormat))
+                .findFirst();
+        return dataFormatFound.orElseThrow(() -> new IllegalArgumentException("Data Format [%s] not supported".formatted(dataFormat)));
     }
 }
