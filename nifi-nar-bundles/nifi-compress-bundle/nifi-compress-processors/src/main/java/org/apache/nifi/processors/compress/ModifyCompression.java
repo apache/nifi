@@ -67,13 +67,11 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -100,19 +98,8 @@ public class ModifyCompression extends AbstractProcessor {
             .name("Input Compression Strategy")
             .displayName("Input Compression Strategy")
             .description("The strategy to use for decompressing input FlowFiles")
-            .allowableValues(CompressionStrategy.NONE.asAllowableValue(),
-                    CompressionStrategy.MIME_TYPE_ATTRIBUTE.asAllowableValue(),
-                    CompressionStrategy.GZIP.asAllowableValue(),
-                    CompressionStrategy.DEFLATE.asAllowableValue(),
-                    CompressionStrategy.BZIP2.asAllowableValue(),
-                    CompressionStrategy.XZ_LZMA2.asAllowableValue(),
-                    CompressionStrategy.LZMA.asAllowableValue(),
-                    CompressionStrategy.SNAPPY.asAllowableValue(),
-                    CompressionStrategy.SNAPPY_FRAMED.asAllowableValue(),
-                    CompressionStrategy.LZ4_FRAMED.asAllowableValue(),
-                    CompressionStrategy.ZSTD.asAllowableValue(),
-                    CompressionStrategy.BROTLI.asAllowableValue())
-            .defaultValue(CompressionStrategy.NONE.getValue())
+            .allowableValues(EnumSet.complementOf(EnumSet.of(CompressionStrategy.SNAPPY_HADOOP)))
+            .defaultValue(CompressionStrategy.NONE)
             .required(true)
             .build();
 
@@ -120,19 +107,8 @@ public class ModifyCompression extends AbstractProcessor {
             .name("Output Compression Strategy")
             .name("Output Compression Strategy")
             .description("The strategy to use for compressing output FlowFiles")
-            .allowableValues(CompressionStrategy.NONE.asAllowableValue(),
-                    CompressionStrategy.GZIP.asAllowableValue(),
-                    CompressionStrategy.DEFLATE.asAllowableValue(),
-                    CompressionStrategy.BZIP2.asAllowableValue(),
-                    CompressionStrategy.XZ_LZMA2.asAllowableValue(),
-                    CompressionStrategy.LZMA.asAllowableValue(),
-                    CompressionStrategy.SNAPPY.asAllowableValue(),
-                    CompressionStrategy.SNAPPY_HADOOP.asAllowableValue(),
-                    CompressionStrategy.SNAPPY_FRAMED.asAllowableValue(),
-                    CompressionStrategy.LZ4_FRAMED.asAllowableValue(),
-                    CompressionStrategy.ZSTD.asAllowableValue(),
-                    CompressionStrategy.BROTLI.asAllowableValue())
-            .defaultValue(CompressionStrategy.NONE.getValue())
+            .allowableValues(EnumSet.complementOf(EnumSet.of(CompressionStrategy.MIME_TYPE_ATTRIBUTE)))
+            .defaultValue(CompressionStrategy.NONE)
             .required(true)
             .build();
 
@@ -160,7 +136,7 @@ public class ModifyCompression extends AbstractProcessor {
             .description("Processing strategy for filename attribute on output FlowFiles")
             .required(true)
             .allowableValues(FilenameStrategy.class)
-            .defaultValue(FilenameStrategy.UPDATED.getValue())
+            .defaultValue(FilenameStrategy.UPDATED)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -173,17 +149,14 @@ public class ModifyCompression extends AbstractProcessor {
             .description("FlowFiles will be transferred to the failure relationship on compression modification errors")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             INPUT_COMPRESSION_STRATEGY,
             OUTPUT_COMPRESSION_STRATEGY,
             OUTPUT_COMPRESSION_LEVEL,
             OUTPUT_FILENAME_STRATEGY
-    ));
+    );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
-            REL_SUCCESS,
-            REL_FAILURE
-    )));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
 
     private static final Map<String, CompressionStrategy> compressionFormatMimeTypeMap;
 
@@ -222,7 +195,7 @@ public class ModifyCompression extends AbstractProcessor {
         }
 
         final CompressionStrategy inputCompressionStrategy;
-        final CompressionStrategy configuredInputCompressionStrategy = getCompressionStrategy(context.getProperty(INPUT_COMPRESSION_STRATEGY).getValue());
+        final CompressionStrategy configuredInputCompressionStrategy = context.getProperty(INPUT_COMPRESSION_STRATEGY).asDescribedValue(CompressionStrategy.class);
         if (CompressionStrategy.MIME_TYPE_ATTRIBUTE == configuredInputCompressionStrategy) {
             final String mimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
             if (mimeType == null) {
@@ -241,7 +214,7 @@ public class ModifyCompression extends AbstractProcessor {
             inputCompressionStrategy = configuredInputCompressionStrategy;
         }
 
-        final CompressionStrategy outputCompressionStrategy = getCompressionStrategy(context.getProperty(OUTPUT_COMPRESSION_STRATEGY).getValue());
+        final CompressionStrategy outputCompressionStrategy = context.getProperty(OUTPUT_COMPRESSION_STRATEGY).asDescribedValue(CompressionStrategy.class);
         final AtomicReference<String> mimeTypeRef = new AtomicReference<>(null);
         final StopWatch stopWatch = new StopWatch(true);
         final long inputFileSize = flowFile.getSize();
@@ -284,40 +257,34 @@ public class ModifyCompression extends AbstractProcessor {
     }
 
     private InputStream getCompressionInputStream(final CompressionStrategy compressionFormat, final InputStream parentInputStream) throws IOException {
-        if (CompressionStrategy.LZMA == compressionFormat) {
-            return new LzmaInputStream(parentInputStream, new Decoder());
-        } else if (CompressionStrategy.XZ_LZMA2 == compressionFormat) {
-            return new XZInputStream(parentInputStream);
-        } else if (CompressionStrategy.BZIP2 == compressionFormat) {
-            // need this two-arg constructor to support concatenated streams
-            return new BZip2CompressorInputStream(parentInputStream, true);
-        } else if (CompressionStrategy.GZIP == compressionFormat) {
-            return new GzipCompressorInputStream(parentInputStream, true);
-        } else if (CompressionStrategy.DEFLATE == compressionFormat) {
-            return new InflaterInputStream(parentInputStream);
-        } else if (CompressionStrategy.SNAPPY == compressionFormat) {
-            return new SnappyInputStream(parentInputStream);
-        } else if (CompressionStrategy.SNAPPY_HADOOP == compressionFormat) {
-            throw new IOException("Cannot decompress snappy-hadoop");
-        } else if (CompressionStrategy.SNAPPY_FRAMED == compressionFormat) {
-            return new SnappyFramedInputStream(parentInputStream);
-        } else if (CompressionStrategy.LZ4_FRAMED == compressionFormat) {
-            return new FramedLZ4CompressorInputStream(parentInputStream, true);
-        } else if (CompressionStrategy.ZSTD == compressionFormat) {
-            return new ZstdCompressorInputStream(parentInputStream);
-        } else if (CompressionStrategy.BROTLI == compressionFormat) {
-            Brotli4jLoader.ensureAvailability();
-            return new BrotliInputStream(parentInputStream);
-        } else if (CompressionStrategy.NONE == compressionFormat) {
-            return parentInputStream;
-        } else {
-            final String compressorStreamFormat = compressionFormat.getValue().toLowerCase();
-            try {
-                return new CompressorStreamFactory().createCompressorInputStream(compressorStreamFormat, parentInputStream);
-            } catch (final CompressorException e) {
-                throw new IOException(String.format("Compressor Stream Format [%s] creation failed", compressorStreamFormat), e);
+        return switch (compressionFormat) {
+            case LZMA -> new LzmaInputStream(parentInputStream, new Decoder());
+            case XZ_LZMA2 -> new XZInputStream(parentInputStream);
+            case BZIP2 -> {
+                // need this two-arg constructor to support concatenated streams
+                yield new BZip2CompressorInputStream(parentInputStream, true);
             }
-        }
+            case GZIP -> new GzipCompressorInputStream(parentInputStream, true);
+            case DEFLATE -> new InflaterInputStream(parentInputStream);
+            case SNAPPY -> new SnappyInputStream(parentInputStream);
+            case SNAPPY_HADOOP -> throw new IOException("Cannot decompress snappy-hadoop");
+            case SNAPPY_FRAMED -> new SnappyFramedInputStream(parentInputStream);
+            case LZ4_FRAMED -> new FramedLZ4CompressorInputStream(parentInputStream, true);
+            case ZSTD -> new ZstdCompressorInputStream(parentInputStream);
+            case BROTLI -> {
+                Brotli4jLoader.ensureAvailability();
+                yield new BrotliInputStream(parentInputStream);
+            }
+            case NONE -> parentInputStream;
+            default -> {
+                final String compressorStreamFormat = compressionFormat.getValue().toLowerCase();
+                try {
+                    yield new CompressorStreamFactory().createCompressorInputStream(compressorStreamFormat, parentInputStream);
+                } catch (final CompressorException e) {
+                    throw new IOException(String.format("Compressor Stream Format [%s] creation failed", compressorStreamFormat), e);
+                }
+            }
+        };
     }
 
     private OutputStream getCompressionOutputStream(
@@ -327,54 +294,65 @@ public class ModifyCompression extends AbstractProcessor {
             final OutputStream parentOutputStream
     ) throws IOException {
         final OutputStream compressionOut;
-        if (CompressionStrategy.GZIP == compressionFormat) {
-            compressionOut = new GZIPOutputStream(parentOutputStream, compressionLevel);
-            mimeTypeRef.set(CompressionStrategy.GZIP.getMimeTypes()[0]);
-        } else if (CompressionStrategy.DEFLATE == compressionFormat) {
-            compressionOut = new DeflaterOutputStream(parentOutputStream, new Deflater(compressionLevel));
-            mimeTypeRef.set(CompressionStrategy.GZIP.getMimeTypes()[0]);
-        } else if (CompressionStrategy.LZMA == compressionFormat) {
-            compressionOut = new LzmaOutputStream.Builder(parentOutputStream).build();
-            mimeTypeRef.set(CompressionStrategy.LZMA.getMimeTypes()[0]);
-        } else if (CompressionStrategy.XZ_LZMA2 == compressionFormat) {
-            compressionOut = new XZOutputStream(parentOutputStream, new LZMA2Options(compressionLevel));
-            mimeTypeRef.set(CompressionStrategy.XZ_LZMA2.getMimeTypes()[0]);
-        } else if (CompressionStrategy.SNAPPY == compressionFormat) {
-            compressionOut = new SnappyOutputStream(parentOutputStream);
-            mimeTypeRef.set(CompressionStrategy.SNAPPY.getMimeTypes()[0]);
-        } else if (CompressionStrategy.SNAPPY_HADOOP == compressionFormat) {
-            compressionOut = new SnappyHadoopCompatibleOutputStream(parentOutputStream);
-            mimeTypeRef.set(CompressionStrategy.SNAPPY_HADOOP.getMimeTypes()[0]);
-        } else if (CompressionStrategy.SNAPPY_FRAMED == compressionFormat) {
-            compressionOut = new SnappyFramedOutputStream(parentOutputStream);
-            mimeTypeRef.set(CompressionStrategy.SNAPPY_FRAMED.getMimeTypes()[0]);
-        } else if (CompressionStrategy.LZ4_FRAMED == compressionFormat) {
-            final String compressorStreamFormat = compressionFormat.getValue().toLowerCase();
-            try {
-                compressionOut = new CompressorStreamFactory().createCompressorOutputStream(compressorStreamFormat, parentOutputStream);
-            } catch (final CompressorException e) {
-                throw new IOException(String.format("Compressor Stream Format [%s] creation failed", compressorStreamFormat), e);
+        switch (compressionFormat) {
+            case GZIP -> {
+                compressionOut = new GZIPOutputStream(parentOutputStream, compressionLevel);
+                mimeTypeRef.set(CompressionStrategy.GZIP.getMimeTypes()[0]);
             }
-            mimeTypeRef.set(CompressionStrategy.LZ4_FRAMED.getMimeTypes()[0]);
-        } else if (CompressionStrategy.ZSTD == compressionFormat) {
-            final int outputCompressionLevel = compressionLevel * 2;
-            compressionOut = new ZstdCompressorOutputStream(parentOutputStream, outputCompressionLevel);
-            mimeTypeRef.set(CompressionStrategy.ZSTD.getMimeTypes()[0]);
-        } else if (CompressionStrategy.BROTLI == compressionFormat) {
-            Brotli4jLoader.ensureAvailability();
-            Encoder.Parameters params = new Encoder.Parameters().setQuality(compressionLevel);
-            compressionOut = new BrotliOutputStream(parentOutputStream, params);
-            mimeTypeRef.set(CompressionStrategy.BROTLI.getMimeTypes()[0]);
-        } else if (CompressionStrategy.BZIP2 == compressionFormat) {
-            final String compressorStreamFormat = compressionFormat.getValue().toLowerCase();
-            try {
-                compressionOut = new CompressorStreamFactory().createCompressorOutputStream(compressorStreamFormat, parentOutputStream);
-            } catch (final CompressorException e) {
-                throw new IOException(String.format("Compressor Stream Format [%s] creation failed", compressorStreamFormat), e);
+            case DEFLATE -> {
+                compressionOut = new DeflaterOutputStream(parentOutputStream, new Deflater(compressionLevel));
+                mimeTypeRef.set(CompressionStrategy.GZIP.getMimeTypes()[0]);
             }
-            mimeTypeRef.set(CompressionStrategy.BZIP2.getMimeTypes()[0]);
-        } else {
-            compressionOut = parentOutputStream;
+            case LZMA -> {
+                compressionOut = new LzmaOutputStream.Builder(parentOutputStream).build();
+                mimeTypeRef.set(CompressionStrategy.LZMA.getMimeTypes()[0]);
+            }
+            case XZ_LZMA2 -> {
+                compressionOut = new XZOutputStream(parentOutputStream, new LZMA2Options(compressionLevel));
+                mimeTypeRef.set(CompressionStrategy.XZ_LZMA2.getMimeTypes()[0]);
+            }
+            case SNAPPY -> {
+                compressionOut = new SnappyOutputStream(parentOutputStream);
+                mimeTypeRef.set(CompressionStrategy.SNAPPY.getMimeTypes()[0]);
+            }
+            case SNAPPY_HADOOP -> {
+                compressionOut = new SnappyHadoopCompatibleOutputStream(parentOutputStream);
+                mimeTypeRef.set(CompressionStrategy.SNAPPY_HADOOP.getMimeTypes()[0]);
+            }
+            case SNAPPY_FRAMED -> {
+                compressionOut = new SnappyFramedOutputStream(parentOutputStream);
+                mimeTypeRef.set(CompressionStrategy.SNAPPY_FRAMED.getMimeTypes()[0]);
+            }
+            case LZ4_FRAMED -> {
+                final String compressorStreamFormat = compressionFormat.getValue().toLowerCase();
+                try {
+                    compressionOut = new CompressorStreamFactory().createCompressorOutputStream(compressorStreamFormat, parentOutputStream);
+                } catch (final CompressorException e) {
+                    throw new IOException(String.format("Compressor Stream Format [%s] creation failed", compressorStreamFormat), e);
+                }
+                mimeTypeRef.set(CompressionStrategy.LZ4_FRAMED.getMimeTypes()[0]);
+            }
+            case ZSTD -> {
+                final int outputCompressionLevel = compressionLevel * 2;
+                compressionOut = new ZstdCompressorOutputStream(parentOutputStream, outputCompressionLevel);
+                mimeTypeRef.set(CompressionStrategy.ZSTD.getMimeTypes()[0]);
+            }
+            case BROTLI -> {
+                Brotli4jLoader.ensureAvailability();
+                Encoder.Parameters params = new Encoder.Parameters().setQuality(compressionLevel);
+                compressionOut = new BrotliOutputStream(parentOutputStream, params);
+                mimeTypeRef.set(CompressionStrategy.BROTLI.getMimeTypes()[0]);
+            }
+            case BZIP2 -> {
+                final String compressorStreamFormat = compressionFormat.getValue().toLowerCase();
+                try {
+                    compressionOut = new CompressorStreamFactory().createCompressorOutputStream(compressorStreamFormat, parentOutputStream);
+                } catch (final CompressorException e) {
+                    throw new IOException(String.format("Compressor Stream Format [%s] creation failed", compressorStreamFormat), e);
+                }
+                mimeTypeRef.set(CompressionStrategy.BZIP2.getMimeTypes()[0]);
+            }
+            case null, default -> compressionOut = parentOutputStream;
         }
         return compressionOut;
     }
@@ -390,10 +368,5 @@ public class ModifyCompression extends AbstractProcessor {
             truncatedFilename = inputFilename;
         }
         return truncatedFilename + outputCompressionStrategy.getFileExtension();
-    }
-
-    private CompressionStrategy getCompressionStrategy(final String propertyValue) {
-        final Optional<CompressionStrategy> compressionInfo = CompressionStrategy.findValue(propertyValue);
-        return compressionInfo.orElseThrow(() -> new IllegalArgumentException(String.format("Compression Format [%s] not supported", propertyValue)));
     }
 }
