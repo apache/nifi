@@ -59,8 +59,7 @@ public class AsanaObject {
 
     @Override
     public boolean equals(Object o) {
-        if (o instanceof AsanaObject) {
-            AsanaObject other = (AsanaObject) o;
+        if (o instanceof AsanaObject other) {
             return state.equals(other.state)
                 && Optional.ofNullable(gid).equals(Optional.ofNullable(other.gid))
                 && Optional.ofNullable(content).equals(Optional.ofNullable(other.content))
