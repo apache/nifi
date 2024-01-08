@@ -217,6 +217,7 @@ export class ReportingTasksEffects {
                     const taskId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditReportingTask, {
+                        width: '728px',
                         data: {
                             reportingTask: request.reportingTask
                         },
