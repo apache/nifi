@@ -42,19 +42,6 @@ export interface ConfigureControllerServiceRequest {
     postUpdateNavigation?: string[];
 }
 
-export interface ConfigureReportingTaskRequest {
-    id: string;
-    uri: string;
-    payload: any;
-    postUpdateNavigation?: string[];
-}
-
-export interface ConfigureReportingTaskSuccess {
-    id: string;
-    reportingTask: ReportingTaskEntity;
-    postUpdateNavigation?: string[];
-}
-
 export interface ConfigureControllerServiceSuccess {
     id: string;
     controllerService: ControllerServiceEntity;
