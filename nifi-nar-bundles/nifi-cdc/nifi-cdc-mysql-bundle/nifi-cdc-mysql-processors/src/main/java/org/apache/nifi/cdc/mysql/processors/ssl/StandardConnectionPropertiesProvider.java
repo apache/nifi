@@ -20,11 +20,9 @@ import com.github.shyiko.mysql.binlog.network.SSLMode;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsPlatform;
 
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * Standard implementation of Connection Properties Provider
