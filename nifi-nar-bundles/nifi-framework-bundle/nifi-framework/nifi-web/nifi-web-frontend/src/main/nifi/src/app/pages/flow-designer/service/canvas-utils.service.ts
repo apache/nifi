@@ -1213,12 +1213,10 @@ export class CanvasUtils {
         }
 
         let runnable = true;
-        selection.each((data, index, nodes): boolean => {
+        selection.each((data, index, nodes) => {
             if (!this.isRunnable(d3.select(nodes[index]))) {
                 runnable = false;
-                return false;
             }
-            return true;
         });
         return runnable;
     }
@@ -1261,12 +1259,10 @@ export class CanvasUtils {
         }
 
         let stoppable = true;
-        selection.each((data, index, nodes): boolean => {
+        selection.each((data, index, nodes) => {
             if (!this.isStoppable(d3.select(nodes[index]))) {
                 stoppable = false;
-                return false;
             }
-            return true;
         });
 
         return stoppable;

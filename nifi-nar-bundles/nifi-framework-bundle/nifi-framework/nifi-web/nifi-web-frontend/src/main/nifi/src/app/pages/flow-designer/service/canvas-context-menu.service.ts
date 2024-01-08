@@ -404,7 +404,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 },
                 clazz: 'fa fa-play',
                 text: 'Start',
-                action: (store: Store<CanvasState>, selection: any) => {
+                action: (selection: any) => {
                     if (selection.empty()) {
                         // attempting to start the current process group
                         this.store.dispatch(startCurrentProcessGroup());
@@ -435,7 +435,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 },
                 clazz: 'fa fa-stop',
                 text: 'Stop',
-                action: (store: Store<CanvasState>, selection: any) => {
+                action: (selection: any) => {
                     if (selection.empty()) {
                         // attempting to start the current process group
                         this.store.dispatch(stopCurrentProcessGroup());
@@ -448,7 +448,6 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                 type: d.type,
                                 revision: d.revision
                             });
-                            // const d = selection.datum();
                         });
                         this.store.dispatch(
                             stopComponents({
@@ -469,7 +468,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 },
                 clazz: 'fa fa-caret-right',
                 text: 'Run Once',
-                action: (store: Store<CanvasState>, selection: any) => {
+                action: (selection: any) => {
                     const d: any = selection.datum();
                     this.store.dispatch(
                         runOnce({
@@ -523,7 +522,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 },
                 clazz: 'fa fa-bullseye',
                 text: 'Enable transmission',
-                action: (store: Store<CanvasState>, selection: d3.Selection<any, any, any, any>) => {
+                action: (selection: d3.Selection<any, any, any, any>) => {
                     const components: StartComponentRequest[] = [];
                     const startable = this.canvasUtils.getStartable(selection);
                     startable.each((d: any) => {
@@ -553,7 +552,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 },
                 clazz: 'icon icon-transmit-false',
                 text: 'Disable transmission',
-                action: (store: Store<CanvasState>, selection: d3.Selection<any, any, any, any>) => {
+                action: (selection: d3.Selection<any, any, any, any>) => {
                     const components: StopComponentRequest[] = [];
 
                     const stoppable = this.canvasUtils.getStoppable(selection);
@@ -651,9 +650,9 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 },
                 clazz: 'fa fa-area-chart',
                 text: 'View status history',
-                action: (store: Store<CanvasState>, selection: any) => {
+                action: (selection: any) => {
                     const selectionData = selection.datum();
-                    store.dispatch(
+                    this.store.dispatch(
                         navigateToViewStatusHistoryForComponent({
                             request: {
                                 type: selectionData.type,

@@ -542,3 +542,7 @@ export interface StopComponentResponse {
 export interface StopComponentsRequest {
     components: StopComponentRequest[];
 }
+
+export interface ReloadProcessGroupRequest {
+    id: string;
+}

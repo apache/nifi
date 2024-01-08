@@ -104,6 +104,7 @@ import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.c
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
 import { selectParameterSaving } from '../parameter/parameter.selectors';
 import { ParameterService } from '../../service/parameter.service';
+import { getXHRResponse } from 'rxjs/internal/ajax/getXHRResponse';
 
 @Injectable()
 export class FlowEffects {
@@ -2139,11 +2140,38 @@ export class FlowEffects {
         )
     );
 
-    startComponentSuccess$ = createEffect(() =>
+    /**
+     * If the component started was the current process group, reload the flow
+     */
+    startCurrentProcessGroupSuccess$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.startComponentSuccess),
-            debounceTime(200), // may be starting many at a time, debounce to reduce attempts to reload the flow
+            map((action) => action.response),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            filter(([response, currentPg]) => response.component.id === currentPg),
             switchMap(() => of(FlowActions.reloadFlow()))
+        )
+    );
+
+    /**
+     * If a ProcessGroup was started, it should be reloaded as the response from the start operation doesn't contain all the displayed info
+     */
+    startProcessGroupSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startComponentSuccess),
+            map((action) => action.response),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            filter(([response, currentPg]) => response.component.id !== currentPg),
+            filter(([response]) => response.type === ComponentType.ProcessGroup),
+            switchMap(([response]) =>
+                of(
+                    FlowActions.reloadProcessGroup({
+                        request: {
+                            id: response.component.id
+                        }
+                    })
+                )
+            )
         )
     );
 
@@ -2227,11 +2255,38 @@ export class FlowEffects {
         )
     );
 
-    stopComponentSuccess$ = createEffect(() =>
+    /**
+     * If the component stopped was the current process group, reload the flow
+     */
+    stopCurrentProcessGroupSuccess$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.stopComponentSuccess),
-            debounceTime(200), // may be stopping many at a time, debounce to reduce attempts to reload the flow
+            map((action) => action.response),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            filter(([response, currentPg]) => response.component.id === currentPg),
             switchMap(() => of(FlowActions.reloadFlow()))
+        )
+    );
+
+    /**
+     * If a ProcessGroup was stopped, it should be reloaded as the response from the stop operation doesn't contain all the displayed info
+     */
+    stopProcessGroupSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.stopComponentSuccess),
+            map((action) => action.response),
+            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            filter(([response, currentPg]) => response.component.id !== currentPg),
+            filter(([response]) => response.type === ComponentType.ProcessGroup),
+            switchMap(([response]) =>
+                of(
+                    FlowActions.reloadProcessGroup({
+                        request: {
+                            id: response.component.id
+                        }
+                    })
+                )
+            )
         )
     );
 
@@ -2258,6 +2313,22 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.runOnceSuccess),
             switchMap(() => of(FlowActions.reloadFlow()))
+        )
+    );
+
+    reloadProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.reloadProcessGroup),
+            map((action) => action.request),
+            mergeMap((request) => {
+                return from(this.flowService.getProcessGroup(request.id)).pipe(
+                    map((response) =>
+                        FlowActions.reloadProcessGroupSuccess({
+                            response: response.component
+                        })
+                    )
+                );
+            })
         )
     );
 }

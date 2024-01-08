@@ -37,6 +37,7 @@ import {
     loadProcessorSuccess,
     loadRemoteProcessGroupSuccess,
     navigateWithoutTransform,
+    reloadProcessGroupSuccess,
     resetFlowState,
     runOnce,
     runOnceSuccess,
@@ -341,6 +342,24 @@ export const flowReducer = createReducer(
 
             if (collection) {
                 const componentIndex: number = collection.findIndex((f: any) => response.component.id === f.id);
+                if (componentIndex > -1) {
+                    collection[componentIndex] = {
+                        ...collection[componentIndex],
+                        ...response.component
+                    };
+                }
+            }
+
+            draftState.saving = false;
+        });
+    }),
+
+    on(reloadProcessGroupSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const collection: any[] | null = getComponentCollection(draftState, ComponentType.ProcessGroup);
+
+            if (collection) {
+                const componentIndex: number = collection.findIndex((f: any) => response.id === f.id);
                 if (componentIndex > -1) {
                     collection[componentIndex] = {
                         ...collection[componentIndex],

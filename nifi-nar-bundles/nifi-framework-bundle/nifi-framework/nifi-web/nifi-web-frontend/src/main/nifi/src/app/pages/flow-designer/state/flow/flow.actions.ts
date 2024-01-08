@@ -64,7 +64,9 @@ import {
     StartProcessGroupRequest,
     StopProcessGroupRequest,
     RunOnceRequest,
-    RunOnceResponse
+    RunOnceResponse,
+    ReloadProcessGroupRequest,
+    ComponentEntity
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
 
@@ -489,3 +491,13 @@ export const stopComponentSuccess = createAction(
 export const startCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Start Current Process Group`);
 
 export const stopCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Stop Current Process Group`);
+
+export const reloadProcessGroup = createAction(
+    `${CANVAS_PREFIX} Reload Process Group`,
+    props<{ request: ReloadProcessGroupRequest }>()
+);
+
+export const reloadProcessGroupSuccess = createAction(
+    `${CANVAS_PREFIX} Reload Process Group Success`,
+    props<{ response: ComponentEntity }>()
+);
