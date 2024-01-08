@@ -41,7 +41,7 @@
             <dependency>
                 <groupId>com.hierynomus</groupId>
                 <artifactId>smbj</artifactId>
-                <version>0.12.2</version>
+                <version>0.13.0</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.bouncycastle</groupId>
