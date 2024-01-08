@@ -726,8 +726,10 @@ public class MergeContent extends BinFiles {
             final String delimiterStrategyValue = context.getProperty(DELIMITER_STRATEGY).getValue();
             if (DELIMITER_STRATEGY_FILENAME.getValue().equals(delimiterStrategyValue)) {
                 return getDelimiterFileContent(context, wrappers, descriptor);
-            } else {
+            } else if (DELIMITER_STRATEGY_TEXT.getValue().equals(delimiterStrategyValue)) {
                 return getDelimiterTextContent(context, wrappers, descriptor);
+            } else {
+                return null;
             }
         }
 
