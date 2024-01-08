@@ -38,6 +38,7 @@ public class BulletinDTO {
     private String level;
     private String message;
     private Date timestamp;
+    private String sourceType;
 
     /**
      * @return id of this message
@@ -167,4 +168,14 @@ public class BulletinDTO {
         this.timestamp = timestamp;
     }
 
+    @ApiModelProperty(
+            value = "The type of the source component"
+    )
+    public String getSourceType() {
+        return sourceType;
+    }
+
+    public void setSourceType(String sourceType) {
+        this.sourceType = sourceType;
+    }
 }

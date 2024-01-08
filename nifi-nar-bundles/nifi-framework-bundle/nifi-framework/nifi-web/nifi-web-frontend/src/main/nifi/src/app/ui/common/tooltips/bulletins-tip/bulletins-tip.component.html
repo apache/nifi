@@ -15,7 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div class="tooltip" [style.left.px]="left" [style.top.px]="top">
+<div class="tooltip overflow-auto" [style.left.px]="left" [style.top.px]="top">
     <ul class="flex flex-wrap gap-y-1">
         <ng-container *ngFor="let bulletinEntity of data?.bulletins">
             <li *ngIf="bulletinEntity.canRead">

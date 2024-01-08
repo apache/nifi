@@ -21,7 +21,7 @@ import { DisableControllerService } from './disable-controller-service.component
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../state/contoller-service-state/controller-service-state.reducer';
-import { SetEnableControllerServiceDialogRequest } from '../../../../state/shared';
+import { ComponentType, SetEnableControllerServiceDialogRequest } from '../../../../state/shared';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 describe('EnableControllerService', () => {
@@ -54,6 +54,7 @@ describe('EnableControllerService', () => {
                         groupId: 'asdf',
                         sourceId: 'asdf',
                         sourceName: 'asdf',
+                        sourceType: ComponentType.Processor,
                         level: 'ERROR',
                         message: 'asdf',
                         timestamp: '14:08:44 EST'
