@@ -76,10 +76,6 @@ import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.com
 export class EditReportingTask {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
-    @Input() getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
-    @Input() parameterContext: ParameterContextReferenceEntity | undefined;
-    @Input() goToParameter!: (parameter: string) => void;
-    @Input() convertToParameter!: (name: string, sensitive: boolean, value: string | null) => Observable<string>;
     @Input() goToService!: (serviceId: string) => void;
     @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
     @Input() saving$!: Observable<boolean>;
