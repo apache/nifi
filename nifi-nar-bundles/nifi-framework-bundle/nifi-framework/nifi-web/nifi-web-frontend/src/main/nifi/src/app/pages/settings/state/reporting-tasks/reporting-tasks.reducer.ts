@@ -18,6 +18,7 @@
 import { createReducer, on } from '@ngrx/store';
 import { ReportingTasksState } from './index';
 import {
+    configureReportingTask,
     configureReportingTaskSuccess,
     createReportingTask,
     createReportingTaskSuccess,
@@ -71,7 +72,7 @@ export const reportingTasksReducer = createReducer(
             draftState.saving = false;
         });
     }),
-    on(createReportingTask, deleteReportingTask, (state, { request }) => ({
+    on(createReportingTask, deleteReportingTask, configureReportingTask, (state, { request }) => ({
         ...state,
         saving: true
     })),
