@@ -106,6 +106,6 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
         };
 
         // Delegate the init to the parent impl
-        super.init(recordWriterFactory, recordReaderFactory, eventReporter, authorizer, resourceFactory);
+        super.init(recordWriterFactory, recordReaderFactory, eventReporter, authorizer, resourceFactory, fileManager);
     }
 }
