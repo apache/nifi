@@ -25,7 +25,6 @@ import {
     asyncScheduler,
     catchError,
     combineLatest,
-    debounceTime,
     filter,
     from,
     interval,
@@ -104,7 +103,6 @@ import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.c
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
 import { selectParameterSaving } from '../parameter/parameter.selectors';
 import { ParameterService } from '../../service/parameter.service';
-import { getXHRResponse } from 'rxjs/internal/ajax/getXHRResponse';
 
 @Injectable()
 export class FlowEffects {
@@ -2110,7 +2108,8 @@ export class FlowEffects {
                                             component: response
                                         }
                                     });
-                                })
+                                }),
+                                catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                             );
                         }
                         return of(
@@ -2130,7 +2129,8 @@ export class FlowEffects {
                                         component: startPgResponse
                                     }
                                 });
-                            })
+                            }),
+                            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                         );
                     default:
                         return of(FlowActions.flowApiError({ error: `${request.type} does not support starting` }));
@@ -2161,8 +2161,8 @@ export class FlowEffects {
             ofType(FlowActions.startComponentSuccess),
             map((action) => action.response),
             withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
-            filter(([response, currentPg]) => response.component.id !== currentPg),
             filter(([response]) => response.type === ComponentType.ProcessGroup),
+            filter(([response, currentPg]) => response.component.id !== currentPg),
             switchMap(([response]) =>
                 of(
                     FlowActions.reloadProcessGroup({
@@ -2225,7 +2225,8 @@ export class FlowEffects {
                                             component: response
                                         }
                                     });
-                                })
+                                }),
+                                catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                             );
                         }
                         return of(
@@ -2245,7 +2246,8 @@ export class FlowEffects {
                                         component: stopPgResponse
                                     }
                                 });
-                            })
+                            }),
+                            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                         );
                     default:
                         return of(FlowActions.flowApiError({ error: `${request.type} does not support stopping` }));
@@ -2276,8 +2278,8 @@ export class FlowEffects {
             ofType(FlowActions.stopComponentSuccess),
             map((action) => action.response),
             withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
-            filter(([response, currentPg]) => response.component.id !== currentPg),
             filter(([response]) => response.type === ComponentType.ProcessGroup),
+            filter(([response, currentPg]) => response.component.id !== currentPg),
             switchMap(([response]) =>
                 of(
                     FlowActions.reloadProcessGroup({
@@ -2302,17 +2304,11 @@ export class FlowEffects {
                                 component: response
                             }
                         })
-                    )
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                 );
             }),
             catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
-        )
-    );
-
-    runOnceSuccess$ = createEffect(() =>
-        this.actions$.pipe(
-            ofType(FlowActions.runOnceSuccess),
-            switchMap(() => of(FlowActions.reloadFlow()))
         )
     );
 
@@ -2326,7 +2322,8 @@ export class FlowEffects {
                         FlowActions.reloadProcessGroupSuccess({
                             response: response.component
                         })
-                    )
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                 );
             })
         )

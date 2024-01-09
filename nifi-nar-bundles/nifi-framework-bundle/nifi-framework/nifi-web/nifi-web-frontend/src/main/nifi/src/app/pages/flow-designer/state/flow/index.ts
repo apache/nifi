@@ -23,6 +23,7 @@ import {
     DocumentedType,
     ParameterContextReferenceEntity,
     Permissions,
+    Revision,
     SelectOption
 } from '../../../../state/shared';
 import { ParameterContextEntity } from '../../../parameter-contexts/state/parameter-context-listing';
@@ -468,12 +469,6 @@ export interface FlowState {
     operationCollapsed: boolean;
     error: string | null;
     status: 'pending' | 'loading' | 'error' | 'success';
-}
-
-export interface Revision {
-    clientId: string;
-    version: number;
-    lastModifier: string;
 }
 
 export interface RunOnceRequest {

@@ -17,24 +17,24 @@
 
 import { createAction, props } from '@ngrx/store';
 import {
+    ComponentEntity,
     CreateComponentRequest,
     CreateComponentResponse,
     CreateConnection,
     CreateConnectionDialogRequest,
     CreateConnectionRequest,
     CreatePortRequest,
-    CreateProcessGroupRequest,
     CreateProcessGroupDialogRequest,
+    CreateProcessGroupRequest,
     CreateProcessorRequest,
     DeleteComponentRequest,
     DeleteComponentResponse,
     EditComponentDialogRequest,
-    OpenComponentDialogRequest,
     EditConnectionDialogRequest,
+    EditCurrentProcessGroupRequest,
     EnterProcessGroupRequest,
-    GroupComponentsRequest,
     GroupComponentsDialogRequest,
-    OpenGroupComponentsDialogRequest,
+    GroupComponentsRequest,
     GroupComponentsSuccess,
     LoadConnectionSuccess,
     LoadInputPortSuccess,
@@ -44,29 +44,29 @@ import {
     LoadRemoteProcessGroupSuccess,
     MoveComponentsRequest,
     NavigateToComponentRequest,
+    NavigateToControllerServicesRequest,
+    OpenComponentDialogRequest,
+    OpenGroupComponentsDialogRequest,
+    ReloadProcessGroupRequest,
+    ReplayLastProvenanceEventRequest,
+    RunOnceRequest,
+    RunOnceResponse,
     SelectComponentsRequest,
-    UpdateComponentRequest,
+    StartComponentRequest,
+    StartComponentResponse,
+    StartComponentsRequest,
+    StartProcessGroupRequest,
+    StopComponentRequest,
+    StopComponentResponse,
+    StopComponentsRequest,
+    StopProcessGroupRequest,
     UpdateComponentFailure,
+    UpdateComponentRequest,
     UpdateComponentResponse,
     UpdateConnectionRequest,
     UpdateConnectionSuccess,
     UpdatePositionsRequest,
-    UploadProcessGroupRequest,
-    EditCurrentProcessGroupRequest,
-    NavigateToControllerServicesRequest,
-    ReplayLastProvenanceEventRequest,
-    StartComponentRequest,
-    StartComponentResponse,
-    StopComponentRequest,
-    StopComponentResponse,
-    StartComponentsRequest,
-    StopComponentsRequest,
-    StartProcessGroupRequest,
-    StopProcessGroupRequest,
-    RunOnceRequest,
-    RunOnceResponse,
-    ReloadProcessGroupRequest,
-    ComponentEntity
+    UploadProcessGroupRequest
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
 
@@ -100,6 +100,16 @@ export const loadProcessGroupSuccess = createAction(
 export const loadProcessGroupComplete = createAction(
     `${CANVAS_PREFIX} Load Process Group Complete`,
     props<{ response: LoadProcessGroupResponse }>()
+);
+
+export const reloadProcessGroup = createAction(
+    `${CANVAS_PREFIX} Reload Process Group`,
+    props<{ request: ReloadProcessGroupRequest }>()
+);
+
+export const reloadProcessGroupSuccess = createAction(
+    `${CANVAS_PREFIX} Reload Process Group Success`,
+    props<{ response: ComponentEntity }>()
 );
 
 export const flowApiError = createAction(`${CANVAS_PREFIX} Flow Api Error`, props<{ error: string }>());
@@ -491,13 +501,3 @@ export const stopComponentSuccess = createAction(
 export const startCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Start Current Process Group`);
 
 export const stopCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Stop Current Process Group`);
-
-export const reloadProcessGroup = createAction(
-    `${CANVAS_PREFIX} Reload Process Group`,
-    props<{ request: ReloadProcessGroupRequest }>()
-);
-
-export const reloadProcessGroupSuccess = createAction(
-    `${CANVAS_PREFIX} Reload Process Group Success`,
-    props<{ response: ComponentEntity }>()
-);
