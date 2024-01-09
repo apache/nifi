@@ -193,7 +193,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: (selection: any) => {
                     return this.canvasUtils.hasUpstream(selection);
                 },
-                clazz: 'fa',
+                clazz: 'icon',
                 text: 'Upstream',
                 action: () => {
                     // TODO - showUpstream
@@ -203,7 +203,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: (selection: any) => {
                     return this.canvasUtils.hasDownstream(selection);
                 },
-                clazz: 'fa',
+                clazz: 'icon',
                 text: 'Downstream',
                 action: () => {
                     // TODO - showDownstream
@@ -526,7 +526,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     // TODO - canDisable
                     return false;
                 },
-                clazz: 'fa icon-enable-false',
+                clazz: 'icon icon-enable-false',
                 text: 'Disable',
                 action: () => {
                     // TODO - disable
@@ -563,7 +563,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: (selection: any) => {
                     return this.canvasUtils.canAllStopTransmitting(selection);
                 },
-                clazz: 'fa icon-transmit-false',
+                clazz: 'icon icon-transmit-false',
                 text: 'Disable transmission',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     const components: StopComponentRequest[] = [];
@@ -613,7 +613,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: (selection: any) => {
                     return this.canvasUtils.isProcessGroup(selection);
                 },
-                clazz: 'fa icon-enable-false',
+                clazz: 'icon icon-enable-false',
                 text: 'Disable all controller services',
                 action: () => {
                     // TODO - disableAllControllerServices
@@ -623,7 +623,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: (selection: any) => {
                     return this.canvasUtils.emptySelection(selection);
                 },
-                clazz: 'fa icon-enable-false',
+                clazz: 'icon icon-enable-false',
                 text: 'Disable all controller services',
                 action: () => {
                     // TODO - disableAllControllerServices
@@ -636,7 +636,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: (selection: any) => {
                     return this.canvasUtils.canAccessComponentProvenance(selection);
                 },
-                clazz: 'fa icon-provenance',
+                clazz: 'icon icon-provenance',
                 // imgStyle: 'context-menu-provenance',
                 text: 'View data provenance',
                 action: (selection: any) => {
@@ -708,7 +708,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                clazz: 'fa icon-connect',
+                clazz: 'icon icon-connect',
                 text: 'View connections',
                 subMenuId: this.UPSTREAM_DOWNSTREAM.id
             },
