@@ -227,7 +227,7 @@ export class OperationControl {
     }
 
     canStart(selection: any): boolean {
-        return this.canvasUtils.areRunnable(selection);
+        return this.canvasUtils.areAnyRunnable(selection);
     }
 
     start(selection: any): void {
@@ -256,7 +256,7 @@ export class OperationControl {
     }
 
     canStop(selection: any): boolean {
-        return this.canvasUtils.areStoppable(selection);
+        return this.canvasUtils.areAnyStoppable(selection);
     }
 
     stop(selection: any): void {
@@ -265,7 +265,8 @@ export class OperationControl {
             this.store.dispatch(stopCurrentProcessGroup());
         } else {
             const components: StopComponentRequest[] = [];
-            selection.each((d: any) => {
+            const stoppable = this.canvasUtils.getStoppable(selection);
+            stoppable.each((d: any) => {
                 components.push({
                     id: d.id,
                     uri: d.uri,

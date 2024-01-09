@@ -1222,6 +1222,27 @@ export class CanvasUtils {
     }
 
     /**
+     * Determines if any of the components in the specified selection are runnable or can start transmitting.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                    Whether the selection is runnable
+     */
+    public areAnyRunnable(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.empty()) {
+            return true;
+        }
+
+        let runnable = false;
+        selection.each((data, index, nodes) => {
+            const d = d3.select(nodes[index]);
+            if (this.isRunnable(d) || this.canStartTransmitting(d)) {
+                runnable = true;
+            }
+        });
+        return runnable;
+    }
+
+    /**
      * Determines if the component in the specified selection is runnable.
      *
      * @argument {d3.Selection} selection      The selection
@@ -1262,6 +1283,28 @@ export class CanvasUtils {
         selection.each((data, index, nodes) => {
             if (!this.isStoppable(d3.select(nodes[index]))) {
                 stoppable = false;
+            }
+        });
+
+        return stoppable;
+    }
+
+    /**
+     * Determines if any of the components in the specified selection are stoppable.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                    Whether the selection is stoppable
+     */
+    public areAnyStoppable(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.empty()) {
+            return true;
+        }
+
+        let stoppable = false;
+        selection.each((data, index, nodes) => {
+            const d = d3.select(nodes[index]);
+            if (this.isStoppable(d) || this.canStopTransmitting(d)) {
+                stoppable = true;
             }
         });
 

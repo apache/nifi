@@ -400,7 +400,16 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    return this.canvasUtils.areRunnable(selection);
+                    const startable = this.canvasUtils.getStartable(selection);
+
+                    // To mimic the operation palette behavior, offer the start context menu option if any of the selected items
+                    // are runnable or can start transmitting. However, if all the startable components are RGPs, we will defer
+                    // to the Enable Transmission menu option and not show the start option.
+                    const allRpgs =
+                        startable.filter((d: any) => d.type === ComponentType.RemoteProcessGroup).size() ===
+                        startable.size();
+
+                    return this.canvasUtils.areAnyRunnable(selection) && !allRpgs;
                 },
                 clazz: 'fa fa-play',
                 text: 'Start',
@@ -431,7 +440,16 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    return this.canvasUtils.areStoppable(selection);
+                    const stoppable = this.canvasUtils.getStoppable(selection);
+
+                    // To mimic the operation palette behavior, offer the stop context menu option if any of the selected items
+                    // are runnable or can stop transmitting. However, if all the stoppable components are RGPs, we will defer
+                    // to the Disable Transmission menu option and not show the start option.
+                    const allRpgs =
+                        stoppable.filter((d: any) => d.type === ComponentType.RemoteProcessGroup).size() ===
+                        stoppable.size();
+
+                    return this.canvasUtils.areAnyStoppable(selection) && !allRpgs;
                 },
                 clazz: 'fa fa-stop',
                 text: 'Stop',
@@ -441,7 +459,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                         this.store.dispatch(stopCurrentProcessGroup());
                     } else {
                         const components: StopComponentRequest[] = [];
-                        selection.each((d: any) => {
+                        const stoppable = this.canvasUtils.getStoppable(selection);
+                        stoppable.each((d: any) => {
                             components.push({
                                 id: d.id,
                                 uri: d.uri,
