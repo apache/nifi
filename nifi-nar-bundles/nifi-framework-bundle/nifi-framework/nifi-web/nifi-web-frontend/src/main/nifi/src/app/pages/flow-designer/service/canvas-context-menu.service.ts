@@ -515,9 +515,6 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    if (!this.canvasUtils.canOperate(selection)) {
-                        return false;
-                    }
                     return this.canvasUtils.canAllStartTransmitting(selection);
                 },
                 clazz: 'fa fa-bullseye',
@@ -545,9 +542,6 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    if (!this.canvasUtils.canOperate(selection)) {
-                        return false;
-                    }
                     return this.canvasUtils.canAllStopTransmitting(selection);
                 },
                 clazz: 'icon icon-transmit-false',
