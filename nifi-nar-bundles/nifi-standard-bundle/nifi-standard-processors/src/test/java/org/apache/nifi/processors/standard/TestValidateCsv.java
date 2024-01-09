@@ -122,7 +122,7 @@ public class TestValidateCsv {
         runner.run();
         runner.assertTransferCount(ValidateCsv.REL_INVALID, 1);
         runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).get(0).assertAttributeEquals("validation.error.message",
-                "'22/111954' could not be parsed as a Date {lineNo=1, rowNo=1, columnNo=2}");
+                "'22/111954' could not be parsed as a Date at {line=1, row=1, column=2}");
     }
 
     @Test
