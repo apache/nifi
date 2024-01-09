@@ -2165,7 +2165,7 @@ export class FlowEffects {
             filter(([response, currentPg]) => response.component.id !== currentPg),
             switchMap(([response]) =>
                 of(
-                    FlowActions.reloadProcessGroup({
+                    FlowActions.loadChildProcessGroup({
                         request: {
                             id: response.component.id
                         }
@@ -2282,7 +2282,7 @@ export class FlowEffects {
             filter(([response, currentPg]) => response.component.id !== currentPg),
             switchMap(([response]) =>
                 of(
-                    FlowActions.reloadProcessGroup({
+                    FlowActions.loadChildProcessGroup({
                         request: {
                             id: response.component.id
                         }
@@ -2314,12 +2314,12 @@ export class FlowEffects {
 
     reloadProcessGroup$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(FlowActions.reloadProcessGroup),
+            ofType(FlowActions.loadChildProcessGroup),
             map((action) => action.request),
             mergeMap((request) => {
                 return from(this.flowService.getProcessGroup(request.id)).pipe(
                     map((response) =>
-                        FlowActions.reloadProcessGroupSuccess({
+                        FlowActions.loadChildProcessGroupSuccess({
                             response: response.component
                         })
                     ),

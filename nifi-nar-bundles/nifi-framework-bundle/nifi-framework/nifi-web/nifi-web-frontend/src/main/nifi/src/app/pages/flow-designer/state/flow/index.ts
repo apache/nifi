@@ -538,6 +538,6 @@ export interface StopComponentsRequest {
     components: StopComponentRequest[];
 }
 
-export interface ReloadProcessGroupRequest {
+export interface LoadChildProcessGroupRequest {
     id: string;
 }

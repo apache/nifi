@@ -37,7 +37,7 @@ import {
     loadProcessorSuccess,
     loadRemoteProcessGroupSuccess,
     navigateWithoutTransform,
-    reloadProcessGroupSuccess,
+    loadChildProcessGroupSuccess,
     resetFlowState,
     runOnce,
     runOnceSuccess,
@@ -354,7 +354,7 @@ export const flowReducer = createReducer(
         });
     }),
 
-    on(reloadProcessGroupSuccess, (state, { response }) => {
+    on(loadChildProcessGroupSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             const collection: any[] | null = getComponentCollection(draftState, ComponentType.ProcessGroup);
 

@@ -47,7 +47,7 @@ import {
     NavigateToControllerServicesRequest,
     OpenComponentDialogRequest,
     OpenGroupComponentsDialogRequest,
-    ReloadProcessGroupRequest,
+    LoadChildProcessGroupRequest,
     ReplayLastProvenanceEventRequest,
     RunOnceRequest,
     RunOnceResponse,
@@ -102,13 +102,13 @@ export const loadProcessGroupComplete = createAction(
     props<{ response: LoadProcessGroupResponse }>()
 );
 
-export const reloadProcessGroup = createAction(
-    `${CANVAS_PREFIX} Reload Process Group`,
-    props<{ request: ReloadProcessGroupRequest }>()
+export const loadChildProcessGroup = createAction(
+    `${CANVAS_PREFIX} Load Child Process Group`,
+    props<{ request: LoadChildProcessGroupRequest }>()
 );
 
-export const reloadProcessGroupSuccess = createAction(
-    `${CANVAS_PREFIX} Reload Process Group Success`,
+export const loadChildProcessGroupSuccess = createAction(
+    `${CANVAS_PREFIX} Load Child Process Group Success`,
     props<{ response: ComponentEntity }>()
 );
 
