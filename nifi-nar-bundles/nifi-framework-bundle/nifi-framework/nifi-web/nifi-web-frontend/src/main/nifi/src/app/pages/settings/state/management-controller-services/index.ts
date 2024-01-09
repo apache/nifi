@@ -16,7 +16,6 @@
  */
 
 import { Bundle, ControllerServiceEntity, Revision } from '../../../../state/shared';
-import { ReportingTaskEntity } from '../reporting-tasks';
 
 export const managementControllerServicesFeatureKey = 'managementControllerServices';
 
