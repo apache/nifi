@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 
 import jakarta.xml.bind.annotation.XmlType;
@@ -35,8 +35,7 @@ public class AccessPolicySummaryDTO extends ComponentDTO {
     /**
      * @return The action associated with this access policy.
      */
-    @ApiModelProperty(
-            value = "The action associated with this access policy.",
+    @Schema(description = "The action associated with this access policy.",
             allowableValues = "read, write"
     )
     public String getAction() {
@@ -50,7 +49,7 @@ public class AccessPolicySummaryDTO extends ComponentDTO {
     /**
      * @return The resource for this access policy.
      */
-    @ApiModelProperty(value="The resource for this access policy.")
+    @Schema(description = "The resource for this access policy.")
     public String getResource() {
         return resource;
     }
@@ -62,7 +61,7 @@ public class AccessPolicySummaryDTO extends ComponentDTO {
     /**
      * @return Component this policy references if applicable.
      */
-    @ApiModelProperty(value="Component this policy references if applicable.")
+    @Schema(description = "Component this policy references if applicable.")
     public ComponentReferenceEntity getComponentReference() {
         return componentReference;
     }
@@ -74,7 +73,7 @@ public class AccessPolicySummaryDTO extends ComponentDTO {
     /**
      * @return whether this policy is configurable
      */
-    @ApiModelProperty(value = "Whether this policy is configurable.")
+    @Schema(description = "Whether this policy is configurable.")
     public Boolean getConfigurable() {
         return configurable;
     }

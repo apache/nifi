@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -27,7 +27,7 @@ public class VersionedFlowSnapshotMetadataEntity extends Entity {
     private RegisteredFlowSnapshotMetadata versionedFlowSnapshotMetadata;
     private String registryId;
 
-    @ApiModelProperty("The collection of registered flow snapshot metadata")
+    @Schema(description = "The collection of registered flow snapshot metadata")
     public RegisteredFlowSnapshotMetadata getVersionedFlowSnapshotMetadata() {
         return versionedFlowSnapshotMetadata;
     }
@@ -36,7 +36,7 @@ public class VersionedFlowSnapshotMetadataEntity extends Entity {
         this.versionedFlowSnapshotMetadata = versionedFlowSnapshotMetadata;
     }
 
-    @ApiModelProperty("The ID of the Registry that this flow belongs to")
+    @Schema(description = "The ID of the Registry that this flow belongs to")
     public String getRegistryId() {
         return registryId;
     }

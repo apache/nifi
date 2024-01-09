@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
 
@@ -27,7 +27,7 @@ public class NodeReplayLastEventSnapshotDTO {
     private Integer apiPort;
     private ReplayLastEventSnapshotDTO snapshot;
 
-    @ApiModelProperty("The unique ID that identifies the node")
+    @Schema(description = "The unique ID that identifies the node")
     public String getNodeId() {
         return nodeId;
     }
@@ -36,7 +36,7 @@ public class NodeReplayLastEventSnapshotDTO {
         this.nodeId = nodeId;
     }
 
-    @ApiModelProperty("The API address of the node")
+    @Schema(description = "The API address of the node")
     public String getAddress() {
         return address;
     }
@@ -45,7 +45,7 @@ public class NodeReplayLastEventSnapshotDTO {
         this.address = address;
     }
 
-    @ApiModelProperty("The API port used to communicate with the node")
+    @Schema(description = "The API port used to communicate with the node")
     public Integer getApiPort() {
         return apiPort;
     }
@@ -54,7 +54,7 @@ public class NodeReplayLastEventSnapshotDTO {
         this.apiPort = apiPort;
     }
 
-    @ApiModelProperty("The snapshot from the node")
+    @Schema(description = "The snapshot from the node")
     public ReplayLastEventSnapshotDTO getSnapshot() {
         return snapshot;
     }

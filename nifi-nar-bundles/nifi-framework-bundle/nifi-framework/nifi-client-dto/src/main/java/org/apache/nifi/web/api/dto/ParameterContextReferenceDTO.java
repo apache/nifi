@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -29,12 +29,12 @@ public class ParameterContextReferenceDTO {
         this.id = id;
     }
 
-    @ApiModelProperty("The ID of the Parameter Context")
+    @Schema(description = "The ID of the Parameter Context")
     public String getId() {
         return id;
     }
 
-    @ApiModelProperty("The name of the Parameter Context")
+    @Schema(description = "The name of the Parameter Context")
     public String getName() {
         return name;
     }

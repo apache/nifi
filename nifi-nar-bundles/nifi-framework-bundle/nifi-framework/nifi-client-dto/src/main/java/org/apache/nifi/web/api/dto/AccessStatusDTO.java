@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
 
@@ -40,9 +40,8 @@ public class AccessStatusDTO {
     /**
      * @return the user identity
      */
-    @ApiModelProperty(
-            value = "The user identity.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The user identity.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public String getIdentity() {
         return identity;
@@ -55,9 +54,8 @@ public class AccessStatusDTO {
     /**
      * @return the user access status
      */
-    @ApiModelProperty(
-            value = "The user access status.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The user access status.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public String getStatus() {
         return status;
@@ -70,9 +68,8 @@ public class AccessStatusDTO {
     /**
      * @return additional details about the user access status
      */
-    @ApiModelProperty(
-            value = "Additional details about the user access status.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "Additional details about the user access status.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public String getMessage() {
         return message;

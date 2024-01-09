@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.action.component.details;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -31,8 +31,7 @@ public class ExtensionDetailsDTO extends ComponentDetailsDTO {
     /**
      * @return extension type
      */
-    @ApiModelProperty(
-            value = "The fully qualified type of extension."
+    @Schema(description = "The fully qualified type of extension."
     )
     public String getType() {
         return type;

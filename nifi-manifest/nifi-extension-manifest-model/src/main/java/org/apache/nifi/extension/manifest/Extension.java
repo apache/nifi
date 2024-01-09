@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import javax.validation.Valid;
 import jakarta.xml.bind.annotation.XmlAccessType;
@@ -27,7 +26,6 @@ import jakarta.xml.bind.annotation.XmlElementWrapper;
 import java.util.List;
 import java.util.Objects;
 
-@ApiModel
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Extension {
 
@@ -109,7 +107,7 @@ public class Extension {
     @XmlElement(name = "multiProcessorUseCase")
     private List<MultiProcessorUseCase> multiProcessorUseCases;
 
-    @ApiModelProperty(value = "The name of the extension")
+    @Schema(description = "The name of the extension")
     public String getName() {
         return name;
     }
@@ -118,7 +116,7 @@ public class Extension {
         this.name = name;
     }
 
-    @ApiModelProperty(value = "The type of the extension")
+    @Schema(description = "The type of the extension")
     public ExtensionType getType() {
         return type;
     }
@@ -127,7 +125,7 @@ public class Extension {
         this.type = type;
     }
 
-    @ApiModelProperty(value = "The deprecation notice of the extension")
+    @Schema(description = "The deprecation notice of the extension")
     public DeprecationNotice getDeprecationNotice() {
         return deprecationNotice;
     }
@@ -136,7 +134,7 @@ public class Extension {
         this.deprecationNotice = deprecationNotice;
     }
 
-    @ApiModelProperty(value = "The description of the extension")
+    @Schema(description = "The description of the extension")
     public String getDescription() {
         return description;
     }
@@ -145,7 +143,7 @@ public class Extension {
         this.description = description;
     }
 
-    @ApiModelProperty(value = "The tags of the extension")
+    @Schema(description = "The tags of the extension")
     public List<String> getTags() {
         return tags;
     }
@@ -154,7 +152,7 @@ public class Extension {
         this.tags = tags;
     }
 
-    @ApiModelProperty(value = "The properties of the extension")
+    @Schema(description = "The properties of the extension")
     public List<Property> getProperties() {
         return properties;
     }
@@ -171,7 +169,7 @@ public class Extension {
         this.supportsSensitiveDynamicProperties = supportsSensitiveDynamicProperties;
     }
 
-    @ApiModelProperty(value = "The dynamic properties of the extension")
+    @Schema(description = "The dynamic properties of the extension")
     public List<DynamicProperty> getDynamicProperties() {
         return dynamicProperties;
     }
@@ -180,7 +178,7 @@ public class Extension {
         this.dynamicProperties = dynamicProperties;
     }
 
-    @ApiModelProperty(value = "The relationships of the extension")
+    @Schema(description = "The relationships of the extension")
     public List<Relationship> getRelationships() {
         return relationships;
     }
@@ -189,7 +187,7 @@ public class Extension {
         this.relationships = relationships;
     }
 
-    @ApiModelProperty(value = "The dynamic relationships of the extension")
+    @Schema(description = "The dynamic relationships of the extension")
     public DynamicRelationship getDynamicRelationship() {
         return dynamicRelationship;
     }
@@ -198,7 +196,7 @@ public class Extension {
         this.dynamicRelationship = dynamicRelationship;
     }
 
-    @ApiModelProperty(value = "The attributes read from flow files by the extension")
+    @Schema(description = "The attributes read from flow files by the extension")
     public List<Attribute> getReadsAttributes() {
         return readsAttributes;
     }
@@ -207,7 +205,7 @@ public class Extension {
         this.readsAttributes = readsAttributes;
     }
 
-    @ApiModelProperty(value = "The attributes written to flow files by the extension")
+    @Schema(description = "The attributes written to flow files by the extension")
     public List<Attribute> getWritesAttributes() {
         return writesAttributes;
     }
@@ -216,7 +214,7 @@ public class Extension {
         this.writesAttributes = writesAttributes;
     }
 
-    @ApiModelProperty(value = "The information about how the extension stores state")
+    @Schema(description = "The information about how the extension stores state")
     public Stateful getStateful() {
         return stateful;
     }
@@ -225,7 +223,7 @@ public class Extension {
         this.stateful = stateful;
     }
 
-    @ApiModelProperty(value = "The restrictions of the extension")
+    @Schema(description = "The restrictions of the extension")
     public Restricted getRestricted() {
         return restricted;
     }
@@ -234,7 +232,7 @@ public class Extension {
         this.restricted = restricted;
     }
 
-    @ApiModelProperty(value = "The input requirement of the extension")
+    @Schema(description = "The input requirement of the extension")
     public InputRequirement getInputRequirement() {
         return inputRequirement;
     }
@@ -243,7 +241,7 @@ public class Extension {
         this.inputRequirement = inputRequirement;
     }
 
-    @ApiModelProperty(value = "The resource considerations of the extension")
+    @Schema(description = "The resource considerations of the extension")
     public List<SystemResourceConsideration> getSystemResourceConsiderations() {
         return systemResourceConsiderations;
     }
@@ -252,7 +250,7 @@ public class Extension {
         this.systemResourceConsiderations = systemResourceConsiderations;
     }
 
-    @ApiModelProperty(value = "The names of other extensions to see")
+    @Schema(description = "The names of other extensions to see")
     public List<String> getSeeAlso() {
         return seeAlso;
     }
@@ -261,7 +259,7 @@ public class Extension {
         this.seeAlso = seeAlso;
     }
 
-    @ApiModelProperty(value = "The service APIs provided by this extension")
+    @Schema(description = "The service APIs provided by this extension")
     public List<ProvidedServiceAPI> getProvidedServiceAPIs() {
         return providedServiceAPIs;
     }
@@ -270,7 +268,7 @@ public class Extension {
         this.providedServiceAPIs = providedServiceAPIs;
     }
 
-    @ApiModelProperty(value = "The default settings for a processor")
+    @Schema(description = "The default settings for a processor")
     public DefaultSettings getDefaultSettings() {
         return defaultSettings;
     }
@@ -279,7 +277,7 @@ public class Extension {
         this.defaultSettings = defaultSettings;
     }
 
-    @ApiModelProperty(value = "The default schedule for a processor reporting task")
+    @Schema(description = "The default schedule for a processor reporting task")
     public DefaultSchedule getDefaultSchedule() {
         return defaultSchedule;
     }
@@ -288,7 +286,7 @@ public class Extension {
         this.defaultSchedule = defaultSchedule;
     }
 
-    @ApiModelProperty(value = "Indicates that a processor should be triggered serially")
+    @Schema(description = "Indicates that a processor should be triggered serially")
     public boolean getTriggerSerially() {
         return triggerSerially;
     }
@@ -297,7 +295,7 @@ public class Extension {
         this.triggerSerially = triggerSerially;
     }
 
-    @ApiModelProperty(value = "Indicates that a processor should be triggered when the incoming queues are empty")
+    @Schema(description = "Indicates that a processor should be triggered when the incoming queues are empty")
     public boolean getTriggerWhenEmpty() {
         return triggerWhenEmpty;
     }
@@ -306,7 +304,7 @@ public class Extension {
         this.triggerWhenEmpty = triggerWhenEmpty;
     }
 
-    @ApiModelProperty(value = "Indicates that a processor should be triggered when any destinations have space for flow files")
+    @Schema(description = "Indicates that a processor should be triggered when any destinations have space for flow files")
     public boolean getTriggerWhenAnyDestinationAvailable() {
         return triggerWhenAnyDestinationAvailable;
     }
@@ -315,7 +313,7 @@ public class Extension {
         this.triggerWhenAnyDestinationAvailable = triggerWhenAnyDestinationAvailable;
     }
 
-    @ApiModelProperty(value = "Indicates that a processor supports batching")
+    @Schema(description = "Indicates that a processor supports batching")
     public boolean getSupportsBatching() {
         return supportsBatching;
     }
@@ -324,7 +322,7 @@ public class Extension {
         this.supportsBatching = supportsBatching;
     }
 
-    @ApiModelProperty(value = "Indicates that a processor should be scheduled only on the primary node")
+    @Schema(description = "Indicates that a processor should be scheduled only on the primary node")
     public boolean getPrimaryNodeOnly() {
         return primaryNodeOnly;
     }
@@ -333,7 +331,7 @@ public class Extension {
         this.primaryNodeOnly = primaryNodeOnly;
     }
 
-    @ApiModelProperty(value = "Indicates that a processor is side effect free")
+    @Schema(description = "Indicates that a processor is side effect free")
     public boolean getSideEffectFree() {
         return sideEffectFree;
     }
@@ -342,7 +340,7 @@ public class Extension {
         this.sideEffectFree = sideEffectFree;
     }
 
-    @ApiModelProperty(value = "Zero or more documented use cases for how the extension may be used")
+    @Schema(description = "Zero or more documented use cases for how the extension may be used")
     public List<UseCase> getUseCases() {
         return useCases;
     }
@@ -351,7 +349,7 @@ public class Extension {
         this.useCases = useCases;
     }
 
-    @ApiModelProperty(value = "Zero or more documented use cases for how the processor may be used in conjunction with other processors")
+    @Schema(description = "Zero or more documented use cases for how the processor may be used in conjunction with other processors")
     public List<MultiProcessorUseCase> getMultiProcessorUseCases() {
         return multiProcessorUseCases;
     }

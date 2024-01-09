@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -36,8 +36,7 @@ public class ClusterSummaryDTO {
     /**
      * @return whether this NiFi instance is clustered
      */
-    @ApiModelProperty(
-            value = "Whether this NiFi instance is clustered."
+    @Schema(description = "Whether this NiFi instance is clustered."
     )
     public Boolean getClustered() {
         return isClustered;
@@ -50,8 +49,7 @@ public class ClusterSummaryDTO {
     /**
      * @return whether this NiFi instance is connected to a cluster
      */
-    @ApiModelProperty(
-            value = "Whether this NiFi instance is connected to a cluster."
+    @Schema(description = "Whether this NiFi instance is connected to a cluster."
     )
     public Boolean getConnectedToCluster() {
         return isConnectedToCluster;
@@ -61,7 +59,7 @@ public class ClusterSummaryDTO {
         isConnectedToCluster = connectedToCluster;
     }
 
-    @ApiModelProperty("The number of nodes that are currently connected to the cluster")
+    @Schema(description = "The number of nodes that are currently connected to the cluster")
     public Integer getConnectedNodeCount() {
         return connectedNodeCount;
     }
@@ -70,7 +68,7 @@ public class ClusterSummaryDTO {
         this.connectedNodeCount = connectedNodeCount;
     }
 
-    @ApiModelProperty("The number of nodes in the cluster, regardless of whether or not they are connected")
+    @Schema(description = "The number of nodes in the cluster, regardless of whether or not they are connected")
     public Integer getTotalNodeCount() {
         return totalNodeCount;
     }
@@ -83,7 +81,7 @@ public class ClusterSummaryDTO {
      * @return Used in clustering, will report the number of nodes connected vs
      * the number of nodes in the cluster
      */
-    @ApiModelProperty("When clustered, reports the number of nodes connected vs the number of nodes in the cluster.")
+    @Schema(description = "When clustered, reports the number of nodes connected vs the number of nodes in the cluster.")
     public String getConnectedNodes() {
         return connectedNodes;
     }

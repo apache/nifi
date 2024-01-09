@@ -16,14 +16,15 @@
  */
 package org.apache.nifi.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
 import java.util.List;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HttpMethod;
@@ -43,13 +44,7 @@ import org.apache.nifi.web.api.entity.ResourcesEntity;
  * RESTful endpoint for retrieving system diagnostics.
  */
 @Path("/resources")
-@Api(
-    value = "/resources",
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Provides the resources in this NiFi that can have access/authorization policies.")
-})
+@Tag(name = "Resources")
 public class ResourceResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
@@ -70,17 +65,18 @@ public class ResourceResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Gets the available resources that support access/authorization policies",
-            response = ResourcesEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /resources")
+    @Operation(
+            summary = "Gets the available resources that support access/authorization policies",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ResourcesEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /resources")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),}
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+            }
     )
     public Response getResources() {
 

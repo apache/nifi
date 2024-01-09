@@ -16,18 +16,16 @@
  */
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Objects;
 
-@ApiModel
 public class Restriction {
 
     private String requiredPermission;
     private String explanation;
 
-    @ApiModelProperty(value = "The permission required for this restriction")
+    @Schema(description = "The permission required for this restriction")
     public String getRequiredPermission() {
         return requiredPermission;
     }
@@ -36,7 +34,7 @@ public class Restriction {
         this.requiredPermission = requiredPermission;
     }
 
-    @ApiModelProperty(value = "The explanation of this restriction")
+    @Schema(description = "The explanation of this restriction")
     public String getExplanation() {
         return explanation;
     }

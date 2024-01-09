@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
@@ -66,9 +66,8 @@ public class ActionEntity extends Entity implements ReadablePermission {
      * @return The timestamp of the action.
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
-    @ApiModelProperty(
-            value = "The timestamp of the action.",
-            dataType = "string"
+    @Schema(description = "The timestamp of the action.",
+            type = "string"
     )
     public Date getTimestamp() {
         return timestamp;

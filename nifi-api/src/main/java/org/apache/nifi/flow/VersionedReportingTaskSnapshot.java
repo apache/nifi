@@ -16,18 +16,17 @@
  */
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
 
-@ApiModel
+@Schema
 public class VersionedReportingTaskSnapshot {
 
     private List<VersionedReportingTask> reportingTasks;
     private List<VersionedControllerService> controllerServices;
 
-    @ApiModelProperty(value = "The controller services")
+    @Schema(description = "The controller services")
     public List<VersionedControllerService> getControllerServices() {
         return controllerServices;
     }
@@ -36,7 +35,7 @@ public class VersionedReportingTaskSnapshot {
         this.controllerServices = controllerServices;
     }
 
-    @ApiModelProperty(value = "The reporting tasks")
+    @Schema(description = "The reporting tasks")
     public List<VersionedReportingTask> getReportingTasks() {
         return reportingTasks;
     }

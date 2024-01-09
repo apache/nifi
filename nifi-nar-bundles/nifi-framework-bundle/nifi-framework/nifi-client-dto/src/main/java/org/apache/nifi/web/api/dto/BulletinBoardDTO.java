@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 
@@ -37,8 +37,7 @@ public class BulletinBoardDTO {
     /**
      * @return bulletins to populate in the bulletin board
      */
-    @ApiModelProperty(
-            value = "The bulletins in the bulletin board, that matches the supplied request."
+    @Schema(description = "The bulletins in the bulletin board, that matches the supplied request."
     )
     public List<BulletinEntity> getBulletins() {
         return bulletins;
@@ -52,9 +51,8 @@ public class BulletinBoardDTO {
      * @return when this bulletin board was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-            value = "The timestamp when this report was generated.",
-            dataType = "string"
+    @Schema(description = "The timestamp when this report was generated.",
+            type = "string"
     )
     public Date getGenerated() {
         return generated;

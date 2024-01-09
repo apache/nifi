@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ParameterProviderReferencingComponentDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 
@@ -47,8 +47,7 @@ public class ParameterProviderReferencingComponentEntity extends ComponentEntity
     /**
      * @return The permissions for this component
      */
-    @ApiModelProperty(
-            value = "The permissions for this component."
+    @Schema(description = "The permissions for this component."
     )
     @Override
     public PermissionsDTO getPermissions() {

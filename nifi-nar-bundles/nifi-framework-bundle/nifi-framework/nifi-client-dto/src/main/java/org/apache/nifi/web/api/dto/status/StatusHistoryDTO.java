@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import jakarta.xml.bind.annotation.XmlType;
@@ -42,9 +42,8 @@ public class StatusHistoryDTO {
      * @return when this status history was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-            value = "When the status history was generated.",
-            dataType = "string"
+    @Schema(description = "When the status history was generated.",
+            type = "string"
     )
     public Date getGenerated() {
         return generated;
@@ -57,7 +56,7 @@ public class StatusHistoryDTO {
     /**
      * @return key/value pairs that describe the component that the status history belongs to
      */
-    @ApiModelProperty("A Map of key/value pairs that describe the component that the status history belongs to")
+    @Schema(description = "A Map of key/value pairs that describe the component that the status history belongs to")
     public LinkedHashMap<String, String> getComponentDetails() {
         return componentDetails;
     }
@@ -66,7 +65,7 @@ public class StatusHistoryDTO {
         this.componentDetails = componentDetails;
     }
 
-    @ApiModelProperty("The Descriptors that provide information on each of the metrics provided in the status history")
+    @Schema(description = "The Descriptors that provide information on each of the metrics provided in the status history")
     public List<StatusDescriptorDTO> getFieldDescriptors() {
         return fieldDescriptors;
     }
@@ -75,7 +74,7 @@ public class StatusHistoryDTO {
         this.fieldDescriptors = fieldDescriptors;
     }
 
-    @ApiModelProperty("A list of StatusSnapshotDTO objects that provide the actual metric values for the component. If the NiFi instance "
+    @Schema(description = "A list of StatusSnapshotDTO objects that provide the actual metric values for the component. If the NiFi instance "
         + "is clustered, this will represent the aggregate status across all nodes. If the NiFi instance is not clustered, this will represent "
         + "the status of the entire NiFi instance.")
     public List<StatusSnapshotDTO> getAggregateSnapshots() {
@@ -86,7 +85,7 @@ public class StatusHistoryDTO {
         this.aggregateSnapshots = aggregateSnapshots;
     }
 
-    @ApiModelProperty("The NodeStatusSnapshotsDTO objects that provide the actual metric values for the component, for each node. "
+    @Schema(description = "The NodeStatusSnapshotsDTO objects that provide the actual metric values for the component, for each node. "
         + "If the NiFi instance is not clustered, this value will be null.")
     public List<NodeStatusSnapshotsDTO> getNodeSnapshots() {
         return nodeSnapshots;

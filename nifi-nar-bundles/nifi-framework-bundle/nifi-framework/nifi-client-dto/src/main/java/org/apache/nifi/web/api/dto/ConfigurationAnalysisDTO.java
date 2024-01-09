@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.Map;
@@ -29,7 +29,7 @@ public class ConfigurationAnalysisDTO {
     private Map<String, String> referencedAttributes;
     private boolean supportsVerification;
 
-    @ApiModelProperty("The ID of the component")
+    @Schema(description = "The ID of the component")
     public String getComponentId() {
         return componentId;
     }
@@ -38,7 +38,7 @@ public class ConfigurationAnalysisDTO {
         this.componentId = componentId;
     }
 
-    @ApiModelProperty("The configured properties for the component")
+    @Schema(description = "The configured properties for the component")
     public Map<String, String> getProperties() {
         return properties;
     }
@@ -47,7 +47,7 @@ public class ConfigurationAnalysisDTO {
         this.properties = properties;
     }
 
-    @ApiModelProperty("The attributes that are referenced by the properties, mapped to recently used values")
+    @Schema(description = "The attributes that are referenced by the properties, mapped to recently used values")
     public Map<String, String> getReferencedAttributes() {
         return referencedAttributes;
     }
@@ -56,7 +56,7 @@ public class ConfigurationAnalysisDTO {
         this.referencedAttributes = referencedAttributes;
     }
 
-    @ApiModelProperty("Whether or not the component supports verification")
+    @Schema(description = "Whether or not the component supports verification")
     public boolean isSupportsVerification() {
         return supportsVerification;
     }

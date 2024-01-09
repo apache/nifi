@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -40,8 +40,7 @@ public class FlowFileSummaryDTO {
     /**
      * @return the FlowFile uri
      */
-    @ApiModelProperty(
-        value = "The URI that can be used to access this FlowFile."
+    @Schema(description = "The URI that can be used to access this FlowFile."
     )
     public String getUri() {
         return uri;
@@ -54,8 +53,7 @@ public class FlowFileSummaryDTO {
     /**
      * @return the FlowFile uuid
      */
-    @ApiModelProperty(
-        value = "The FlowFile UUID."
+    @Schema(description = "The FlowFile UUID."
     )
     public String getUuid() {
         return uuid;
@@ -68,8 +66,7 @@ public class FlowFileSummaryDTO {
     /**
      * @return the FlowFile filename
      */
-    @ApiModelProperty(
-        value = "The FlowFile filename."
+    @Schema(description = "The FlowFile filename."
     )
     public String getFilename() {
         return filename;
@@ -82,8 +79,7 @@ public class FlowFileSummaryDTO {
     /**
      * @return the FlowFile's position in the queue.
      */
-    @ApiModelProperty(
-        value = "The FlowFile's position in the queue."
+    @Schema(description = "The FlowFile's position in the queue."
     )
     public Integer getPosition() {
         return position;
@@ -96,8 +92,7 @@ public class FlowFileSummaryDTO {
     /**
      * @return the FlowFile file size
      */
-    @ApiModelProperty(
-        value = "The FlowFile file size."
+    @Schema(description = "The FlowFile file size."
     )
     public Long getSize() {
         return size;
@@ -110,8 +105,7 @@ public class FlowFileSummaryDTO {
     /**
      * @return how long this FlowFile has been enqueued
      */
-    @ApiModelProperty(
-        value = "How long this FlowFile has been enqueued."
+    @Schema(description = "How long this FlowFile has been enqueued."
     )
     public Long getQueuedDuration() {
         return queuedDuration;
@@ -124,8 +118,7 @@ public class FlowFileSummaryDTO {
     /**
      * @return duration since the FlowFile's greatest ancestor entered the flow
      */
-    @ApiModelProperty(
-        value = "Duration since the FlowFile's greatest ancestor entered the flow."
+    @Schema(description = "Duration since the FlowFile's greatest ancestor entered the flow."
     )
     public Long getLineageDuration() {
         return lineageDuration;
@@ -138,8 +131,7 @@ public class FlowFileSummaryDTO {
     /**
      * @return when the FlowFile will no longer be penalized
      */
-    @ApiModelProperty(
-            value = "How long in milliseconds until the FlowFile penalty expires."
+    @Schema(description = "How long in milliseconds until the FlowFile penalty expires."
     )
     public Long getPenaltyExpiresIn() {
         return penaltyExpiresIn;
@@ -152,8 +144,7 @@ public class FlowFileSummaryDTO {
     /**
      * @return if the FlowFile is penalized
      */
-    @ApiModelProperty(
-        value = "If the FlowFile is penalized."
+    @Schema(description = "If the FlowFile is penalized."
     )
     public Boolean getPenalized() {
         return isPenalized;
@@ -166,8 +157,7 @@ public class FlowFileSummaryDTO {
     /**
      * @return The id of the node where this FlowFile resides.
      */
-    @ApiModelProperty(
-        value = "The id of the node where this FlowFile resides."
+    @Schema(description = "The id of the node where this FlowFile resides."
     )
     public String getClusterNodeId() {
         return clusterNodeId;
@@ -180,8 +170,7 @@ public class FlowFileSummaryDTO {
     /**
      * @return label for the node where this FlowFile resides
      */
-    @ApiModelProperty(
-        value = "The label for the node where this FlowFile resides."
+    @Schema(description = "The label for the node where this FlowFile resides."
     )
     public String getClusterNodeAddress() {
         return clusterNodeAddress;

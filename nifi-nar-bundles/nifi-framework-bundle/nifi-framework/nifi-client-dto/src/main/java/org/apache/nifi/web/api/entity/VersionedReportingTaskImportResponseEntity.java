@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.Set;
@@ -27,7 +27,7 @@ public class VersionedReportingTaskImportResponseEntity extends Entity {
     private Set<ReportingTaskEntity> reportingTasks;
     private Set<ControllerServiceEntity> controllerServices;
 
-    @ApiModelProperty("The reporting tasks created by the import")
+    @Schema(description = "The reporting tasks created by the import")
     public Set<ReportingTaskEntity> getReportingTasks() {
         return reportingTasks;
     }
@@ -36,7 +36,7 @@ public class VersionedReportingTaskImportResponseEntity extends Entity {
         this.reportingTasks = reportingTasks;
     }
 
-    @ApiModelProperty("The controller services created by the import")
+    @Schema(description = "The controller services created by the import")
     public Set<ControllerServiceEntity> getControllerServices() {
         return controllerServices;
     }

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 
 import jakarta.xml.bind.annotation.XmlType;
@@ -36,8 +36,7 @@ public class PreviousValueDTO {
     /**
      * @return previous value
      */
-    @ApiModelProperty(
-            value = "The previous value."
+    @Schema(description = "The previous value."
     )
     public String getPreviousValue() {
         return previousValue;
@@ -51,9 +50,8 @@ public class PreviousValueDTO {
      * @return when it was modified
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
-    @ApiModelProperty(
-            value = "The timestamp when the value was modified.",
-            dataType = "string"
+    @Schema(description = "The timestamp when the value was modified.",
+            type = "string"
     )
     public Date getTimestamp() {
         return timestamp;
@@ -66,8 +64,7 @@ public class PreviousValueDTO {
     /**
      * @return user who changed the previous value
      */
-    @ApiModelProperty(
-            value = "The user who changed the previous value."
+    @Schema(description = "The user who changed the previous value."
     )
     public String getUserIdentity() {
         return userIdentity;

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.Objects;
@@ -33,8 +33,7 @@ public class ControllerServiceApiDTO {
     /**
      * @return The type is the fully-qualified name of the service interface
      */
-    @ApiModelProperty(
-            value = "The fully qualified name of the service interface."
+    @Schema(description = "The fully qualified name of the service interface."
     )
     public String getType() {
         return type;
@@ -49,8 +48,7 @@ public class ControllerServiceApiDTO {
      *
      * @return The bundle details
      */
-    @ApiModelProperty(
-            value = "The details of the artifact that bundled this service interface."
+    @Schema(description = "The details of the artifact that bundled this service interface."
     )
     public BundleDTO getBundle() {
         return bundle;

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 
 import jakarta.xml.bind.annotation.XmlType;
@@ -81,8 +81,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
      * If target uri is not set, but uris are set, then returns the first url in the urls.
      * If neither target uri nor uris are set, then returns null.
      */
-    @ApiModelProperty(
-            value = "The target URI of the remote process group." +
+    @Schema(description = "The target URI of the remote process group." +
                     " If target uri is not set, but uris are set, then returns the first url in the urls." +
                     " If neither target uri nor uris are set, then returns null."
     )
@@ -113,8 +112,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
      * If targetUris was not set but target uri was set, then returns a collection containing the single uri.
      * If neither target uris nor uri were set, then returns null.
      */
-    @ApiModelProperty(
-            value = "The target URI of the remote process group." +
+    @Schema(description = "The target URI of the remote process group." +
                     " If target uris is not set but target uri is set," +
                     " then returns a collection containing the single target uri." +
                     " If neither target uris nor uris are set, then returns null."
@@ -134,8 +132,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     /**
      * @param name of this remote process group
      */
-    @ApiModelProperty(
-            value = "The name of the remote process group."
+    @Schema(description = "The name of the remote process group."
     )
     public void setName(final String name) {
         this.name = name;
@@ -148,8 +145,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     /**
      * @return Comments for this remote process group
      */
-    @ApiModelProperty(
-            value = "The comments for the remote process group."
+    @Schema(description = "The comments for the remote process group."
     )
     public String getComments() {
         return comments;
@@ -162,8 +158,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     /**
      * @return any remote authorization issues for this remote process group
      */
-    @ApiModelProperty(
-            value = "Any remote authorization issues for the remote process group."
+    @Schema(description = "Any remote authorization issues for the remote process group."
     )
     public Collection<String> getAuthorizationIssues() {
         return authorizationIssues;
@@ -176,8 +171,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     /**
      * @return whether or not this remote process group is actively transmitting
      */
-    @ApiModelProperty(
-            value = "Whether the remote process group is actively transmitting."
+    @Schema(description = "Whether the remote process group is actively transmitting."
     )
     public Boolean isTransmitting() {
         return transmitting;
@@ -190,8 +184,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     /**
      * @return whether or not the target is running securely
      */
-    @ApiModelProperty(
-            value = "Whether the target is running securely."
+    @Schema(description = "Whether the target is running securely."
     )
     public Boolean isTargetSecure() {
         return targetSecure;
@@ -204,8 +197,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     /**
      * @return the time period used for the timeout when communicating with this RemoteProcessGroup
      */
-    @ApiModelProperty(
-            value = "The time period used for the timeout when communicating with the target."
+    @Schema(description = "The time period used for the timeout when communicating with the target."
     )
     public String getCommunicationsTimeout() {
         return communicationsTimeout;
@@ -218,8 +210,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     /**
      * @return when yielding, this amount of time must elapse before this remote process group is scheduled again
      */
-    @ApiModelProperty(
-            value = "When yielding, this amount of time must elapse before the remote process group is scheduled again."
+    @Schema(description = "When yielding, this amount of time must elapse before the remote process group is scheduled again."
     )
     public String getYieldDuration() {
         return yieldDuration;
@@ -232,8 +223,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of active remote input ports
      */
-    @ApiModelProperty(
-            value = "The number of active remote input ports."
+    @Schema(description = "The number of active remote input ports."
     )
     public Integer getActiveRemoteInputPortCount() {
         return activeRemoteInputPortCount;
@@ -246,8 +236,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of inactive remote input ports
      */
-    @ApiModelProperty(
-            value = "The number of inactive remote input ports."
+    @Schema(description = "The number of inactive remote input ports."
     )
     public Integer getInactiveRemoteInputPortCount() {
         return inactiveRemoteInputPortCount;
@@ -260,8 +249,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of active remote output ports
      */
-    @ApiModelProperty(
-            value = "The number of active remote output ports."
+    @Schema(description = "The number of active remote output ports."
     )
     public Integer getActiveRemoteOutputPortCount() {
         return activeRemoteOutputPortCount;
@@ -274,8 +262,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of inactive remote output ports
      */
-    @ApiModelProperty(
-            value = "The number of inactive remote output ports."
+    @Schema(description = "The number of inactive remote output ports."
     )
     public Integer getInactiveRemoteOutputPortCount() {
         return inactiveRemoteOutputPortCount;
@@ -288,8 +275,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of Remote Input Ports currently available in the remote NiFi instance
      */
-    @ApiModelProperty(
-            value = "The number of remote input ports currently available on the target."
+    @Schema(description = "The number of remote input ports currently available on the target."
     )
     public Integer getInputPortCount() {
         return inputPortCount;
@@ -302,8 +288,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of Remote Output Ports currently available in the remote NiFi instance
      */
-    @ApiModelProperty(
-            value = "The number of remote output ports currently available on the target."
+    @Schema(description = "The number of remote output ports currently available on the target."
     )
     public Integer getOutputPortCount() {
         return outputPortCount;
@@ -316,8 +301,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     /**
      * @return contents of this remote process group. Will contain available input/output ports
      */
-    @ApiModelProperty(
-            value = "The contents of the remote process group. Will contain available input/output ports."
+    @Schema(description = "The contents of the remote process group. Will contain available input/output ports."
     )
     public RemoteProcessGroupContentsDTO getContents() {
         return contents;
@@ -331,9 +315,8 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
      * @return the flow for this remote group was last refreshed
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
-    @ApiModelProperty(
-            value = "The timestamp when this remote process group was last refreshed.",
-            dataType = "string"
+    @Schema(description = "The timestamp when this remote process group was last refreshed.",
+            type = "string"
     )
     public Date getFlowRefreshed() {
         return flowRefreshed;
@@ -351,7 +334,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         this.transportProtocol = transportProtocol;
     }
 
-    @ApiModelProperty("The local network interface to send/receive data. If not specified, any local address is used. If clustered, all nodes must have an interface with this identifier.")
+    @Schema(description = "The local network interface to send/receive data. If not specified, any local address is used. If clustered, all nodes must have an interface with this identifier.")
     public String getLocalNetworkInterface() {
         return localNetworkInterface;
     }
@@ -360,8 +343,10 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         this.localNetworkInterface = localNetworkInterface;
     }
 
-    @ApiModelProperty(
-            "The validation errors for the remote process group. These validation errors represent the problems with the remote process group that must be resolved before it can transmit."
+    @Schema(description = """
+                          The validation errors for the remote process group.
+                          These validation errors represent the problems with the remote process group that must be resolved before it can transmit.
+                          """
     )
     public Collection<String> getValidationErrors() {
         return validationErrors;

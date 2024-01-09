@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ComponentReferenceDTO;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -34,8 +34,7 @@ public class ComponentReferenceEntity extends ComponentEntity {
     /**
      * @return id for the parent group of this component if applicable, null otherwise
      */
-    @ApiModelProperty(
-            value = "The id of parent process group of this component if applicable."
+    @Schema(description = "The id of parent process group of this component if applicable."
     )
     public String getParentGroupId() {
         return parentGroupId;

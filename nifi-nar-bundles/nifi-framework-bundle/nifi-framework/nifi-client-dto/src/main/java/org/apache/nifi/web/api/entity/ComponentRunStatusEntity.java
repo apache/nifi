@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
 import jakarta.xml.bind.annotation.XmlType;
@@ -35,8 +35,7 @@ public abstract class ComponentRunStatusEntity extends Entity {
     /**
      * @return revision for this request/response
      */
-    @ApiModelProperty(
-            value = "The revision for this request/response. The revision is required for any mutable flow requests and is included in all responses."
+    @Schema(description = "The revision for this request/response. The revision is required for any mutable flow requests and is included in all responses."
     )
     public RevisionDTO getRevision() {
         return revision;
@@ -49,8 +48,7 @@ public abstract class ComponentRunStatusEntity extends Entity {
      * Run status for this component.
      * @return The run status
      */
-    @ApiModelProperty(
-            value = "The run status of the component."
+    @Schema(description = "The run status of the component."
     )
     public String getState() {
         return this.state;
@@ -60,8 +58,7 @@ public abstract class ComponentRunStatusEntity extends Entity {
         this.state = state;
     }
 
-    @ApiModelProperty(
-            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    @Schema(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
     )
     public Boolean isDisconnectedNodeAcknowledged() {
         return disconnectedNodeAcknowledged;

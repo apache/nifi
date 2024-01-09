@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.Collection;
@@ -53,7 +53,7 @@ public class FlowRegistryClientDTO {
     private String validationStatus;
     private String annotationData;
 
-    @ApiModelProperty("The registry identifier")
+    @Schema(description = "The registry identifier")
     public String getId() {
         return id;
     }
@@ -62,7 +62,7 @@ public class FlowRegistryClientDTO {
         this.id = id;
     }
 
-    @ApiModelProperty("The registry name")
+    @Schema(description = "The registry name")
     public String getName() {
         return name;
     }
@@ -71,7 +71,7 @@ public class FlowRegistryClientDTO {
         this.name = name;
     }
 
-    @ApiModelProperty("The registry description")
+    @Schema(description = "The registry description")
     public String getDescription() {
         return description;
     }
@@ -80,7 +80,7 @@ public class FlowRegistryClientDTO {
         this.description = description;
     }
 
-    @ApiModelProperty(value = "The type of the registry client.")
+    @Schema(description = "The type of the registry client.")
     public String getType() {
         return type;
     }
@@ -89,7 +89,7 @@ public class FlowRegistryClientDTO {
         this.type = type;
     }
 
-    @ApiModelProperty(value = "The details of the artifact that bundled this registry client type.")
+    @Schema(description = "The details of the artifact that bundled this registry client type.")
     public BundleDTO getBundle() {
         return bundle;
     }
@@ -98,7 +98,7 @@ public class FlowRegistryClientDTO {
         this.bundle = bundle;
     }
 
-    @ApiModelProperty(value = "The properties of the registry client.")
+    @Schema(description = "The properties of the registry client.")
     public Map<String, String> getProperties() {
         return properties;
     }
@@ -107,7 +107,7 @@ public class FlowRegistryClientDTO {
         this.properties = properties;
     }
 
-    @ApiModelProperty(value = "The descriptors for the registry client properties.")
+    @Schema(description = "The descriptors for the registry client properties.")
     public Map<String, PropertyDescriptorDTO> getDescriptors() {
         return descriptors;
     }
@@ -116,7 +116,7 @@ public class FlowRegistryClientDTO {
         this.descriptors = descriptors;
     }
 
-    @ApiModelProperty(value = "Set of sensitive dynamic property names")
+    @Schema(description = "Set of sensitive dynamic property names")
     public Set<String> getSensitiveDynamicPropertyNames() {
         return sensitiveDynamicPropertyNames;
     }
@@ -125,8 +125,7 @@ public class FlowRegistryClientDTO {
         this.sensitiveDynamicPropertyNames = sensitiveDynamicPropertyNames;
     }
 
-    @ApiModelProperty(
-        value = "Whether the registry client supports sensitive dynamic properties."
+    @Schema(description = "Whether the registry client supports sensitive dynamic properties."
     )
     public Boolean getSupportsSensitiveDynamicProperties() {
         return supportsSensitiveDynamicProperties;
@@ -136,8 +135,7 @@ public class FlowRegistryClientDTO {
         this.supportsSensitiveDynamicProperties = supportsSensitiveDynamicProperties;
     }
 
-    @ApiModelProperty(
-        value = "Whether the registry client requires elevated privileges."
+    @Schema(description = "Whether the registry client requires elevated privileges."
     )
     public Boolean getRestricted() {
         return restricted;
@@ -147,8 +145,7 @@ public class FlowRegistryClientDTO {
         this.restricted = restricted;
     }
 
-    @ApiModelProperty(
-        value = "Whether the registry client has been deprecated."
+    @Schema(description = "Whether the registry client has been deprecated."
     )
     public Boolean getDeprecated() {
         return deprecated;
@@ -161,8 +158,7 @@ public class FlowRegistryClientDTO {
     /**
      * @return whether the underlying extension is missing
      */
-    @ApiModelProperty(
-            value = "Whether the underlying extension is missing."
+    @Schema(description = "Whether the underlying extension is missing."
     )
     public Boolean getExtensionMissing() {
         return isExtensionMissing;
@@ -175,8 +171,7 @@ public class FlowRegistryClientDTO {
     /**
      * @return whether this flow registry client has multiple versions available
      */
-    @ApiModelProperty(
-            value = "Whether the flow registry client has multiple versions available."
+    @Schema(description = "Whether the flow registry client has multiple versions available."
     )
     public Boolean getMultipleVersionsAvailable() {
         return setMultipleVersionsAvailable;
@@ -186,8 +181,7 @@ public class FlowRegistryClientDTO {
         this.setMultipleVersionsAvailable = setMultipleVersionsAvailable;
     }
 
-    @ApiModelProperty(
-        value = "The annotation data for the registry client. This is how the custom UI relays configuration to the registry client."
+    @Schema(description = "The annotation data for the registry client. This is how the custom UI relays configuration to the registry client."
     )
     public String getAnnotationData() {
         return annotationData;
@@ -197,8 +191,7 @@ public class FlowRegistryClientDTO {
         this.annotationData = annotationData;
     }
 
-    @ApiModelProperty(
-        value = "Gets the validation errors from the registry client. These validation errors represent the problems with the registry client that must be resolved before "
+    @Schema(description = "Gets the validation errors from the registry client. These validation errors represent the problems with the registry client that must be resolved before "
             + "it can be used for interacting with the flow registry."
     )
     public Collection<String> getValidationErrors() {
@@ -209,8 +202,8 @@ public class FlowRegistryClientDTO {
         this.validationErrors = validationErrors;
     }
 
-    @ApiModelProperty(value = "Indicates whether the Registry Client is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Registry Client is valid)",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY,
+    @Schema(description = "Indicates whether the Registry Client is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Registry Client is valid)",
+            accessMode = Schema.AccessMode.READ_ONLY,
             allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
     public String getValidationStatus() {
         return validationStatus;

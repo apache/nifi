@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -26,7 +26,7 @@ public class DifferenceDTO {
     private String differenceType;
     private String difference;
 
-    @ApiModelProperty("The type of difference")
+    @Schema(description = "The type of difference")
     public String getDifferenceType() {
         return differenceType;
     }
@@ -35,7 +35,7 @@ public class DifferenceDTO {
         this.differenceType = differenceType;
     }
 
-    @ApiModelProperty("Description of the difference")
+    @Schema(description = "Description of the difference")
     public String getDifference() {
         return difference;
     }

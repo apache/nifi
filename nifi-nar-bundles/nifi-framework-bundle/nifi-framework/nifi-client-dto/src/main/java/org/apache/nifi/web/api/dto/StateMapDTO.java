@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
@@ -34,8 +34,7 @@ public class StateMapDTO {
     /**
      * @return The scope of this StateMap
      */
-    @ApiModelProperty(
-        value = "The scope of this StateMap."
+    @Schema(description = "The scope of this StateMap."
     )
     public String getScope() {
         return scope;
@@ -48,8 +47,7 @@ public class StateMapDTO {
     /**
      * @return The total number of state entries. When the state map is lengthy, only of portion of the entries are returned.
      */
-    @ApiModelProperty(
-        value = "The total number of state entries. When the state map is lengthy, only of portion of the entries are returned."
+    @Schema(description = "The total number of state entries. When the state map is lengthy, only of portion of the entries are returned."
     )
     public int getTotalEntryCount() {
         return totalEntryCount;
@@ -62,8 +60,7 @@ public class StateMapDTO {
     /**
      * @return The state
      */
-    @ApiModelProperty(
-        value = "The state."
+    @Schema(description = "The state."
     )
     public List<StateEntryDTO> getState() {
         return state;

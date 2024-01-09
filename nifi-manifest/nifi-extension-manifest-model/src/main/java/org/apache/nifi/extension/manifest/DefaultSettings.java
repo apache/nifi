@@ -16,13 +16,11 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 
-@ApiModel
 @XmlAccessorType(XmlAccessType.FIELD)
 public class DefaultSettings {
 
@@ -30,7 +28,7 @@ public class DefaultSettings {
     private String penaltyDuration;
     private String bulletinLevel;
 
-    @ApiModelProperty("The default yield duration")
+    @Schema(description = "The default yield duration")
     public String getYieldDuration() {
         return yieldDuration;
     }
@@ -39,7 +37,7 @@ public class DefaultSettings {
         this.yieldDuration = yieldDuration;
     }
 
-    @ApiModelProperty("The default penalty duration")
+    @Schema(description = "The default penalty duration")
     public String getPenaltyDuration() {
         return penaltyDuration;
     }
@@ -48,7 +46,7 @@ public class DefaultSettings {
         this.penaltyDuration = penaltyDuration;
     }
 
-    @ApiModelProperty("The default bulletin level")
+    @Schema(description = "The default bulletin level")
     public String getBulletinLevel() {
         return bulletinLevel;
     }

@@ -19,7 +19,7 @@ package org.apache.nifi.web.api.dto.diagnostics;
 
 import jakarta.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @XmlType(name = "nodeGCDiagnosticsSnapshot")
 public class NodeGCDiagnosticsSnapshotDTO {
@@ -29,7 +29,7 @@ public class NodeGCDiagnosticsSnapshotDTO {
 
     private GCDiagnosticsSnapshotDTO snapshot;
 
-    @ApiModelProperty("The unique ID that identifies the node")
+    @Schema(description = "The unique ID that identifies the node")
     public String getNodeId() {
         return nodeId;
     }
@@ -38,7 +38,7 @@ public class NodeGCDiagnosticsSnapshotDTO {
         this.nodeId = nodeId;
     }
 
-    @ApiModelProperty("The API address of the node")
+    @Schema(description = "The API address of the node")
     public String getAddress() {
         return address;
     }
@@ -47,7 +47,7 @@ public class NodeGCDiagnosticsSnapshotDTO {
         this.address = address;
     }
 
-    @ApiModelProperty("The API port used to communicate with the node")
+    @Schema(description = "The API port used to communicate with the node")
     public Integer getApiPort() {
         return apiPort;
     }
@@ -56,7 +56,7 @@ public class NodeGCDiagnosticsSnapshotDTO {
         this.apiPort = apiPort;
     }
 
-    @ApiModelProperty("The Garbage Collection Diagnostics Snapshot")
+    @Schema(description = "The Garbage Collection Diagnostics Snapshot")
     public GCDiagnosticsSnapshotDTO getSnapshot() {
         return snapshot;
     }

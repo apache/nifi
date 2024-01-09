@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
 import java.util.List;
 import java.util.Set;
-import jakarta.servlet.http.HttpServletRequest;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
@@ -37,7 +37,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
@@ -60,13 +59,7 @@ import org.apache.nifi.web.api.request.LongParameter;
  * RESTful endpoint for managing a Connection.
  */
 @Path("/connections")
-@Api(
-    value = "/connections",
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Endpoint for managing a Connection.")
-})
+@Tag(name = "Connections")
 public class ConnectionResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
@@ -107,26 +100,26 @@ public class ConnectionResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}")
-    @ApiOperation(
-            value = "Gets a connection",
-            response = ConnectionEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read Source - /{component-type}/{uuid}"),
-                    @Authorization(value = "Read Destination - /{component-type}/{uuid}")
+    @Operation(
+            summary = "Gets a connection",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ConnectionEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read Source - /{component-type}/{uuid}"),
+                    @SecurityRequirement(name = "Read Destination - /{component-type}/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getConnection(
-            @ApiParam(
-                    value = "The connection id.",
+            @Parameter(
+                    description = "The connection id.",
                     required = true
             )
             @PathParam("id") final String id) throws InterruptedException {
@@ -153,9 +146,8 @@ public class ConnectionResource extends ApplicationResource {
     /**
      * Updates the specified connection.
      *
-     * @param httpServletRequest request
-     * @param id                 The id of the connection.
-     * @param requestConnectionEntity   A connectionEntity.
+     * @param id The id of the connection.
+     * @param requestConnectionEntity A connectionEntity.
      * @return A connectionEntity.
      * @throws InterruptedException if interrupted
      */
@@ -163,34 +155,33 @@ public class ConnectionResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}")
-    @ApiOperation(
-            value = "Updates a connection",
-            response = ConnectionEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write Source - /{component-type}/{uuid}"),
-                    @Authorization(value = "Write Destination - /{component-type}/{uuid}"),
-                    @Authorization(value = "Write New Destination - /{component-type}/{uuid} - if updating Destination"),
-                    @Authorization(value = "Write Process Group - /process-groups/{uuid} - if updating Destination")
+    @Operation(
+            summary = "Updates a connection",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ConnectionEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write Source - /{component-type}/{uuid}"),
+                    @SecurityRequirement(name = "Write Destination - /{component-type}/{uuid}"),
+                    @SecurityRequirement(name = "Write New Destination - /{component-type}/{uuid} - if updating Destination"),
+                    @SecurityRequirement(name = "Write Process Group - /process-groups/{uuid} - if updating Destination")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response updateConnection(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The connection id.",
+            @Parameter(
+                    description = "The connection id.",
                     required = true
             )
             @PathParam("id") final String id,
-            @ApiParam(
-                    value = "The connection configuration details.",
+            @Parameter(
+                    description = "The connection configuration details.",
                     required = true
             ) final ConnectionEntity requestConnectionEntity) throws InterruptedException {
 
@@ -285,10 +276,9 @@ public class ConnectionResource extends ApplicationResource {
     /**
      * Removes the specified connection.
      *
-     * @param httpServletRequest request
-     * @param version            The revision is used to verify the client is working with the latest version of the flow.
-     * @param clientId           Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param id                 The id of the connection.
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param id The id of the connection.
      * @return An Entity containing the client id and an updated revision.
      * @throws InterruptedException if interrupted
      */
@@ -296,43 +286,39 @@ public class ConnectionResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}")
-    @ApiOperation(
-            value = "Deletes a connection",
-            response = ConnectionEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write Source - /{component-type}/{uuid}"),
-                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}"),
-                    @Authorization(value = "Write Destination - /{component-type}/{uuid}")
+    @Operation(
+            summary = "Deletes a connection",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ConnectionEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write Source - /{component-type}/{uuid}"),
+                    @SecurityRequirement(name = "Write - Parent Process Group - /process-groups/{uuid}"),
+                    @SecurityRequirement(name = "Write Destination - /{component-type}/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response deleteConnection(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The revision is used to verify the client is working with the latest version of the flow.",
-                    required = false
+            @Parameter(
+                    description = "The revision is used to verify the client is working with the latest version of the flow."
             )
             @QueryParam(VERSION) final LongParameter version,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
+            @Parameter(
+                    description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response."
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
-            @ApiParam(
-                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
-                    required = false
+            @Parameter(
+                    description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
             )
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
-            @ApiParam(
-                    value = "The connection id.",
+            @Parameter(
+                    description = "The connection id.",
                     required = true
             )
             @PathParam("id") final String id) throws InterruptedException {
@@ -376,7 +362,6 @@ public class ConnectionResource extends ApplicationResource {
         );
     }
 
-    // setters
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }

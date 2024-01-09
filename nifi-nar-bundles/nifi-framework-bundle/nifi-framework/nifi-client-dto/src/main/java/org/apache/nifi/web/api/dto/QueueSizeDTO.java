@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -32,8 +32,7 @@ public class QueueSizeDTO {
     /**
      * @return the count of objects in a queue
      */
-    @ApiModelProperty(
-            value = "The count of objects in a queue."
+    @Schema(description = "The count of objects in a queue."
     )
     public int getObjectCount() {
         return objectCount;
@@ -46,8 +45,7 @@ public class QueueSizeDTO {
     /**
      * @return the size of objects in a queue
      */
-    @ApiModelProperty(
-            value = "The size of objects in a queue."
+    @Schema(description = "The size of objects in a queue."
     )
     public long getByteCount() {
         return byteCount;

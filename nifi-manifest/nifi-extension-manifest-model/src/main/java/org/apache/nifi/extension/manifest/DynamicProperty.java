@@ -16,13 +16,11 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 
-@ApiModel
 @XmlAccessorType(XmlAccessType.FIELD)
 public class DynamicProperty {
 
@@ -32,7 +30,7 @@ public class DynamicProperty {
     private ExpressionLanguageScope expressionLanguageScope;
     private boolean expressionLanguageSupported;
 
-    @ApiModelProperty(value = "The description of the dynamic property name")
+    @Schema(description = "The description of the dynamic property name")
     public String getName() {
         return name;
     }
@@ -41,7 +39,7 @@ public class DynamicProperty {
         this.name = name;
     }
 
-    @ApiModelProperty(value = "The description of the dynamic property value")
+    @Schema(description = "The description of the dynamic property value")
     public String getValue() {
         return value;
     }
@@ -50,7 +48,7 @@ public class DynamicProperty {
         this.value = value;
     }
 
-    @ApiModelProperty(value = "The description of the dynamic property")
+    @Schema(description = "The description of the dynamic property")
     public String getDescription() {
         return description;
     }
@@ -59,7 +57,7 @@ public class DynamicProperty {
         this.description = description;
     }
 
-    @ApiModelProperty(value = "Whether or not expression language is supported")
+    @Schema(description = "Whether or not expression language is supported")
     public boolean isExpressionLanguageSupported() {
         return expressionLanguageSupported;
     }
@@ -68,7 +66,7 @@ public class DynamicProperty {
         this.expressionLanguageSupported = expressionLanguageSupported;
     }
 
-    @ApiModelProperty(value = "The scope of the expression language support")
+    @Schema(description = "The scope of the expression language support")
     public ExpressionLanguageScope getExpressionLanguageScope() {
         return expressionLanguageScope;
     }

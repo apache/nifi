@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import jakarta.xml.bind.annotation.XmlType;
@@ -38,7 +38,7 @@ public class RemoteProcessGroupStatusDTO {
     private RemoteProcessGroupStatusSnapshotDTO aggregateSnapshot;
     private List<NodeRemoteProcessGroupStatusSnapshotDTO> nodeSnapshots;
 
-    @ApiModelProperty("The unique ID of the process group that the Processor belongs to")
+    @Schema(description = "The unique ID of the process group that the Processor belongs to")
     public String getGroupId() {
         return groupId;
     }
@@ -47,7 +47,7 @@ public class RemoteProcessGroupStatusDTO {
         this.groupId = groupId;
     }
 
-    @ApiModelProperty("The unique ID of the Processor")
+    @Schema(description = "The unique ID of the Processor")
     public String getId() {
         return id;
     }
@@ -56,7 +56,7 @@ public class RemoteProcessGroupStatusDTO {
         this.id = id;
     }
 
-    @ApiModelProperty("The name of the remote process group.")
+    @Schema(description = "The name of the remote process group.")
     public String getName() {
         return name;
     }
@@ -65,7 +65,7 @@ public class RemoteProcessGroupStatusDTO {
         this.name = name;
     }
 
-    @ApiModelProperty("The transmission status of the remote process group.")
+    @Schema(description = "The transmission status of the remote process group.")
     public String getTransmissionStatus() {
         return transmissionStatus;
     }
@@ -74,7 +74,7 @@ public class RemoteProcessGroupStatusDTO {
         this.transmissionStatus = transmissionStatus;
     }
 
-    @ApiModelProperty("The URI of the target system.")
+    @Schema(description = "The URI of the target system.")
     public String getTargetUri() {
         return targetUri;
     }
@@ -83,7 +83,7 @@ public class RemoteProcessGroupStatusDTO {
         this.targetUri = targetUri;
     }
 
-    @ApiModelProperty("A status snapshot that represents the aggregate stats of all nodes in the cluster. If the NiFi instance is "
+    @Schema(description = "A status snapshot that represents the aggregate stats of all nodes in the cluster. If the NiFi instance is "
         + "a standalone instance, rather than a cluster, this represents the stats of the single instance.")
     public RemoteProcessGroupStatusSnapshotDTO getAggregateSnapshot() {
         return aggregateSnapshot;
@@ -93,7 +93,7 @@ public class RemoteProcessGroupStatusDTO {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    @ApiModelProperty("A status snapshot for each node in the cluster. If the NiFi instance is a standalone instance, rather than "
+    @Schema(description = "A status snapshot for each node in the cluster. If the NiFi instance is a standalone instance, rather than "
         + "a cluster, this may be null.")
     public List<NodeRemoteProcessGroupStatusSnapshotDTO> getNodeSnapshots() {
         return nodeSnapshots;
@@ -109,9 +109,8 @@ public class RemoteProcessGroupStatusDTO {
      * @return The the status was calculated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-        value = "The time the status for the process group was last refreshed.",
-        dataType = "string"
+    @Schema(description = "The time the status for the process group was last refreshed.",
+        type = "string"
     )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;
@@ -121,9 +120,9 @@ public class RemoteProcessGroupStatusDTO {
         this.statsLastRefreshed = statsLastRefreshed;
     }
 
-    @ApiModelProperty(value = "Indicates whether the component is valid, invalid, or still in the process of validating" +
+    @Schema(description = "Indicates whether the component is valid, invalid, or still in the process of validating" +
             " (i.e., it is unknown whether or not the component is valid)",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY,
+            accessMode = Schema.AccessMode.READ_ONLY,
             allowableValues = "VALID, INVALID, VALIDATING")
     public String getValidationStatus() {
         return validationStatus;

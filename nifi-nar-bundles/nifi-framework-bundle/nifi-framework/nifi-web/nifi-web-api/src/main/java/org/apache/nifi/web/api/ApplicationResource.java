@@ -79,6 +79,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.ResponseBuilder;
 import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriInfo;
+
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -233,7 +234,7 @@ public abstract class ApplicationResource {
     /**
      * Generates a 201 Created response with the specified content.
      *
-     * @param uri    The URI
+     * @param uri The URI
      * @param entity entity
      * @return The response to be built
      */
@@ -420,8 +421,8 @@ public abstract class ApplicationResource {
     /**
      * Authorize any restrictions for the specified ComponentAuthorizable.
      *
-     * @param authorizer                authorizer
-     * @param authorizable              component authorizable
+     * @param authorizer authorizer
+     * @param authorizable component authorizable
      */
     protected void authorizeRestrictions(final Authorizer authorizer, final ComponentAuthorizable authorizable) {
         authorizable.getRestrictedAuthorizables().forEach(restrictionAuthorizable -> restrictionAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()));
@@ -430,13 +431,13 @@ public abstract class ApplicationResource {
     /**
      * Authorizes the specified process group.
      *
-     * @param processGroupAuthorizable     process group
-     * @param authorizer                   authorizer
-     * @param lookup                       lookup
-     * @param action                       action
-     * @param authorizeReferencedServices  whether to authorize referenced services
-     * @param authorizeControllerServices  whether to authorize controller services
-     * @param authorizeTransitiveServices  whether to authorize transitive services
+     * @param processGroupAuthorizable process group
+     * @param authorizer authorizer
+     * @param lookup lookup
+     * @param action action
+     * @param authorizeReferencedServices whether to authorize referenced services
+     * @param authorizeControllerServices whether to authorize controller services
+     * @param authorizeTransitiveServices whether to authorize transitive services
      * @param authorizeParameterReferences whether to authorize parameter references
      */
     protected void authorizeProcessGroup(final ProcessGroupAuthorizable processGroupAuthorizable, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
@@ -495,8 +496,8 @@ public abstract class ApplicationResource {
      * Authorizes the specified Snippet with the specified request action.
      *
      * @param authorizer authorizer
-     * @param lookup     lookup
-     * @param action     action
+     * @param lookup lookup
+     * @param action action
      */
     protected void authorizeSnippet(final SnippetAuthorizable snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
                                     final boolean authorizeReferencedServices, final boolean authorizeTransitiveServices, final boolean authorizeParameterReferences) {
@@ -537,10 +538,10 @@ public abstract class ApplicationResource {
      * Executes an action through the service facade using the specified revision.
      *
      * @param serviceFacade service facade
-     * @param revision      revision
-     * @param authorizer    authorizer
-     * @param verifier      verifier
-     * @param action        executor
+     * @param revision revision
+     * @param authorizer authorizer
+     * @param verifier verifier
+     * @param action executor
      * @return the response
      */
     protected <T extends Entity> Response withWriteLock(final NiFiServiceFacade serviceFacade, final T entity, final Revision revision, final AuthorizeAccess authorizer,
@@ -591,10 +592,10 @@ public abstract class ApplicationResource {
      * Executes an action through the service facade using the specified revision.
      *
      * @param serviceFacade service facade
-     * @param revisions     revisions
-     * @param authorizer    authorizer
-     * @param verifier      verifier
-     * @param action        executor
+     * @param revisions revisions
+     * @param authorizer authorizer
+     * @param verifier verifier
+     * @param action executor
      * @return the response
      */
     protected <T extends Entity> Response withWriteLock(final NiFiServiceFacade serviceFacade, final T entity, final Set<Revision> revisions, final AuthorizeAccess authorizer,
@@ -645,9 +646,9 @@ public abstract class ApplicationResource {
      * Executes an action through the service facade.
      *
      * @param serviceFacade service facade
-     * @param authorizer    authorizer
-     * @param verifier      verifier
-     * @param action        the action to execute
+     * @param authorizer authorizer
+     * @param verifier verifier
+     * @param action the action to execute
      * @return the response
      */
     protected <T extends Entity> Response withWriteLock(final NiFiServiceFacade serviceFacade, final T entity, final AuthorizeAccess authorizer,
@@ -803,7 +804,7 @@ public abstract class ApplicationResource {
     /**
      * Replicates the request to the given node
      *
-     * @param method   the HTTP method
+     * @param method the HTTP method
      * @param nodeUuid the UUID of the node to replicate the request to
      * @return the response from the node
      * @throws UnknownNodeException if the nodeUuid given does not map to any node in the cluster
@@ -826,8 +827,8 @@ public abstract class ApplicationResource {
     /**
      * Replicates the request to the given node
      *
-     * @param method   the HTTP method
-     * @param entity   the Entity to replicate
+     * @param method the HTTP method
+     * @param entity the Entity to replicate
      * @param nodeUuid the UUID of the node to replicate the request to
      * @return the response from the node
      * @throws UnknownNodeException if the nodeUuid given does not map to any node in the cluster
@@ -839,8 +840,8 @@ public abstract class ApplicationResource {
     /**
      * Replicates the request to the given node
      *
-     * @param method   the HTTP method
-     * @param entity   the Entity to replicate
+     * @param method the HTTP method
+     * @param entity the Entity to replicate
      * @param nodeUuid the UUID of the node to replicate the request to
      * @return the response from the node
      * @throws UnknownNodeException if the nodeUuid given does not map to any node in the cluster
@@ -975,8 +976,8 @@ public abstract class ApplicationResource {
      * used will be those provided by the {@link #getHeaders()} method. The URI that will be used will be
      * that provided by the {@link #getAbsolutePath()} method
      *
-     * @param method            the HTTP method to use
-     * @param entity            the entity to replicate
+     * @param method the HTTP method to use
+     * @param entity the entity to replicate
      * @param headersToOverride the headers to override
      * @return the response from the request
      * @see #replicateNodeResponse(String, Object, Map)
@@ -1001,8 +1002,8 @@ public abstract class ApplicationResource {
      * that provided by the {@link #getAbsolutePath()} method. This method returns the NodeResponse,
      * rather than a Response object.
      *
-     * @param method            the HTTP method to use
-     * @param entity            the entity to replicate
+     * @param method the HTTP method to use
+     * @param entity the entity to replicate
      * @param headersToOverride the headers to override
      * @return the response from the request
      * @throws InterruptedException if interrupted while replicating the request

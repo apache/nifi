@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import jakarta.xml.bind.annotation.XmlType;
@@ -36,8 +36,7 @@ public class ClusterDTO {
     /**
      * @return collection of the node DTOs
      */
-    @ApiModelProperty(
-            value = "The collection of nodes that are part of the cluster."
+    @Schema(description = "The collection of nodes that are part of the cluster."
     )
     public Collection<NodeDTO> getNodes() {
         return nodes;
@@ -51,9 +50,8 @@ public class ClusterDTO {
      * @return the date/time that this report was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-            value = "The timestamp the report was generated.",
-            dataType = "string"
+    @Schema(description = "The timestamp the report was generated.",
+            type = "string"
     )
     public Date getGenerated() {
         return generated;

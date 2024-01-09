@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -50,7 +50,7 @@ public class ControllerStatusDTO implements Cloneable {
      *
      * @return The active thread count
      */
-    @ApiModelProperty("The number of active threads in the NiFi.")
+    @Schema(description = "The number of active threads in the NiFi.")
     public Integer getActiveThreadCount() {
         return activeThreadCount;
     }
@@ -64,7 +64,7 @@ public class ControllerStatusDTO implements Cloneable {
      *
      * @return The terminated thread count
      */
-    @ApiModelProperty("The number of terminated threads in the NiFi.")
+    @Schema(description = "The number of terminated threads in the NiFi.")
     public Integer getTerminatedThreadCount() {
         return terminatedThreadCount;
     }
@@ -76,7 +76,7 @@ public class ControllerStatusDTO implements Cloneable {
     /**
      * @return queue for the controller
      */
-    @ApiModelProperty("The number of flowfiles queued in the NiFi.")
+    @Schema(description = "The number of flowfiles queued in the NiFi.")
     public String getQueued() {
         return queued;
     }
@@ -88,7 +88,7 @@ public class ControllerStatusDTO implements Cloneable {
     /**
      * @return number of running components in this controller
      */
-    @ApiModelProperty("The number of running components in the NiFi.")
+    @Schema(description = "The number of running components in the NiFi.")
     public Integer getRunningCount() {
         return runningCount;
     }
@@ -100,7 +100,7 @@ public class ControllerStatusDTO implements Cloneable {
     /**
      * @return number of stopped components in this controller
      */
-    @ApiModelProperty("The number of stopped components in the NiFi.")
+    @Schema(description = "The number of stopped components in the NiFi.")
     public Integer getStoppedCount() {
         return stoppedCount;
     }
@@ -112,7 +112,7 @@ public class ControllerStatusDTO implements Cloneable {
     /**
      * @return number of invalid components in this controller
      */
-    @ApiModelProperty("The number of invalid components in the NiFi.")
+    @Schema(description = "The number of invalid components in the NiFi.")
     public Integer getInvalidCount() {
         return invalidCount;
     }
@@ -124,7 +124,7 @@ public class ControllerStatusDTO implements Cloneable {
     /**
      * @return number of disabled components in this controller
      */
-    @ApiModelProperty("The number of disabled components in the NiFi.")
+    @Schema(description = "The number of disabled components in the NiFi.")
     public Integer getDisabledCount() {
         return disabledCount;
     }
@@ -136,7 +136,7 @@ public class ControllerStatusDTO implements Cloneable {
     /**
      * @return number of active remote ports in this controller
      */
-    @ApiModelProperty("The number of active remote ports in the NiFi.")
+    @Schema(description = "The number of active remote ports in the NiFi.")
     public Integer getActiveRemotePortCount() {
         return activeRemotePortCount;
     }
@@ -148,7 +148,7 @@ public class ControllerStatusDTO implements Cloneable {
     /**
      * @return number of inactive remote ports in this controller
      */
-    @ApiModelProperty("The number of inactive remote ports in the NiFi.")
+    @Schema(description = "The number of inactive remote ports in the NiFi.")
     public Integer getInactiveRemotePortCount() {
         return inactiveRemotePortCount;
     }
@@ -157,7 +157,7 @@ public class ControllerStatusDTO implements Cloneable {
         this.inactiveRemotePortCount = inactiveRemotePortCount;
     }
 
-    @ApiModelProperty("The number of FlowFiles queued across the entire flow")
+    @Schema(description = "The number of FlowFiles queued across the entire flow")
     public Integer getFlowFilesQueued() {
         return flowFilesQueued;
     }
@@ -166,7 +166,7 @@ public class ControllerStatusDTO implements Cloneable {
         this.flowFilesQueued = flowFilesQueued;
     }
 
-    @ApiModelProperty("The size of the FlowFiles queued across the entire flow")
+    @Schema(description = "The size of the FlowFiles queued across the entire flow")
     public Long getBytesQueued() {
         return bytesQueued;
     }
@@ -175,7 +175,7 @@ public class ControllerStatusDTO implements Cloneable {
         this.bytesQueued = bytesQueued;
     }
 
-    @ApiModelProperty("The number of up to date versioned process groups in the NiFi.")
+    @Schema(description = "The number of up to date versioned process groups in the NiFi.")
     public Integer getUpToDateCount() {
         return upToDateCount;
     }
@@ -184,7 +184,7 @@ public class ControllerStatusDTO implements Cloneable {
         this.upToDateCount = upToDateCount;
     }
 
-    @ApiModelProperty("The number of locally modified versioned process groups in the NiFi.")
+    @Schema(description = "The number of locally modified versioned process groups in the NiFi.")
     public Integer getLocallyModifiedCount() {
         return locallyModifiedCount;
     }
@@ -193,7 +193,7 @@ public class ControllerStatusDTO implements Cloneable {
         this.locallyModifiedCount = locallyModifiedCount;
     }
 
-    @ApiModelProperty("The number of stale versioned process groups in the NiFi.")
+    @Schema(description = "The number of stale versioned process groups in the NiFi.")
     public Integer getStaleCount() {
         return staleCount;
     }
@@ -202,7 +202,7 @@ public class ControllerStatusDTO implements Cloneable {
         this.staleCount = staleCount;
     }
 
-    @ApiModelProperty("The number of locally modified and stale versioned process groups in the NiFi.")
+    @Schema(description = "The number of locally modified and stale versioned process groups in the NiFi.")
     public Integer getLocallyModifiedAndStaleCount() {
         return locallyModifiedAndStaleCount;
     }
@@ -211,7 +211,7 @@ public class ControllerStatusDTO implements Cloneable {
         this.locallyModifiedAndStaleCount = locallyModifiedAndStaleCount;
     }
 
-    @ApiModelProperty("The number of versioned process groups in the NiFi that are unable to sync to a registry.")
+    @Schema(description = "The number of versioned process groups in the NiFi that are unable to sync to a registry.")
     public Integer getSyncFailureCount() {
         return syncFailureCount;
     }

@@ -16,14 +16,12 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import java.util.Objects;
 
-@ApiModel
 @XmlAccessorType(XmlAccessType.FIELD)
 public class ControllerServiceDefinition {
 
@@ -32,7 +30,7 @@ public class ControllerServiceDefinition {
     private String artifactId;
     private String version;
 
-    @ApiModelProperty(value = "The class name of the service API")
+    @Schema(description = "The class name of the service API")
     public String getClassName() {
         return className;
     }
@@ -41,7 +39,7 @@ public class ControllerServiceDefinition {
         this.className = className;
     }
 
-    @ApiModelProperty(value = "The group id of the service API")
+    @Schema(description = "The group id of the service API")
     public String getGroupId() {
         return groupId;
     }
@@ -50,7 +48,7 @@ public class ControllerServiceDefinition {
         this.groupId = groupId;
     }
 
-    @ApiModelProperty(value = "The artifact id of the service API")
+    @Schema(description = "The artifact id of the service API")
     public String getArtifactId() {
         return artifactId;
     }
@@ -59,7 +57,7 @@ public class ControllerServiceDefinition {
         this.artifactId = artifactId;
     }
 
-    @ApiModelProperty(value = "The version of the service API")
+    @Schema(description = "The version of the service API")
     public String getVersion() {
         return version;
     }

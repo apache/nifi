@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import javax.validation.Valid;
 import jakarta.xml.bind.annotation.XmlAccessType;
@@ -26,7 +25,6 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlElementWrapper;
 import java.util.List;
 
-@ApiModel
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Restricted {
 
@@ -37,7 +35,7 @@ public class Restricted {
     @XmlElement(name = "restriction")
     private List<Restriction> restrictions;
 
-    @ApiModelProperty(value = "The general restriction for the extension, or null if only specific restrictions exist")
+    @Schema(description = "The general restriction for the extension, or null if only specific restrictions exist")
     public String getGeneralRestrictionExplanation() {
         return generalRestrictionExplanation;
     }
@@ -46,7 +44,7 @@ public class Restricted {
         this.generalRestrictionExplanation = generalRestrictionExplanation;
     }
 
-    @ApiModelProperty(value = "The specific restrictions")
+    @Schema(description = "The specific restrictions")
     public List<Restriction> getRestrictions() {
         return restrictions;
     }

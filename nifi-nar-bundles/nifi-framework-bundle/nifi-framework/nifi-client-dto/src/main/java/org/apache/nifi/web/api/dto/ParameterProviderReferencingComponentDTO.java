@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -32,8 +32,7 @@ public class ParameterProviderReferencingComponentDTO {
     /**
      * @return id for this component referencing a parameter provider
      */
-    @ApiModelProperty(
-            value = "The id of the component referencing a parameter provider."
+    @Schema(description = "The id of the component referencing a parameter provider."
     )
     public String getId() {
         return id;
@@ -46,8 +45,7 @@ public class ParameterProviderReferencingComponentDTO {
     /**
      * @return name for this component referencing a parameter provider
      */
-    @ApiModelProperty(
-            value = "The name of the component referencing a parameter provider."
+    @Schema(description = "The name of the component referencing a parameter provider."
     )
     public String getName() {
         return name;

@@ -17,24 +17,21 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.io.Serializable;
 import java.util.Objects;
 
-@ApiModel
 public class DeviceInfo implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty(
-        value = "A unique, long-lived identifier for the device",
-        required = true)
+    @Schema(description = "A unique, long-lived identifier for the device")
     private String identifier;
 
-    @ApiModelProperty("Metadata for the device hardware and operating system")
+    @Schema(description = "Metadata for the device hardware and operating system")
     private SystemInfo systemInfo;
 
-    @ApiModelProperty("Metadata for the network interface of this device")
+    @Schema(description = "Metadata for the network interface of this device")
     private NetworkInfo networkInfo;
 
     public String getIdentifier() {

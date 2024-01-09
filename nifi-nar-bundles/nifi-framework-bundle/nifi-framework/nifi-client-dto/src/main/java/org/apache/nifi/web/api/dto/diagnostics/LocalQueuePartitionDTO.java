@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.dto.diagnostics;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -35,7 +35,7 @@ public class LocalQueuePartitionDTO {
     private Boolean allActiveQueueFlowFilesPenalized;
     private Boolean anyActiveQueueFlowFilesPenalized;
 
-    @ApiModelProperty("Total number of FlowFiles owned by the Connection")
+    @Schema(description = "Total number of FlowFiles owned by the Connection")
     public int getTotalFlowFileCount() {
         return totalFlowFileCount;
     }
@@ -44,7 +44,7 @@ public class LocalQueuePartitionDTO {
         this.totalFlowFileCount = totalFlowFileCount;
     }
 
-    @ApiModelProperty("Total number of bytes that make up the content for the FlowFiles owned by this Connection")
+    @Schema(description = "Total number of bytes that make up the content for the FlowFiles owned by this Connection")
     public long getTotalByteCount() {
         return totalByteCount;
     }
@@ -53,7 +53,7 @@ public class LocalQueuePartitionDTO {
         this.totalByteCount = totalByteCount;
     }
 
-    @ApiModelProperty("Total number of FlowFiles that exist in the Connection's Active Queue, immediately available to be offered up to a component")
+    @Schema(description = "Total number of FlowFiles that exist in the Connection's Active Queue, immediately available to be offered up to a component")
     public int getActiveQueueFlowFileCount() {
         return activeQueueFlowFileCount;
     }
@@ -62,7 +62,7 @@ public class LocalQueuePartitionDTO {
         this.activeQueueFlowFileCount = activeQueueFlowFileCount;
     }
 
-    @ApiModelProperty("Total number of bytes that make up the content for the FlowFiles that are present in the Connection's Active Queue")
+    @Schema(description = "Total number of bytes that make up the content for the FlowFiles that are present in the Connection's Active Queue")
     public long getActiveQueueByteCount() {
         return activeQueueByteCount;
     }
@@ -71,7 +71,7 @@ public class LocalQueuePartitionDTO {
         this.activeQueueByteCount = activeQueueByteCount;
     }
 
-    @ApiModelProperty("The total number of FlowFiles that are swapped out for this Connection")
+    @Schema(description = "The total number of FlowFiles that are swapped out for this Connection")
     public int getSwapFlowFileCount() {
         return swapFlowFileCount;
     }
@@ -80,7 +80,7 @@ public class LocalQueuePartitionDTO {
         this.swapFlowFileCount = swapFlowFileCount;
     }
 
-    @ApiModelProperty("Total number of bytes that make up the content for the FlowFiles that are swapped out to disk for the Connection")
+    @Schema(description = "Total number of bytes that make up the content for the FlowFiles that are swapped out to disk for the Connection")
     public long getSwapByteCount() {
         return swapByteCount;
     }
@@ -89,7 +89,7 @@ public class LocalQueuePartitionDTO {
         this.swapByteCount = swapByteCount;
     }
 
-    @ApiModelProperty("The number of Swap Files that exist for this Connection")
+    @Schema(description = "The number of Swap Files that exist for this Connection")
     public int getSwapFiles() {
         return swapFiles;
     }
@@ -98,7 +98,7 @@ public class LocalQueuePartitionDTO {
         this.swapFiles = swapFiles;
     }
 
-    @ApiModelProperty("The number of In-Flight FlowFiles for this Connection. These are FlowFiles that belong to the connection but are currently being operated on by a Processor, Port, etc.")
+    @Schema(description = "The number of In-Flight FlowFiles for this Connection. These are FlowFiles that belong to the connection but are currently being operated on by a Processor, Port, etc.")
     public int getInFlightFlowFileCount() {
         return inFlightFlowFileCount;
     }
@@ -107,7 +107,7 @@ public class LocalQueuePartitionDTO {
         this.inFlightFlowFileCount = inFlightFlowFileCount;
     }
 
-    @ApiModelProperty("The number bytes that make up the content of the FlowFiles that are In-Flight")
+    @Schema(description = "The number bytes that make up the content of the FlowFiles that are In-Flight")
     public long getInFlightByteCount() {
         return inFlightByteCount;
     }
@@ -116,7 +116,7 @@ public class LocalQueuePartitionDTO {
         this.inFlightByteCount = inFlightByteCount;
     }
 
-    @ApiModelProperty("Whether or not all of the FlowFiles in the Active Queue are penalized")
+    @Schema(description = "Whether or not all of the FlowFiles in the Active Queue are penalized")
     public Boolean getAllActiveQueueFlowFilesPenalized() {
         return allActiveQueueFlowFilesPenalized;
     }
@@ -125,7 +125,7 @@ public class LocalQueuePartitionDTO {
         this.allActiveQueueFlowFilesPenalized = allFlowFilesPenalized;
     }
 
-    @ApiModelProperty("Whether or not any of the FlowFiles in the Active Queue are penalized")
+    @Schema(description = "Whether or not any of the FlowFiles in the Active Queue are penalized")
     public Boolean getAnyActiveQueueFlowFilesPenalized() {
         return anyActiveQueueFlowFilesPenalized;
     }

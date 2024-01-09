@@ -16,11 +16,9 @@
  */
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 
-@ApiModel
 public class DynamicProperty {
 
     private String name;
@@ -28,7 +26,7 @@ public class DynamicProperty {
     private String description;
     private ExpressionLanguageScope expressionLanguageScope;
 
-    @ApiModelProperty(value = "The description of the dynamic property name")
+    @Schema(description = "The description of the dynamic property name")
     public String getName() {
         return name;
     }
@@ -37,7 +35,7 @@ public class DynamicProperty {
         this.name = name;
     }
 
-    @ApiModelProperty(value = "The description of the dynamic property value")
+    @Schema(description = "The description of the dynamic property value")
     public String getValue() {
         return value;
     }
@@ -46,7 +44,7 @@ public class DynamicProperty {
         this.value = value;
     }
 
-    @ApiModelProperty(value = "The description of the dynamic property")
+    @Schema(description = "The description of the dynamic property")
     public String getDescription() {
         return description;
     }
@@ -55,7 +53,7 @@ public class DynamicProperty {
         this.description = description;
     }
 
-    @ApiModelProperty(value = "The scope of the expression language support")
+    @Schema(description = "The scope of the expression language support")
     public ExpressionLanguageScope getExpressionLanguageScope() {
         return expressionLanguageScope;
     }

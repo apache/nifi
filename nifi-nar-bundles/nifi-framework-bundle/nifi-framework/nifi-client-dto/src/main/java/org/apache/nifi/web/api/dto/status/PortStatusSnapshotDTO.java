@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -44,7 +44,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
     /**
      * @return whether this port has incoming or outgoing connections to a remote NiFi
      */
-    @ApiModelProperty("Whether the port has incoming or outgoing connections to a remote NiFi.")
+    @Schema(description = "Whether the port has incoming or outgoing connections to a remote NiFi.")
     public Boolean isTransmitting() {
         return transmitting;
     }
@@ -56,7 +56,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
     /**
      * @return the active thread count for this port
      */
-    @ApiModelProperty("The active thread count for the port.")
+    @Schema(description = "The active thread count for the port.")
     public Integer getActiveThreadCount() {
         return activeThreadCount;
     }
@@ -68,7 +68,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
     /**
      * @return id of this port
      */
-    @ApiModelProperty("The id of the port.")
+    @Schema(description = "The id of the port.")
     public String getId() {
         return id;
     }
@@ -80,7 +80,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
     /**
      * @return id of the group this port resides in
      */
-    @ApiModelProperty("The id of the parent process group of the port.")
+    @Schema(description = "The id of the parent process group of the port.")
     public String getGroupId() {
         return groupId;
     }
@@ -92,7 +92,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
     /**
      * @return name of this port
      */
-    @ApiModelProperty("The name of the port.")
+    @Schema(description = "The name of the port.")
     public String getName() {
         return name;
     }
@@ -104,9 +104,10 @@ public class PortStatusSnapshotDTO implements Cloneable {
     /**
      * @return run status of this port
      */
-    @ApiModelProperty(
-            value="The run status of the port.",
-            allowableValues = "Running, Stopped, Validating, Disabled, Invalid")
+    @Schema(
+            description = "The run status of the port.",
+            allowableValues = "Running, Stopped, Validating, Disabled, Invalid"
+    )
     public String getRunStatus() {
         return runStatus;
     }
@@ -118,7 +119,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
     /**
      * @return The total count and size of flow files that have been accepted in the last five minutes
      */
-    @ApiModelProperty("The count/size of flowfiles that have been accepted in the last 5 minutes.")
+    @Schema(description = "The count/size of flowfiles that have been accepted in the last 5 minutes.")
     public String getInput() {
         return input;
     }
@@ -130,7 +131,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
     /**
      * @return The total count and size of flow files that have been processed in the last five minutes
      */
-    @ApiModelProperty("The count/size of flowfiles that have been processed in the last 5 minutes.")
+    @Schema(description = "The count/size of flowfiles that have been processed in the last 5 minutes.")
     public String getOutput() {
         return output;
     }
@@ -139,7 +140,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         this.output = output;
     }
 
-    @ApiModelProperty("The number of FlowFiles that have been accepted in the last 5 minutes.")
+    @Schema(description = "The number of FlowFiles that have been accepted in the last 5 minutes.")
     public Integer getFlowFilesIn() {
         return flowFilesIn;
     }
@@ -148,7 +149,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         this.flowFilesIn = flowFilesIn;
     }
 
-    @ApiModelProperty("The size of hte FlowFiles that have been accepted in the last 5 minutes.")
+    @Schema(description = "The size of hte FlowFiles that have been accepted in the last 5 minutes.")
     public Long getBytesIn() {
         return bytesIn;
     }
@@ -157,7 +158,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         this.bytesIn = bytesIn;
     }
 
-    @ApiModelProperty("The number of FlowFiles that have been processed in the last 5 minutes.")
+    @Schema(description = "The number of FlowFiles that have been processed in the last 5 minutes.")
     public Integer getFlowFilesOut() {
         return flowFilesOut;
     }
@@ -166,7 +167,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         this.flowFilesOut = flowFilesOut;
     }
 
-    @ApiModelProperty("The number of bytes that have been processed in the last 5 minutes.")
+    @Schema(description = "The number of bytes that have been processed in the last 5 minutes.")
     public Long getBytesOut() {
         return bytesOut;
     }

@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import jakarta.xml.bind.annotation.XmlType;
@@ -34,7 +34,7 @@ public class ProcessGroupStatusDTO implements Cloneable {
     private ProcessGroupStatusSnapshotDTO aggregateSnapshot;
     private List<NodeProcessGroupStatusSnapshotDTO> nodeSnapshots;
 
-    @ApiModelProperty("The ID of the Process Group")
+    @Schema(description = "The ID of the Process Group")
     public String getId() {
         return id;
     }
@@ -43,7 +43,7 @@ public class ProcessGroupStatusDTO implements Cloneable {
         this.id = id;
     }
 
-    @ApiModelProperty("The name of the Process Group")
+    @Schema(description = "The name of the Process Group")
     public String getName() {
         return name;
     }
@@ -52,7 +52,7 @@ public class ProcessGroupStatusDTO implements Cloneable {
         this.name = name;
     }
 
-    @ApiModelProperty("The aggregate status of all nodes in the cluster")
+    @Schema(description = "The aggregate status of all nodes in the cluster")
     public ProcessGroupStatusSnapshotDTO getAggregateSnapshot() {
         return aggregateSnapshot;
     }
@@ -61,7 +61,7 @@ public class ProcessGroupStatusDTO implements Cloneable {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    @ApiModelProperty("The status reported by each node in the cluster. If the NiFi instance is a standalone instance, rather than "
+    @Schema(description = "The status reported by each node in the cluster. If the NiFi instance is a standalone instance, rather than "
         + "a clustered instance, this value may be null.")
     public List<NodeProcessGroupStatusSnapshotDTO> getNodeSnapshots() {
         return nodeSnapshots;
@@ -77,9 +77,8 @@ public class ProcessGroupStatusDTO implements Cloneable {
      * @return The the status was calculated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-        value = "The time the status for the process group was last refreshed.",
-        dataType = "string"
+    @Schema(description = "The time the status for the process group was last refreshed.",
+        type = "string"
     )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;

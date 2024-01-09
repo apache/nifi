@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -32,8 +32,7 @@ public class ExplicitRestrictionDTO {
     /**
      * @return The required permission necessary for this restriction.
      */
-    @ApiModelProperty(
-            value = "The required permission necessary for this restriction."
+    @Schema(description = "The required permission necessary for this restriction."
     )
     public RequiredPermissionDTO getRequiredPermission() {
         return requiredPermission;
@@ -46,8 +45,7 @@ public class ExplicitRestrictionDTO {
     /**
      * @return The description of why the usage of this component is restricted for this required permission.
      */
-    @ApiModelProperty(
-            value = "The description of why the usage of this component is restricted for this required permission."
+    @Schema(description = "The description of why the usage of this component is restricted for this required permission."
     )
     public String getExplanation() {
         return explanation;

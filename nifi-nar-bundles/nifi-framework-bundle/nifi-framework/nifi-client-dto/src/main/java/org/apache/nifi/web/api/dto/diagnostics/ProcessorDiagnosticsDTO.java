@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.dto.diagnostics;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 
@@ -37,7 +37,7 @@ public class ProcessorDiagnosticsDTO {
     private ClassLoaderDiagnosticsDTO classLoaderDiagnostics;
 
 
-    @ApiModelProperty("Information about the Processor for which the Diagnostic Report is generated")
+    @Schema(description = "Information about the Processor for which the Diagnostic Report is generated")
     public ProcessorDTO getProcessor() {
         return processor;
     }
@@ -46,7 +46,7 @@ public class ProcessorDiagnosticsDTO {
         this.processor = processor;
     }
 
-    @ApiModelProperty("The Status for the Processor for which the Diagnostic Report is generated")
+    @Schema(description = "The Status for the Processor for which the Diagnostic Report is generated")
     public ProcessorStatusDTO getProcessorStatus() {
         return processorStatus;
     }
@@ -55,7 +55,7 @@ public class ProcessorDiagnosticsDTO {
         this.processorStatus = processorStatus;
     }
 
-    @ApiModelProperty("Diagnostic Information about all Controller Services that the Processor is referencing")
+    @Schema(description = "Diagnostic Information about all Controller Services that the Processor is referencing")
     public Set<ControllerServiceDiagnosticsDTO> getReferencedControllerServices() {
         return referencedControllerServices;
     }
@@ -64,7 +64,7 @@ public class ProcessorDiagnosticsDTO {
         this.referencedControllerServices = referencedControllerServices;
     }
 
-    @ApiModelProperty("Diagnostic Information about all incoming Connections")
+    @Schema(description = "Diagnostic Information about all incoming Connections")
     public Set<ConnectionDiagnosticsDTO> getIncomingConnections() {
         return incomingConnections;
     }
@@ -73,7 +73,7 @@ public class ProcessorDiagnosticsDTO {
         this.incomingConnections = incomingConnections;
     }
 
-    @ApiModelProperty("Diagnostic Information about all outgoing Connections")
+    @Schema(description = "Diagnostic Information about all outgoing Connections")
     public Set<ConnectionDiagnosticsDTO> getOutgoingConnections() {
         return outgoingConnections;
     }
@@ -82,7 +82,7 @@ public class ProcessorDiagnosticsDTO {
         this.outgoingConnections = outgoingConnections;
     }
 
-    @ApiModelProperty("Diagnostic Information about the JVM and system-level diagnostics")
+    @Schema(description = "Diagnostic Information about the JVM and system-level diagnostics")
     public JVMDiagnosticsDTO getJvmDiagnostics() {
         return jvmDiagnostics;
     }
@@ -91,7 +91,7 @@ public class ProcessorDiagnosticsDTO {
         this.jvmDiagnostics = jvmDiagnostics;
     }
 
-    @ApiModelProperty("Thread Dumps that were taken of the threads that are active in the Processor")
+    @Schema(description = "Thread Dumps that were taken of the threads that are active in the Processor")
     public List<ThreadDumpDTO> getThreadDumps() {
         return threadDumps;
     }
@@ -100,7 +100,7 @@ public class ProcessorDiagnosticsDTO {
         this.threadDumps = threadDumps;
     }
 
-    @ApiModelProperty("Information about the Controller Service's Class Loader")
+    @Schema(description = "Information about the Controller Service's Class Loader")
     public ClassLoaderDiagnosticsDTO getClassLoaderDiagnostics() {
         return classLoaderDiagnostics;
     }

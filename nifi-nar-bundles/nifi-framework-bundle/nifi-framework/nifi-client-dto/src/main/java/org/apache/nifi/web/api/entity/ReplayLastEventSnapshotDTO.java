@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.Collection;
@@ -27,7 +27,7 @@ public class ReplayLastEventSnapshotDTO {
     private String failureExplanation;
     private Boolean eventAvailable;
 
-    @ApiModelProperty("The IDs of the events that were successfully replayed")
+    @Schema(description = "The IDs of the events that were successfully replayed")
     public Collection<Long> getEventsReplayed() {
         return eventsReplayed;
     }
@@ -36,7 +36,7 @@ public class ReplayLastEventSnapshotDTO {
         this.eventsReplayed = eventsReplayed;
     }
 
-    @ApiModelProperty("If unable to replay an event, specifies why the event could not be replayed")
+    @Schema(description = "If unable to replay an event, specifies why the event could not be replayed")
     public String getFailureExplanation() {
         return failureExplanation;
     }
@@ -45,7 +45,7 @@ public class ReplayLastEventSnapshotDTO {
         this.failureExplanation = failureExplanation;
     }
 
-    @ApiModelProperty("Whether or not an event was available. This may not be populated if there was a failure.")
+    @Schema(description = "Whether or not an event was available. This may not be populated if there was a failure.")
     public Boolean getEventAvailable() {
         return eventAvailable;
     }

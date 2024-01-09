@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -26,7 +26,7 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 public class VersionControlInformationEntity extends ProcessGroupDescriptorEntity {
     private VersionControlInformationDTO versionControlInformation;
 
-    @ApiModelProperty("The Version Control information")
+    @Schema(description = "The Version Control information")
     public VersionControlInformationDTO getVersionControlInformation() {
         return versionControlInformation;
     }

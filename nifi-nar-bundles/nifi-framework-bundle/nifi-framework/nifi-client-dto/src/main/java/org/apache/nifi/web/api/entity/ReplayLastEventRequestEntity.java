@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
 
@@ -26,7 +26,7 @@ public class ReplayLastEventRequestEntity extends Entity {
     private String componentId;
     private String nodes;
 
-    @ApiModelProperty("The UUID of the component whose last event should be replayed.")
+    @Schema(description = "The UUID of the component whose last event should be replayed.")
     public String getComponentId() {
         return componentId;
     }
@@ -35,8 +35,7 @@ public class ReplayLastEventRequestEntity extends Entity {
         this.componentId = componentId;
     }
 
-    @ApiModelProperty(
-        value = "Which nodes are to replay their last provenance event.",
+    @Schema(description = "Which nodes are to replay their last provenance event.",
         allowableValues = "ALL, PRIMARY"
     )
     public String getNodes() {

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -26,8 +26,9 @@ import jakarta.xml.bind.annotation.XmlType;
 @XmlType(name = "processorRunStatus")
 public class ProcessorRunStatusEntity extends ComponentRunStatusEntity {
 
-    // Must match the @ApiModelProperty.allowableValues above getState()
-    private static String[] SUPPORTED_STATE = {"RUNNING", "RUN_ONCE", "STOPPED", "DISABLED"};
+    private static final String ALLOWABLE_VALUES = "RUNNING, STOPPED, DISABLED, RUN_ONCE";
+
+    private static String[] SUPPORTED_STATE = ALLOWABLE_VALUES.split(", ");
 
     @Override
     protected String[] getSupportedState() {
@@ -38,10 +39,7 @@ public class ProcessorRunStatusEntity extends ComponentRunStatusEntity {
      * Run status for this Processor.
      * @return The run status
      */
-    @ApiModelProperty(
-            value = "The run status of the Processor.",
-            allowableValues = "RUNNING, STOPPED, DISABLED, RUN_ONCE"
-    )
+    @Schema(description = "The run status of the Processor.", allowableValues = ALLOWABLE_VALUES)
     public String getState() {
         return super.getState();
     }

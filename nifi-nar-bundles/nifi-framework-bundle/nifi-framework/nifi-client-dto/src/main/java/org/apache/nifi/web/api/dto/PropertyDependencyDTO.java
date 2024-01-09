@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.Set;
@@ -27,7 +27,7 @@ public class PropertyDependencyDTO {
     private String propertyName;
     private Set<String> dependentValues;
 
-    @ApiModelProperty("The name of the property that is being depended upon")
+    @Schema(description = "The name of the property that is being depended upon")
     public String getPropertyName() {
         return propertyName;
     }
@@ -36,7 +36,7 @@ public class PropertyDependencyDTO {
         this.propertyName = propertyName;
     }
 
-    @ApiModelProperty("The values for the property that satisfies the dependency, or null if the dependency is satisfied by the presence of any value for the associated property name")
+    @Schema(description = "The values for the property that satisfies the dependency, or null if the dependency is satisfied by the presence of any value for the associated property name")
     public Set<String> getDependentValues() {
         return dependentValues;
     }

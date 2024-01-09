@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.Objects;
@@ -45,8 +45,7 @@ public class BundleDTO {
      *
      * @return bundle group
      */
-    @ApiModelProperty(
-            value = "The group of the bundle."
+    @Schema(description = "The group of the bundle."
     )
     public String getGroup() {
         return group;
@@ -61,8 +60,7 @@ public class BundleDTO {
      *
      * @return bundle artifact
      */
-    @ApiModelProperty(
-            value = "The artifact of the bundle."
+    @Schema(description = "The artifact of the bundle."
     )
     public String getArtifact() {
         return artifact;
@@ -77,8 +75,7 @@ public class BundleDTO {
      *
      * @return bundle version
      */
-    @ApiModelProperty(
-            value = "The version of the bundle."
+    @Schema(description = "The version of the bundle."
     )
     public String getVersion() {
         return version;

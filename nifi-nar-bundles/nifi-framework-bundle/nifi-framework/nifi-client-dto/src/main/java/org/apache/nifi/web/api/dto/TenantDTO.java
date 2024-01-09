@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -31,7 +31,7 @@ public class TenantDTO extends ComponentDTO {
     /**
      * @return tenant's identity
      */
-    @ApiModelProperty(value = "The identity of the tenant.")
+    @Schema(description = "The identity of the tenant.")
     public String getIdentity() {
         return identity;
     }
@@ -43,7 +43,7 @@ public class TenantDTO extends ComponentDTO {
     /**
      * @return whether this tenant is configurable
      */
-    @ApiModelProperty(value = "Whether this tenant is configurable.")
+    @Schema(description = "Whether this tenant is configurable.")
     public Boolean getConfigurable() {
         return configurable;
     }

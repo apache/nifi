@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -29,7 +29,7 @@ public class NodeConnectionStatusSnapshotDTO implements Cloneable {
 
     private ConnectionStatusSnapshotDTO statusSnapshot;
 
-    @ApiModelProperty("The unique ID that identifies the node")
+    @Schema(description = "The unique ID that identifies the node")
     public String getNodeId() {
         return nodeId;
     }
@@ -38,7 +38,7 @@ public class NodeConnectionStatusSnapshotDTO implements Cloneable {
         this.nodeId = nodeId;
     }
 
-    @ApiModelProperty("The API address of the node")
+    @Schema(description = "The API address of the node")
     public String getAddress() {
         return address;
     }
@@ -47,7 +47,7 @@ public class NodeConnectionStatusSnapshotDTO implements Cloneable {
         this.address = address;
     }
 
-    @ApiModelProperty("The API port used to communicate with the node")
+    @Schema(description = "The API port used to communicate with the node")
     public Integer getApiPort() {
         return apiPort;
     }
@@ -56,7 +56,7 @@ public class NodeConnectionStatusSnapshotDTO implements Cloneable {
         this.apiPort = apiPort;
     }
 
-    @ApiModelProperty("The connection status snapshot from the node.")
+    @Schema(description = "The connection status snapshot from the node.")
     public ConnectionStatusSnapshotDTO getStatusSnapshot() {
         return statusSnapshot;
     }

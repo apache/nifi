@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.Collection;
@@ -32,8 +32,7 @@ public class ClusterStatusDTO {
     /**
      * @return collection of the node status DTOs
      */
-    @ApiModelProperty(
-            value = "The status of each node."
+    @Schema(description = "The status of each node."
     )
     public Collection<NodeStatusDTO> getNodeStatus() {
         return nodeStatus;

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 
 import jakarta.xml.bind.annotation.XmlType;
@@ -47,10 +47,9 @@ public class NodeDTO {
      * @return node's last heartbeat timestamp
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
-    @ApiModelProperty(
-            value = "the time of the nodes's last heartbeat.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY,
-            dataType = "string"
+    @Schema(description = "the time of the nodes's last heartbeat.",
+            accessMode = Schema.AccessMode.READ_ONLY,
+            type = "string"
     )
     public Date getHeartbeat() {
         return heartbeat;
@@ -64,10 +63,9 @@ public class NodeDTO {
      * @return time of the node's last connection request
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
-    @ApiModelProperty(
-            value = "The time of the node's last connection request.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY,
-            dataType = "string"
+    @Schema(description = "The time of the node's last connection request.",
+            accessMode = Schema.AccessMode.READ_ONLY,
+            type = "string"
     )
     public Date getConnectionRequested() {
         return connectionRequested;
@@ -82,9 +80,8 @@ public class NodeDTO {
      *
      * @return The active thread count
      */
-    @ApiModelProperty(
-            value = "The active threads for the NiFi on the node.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The active threads for the NiFi on the node.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public Integer getActiveThreadCount() {
         return activeThreadCount;
@@ -97,9 +94,8 @@ public class NodeDTO {
     /**
      * @return queue for the controller
      */
-    @ApiModelProperty(
-            value = "The queue the NiFi on the node.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The queue the NiFi on the node.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public String getQueued() {
         return queued;
@@ -112,9 +108,8 @@ public class NodeDTO {
     /**
      * @return node's host/IP address
      */
-    @ApiModelProperty(
-            value = "The node's host/ip address.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The node's host/ip address.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public String getAddress() {
         return address;
@@ -127,9 +122,8 @@ public class NodeDTO {
     /**
      * @return node ID
      */
-    @ApiModelProperty(
-            value = "The id of the node.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The id of the node.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public String getNodeId() {
         return nodeId;
@@ -142,9 +136,8 @@ public class NodeDTO {
     /**
      * @return port the node is listening for API requests
      */
-    @ApiModelProperty(
-            value = "The port the node is listening for API requests.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The port the node is listening for API requests.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public Integer getApiPort() {
         return apiPort;
@@ -157,8 +150,7 @@ public class NodeDTO {
     /**
      * @return node's status
      */
-    @ApiModelProperty(
-            value = "The node's status."
+    @Schema(description = "The node's status."
     )
     public String getStatus() {
         return status;
@@ -171,9 +163,8 @@ public class NodeDTO {
     /**
      * @return node's events
      */
-    @ApiModelProperty(
-            value = "The node's events.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The node's events.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public List<NodeEventDTO> getEvents() {
         return events;
@@ -186,9 +177,8 @@ public class NodeDTO {
     /**
      * @return the roles of the node
      */
-    @ApiModelProperty(
-            value = "The roles of this node.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The roles of this node.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public Set<String> getRoles() {
         return roles;
@@ -202,10 +192,9 @@ public class NodeDTO {
      * @return time at which this Node was last restarted
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
-    @ApiModelProperty(
-            value = "The time at which this Node was last refreshed.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY,
-            dataType = "string"
+    @Schema(description = "The time at which this Node was last refreshed.",
+            accessMode = Schema.AccessMode.READ_ONLY,
+            type = "string"
     )
     public Date getNodeStartTime() {
         return nodeStartTime;

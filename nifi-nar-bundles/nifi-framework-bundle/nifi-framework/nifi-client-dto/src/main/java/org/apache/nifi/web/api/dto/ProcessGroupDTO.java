@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.NumberUtil;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 
@@ -74,8 +74,7 @@ public class ProcessGroupDTO extends ComponentDTO {
      *
      * @return The name of this Process Group
      */
-    @ApiModelProperty(
-            value = "The name of the process group."
+    @Schema(description = "The name of the process group."
     )
     public String getName() {
         return name;
@@ -88,8 +87,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     /**
      * @return comments for this process group
      */
-    @ApiModelProperty(
-            value = "The comments for the process group."
+    @Schema(description = "The comments for the process group."
     )
     public String getComments() {
         return comments;
@@ -102,8 +100,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     /**
      * @return contents of this process group.
      */
-    @ApiModelProperty(
-            value = "The contents of this process group."
+    @Schema(description = "The contents of this process group."
     )
     public FlowSnippetDTO getContents() {
         return contents;
@@ -116,9 +113,8 @@ public class ProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of input ports contained in this process group
      */
-    @ApiModelProperty(
-            value = "The number of input ports in the process group.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The number of input ports in the process group.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public Integer getInputPortCount() {
         return NumberUtil.sumNullableIntegers(localInputPortCount, publicInputPortCount);
@@ -134,8 +130,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of local input ports contained in this process group
      */
-    @ApiModelProperty(
-        value = "The number of local input ports in the process group."
+    @Schema(description = "The number of local input ports in the process group."
     )
     public Integer getLocalInputPortCount() {
         return localInputPortCount;
@@ -148,8 +143,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of public input ports contained in this process group
      */
-    @ApiModelProperty(
-        value = "The number of public input ports in the process group."
+    @Schema(description = "The number of public input ports in the process group."
     )
     public Integer getPublicInputPortCount() {
         return publicInputPortCount;
@@ -162,8 +156,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of invalid components in this process group
      */
-    @ApiModelProperty(
-            value = "The number of invalid components in the process group."
+    @Schema(description = "The number of invalid components in the process group."
     )
     public Integer getInvalidCount() {
         return invalidCount;
@@ -176,9 +169,8 @@ public class ProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of output ports in this process group
      */
-    @ApiModelProperty(
-            value = "The number of output ports in the process group.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The number of output ports in the process group.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public Integer getOutputPortCount() {
         return NumberUtil.sumNullableIntegers(localOutputPortCount, publicOutputPortCount);
@@ -191,8 +183,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of local output ports in this process group
      */
-    @ApiModelProperty(
-        value = "The number of local output ports in the process group."
+    @Schema(description = "The number of local output ports in the process group."
     )
     public Integer getLocalOutputPortCount() {
         return localOutputPortCount;
@@ -205,8 +196,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of public output ports in this process group
      */
-    @ApiModelProperty(
-        value = "The number of public output ports in the process group."
+    @Schema(description = "The number of public output ports in the process group."
     )
     public Integer getPublicOutputPortCount() {
         return publicOutputPortCount;
@@ -219,8 +209,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of running component in this process group
      */
-    @ApiModelProperty(
-            value = "The number of running components in this process group."
+    @Schema(description = "The number of running components in this process group."
     )
     public Integer getRunningCount() {
         return runningCount;
@@ -233,8 +222,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of stopped components in this process group
      */
-    @ApiModelProperty(
-            value = "The number of stopped components in the process group."
+    @Schema(description = "The number of stopped components in the process group."
     )
     public Integer getStoppedCount() {
         return stoppedCount;
@@ -247,8 +235,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of disabled components in this process group
      */
-    @ApiModelProperty(
-            value = "The number of disabled components in the process group."
+    @Schema(description = "The number of disabled components in the process group."
     )
     public Integer getDisabledCount() {
         return disabledCount;
@@ -261,8 +248,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of active remote ports in this process group
      */
-    @ApiModelProperty(
-            value = "The number of active remote ports in the process group."
+    @Schema(description = "The number of active remote ports in the process group."
     )
     public Integer getActiveRemotePortCount() {
         return activeRemotePortCount;
@@ -275,8 +261,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     /**
      * @return number of inactive remote ports in this process group
      */
-    @ApiModelProperty(
-            value = "The number of inactive remote ports in the process group."
+    @Schema(description = "The number of inactive remote ports in the process group."
     )
     public Integer getInactiveRemotePortCount() {
         return inactiveRemotePortCount;
@@ -286,7 +271,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.inactiveRemotePortCount = inactiveRemotePortCount;
     }
 
-    @ApiModelProperty("The number of up to date versioned process groups in the process group.")
+    @Schema(description = "The number of up to date versioned process groups in the process group.")
     public Integer getUpToDateCount() {
         return upToDateCount;
     }
@@ -295,7 +280,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.upToDateCount = upToDateCount;
     }
 
-    @ApiModelProperty("The number of locally modified versioned process groups in the process group.")
+    @Schema(description = "The number of locally modified versioned process groups in the process group.")
     public Integer getLocallyModifiedCount() {
         return locallyModifiedCount;
     }
@@ -304,7 +289,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.locallyModifiedCount = locallyModifiedCount;
     }
 
-    @ApiModelProperty("The number of stale versioned process groups in the process group.")
+    @Schema(description = "The number of stale versioned process groups in the process group.")
     public Integer getStaleCount() {
         return staleCount;
     }
@@ -313,7 +298,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.staleCount = staleCount;
     }
 
-    @ApiModelProperty("The number of locally modified and stale versioned process groups in the process group.")
+    @Schema(description = "The number of locally modified and stale versioned process groups in the process group.")
     public Integer getLocallyModifiedAndStaleCount() {
         return locallyModifiedAndStaleCount;
     }
@@ -322,7 +307,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.locallyModifiedAndStaleCount = locallyModifiedAndStaleCount;
     }
 
-    @ApiModelProperty("The number of versioned process groups in the process group that are unable to sync to a registry.")
+    @Schema(description = "The number of versioned process groups in the process group that are unable to sync to a registry.")
     public Integer getSyncFailureCount() {
         return syncFailureCount;
     }
@@ -331,7 +316,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.syncFailureCount = syncFailureCount;
     }
 
-    @ApiModelProperty("The Version Control information that indicates which Flow Registry, and where in the Flow Registry, "
+    @Schema(description = "The Version Control information that indicates which Flow Registry, and where in the Flow Registry, "
         + "this Process Group is tracking to; or null if this Process Group is not under version control")
     public VersionControlInformationDTO getVersionControlInformation() {
         return versionControlInformation;
@@ -341,7 +326,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.versionControlInformation = versionControlInformation;
     }
 
-    @ApiModelProperty("The Parameter Context that this Process Group is bound to.")
+    @Schema(description = "The Parameter Context that this Process Group is bound to.")
     public ParameterContextReferenceEntity getParameterContext() {
         return parameterContext;
     }
@@ -350,7 +335,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.parameterContext = parameterContext;
     }
 
-    @ApiModelProperty(value = "The FlowFile Concurrency for this Process Group.", allowableValues = "UNBOUNDED, SINGLE_FLOWFILE_PER_NODE, SINGLE_BATCH_PER_NODE")
+    @Schema(description = "The FlowFile Concurrency for this Process Group.", allowableValues = "UNBOUNDED, SINGLE_FLOWFILE_PER_NODE, SINGLE_BATCH_PER_NODE")
     public String getFlowfileConcurrency() {
         return flowfileConcurrency;
     }
@@ -359,7 +344,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.flowfileConcurrency = flowfileConcurrency;
     }
 
-    @ApiModelProperty(value = "The Outbound Policy that is used for determining how FlowFiles should be transferred out of the Process Group.",
+    @Schema(description = "The Outbound Policy that is used for determining how FlowFiles should be transferred out of the Process Group.",
         allowableValues = "STREAM_WHEN_AVAILABLE, BATCH_OUTPUT")
     public String getFlowfileOutboundPolicy() {
         return flowfileOutboundPolicy;
@@ -369,7 +354,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.flowfileOutboundPolicy = flowfileOutboundPolicy;
     }
 
-    @ApiModelProperty(value = "The default FlowFile Expiration for this Process Group.")
+    @Schema(description = "The default FlowFile Expiration for this Process Group.")
     public String getDefaultFlowFileExpiration() {
         return defaultFlowFileExpiration;
     }
@@ -378,7 +363,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.defaultFlowFileExpiration = defaultFlowFileExpiration;
     }
 
-    @ApiModelProperty(value = "Default value used in this Process Group for the maximum number of objects that can be queued before back pressure is applied.")
+    @Schema(description = "Default value used in this Process Group for the maximum number of objects that can be queued before back pressure is applied.")
     public Long getDefaultBackPressureObjectThreshold() {
         return defaultBackPressureObjectThreshold;
     }
@@ -387,7 +372,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.defaultBackPressureObjectThreshold = defaultBackPressureObjectThreshold;
     }
 
-    @ApiModelProperty(value = "Default value used in this Process Group for the maximum data size of objects that can be queued before back pressure is applied.")
+    @Schema(description = "Default value used in this Process Group for the maximum data size of objects that can be queued before back pressure is applied.")
     public String getDefaultBackPressureDataSizeThreshold() {
         return defaultBackPressureDataSizeThreshold;
     }
@@ -396,7 +381,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.defaultBackPressureDataSizeThreshold = defaultBackPressureDataSizeThreshold;
     }
 
-    @ApiModelProperty(value = "The log file suffix for this Process Group for dedicated logging.")
+    @Schema(description = "The log file suffix for this Process Group for dedicated logging.")
     public String getLogFileSuffix() {
         return logFileSuffix;
     }
@@ -405,7 +390,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.logFileSuffix = logFileSuffix;
     }
 
-    @ApiModelProperty(value = "The Execution Engine that should be used to run the flow represented by this Process Group.",
+    @Schema(description = "The Execution Engine that should be used to run the flow represented by this Process Group.",
         allowableValues = "STATELESS, STANDARD, INHERITED")
     public String getExecutionEngine() {
         return executionEngine;
@@ -415,7 +400,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.executionEngine = executionEngine;
     }
 
-    @ApiModelProperty(value = "If the Process Group is configured to run in using the Stateless Engine, represents the current state. Otherwise, will be STOPPED.",
+    @Schema(description = "If the Process Group is configured to run in using the Stateless Engine, represents the current state. Otherwise, will be STOPPED.",
             allowableValues = "STOPPED, RUNNING")
     public String getStatelessGroupScheduledState() {
         return statelessGroupScheduledState;
@@ -425,7 +410,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.statelessGroupScheduledState = state;
     }
 
-    @ApiModelProperty("The maximum number of concurrent tasks to use when running the flow using the Stateless Engine")
+    @Schema(description = "The maximum number of concurrent tasks to use when running the flow using the Stateless Engine")
     public Integer getMaxConcurrentTasks() {
         return maxConcurrentTasks;
     }
@@ -434,7 +419,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.maxConcurrentTasks = maxConcurrentTasks;
     }
 
-    @ApiModelProperty("The maximum amount of time that the flow can be run using the Stateless Engine before the flow times out")
+    @Schema(description = "The maximum amount of time that the flow can be run using the Stateless Engine before the flow times out")
     public String getStatelessFlowTimeout() {
         return statelessFlowTimeout;
     }

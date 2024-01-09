@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.search;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -32,8 +32,7 @@ public class NodeSearchResultDTO {
     /**
      * @return id of the node that was matched
      */
-    @ApiModelProperty(
-            value = "The id of the node that matched the search."
+    @Schema(description = "The id of the node that matched the search."
     )
     public String getId() {
         return id;
@@ -46,8 +45,7 @@ public class NodeSearchResultDTO {
     /**
      * @return address of the node that was matched
      */
-    @ApiModelProperty(
-            value = "The address of the node that matched the search."
+    @Schema(description = "The address of the node that matched the search."
     )
     public String getAddress() {
         return address;

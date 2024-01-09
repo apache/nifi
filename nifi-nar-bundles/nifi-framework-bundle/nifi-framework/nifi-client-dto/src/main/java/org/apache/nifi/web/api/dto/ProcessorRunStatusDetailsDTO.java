@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.Set;
@@ -37,7 +37,7 @@ public class ProcessorRunStatusDetailsDTO {
     private int activeThreads;
     private Set<String> validationErrors;
 
-    @ApiModelProperty("The ID of the processor")
+    @Schema(description = "The ID of the processor")
     public String getId() {
         return id;
     }
@@ -46,7 +46,7 @@ public class ProcessorRunStatusDetailsDTO {
         this.id = id;
     }
 
-    @ApiModelProperty("The name of the processor")
+    @Schema(description = "The name of the processor")
     public String getName() {
         return name;
     }
@@ -55,8 +55,7 @@ public class ProcessorRunStatusDetailsDTO {
         this.name = name;
     }
 
-    @ApiModelProperty(
-        value = "The run status of the processor",
+    @Schema(description = "The run status of the processor",
         allowableValues = RUNNING + ", " + STOPPED + ", " + INVALID + ", " + VALIDATING + ", " + DISABLED
     )
     public String getRunStatus() {
@@ -67,7 +66,7 @@ public class ProcessorRunStatusDetailsDTO {
         this.runStatus = runStatus;
     }
 
-    @ApiModelProperty("The current number of threads that the processor is currently using")
+    @Schema(description = "The current number of threads that the processor is currently using")
     public int getActiveThreadCount() {
         return activeThreads;
     }
@@ -77,7 +76,7 @@ public class ProcessorRunStatusDetailsDTO {
     }
 
 
-    @ApiModelProperty("The processor's validation errors")
+    @Schema(description = "The processor's validation errors")
     public Set<String> getValidationErrors() {
         return validationErrors;
     }

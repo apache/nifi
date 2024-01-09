@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.VersionedFlowUpdateRequestDTO;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -25,7 +25,7 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "registeredFlowUpdateRequestEntity")
 public class VersionedFlowUpdateRequestEntity extends FlowUpdateRequestEntity<VersionedFlowUpdateRequestDTO> {
 
-    @ApiModelProperty("The Flow Update Request")
+    @Schema(description = "The Flow Update Request")
     public VersionedFlowUpdateRequestDTO getRequest() {
         if (request == null) {
             request = new VersionedFlowUpdateRequestDTO();

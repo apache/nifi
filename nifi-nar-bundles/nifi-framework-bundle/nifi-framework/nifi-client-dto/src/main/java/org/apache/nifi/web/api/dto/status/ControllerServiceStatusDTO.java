@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -27,8 +27,8 @@ import jakarta.xml.bind.annotation.XmlType;
 @XmlType(name = "controllerServiceStatus")
 public class ControllerServiceStatusDTO extends ComponentStatusDTO {
 
-    @ApiModelProperty(value = "The run status of this ControllerService",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY,
+    @Schema(description = "The run status of this ControllerService",
+            accessMode = Schema.AccessMode.READ_ONLY,
             allowableValues = "ENABLED, ENABLING, DISABLED, DISABLING")
     @Override
     public String getRunStatus() {

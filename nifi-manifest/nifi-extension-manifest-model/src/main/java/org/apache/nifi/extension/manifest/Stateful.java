@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
@@ -25,7 +24,6 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlElementWrapper;
 import java.util.List;
 
-@ApiModel
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Stateful {
 
@@ -35,7 +33,7 @@ public class Stateful {
     @XmlElement(name = "scope")
     private List<Scope> scopes;
 
-    @ApiModelProperty(value = "The description for how the extension stores state")
+    @Schema(description = "The description for how the extension stores state")
     public String getDescription() {
         return description;
     }
@@ -44,7 +42,7 @@ public class Stateful {
         this.description = description;
     }
 
-    @ApiModelProperty(value = "The scopes used to store state")
+    @Schema(description = "The scopes used to store state")
     public List<Scope> getScopes() {
         return scopes;
     }

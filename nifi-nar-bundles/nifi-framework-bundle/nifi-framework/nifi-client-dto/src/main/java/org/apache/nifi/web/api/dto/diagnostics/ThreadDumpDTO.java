@@ -19,7 +19,7 @@ package org.apache.nifi.web.api.dto.diagnostics;
 
 import jakarta.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @XmlType(name = "threadDump")
 public class ThreadDumpDTO {
@@ -31,7 +31,7 @@ public class ThreadDumpDTO {
     private long threadActiveMillis;
     private boolean taskTerminated;
 
-    @ApiModelProperty("The ID of the node in the cluster")
+    @Schema(description = "The ID of the node in the cluster")
     public String getNodeId() {
         return nodeId;
     }
@@ -40,7 +40,7 @@ public class ThreadDumpDTO {
         this.nodeId = nodeId;
     }
 
-    @ApiModelProperty("The address of the node in the cluster")
+    @Schema(description = "The address of the node in the cluster")
     public String getNodeAddress() {
         return nodeAddress;
     }
@@ -49,7 +49,7 @@ public class ThreadDumpDTO {
         this.nodeAddress = nodeAddress;
     }
 
-    @ApiModelProperty("The port the node is listening for API requests.")
+    @Schema(description = "The port the node is listening for API requests.")
     public Integer getApiPort() {
         return apiPort;
     }
@@ -58,7 +58,7 @@ public class ThreadDumpDTO {
         this.apiPort = port;
     }
 
-    @ApiModelProperty("The stack trace for the thread")
+    @Schema(description = "The stack trace for the thread")
     public String getStackTrace() {
         return stackTrace;
     }
@@ -67,7 +67,7 @@ public class ThreadDumpDTO {
         this.stackTrace = stackTrace;
     }
 
-    @ApiModelProperty("The name of the thread")
+    @Schema(description = "The name of the thread")
     public String getThreadName() {
         return threadName;
     }
@@ -76,7 +76,7 @@ public class ThreadDumpDTO {
         this.threadName = threadName;
     }
 
-    @ApiModelProperty("The number of milliseconds that the thread has been executing in the Processor")
+    @Schema(description = "The number of milliseconds that the thread has been executing in the Processor")
     public long getThreadActiveMillis() {
         return threadActiveMillis;
     }
@@ -89,7 +89,7 @@ public class ThreadDumpDTO {
         this.taskTerminated = terminated;
     }
 
-    @ApiModelProperty("Indicates whether or not the user has requested that the task be terminated. If this is true, it may indicate that "
+    @Schema(description = "Indicates whether or not the user has requested that the task be terminated. If this is true, it may indicate that "
         + "the thread is in a state where it will continue running indefinitely without returning.")
     public boolean isTaskTerminated() {
         return taskTerminated;

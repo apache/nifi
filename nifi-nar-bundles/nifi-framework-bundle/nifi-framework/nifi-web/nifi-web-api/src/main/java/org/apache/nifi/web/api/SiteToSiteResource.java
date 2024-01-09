@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -32,6 +24,14 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -70,13 +70,7 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
  * RESTful endpoint for managing a SiteToSite connection.
  */
 @Path("/site-to-site")
-@Api(
-    value = "/site-to-site",
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Provide access to site to site with this NiFi.")
-})
+@Tag(name = "SiteToSite")
 public class SiteToSiteResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(SiteToSiteResource.class);
@@ -115,19 +109,19 @@ public class SiteToSiteResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Returns the details about this NiFi necessary to communicate via site to site",
-            response = ControllerEntity.class,
-            authorizations = {
-                @Authorization(value = "Read - /site-to-site")
+    @Operation(
+            summary = "Returns the details about this NiFi necessary to communicate via site to site",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ControllerEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /site-to-site")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getSiteToSiteDetails(@Context HttpServletRequest req) {
@@ -204,19 +198,19 @@ public class SiteToSiteResource extends ApplicationResource {
     @Path("/peers")
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @ApiOperation(
-            value = "Returns the available Peers and its status of this NiFi",
-            response = PeersEntity.class,
-            authorizations = {
-                @Authorization(value = "Read - /site-to-site")
+    @Operation(
+            summary = "Returns the available Peers and its status of this NiFi",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = PeersEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /site-to-site")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getPeers(@Context HttpServletRequest req) {
@@ -309,8 +303,6 @@ public class SiteToSiteResource extends ApplicationResource {
 
         return isEmpty(remoteInputHost) ? localName : remoteInputHost;
     }
-
-    // setters
 
     public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;

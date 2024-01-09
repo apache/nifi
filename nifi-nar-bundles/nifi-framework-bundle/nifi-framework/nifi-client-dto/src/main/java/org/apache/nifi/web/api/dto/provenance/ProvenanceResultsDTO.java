@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.provenance;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
@@ -44,8 +44,7 @@ public class ProvenanceResultsDTO {
     /**
      * @return error messages
      */
-    @ApiModelProperty(
-            value = "Any errors that occurred while performing the provenance request."
+    @Schema(description = "Any errors that occurred while performing the provenance request."
     )
     public Set<String> getErrors() {
         return errors;
@@ -58,8 +57,7 @@ public class ProvenanceResultsDTO {
     /**
      * @return provenance events that matched the search criteria
      */
-    @ApiModelProperty(
-            value = "The provenance events that matched the search criteria."
+    @Schema(description = "The provenance events that matched the search criteria."
     )
     public List<ProvenanceEventDTO> getProvenanceEvents() {
         return provenanceEvents;
@@ -72,8 +70,7 @@ public class ProvenanceResultsDTO {
     /**
      * @return total number of results formatted
      */
-    @ApiModelProperty(
-            value = "The total number of results formatted."
+    @Schema(description = "The total number of results formatted."
     )
     public String getTotal() {
         return total;
@@ -86,8 +83,7 @@ public class ProvenanceResultsDTO {
     /**
      * @return total number of results
      */
-    @ApiModelProperty(
-            value = "The total number of results."
+    @Schema(description = "The total number of results."
     )
     public Long getTotalCount() {
         return totalCount;
@@ -101,9 +97,8 @@ public class ProvenanceResultsDTO {
      * @return when the search was performed
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-            value = "Then the search was performed.",
-            dataType = "string"
+    @Schema(description = "Then the search was performed.",
+            type = "string"
     )
     public Date getGenerated() {
         return generated;
@@ -117,9 +112,8 @@ public class ProvenanceResultsDTO {
      * @return oldest event available in the provenance repository
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
-    @ApiModelProperty(
-            value = "The oldest event available in the provenance repository.",
-            dataType = "string"
+    @Schema(description = "The oldest event available in the provenance repository.",
+            type = "string"
     )
     public Date getOldestEvent() {
         return oldestEvent;
@@ -132,8 +126,7 @@ public class ProvenanceResultsDTO {
     /**
      * @return time offset on the server that's used for event time
      */
-    @ApiModelProperty(
-            value = "The time offset of the server that's used for event time."
+    @Schema(description = "The time offset of the server that's used for event time."
     )
     public Integer getTimeOffset() {
         return timeOffset;

@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
 import java.util.Set;
-import jakarta.servlet.http.HttpServletRequest;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
@@ -36,7 +36,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
@@ -56,13 +55,7 @@ import org.apache.nifi.web.api.request.LongParameter;
  * RESTful endpoint for managing a Label.
  */
 @Path("/labels")
-@Api(
-    value = "/labels",
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Endpoint for managing a Label.")
-})
+@Tag(name = "Labels")
 public class LabelResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
@@ -102,25 +95,25 @@ public class LabelResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    @ApiOperation(
-            value = "Gets a label",
-            response = LabelEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /labels/{uuid}")
+    @Operation(
+            summary = "Gets a label",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = LabelEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /labels/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getLabel(
-            @ApiParam(
-                    value = "The label id.",
+            @Parameter(
+                    description = "The label id.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -145,40 +138,38 @@ public class LabelResource extends ApplicationResource {
     /**
      * Updates the specified label.
      *
-     * @param httpServletRequest request
-     * @param id                 The id of the label to update.
-     * @param requestLabelEntity        A labelEntity.
+     * @param id The id of the label to update.
+     * @param requestLabelEntity A labelEntity.
      * @return A labelEntity.
      */
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    @ApiOperation(
-            value = "Updates a label",
-            response = LabelEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /labels/{uuid}")
+    @Operation(
+            summary = "Updates a label",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = LabelEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /labels/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response updateLabel(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The label id.",
+            @Parameter(
+                    description = "The label id.",
                     required = true
             )
             @PathParam("id") final String id,
-            @ApiParam(
-                    value = "The label configuration details.",
+            @Parameter(
+                    description = "The label configuration details.",
                     required = true
             ) final LabelEntity requestLabelEntity) {
 
@@ -236,52 +227,47 @@ public class LabelResource extends ApplicationResource {
     /**
      * Removes the specified label.
      *
-     * @param httpServletRequest request
-     * @param version            The revision is used to verify the client is working with the latest version of the flow.
-     * @param clientId           Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param id                 The id of the label to remove.
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param id The id of the label to remove.
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    @ApiOperation(
-            value = "Deletes a label",
-            response = LabelEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /labels/{uuid}"),
-                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}")
+    @Operation(
+            summary = "Deletes a label",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = LabelEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /labels/{uuid}"),
+                    @SecurityRequirement(name = "Write - Parent Process Group - /process-groups/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response removeLabel(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The revision is used to verify the client is working with the latest version of the flow.",
-                    required = false
+            @Parameter(
+                    description = "The revision is used to verify the client is working with the latest version of the flow."
             )
             @QueryParam(VERSION) final LongParameter version,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
+            @Parameter(
+                    description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response."
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
-            @ApiParam(
-                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
-                    required = false
+            @Parameter(
+                    description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
             )
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
-            @ApiParam(
-                    value = "The label id.",
+            @Parameter(
+                    description = "The label id.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -318,8 +304,6 @@ public class LabelResource extends ApplicationResource {
                 }
         );
     }
-
-    // setters
 
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;

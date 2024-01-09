@@ -19,7 +19,7 @@ package org.apache.nifi.web.api.dto.diagnostics;
 
 import jakarta.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @XmlType(name = "jvmControllerDiagnosticsSnapshot")
 public class JVMControllerDiagnosticsSnapshotDTO implements Cloneable {
@@ -27,7 +27,7 @@ public class JVMControllerDiagnosticsSnapshotDTO implements Cloneable {
     private Boolean clusterCoordinator;
     private Integer maxTimerDrivenThreads;
 
-    @ApiModelProperty("Whether or not this node is primary node")
+    @Schema(description = "Whether or not this node is primary node")
     public Boolean getPrimaryNode() {
         return primaryNode;
     }
@@ -36,7 +36,7 @@ public class JVMControllerDiagnosticsSnapshotDTO implements Cloneable {
         this.primaryNode = primaryNode;
     }
 
-    @ApiModelProperty("Whether or not this node is cluster coordinator")
+    @Schema(description = "Whether or not this node is cluster coordinator")
     public Boolean getClusterCoordinator() {
         return clusterCoordinator;
     }
@@ -45,7 +45,7 @@ public class JVMControllerDiagnosticsSnapshotDTO implements Cloneable {
         this.clusterCoordinator = clusterCoordinator;
     }
 
-    @ApiModelProperty("The maximum number of timer-driven threads")
+    @Schema(description = "The maximum number of timer-driven threads")
     public Integer getMaxTimerDrivenThreads() {
         return maxTimerDrivenThreads;
     }

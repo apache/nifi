@@ -17,20 +17,19 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Objects;
 
-@ApiModel
 public class SupportedOperation implements Serializable {
     private static final long serialVersionUID = 1;
 
-    @ApiModelProperty("The type of the operation supported by the agent")
+    @Schema(description = "The type of the operation supported by the agent")
     private OperationType type;
 
-    @ApiModelProperty("Operand specific properties defined by the agent")
+    @Schema(description = "Operand specific properties defined by the agent")
     private Map<OperandType, Map<String, Object>> properties;
 
     public OperationType getType() {

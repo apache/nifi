@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 
@@ -31,7 +31,7 @@ public class ConnectionStatusSnapshotEntity extends Entity implements ReadablePe
     /**
      * @return The connection id
      */
-    @ApiModelProperty("The id of the connection.")
+    @Schema(description = "The id of the connection.")
     public String getId() {
         return id;
     }

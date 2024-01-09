@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -30,7 +30,7 @@ public class ProcessorRunStatusDetailsEntity extends Entity {
     private PermissionsDTO permissions;
     private ProcessorRunStatusDetailsDTO runStatusDetails;
 
-    @ApiModelProperty("The revision for the Processor.")
+    @Schema(description = "The revision for the Processor.")
     public RevisionDTO getRevision() {
         return revision;
     }
@@ -39,7 +39,7 @@ public class ProcessorRunStatusDetailsEntity extends Entity {
         this.revision = revision;
     }
 
-    @ApiModelProperty("The permissions for the Processor.")
+    @Schema(description = "The permissions for the Processor.")
     public PermissionsDTO getPermissions() {
         return permissions;
     }
@@ -48,7 +48,7 @@ public class ProcessorRunStatusDetailsEntity extends Entity {
         this.permissions = permissions;
     }
 
-    @ApiModelProperty("The details of a Processor's run status")
+    @Schema(description = "The details of a Processor's run status")
     public ProcessorRunStatusDetailsDTO getRunStatusDetails() {
         return runStatusDetails;
     }

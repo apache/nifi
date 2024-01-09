@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.FlowConfigurationDTO;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -34,8 +34,7 @@ public class FlowConfigurationEntity extends Entity {
      *
      * @return The FlowConfigurationDTO object
      */
-    @ApiModelProperty(
-        value = "The controller configuration."
+    @Schema(description = "The controller configuration."
     )
     public FlowConfigurationDTO getFlowConfiguration() {
         return flowConfiguration;

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderConfigurationEntity;
@@ -40,7 +40,7 @@ public class ParameterContextDTO {
         this.identifier = id;
     }
 
-    @ApiModelProperty(value = "The ID the Parameter Context.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The ID the Parameter Context.", accessMode = Schema.AccessMode.READ_ONLY)
     public String getId() {
         return identifier;
     }
@@ -49,7 +49,7 @@ public class ParameterContextDTO {
         this.name = name;
     }
 
-    @ApiModelProperty("The Name of the Parameter Context.")
+    @Schema(description = "The Name of the Parameter Context.")
     public String getName() {
         return name;
     }
@@ -58,7 +58,7 @@ public class ParameterContextDTO {
         this.description = description;
     }
 
-    @ApiModelProperty("The Description of the Parameter Context.")
+    @Schema(description = "The Description of the Parameter Context.")
     public String getDescription() {
         return description;
     }
@@ -67,7 +67,7 @@ public class ParameterContextDTO {
         this.parameters = parameters;
     }
 
-    @ApiModelProperty("The Parameters for the Parameter Context")
+    @Schema(description = "The Parameters for the Parameter Context")
     public Set<ParameterEntity> getParameters() {
         return parameters;
     }
@@ -76,7 +76,7 @@ public class ParameterContextDTO {
         this.boundProcessGroups = boundProcessGroups;
     }
 
-    @ApiModelProperty("A list of references of Parameter Contexts from which this one inherits parameters")
+    @Schema(description = "A list of references of Parameter Contexts from which this one inherits parameters")
     public List<ParameterContextReferenceEntity> getInheritedParameterContexts() {
         return inheritedParameterContexts;
     }
@@ -85,12 +85,12 @@ public class ParameterContextDTO {
         this.inheritedParameterContexts = inheritedParameterContexts;
     }
 
-    @ApiModelProperty(value = "The Process Groups that are bound to this Parameter Context", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The Process Groups that are bound to this Parameter Context", accessMode = Schema.AccessMode.READ_ONLY)
     public Set<ProcessGroupEntity> getBoundProcessGroups() {
         return boundProcessGroups;
     }
 
-    @ApiModelProperty(value = "Optional configuration for a Parameter Provider")
+    @Schema(description = "Optional configuration for a Parameter Provider")
     public ParameterProviderConfigurationEntity getParameterProviderConfiguration() {
         return parameterProviderConfiguration;
     }

@@ -26,11 +26,12 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -77,10 +78,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 @Configuration
 @Path("/config")
-@ApiModel(
-        value = "/config",
-        description = "Provides configuration and heartbeat/acknowledge capabilities for MiNiFi instances"
-)
 public class ConfigService {
 
     public static final String MESSAGE_400 = "MiNiFi C2 server was unable to complete the request because it was invalid. The request should not be retried without modification.";
@@ -177,15 +174,23 @@ public class ConfigService {
     @Path("/heartbeat")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "An endpoint for a MiNiFi Agent to send a heartbeat to the C2 server",
-            response = C2HeartbeatResponse.class
+    @Operation(
+            description = "An endpoint for a MiNiFi Agent to send a heartbeat to the C2 server"
     )
     @ApiResponses({
-            @ApiResponse(code = 400, message = MESSAGE_400)})
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Success",
+                    content = @Content(schema = @Schema(implementation = C2HeartbeatResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = MESSAGE_400
+            )
+    })
     public Response heartbeat(
             @Context HttpServletRequest request, @Context HttpHeaders httpHeaders, @Context UriInfo uriInfo,
-            @ApiParam(required = true) final C2Heartbeat heartbeat) {
+            @Parameter(required = true) final C2Heartbeat heartbeat) {
 
         try {
             authorizer.authorize(SecurityContextHolder.getContext().getAuthentication(), uriInfo);
@@ -275,13 +280,17 @@ public class ConfigService {
     @Path("/acknowledge")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "An endpoint for a MiNiFi Agent to send an operation acknowledgement to the C2 server"
+    @Operation(
+            description = "An endpoint for a MiNiFi Agent to send an operation acknowledgement to the C2 server"
     )
     @ApiResponses({
-            @ApiResponse(code = 400, message = MESSAGE_400)})
+            @ApiResponse(
+                    responseCode = "400",
+                    description = MESSAGE_400
+            )
+    })
     public Response acknowledge(
-            @ApiParam(required = true) final C2OperationAck operationAck) {
+            @Parameter(required = true) final C2OperationAck operationAck) {
 
         final C2ProtocolContext ackContext = C2ProtocolContext.builder()
                 .baseUri(getBaseUri())

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -34,8 +34,7 @@ public class DimensionsDTO {
     /**
      * @return height of the label in pixels when at a 1:1 scale
      */
-    @ApiModelProperty(
-        value = "The height of the label in pixels when at a 1:1 scale."
+    @Schema(description = "The height of the label in pixels when at a 1:1 scale."
     )
     public Double getHeight() {
         return height;
@@ -48,8 +47,7 @@ public class DimensionsDTO {
     /**
      * @return width of the label in pixels when at a 1:1 scale
      */
-    @ApiModelProperty(
-        value = "The width of the label in pixels when at a 1:1 scale."
+    @Schema(description = "The width of the label in pixels when at a 1:1 scale."
     )
     public Double getWidth() {
         return width;

@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
-import jakarta.servlet.http.HttpServletRequest;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
@@ -38,7 +38,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.apache.nifi.authorization.Authorizer;
@@ -61,13 +60,7 @@ import org.apache.nifi.web.api.entity.ProvenanceOptionsEntity;
  * RESTful endpoint for querying data provenance.
  */
 @Path("/provenance")
-@Api(
-    value = "/provenance",
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Endpoint for accessing data flow provenance.")
-})
+@Tag(name = "Provenance")
 public class ProvenanceResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
@@ -113,19 +106,19 @@ public class ProvenanceResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("search-options")
-    @ApiOperation(
-            value = "Gets the searchable attributes for provenance events",
-            response = ProvenanceOptionsEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /provenance")
+    @Operation(
+            summary = "Gets the searchable attributes for provenance events",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ProvenanceOptionsEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /provenance")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getSearchOptions() {
@@ -150,40 +143,36 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Creates provenance using the specified query criteria.
      *
-     * @param httpServletRequest request
-     * @param requestProvenanceEntity   A provenanceEntity
+     * @param requestProvenanceEntity A provenanceEntity
      * @return A provenanceEntity
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("") // necessary due to bug in swagger
-    @ApiOperation(
-            value = "Submits a provenance query",
-            notes = "Provenance queries may be long running so this endpoint submits a request. The response will include the "
+    @Path("")
+    @Operation(
+            summary = "Submits a provenance query",
+            description = "Provenance queries may be long running so this endpoint submits a request. The response will include the "
                     + "current state of the query. If the request is not completed the URI in the response can be used at a "
                     + "later time to get the updated state of the query. Once the query has completed the provenance request "
                     + "should be deleted by the client who originally submitted it.",
-            response = ProvenanceEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /provenance"),
-                    @Authorization(value = "Read - /data/{component-type}/{uuid}")
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ProvenanceEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /provenance"),
+                    @SecurityRequirement(name = "Read - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response submitProvenanceRequest(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The provenance query details.",
-                    required = true
-            ) ProvenanceEntity requestProvenanceEntity) {
+            @Parameter(description = "The provenance query details.", required = true)
+            ProvenanceEntity requestProvenanceEntity) {
 
         // check the request
         if (requestProvenanceEntity == null) {
@@ -250,7 +239,7 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Gets the provenance with the specified id.
      *
-     * @param id            The id of the provenance
+     * @param id The id of the provenance
      * @param clusterNodeId The id of node in the cluster to search. This is optional and only relevant when clustered. If clustered and it is not specified the entire cluster is searched.
      * @return A provenanceEntity
      */
@@ -258,42 +247,39 @@ public class ProvenanceResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    @ApiOperation(
-            value = "Gets a provenance query",
-            response = ProvenanceEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /provenance"),
-                    @Authorization(value = "Read - /data/{component-type}/{uuid}")
+    @Operation(
+            summary = "Gets a provenance query",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ProvenanceEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /provenance"),
+                    @SecurityRequirement(name = "Read - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getProvenance(
-            @ApiParam(
-                    value = "The id of the node where this query exists if clustered.",
-                    required = false
+            @Parameter(
+                    description = "The id of the node where this query exists if clustered."
             )
             @QueryParam("clusterNodeId") final String clusterNodeId,
-            @ApiParam(
-                    value = "Whether or not incremental results are returned. If false, provenance events"
-                            + " are only returned once the query completes. This property is true by default.",
-                    required = false
+            @Parameter(
+                    description = "Whether or not incremental results are returned. If false, provenance events"
+                            + " are only returned once the query completes. This property is true by default."
             )
             @QueryParam("summarize") @DefaultValue(value = "false") final Boolean summarize,
-            @ApiParam(
-                    value = "Whether or not to summarize provenance events returned. This property is false by default.",
-                    required = false
+            @Parameter(
+                    description = "Whether or not to summarize provenance events returned. This property is false by default."
             )
             @QueryParam("incrementalResults") @DefaultValue(value = "true") final Boolean incrementalResults,
-            @ApiParam(
-                    value = "The id of the provenance query.",
+            @Parameter(
+                    description = "The id of the provenance query.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -327,40 +313,37 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Deletes the provenance with the specified id.
      *
-     * @param httpServletRequest request
-     * @param id                 The id of the provenance
-     * @param clusterNodeId      The id of node in the cluster to search. This is optional and only relevant when clustered. If clustered and it is not specified the entire cluster is searched.
+     * @param id The id of the provenance
+     * @param clusterNodeId The id of node in the cluster to search. This is optional and only relevant when clustered. If clustered and it is not specified the entire cluster is searched.
      * @return A provenanceEntity
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    @ApiOperation(
-            value = "Deletes a provenance query",
-            response = ProvenanceEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /provenance")
+    @Operation(
+            summary = "Deletes a provenance query",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ProvenanceEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /provenance")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response deleteProvenance(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The id of the node where this query exists if clustered.",
-                    required = false
+            @Parameter(
+                    description = "The id of the node where this query exists if clustered."
             )
             @QueryParam("clusterNodeId") final String clusterNodeId,
-            @ApiParam(
-                    value = "The id of the provenance query.",
+            @Parameter(
+                    description = "The id of the provenance query.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -402,39 +385,37 @@ public class ProvenanceResource extends ApplicationResource {
      * <p>
      * When querying for the lineage of a flowfile you must specify the uuid. The eventId and eventDirection cannot be specified in this case.
      *
-     * @param httpServletRequest request
-     * @param requestLineageEntity      A lineageEntity
+     * @param requestLineageEntity A lineageEntity
      * @return A lineageEntity
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("lineage")
-    @ApiOperation(
-            value = "Submits a lineage query",
-            notes = "Lineage queries may be long running so this endpoint submits a request. The response will include the "
+    @Operation(
+            summary = "Submits a lineage query",
+            description = "Lineage queries may be long running so this endpoint submits a request. The response will include the "
                     + "current state of the query. If the request is not completed the URI in the response can be used at a "
                     + "later time to get the updated state of the query. Once the query has completed the lineage request "
                     + "should be deleted by the client who originally submitted it.",
-            response = LineageEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /provenance"),
-                    @Authorization(value = "Read - /data/{component-type}/{uuid}")
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = LineageEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /provenance"),
+                    @SecurityRequirement(name = "Read - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response submitLineageRequest(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The lineage query details.",
+            @Parameter(
+                    description = "The lineage query details.",
                     required = true
             ) final LineageEntity requestLineageEntity) {
 
@@ -506,38 +487,37 @@ public class ProvenanceResource extends ApplicationResource {
      * Gets the lineage with the specified id.
      *
      * @param clusterNodeId The id of node in the cluster that the event/flowfile originated from. This is only required when clustered.
-     * @param id            The id of the lineage
+     * @param id The id of the lineage
      * @return A lineageEntity
      */
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("lineage/{id}")
-    @ApiOperation(
-            value = "Gets a lineage query",
-            response = LineageEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /provenance"),
-                    @Authorization(value = "Read - /data/{component-type}/{uuid}")
+    @Operation(
+            summary = "Gets a lineage query",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = LineageEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /provenance"),
+                    @SecurityRequirement(name = "Read - /data/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getLineage(
-            @ApiParam(
-                    value = "The id of the node where this query exists if clustered.",
-                    required = false
+            @Parameter(
+                    description = "The id of the node where this query exists if clustered."
             )
             @QueryParam("clusterNodeId") final String clusterNodeId,
-            @ApiParam(
-                    value = "The id of the lineage query.",
+            @Parameter(
+                    description = "The id of the lineage query.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -564,40 +544,37 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Deletes the lineage with the specified id.
      *
-     * @param httpServletRequest request
-     * @param clusterNodeId      The id of node in the cluster that the event/flowfile originated from. This is only required when clustered.
-     * @param id                 The id of the lineage
+     * @param clusterNodeId The id of node in the cluster that the event/flowfile originated from. This is only required when clustered.
+     * @param id The id of the lineage
      * @return A lineageEntity
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("lineage/{id}")
-    @ApiOperation(
-            value = "Deletes a lineage query",
-            response = LineageEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /provenance")
+    @Operation(
+            summary = "Deletes a lineage query",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = LineageEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /provenance")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response deleteLineage(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The id of the node where this query exists if clustered.",
-                    required = false
+            @Parameter(
+                    description = "The id of the node where this query exists if clustered."
             )
             @QueryParam("clusterNodeId") final String clusterNodeId,
-            @ApiParam(
-                    value = "The id of the lineage query.",
+            @Parameter(
+                    description = "The id of the lineage query.",
                     required = true
             )
             @PathParam("id") final String id) {
