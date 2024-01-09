@@ -21,12 +21,15 @@ import {
     CreateReportingTaskSuccess,
     DeleteReportingTaskRequest,
     DeleteReportingTaskSuccess,
+    EditReportingTaskDialogRequest,
     LoadReportingTasksResponse,
     SelectReportingTaskRequest,
     StartReportingTaskRequest,
     StartReportingTaskSuccess,
     StopReportingTaskRequest,
-    StopReportingTaskSuccess
+    StopReportingTaskSuccess,
+    ConfigureReportingTaskRequest,
+    ConfigureReportingTaskSuccess
 } from './index';
 
 export const resetReportingTasksState = createAction('[Reporting Tasks] Reset Reporting Tasks State');
@@ -36,6 +39,21 @@ export const loadReportingTasks = createAction('[Reporting Tasks] Load Reporting
 export const loadReportingTasksSuccess = createAction(
     '[Reporting Tasks] Load Reporting Tasks Success',
     props<{ response: LoadReportingTasksResponse }>()
+);
+
+export const openConfigureReportingTaskDialog = createAction(
+    '[Reporting Tasks] Open Reporting Task Dialog',
+    props<{ request: EditReportingTaskDialogRequest }>()
+);
+
+export const configureReportingTask = createAction(
+    '[Reporting Tasks] Configure Reporting Task',
+    props<{ request: ConfigureReportingTaskRequest }>()
+);
+
+export const configureReportingTaskSuccess = createAction(
+    '[Reporting Tasks] Configure Reporting Task Success',
+    props<{ response: ConfigureReportingTaskSuccess }>()
 );
 
 export const reportingTasksApiError = createAction(
@@ -53,6 +71,11 @@ export const createReportingTask = createAction(
 export const createReportingTaskSuccess = createAction(
     '[Reporting Tasks] Create Reporting Task Success',
     props<{ response: CreateReportingTaskSuccess }>()
+);
+
+export const navigateToEditReportingTask = createAction(
+    '[Reporting Tasks] Navigate To Edit Reporting Task',
+    props<{ id: string }>()
 );
 
 export const startReportingTask = createAction(

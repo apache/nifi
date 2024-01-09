@@ -104,7 +104,11 @@
                             *ngIf="canStop(item)"
                             (click)="stopClicked(item)"
                             title="Stop"></div>
-                        <div class="pointer fa fa-pencil" *ngIf="canEdit(item)" title="Edit"></div>
+                        <div
+                            class="pointer fa fa-pencil"
+                            *ngIf="canEdit(item)"
+                            (click)="configureClicked(item, $event)"
+                            title="Edit"></div>
                         <div
                             class="pointer fa fa-play"
                             *ngIf="canStart(item)"

@@ -52,6 +52,7 @@ export class ReportingTaskTable implements AfterViewInit {
     @Output() selectReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() deleteReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() startReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
+    @Output() configureReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() stopReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
 
     protected readonly TextTip = TextTip;
@@ -224,6 +225,11 @@ export class ReportingTaskTable implements AfterViewInit {
 
     deleteClicked(entity: ReportingTaskEntity): void {
         this.deleteReportingTask.next(entity);
+    }
+
+    configureClicked(entity: ReportingTaskEntity, event: MouseEvent): void {
+        event.stopPropagation();
+        this.configureReportingTask.next(entity);
     }
 
     canViewState(entity: ReportingTaskEntity): boolean {

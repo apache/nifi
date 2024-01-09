@@ -18,6 +18,8 @@
 import { createReducer, on } from '@ngrx/store';
 import { ReportingTasksState } from './index';
 import {
+    configureReportingTask,
+    configureReportingTaskSuccess,
     createReportingTask,
     createReportingTaskSuccess,
     deleteReportingTask,
@@ -61,7 +63,16 @@ export const reportingTasksReducer = createReducer(
         error,
         status: 'error' as const
     })),
-    on(createReportingTask, deleteReportingTask, (state, { request }) => ({
+    on(configureReportingTaskSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const componentIndex: number = draftState.reportingTasks.findIndex((f: any) => response.id === f.id);
+            if (componentIndex > -1) {
+                draftState.reportingTasks[componentIndex] = response.reportingTask;
+            }
+            draftState.saving = false;
+        });
+    }),
+    on(createReportingTask, deleteReportingTask, configureReportingTask, (state, { request }) => ({
         ...state,
         saving: true
     })),

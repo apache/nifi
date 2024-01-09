@@ -16,25 +16,30 @@
  */
 
 import { Component, OnDestroy, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
+import { filter, switchMap, take } from 'rxjs';
 import { ReportingTaskEntity, ReportingTasksState } from '../../state/reporting-tasks';
 import {
     selectReportingTaskIdFromRoute,
-    selectReportingTasksState
+    selectReportingTasksState,
+    selectSingleEditedReportingTask,
+    selectTask
 } from '../../state/reporting-tasks/reporting-tasks.selectors';
 import {
     loadReportingTasks,
+    navigateToEditReportingTask,
+    openConfigureReportingTaskDialog,
     openNewReportingTaskDialog,
     promptReportingTaskDeletion,
     resetReportingTasksState,
-    selectReportingTask,
     startReportingTask,
-    stopReportingTask
+    stopReportingTask,
+    selectReportingTask
 } from '../../state/reporting-tasks/reporting-tasks.actions';
 import { initialState } from '../../state/reporting-tasks/reporting-tasks.reducer';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NiFiState } from '../../../../state';
-import { state } from '@angular/animations';
 
 @Component({
     selector: 'reporting-tasks',
@@ -46,7 +51,32 @@ export class ReportingTasks implements OnInit, OnDestroy {
     selectedReportingTaskId$ = this.store.select(selectReportingTaskIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
 
-    constructor(private store: Store<NiFiState>) {}
+    constructor(private store: Store<NiFiState>) {
+        this.store
+            .select(selectSingleEditedReportingTask)
+            .pipe(
+                filter((id: string) => id != null),
+                switchMap((id: string) =>
+                    this.store.select(selectTask(id)).pipe(
+                        filter((entity) => entity != null),
+                        take(1)
+                    )
+                ),
+                takeUntilDestroyed()
+            )
+            .subscribe((entity) => {
+                if (entity) {
+                    this.store.dispatch(
+                        openConfigureReportingTaskDialog({
+                            request: {
+                                id: entity.id,
+                                reportingTask: entity
+                            }
+                        })
+                    );
+                }
+            });
+    }
 
     ngOnInit(): void {
         this.store.dispatch(loadReportingTasks());
@@ -69,7 +99,7 @@ export class ReportingTasks implements OnInit, OnDestroy {
         this.store.dispatch(
             selectReportingTask({
                 request: {
-                    reportingTask: entity
+                    id: entity.id
                 }
             })
         );
@@ -81,6 +111,14 @@ export class ReportingTasks implements OnInit, OnDestroy {
                 request: {
                     reportingTask: entity
                 }
+            })
+        );
+    }
+
+    configureReportingTask(entity: ReportingTaskEntity): void {
+        this.store.dispatch(
+            navigateToEditReportingTask({
+                id: entity.id
             })
         );
     }

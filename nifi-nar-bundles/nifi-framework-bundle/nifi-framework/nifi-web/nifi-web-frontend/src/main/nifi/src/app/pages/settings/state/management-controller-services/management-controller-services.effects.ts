@@ -300,13 +300,13 @@ export class ManagementControllerServicesEffects {
                                                 })
                                                 .pipe(
                                                     take(1),
-                                                    switchMap((createReponse) => {
+                                                    switchMap((createResponse) => {
                                                         // dispatch an inline create service success action so the new service is in the state
                                                         this.store.dispatch(
                                                             ManagementControllerServicesActions.inlineCreateControllerServiceSuccess(
                                                                 {
                                                                     response: {
-                                                                        controllerService: createReponse
+                                                                        controllerService: createResponse
                                                                     }
                                                                 }
                                                             )
@@ -321,7 +321,7 @@ export class ManagementControllerServicesEffects {
                                                                     createServiceDialogReference.close();
 
                                                                     return {
-                                                                        value: createReponse.id,
+                                                                        value: createResponse.id,
                                                                         descriptor:
                                                                             descriptorResponse.propertyDescriptor
                                                                     };

@@ -57,7 +57,13 @@ const routes: Routes = [
                 children: [
                     {
                         path: ':id',
-                        component: ReportingTasks
+                        component: ReportingTasks,
+                        children: [
+                            {
+                                path: 'edit',
+                                component: ReportingTasks
+                            }
+                        ]
                     }
                 ]
             },
