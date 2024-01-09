@@ -230,6 +230,10 @@ export interface NavigateToControllerServicesRequest {
     id: string;
 }
 
+export interface NavigateToQueueListing {
+    connectionId: string;
+}
+
 export interface EditCurrentProcessGroupRequest {
     id: string;
 }
