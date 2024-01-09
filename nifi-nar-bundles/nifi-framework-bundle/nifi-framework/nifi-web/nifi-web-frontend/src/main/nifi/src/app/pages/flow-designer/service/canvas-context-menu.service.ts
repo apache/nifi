@@ -193,7 +193,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: (selection: any) => {
                     return this.canvasUtils.hasUpstream(selection);
                 },
-                clazz: 'icon',
+                clazz: 'fa',
                 text: 'Upstream',
                 action: () => {
                     // TODO - showUpstream
@@ -203,7 +203,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: (selection: any) => {
                     return this.canvasUtils.hasDownstream(selection);
                 },
-                clazz: 'icon',
+                clazz: 'fa',
                 text: 'Downstream',
                 action: () => {
                     // TODO - showDownstream
@@ -526,7 +526,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     // TODO - canDisable
                     return false;
                 },
-                clazz: 'icon icon-enable-false',
+                clazz: 'fa icon-enable-false',
                 text: 'Disable',
                 action: () => {
                     // TODO - disable
@@ -613,7 +613,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: (selection: any) => {
                     return this.canvasUtils.isProcessGroup(selection);
                 },
-                clazz: 'icon icon-enable-false',
+                clazz: 'fa icon-enable-false',
                 text: 'Disable all controller services',
                 action: () => {
                     // TODO - disableAllControllerServices
@@ -623,7 +623,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: (selection: any) => {
                     return this.canvasUtils.emptySelection(selection);
                 },
-                clazz: 'icon icon-enable-false',
+                clazz: 'fa icon-enable-false',
                 text: 'Disable all controller services',
                 action: () => {
                     // TODO - disableAllControllerServices
@@ -931,7 +931,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: (selection: any) => {
                     return this.canvasUtils.isDisconnected(selection);
                 },
-                clazz: 'icon icon-group',
+                clazz: 'fa icon-group',
                 text: 'Group',
                 action: (selection: any) => {
                     const moveComponents: MoveComponentRequest[] = [];
