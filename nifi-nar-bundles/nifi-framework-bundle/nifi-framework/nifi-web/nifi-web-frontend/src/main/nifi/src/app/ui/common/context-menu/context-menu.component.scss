@@ -56,11 +56,7 @@ div.context-menu {
         }
 
         .context-menu-item-img.icon {
-            display: inline-block;
-            font: normal normal normal 14px/1 FontAwesome;
-            font-size: inherit;
-            text-rendering: auto;
-            -webkit-font-smoothing: antialiased;
+            line-height: 1;
         }
 
         .context-menu-item-text {
