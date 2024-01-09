@@ -514,7 +514,7 @@ public class ValidateCsv extends AbstractProcessor {
 
                         } catch (final SuperCsvException e) {
                             valid.set(false);
-                            final String coordinates = String.format("{lineNo=%d, rowNo=%d, columnNo=%d}", e.getCsvContext().getLineNumber(),
+                            final String coordinates = String.format("{line=%d, row=%d, column=%d}", e.getCsvContext().getLineNumber(),
                                     e.getCsvContext().getRowNumber(), e.getCsvContext().getColumnNumber());
                             final String errorMessage = e.getLocalizedMessage() + " " + coordinates;
                             if(isWholeFFValidation) {
