@@ -272,7 +272,6 @@ export class OperationControl {
                     type: d.type,
                     revision: d.revision
                 });
-                // const d = selection.datum();
             });
             this.store.dispatch(
                 stopComponents({

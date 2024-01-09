@@ -563,7 +563,6 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                             type: d.type,
                             revision: d.revision
                         });
-                        // const d = selection.datum();
                     });
                     this.store.dispatch(
                         stopComponents({
