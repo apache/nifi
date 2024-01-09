@@ -516,8 +516,11 @@ public class ValidateCsv extends AbstractProcessor {
 
                         } catch (final SuperCsvException e) {
                             valid.set(false);
+                            final String coordinates = String.format("{line=%d, row=%d, column=%d}", e.getCsvContext().getLineNumber(),
+                                    e.getCsvContext().getRowNumber(), e.getCsvContext().getColumnNumber());
+                            final String errorMessage = e.getLocalizedMessage() + " at " + coordinates;
                             if(isWholeFFValidation) {
-                                validationError.set(e.getLocalizedMessage());
+                                validationError.set(errorMessage);
                                 logger.debug("Failed to validate {} against schema due to {}; routing to 'invalid'", flowFile, e);
                                 break;
                             } else {
@@ -534,7 +537,7 @@ public class ValidateCsv extends AbstractProcessor {
                                 }
 
                                 if(validationError.get() == null) {
-                                    validationError.set(e.getLocalizedMessage());
+                                    validationError.set(errorMessage);
                                 }
                             }
                         } finally {
