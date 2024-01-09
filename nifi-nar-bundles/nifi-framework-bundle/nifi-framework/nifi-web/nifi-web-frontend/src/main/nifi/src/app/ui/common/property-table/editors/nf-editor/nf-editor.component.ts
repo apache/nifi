@@ -76,7 +76,6 @@ export class NfEditor implements OnDestroy {
     }
 
     @Input() set getParameters(getParameters: (sensitive: boolean) => Observable<Parameter[]>) {
-        this.supportsParameters = true;
         this._getParameters = getParameters;
 
         this.getParametersSet = true;
@@ -128,6 +127,8 @@ export class NfEditor implements OnDestroy {
 
             if (this.getParametersSet) {
                 if (this._getParameters) {
+                    this.supportsParameters = true;
+
                     this._getParameters(this.sensitive)
                         .pipe(take(1))
                         .subscribe((parameters) => {
@@ -142,24 +143,16 @@ export class NfEditor implements OnDestroy {
                             }
                         });
                 } else {
+                    this.supportsParameters = false;
+
+                    this.nfel.disableParameters();
+                    this.nfpr.disableParameters();
+
                     if (this.supportsEl) {
-                        this.nfel.enableParameters();
-                        this.nfel.setParameters([]);
                         this.nfel.configureAutocomplete();
                     } else {
-                        this.nfpr.enableParameters();
-                        this.nfpr.setParameters([]);
                         this.nfpr.configureAutocomplete();
                     }
-                }
-            } else {
-                this.nfel.disableParameters();
-                this.nfpr.disableParameters();
-
-                if (this.supportsEl) {
-                    this.nfel.configureAutocomplete();
-                } else {
-                    this.nfpr.configureAutocomplete();
                 }
             }
         }
@@ -181,7 +174,7 @@ export class NfEditor implements OnDestroy {
         };
     }
 
-    resized(rect: DOMRect): void {
+    resized(): void {
         this.editor.setSize('100%', '100%');
     }
 

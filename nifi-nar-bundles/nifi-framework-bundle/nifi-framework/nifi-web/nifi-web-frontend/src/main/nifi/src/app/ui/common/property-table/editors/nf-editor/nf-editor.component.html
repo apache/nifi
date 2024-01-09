@@ -15,7 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div class="property-editor p-4" [style.width.px]="width" cdkDrag resizable (resized)="resized($event)">
+<div class="property-editor p-4" [style.width.px]="width" cdkDrag resizable (resized)="resized()">
     <form class="h-full" [formGroup]="nfEditorForm" cdkTrapFocus cdkTrapFocusAutoCapture>
         <div class="flex flex-col gap-y-3 h-full">
             <div class="flex justify-end">
