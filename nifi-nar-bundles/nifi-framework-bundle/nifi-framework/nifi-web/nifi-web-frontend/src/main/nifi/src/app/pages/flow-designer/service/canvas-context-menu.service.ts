@@ -563,7 +563,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: (selection: any) => {
                     return this.canvasUtils.canAllStopTransmitting(selection);
                 },
-                clazz: 'icon icon-transmit-false',
+                clazz: 'fa icon-transmit-false',
                 text: 'Disable transmission',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     const components: StopComponentRequest[] = [];
@@ -636,7 +636,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: (selection: any) => {
                     return this.canvasUtils.canAccessComponentProvenance(selection);
                 },
-                clazz: 'icon icon-provenance',
+                clazz: 'fa icon-provenance',
                 // imgStyle: 'context-menu-provenance',
                 text: 'View data provenance',
                 action: (selection: any) => {
@@ -708,7 +708,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 }
             },
             {
-                clazz: 'icon icon-connect',
+                clazz: 'fa icon-connect',
                 text: 'View connections',
                 subMenuId: this.UPSTREAM_DOWNSTREAM.id
             },
