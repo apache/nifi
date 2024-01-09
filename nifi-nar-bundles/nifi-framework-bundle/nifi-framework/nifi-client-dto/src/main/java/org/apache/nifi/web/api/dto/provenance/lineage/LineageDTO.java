@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.provenance.lineage;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimestampAdapter;
 
 import jakarta.xml.bind.annotation.XmlType;
@@ -43,8 +43,7 @@ public class LineageDTO {
     /**
      * @return id of this lineage
      */
-    @ApiModelProperty(
-            value = "The id of this lineage query."
+    @Schema(description = "The id of this lineage query."
     )
     public String getId() {
         return id;
@@ -57,8 +56,7 @@ public class LineageDTO {
     /**
      * @return uri for this lineage
      */
-    @ApiModelProperty(
-            value = "The URI for this lineage query for later retrieval and deletion."
+    @Schema(description = "The URI for this lineage query for later retrieval and deletion."
     )
     public String getUri() {
         return uri;
@@ -72,9 +70,8 @@ public class LineageDTO {
      * @return submission time for this lineage
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
-    @ApiModelProperty(
-            value = "When the lineage query was submitted.",
-            dataType = "string"
+    @Schema(description = "When the lineage query was submitted.",
+            type = "string"
     )
     public Date getSubmissionTime() {
         return submissionTime;
@@ -88,9 +85,8 @@ public class LineageDTO {
      * @return expiration of this lineage
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
-    @ApiModelProperty(
-            value = "When the lineage query will expire.",
-            dataType = "string"
+    @Schema(description = "When the lineage query will expire.",
+            type = "string"
     )
     public Date getExpiration() {
         return expiration;
@@ -103,8 +99,7 @@ public class LineageDTO {
     /**
      * @return percent completed for this result
      */
-    @ApiModelProperty(
-            value = "The percent complete for the lineage query."
+    @Schema(description = "The percent complete for the lineage query."
     )
     public Integer getPercentCompleted() {
         return percentCompleted;
@@ -117,8 +112,7 @@ public class LineageDTO {
     /**
      * @return whether or not the request is finished running
      */
-    @ApiModelProperty(
-            value = "Whether the lineage query has finished."
+    @Schema(description = "Whether the lineage query has finished."
     )
     public Boolean getFinished() {
         return finished;
@@ -131,8 +125,7 @@ public class LineageDTO {
     /**
      * @return the lineage request
      */
-    @ApiModelProperty(
-            value = "The initial lineage result."
+    @Schema(description = "The initial lineage result."
     )
     public LineageRequestDTO getRequest() {
         return request;
@@ -145,8 +138,7 @@ public class LineageDTO {
     /**
      * @return the results of this lineage
      */
-    @ApiModelProperty(
-            value = "The results of the lineage query."
+    @Schema(description = "The results of the lineage query."
     )
     public LineageResultsDTO getResults() {
         return results;

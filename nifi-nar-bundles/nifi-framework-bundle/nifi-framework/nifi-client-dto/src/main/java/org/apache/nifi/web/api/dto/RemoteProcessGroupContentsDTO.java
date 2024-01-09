@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.Set;
@@ -33,8 +33,7 @@ public class RemoteProcessGroupContentsDTO {
     /**
      * @return Controller Input Ports to which data can be sent
      */
-    @ApiModelProperty(
-            value = "The input ports to which data can be sent."
+    @Schema(description = "The input ports to which data can be sent."
     )
     public Set<RemoteProcessGroupPortDTO> getInputPorts() {
         return inputPorts;
@@ -47,8 +46,7 @@ public class RemoteProcessGroupContentsDTO {
     /**
      * @return Controller Output Ports from which data can be retrieved
      */
-    @ApiModelProperty(
-            value = "The output ports from which data can be retrieved."
+    @Schema(description = "The output ports from which data can be retrieved."
     )
     public Set<RemoteProcessGroupPortDTO> getOutputPorts() {
         return outputPorts;

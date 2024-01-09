@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimestampAdapter;
 
 import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -35,7 +35,7 @@ public abstract class AsynchronousRequestDTO<T extends UpdateStepDTO> {
     private List<T> updateSteps;
 
 
-    @ApiModelProperty(value = "The ID of the request", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The ID of the request", accessMode = Schema.AccessMode.READ_ONLY)
     public String getRequestId() {
         return requestId;
     }
@@ -44,7 +44,7 @@ public abstract class AsynchronousRequestDTO<T extends UpdateStepDTO> {
         this.requestId = requestId;
     }
 
-    @ApiModelProperty(value = "The URI for the request", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The URI for the request", accessMode = Schema.AccessMode.READ_ONLY)
     public String getUri() {
         return uri;
     }
@@ -54,7 +54,7 @@ public abstract class AsynchronousRequestDTO<T extends UpdateStepDTO> {
     }
 
     @XmlJavaTypeAdapter(TimestampAdapter.class)
-    @ApiModelProperty(value = "The timestamp of when the request was submitted", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The timestamp of when the request was submitted", accessMode = Schema.AccessMode.READ_ONLY)
     public Date getSubmissionTime() {
         return submissionTime;
     }
@@ -64,7 +64,7 @@ public abstract class AsynchronousRequestDTO<T extends UpdateStepDTO> {
     }
 
     @XmlJavaTypeAdapter(TimestampAdapter.class)
-    @ApiModelProperty(value = "The timestamp of when the request was last updated", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The timestamp of when the request was last updated", accessMode = Schema.AccessMode.READ_ONLY)
     public Date getLastUpdated() {
         return lastUpdated;
     }
@@ -73,7 +73,7 @@ public abstract class AsynchronousRequestDTO<T extends UpdateStepDTO> {
         this.lastUpdated = lastUpdated;
     }
 
-    @ApiModelProperty(value = "Whether or not the request is completed", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "Whether or not the request is completed", accessMode = Schema.AccessMode.READ_ONLY)
     public boolean isComplete() {
         return complete;
     }
@@ -82,7 +82,7 @@ public abstract class AsynchronousRequestDTO<T extends UpdateStepDTO> {
         this.complete = complete;
     }
 
-    @ApiModelProperty(value = "The reason for the request failing, or null if the request has not failed", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The reason for the request failing, or null if the request has not failed", accessMode = Schema.AccessMode.READ_ONLY)
     public String getFailureReason() {
         return failureReason;
     }
@@ -91,7 +91,7 @@ public abstract class AsynchronousRequestDTO<T extends UpdateStepDTO> {
         this.failureReason = failureReason;
     }
 
-    @ApiModelProperty(value = "A value between 0 and 100 (inclusive) indicating how close the request is to completion", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "A value between 0 and 100 (inclusive) indicating how close the request is to completion", accessMode = Schema.AccessMode.READ_ONLY)
     public int getPercentCompleted() {
         return percentCompleted;
     }
@@ -100,7 +100,7 @@ public abstract class AsynchronousRequestDTO<T extends UpdateStepDTO> {
         this.percentCompleted = percentCompleted;
     }
 
-    @ApiModelProperty(value = "A description of the current state of the request", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "A description of the current state of the request", accessMode = Schema.AccessMode.READ_ONLY)
     public String getState() {
         return state;
     }
@@ -109,7 +109,7 @@ public abstract class AsynchronousRequestDTO<T extends UpdateStepDTO> {
         this.state = state;
     }
 
-    @ApiModelProperty(value = "The steps that are required in order to complete the request, along with the status of each", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The steps that are required in order to complete the request, along with the status of each", accessMode = Schema.AccessMode.READ_ONLY)
     public List<T> getUpdateSteps() {
         return updateSteps;
     }

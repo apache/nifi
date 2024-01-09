@@ -16,18 +16,19 @@
  */
 package org.apache.nifi.registry.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.Extension;
-import io.swagger.annotations.ExtensionProperty;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
 import java.util.List;
 import java.util.Set;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.extensions.Extension;
+import io.swagger.v3.oas.annotations.extensions.ExtensionProperty;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -46,14 +47,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Path("/items")
-@Api(
-    value = "items",
-    authorizations = {@Authorization("Authorization")},
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Retrieve items across all buckets for which the user is authorized.")
-})
+@Tag(name = "Items")
 public class ItemResource extends ApplicationResource {
 
     @Context
@@ -68,14 +62,13 @@ public class ItemResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get all items",
-            notes = "Get items across all buckets. The returned items will include only items from buckets for which the user is authorized. " +
+    @Operation(
+            summary = "Get all items",
+            description = "Get items across all buckets. The returned items will include only items from buckets for which the user is authorized. " +
                     "If the user is not authorized to any buckets, an empty list will be returned.",
-            response = BucketItem.class,
-            responseContainer = "List"
+            responses = @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = BucketItem.class))))
     )
-    @ApiResponses({ @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401) })
+    @ApiResponses({@ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401)})
     public Response getItems() {
         // Service facade with return only items from authorized buckets
         // Note: We don't explicitly check for access to (READ, /buckets) or
@@ -93,27 +86,29 @@ public class ItemResource extends ApplicationResource {
     @Path("{bucketId}")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get bucket items",
-            notes = "Gets the items located in the given bucket.",
-            response = BucketItem.class,
-            responseContainer = "List",
-            nickname = "getItemsInBucket",
+    @Operation(
+            summary = "Get bucket items",
+            description = "Gets the items located in the given bucket.",
+            responses = @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = BucketItem.class)))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404)
+            }
+    )
     public Response getItems(
             @PathParam("bucketId")
-            @ApiParam("The bucket identifier")
-            final String bucketId) {
+            @Parameter(description = "The bucket identifier") final String bucketId) {
 
         final List<BucketItem> items = serviceFacade.getBucketItems(bucketId);
         return Response.status(Response.Status.OK).entity(items).build();
@@ -123,10 +118,10 @@ public class ItemResource extends ApplicationResource {
     @Path("fields")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get item fields",
-            notes = "Retrieves the item field names for searching or sorting on bucket items.",
-            response = Fields.class
+    @Operation(
+            summary = "Get item fields",
+            description = "Retrieves the item field names for searching or sorting on bucket items.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = Fields.class)))
     )
     public Response getAvailableBucketItemFields() {
         final Set<String> bucketFields = serviceFacade.getBucketItemFields();

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
 
@@ -31,7 +31,7 @@ public class ProcessGroupStatusSnapshotEntity extends Entity implements Readable
     /**
      * @return The process group id
      */
-    @ApiModelProperty("The id of the process group.")
+    @Schema(description = "The id of the process group.")
     public String getId() {
         return id;
     }

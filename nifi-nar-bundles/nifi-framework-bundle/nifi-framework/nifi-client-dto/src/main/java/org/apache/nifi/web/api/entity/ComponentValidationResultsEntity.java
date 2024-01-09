@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.List;
@@ -25,7 +25,7 @@ import java.util.List;
 public class ComponentValidationResultsEntity extends Entity {
     private List<ComponentValidationResultEntity> componentValidationResults;
 
-    @ApiModelProperty("A List of ComponentValidationResultEntity, one for each component that is validated")
+    @Schema(description = "A List of ComponentValidationResultEntity, one for each component that is validated")
     public List<ComponentValidationResultEntity> getValidationResults() {
         return componentValidationResults;
     }

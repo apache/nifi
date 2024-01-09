@@ -153,7 +153,7 @@
         <servlet-api.version>6.0.0</servlet-api.version>
         <spring.version>6.0.15</spring.version>
         <spring.security.version>6.2.0</spring.security.version>
-        <swagger.annotations.version>1.6.12</swagger.annotations.version>
+        <swagger.annotations.version>2.2.20</swagger.annotations.version>
         <h2.version>2.2.224</h2.version>
         <zookeeper.version>3.9.1</zookeeper.version>
         <caffeine.version>3.1.8</caffeine.version>
@@ -565,7 +565,7 @@
                 <version>${json.smart.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.swagger</groupId>
+                <groupId>io.swagger.core.v3</groupId>
                 <artifactId>swagger-annotations</artifactId>
                 <version>${swagger.annotations.version}</version>
             </dependency>
@@ -929,6 +929,16 @@
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
                     <version>0.8.11</version>
+                </plugin>
+                <plugin>
+                    <groupId>io.swagger.core.v3</groupId>
+                    <artifactId>swagger-maven-plugin-jakarta</artifactId>
+                    <version>2.2.20</version>
+                </plugin>
+                <plugin>
+                    <groupId>io.swagger.codegen.v3</groupId>
+                    <artifactId>swagger-codegen-maven-plugin</artifactId>
+                    <version>3.0.52</version>
                 </plugin>
             </plugins>
         </pluginManagement>

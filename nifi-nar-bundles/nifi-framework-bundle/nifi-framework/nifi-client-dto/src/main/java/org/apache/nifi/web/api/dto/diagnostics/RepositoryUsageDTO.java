@@ -19,7 +19,7 @@ package org.apache.nifi.web.api.dto.diagnostics;
 
 import jakarta.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @XmlType(name = "repositoryUsage")
 public class RepositoryUsageDTO implements Cloneable {
@@ -33,7 +33,7 @@ public class RepositoryUsageDTO implements Cloneable {
     private String utilization;
 
 
-    @ApiModelProperty("The name of the repository")
+    @Schema(description = "The name of the repository")
     public String getName() {
         return name;
     }
@@ -42,7 +42,7 @@ public class RepositoryUsageDTO implements Cloneable {
         this.name = name;
     }
 
-    @ApiModelProperty("A SHA-256 hash of the File Store name/path that is used to store the repository's data. This information is exposed as a hash in order to avoid "
+    @Schema(description = "A SHA-256 hash of the File Store name/path that is used to store the repository's data. This information is exposed as a hash in order to avoid "
         + "exposing potentially sensitive information that is not generally relevant. What is typically relevant is whether or not multiple repositories on the same node are "
         + "using the same File Store, as this indicates that the repositories are competing for the resources of the backing disk/storage mechanism.")
     public String getFileStoreHash() {
@@ -53,7 +53,7 @@ public class RepositoryUsageDTO implements Cloneable {
         this.fileStoreHash = fileStore;
     }
 
-    @ApiModelProperty("Amount of free space.")
+    @Schema(description = "Amount of free space.")
     public String getFreeSpace() {
         return freeSpace;
     }
@@ -62,7 +62,7 @@ public class RepositoryUsageDTO implements Cloneable {
         this.freeSpace = freeSpace;
     }
 
-    @ApiModelProperty("Amount of total space.")
+    @Schema(description = "Amount of total space.")
     public String getTotalSpace() {
         return totalSpace;
     }
@@ -71,7 +71,7 @@ public class RepositoryUsageDTO implements Cloneable {
         this.totalSpace = totalSpace;
     }
 
-    @ApiModelProperty("Utilization of this storage location.")
+    @Schema(description = "Utilization of this storage location.")
     public String getUtilization() {
         return utilization;
     }
@@ -80,7 +80,7 @@ public class RepositoryUsageDTO implements Cloneable {
         this.utilization = utilization;
     }
 
-    @ApiModelProperty("The number of bytes of free space.")
+    @Schema(description = "The number of bytes of free space.")
     public Long getFreeSpaceBytes() {
         return freeSpaceBytes;
     }
@@ -89,7 +89,7 @@ public class RepositoryUsageDTO implements Cloneable {
         this.freeSpaceBytes = freeSpaceBytes;
     }
 
-    @ApiModelProperty("The number of bytes of total space.")
+    @Schema(description = "The number of bytes of total space.")
     public Long getTotalSpaceBytes() {
         return totalSpaceBytes;
     }

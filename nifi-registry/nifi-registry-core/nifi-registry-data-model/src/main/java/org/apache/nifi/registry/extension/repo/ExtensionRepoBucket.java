@@ -16,21 +16,19 @@
  */
 package org.apache.nifi.registry.extension.repo;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.registry.link.LinkableEntity;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.Comparator;
 import java.util.Objects;
 
-@ApiModel
 @XmlRootElement
 public class ExtensionRepoBucket extends LinkableEntity implements Comparable<ExtensionRepoBucket> {
 
     private String bucketName;
 
-    @ApiModelProperty(value = "The name of the bucket")
+    @Schema(description = "The name of the bucket")
     public String getBucketName() {
         return bucketName;
     }

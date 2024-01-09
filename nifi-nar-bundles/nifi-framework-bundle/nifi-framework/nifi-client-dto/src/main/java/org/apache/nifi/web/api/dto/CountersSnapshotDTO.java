@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import jakarta.xml.bind.annotation.XmlType;
@@ -35,7 +35,7 @@ public class CountersSnapshotDTO implements Cloneable {
     private Date generated;
     private Collection<CounterDTO> counters;
 
-    @ApiModelProperty("All counters in the NiFi.")
+    @Schema(description = "All counters in the NiFi.")
     public Collection<CounterDTO> getCounters() {
         return counters;
     }
@@ -45,9 +45,8 @@ public class CountersSnapshotDTO implements Cloneable {
     }
 
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-            value = "The timestamp when the report was generated.",
-            dataType = "string"
+    @Schema(description = "The timestamp when the report was generated.",
+            type = "string"
     )
     public Date getGenerated() {
         return generated;

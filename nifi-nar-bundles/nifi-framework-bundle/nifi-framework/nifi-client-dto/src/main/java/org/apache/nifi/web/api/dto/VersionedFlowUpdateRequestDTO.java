@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -25,8 +25,8 @@ import jakarta.xml.bind.annotation.XmlType;
 public class VersionedFlowUpdateRequestDTO extends FlowUpdateRequestDTO {
     private VersionControlInformationDTO versionControlInformation;
 
-    @ApiModelProperty(value = "The VersionControlInformation that describes where the Versioned Flow is located; this may not be populated until the request is completed.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The VersionControlInformation that describes where the Versioned Flow is located; this may not be populated until the request is completed.",
+            accessMode = Schema.AccessMode.READ_ONLY)
     public VersionControlInformationDTO getVersionControlInformation() {
         return versionControlInformation;
     }

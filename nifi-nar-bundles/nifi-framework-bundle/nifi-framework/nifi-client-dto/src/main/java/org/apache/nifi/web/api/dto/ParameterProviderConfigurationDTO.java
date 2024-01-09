@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -27,7 +27,7 @@ public class ParameterProviderConfigurationDTO {
     private String parameterGroupName;
     private Boolean isSynchronized;
 
-    @ApiModelProperty("The ID of the Parameter Provider")
+    @Schema(description = "The ID of the Parameter Provider")
     public String getParameterProviderId() {
         return parameterProviderId;
     }
@@ -36,7 +36,7 @@ public class ParameterProviderConfigurationDTO {
         this.parameterProviderId = parameterProviderId;
     }
 
-    @ApiModelProperty("The name of the Parameter Provider")
+    @Schema(description = "The name of the Parameter Provider")
     public String getParameterProviderName() {
         return parameterProviderName;
     }
@@ -45,7 +45,7 @@ public class ParameterProviderConfigurationDTO {
         this.parameterProviderName = parameterProviderName;
     }
 
-    @ApiModelProperty("The Parameter Group name that maps to the Parameter Context")
+    @Schema(description = "The Parameter Group name that maps to the Parameter Context")
     public String getParameterGroupName() {
         return parameterGroupName;
     }
@@ -54,7 +54,7 @@ public class ParameterProviderConfigurationDTO {
         this.parameterGroupName = parameterGroupName;
     }
 
-    @ApiModelProperty("True if the Parameter Context should receive the parameters from the mapped Parameter Group")
+    @Schema(description = "True if the Parameter Context should receive the parameters from the mapped Parameter Group")
     public Boolean getSynchronized() {
         return isSynchronized;
     }

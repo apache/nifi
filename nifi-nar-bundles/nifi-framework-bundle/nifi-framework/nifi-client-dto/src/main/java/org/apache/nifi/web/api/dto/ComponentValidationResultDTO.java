@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.Collection;
@@ -27,7 +27,7 @@ public class ComponentValidationResultDTO extends AffectedComponentDTO {
     private Boolean resultsValid;
     private Collection<String> resultantValidationErrors;
 
-    @ApiModelProperty("Whether or not the component is currently valid")
+    @Schema(description = "Whether or not the component is currently valid")
     public Boolean getCurrentlyValid() {
         return currentlyValid;
     }
@@ -36,7 +36,7 @@ public class ComponentValidationResultDTO extends AffectedComponentDTO {
         this.currentlyValid = currentlyValid;
     }
 
-    @ApiModelProperty("Whether or not the component will be valid if the Parameter Context is changed")
+    @Schema(description = "Whether or not the component will be valid if the Parameter Context is changed")
     public Boolean getResultsValid() {
         return resultsValid;
     }
@@ -45,7 +45,7 @@ public class ComponentValidationResultDTO extends AffectedComponentDTO {
         this.resultsValid = resultsValid;
     }
 
-    @ApiModelProperty("The validation errors that will apply to the component if the Parameter Context is changed")
+    @Schema(description = "The validation errors that will apply to the component if the Parameter Context is changed")
     public Collection<String> getResultantValidationErrors() {
         return resultantValidationErrors;
     }

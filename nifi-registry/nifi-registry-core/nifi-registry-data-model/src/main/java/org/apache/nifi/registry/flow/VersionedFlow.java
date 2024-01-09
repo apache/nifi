@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.registry.flow;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.registry.bucket.BucketItem;
@@ -35,7 +34,6 @@ import org.apache.nifi.registry.revision.entity.RevisionInfo;
  * @see VersionedFlowSnapshot
  */
 @XmlRootElement
-@ApiModel
 public class VersionedFlow extends BucketItem implements RevisableEntity {
 
     @Min(0)
@@ -47,7 +45,7 @@ public class VersionedFlow extends BucketItem implements RevisableEntity {
         super(BucketItemType.Flow);
     }
 
-    @ApiModelProperty(value = "The number of versions of this flow.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The number of versions of this flow.", accessMode = Schema.AccessMode.READ_ONLY)
     public long getVersionCount() {
         return versionCount;
     }
@@ -56,9 +54,9 @@ public class VersionedFlow extends BucketItem implements RevisableEntity {
         this.versionCount = versionCount;
     }
 
-    @ApiModelProperty(
-            value = "The revision of this entity used for optimistic-locking during updates.",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(
+            description = "The revision of this entity used for optimistic-locking during updates.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     @Override
     public RevisionInfo getRevision() {

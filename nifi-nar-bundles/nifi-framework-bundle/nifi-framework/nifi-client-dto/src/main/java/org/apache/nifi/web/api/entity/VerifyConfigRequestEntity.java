@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -26,7 +26,7 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 public class VerifyConfigRequestEntity extends Entity {
     private VerifyConfigRequestDTO request;
 
-    @ApiModelProperty("The request")
+    @Schema(description = "The request")
     public VerifyConfigRequestDTO getRequest() {
         return request;
     }

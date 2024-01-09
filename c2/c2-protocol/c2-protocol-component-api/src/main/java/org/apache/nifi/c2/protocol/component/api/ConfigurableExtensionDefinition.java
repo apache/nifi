@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -33,7 +33,7 @@ public abstract class ConfigurableExtensionDefinition extends ExtensionComponent
     private List<DynamicProperty> dynamicProperties;
 
     @Override
-    @ApiModelProperty("Descriptions of configuration properties applicable to this component.")
+    @Schema(description = "Descriptions of configuration properties applicable to this component.")
     public Map<String, PropertyDescriptor> getPropertyDescriptors() {
         return (propertyDescriptors != null ? Collections.unmodifiableMap(propertyDescriptors) : null);
     }
@@ -44,7 +44,7 @@ public abstract class ConfigurableExtensionDefinition extends ExtensionComponent
     }
 
     @Override
-    @ApiModelProperty("Whether or not this component makes use of dynamic (user-set) properties.")
+    @Schema(description = "Whether or not this component makes use of dynamic (user-set) properties.")
     public boolean getSupportsDynamicProperties() {
         return supportsDynamicProperties;
     }
@@ -55,7 +55,7 @@ public abstract class ConfigurableExtensionDefinition extends ExtensionComponent
     }
 
     @Override
-    @ApiModelProperty("Whether or not this component makes use of sensitive dynamic (user-set) properties.")
+    @Schema(description = "Whether or not this component makes use of sensitive dynamic (user-set) properties.")
     public boolean getSupportsSensitiveDynamicProperties() {
         return supportsSensitiveDynamicProperties;
     }
@@ -66,7 +66,7 @@ public abstract class ConfigurableExtensionDefinition extends ExtensionComponent
     }
 
     @Override
-    @ApiModelProperty("Describes the dynamic properties supported by this component")
+    @Schema(description = "Describes the dynamic properties supported by this component")
     public List<DynamicProperty> getDynamicProperties() {
         return dynamicProperties;
     }

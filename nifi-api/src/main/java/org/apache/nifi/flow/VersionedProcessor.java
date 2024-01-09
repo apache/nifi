@@ -17,7 +17,7 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +43,7 @@ public class VersionedProcessor extends VersionedConfigurableExtension {
     private String backoffMechanism;
     private String maxBackoffPeriod;
 
-    @ApiModelProperty("The frequency with which to schedule the processor. The format of the value will depend on th value of schedulingStrategy.")
+    @Schema(description = "The frequency with which to schedule the processor. The format of the value will depend on th value of schedulingStrategy.")
     public String getSchedulingPeriod() {
         return schedulingPeriod;
     }
@@ -52,7 +52,7 @@ public class VersionedProcessor extends VersionedConfigurableExtension {
         this.schedulingPeriod = setSchedulingPeriod;
     }
 
-    @ApiModelProperty("Indicates how the processor should be scheduled to run.")
+    @Schema(description = "Indicates how the processor should be scheduled to run.")
     public String getSchedulingStrategy() {
         return schedulingStrategy;
     }
@@ -61,7 +61,7 @@ public class VersionedProcessor extends VersionedConfigurableExtension {
         this.schedulingStrategy = schedulingStrategy;
     }
 
-    @ApiModelProperty("Indicates the node where the process will execute.")
+    @Schema(description = "Indicates the node where the process will execute.")
     public String getExecutionNode() {
         return executionNode;
     }
@@ -70,7 +70,7 @@ public class VersionedProcessor extends VersionedConfigurableExtension {
         this.executionNode = executionNode;
     }
 
-    @ApiModelProperty("The amout of time that is used when the process penalizes a flowfile.")
+    @Schema(description = "The amout of time that is used when the process penalizes a flowfile.")
     public String getPenaltyDuration() {
         return penaltyDuration;
     }
@@ -79,7 +79,7 @@ public class VersionedProcessor extends VersionedConfigurableExtension {
         this.penaltyDuration = penaltyDuration;
     }
 
-    @ApiModelProperty("The amount of time that must elapse before this processor is scheduled again after yielding.")
+    @Schema(description = "The amount of time that must elapse before this processor is scheduled again after yielding.")
     public String getYieldDuration() {
         return yieldDuration;
     }
@@ -88,7 +88,7 @@ public class VersionedProcessor extends VersionedConfigurableExtension {
         this.yieldDuration = yieldDuration;
     }
 
-    @ApiModelProperty("The level at which the processor will report bulletins.")
+    @Schema(description = "The level at which the processor will report bulletins.")
     public String getBulletinLevel() {
         return bulletinLevel;
     }
@@ -97,7 +97,7 @@ public class VersionedProcessor extends VersionedConfigurableExtension {
         this.bulletinLevel = bulletinLevel;
     }
 
-    @ApiModelProperty("The number of tasks that should be concurrently schedule for the processor. If the processor doesn't allow parallol processing then any positive input will be ignored.")
+    @Schema(description = "The number of tasks that should be concurrently schedule for the processor. If the processor doesn't allow parallol processing then any positive input will be ignored.")
     public Integer getConcurrentlySchedulableTaskCount() {
         return concurrentlySchedulableTaskCount;
     }
@@ -106,7 +106,7 @@ public class VersionedProcessor extends VersionedConfigurableExtension {
         this.concurrentlySchedulableTaskCount = concurrentlySchedulableTaskCount;
     }
 
-    @ApiModelProperty("The annotation data for the processor used to relay configuration between a custom UI and the procesosr.")
+    @Schema(description = "The annotation data for the processor used to relay configuration between a custom UI and the procesosr.")
     public String getAnnotationData() {
         return annotationData;
     }
@@ -116,7 +116,7 @@ public class VersionedProcessor extends VersionedConfigurableExtension {
     }
 
 
-    @ApiModelProperty("The names of all relationships that cause a flow file to be terminated if the relationship is not connected elsewhere. This property differs "
+    @Schema(description = "The names of all relationships that cause a flow file to be terminated if the relationship is not connected elsewhere. This property differs "
         + "from the 'isAutoTerminate' property of the RelationshipDTO in that the RelationshipDTO is meant to depict the current configuration, whereas this "
         + "property can be set in a DTO when updating a Processor in order to change which Relationships should be auto-terminated.")
     public Set<String> getAutoTerminatedRelationships() {
@@ -127,7 +127,7 @@ public class VersionedProcessor extends VersionedConfigurableExtension {
         this.autoTerminatedRelationships = autoTerminatedRelationships;
     }
 
-    @ApiModelProperty("The run duration for the processor in milliseconds.")
+    @Schema(description = "The run duration for the processor in milliseconds.")
     public Long getRunDurationMillis() {
         return runDurationMillis;
     }
@@ -136,7 +136,7 @@ public class VersionedProcessor extends VersionedConfigurableExtension {
         this.runDurationMillis = runDurationMillis;
     }
 
-    @ApiModelProperty("Stylistic data for rendering in a UI")
+    @Schema(description = "Stylistic data for rendering in a UI")
     public Map<String, String> getStyle() {
         return style;
     }
@@ -145,7 +145,7 @@ public class VersionedProcessor extends VersionedConfigurableExtension {
         this.style = style;
     }
 
-    @ApiModelProperty("The scheduled state of the component")
+    @Schema(description = "The scheduled state of the component")
     public ScheduledState getScheduledState() {
         return scheduledState;
     }
@@ -159,9 +159,7 @@ public class VersionedProcessor extends VersionedConfigurableExtension {
         return ComponentType.PROCESSOR;
     }
 
-    @ApiModelProperty(
-            value = "Overall number of retries."
-    )
+    @Schema(description = "Overall number of retries.")
     public Integer getRetryCount() {
         return retryCount;
     }
@@ -170,9 +168,7 @@ public class VersionedProcessor extends VersionedConfigurableExtension {
         this.retryCount = retryCount;
     }
 
-    @ApiModelProperty(
-            value = "All the relationships should be retried."
-    )
+    @Schema(description = "All the relationships should be retried.")
     public Set<String> getRetriedRelationships() {
         return retriedRelationships;
     }
@@ -181,8 +177,8 @@ public class VersionedProcessor extends VersionedConfigurableExtension {
         this.retriedRelationships = retriedRelationships;
     }
 
-    @ApiModelProperty(
-            value = "Determines whether the FlowFile should be penalized or the processor should be yielded between retries.",
+    @Schema(
+            description = "Determines whether the FlowFile should be penalized or the processor should be yielded between retries.",
             allowableValues = "PENALIZE_FLOWFILE, YIELD_PROCESSOR"
     )
     public String getBackoffMechanism() {
@@ -193,9 +189,7 @@ public class VersionedProcessor extends VersionedConfigurableExtension {
         this.backoffMechanism = backoffMechanism;
     }
 
-    @ApiModelProperty(
-            value = "Maximum amount of time to be waited during a retry period."
-    )
+    @Schema(description = "Maximum amount of time to be waited during a retry period.")
     public String getMaxBackoffPeriod() {
         return maxBackoffPeriod;
     }

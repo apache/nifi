@@ -16,15 +16,13 @@
  */
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 
-
-@ApiModel
 public class PropertyDescriptor implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -44,7 +42,7 @@ public class PropertyDescriptor implements Serializable {
     private PropertyResourceDefinition resourceDefinition;
     private List<PropertyDependency> dependencies;
 
-    @ApiModelProperty(value = "The name of the property key", required = true)
+    @Schema(description = "The name of the property key")
     public String getName() {
         return name;
     }
@@ -53,7 +51,7 @@ public class PropertyDescriptor implements Serializable {
         this.name = name;
     }
 
-    @ApiModelProperty("The display name of the property key, if different from the name")
+    @Schema(description = "The display name of the property key, if different from the name")
     public String getDisplayName() {
         return displayName;
     }
@@ -62,7 +60,7 @@ public class PropertyDescriptor implements Serializable {
         this.displayName = displayName;
     }
 
-    @ApiModelProperty("The description of what the property does")
+    @Schema(description = "The description of what the property does")
     public String getDescription() {
         return description;
     }
@@ -71,7 +69,7 @@ public class PropertyDescriptor implements Serializable {
         this.description = description;
     }
 
-    @ApiModelProperty("A list of the allowable values for the property")
+    @Schema(description = "A list of the allowable values for the property")
     public List<PropertyAllowableValue> getAllowableValues() {
         return (allowableValues != null ? Collections.unmodifiableList(allowableValues) : null);
     }
@@ -80,7 +78,7 @@ public class PropertyDescriptor implements Serializable {
         this.allowableValues = allowableValues;
     }
 
-    @ApiModelProperty("The default value if a user-set value is not specified")
+    @Schema(description = "The default value if a user-set value is not specified")
     public String getDefaultValue() {
         return defaultValue;
     }
@@ -89,7 +87,7 @@ public class PropertyDescriptor implements Serializable {
         this.defaultValue = defaultValue;
     }
 
-    @ApiModelProperty("Whether or not  the property is required for the component")
+    @Schema(description = "Whether or not  the property is required for the component")
     public boolean getRequired() {
         return required;
     }
@@ -98,7 +96,7 @@ public class PropertyDescriptor implements Serializable {
         this.required = required;
     }
 
-    @ApiModelProperty("Whether or not  the value of the property is considered sensitive (e.g., passwords and keys)")
+    @Schema(description = "Whether or not  the value of the property is considered sensitive (e.g., passwords and keys)")
     public boolean getSensitive() {
         return sensitive;
     }
@@ -107,7 +105,7 @@ public class PropertyDescriptor implements Serializable {
         this.sensitive = sensitive;
     }
 
-    @ApiModelProperty("The scope of expression language supported by this property")
+    @Schema(description = "The scope of expression language supported by this property")
     public ExpressionLanguageScope getExpressionLanguageScope() {
         return expressionLanguageScope;
     }
@@ -117,12 +115,12 @@ public class PropertyDescriptor implements Serializable {
         this.expressionLanguageScopeDescription = expressionLanguageScope == null ? null : expressionLanguageScope.getDescription();
     }
 
-    @ApiModelProperty(value = "The description of the expression language scope supported by this property", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The description of the expression language scope supported by this property", accessMode = Schema.AccessMode.READ_ONLY)
     public String getExpressionLanguageScopeDescription() {
         return expressionLanguageScope == null ? null : expressionLanguageScope.getDescription();
     }
 
-    @ApiModelProperty("Indicates that this property is for selecting a controller service of the specified type")
+    @Schema(description = "Indicates that this property is for selecting a controller service of the specified type")
     public DefinedType getTypeProvidedByValue() {
         return typeProvidedByValue;
     }
@@ -131,7 +129,7 @@ public class PropertyDescriptor implements Serializable {
         this.typeProvidedByValue = typeProvidedByValue;
     }
 
-    @ApiModelProperty("A regular expression that can be used to validate the value of this property")
+    @Schema(description = "A regular expression that can be used to validate the value of this property")
     public String getValidRegex() {
         return validRegex;
     }
@@ -140,7 +138,7 @@ public class PropertyDescriptor implements Serializable {
         this.validRegex = validRegex;
     }
 
-    @ApiModelProperty("Name of the validator used for this property descriptor")
+    @Schema(description = "Name of the validator used for this property descriptor")
     public String getValidator() {
         return validator;
     }
@@ -149,7 +147,7 @@ public class PropertyDescriptor implements Serializable {
         this.validator = validator;
     }
 
-    @ApiModelProperty("Whether or not the descriptor is for a dynamically added property")
+    @Schema(description = "Whether or not the descriptor is for a dynamically added property")
     public boolean isDynamic() {
         return dynamic;
     }
@@ -158,7 +156,7 @@ public class PropertyDescriptor implements Serializable {
         this.dynamic = dynamic;
     }
 
-    @ApiModelProperty("Indicates that this property references external resources")
+    @Schema(description = "Indicates that this property references external resources")
     public PropertyResourceDefinition getResourceDefinition() {
         return resourceDefinition;
     }
@@ -167,7 +165,7 @@ public class PropertyDescriptor implements Serializable {
         this.resourceDefinition = resourceDefinition;
     }
 
-    @ApiModelProperty("The dependencies that this property has on other properties")
+    @Schema(description = "The dependencies that this property has on other properties")
     public List<PropertyDependency> getDependencies() {
         return dependencies;
     }

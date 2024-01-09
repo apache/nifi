@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.HashMap;
@@ -45,8 +45,7 @@ public class SnippetDTO {
     /**
      * @return id of this snippet
      */
-    @ApiModelProperty(
-            value = "The id of the snippet."
+    @Schema(description = "The id of the snippet."
     )
     public String getId() {
         return id;
@@ -59,8 +58,7 @@ public class SnippetDTO {
     /**
      * @return uri of this snippet
      */
-    @ApiModelProperty(
-            value = "The URI of the snippet."
+    @Schema(description = "The URI of the snippet."
     )
     public String getUri() {
         return uri;
@@ -73,8 +71,7 @@ public class SnippetDTO {
     /**
      * @return group id for the components in this snippet
      */
-    @ApiModelProperty(
-            value = "The group id for the components in the snippet."
+    @Schema(description = "The group id for the components in the snippet."
     )
     public String getParentGroupId() {
         return parentGroupId;
@@ -88,8 +85,7 @@ public class SnippetDTO {
      * @return the ids of the connections in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created its
      * contents cannot be modified (these ids are ignored during update requests)
      */
-    @ApiModelProperty(
-            value = "The ids of the connections in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
+    @Schema(description = "The ids of the connections in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
                     + "has been created its contents cannot be modified (these ids are ignored during update requests)."
     )
     public Map<String, RevisionDTO> getConnections() {
@@ -104,8 +100,7 @@ public class SnippetDTO {
      * @return the ids of the funnels in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created its
      * contents cannot be modified (these ids are ignored during update requests)
      */
-    @ApiModelProperty(
-            value = "The ids of the funnels in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
+    @Schema(description = "The ids of the funnels in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
                     + "has been created its contents cannot be modified (these ids are ignored during update requests)."
     )
     public Map<String, RevisionDTO> getFunnels() {
@@ -120,8 +115,7 @@ public class SnippetDTO {
      * @return the ids of the input port in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created its
      * contents cannot be modified (these ids are ignored during update requests)
      */
-    @ApiModelProperty(
-            value = "The ids of the input ports in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
+    @Schema(description = "The ids of the input ports in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
                     + "has been created its contents cannot be modified (these ids are ignored during update requests)."
     )
     public Map<String, RevisionDTO> getInputPorts() {
@@ -136,8 +130,7 @@ public class SnippetDTO {
      * @return the ids of the labels in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created its
      * contents cannot be modified (these ids are ignored during update requests)
      */
-    @ApiModelProperty(
-            value = "The ids of the labels in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
+    @Schema(description = "The ids of the labels in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
                     + "has been created its contents cannot be modified (these ids are ignored during update requests)."
     )
     public Map<String, RevisionDTO> getLabels() {
@@ -152,8 +145,7 @@ public class SnippetDTO {
      * @return the ids of the output ports in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created
      * its contents cannot be modified (these ids are ignored during update requests)
      */
-    @ApiModelProperty(
-            value = "The ids of the output ports in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
+    @Schema(description = "The ids of the output ports in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
                     + "has been created its contents cannot be modified (these ids are ignored during update requests)."
     )
     public Map<String, RevisionDTO> getOutputPorts() {
@@ -168,8 +160,7 @@ public class SnippetDTO {
      * @return The ids of the process groups in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created
      * its contents cannot be modified (these ids are ignored during update requests)
      */
-    @ApiModelProperty(
-            value = "The ids of the process groups in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
+    @Schema(description = "The ids of the process groups in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
                     + "has been created its contents cannot be modified (these ids are ignored during update requests)."
     )
     public Map<String, RevisionDTO> getProcessGroups() {
@@ -184,8 +175,7 @@ public class SnippetDTO {
      * @return The ids of the processors in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created its
      * contents cannot be modified (these ids are ignored during update requests)
      */
-    @ApiModelProperty(
-            value = "The ids of the processors in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
+    @Schema(description = "The ids of the processors in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
                     + "has been created its contents cannot be modified (these ids are ignored during update requests)."
     )
     public Map<String, RevisionDTO> getProcessors() {
@@ -200,9 +190,12 @@ public class SnippetDTO {
      * @return the ids of the remote process groups in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been
      * created its contents cannot be modified (these ids are ignored during update requests)
      */
-    @ApiModelProperty(
-            value = "The ids of the remote process groups in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
-                    + "has been created its contents cannot be modified (these ids are ignored during update requests)."
+    @Schema(description = """
+                    The ids of the remote process groups in this snippet.
+                    These ids will be populated within each response.
+                    They can be specified when creating a snippet.
+                    However, once a snippet has been created its contents cannot be modified (these ids are ignored during update requests).
+                    """
     )
     public Map<String, RevisionDTO> getRemoteProcessGroups() {
         return remoteProcessGroups;

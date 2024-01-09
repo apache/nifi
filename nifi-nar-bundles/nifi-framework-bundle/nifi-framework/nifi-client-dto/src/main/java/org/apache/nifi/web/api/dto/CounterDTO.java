@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -35,8 +35,7 @@ public class CounterDTO implements Cloneable {
     /**
      * @return context of the counter
      */
-    @ApiModelProperty(
-            value = "The context of the counter."
+    @Schema(description = "The context of the counter."
     )
     public String getContext() {
         return context;
@@ -49,8 +48,7 @@ public class CounterDTO implements Cloneable {
     /**
      * @return id of the counter
      */
-    @ApiModelProperty(
-            value = "The id of the counter."
+    @Schema(description = "The id of the counter."
     )
     public String getId() {
         return id;
@@ -63,8 +61,7 @@ public class CounterDTO implements Cloneable {
     /**
      * @return name of the counter
      */
-    @ApiModelProperty(
-            value = "The name of the counter."
+    @Schema(description = "The name of the counter."
     )
     public String getName() {
         return name;
@@ -77,8 +74,7 @@ public class CounterDTO implements Cloneable {
     /**
      * @return value for the counter
      */
-    @ApiModelProperty(
-            value = "The value of the counter."
+    @Schema(description = "The value of the counter."
     )
     public String getValue() {
         return value;
@@ -88,8 +84,7 @@ public class CounterDTO implements Cloneable {
         this.value = value;
     }
 
-    @ApiModelProperty(
-            value = "The value count."
+    @Schema(description = "The value count."
     )
     public Long getValueCount() {
         return valueCount;

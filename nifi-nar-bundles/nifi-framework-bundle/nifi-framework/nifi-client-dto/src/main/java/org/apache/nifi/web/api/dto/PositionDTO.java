@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -41,8 +41,7 @@ public class PositionDTO {
     /**
      * @return the x coordinate
      */
-    @ApiModelProperty(
-            value = "The x coordinate."
+    @Schema(description = "The x coordinate."
     )
     public Double getX() {
         return x;
@@ -55,8 +54,7 @@ public class PositionDTO {
     /**
      * @return the y coordinate
      */
-    @ApiModelProperty(
-            value = "The y coordinate."
+    @Schema(description = "The y coordinate."
     )
     public Double getY() {
         return y;

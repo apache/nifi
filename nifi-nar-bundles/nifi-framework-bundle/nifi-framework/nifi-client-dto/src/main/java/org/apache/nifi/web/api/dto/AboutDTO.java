@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 import org.apache.nifi.web.api.dto.util.TimezoneAdapter;
 
@@ -48,8 +48,7 @@ public class AboutDTO {
      *
      * @return The title
      */
-    @ApiModelProperty(
-            value = "The title to be used on the page and in the about dialog."
+    @Schema(description = "The title to be used on the page and in the about dialog."
     )
     public String getTitle() {
         return title;
@@ -64,8 +63,7 @@ public class AboutDTO {
      *
      * @return The version.
      */
-    @ApiModelProperty(
-            value = "The version of this NiFi."
+    @Schema(description = "The version of this NiFi."
     )
     public String getVersion() {
         return version;
@@ -78,8 +76,7 @@ public class AboutDTO {
     /**
      * @return URI for this NiFi controller
      */
-    @ApiModelProperty(
-        value = "The URI for the NiFi."
+    @Schema(description = "The URI for the NiFi."
     )
     public String getUri() {
         return uri;
@@ -92,8 +89,7 @@ public class AboutDTO {
     /**
      * @return the URL for the content viewer if configured
      */
-    @ApiModelProperty(
-        value = "The URL for the content viewer if configured."
+    @Schema(description = "The URL for the content viewer if configured."
     )
     public String getContentViewerUrl() {
         return contentViewerUrl;
@@ -107,10 +103,9 @@ public class AboutDTO {
      * @return the timezone of the NiFi instance
      */
     @XmlJavaTypeAdapter(TimezoneAdapter.class)
-    @ApiModelProperty(
-            value = "The timezone of the NiFi instance.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY,
-            dataType = "string"
+    @Schema(description = "The timezone of the NiFi instance.",
+            accessMode = Schema.AccessMode.READ_ONLY,
+            type = "string"
     )
     public Date getTimezone() {
         return timezone;
@@ -120,8 +115,7 @@ public class AboutDTO {
         this.timezone = timezone;
     }
 
-    @ApiModelProperty(
-            value = "Build tag"
+    @Schema(description = "Build tag"
     )
     public String getBuildTag() {
         return buildTag;
@@ -131,8 +125,7 @@ public class AboutDTO {
         this.buildTag = buildTag;
     }
 
-    @ApiModelProperty(
-            value = "Build revision or commit hash"
+    @Schema(description = "Build revision or commit hash"
     )
     public String getBuildRevision() {
         return buildRevision;
@@ -142,8 +135,7 @@ public class AboutDTO {
         this.buildRevision = buildRevision;
     }
 
-    @ApiModelProperty(
-            value = "Build branch"
+    @Schema(description = "Build branch"
     )
     public String getBuildBranch() {
         return buildBranch;
@@ -154,9 +146,8 @@ public class AboutDTO {
     }
 
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
-    @ApiModelProperty(
-            value = "Build timestamp",
-            dataType = "string"
+    @Schema(description = "Build timestamp",
+            type = "string"
     )
     public Date getBuildTimestamp() {
         return buildTimestamp;

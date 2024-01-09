@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -37,9 +37,11 @@ public class RevisionDTO {
      *
      * @return The client id
      */
-    @ApiModelProperty(
-            value = "A client identifier used to make a request. By including a client identifier, the API can allow multiple requests without needing the current revision. Due to the asynchronous "
-            + "nature of requests/responses this was implemented to allow the client to make numerous requests without having to wait for the previous response to come back"
+    @Schema(description = """
+            A client identifier used to make a request.
+            By including a client identifier, the API can allow multiple requests without needing the current revision.
+            Due to the asynchronous nature of requests/responses this was implemented to allow the client to make numerous requests without having to wait for the previous response to come back
+            """
     )
     public String getClientId() {
         return clientId;
@@ -54,9 +56,10 @@ public class RevisionDTO {
      *
      * @return The revision
      */
-    @ApiModelProperty(
-            value = "NiFi employs an optimistic locking strategy where the client must include a revision in their request when performing an update. In a response to a mutable flow request, this "
-                    + "field represents the updated base version."
+    @Schema(description = """
+                    NiFi employs an optimistic locking strategy where the client must include a revision in their request when performing an update.
+                    In a response to a mutable flow request, this field represents the updated base version.
+                    """
     )
     public Long getVersion() {
         return version;
@@ -69,9 +72,8 @@ public class RevisionDTO {
     /**
      * @return The user that last modified the flow
      */
-    @ApiModelProperty(
-            value = "The user that last modified the flow.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The user that last modified the flow.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public String getLastModifier() {
         return lastModifier;

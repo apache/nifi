@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ConfigurationAnalysisDTO;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -26,7 +26,7 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 public class ConfigurationAnalysisEntity extends Entity {
     private ConfigurationAnalysisDTO configurationAnalysis;
 
-    @ApiModelProperty("The configuration analysis")
+    @Schema(description = "The configuration analysis")
     public ConfigurationAnalysisDTO getConfigurationAnalysis() {
         return configurationAnalysis;
     }

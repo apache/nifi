@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimestampAdapter;
 
 import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -33,7 +33,7 @@ public abstract class FlowUpdateRequestDTO {
     protected int percentCompleted;
     protected String state;
 
-    @ApiModelProperty("The unique ID of the Process Group being updated")
+    @Schema(description = "The unique ID of the Process Group being updated")
     public String getProcessGroupId() {
         return processGroupId;
     }
@@ -42,7 +42,7 @@ public abstract class FlowUpdateRequestDTO {
         this.processGroupId = processGroupId;
     }
 
-    @ApiModelProperty(value = "The unique ID of this request.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The unique ID of this request.", accessMode = Schema.AccessMode.READ_ONLY)
     public String getRequestId() {
         return requestId;
     }
@@ -51,7 +51,7 @@ public abstract class FlowUpdateRequestDTO {
         this.requestId = requestId;
     }
 
-    @ApiModelProperty(value = "The URI for future requests to this drop request.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The URI for future requests to this drop request.", accessMode = Schema.AccessMode.READ_ONLY)
     public String getUri() {
         return uri;
     }
@@ -61,7 +61,7 @@ public abstract class FlowUpdateRequestDTO {
     }
 
     @XmlJavaTypeAdapter(TimestampAdapter.class)
-    @ApiModelProperty(value = "The last time this request was updated.", dataType = "string", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The last time this request was updated.", type = "string", accessMode = Schema.AccessMode.READ_ONLY)
     public Date getLastUpdated() {
         return lastUpdated;
     }
@@ -70,7 +70,7 @@ public abstract class FlowUpdateRequestDTO {
         this.lastUpdated = lastUpdated;
     }
 
-    @ApiModelProperty(value = "Whether or not this request has completed", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "Whether or not this request has completed", accessMode = Schema.AccessMode.READ_ONLY)
     public boolean isComplete() {
         return complete;
     }
@@ -79,7 +79,7 @@ public abstract class FlowUpdateRequestDTO {
         this.complete = complete;
     }
 
-    @ApiModelProperty(value = "An explanation of why this request failed, or null if this request has not failed", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "An explanation of why this request failed, or null if this request has not failed", accessMode = Schema.AccessMode.READ_ONLY)
     public String getFailureReason() {
         return failureReason;
     }
@@ -88,7 +88,7 @@ public abstract class FlowUpdateRequestDTO {
         this.failureReason = reason;
     }
 
-    @ApiModelProperty(value = "The state of the request", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The state of the request", accessMode = Schema.AccessMode.READ_ONLY)
     public String getState() {
         return state;
     }
@@ -97,7 +97,7 @@ public abstract class FlowUpdateRequestDTO {
         this.state = state;
     }
 
-    @ApiModelProperty(value = "The percentage complete for the request, between 0 and 100", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The percentage complete for the request, between 0 and 100", accessMode = Schema.AccessMode.READ_ONLY)
     public int getPercentCompleted() {
         return percentCompleted;
     }

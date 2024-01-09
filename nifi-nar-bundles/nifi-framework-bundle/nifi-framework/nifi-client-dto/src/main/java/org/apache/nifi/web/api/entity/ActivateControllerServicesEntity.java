@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -32,7 +32,7 @@ public class ActivateControllerServicesEntity extends Entity {
     private Map<String, RevisionDTO> components;
     private Boolean disconnectedNodeAcknowledged;
 
-    @ApiModelProperty("The id of the ProcessGroup")
+    @Schema(description = "The id of the ProcessGroup")
     public String getId() {
         return id;
     }
@@ -44,7 +44,7 @@ public class ActivateControllerServicesEntity extends Entity {
     /**
      * @return The desired state of the descendant components. Possible states are 'RUNNING' and 'STOPPED'
      */
-    @ApiModelProperty(value = "The desired state of the descendant components",
+    @Schema(description = "The desired state of the descendant components",
         allowableValues = STATE_ENABLED + ", " + STATE_DISABLED)
     public String getState() {
         return state;
@@ -54,7 +54,7 @@ public class ActivateControllerServicesEntity extends Entity {
         this.state = state;
     }
 
-    @ApiModelProperty("Optional services to schedule. If not specified, all authorized descendant controller services will be used.")
+    @Schema(description = "Optional services to schedule. If not specified, all authorized descendant controller services will be used.")
     public Map<String, RevisionDTO> getComponents() {
         return components;
     }
@@ -63,8 +63,7 @@ public class ActivateControllerServicesEntity extends Entity {
         this.components = components;
     }
 
-    @ApiModelProperty(
-            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    @Schema(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
     )
     public Boolean isDisconnectedNodeAcknowledged() {
         return disconnectedNodeAcknowledged;

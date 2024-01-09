@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
@@ -35,8 +35,7 @@ public class NodeStatusSnapshotsDTO {
     /**
      * @return node's host/IP address
      */
-    @ApiModelProperty(
-        value = "The node's host/ip address."
+    @Schema(description = "The node's host/ip address."
     )
     public String getAddress() {
         return address;
@@ -49,8 +48,7 @@ public class NodeStatusSnapshotsDTO {
     /**
      * @return node ID
      */
-    @ApiModelProperty(
-        value = "The id of the node."
+    @Schema(description = "The id of the node."
     )
     public String getNodeId() {
         return nodeId;
@@ -63,8 +61,7 @@ public class NodeStatusSnapshotsDTO {
     /**
      * @return port the node is listening for API requests
      */
-    @ApiModelProperty(
-        value = "The port the node is listening for API requests."
+    @Schema(description = "The port the node is listening for API requests."
     )
     public Integer getApiPort() {
         return apiPort;
@@ -74,7 +71,7 @@ public class NodeStatusSnapshotsDTO {
         this.apiPort = port;
     }
 
-    @ApiModelProperty("A list of StatusSnapshotDTO objects that provide the actual metric values for the component for this node.")
+    @Schema(description = "A list of StatusSnapshotDTO objects that provide the actual metric values for the component for this node.")
     public List<StatusSnapshotDTO> getStatusSnapshots() {
         return statusSnapshots;
     }

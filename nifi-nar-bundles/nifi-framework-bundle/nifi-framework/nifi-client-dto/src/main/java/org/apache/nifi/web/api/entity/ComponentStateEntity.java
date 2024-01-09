@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -34,8 +34,7 @@ public class ComponentStateEntity extends Entity {
      *
      * @return The ComponentStateDTO object
      */
-    @ApiModelProperty(
-        value = "The component state."
+    @Schema(description = "The component state."
     )
     public ComponentStateDTO getComponentState() {
         return componentState;

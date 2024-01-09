@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -35,8 +35,7 @@ public class ComponentReferenceDTO extends ComponentDTO {
      *
      * @return The id
      */
-    @ApiModelProperty(
-            value = "The id of the component."
+    @Schema(description = "The id of the component."
     )
     public String getId() {
         return this.id;
@@ -49,8 +48,7 @@ public class ComponentReferenceDTO extends ComponentDTO {
     /**
      * @return id for the parent group of this component if applicable, null otherwise
      */
-    @ApiModelProperty(
-            value = "The id of parent process group of this component if applicable."
+    @Schema(description = "The id of parent process group of this component if applicable."
     )
     public String getParentGroupId() {
         return parentGroupId;
@@ -63,8 +61,7 @@ public class ComponentReferenceDTO extends ComponentDTO {
     /**
      * @return id for the parent group of this component if applicable, null otherwise
      */
-    @ApiModelProperty(
-            value = "The name of the component."
+    @Schema(description = "The name of the component."
     )
     public String getName() {
         return name;

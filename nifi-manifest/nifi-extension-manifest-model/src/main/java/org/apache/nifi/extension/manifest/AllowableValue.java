@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 
-@ApiModel
+
 @XmlAccessorType(XmlAccessType.FIELD)
 public class AllowableValue {
 
@@ -30,7 +30,7 @@ public class AllowableValue {
     private String displayName;
     private String description;
 
-    @ApiModelProperty(value = "The value of the allowable value")
+    @Schema(description = "The value of the allowable value")
     public String getValue() {
         return value;
     }
@@ -39,7 +39,7 @@ public class AllowableValue {
         this.value = value;
     }
 
-    @ApiModelProperty(value = "The display name of the allowable value")
+    @Schema(description = "The display name of the allowable value")
     public String getDisplayName() {
         return displayName;
     }
@@ -48,7 +48,7 @@ public class AllowableValue {
         this.displayName = displayName;
     }
 
-    @ApiModelProperty(value = "The description of the allowable value")
+    @Schema(description = "The description of the allowable value")
     public String getDescription() {
         return description;
     }

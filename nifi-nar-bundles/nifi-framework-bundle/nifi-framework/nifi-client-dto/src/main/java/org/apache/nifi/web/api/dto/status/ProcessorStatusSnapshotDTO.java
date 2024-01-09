@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -57,7 +57,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     /**
      * @return The processor id
      */
-    @ApiModelProperty("The id of the processor.")
+    @Schema(description = "The id of the processor.")
     public String getId() {
         return id;
     }
@@ -69,7 +69,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     /**
      * @return The processor name
      */
-    @ApiModelProperty("The name of the prcessor.")
+    @Schema(description = "The name of the prcessor.")
     public String getName() {
         return name;
     }
@@ -81,7 +81,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     /**
      * @return The processor type
      */
-    @ApiModelProperty("The type of the processor.")
+    @Schema(description = "The type of the processor.")
     public String getType() {
         return type;
     }
@@ -93,8 +93,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     /**
      * @return run status of this processor
      */
-    @ApiModelProperty(
-            value = "The state of the processor.",
+    @Schema(description = "The state of the processor.",
             allowableValues = "Running, Stopped, Validating, Disabled, Invalid"
     )
     public String getRunStatus() {
@@ -105,8 +104,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         this.runStatus = runStatus;
     }
 
-    @ApiModelProperty(
-            value = "Indicates the node where the process will execute.",
+    @Schema(description = "Indicates the node where the process will execute.",
             allowableValues = "ALL, PRIMARY"
     )
     public String getExecutionNode() {
@@ -120,7 +118,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     /**
      * @return The total count and size of flow files that have been accepted in the last five minutes
      */
-    @ApiModelProperty("The count/size of flowfiles that have been accepted in the last 5 minutes.")
+    @Schema(description = "The count/size of flowfiles that have been accepted in the last 5 minutes.")
     public String getInput() {
         return input;
     }
@@ -132,7 +130,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     /**
      * @return number of bytes read
      */
-    @ApiModelProperty("The number of bytes read in the last 5 minutes.")
+    @Schema(description = "The number of bytes read in the last 5 minutes.")
     public String getRead() {
         return read;
     }
@@ -144,7 +142,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     /**
      * @return number of bytes written
      */
-    @ApiModelProperty("The number of bytes written in the last 5 minutes.")
+    @Schema(description = "The number of bytes written in the last 5 minutes.")
     public String getWritten() {
         return written;
     }
@@ -156,7 +154,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     /**
      * @return the ID of the Process Group to which this processor belongs.
      */
-    @ApiModelProperty("The id of the parent process group to which the processor belongs.")
+    @Schema(description = "The id of the parent process group to which the processor belongs.")
     public String getGroupId() {
         return groupId;
     }
@@ -168,7 +166,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     /**
      * @return The total count and size of flow files that have been processed in the last five minutes
      */
-    @ApiModelProperty("The count/size of flowfiles that have been processed in the last 5 minutes.")
+    @Schema(description = "The count/size of flowfiles that have been processed in the last 5 minutes.")
     public String getOutput() {
         return output;
     }
@@ -180,7 +178,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     /**
      * @return number of threads currently running for this Processor
      */
-    @ApiModelProperty("The number of threads currently executing in the processor.")
+    @Schema(description = "The number of threads currently executing in the processor.")
     public Integer getActiveThreadCount() {
         return activeThreadCount;
     }
@@ -192,7 +190,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     /**
      * @return number of threads currently terminated for this Processor
      */
-    @ApiModelProperty("The number of threads currently terminated for the processor.")
+    @Schema(description = "The number of threads currently terminated for the processor.")
     public Integer getTerminatedThreadCount() {
         return terminatedThreadCount;
     }
@@ -204,7 +202,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     /**
      * @return number of task this connectable has had over the last 5 minutes
      */
-    @ApiModelProperty("The total number of task this connectable has completed over the last 5 minutes.")
+    @Schema(description = "The total number of task this connectable has completed over the last 5 minutes.")
     public String getTasks() {
         return tasks;
     }
@@ -216,7 +214,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     /**
      * @return total duration of all tasks for this connectable over the last 5 minutes
      */
-    @ApiModelProperty("The total duration of all tasks for this connectable over the last 5 minutes.")
+    @Schema(description = "The total duration of all tasks for this connectable over the last 5 minutes.")
     public String getTasksDuration() {
         return tasksDuration;
     }
@@ -225,7 +223,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         this.tasksDuration = tasksDuration;
     }
 
-    @ApiModelProperty("The number of bytes read by this Processor in the last 5 mintues")
+    @Schema(description = "The number of bytes read by this Processor in the last 5 mintues")
     public Long getBytesRead() {
         return bytesRead;
     }
@@ -234,7 +232,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         this.bytesRead = bytesRead;
     }
 
-    @ApiModelProperty("The number of bytes written by this Processor in the last 5 minutes")
+    @Schema(description = "The number of bytes written by this Processor in the last 5 minutes")
     public Long getBytesWritten() {
         return bytesWritten;
     }
@@ -243,7 +241,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         this.bytesWritten = bytesWritten;
     }
 
-    @ApiModelProperty("The number of FlowFiles that have been accepted in the last 5 minutes")
+    @Schema(description = "The number of FlowFiles that have been accepted in the last 5 minutes")
     public Integer getFlowFilesIn() {
         return flowFilesIn;
     }
@@ -252,7 +250,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         this.flowFilesIn = flowFilesIn;
     }
 
-    @ApiModelProperty("The size of the FlowFiles that have been accepted in the last 5 minutes")
+    @Schema(description = "The size of the FlowFiles that have been accepted in the last 5 minutes")
     public Long getBytesIn() {
         return bytesIn;
     }
@@ -261,7 +259,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         this.bytesIn = bytesIn;
     }
 
-    @ApiModelProperty("The number of FlowFiles transferred to a Connection in the last 5 minutes")
+    @Schema(description = "The number of FlowFiles transferred to a Connection in the last 5 minutes")
     public Integer getFlowFilesOut() {
         return flowFilesOut;
     }
@@ -270,7 +268,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         this.flowFilesOut = flowFilesOut;
     }
 
-    @ApiModelProperty("The size of the FlowFiles transferred to a Connection in the last 5 minutes")
+    @Schema(description = "The size of the FlowFiles transferred to a Connection in the last 5 minutes")
     public Long getBytesOut() {
         return bytesOut;
     }
@@ -279,7 +277,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         this.bytesOut = bytesOut;
     }
 
-    @ApiModelProperty("The number of times this Processor has run in the last 5 minutes")
+    @Schema(description = "The number of times this Processor has run in the last 5 minutes")
     public Integer getTaskCount() {
         return taskCount;
     }
@@ -288,7 +286,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         this.taskCount = taskCount;
     }
 
-    @ApiModelProperty("The number of nanoseconds that this Processor has spent running in the last 5 minutes")
+    @Schema(description = "The number of nanoseconds that this Processor has spent running in the last 5 minutes")
     public Long getTasksDurationNanos() {
         return tasksDurationNanos;
     }

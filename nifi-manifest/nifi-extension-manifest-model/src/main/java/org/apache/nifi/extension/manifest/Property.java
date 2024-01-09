@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
@@ -25,7 +24,6 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlElementWrapper;
 import java.util.List;
 
-@ApiModel
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Property {
 
@@ -54,7 +52,7 @@ public class Property {
 
     private ResourceDefinition resourceDefinition;
 
-    @ApiModelProperty(value = "The name of the property")
+    @Schema(description = "The name of the property")
     public String getName() {
         return name;
     }
@@ -63,7 +61,7 @@ public class Property {
         this.name = name;
     }
 
-    @ApiModelProperty(value = "The display name")
+    @Schema(description = "The display name")
     public String getDisplayName() {
         return displayName;
     }
@@ -72,7 +70,7 @@ public class Property {
         this.displayName = displayName;
     }
 
-    @ApiModelProperty(value = "The description")
+    @Schema(description = "The description")
     public String getDescription() {
         return description;
     }
@@ -81,7 +79,7 @@ public class Property {
         this.description = description;
     }
 
-    @ApiModelProperty(value = "The default value")
+    @Schema(description = "The default value")
     public String getDefaultValue() {
         return defaultValue;
     }
@@ -90,7 +88,7 @@ public class Property {
         this.defaultValue = defaultValue;
     }
 
-    @ApiModelProperty(value = "The controller service required by this property, or null if none is required")
+    @Schema(description = "The controller service required by this property, or null if none is required")
     public ControllerServiceDefinition getControllerServiceDefinition() {
         return controllerServiceDefinition;
     }
@@ -99,7 +97,7 @@ public class Property {
         this.controllerServiceDefinition = controllerServiceDefinition;
     }
 
-    @ApiModelProperty(value = "The allowable values for this property")
+    @Schema(description = "The allowable values for this property")
     public List<AllowableValue> getAllowableValues() {
         return allowableValues;
     }
@@ -108,7 +106,7 @@ public class Property {
         this.allowableValues = allowableValues;
     }
 
-    @ApiModelProperty(value = "Whether or not the property is required")
+    @Schema(description = "Whether or not the property is required")
     public boolean isRequired() {
         return required;
     }
@@ -117,7 +115,7 @@ public class Property {
         this.required = required;
     }
 
-    @ApiModelProperty(value = "Whether or not the property is sensitive")
+    @Schema(description = "Whether or not the property is sensitive")
     public boolean isSensitive() {
         return sensitive;
     }
@@ -126,7 +124,7 @@ public class Property {
         this.sensitive = sensitive;
     }
 
-    @ApiModelProperty(value = "Whether or not expression language is supported")
+    @Schema(description = "Whether or not expression language is supported")
     public boolean isExpressionLanguageSupported() {
         return expressionLanguageSupported;
     }
@@ -135,7 +133,7 @@ public class Property {
         this.expressionLanguageSupported = expressionLanguageSupported;
     }
 
-    @ApiModelProperty(value = "The scope of expression language support")
+    @Schema(description = "The scope of expression language support")
     public ExpressionLanguageScope getExpressionLanguageScope() {
         return expressionLanguageScope;
     }
@@ -144,7 +142,7 @@ public class Property {
         this.expressionLanguageScope = expressionLanguageScope;
     }
 
-    @ApiModelProperty(value = "Whether or not the processor dynamically modifies the classpath")
+    @Schema(description = "Whether or not the processor dynamically modifies the classpath")
     public boolean isDynamicallyModifiesClasspath() {
         return dynamicallyModifiesClasspath;
     }
@@ -153,7 +151,7 @@ public class Property {
         this.dynamicallyModifiesClasspath = dynamicallyModifiesClasspath;
     }
 
-    @ApiModelProperty(value = "Whether or not the processor is dynamic")
+    @Schema(description = "Whether or not the processor is dynamic")
     public boolean isDynamic() {
         return dynamic;
     }
@@ -162,7 +160,7 @@ public class Property {
         this.dynamic = dynamic;
     }
 
-    @ApiModelProperty(value = "The properties that this property depends on")
+    @Schema(description = "The properties that this property depends on")
     public List<Dependency> getDependencies() {
         return dependencies;
     }
@@ -171,7 +169,7 @@ public class Property {
         this.dependencies = dependencies;
     }
 
-    @ApiModelProperty(value = "The optional resource definition")
+    @Schema(description = "The optional resource definition")
     public ResourceDefinition getResourceDefinition() {
         return resourceDefinition;
     }

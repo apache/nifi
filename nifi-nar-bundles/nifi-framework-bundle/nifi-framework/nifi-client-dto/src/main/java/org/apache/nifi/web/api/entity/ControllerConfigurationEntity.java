@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -37,8 +37,7 @@ public class ControllerConfigurationEntity extends Entity implements Permissible
     /**
      * @return revision for this request/response
      */
-    @ApiModelProperty(
-        value = "The revision for this request/response. The revision is required for any mutable flow requests and is included in all responses."
+    @Schema(description = "The revision for this request/response. The revision is required for any mutable flow requests and is included in all responses."
     )
     public RevisionDTO getRevision() {
         if (revision == null) {
@@ -57,8 +56,7 @@ public class ControllerConfigurationEntity extends Entity implements Permissible
      *
      * @return The ControllerConfigurationDTO object
      */
-    @ApiModelProperty(
-        value = "The controller configuration."
+    @Schema(description = "The controller configuration."
     )
     public ControllerConfigurationDTO getComponent() {
         return controllerConfiguration;
@@ -73,8 +71,7 @@ public class ControllerConfigurationEntity extends Entity implements Permissible
      *
      * @return The permissions
      */
-    @ApiModelProperty(
-            value = "The permissions for this component."
+    @Schema(description = "The permissions for this component."
     )
     public PermissionsDTO getPermissions() {
         return permissions;
@@ -84,8 +81,7 @@ public class ControllerConfigurationEntity extends Entity implements Permissible
         this.permissions = permissions;
     }
 
-    @ApiModelProperty(
-            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    @Schema(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
     )
     public Boolean isDisconnectedNodeAcknowledged() {
         return disconnectedNodeAcknowledged;

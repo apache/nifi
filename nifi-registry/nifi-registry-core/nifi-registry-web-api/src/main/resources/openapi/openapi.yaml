@@ -20,6 +20,7 @@ openAPI:
     description: REST API definition for Apache NiFi Registry web services
     contact:
       email: dev@nifi.apache.org
+      url: https://nifi.apache.org
     license:
       name: Apache 2.0
       url: https://www.apache.org/licenses/LICENSE-2.0.html

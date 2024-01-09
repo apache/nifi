@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
 
@@ -26,7 +26,7 @@ public class CreateActiveRequestEntity extends Entity {
     private String processGroupId;
     private Boolean disconnectedNodeAcknowledged;
 
-    @ApiModelProperty("The Process Group ID that this active request will update")
+    @Schema(description = "The Process Group ID that this active request will update")
     public String getProcessGroupId() {
         return processGroupId;
     }
@@ -35,8 +35,7 @@ public class CreateActiveRequestEntity extends Entity {
         this.processGroupId = processGroupId;
     }
 
-    @ApiModelProperty(
-            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    @Schema(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
     )
     public Boolean isDisconnectedNodeAcknowledged() {
         return disconnectedNodeAcknowledged;

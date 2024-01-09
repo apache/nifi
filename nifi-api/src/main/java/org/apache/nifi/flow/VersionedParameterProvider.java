@@ -17,7 +17,7 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Map;
 
@@ -30,7 +30,7 @@ public class VersionedParameterProvider extends VersionedComponent implements Ve
 
 
     @Override
-    @ApiModelProperty(value = "The type of the parameter provider.")
+    @Schema(description = "The type of the parameter provider.")
     public String getType() {
         return type;
     }
@@ -41,7 +41,7 @@ public class VersionedParameterProvider extends VersionedComponent implements Ve
     }
 
     @Override
-    @ApiModelProperty(value = "The details of the artifact that bundled this parameter provider type.")
+    @Schema(description = "The details of the artifact that bundled this parameter provider type.")
     public Bundle getBundle() {
         return bundle;
     }
@@ -52,7 +52,7 @@ public class VersionedParameterProvider extends VersionedComponent implements Ve
     }
 
     @Override
-    @ApiModelProperty(value = "The properties of the parameter provider.")
+    @Schema(description = "The properties of the parameter provider.")
     public Map<String, String> getProperties() {
         return properties;
     }
@@ -63,7 +63,7 @@ public class VersionedParameterProvider extends VersionedComponent implements Ve
     }
 
     @Override
-    @ApiModelProperty("The property descriptors for the parameter provider.")
+    @Schema(description = "The property descriptors for the parameter provider.")
     public Map<String, VersionedPropertyDescriptor> getPropertyDescriptors() {
         return propertyDescriptors;
     }
@@ -73,7 +73,7 @@ public class VersionedParameterProvider extends VersionedComponent implements Ve
         this.propertyDescriptors = propertyDescriptors;
     }
 
-    @ApiModelProperty(value = "The annotation for the parameter provider. This is how the custom UI relays configuration to the parameter provider.")
+    @Schema(description = "The annotation for the parameter provider. This is how the custom UI relays configuration to the parameter provider.")
     public String getAnnotationData() {
         return annotationData;
     }

@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.dto.diagnostics;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -34,7 +34,7 @@ public class RemoteQueuePartitionDTO {
     private int inFlightFlowFileCount;
     private long inFlightByteCount;
 
-    @ApiModelProperty("The Node Identifier that this queue partition is sending to")
+    @Schema(description = "The Node Identifier that this queue partition is sending to")
     public String getNodeIdentifier() {
         return nodeId;
     }
@@ -43,7 +43,7 @@ public class RemoteQueuePartitionDTO {
         this.nodeId = nodeId;
     }
 
-    @ApiModelProperty("Total number of FlowFiles owned by the Connection")
+    @Schema(description = "Total number of FlowFiles owned by the Connection")
     public int getTotalFlowFileCount() {
         return totalFlowFileCount;
     }
@@ -52,7 +52,7 @@ public class RemoteQueuePartitionDTO {
         this.totalFlowFileCount = totalFlowFileCount;
     }
 
-    @ApiModelProperty("Total number of bytes that make up the content for the FlowFiles owned by this Connection")
+    @Schema(description = "Total number of bytes that make up the content for the FlowFiles owned by this Connection")
     public long getTotalByteCount() {
         return totalByteCount;
     }
@@ -61,7 +61,7 @@ public class RemoteQueuePartitionDTO {
         this.totalByteCount = totalByteCount;
     }
 
-    @ApiModelProperty("Total number of FlowFiles that exist in the Connection's Active Queue, immediately available to be offered up to a component")
+    @Schema(description = "Total number of FlowFiles that exist in the Connection's Active Queue, immediately available to be offered up to a component")
     public int getActiveQueueFlowFileCount() {
         return activeQueueFlowFileCount;
     }
@@ -70,7 +70,7 @@ public class RemoteQueuePartitionDTO {
         this.activeQueueFlowFileCount = activeQueueFlowFileCount;
     }
 
-    @ApiModelProperty("Total number of bytes that make up the content for the FlowFiles that are present in the Connection's Active Queue")
+    @Schema(description = "Total number of bytes that make up the content for the FlowFiles that are present in the Connection's Active Queue")
     public long getActiveQueueByteCount() {
         return activeQueueByteCount;
     }
@@ -79,7 +79,7 @@ public class RemoteQueuePartitionDTO {
         this.activeQueueByteCount = activeQueueByteCount;
     }
 
-    @ApiModelProperty("The total number of FlowFiles that are swapped out for this Connection")
+    @Schema(description = "The total number of FlowFiles that are swapped out for this Connection")
     public int getSwapFlowFileCount() {
         return swapFlowFileCount;
     }
@@ -88,7 +88,7 @@ public class RemoteQueuePartitionDTO {
         this.swapFlowFileCount = swapFlowFileCount;
     }
 
-    @ApiModelProperty("Total number of bytes that make up the content for the FlowFiles that are swapped out to disk for the Connection")
+    @Schema(description = "Total number of bytes that make up the content for the FlowFiles that are swapped out to disk for the Connection")
     public long getSwapByteCount() {
         return swapByteCount;
     }
@@ -97,7 +97,7 @@ public class RemoteQueuePartitionDTO {
         this.swapByteCount = swapByteCount;
     }
 
-    @ApiModelProperty("The number of Swap Files that exist for this Connection")
+    @Schema(description = "The number of Swap Files that exist for this Connection")
     public int getSwapFiles() {
         return swapFiles;
     }
@@ -106,7 +106,7 @@ public class RemoteQueuePartitionDTO {
         this.swapFiles = swapFiles;
     }
 
-    @ApiModelProperty("The number of In-Flight FlowFiles for this Connection. These are FlowFiles that belong to the connection but are currently being operated on by a Processor, Port, etc.")
+    @Schema(description = "The number of In-Flight FlowFiles for this Connection. These are FlowFiles that belong to the connection but are currently being operated on by a Processor, Port, etc.")
     public int getInFlightFlowFileCount() {
         return inFlightFlowFileCount;
     }
@@ -115,7 +115,7 @@ public class RemoteQueuePartitionDTO {
         this.inFlightFlowFileCount = inFlightFlowFileCount;
     }
 
-    @ApiModelProperty("The number bytes that make up the content of the FlowFiles that are In-Flight")
+    @Schema(description = "The number bytes that make up the content of the FlowFiles that are In-Flight")
     public long getInFlightByteCount() {
         return inFlightByteCount;
     }

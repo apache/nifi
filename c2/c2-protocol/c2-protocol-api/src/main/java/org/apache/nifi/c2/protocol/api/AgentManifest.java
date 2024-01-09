@@ -17,17 +17,16 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
 import java.util.Objects;
 import java.util.Set;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 
-@ApiModel
 public class AgentManifest extends RuntimeManifest {
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty("All supported operations by agent")
+    @Schema(description = "All supported operations by agent")
     private Set<SupportedOperation> supportedOperations;
 
     public AgentManifest() {

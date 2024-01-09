@@ -17,7 +17,7 @@
 
 package org.apache.nifi.registry.diff;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Set;
 
@@ -41,7 +41,7 @@ public class VersionedFlowDifference {
         this.componentDifferenceGroups = componentDifferenceGroups;
     }
 
-    @ApiModelProperty("The id of the bucket that the flow is stored in.")
+    @Schema(description = "The id of the bucket that the flow is stored in.")
     public String getBucketId() {
         return bucketId;
     }
@@ -50,7 +50,7 @@ public class VersionedFlowDifference {
         this.bucketId = bucketId;
     }
 
-    @ApiModelProperty("The id of the flow that is being examined.")
+    @Schema(description = "The id of the flow that is being examined.")
     public String getFlowId() {
         return flowId;
     }
@@ -59,7 +59,7 @@ public class VersionedFlowDifference {
         this.flowId = flowId;
     }
 
-    @ApiModelProperty("The earlier version from the diff operation.")
+    @Schema(description = "The earlier version from the diff operation.")
     public int getVersionA() {
         return versionA;
     }
@@ -68,7 +68,7 @@ public class VersionedFlowDifference {
         this.versionA = versionA;
     }
 
-    @ApiModelProperty("The latter version from the diff operation.")
+    @Schema(description = "The latter version from the diff operation.")
     public int getVersionB() {
         return versionB;
     }

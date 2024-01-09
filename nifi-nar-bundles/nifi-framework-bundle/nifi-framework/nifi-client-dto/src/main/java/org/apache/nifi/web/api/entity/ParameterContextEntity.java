@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -25,7 +25,7 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 public class ParameterContextEntity extends ComponentEntity {
     private ParameterContextDTO parameterContextDTO;
 
-    @ApiModelProperty("The Parameter Context")
+    @Schema(description = "The Parameter Context")
     public ParameterContextDTO getComponent() {
         return parameterContextDTO;
     }

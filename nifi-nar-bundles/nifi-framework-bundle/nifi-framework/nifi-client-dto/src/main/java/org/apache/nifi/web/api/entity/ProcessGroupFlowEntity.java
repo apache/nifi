@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 
@@ -36,8 +36,7 @@ public class ProcessGroupFlowEntity extends Entity {
      *
      * @return The permissions
      */
-    @ApiModelProperty(
-        value = "The access policy for this process group."
+    @Schema(description = "The access policy for this process group."
     )
     public PermissionsDTO getPermissions() {
         return permissions;

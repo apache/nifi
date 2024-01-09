@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -33,8 +33,7 @@ public class AllowableValueDTO {
     /**
      * @return the human-readable value that is allowed for this PropertyDescriptor
      */
-    @ApiModelProperty(
-            value = "A human readable value that is allowed for the property descriptor."
+    @Schema(description = "A human readable value that is allowed for the property descriptor."
     )
     public String getDisplayName() {
         return displayName;
@@ -47,8 +46,7 @@ public class AllowableValueDTO {
     /**
      * @return the value for this allowable value
      */
-    @ApiModelProperty(
-            value = "A value that is allowed for the property descriptor."
+    @Schema(description = "A value that is allowed for the property descriptor."
     )
     public String getValue() {
         return value;
@@ -61,8 +59,7 @@ public class AllowableValueDTO {
     /**
      * @return a description of this Allowable Value, or <code>null</code> if no description is given
      */
-    @ApiModelProperty(
-            value = "A description for this allowable value."
+    @Schema(description = "A description for this allowable value."
     )
     public String getDescription() {
         return description;

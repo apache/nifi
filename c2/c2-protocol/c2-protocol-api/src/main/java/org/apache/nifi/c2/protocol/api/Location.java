@@ -17,20 +17,14 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
-
 import java.io.Serializable;
 import java.util.Objects;
 
-@ApiModel
 public class Location implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty
     private Double latitude;
 
-    @ApiModelProperty
     private Double longitude;
 
     public Double getLatitude() {

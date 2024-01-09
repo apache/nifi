@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ParameterProviderConfigurationDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 
@@ -38,8 +38,7 @@ public class ParameterProviderConfigurationEntity implements Permissible<Paramet
      *
      * @return The id
      */
-    @ApiModelProperty(
-            value = "The id of the component."
+    @Schema(description = "The id of the component."
     )
     public String getId() {
         return this.id;
@@ -54,8 +53,7 @@ public class ParameterProviderConfigurationEntity implements Permissible<Paramet
      *
      * @return The permissions
      */
-    @ApiModelProperty(
-            value = "The permissions for this component."
+    @Schema(description = "The permissions for this component."
     )
     public PermissionsDTO getPermissions() {
         return permissions;

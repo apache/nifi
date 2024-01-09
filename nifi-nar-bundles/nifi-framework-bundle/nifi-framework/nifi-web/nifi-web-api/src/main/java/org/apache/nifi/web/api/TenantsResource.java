@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
 import java.net.URI;
 import java.util.Date;
 import java.util.Set;
-import jakarta.servlet.http.HttpServletRequest;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
@@ -39,7 +39,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
@@ -67,20 +66,14 @@ import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 
 @Path("tenants")
-@Api(
-    value = "tenants",
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Endpoint for managing users and user groups.")
-})
+@Tag(name = "Tenants")
 public class TenantsResource extends ApplicationResource {
 
     private final NiFiServiceFacade serviceFacade;
     private final Authorizer authorizer;
 
     public TenantsResource(NiFiServiceFacade serviceFacade, Authorizer authorizer, NiFiProperties properties, RequestReplicator requestReplicator,
-        ClusterCoordinator clusterCoordinator, FlowController flowController) {
+                           ClusterCoordinator clusterCoordinator, FlowController flowController) {
         this.serviceFacade = serviceFacade;
         this.authorizer = authorizer;
         setProperties(properties);
@@ -116,35 +109,33 @@ public class TenantsResource extends ApplicationResource {
     /**
      * Creates a new user.
      *
-     * @param httpServletRequest request
-     * @param requestUserEntity         An userEntity.
+     * @param requestUserEntity An userEntity.
      * @return An userEntity.
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users")
-    @ApiOperation(
-            value = "Creates a user",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = UserEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /tenants")
+    @Operation(
+            summary = "Creates a user",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = UserEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /tenants")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response createUser(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The user configuration details.",
+            @Parameter(
+                    description = "The user configuration details.",
                     required = true
             ) final UserEntity requestUserEntity) {
 
@@ -211,26 +202,26 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users/{id}")
-    @ApiOperation(
-            value = "Gets a user",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = UserEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /tenants")
+    @Operation(
+            summary = "Gets a user",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = UserEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /tenants")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getUser(
-            @ApiParam(
-                    value = "The user id.",
+            @Parameter(
+                    description = "The user id.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -266,21 +257,21 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users")
-    @ApiOperation(
-            value = "Gets all users",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = UsersEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /tenants")
+    @Operation(
+            summary = "Gets all users",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = UsersEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /tenants")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getUsers() {
@@ -315,41 +306,39 @@ public class TenantsResource extends ApplicationResource {
     /**
      * Updates a user.
      *
-     * @param httpServletRequest request
-     * @param id                 The id of the user to update.
-     * @param requestUserEntity         An userEntity.
+     * @param id The id of the user to update.
+     * @param requestUserEntity An userEntity.
      * @return An userEntity.
      */
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users/{id}")
-    @ApiOperation(
-            value = "Updates a user",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = UserEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /tenants")
+    @Operation(
+            summary = "Updates a user",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = UserEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /tenants")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response updateUser(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The user id.",
+            @Parameter(
+                    description = "The user id.",
                     required = true
             )
             @PathParam("id") final String id,
-            @ApiParam(
-                    value = "The user configuration details.",
+            @Parameter(
+                    description = "The user configuration details.",
                     required = true
             ) final UserEntity requestUserEntity) {
 
@@ -403,55 +392,50 @@ public class TenantsResource extends ApplicationResource {
     /**
      * Removes the specified user.
      *
-     * @param httpServletRequest request
-     * @param version            The revision is used to verify the client is working with
-     *                           the latest version of the flow.
-     * @param clientId           Optional client id. If the client id is not specified, a
-     *                           new one will be generated. This value (whether specified or generated) is
-     *                           included in the response.
-     * @param id                 The id of the user to remove.
+     * @param version The revision is used to verify the client is working with
+     * the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @param id The id of the user to remove.
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users/{id}")
-    @ApiOperation(
-            value = "Deletes a user",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = UserEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /tenants")
+    @Operation(
+            summary = "Deletes a user",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = UserEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /tenants")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response removeUser(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The revision is used to verify the client is working with the latest version of the flow.",
-                    required = false
+            @Parameter(
+                    description = "The revision is used to verify the client is working with the latest version of the flow."
             )
             @QueryParam(VERSION) final LongParameter version,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
+            @Parameter(
+                    description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response."
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
-            @ApiParam(
-                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
-                    required = false
+            @Parameter(
+                    description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
             )
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
-            @ApiParam(
-                    value = "The user id.",
+            @Parameter(
+                    description = "The user id.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -516,35 +500,33 @@ public class TenantsResource extends ApplicationResource {
     /**
      * Creates a new user group.
      *
-     * @param httpServletRequest request
-     * @param requestUserGroupEntity    An userGroupEntity.
+     * @param requestUserGroupEntity An userGroupEntity.
      * @return An userGroupEntity.
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups")
-    @ApiOperation(
-            value = "Creates a user group",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = UserGroupEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /tenants")
+    @Operation(
+            summary = "Creates a user group",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = UserGroupEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /tenants")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response createUserGroup(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The user group configuration details.",
+            @Parameter(
+                    description = "The user group configuration details.",
                     required = true
             ) final UserGroupEntity requestUserGroupEntity) {
 
@@ -611,26 +593,26 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups/{id}")
-    @ApiOperation(
-            value = "Gets a user group",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = UserGroupEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /tenants")
+    @Operation(
+            summary = "Gets a user group",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = UserGroupEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /tenants")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getUserGroup(
-            @ApiParam(
-                    value = "The user group id.",
+            @Parameter(
+                    description = "The user group id.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -666,21 +648,21 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups")
-    @ApiOperation(
-            value = "Gets all user groups",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = UserGroupsEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /tenants")
+    @Operation(
+            summary = "Gets all user groups",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = UserGroupsEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /tenants")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getUserGroups() {
@@ -714,41 +696,39 @@ public class TenantsResource extends ApplicationResource {
     /**
      * Updates a user group.
      *
-     * @param httpServletRequest request
-     * @param id                 The id of the user group to update.
-     * @param requestUserGroupEntity    An userGroupEntity.
+     * @param id The id of the user group to update.
+     * @param requestUserGroupEntity An userGroupEntity.
      * @return An userGroupEntity.
      */
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups/{id}")
-    @ApiOperation(
-            value = "Updates a user group",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = UserGroupEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /tenants")
+    @Operation(
+            summary = "Updates a user group",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = UserGroupEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /tenants")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response updateUserGroup(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The user group id.",
+            @Parameter(
+                    description = "The user group id.",
                     required = true
             )
             @PathParam("id") final String id,
-            @ApiParam(
-                    value = "The user group configuration details.",
+            @Parameter(
+                    description = "The user group configuration details.",
                     required = true
             ) final UserGroupEntity requestUserGroupEntity) {
 
@@ -802,55 +782,50 @@ public class TenantsResource extends ApplicationResource {
     /**
      * Removes the specified user group.
      *
-     * @param httpServletRequest request
-     * @param version            The revision is used to verify the client is working with
-     *                           the latest version of the flow.
-     * @param clientId           Optional client id. If the client id is not specified, a
-     *                           new one will be generated. This value (whether specified or generated) is
-     *                           included in the response.
-     * @param id                 The id of the user group to remove.
+     * @param version The revision is used to verify the client is working with
+     * the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @param id The id of the user group to remove.
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups/{id}")
-    @ApiOperation(
-            value = "Deletes a user group",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = UserGroupEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /tenants")
+    @Operation(
+            summary = "Deletes a user group",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = UserGroupEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /tenants")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response removeUserGroup(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The revision is used to verify the client is working with the latest version of the flow.",
-                    required = false
+            @Parameter(
+                    description = "The revision is used to verify the client is working with the latest version of the flow."
             )
             @QueryParam(VERSION) final LongParameter version,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
+            @Parameter(
+                    description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response."
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
-            @ApiParam(
-                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
-                    required = false
+            @Parameter(
+                    description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
             )
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
-            @ApiParam(
-                    value = "The user group id.",
+            @Parameter(
+                    description = "The user group id.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -902,26 +877,26 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("search-results")
-    @ApiOperation(
-            value = "Searches for a tenant with the specified identity",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = TenantsEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /tenants")
+    @Operation(
+            summary = "Searches for a tenant with the specified identity",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = TenantsEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /tenants")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response searchTenants(
-            @ApiParam(
-                    value = "Identity to search for.",
+            @Parameter(
+                    description = "Identity to search for.",
                     required = true
             )
             @QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) {

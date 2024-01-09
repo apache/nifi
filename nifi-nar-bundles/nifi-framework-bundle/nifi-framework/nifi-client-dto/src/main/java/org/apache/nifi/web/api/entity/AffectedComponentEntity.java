@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupNameDTO;
 
@@ -47,7 +47,7 @@ public class AffectedComponentEntity extends ComponentEntity implements Permissi
         this.component = component;
     }
 
-    @ApiModelProperty("The Process Group that the component belongs to")
+    @Schema(description = "The Process Group that the component belongs to")
     public ProcessGroupNameDTO getProcessGroup() {
         return processGroup;
     }
@@ -56,7 +56,7 @@ public class AffectedComponentEntity extends ComponentEntity implements Permissi
         this.processGroup = processGroup;
     }
 
-    @ApiModelProperty(value="The type of component referenced",
+    @Schema(description = "The type of component referenced",
         allowableValues = AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR + "," + AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE + ", "
                 + AffectedComponentDTO.COMPONENT_TYPE_INPUT_PORT + ", " + AffectedComponentDTO.COMPONENT_TYPE_OUTPUT_PORT + ", "
                 + AffectedComponentDTO.COMPONENT_TYPE_REMOTE_INPUT_PORT + ", " + AffectedComponentDTO.COMPONENT_TYPE_REMOTE_OUTPUT_PORT)

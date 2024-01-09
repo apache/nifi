@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -27,7 +27,7 @@ public class VersionedReportingTaskImportRequestEntity extends Entity {
     private VersionedReportingTaskSnapshot reportingTaskSnapshot;
     private Boolean disconnectedNodeAcknowledged;
 
-    @ApiModelProperty("The snapshot to import")
+    @Schema(description = "The snapshot to import")
     public VersionedReportingTaskSnapshot getReportingTaskSnapshot() {
         return reportingTaskSnapshot;
     }
@@ -36,7 +36,7 @@ public class VersionedReportingTaskImportRequestEntity extends Entity {
         this.reportingTaskSnapshot = reportingTaskSnapshot;
     }
 
-    @ApiModelProperty("The disconnected node acknowledged flag")
+    @Schema(description = "The disconnected node acknowledged flag")
     public Boolean getDisconnectedNodeAcknowledged() {
         return disconnectedNodeAcknowledged;
     }

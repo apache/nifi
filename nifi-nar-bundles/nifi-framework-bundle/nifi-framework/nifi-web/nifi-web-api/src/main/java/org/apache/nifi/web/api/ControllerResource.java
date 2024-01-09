@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
@@ -87,7 +87,6 @@ import org.apache.nifi.web.api.request.LongParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
@@ -99,9 +98,9 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+
 import java.net.URI;
 import java.util.Collections;
 import java.util.Date;
@@ -114,16 +113,9 @@ import java.util.function.Consumer;
  * RESTful endpoint for managing a Flow Controller.
  */
 @Path("/controller")
-@Api(
-    value = "/controller",
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Provides realtime command and control of this NiFi instance.")
-})
+@Tag(name = "Controller")
 public class ControllerResource extends ApplicationResource {
     private static final Logger LOGGER = LoggerFactory.getLogger(ControllerResource.class);
-    private static final String NIFI_REGISTRY_TYPE = "org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient";
     public static final String VERIFICATION_REQUEST_TYPE = "verification-request";
 
     public RequestManager<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
@@ -155,19 +147,19 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("config")
-    @ApiOperation(
-            value = "Retrieves the configuration for this NiFi Controller",
-            response = ControllerConfigurationEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /controller")
+    @Operation(
+            summary = "Retrieves the configuration for this NiFi Controller",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ControllerConfigurationEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /controller")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getControllerConfig() {
@@ -185,33 +177,31 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Update the configuration for this NiFi.
      *
-     * @param httpServletRequest request
-     * @param requestConfigEntity       A controllerConfigurationEntity.
+     * @param requestConfigEntity A controllerConfigurationEntity.
      * @return A controllerConfigurationEntity.
      */
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("config")
-    @ApiOperation(
-            value = "Retrieves the configuration for this NiFi",
-            response = ControllerConfigurationEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /controller")
+    @Operation(
+            summary = "Retrieves the configuration for this NiFi",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ControllerConfigurationEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /controller")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response updateControllerConfig(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The controller configuration.",
+            @Parameter(
+                    description = "The controller configuration.",
                     required = true
             ) final ControllerConfigurationEntity requestConfigEntity) {
 
@@ -234,9 +224,7 @@ public class ControllerResource extends ApplicationResource {
                 serviceFacade,
                 requestConfigEntity,
                 requestRevision,
-                lookup -> {
-                    authorizeController(RequestAction.WRITE);
-                },
+                lookup -> authorizeController(RequestAction.WRITE),
                 null,
                 (revision, configEntity) -> {
                     final ControllerConfigurationEntity entity = serviceFacade.updateControllerConfiguration(revision, configEntity.getComponent());
@@ -252,7 +240,6 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Creates a new Parameter Provider.
      *
-     * @param httpServletRequest  request
      * @param requestParameterProviderEntity A parameterProviderEntity.
      * @return A parameterProviderEntity.
      */
@@ -260,27 +247,26 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("parameter-providers")
-    @ApiOperation(
-            value = "Creates a new parameter provider",
-            response = ParameterProviderEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /controller"),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}"),
-                    @Authorization(value = "Write - if the Parameter Provider is restricted - /restricted-components")
+    @Operation(
+            summary = "Creates a new parameter provider",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ParameterProviderEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /controller"),
+                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}"),
+                    @SecurityRequirement(name = "Write - if the Parameter Provider is restricted - /restricted-components")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response createParameterProvider(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The parameter provider configuration details.",
+            @Parameter(
+                    description = "The parameter provider configuration details.",
                     required = true
             ) final ParameterProviderEntity requestParameterProviderEntity) {
 
@@ -356,7 +342,6 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Creates a new Reporting Task.
      *
-     * @param httpServletRequest  request
      * @param requestReportingTaskEntity A reportingTaskEntity.
      * @return A reportingTaskEntity.
      */
@@ -364,27 +349,26 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("reporting-tasks")
-    @ApiOperation(
-            value = "Creates a new reporting task",
-            response = ReportingTaskEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /controller"),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}"),
-                    @Authorization(value = "Write - if the Reporting Task is restricted - /restricted-components")
+    @Operation(
+            summary = "Creates a new reporting task",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ReportingTaskEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /controller"),
+                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}"),
+                    @SecurityRequirement(name = "Write - if the Reporting Task is restricted - /restricted-components")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response createReportingTask(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The reporting task configuration details.",
+            @Parameter(
+                    description = "The reporting task configuration details.",
                     required = true
             ) final ReportingTaskEntity requestReportingTaskEntity) {
 
@@ -459,25 +443,24 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("reporting-tasks/import")
-    @ApiOperation(
-            value = "Imports a reporting task snapshot",
-            response = VersionedReportingTaskImportResponseEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /controller")
+    @Operation(
+            summary = "Imports a reporting task snapshot",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = VersionedReportingTaskImportResponseEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /controller")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response importReportingTaskSnapshot(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The import request containing the reporting task snapshot to import.",
+            @Parameter(
+                    description = "The import request containing the reporting task snapshot to import.",
                     required = true
             ) final VersionedReportingTaskImportRequestEntity importRequestEntity) {
 
@@ -525,7 +508,6 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Creates a new Flow Analysis Rule.
      *
-     * @param httpServletRequest            request
      * @param requestFlowAnalysisRuleEntity A flowAnalysisRuleEntity.
      * @return A flowAnalysisRuleEntity.0
      */
@@ -533,38 +515,35 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis-rules")
-    @ApiOperation(
-        value = "Creates a new flow analysis rule",
-        response = FlowAnalysisRuleEntity.class,
-        authorizations = {
-            @Authorization(value = "Write - /controller"),
-            @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}"),
-            @Authorization(value = "Write - if the Flow Analysis Rule is restricted - /restricted-components")
-        }
+    @Operation(
+            summary = "Creates a new flow analysis rule",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowAnalysisRuleEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /controller"),
+                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}"),
+                    @SecurityRequirement(name = "Write - if the Flow Analysis Rule is restricted - /restricted-components")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
     )
     public Response createFlowAnalysisRule(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The flow analysis rule configuration details.",
-            required = true
-        ) final FlowAnalysisRuleEntity requestFlowAnalysisRuleEntity) {
+            @Parameter(description = "The flow analysis rule configuration details.", required = true) final FlowAnalysisRuleEntity requestFlowAnalysisRuleEntity
+    ) {
 
         if (requestFlowAnalysisRuleEntity == null || requestFlowAnalysisRuleEntity.getComponent() == null) {
             throw new IllegalArgumentException("Flow analysis rule details must be specified.");
         }
 
         if (
-            requestFlowAnalysisRuleEntity.getRevision() == null
-                || (requestFlowAnalysisRuleEntity.getRevision().getVersion() == null
-                || requestFlowAnalysisRuleEntity.getRevision().getVersion() != 0)
+                requestFlowAnalysisRuleEntity.getRevision() == null
+                        || (requestFlowAnalysisRuleEntity.getRevision().getVersion() == null
+                        || requestFlowAnalysisRuleEntity.getRevision().getVersion() != 0)
         ) {
             throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Flow analysis rule.");
         }
@@ -585,77 +564,75 @@ public class ControllerResource extends ApplicationResource {
         }
 
         return withWriteLock(
-            serviceFacade,
-            requestFlowAnalysisRuleEntity,
-            lookup -> {
-                authorizeController(RequestAction.WRITE);
+                serviceFacade,
+                requestFlowAnalysisRuleEntity,
+                lookup -> {
+                    authorizeController(RequestAction.WRITE);
 
-                ComponentAuthorizable authorizable = null;
-                try {
-                    authorizable = lookup.getConfigurableComponent(requestFlowAnalysisRule.getType(), requestFlowAnalysisRule.getBundle());
+                    ComponentAuthorizable authorizable = null;
+                    try {
+                        authorizable = lookup.getConfigurableComponent(requestFlowAnalysisRule.getType(), requestFlowAnalysisRule.getBundle());
 
-                    if (authorizable.isRestricted()) {
-                        authorizeRestrictions(authorizer, authorizable);
-                    }
+                        if (authorizable.isRestricted()) {
+                            authorizeRestrictions(authorizer, authorizable);
+                        }
 
-                    if (requestFlowAnalysisRule.getProperties() != null) {
-                        AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestFlowAnalysisRule.getProperties(), authorizable, authorizer, lookup);
+                        if (requestFlowAnalysisRule.getProperties() != null) {
+                            AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestFlowAnalysisRule.getProperties(), authorizable, authorizer, lookup);
+                        }
+                    } finally {
+                        if (authorizable != null) {
+                            authorizable.cleanUpResources();
+                        }
                     }
-                } finally {
-                    if (authorizable != null) {
-                        authorizable.cleanUpResources();
-                    }
+                },
+                () -> serviceFacade.verifyCreateFlowAnalysisRule(requestFlowAnalysisRule),
+                (flowAnalysisRuleEntity) -> {
+                    final FlowAnalysisRuleDTO flowAnalysisRule = flowAnalysisRuleEntity.getComponent();
+
+                    // set the processor id as appropriate
+                    flowAnalysisRule.setId(generateUuid());
+
+                    // create the flow analysis rule and generate the json
+                    final Revision revision = getRevision(flowAnalysisRuleEntity, flowAnalysisRule.getId());
+                    final FlowAnalysisRuleEntity entity = serviceFacade.createFlowAnalysisRule(revision, flowAnalysisRule);
+                    populateRemainingFlowAnalysisRuleEntityContent(entity);
+
+                    // build the response
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
-            },
-            () -> serviceFacade.verifyCreateFlowAnalysisRule(requestFlowAnalysisRule),
-            (flowAnalysisRuleEntity) -> {
-                final FlowAnalysisRuleDTO flowAnalysisRule = flowAnalysisRuleEntity.getComponent();
-
-                // set the processor id as appropriate
-                flowAnalysisRule.setId(generateUuid());
-
-                // create the flow analysis rule and generate the json
-                final Revision revision = getRevision(flowAnalysisRuleEntity, flowAnalysisRule.getId());
-                final FlowAnalysisRuleEntity entity = serviceFacade.createFlowAnalysisRule(revision, flowAnalysisRule);
-                populateRemainingFlowAnalysisRuleEntityContent(entity);
-
-                // build the response
-                return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
-            }
         );
     }
 
     /**
      * Clears the state for a flow analysis rule.
      *
-     * @param httpServletRequest servlet request
-     * @param id                 The id of the flow analysis rule
+     * @param id The id of the flow analysis rule
      * @return a componentStateEntity
      */
     @POST
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis-rules/{id}/state/clear-requests")
-    @ApiOperation(
-            value = "Clears the state for a flow analysis rule",
-            response = ComponentStateEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /flow-analysis-rules/{uuid}")
+    @Operation(
+            summary = "Clears the state for a flow analysis rule",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ComponentStateEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /flow-analysis-rules/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response clearState(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The flow analysis rule id.",
+            @Parameter(
+                    description = "The flow analysis rule id.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -688,8 +665,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Updates the specified Flow Analysis Rule.
      *
-     * @param httpServletRequest  request
-     * @param id                  The id of the flow analysis rule to update.
+     * @param id The id of the flow analysis rule to update.
      * @param requestFlowAnalysisRuleEntity A flowAnalysisRuleEntity.
      * @return A flowAnalysisRuleEntity.
      */
@@ -697,32 +673,31 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis-rules/{id}")
-    @ApiOperation(
-            value = "Updates a flow analysis rule",
-            response = FlowAnalysisRuleEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /flow-analysis-rules/{uuid}"),
-                    @Authorization(value = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}")
+    @Operation(
+            summary = "Updates a flow analysis rule",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowAnalysisRuleEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /flow-analysis-rules/{uuid}"),
+                    @SecurityRequirement(name = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response updateFlowAnalysisRule(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The flow analysis rule id.",
+            @Parameter(
+                    description = "The flow analysis rule id.",
                     required = true
             )
             @PathParam("id") final String id,
-            @ApiParam(
-                    value = "The flow analysis rule configuration details.",
+            @Parameter(
+                    description = "The flow analysis rule configuration details.",
                     required = true
             ) final FlowAnalysisRuleEntity requestFlowAnalysisRuleEntity) {
 
@@ -778,56 +753,51 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Removes the specified flow analysis rule.
      *
-     * @param httpServletRequest request
-     * @param version            The revision is used to verify the client is working with
-     *                           the latest version of the flow.
-     * @param clientId           Optional client id. If the client id is not specified, a
-     *                           new one will be generated. This value (whether specified or generated) is
-     *                           included in the response.
-     * @param id                 The id of the flow analysis rule to remove.
+     * @param version The revision is used to verify the client is working with
+     * the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @param id The id of the flow analysis rule to remove.
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis-rules/{id}")
-    @ApiOperation(
-            value = "Deletes a flow analysis rule",
-            response = FlowAnalysisRuleEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /flow-analysis-rules/{uuid}"),
-                    @Authorization(value = "Write - /controller"),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}")
+    @Operation(
+            summary = "Deletes a flow analysis rule",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowAnalysisRuleEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /flow-analysis-rules/{uuid}"),
+                    @SecurityRequirement(name = "Write - /controller"),
+                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response removeFlowAnalysisRule(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The revision is used to verify the client is working with the latest version of the flow.",
-                    required = false
+            @Parameter(
+                    description = "The revision is used to verify the client is working with the latest version of the flow."
             )
             @QueryParam(VERSION) LongParameter version,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
+            @Parameter(
+                    description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response."
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
-                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
-                    required = false
+            @Parameter(
+                    description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
             )
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
-            @ApiParam(
-                    value = "The flow analysis rule id.",
+            @Parameter(
+                    description = "The flow analysis rule id.",
                     required = true
             )
             @PathParam("id") String id) {
@@ -867,8 +837,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Updates the operational status for the specified FlowAnalysisRule with the specified values.
      *
-     * @param httpServletRequest  request
-     * @param id                  The id of the flow analysis rule to update.
+     * @param id The id of the flow analysis rule to update.
      * @param requestRunStatus A runStatusEntity.
      * @return A flowAnalysisRuleEntity.
      */
@@ -876,31 +845,30 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis-rules/{id}/run-status")
-    @ApiOperation(
-            value = "Updates run status of a flow analysis rule",
-            response = FlowAnalysisRuleEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /flow-analysis-rules/{uuid} or  or /operation/flow-analysis-rules/{uuid}")
+    @Operation(
+            summary = "Updates run status of a flow analysis rule",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowAnalysisRuleEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /flow-analysis-rules/{uuid} or  or /operation/flow-analysis-rules/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response updateRunStatus(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The flow analysis rule id.",
+            @Parameter(
+                    description = "The flow analysis rule id.",
                     required = true
             )
             @PathParam("id") final String id,
-            @ApiParam(
-                    value = "The flow analysis rule run status.",
+            @Parameter(
+                    description = "The flow analysis rule run status.",
                     required = true
             ) final FlowAnalysisRuleRunStatusEntity requestRunStatus) {
 
@@ -981,19 +949,19 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis-rules")
-    @ApiOperation(
-            value = "Gets all flow analysis rules",
-            response = FlowAnalysisRulesEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets all flow analysis rules",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowAnalysisRulesEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getFlowAnalysisRules() {
@@ -1025,25 +993,25 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis-rules/{id}")
-    @ApiOperation(
-            value = "Gets a flow analysis rule",
-            response = FlowAnalysisRuleEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow-analysis-rules/{uuid}")
+    @Operation(
+            summary = "Gets a flow analysis rule",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowAnalysisRuleEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow-analysis-rules/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getFlowAnalysisRule(
-            @ApiParam(
-                    value = "The flow analysis rule id.",
+            @Parameter(
+                    description = "The flow analysis rule id.",
                     required = true
             )
             @PathParam("id") final String id
@@ -1065,7 +1033,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Returns the descriptor for the specified property.
      *
-     * @param id           The id of the flow analysis rule.
+     * @param id The id of the flow analysis rule.
      * @param propertyName The property
      * @return a propertyDescriptorEntity
      */
@@ -1073,37 +1041,34 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis-rules/{id}/descriptors")
-    @ApiOperation(
-            value = "Gets a flow analysis rule property descriptor",
-            response = PropertyDescriptorEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow-analysis-rules/{uuid}")
+    @Operation(
+            summary = "Gets a flow analysis rule property descriptor",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = PropertyDescriptorEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow-analysis-rules/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getFlowAnalysisRulePropertyDescriptor(
-            @ApiParam(
-                    value = "The flow analysis rule id.",
+            @Parameter(
+                    description = "The flow analysis rule id.",
                     required = true
             )
             @PathParam("id") final String id,
-            @ApiParam(
-                    value = "The property name.",
+            @Parameter(
+                    description = "The property name.",
                     required = true
             )
             @QueryParam("propertyName") final String propertyName,
-            @ApiParam(
-                    value = "Property Descriptor requested sensitive status",
-                    defaultValue = "false"
-            )
+            @Parameter(description = "Property Descriptor requested sensitive status")
             @QueryParam("sensitive") final boolean sensitive
     ) {
 
@@ -1139,25 +1104,25 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis-rules/{id}/state")
-    @ApiOperation(
-            value = "Gets the state for a flow analysis rule",
-            response = ComponentStateEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /flow-analysis-rules/{uuid}")
+    @Operation(
+            summary = "Gets the state for a flow analysis rule",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ComponentStateEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /flow-analysis-rules/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getFlowAnalysisRuleState(
-            @ApiParam(
-                    value = "The flow analysis rule id.",
+            @Parameter(
+                    description = "The flow analysis rule id.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -1183,25 +1148,25 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis-rules/{id}/config/analysis")
-    @ApiOperation(
-        value = "Performs analysis of the component's configuration, providing information about which attributes are referenced.",
-        response = ConfigurationAnalysisEntity.class,
-        authorizations = {
-            @Authorization(value = "Read - /flow-analysis-rules/{uuid}")
-        }
+    @Operation(
+            summary = "Performs analysis of the component's configuration, providing information about which attributes are referenced.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ConfigurationAnalysisEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow-analysis-rules/{uuid}")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
     )
     public Response analyzeFlowAnalysisRuleConfiguration(
-        @ApiParam(value = "The flow analysis rules id.", required = true) @PathParam("id") final String flowAnalysisRuleId,
-        @ApiParam(value = "The configuration analysis request.", required = true) final ConfigurationAnalysisEntity configurationAnalysis) {
+            @Parameter(description = "The flow analysis rules id.", required = true) @PathParam("id") final String flowAnalysisRuleId,
+            @Parameter(description = "The configuration analysis request.", required = true) final ConfigurationAnalysisEntity configurationAnalysis) {
 
         if (configurationAnalysis == null || configurationAnalysis.getConfigurationAnalysis() == null) {
             throw new IllegalArgumentException("Flow Analysis Rules's configuration must be specified");
@@ -1225,15 +1190,16 @@ public class ControllerResource extends ApplicationResource {
         }
 
         return withWriteLock(
-            serviceFacade,
-            configurationAnalysis,
-            lookup -> authorizeController(RequestAction.READ),
-            () -> { },
-            entity -> {
-                final ConfigurationAnalysisDTO analysis = entity.getConfigurationAnalysis();
-                final ConfigurationAnalysisEntity resultsEntity = serviceFacade.analyzeFlowAnalysisRuleConfiguration(analysis.getComponentId(), analysis.getProperties());
-                return generateOkResponse(resultsEntity).build();
-            }
+                serviceFacade,
+                configurationAnalysis,
+                lookup -> authorizeController(RequestAction.READ),
+                () -> {
+                },
+                entity -> {
+                    final ConfigurationAnalysisDTO analysis = entity.getConfigurationAnalysis();
+                    final ConfigurationAnalysisEntity resultsEntity = serviceFacade.analyzeFlowAnalysisRuleConfiguration(analysis.getComponentId(), analysis.getProperties());
+                    return generateOkResponse(resultsEntity).build();
+                }
         );
     }
 
@@ -1241,30 +1207,32 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis-rules/{id}/config/verification-requests")
-    @ApiOperation(
-        value = "Performs verification of the Flow Analysis Rule's configuration",
-        response = VerifyConfigRequestEntity.class,
-        notes = "This will initiate the process of verifying a given Flow Analysis Rule configuration. This may be a long-running task. As a result, this endpoint will immediately return a " +
-            "FlowAnalysisRuleConfigVerificationRequestEntity, and the process of performing the verification will occur asynchronously in the background. " +
-            "The client may then periodically poll the status of the request by " +
-            "issuing a GET request to /flow-analysis-rules/{taskId}/verification-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to " +
-            "/flow-analysis-rules/{serviceId}/verification-requests/{requestId}.",
-        authorizations = {
-            @Authorization(value = "Read - /flow-analysis-rules/{uuid}")
-        }
+    @Operation(
+            summary = "Performs verification of the Flow Analysis Rule's configuration",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = VerifyConfigRequestEntity.class))),
+            description = "This will initiate the process of verifying a given Flow Analysis Rule configuration. This may be a long-running task. As a result, this endpoint will immediately return " +
+                    "a " +
+                    "FlowAnalysisRuleConfigVerificationRequestEntity, and the process of performing the verification will occur asynchronously in the background. " +
+                    "The client may then periodically poll the status of the request by " +
+                    "issuing a GET request to /flow-analysis-rules/{taskId}/verification-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to " +
+                    "/flow-analysis-rules/{serviceId}/verification-requests/{requestId}.",
+            security = {
+                    @SecurityRequirement(name = "Read - /flow-analysis-rules/{uuid}")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
     )
     public Response submitFlowAnalysisRuleConfigVerificationRequest(
-        @ApiParam(value = "The flow analysis rules id.", required = true) @PathParam("id") final String flowAnalysisRuleId,
-        @ApiParam(value = "The flow analysis rules configuration verification request.", required = true) final VerifyConfigRequestEntity flowAnalysisRuleConfigRequest) {
+            @Parameter(description = "The flow analysis rules id.", required = true)
+            @PathParam("id") final String flowAnalysisRuleId,
+            @Parameter(description = "The flow analysis rules configuration verification request.", required = true) final VerifyConfigRequestEntity flowAnalysisRuleConfigRequest) {
 
         if (flowAnalysisRuleConfigRequest == null) {
             throw new IllegalArgumentException("Flow Analysis Rule's configuration must be specified");
@@ -1290,11 +1258,11 @@ public class ControllerResource extends ApplicationResource {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         return withWriteLock(
-            serviceFacade,
-            flowAnalysisRuleConfigRequest,
-            lookup -> authorizeController(RequestAction.READ),
-            () -> serviceFacade.verifyCanVerifyFlowAnalysisRuleConfig(flowAnalysisRuleId),
-            entity -> performAsyncFlowAnalysisRuleConfigVerification(entity, user)
+                serviceFacade,
+                flowAnalysisRuleConfigRequest,
+                lookup -> authorizeController(RequestAction.READ),
+                () -> serviceFacade.verifyCanVerifyFlowAnalysisRuleConfig(flowAnalysisRuleId),
+                entity -> performAsyncFlowAnalysisRuleConfigVerification(entity, user)
         );
     }
 
@@ -1302,25 +1270,30 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis-rules/{id}/config/verification-requests/{requestId}")
-    @ApiOperation(
-        value = "Returns the Verification Request with the given ID",
-        response = VerifyConfigRequestEntity.class,
-        notes = "Returns the Verification Request with the given ID. Once an Verification Request has been created, "
-            + "that request can subsequently be retrieved via this endpoint, and the request that is fetched will contain the updated state, such as percent complete, the "
-            + "current state of the request, and any failures. ",
-        authorizations = {
-            @Authorization(value = "Only the user that submitted the request can get it")
-        })
-    @ApiResponses(value = {
-        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-        @ApiResponse(code = 401, message = "Client could not be authenticated."),
-        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-        @ApiResponse(code = 404, message = "The specified resource could not be found."),
-        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-    })
+    @Operation(
+            summary = "Returns the Verification Request with the given ID",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = VerifyConfigRequestEntity.class))),
+            description = "Returns the Verification Request with the given ID. Once an Verification Request has been created, "
+                    + "that request can subsequently be retrieved via this endpoint, and the request that is fetched will contain the updated state, such as percent complete, the "
+                    + "current state of the request, and any failures. ",
+            security = {
+                    @SecurityRequirement(name = "Only the user that submitted the request can get it")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
     public Response getFlowAnalysisRuleVerificationRequest(
-        @ApiParam("The ID of the Flow Analysis Rule") @PathParam("id") final String flowAnalysisRuleId,
-        @ApiParam("The ID of the Verification Request") @PathParam("requestId") final String requestId) {
+            @Parameter(description = "The ID of the Flow Analysis Rule")
+            @PathParam("id") final String flowAnalysisRuleId,
+            @Parameter(description = "The ID of the Verification Request")
+            @PathParam("requestId") final String requestId) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -1340,25 +1313,30 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis-rules/{id}/config/verification-requests/{requestId}")
-    @ApiOperation(
-        value = "Deletes the Verification Request with the given ID",
-        response = VerifyConfigRequestEntity.class,
-        notes = "Deletes the Verification Request with the given ID. After a request is created, it is expected "
-            + "that the client will properly clean up the request by DELETE'ing it, once the Verification process has completed. If the request is deleted before the request "
-            + "completes, then the Verification request will finish the step that it is currently performing and then will cancel any subsequent steps.",
-        authorizations = {
-            @Authorization(value = "Only the user that submitted the request can remove it")
-        })
-    @ApiResponses(value = {
-        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-        @ApiResponse(code = 401, message = "Client could not be authenticated."),
-        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-        @ApiResponse(code = 404, message = "The specified resource could not be found."),
-        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-    })
+    @Operation(
+            summary = "Deletes the Verification Request with the given ID",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = VerifyConfigRequestEntity.class))),
+            description = "Deletes the Verification Request with the given ID. After a request is created, it is expected "
+                    + "that the client will properly clean up the request by DELETE'ing it, once the Verification process has completed. If the request is deleted before the request "
+                    + "completes, then the Verification request will finish the step that it is currently performing and then will cancel any subsequent steps.",
+            security = {
+                    @SecurityRequirement(name = "Only the user that submitted the request can remove it")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
     public Response deleteFlowAnalysisRuleVerificationRequest(
-        @ApiParam("The ID of the Flow Analysis Rule") @PathParam("id") final String flowAnalysisRuleId,
-        @ApiParam("The ID of the Verification Request") @PathParam("requestId") final String requestId) {
+            @Parameter(description = "The ID of the Flow Analysis Rule")
+            @PathParam("id") final String flowAnalysisRuleId,
+            @Parameter(description = "The ID of the Verification Request")
+            @PathParam("requestId") final String requestId) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
@@ -1406,7 +1384,7 @@ public class ControllerResource extends ApplicationResource {
         final List<UpdateStep> updateSteps = Collections.singletonList(new StandardUpdateStep("Verify Flow Analysis Rule Configuration"));
 
         final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> request =
-            new StandardAsynchronousWebRequest<>(requestId, configRequest, taskId, user, updateSteps);
+                new StandardAsynchronousWebRequest<>(requestId, configRequest, taskId, user, updateSteps);
 
         // Submit the request to be performed in the background
         final Consumer<AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>>> verificationTask = asyncRequest -> {
@@ -1427,7 +1405,7 @@ public class ControllerResource extends ApplicationResource {
     }
 
     private VerifyConfigRequestEntity createVerifyFlowAnalysisRuleConfigRequestEntity(
-        final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest, final String requestId) {
+            final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest, final String requestId) {
 
         final VerifyConfigRequestDTO requestDto = asyncRequest.getRequest().getRequest();
         final List<ConfigVerificationResultDTO> resultsList = asyncRequest.getResults();
@@ -1464,16 +1442,22 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registry-clients")
-    @ApiOperation(value = "Gets the listing of available flow registry clients", response = FlowRegistryClientsEntity.class, authorizations = {
-            @Authorization(value = "Read - /flow")
-    })
-    @ApiResponses(value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-    })
+    @Operation(
+            summary = "Gets the listing of available flow registry clients",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowRegistryClientsEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
     public Response getFlowRegistryClients() {
         authorizeController(RequestAction.READ);
 
@@ -1492,7 +1476,6 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Creates a new flow registry client.
      *
-     * @param httpServletRequest request
      * @param requestFlowRegistryClientEntity A registryClientEntity.
      * @return A FlowRegistryClientEntity.
      */
@@ -1500,28 +1483,26 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registry-clients")
-    @ApiOperation(
-            value = "Creates a new flow registry client",
-            response = FlowRegistryClientEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /controller")
+    @Operation(
+            summary = "Creates a new flow registry client",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowRegistryClientEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /controller")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response createFlowRegistryClient(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The flow registry client configuration details.",
+            @Parameter(
+                    description = "The flow registry client configuration details.",
                     required = true
             ) final FlowRegistryClientEntity requestFlowRegistryClientEntity) {
-        // authorize access
         authorizeController(RequestAction.READ);
 
         if (requestFlowRegistryClientEntity == null || requestFlowRegistryClientEntity.getComponent() == null) {
@@ -1591,25 +1572,25 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/registry-clients/{id}")
-    @ApiOperation(
-            value = "Gets a flow registry client",
-            response = FlowRegistryClientEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /controller")
+    @Operation(
+            summary = "Gets a flow registry client",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowRegistryClientEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /controller")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getFlowRegistryClient(
-            @ApiParam(
-                    value = "The flow registry client id.",
+            @Parameter(
+                    description = "The flow registry client id.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -1629,7 +1610,6 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Updates the specified flow registry client.
      *
-     * @param httpServletRequest      request
      * @param id The id of the flow registry client to update.
      * @param requestFlowRegistryClientEntity A flowRegistryClientEntity.
      * @return A flowRegistryClientEntity.
@@ -1638,31 +1618,30 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/registry-clients/{id}")
-    @ApiOperation(
-            value = "Updates a flow registry client",
-            response = FlowRegistryClientEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /controller")
+    @Operation(
+            summary = "Updates a flow registry client",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowRegistryClientEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /controller")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response updateFlowRegistryClient(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The flow registry client id.",
+            @Parameter(
+                    description = "The flow registry client id.",
                     required = true
             )
             @PathParam("id") final String id,
-            @ApiParam(
-                    value = "The flow registry client configuration details.",
+            @Parameter(
+                    description = "The flow registry client configuration details.",
                     required = true
             ) final FlowRegistryClientEntity requestFlowRegistryClientEntity) {
 
@@ -1718,54 +1697,49 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Removes the specified flow registry client.
      *
-     * @param httpServletRequest request
-     * @param version            The revision is used to verify the client is working with
-     *                           the latest version of the flow.
-     * @param clientId           Optional client id. If the client id is not specified, a
-     *                           new one will be generated. This value (whether specified or generated) is
-     *                           included in the response.
-     * @param id                 The id of the flow registry client to remove.
+     * @param version The revision is used to verify the client is working with
+     * the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @param id The id of the flow registry client to remove.
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/registry-clients/{id}")
-    @ApiOperation(
-            value = "Deletes a flow registry client",
-            response = FlowRegistryClientEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /controller")
+    @Operation(
+            summary = "Deletes a flow registry client",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowRegistryClientEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /controller")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response deleteFlowRegistryClient(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The revision is used to verify the client is working with the latest version of the flow.",
-                    required = false
+            @Parameter(
+                    description = "The revision is used to verify the client is working with the latest version of the flow."
             )
             @QueryParam(VERSION) final LongParameter version,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
+            @Parameter(
+                    description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response."
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
-            @ApiParam(
-                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
-                    required = false
+            @Parameter(
+                    description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
             )
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
-            @ApiParam(
-                    value = "The flow registry client id.",
+            @Parameter(
+                    description = "The flow registry client id.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -1803,7 +1777,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Returns the descriptor for the specified property.
      *
-     * @param id           The id of the flow registry client.
+     * @param id The id of the flow registry client.
      * @param propertyName The property
      * @return a propertyDescriptorEntity
      */
@@ -1811,37 +1785,34 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/registry-clients/{id}/descriptors")
-    @ApiOperation(
-            value = "Gets a flow registry client property descriptor",
-            response = PropertyDescriptorEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /controller/registry-clients/{uuid}")
+    @Operation(
+            summary = "Gets a flow registry client property descriptor",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = PropertyDescriptorEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /controller/registry-clients/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getPropertyDescriptor(
-            @ApiParam(
-                    value = "The flow registry client id.",
+            @Parameter(
+                    description = "The flow registry client id.",
                     required = true
             )
             @PathParam("id") final String id,
-            @ApiParam(
-                    value = "The property name.",
+            @Parameter(
+                    description = "The property name.",
                     required = true
             )
             @QueryParam("propertyName") final String propertyName,
-            @ApiParam(
-                    value = "Property Descriptor requested sensitive status",
-                    defaultValue = "false"
-            )
+            @Parameter(description = "Property Descriptor requested sensitive status")
             @QueryParam("sensitive") final boolean sensitive
     ) {
 
@@ -1877,20 +1848,20 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registry-types")
-    @ApiOperation(
-            value = "Retrieves the types of flow  that this NiFi supports",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = FlowRegistryClientTypesEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Retrieves the types of flow  that this NiFi supports",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowRegistryClientTypesEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getRegistryClientTypes() {
@@ -1937,7 +1908,6 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Creates a Bulletin.
      *
-     * @param httpServletRequest  request
      * @param requestBulletinEntity A bulletinEntity.
      * @return A bulletinEntity.
      */
@@ -1945,25 +1915,24 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("bulletin")
-    @ApiOperation(
-            value = "Creates a new bulletin",
-            response = BulletinEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /controller")
+    @Operation(
+            summary = "Creates a new bulletin",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = BulletinEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /controller")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response createBulletin(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The reporting task configuration details.",
+            @Parameter(
+                    description = "The reporting task configuration details.",
                     required = true
             ) final BulletinEntity requestBulletinEntity) {
 
@@ -1993,7 +1962,7 @@ public class ControllerResource extends ApplicationResource {
                 null,
                 (bulletinEntity) -> {
                     final BulletinDTO bulletin = bulletinEntity.getBulletin();
-                    final BulletinEntity entity = serviceFacade.createBulletin(bulletin,true);
+                    final BulletinEntity entity = serviceFacade.createBulletin(bulletin, true);
                     return generateOkResponse(entity).build();
                 }
         );
@@ -2006,7 +1975,6 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Creates a new Controller Service.
      *
-     * @param httpServletRequest      request
      * @param requestControllerServiceEntity A controllerServiceEntity.
      * @return A controllerServiceEntity.
      */
@@ -2014,27 +1982,26 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("controller-services")
-    @ApiOperation(
-            value = "Creates a new controller service",
-            response = ControllerServiceEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /controller"),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}"),
-                    @Authorization(value = "Write - if the Controller Service is restricted - /restricted-components")
+    @Operation(
+            summary = "Creates a new controller service",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ControllerServiceEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /controller"),
+                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}"),
+                    @SecurityRequirement(name = "Write - if the Controller Service is restricted - /restricted-components")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response createControllerService(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The controller service configuration details.",
+            @Parameter(
+                    description = "The controller service configuration details.",
                     required = true
             ) final ControllerServiceEntity requestControllerServiceEntity) {
 
@@ -2120,20 +2087,20 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("cluster")
-    @ApiOperation(
-            value = "Gets the contents of the cluster",
-            notes = "Returns the contents of the cluster including all nodes and their status.",
-            response = ClusterEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /controller")
+    @Operation(
+            summary = "Gets the contents of the cluster",
+            description = "Returns the contents of the cluster including all nodes and their status.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ClusterEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /controller")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getCluster() {
@@ -2169,25 +2136,25 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("cluster/nodes/{id}")
-    @ApiOperation(
-            value = "Gets a node in the cluster",
-            response = NodeEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /controller")
+    @Operation(
+            summary = "Gets a node in the cluster",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = NodeEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /controller")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getNode(
-            @ApiParam(
-                    value = "The node id.",
+            @Parameter(
+                    description = "The node id.",
                     required = true
             )
             @PathParam("id") String id) {
@@ -2217,7 +2184,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Updates the contents of the specified node in this NiFi cluster.
      *
-     * @param id         The id of the node
+     * @param id The id of the node
      * @param nodeEntity A nodeEntity
      * @return A nodeEntity
      */
@@ -2225,30 +2192,30 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("cluster/nodes/{id}")
-    @ApiOperation(
-            value = "Updates a node in the cluster",
-            response = NodeEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /controller")
+    @Operation(
+            summary = "Updates a node in the cluster",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = NodeEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /controller")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response updateNode(
-            @ApiParam(
-                    value = "The node id.",
+            @Parameter(
+                    description = "The node id.",
                     required = true
             )
             @PathParam("id") String id,
-            @ApiParam(
-                    value = "The node configuration. The only configuration that will be honored at this endpoint is the status.",
+            @Parameter(
+                    description = "The node configuration. The only configuration that will be honored at this endpoint is the status.",
                     required = true
             ) NodeEntity nodeEntity) {
 
@@ -2295,25 +2262,25 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("cluster/nodes/{id}")
-    @ApiOperation(
-            value = "Removes a node from the cluster",
-            response = NodeEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /controller")
+    @Operation(
+            summary = "Removes a node from the cluster",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = NodeEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /controller")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response deleteNode(
-            @ApiParam(
-                    value = "The node id.",
+            @Parameter(
+                    description = "The node id.",
                     required = true
             )
             @PathParam("id") String id) {
@@ -2346,21 +2313,21 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("status/history")
-    @ApiOperation(
-            value = "Gets status history for the node",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = ComponentHistoryEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /controller")
+    @Operation(
+            summary = "Gets status history for the node",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ComponentHistoryEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /controller")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getNodeStatusHistory() {
@@ -2385,25 +2352,24 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("history")
-    @ApiOperation(
-            value = "Purges history",
-            response = HistoryEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /controller")
+    @Operation(
+            summary = "Purges history",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = HistoryEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /controller")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response deleteHistory(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "Purge actions before this date/time.",
+            @Parameter(
+                    description = "Purge actions before this date/time.",
                     required = true
             )
             @QueryParam("endDate") DateTimeParameter endDate) {

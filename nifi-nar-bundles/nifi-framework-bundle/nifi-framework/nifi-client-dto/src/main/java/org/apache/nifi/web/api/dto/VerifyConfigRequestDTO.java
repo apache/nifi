@@ -17,8 +17,8 @@
 
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
-import io.swagger.annotations.ApiModelProperty.AccessMode;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.Schema.AccessMode;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
@@ -31,7 +31,7 @@ public class VerifyConfigRequestDTO extends AsynchronousRequestDTO<VerifyConfigU
     private Map<String, String> attributes;
     private List<ConfigVerificationResultDTO> results;
 
-    @ApiModelProperty("The ID of the component whose configuration was verified")
+    @Schema(description = "The ID of the component whose configuration was verified")
     public String getComponentId() {
         return componentId;
     }
@@ -40,7 +40,7 @@ public class VerifyConfigRequestDTO extends AsynchronousRequestDTO<VerifyConfigU
         this.componentId = componentId;
     }
 
-    @ApiModelProperty("The configured component properties")
+    @Schema(description = "The configured component properties")
     public Map<String, String> getProperties() {
         return properties;
     }
@@ -49,7 +49,7 @@ public class VerifyConfigRequestDTO extends AsynchronousRequestDTO<VerifyConfigU
         this.properties = properties;
     }
 
-    @ApiModelProperty("FlowFile Attributes that should be used to evaluate Expression Language for resolving property values")
+    @Schema(description = "FlowFile Attributes that should be used to evaluate Expression Language for resolving property values")
     public Map<String, String> getAttributes() {
         return attributes;
     }
@@ -58,7 +58,7 @@ public class VerifyConfigRequestDTO extends AsynchronousRequestDTO<VerifyConfigU
         this.attributes = attributes;
     }
 
-    @ApiModelProperty(value="The Results of the verification", accessMode = AccessMode.READ_ONLY)
+    @Schema(description = "The Results of the verification", accessMode = AccessMode.READ_ONLY)
     public List<ConfigVerificationResultDTO> getResults() {
         return results;
     }

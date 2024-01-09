@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
 import java.util.Set;
@@ -29,7 +29,7 @@ public class VersionedParameterContext extends VersionedComponent {
     private String parameterGroupName;
     private Boolean isSynchronized;
 
-    @ApiModelProperty("The description of the parameter context")
+    @Schema(description = "The description of the parameter context")
     public String getDescription() {
         return description;
     }
@@ -38,7 +38,7 @@ public class VersionedParameterContext extends VersionedComponent {
         this.description = description;
     }
 
-    @ApiModelProperty("The parameters in the context")
+    @Schema(description = "The parameters in the context")
     public Set<VersionedParameter> getParameters() {
         return parameters;
     }
@@ -47,7 +47,7 @@ public class VersionedParameterContext extends VersionedComponent {
         this.parameters = parameters;
     }
 
-    @ApiModelProperty("The names of additional parameter contexts from which to inherit parameters")
+    @Schema(description = "The names of additional parameter contexts from which to inherit parameters")
     public List<String> getInheritedParameterContexts() {
         return inheritedParameterContexts;
     }
@@ -61,7 +61,7 @@ public class VersionedParameterContext extends VersionedComponent {
         return ComponentType.PARAMETER_CONTEXT;
     }
 
-    @ApiModelProperty("The identifier of an optional parameter provider")
+    @Schema(description = "The identifier of an optional parameter provider")
     public String getParameterProvider() {
         return parameterProvider;
     }
@@ -70,7 +70,7 @@ public class VersionedParameterContext extends VersionedComponent {
         this.parameterProvider = parameterProvider;
     }
 
-    @ApiModelProperty("The corresponding parameter group name fetched from the parameter provider, if applicable")
+    @Schema(description = "The corresponding parameter group name fetched from the parameter provider, if applicable")
     public String getParameterGroupName() {
         return parameterGroupName;
     }
@@ -79,7 +79,7 @@ public class VersionedParameterContext extends VersionedComponent {
         this.parameterGroupName = parameterGroupName;
     }
 
-    @ApiModelProperty("True if the parameter provider is set and the context should receive updates when its parameters are next fetched")
+    @Schema(description = "True if the parameter provider is set and the context should receive updates when its parameters are next fetched")
     public Boolean isSynchronized() {
         return isSynchronized;
     }

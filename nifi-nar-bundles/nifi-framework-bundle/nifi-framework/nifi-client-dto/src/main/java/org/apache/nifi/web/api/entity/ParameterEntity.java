@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.WritablePermission;
 
@@ -27,7 +27,7 @@ public class ParameterEntity extends Entity implements WritablePermission {
     private Boolean canWrite;
     private ParameterDTO parameter;
 
-    @ApiModelProperty("The parameter information")
+    @Schema(description = "The parameter information")
     public ParameterDTO getParameter() {
         return parameter;
     }
@@ -37,7 +37,7 @@ public class ParameterEntity extends Entity implements WritablePermission {
     }
 
     @Override
-    @ApiModelProperty(value = "Indicates whether the user can write a given resource.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "Indicates whether the user can write a given resource.", accessMode = Schema.AccessMode.READ_ONLY)
     public Boolean getCanWrite() {
         return canWrite;
     }

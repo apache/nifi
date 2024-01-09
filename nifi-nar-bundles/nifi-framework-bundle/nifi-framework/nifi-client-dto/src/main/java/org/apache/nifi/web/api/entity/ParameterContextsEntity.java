@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -29,7 +29,7 @@ public class ParameterContextsEntity extends Entity {
     private Set<ParameterContextEntity> parameterContexts;
     private Date currentTime;
 
-    @ApiModelProperty("The Parameter Contexts")
+    @Schema(description = "The Parameter Contexts")
     public Set<ParameterContextEntity> getParameterContexts() {
         return parameterContexts;
     }
@@ -39,10 +39,9 @@ public class ParameterContextsEntity extends Entity {
     }
 
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-        value = "The current time on the system.",
-        dataType = "string",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The current time on the system.",
+        type = "string",
+        accessMode = Schema.AccessMode.READ_ONLY
     )
     public Date getCurrentTime() {
         return currentTime;

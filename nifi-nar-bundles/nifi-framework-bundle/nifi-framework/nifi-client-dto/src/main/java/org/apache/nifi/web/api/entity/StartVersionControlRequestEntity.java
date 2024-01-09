@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 
@@ -29,7 +29,7 @@ public class StartVersionControlRequestEntity extends Entity {
     private RevisionDTO processGroupRevision;
     private Boolean disconnectedNodeAcknowledged;
 
-    @ApiModelProperty("The versioned flow")
+    @Schema(description = "The versioned flow")
     public VersionedFlowDTO getVersionedFlow() {
         return versionedFlow;
     }
@@ -38,7 +38,7 @@ public class StartVersionControlRequestEntity extends Entity {
         this.versionedFlow = versionedFLow;
     }
 
-    @ApiModelProperty("The Revision of the Process Group under Version Control")
+    @Schema(description = "The Revision of the Process Group under Version Control")
     public RevisionDTO getProcessGroupRevision() {
         return processGroupRevision;
     }
@@ -47,8 +47,7 @@ public class StartVersionControlRequestEntity extends Entity {
         this.processGroupRevision = revision;
     }
 
-    @ApiModelProperty(
-            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    @Schema(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
     )
     public Boolean isDisconnectedNodeAcknowledged() {
         return disconnectedNodeAcknowledged;

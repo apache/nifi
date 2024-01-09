@@ -21,7 +21,7 @@ import jakarta.xml.bind.annotation.XmlType;
 
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @XmlType(name = "controllerServiceDiagnostics")
 public class ControllerServiceDiagnosticsDTO {
@@ -32,7 +32,7 @@ public class ControllerServiceDiagnosticsDTO {
         this.controllerService = controllerService;
     }
 
-    @ApiModelProperty("The Controller Service")
+    @Schema(description = "The Controller Service")
     public ControllerServiceEntity getControllerService() {
         return controllerService;
     }
@@ -41,7 +41,7 @@ public class ControllerServiceDiagnosticsDTO {
         this.classLoaderDiagnostics = classLoaderDiagnostics;
     }
 
-    @ApiModelProperty("Information about the Controller Service's Class Loader")
+    @Schema(description = "Information about the Controller Service's Class Loader")
     public ClassLoaderDiagnosticsDTO getClassLoaderDiagnostics() {
         return classLoaderDiagnostics;
     }

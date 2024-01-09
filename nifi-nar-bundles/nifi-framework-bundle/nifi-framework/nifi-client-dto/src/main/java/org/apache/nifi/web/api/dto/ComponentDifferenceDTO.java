@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
@@ -31,7 +31,7 @@ public class ComponentDifferenceDTO {
     private String processGroupId;
     private List<DifferenceDTO> differences;
 
-    @ApiModelProperty("The type of component")
+    @Schema(description = "The type of component")
     public String getComponentType() {
         return componentType;
     }
@@ -40,7 +40,7 @@ public class ComponentDifferenceDTO {
         this.componentType = componentType;
     }
 
-    @ApiModelProperty("The ID of the component")
+    @Schema(description = "The ID of the component")
     public String getComponentId() {
         return componentId;
     }
@@ -49,7 +49,7 @@ public class ComponentDifferenceDTO {
         this.componentId = componentId;
     }
 
-    @ApiModelProperty("The name of the component")
+    @Schema(description = "The name of the component")
     public String getComponentName() {
         return componentName;
     }
@@ -58,7 +58,7 @@ public class ComponentDifferenceDTO {
         this.componentName = componentName;
     }
 
-    @ApiModelProperty("The ID of the Process Group that the component belongs to")
+    @Schema(description = "The ID of the Process Group that the component belongs to")
     public String getProcessGroupId() {
         return processGroupId;
     }
@@ -67,7 +67,7 @@ public class ComponentDifferenceDTO {
         this.processGroupId = processGroupId;
     }
 
-    @ApiModelProperty("The differences in the component between the two flows")
+    @Schema(description = "The differences in the component between the two flows")
     public List<DifferenceDTO> getDifferences() {
         return differences;
     }

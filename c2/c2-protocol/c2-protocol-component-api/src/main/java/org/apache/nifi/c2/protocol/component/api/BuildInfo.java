@@ -17,11 +17,10 @@
 
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.io.Serializable;
 
-@ApiModel
 public class BuildInfo implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -32,7 +31,7 @@ public class BuildInfo implements Serializable {
     private String compiler;
     private String compilerFlags;
 
-    @ApiModelProperty("The version number of the built component.")
+    @Schema(description = "The version number of the built component.")
     public String getVersion() {
         return version;
     }
@@ -41,7 +40,7 @@ public class BuildInfo implements Serializable {
         this.version = version;
     }
 
-    @ApiModelProperty("The SCM revision id of the source code used for this build.")
+    @Schema(description = "The SCM revision id of the source code used for this build.")
     public String getRevision() {
         return revision;
     }
@@ -50,7 +49,7 @@ public class BuildInfo implements Serializable {
         this.revision = revision;
     }
 
-    @ApiModelProperty("The timestamp (milliseconds since Epoch) of the build.")
+    @Schema(description = "The timestamp (milliseconds since Epoch) of the build.")
     public Long getTimestamp() {
         return timestamp;
     }
@@ -59,7 +58,7 @@ public class BuildInfo implements Serializable {
         this.timestamp = timestamp;
     }
 
-    @ApiModelProperty("The target architecture of the built component.")
+    @Schema(description = "The target architecture of the built component.")
     public String getTargetArch() {
         return targetArch;
     }
@@ -68,7 +67,7 @@ public class BuildInfo implements Serializable {
         this.targetArch = targetArch;
     }
 
-    @ApiModelProperty("The compiler used for the build")
+    @Schema(description = "The compiler used for the build")
     public String getCompiler() {
         return compiler;
     }
@@ -77,7 +76,7 @@ public class BuildInfo implements Serializable {
         this.compiler = compiler;
     }
 
-    @ApiModelProperty("The compiler flags used for the build.")
+    @Schema(description = "The compiler flags used for the build.")
     public String getCompilerFlags() {
         return compilerFlags;
     }

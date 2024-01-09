@@ -17,7 +17,7 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Objects;
 
 
@@ -26,7 +26,7 @@ public class BatchSize {
     private String size;
     private String duration;
 
-    @ApiModelProperty("Preferred number of flow files to include in a transaction.")
+    @Schema(description = "Preferred number of flow files to include in a transaction.")
     public Integer getCount() {
         return count;
     }
@@ -35,7 +35,7 @@ public class BatchSize {
         this.count = count;
     }
 
-    @ApiModelProperty("Preferred number of bytes to include in a transaction.")
+    @Schema(description = "Preferred number of bytes to include in a transaction.")
     public String getSize() {
         return size;
     }
@@ -44,7 +44,7 @@ public class BatchSize {
         this.size = size;
     }
 
-    @ApiModelProperty("Preferred amount of time that a transaction should span.")
+    @Schema(description = "Preferred amount of time that a transaction should span.")
     public String getDuration() {
         return duration;
     }

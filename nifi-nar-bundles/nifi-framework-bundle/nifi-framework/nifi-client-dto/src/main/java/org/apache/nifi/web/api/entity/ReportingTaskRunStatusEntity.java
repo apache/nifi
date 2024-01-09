@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -37,8 +37,7 @@ public class ReportingTaskRunStatusEntity extends ComponentRunStatusEntity {
      * Run status for this ReportingTask.
      * @return The run status
      */
-    @ApiModelProperty(
-            value = "The run status of the ReportingTask.",
+    @Schema(description = "The run status of the ReportingTask.",
             allowableValues = "RUNNING, STOPPED"
     )
     public String getState() {

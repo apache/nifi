@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
@@ -25,7 +24,6 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlElementWrapper;
 import java.util.List;
 
-@ApiModel
 @XmlAccessorType(XmlAccessType.FIELD)
 public class ResourceDefinition {
 
@@ -35,7 +33,7 @@ public class ResourceDefinition {
     @XmlElement(name = "resourceType")
     private List<ResourceType> resourceTypes;
 
-    @ApiModelProperty(value = "The cardinality of the resource definition")
+    @Schema(description = "The cardinality of the resource definition")
     public Cardinality getCardinality() {
         return cardinality;
     }
@@ -44,7 +42,7 @@ public class ResourceDefinition {
         this.cardinality = cardinality;
     }
 
-    @ApiModelProperty(value = "The types of resources")
+    @Schema(description = "The types of resources")
     public List<ResourceType> getResourceTypes() {
         return resourceTypes;
     }

@@ -17,18 +17,14 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
 
-@ApiModel
 public class AgentRepositories implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private AgentRepositoryStatus flowFile;
     private AgentRepositoryStatus provenance;
 
-    @ApiModelProperty
     public AgentRepositoryStatus getFlowFile() {
         return flowFile;
     }
@@ -37,7 +33,6 @@ public class AgentRepositories implements Serializable {
         this.flowFile = flowFile;
     }
 
-    @ApiModelProperty
     public AgentRepositoryStatus getProvenance() {
         return provenance;
     }

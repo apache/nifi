@@ -17,13 +17,11 @@
 
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.io.Serializable;
 import java.util.Objects;
 
-@ApiModel
 public class PropertyAllowableValue implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -31,7 +29,7 @@ public class PropertyAllowableValue implements Serializable {
     private String displayName;
     private String description;
 
-    @ApiModelProperty(value = "The internal value", required = true)
+    @Schema(description = "The internal value")
     public String getValue() {
         return value;
     }
@@ -40,7 +38,7 @@ public class PropertyAllowableValue implements Serializable {
         this.value = value;
     }
 
-    @ApiModelProperty("The display name of the value, if different from the internal value")
+    @Schema(description = "The display name of the value, if different from the internal value")
     public String getDisplayName() {
         return displayName;
     }
@@ -49,7 +47,7 @@ public class PropertyAllowableValue implements Serializable {
         this.displayName = displayName;
     }
 
-    @ApiModelProperty("The description of the value, e.g., the behavior it produces.")
+    @Schema(description = "The description of the value, e.g., the behavior it produces.")
     public String getDescription() {
         return description;
     }

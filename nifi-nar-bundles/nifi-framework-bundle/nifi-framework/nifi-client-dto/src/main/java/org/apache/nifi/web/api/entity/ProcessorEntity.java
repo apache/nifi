@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
@@ -63,8 +63,7 @@ public class ProcessorEntity extends ComponentEntity implements Permissible<Proc
     /**
      * @return the input requirement of this processor
      */
-    @ApiModelProperty(
-            value = "The input requirement for this processor."
+    @Schema(description = "The input requirement for this processor."
     )
     public String getInputRequirement() {
         return inputRequirement;
@@ -77,8 +76,7 @@ public class ProcessorEntity extends ComponentEntity implements Permissible<Proc
     /**
      * @return The permissions for this component operations
      */
-    @ApiModelProperty(
-            value = "The permissions for this component operations."
+    @Schema(description = "The permissions for this component operations."
     )
     @Override
     public PermissionsDTO getOperatePermissions() {

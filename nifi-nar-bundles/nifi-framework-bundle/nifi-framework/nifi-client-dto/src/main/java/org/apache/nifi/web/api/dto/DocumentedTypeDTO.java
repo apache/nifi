@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
@@ -42,8 +42,7 @@ public class DocumentedTypeDTO {
     /**
      * @return An optional description of the corresponding type
      */
-    @ApiModelProperty(
-            value = "The description of the type."
+    @Schema(description = "The description of the type."
     )
     public String getDescription() {
         return description;
@@ -56,8 +55,7 @@ public class DocumentedTypeDTO {
     /**
      * @return Whether this type is restricted
      */
-    @ApiModelProperty(
-            value = "Whether this type is restricted."
+    @Schema(description = "Whether this type is restricted."
     )
     public boolean isRestricted() {
         return restricted;
@@ -70,8 +68,7 @@ public class DocumentedTypeDTO {
     /**
      * @return An optional collection of explicit restrictions
      */
-    @ApiModelProperty(
-            value = "An optional collection of explicit restrictions. If specified, these explicit restrictions will be enfored."
+    @Schema(description = "An optional collection of explicit restrictions. If specified, these explicit restrictions will be enfored."
     )
     public Set<ExplicitRestrictionDTO> getExplicitRestrictions() {
         return explicitRestrictions;
@@ -84,8 +81,7 @@ public class DocumentedTypeDTO {
     /**
      * @return An optional description of why the usage of this component is restricted
      */
-    @ApiModelProperty(
-            value = "The optional description of why the usage of this component is restricted."
+    @Schema(description = "The optional description of why the usage of this component is restricted."
     )
     public String getUsageRestriction() {
         return usageRestriction;
@@ -98,8 +94,7 @@ public class DocumentedTypeDTO {
     /**
      * @return An optional description of why the usage of this component is deprecated
      */
-    @ApiModelProperty(
-            value = "The description of why the usage of this component is restricted."
+    @Schema(description = "The description of why the usage of this component is restricted."
     )
     public String getDeprecationReason() {
         return deprecationReason;
@@ -113,8 +108,7 @@ public class DocumentedTypeDTO {
     /**
      * @return The type is the fully-qualified name of a Java class
      */
-    @ApiModelProperty(
-            value = "The fully qualified name of the type."
+    @Schema(description = "The fully qualified name of the type."
     )
     public String getType() {
         return type;
@@ -129,8 +123,7 @@ public class DocumentedTypeDTO {
      *
      * @return The bundle details
      */
-    @ApiModelProperty(
-            value = "The details of the artifact that bundled this type."
+    @Schema(description = "The details of the artifact that bundled this type."
     )
     public BundleDTO getBundle() {
         return bundle;
@@ -145,8 +138,7 @@ public class DocumentedTypeDTO {
      *
      * @return The listing of implemented APIs
      */
-    @ApiModelProperty(
-            value = "If this type represents a ControllerService, this lists the APIs it implements."
+    @Schema(description = "If this type represents a ControllerService, this lists the APIs it implements."
     )
     public List<ControllerServiceApiDTO> getControllerServiceApis() {
         return controllerServiceApis;
@@ -159,8 +151,7 @@ public class DocumentedTypeDTO {
     /**
      * @return The tags associated with this type
      */
-    @ApiModelProperty(
-            value = "The tags associated with this type."
+    @Schema(description = "The tags associated with this type."
     )
     public Set<String> getTags() {
         return tags;

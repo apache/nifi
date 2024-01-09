@@ -17,7 +17,7 @@
 
 package org.apache.nifi.registry.serialization.jackson;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlType;
@@ -30,7 +30,7 @@ public class SerializationContainer<T> {
     private Map<String, String> header;
     private T content;
 
-    @ApiModelProperty("The serialization headers")
+    @Schema(description = "The serialization headers")
     public Map<String, String> getHeader() {
         return header;
     }
@@ -39,7 +39,7 @@ public class SerializationContainer<T> {
         this.header = header;
     }
 
-    @ApiModelProperty("The serialized content")
+    @Schema(description = "The serialized content")
     public T getContent() {
         return content;
     }

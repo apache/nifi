@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
@@ -50,9 +50,8 @@ public class AccessPolicyEntity extends ComponentEntity implements Permissible<A
      * @return When this content was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-            value = "When this content was generated.",
-            dataType = "string"
+    @Schema(description = "When this content was generated.",
+            type = "string"
     )
     public Date getGenerated() {
         return generated;

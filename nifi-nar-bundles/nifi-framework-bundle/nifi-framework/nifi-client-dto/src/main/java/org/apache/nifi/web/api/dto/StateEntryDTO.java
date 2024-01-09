@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -35,8 +35,7 @@ public class StateEntryDTO {
     /**
      * @return the key for this state
      */
-    @ApiModelProperty(
-        value = "The key for this state."
+    @Schema(description = "The key for this state."
     )
     public String getKey() {
         return key;
@@ -49,8 +48,7 @@ public class StateEntryDTO {
     /**
      * @return the value for this state
      */
-    @ApiModelProperty(
-        value = "The value for this state."
+    @Schema(description = "The value for this state."
     )
     public String getValue() {
         return value;
@@ -63,8 +61,7 @@ public class StateEntryDTO {
     /**
      * @return identifier of the node where this state originated
      */
-    @ApiModelProperty(
-        value = "The identifier for the node where the state originated."
+    @Schema(description = "The identifier for the node where the state originated."
     )
     public String getClusterNodeId() {
         return clusterNodeId;
@@ -77,8 +74,7 @@ public class StateEntryDTO {
     /**
      * @return label to use to show which node this state originated from
      */
-    @ApiModelProperty(
-        value = "The label for the node where the state originated."
+    @Schema(description = "The label for the node where the state originated."
     )
     public String getClusterNodeAddress() {
         return clusterNodeAddress;

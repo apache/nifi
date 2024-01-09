@@ -17,7 +17,7 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Objects;
 
@@ -35,7 +35,7 @@ public class Bundle {
         this.version = version;
     }
 
-    @ApiModelProperty("The group of the bundle")
+    @Schema(description = "The group of the bundle")
     public String getGroup() {
         return group;
     }
@@ -44,7 +44,7 @@ public class Bundle {
         this.group = group;
     }
 
-    @ApiModelProperty("The artifact of the bundle")
+    @Schema(description = "The artifact of the bundle")
     public String getArtifact() {
         return artifact;
     }
@@ -53,7 +53,7 @@ public class Bundle {
         this.artifact = artifact;
     }
 
-    @ApiModelProperty("The version of the bundle")
+    @Schema(description = "The version of the bundle")
     public String getVersion() {
         return version;
     }

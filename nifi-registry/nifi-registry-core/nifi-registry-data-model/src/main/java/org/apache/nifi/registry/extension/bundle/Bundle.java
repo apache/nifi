@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.registry.extension.bundle;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -32,10 +31,9 @@ import org.apache.nifi.registry.bucket.BucketItemType;
  *
  * The {@link BundleVersion} represents the actually binary bundle which may contain one or more extensions.
  *
- * Note: The @ApiModel annotation needs a value specified because there is another class called Bundle in a different
+ * Note: The  annotation needs a value specified because there is another class called Bundle in a different
  * package for flows, and the model names must be unique since they won't carry the Java package structure forward.
  */
-@ApiModel("ExtensionBundle")
 @XmlRootElement
 public class Bundle extends BucketItem {
 
@@ -55,7 +53,7 @@ public class Bundle extends BucketItem {
         super(BucketItemType.Bundle);
     }
 
-    @ApiModelProperty(value = "The type of the extension bundle")
+    @Schema(description = "The type of the extension bundle")
     public BundleType getBundleType() {
         return bundleType;
     }
@@ -64,7 +62,7 @@ public class Bundle extends BucketItem {
         this.bundleType = bundleType;
     }
 
-    @ApiModelProperty(value = "The group id of the extension bundle")
+    @Schema(description = "The group id of the extension bundle")
     public String getGroupId() {
         return groupId;
     }
@@ -73,7 +71,7 @@ public class Bundle extends BucketItem {
         this.groupId = groupId;
     }
 
-    @ApiModelProperty(value = "The artifact id of the extension bundle")
+    @Schema(description = "The artifact id of the extension bundle")
     public String getArtifactId() {
         return artifactId;
     }
@@ -82,7 +80,7 @@ public class Bundle extends BucketItem {
         this.artifactId = artifactId;
     }
 
-    @ApiModelProperty(value = "The number of versions of this extension bundle.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The number of versions of this extension bundle.", accessMode = Schema.AccessMode.READ_ONLY)
     public long getVersionCount() {
         return versionCount;
     }

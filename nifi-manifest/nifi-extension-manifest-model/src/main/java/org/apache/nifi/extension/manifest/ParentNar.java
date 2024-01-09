@@ -16,13 +16,11 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 
-@ApiModel
 @XmlAccessorType(XmlAccessType.FIELD)
 public class ParentNar {
 
@@ -30,7 +28,7 @@ public class ParentNar {
     private String artifactId;
     private String version;
 
-    @ApiModelProperty(value = "The group id of the parent NAR")
+    @Schema(description = "The group id of the parent NAR")
     public String getGroupId() {
         return groupId;
     }
@@ -39,7 +37,7 @@ public class ParentNar {
         this.groupId = groupId;
     }
 
-    @ApiModelProperty(value = "The artifact id of the parent NAR")
+    @Schema(description = "The artifact id of the parent NAR")
     public String getArtifactId() {
         return artifactId;
     }
@@ -48,7 +46,7 @@ public class ParentNar {
         this.artifactId = artifactId;
     }
 
-    @ApiModelProperty(value = "The version of the parent NAR")
+    @Schema(description = "The version of the parent NAR")
     public String getVersion() {
         return version;
     }

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.provenance;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -32,8 +32,7 @@ public class ProvenanceSearchValueDTO {
     /**
      * @return the search value
      */
-    @ApiModelProperty(
-            value = "The search value."
+    @Schema(description = "The search value."
     )
     public String getValue() {
         return value;
@@ -46,8 +45,7 @@ public class ProvenanceSearchValueDTO {
     /**
      * @return whether inverse of search value should be searched or not
      */
-    @ApiModelProperty(
-            value = "Query for all except for search value."
+    @Schema(description = "Query for all except for search value."
     )
     public Boolean getInverse() {
         return inverse;

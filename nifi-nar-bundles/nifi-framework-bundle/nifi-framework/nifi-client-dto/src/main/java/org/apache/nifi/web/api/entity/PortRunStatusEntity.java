@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -37,8 +37,7 @@ public class PortRunStatusEntity extends ComponentRunStatusEntity {
      * Run status for this Port.
      * @return The run status
      */
-    @ApiModelProperty(
-            value = "The run status of the Port.",
+    @Schema(description = "The run status of the Port.",
             allowableValues = "RUNNING, STOPPED, DISABLED"
     )
     public String getState() {

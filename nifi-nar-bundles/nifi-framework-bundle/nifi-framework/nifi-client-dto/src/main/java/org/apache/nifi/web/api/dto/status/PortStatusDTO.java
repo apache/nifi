@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import jakarta.xml.bind.annotation.XmlType;
@@ -36,7 +36,7 @@ public class PortStatusDTO {
     private PortStatusSnapshotDTO aggregateSnapshot;
     private List<NodePortStatusSnapshotDTO> nodeSnapshots;
 
-    @ApiModelProperty("Whether the port has incoming or outgoing connections to a remote NiFi.")
+    @Schema(description = "Whether the port has incoming or outgoing connections to a remote NiFi.")
     public Boolean isTransmitting() {
         return transmitting;
     }
@@ -46,7 +46,7 @@ public class PortStatusDTO {
     }
 
 
-    @ApiModelProperty("The id of the port.")
+    @Schema(description = "The id of the port.")
     public String getId() {
         return id;
     }
@@ -56,7 +56,7 @@ public class PortStatusDTO {
     }
 
 
-    @ApiModelProperty("The id of the parent process group of the port.")
+    @Schema(description = "The id of the parent process group of the port.")
     public String getGroupId() {
         return groupId;
     }
@@ -66,7 +66,7 @@ public class PortStatusDTO {
     }
 
 
-    @ApiModelProperty("The name of the port.")
+    @Schema(description = "The name of the port.")
     public String getName() {
         return name;
     }
@@ -76,8 +76,7 @@ public class PortStatusDTO {
     }
 
 
-    @ApiModelProperty(
-            value="The run status of the port.",
+    @Schema(description = "The run status of the port.",
             allowableValues = "Running, Stopped, Validating, Disabled, Invalid")
     public String getRunStatus() {
         return runStatus;
@@ -87,7 +86,7 @@ public class PortStatusDTO {
         this.runStatus = runStatus;
     }
 
-    @ApiModelProperty("A status snapshot that represents the aggregate stats of all nodes in the cluster. If the NiFi instance is "
+    @Schema(description = "A status snapshot that represents the aggregate stats of all nodes in the cluster. If the NiFi instance is "
         + "a standalone instance, rather than a cluster, this represents the stats of the single instance.")
     public PortStatusSnapshotDTO getAggregateSnapshot() {
         return aggregateSnapshot;
@@ -97,7 +96,7 @@ public class PortStatusDTO {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    @ApiModelProperty("A status snapshot for each node in the cluster. If the NiFi instance is a standalone instance, rather than "
+    @Schema(description = "A status snapshot for each node in the cluster. If the NiFi instance is a standalone instance, rather than "
         + "a cluster, this may be null.")
     public List<NodePortStatusSnapshotDTO> getNodeSnapshots() {
         return nodeSnapshots;
@@ -113,9 +112,8 @@ public class PortStatusDTO {
      * @return The the status was calculated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-        value = "The time the status for the process group was last refreshed.",
-        dataType = "string"
+    @Schema(description = "The time the status for the process group was last refreshed.",
+        type = "string"
     )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;

@@ -16,15 +16,13 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import javax.validation.constraints.NotBlank;
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import java.util.Objects;
 
-@ApiModel
 @XmlAccessorType(XmlAccessType.FIELD)
 public class ProvidedServiceAPI {
 
@@ -37,7 +35,7 @@ public class ProvidedServiceAPI {
     @NotBlank
     private String version;
 
-    @ApiModelProperty(value = "The class name of the service API being provided")
+    @Schema(description = "The class name of the service API being provided")
     public String getClassName() {
         return className;
     }
@@ -46,7 +44,7 @@ public class ProvidedServiceAPI {
         this.className = className;
     }
 
-    @ApiModelProperty(value = "The group id of the service API being provided")
+    @Schema(description = "The group id of the service API being provided")
     public String getGroupId() {
         return groupId;
     }
@@ -55,7 +53,7 @@ public class ProvidedServiceAPI {
         this.groupId = groupId;
     }
 
-    @ApiModelProperty(value = "The artifact id of the service API being provided")
+    @Schema(description = "The artifact id of the service API being provided")
     public String getArtifactId() {
         return artifactId;
     }
@@ -64,7 +62,7 @@ public class ProvidedServiceAPI {
         this.artifactId = artifactId;
     }
 
-    @ApiModelProperty(value = "The version of the service API being provided")
+    @Schema(description = "The version of the service API being provided")
     public String getVersion() {
         return version;
     }

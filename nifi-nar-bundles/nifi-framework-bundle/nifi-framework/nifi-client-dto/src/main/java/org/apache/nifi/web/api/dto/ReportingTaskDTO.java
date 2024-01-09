@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.Collection;
@@ -62,8 +62,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return user-defined name of the reporting task
      */
-    @ApiModelProperty(
-            value = "The name of the reporting task."
+    @Schema(description = "The name of the reporting task."
     )
     public String getName() {
         return name;
@@ -76,8 +75,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return user-defined comments for the reporting task
      */
-    @ApiModelProperty(
-            value = "The comments of the reporting task."
+    @Schema(description = "The comments of the reporting task."
     )
     public String getComments() {
         return comments;
@@ -90,8 +88,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return type of reporting task
      */
-    @ApiModelProperty(
-            value = "The fully qualified type of the reporting task."
+    @Schema(description = "The fully qualified type of the reporting task."
     )
     public String getType() {
         return type;
@@ -106,8 +103,7 @@ public class ReportingTaskDTO extends ComponentDTO {
      *
      * @return The bundle details
      */
-    @ApiModelProperty(
-            value = "The details of the artifact that bundled this reporting task type."
+    @Schema(description = "The details of the artifact that bundled this reporting task type."
     )
     public BundleDTO getBundle() {
         return bundle;
@@ -122,8 +118,7 @@ public class ReportingTaskDTO extends ComponentDTO {
      *
      * @return The scheduling period
      */
-    @ApiModelProperty(
-            value = "The frequency with which to schedule the reporting task. The format of the value will depend on the value of the schedulingStrategy."
+    @Schema(description = "The frequency with which to schedule the reporting task. The format of the value will depend on the value of the schedulingStrategy."
     )
     public String getSchedulingPeriod() {
         return schedulingPeriod;
@@ -136,8 +131,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return whether this reporting task persists state
      */
-    @ApiModelProperty(
-        value = "Whether the reporting task persists state."
+    @Schema(description = "Whether the reporting task persists state."
     )
     public Boolean getPersistsState() {
         return persistsState;
@@ -150,8 +144,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return whether this reporting task requires elevated privileges
      */
-    @ApiModelProperty(
-            value = "Whether the reporting task requires elevated privileges."
+    @Schema(description = "Whether the reporting task requires elevated privileges."
     )
     public Boolean getRestricted() {
         return restricted;
@@ -164,8 +157,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return Whether the reporting task has been deprecated.
      */
-    @ApiModelProperty(
-            value = "Whether the reporting task has been deprecated."
+    @Schema(description = "Whether the reporting task has been deprecated."
     )
     public Boolean getDeprecated() {
         return deprecated;
@@ -178,8 +170,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return whether the underlying extension is missing
      */
-    @ApiModelProperty(
-            value = "Whether the underlying extension is missing."
+    @Schema(description = "Whether the underlying extension is missing."
     )
     public Boolean getExtensionMissing() {
         return isExtensionMissing;
@@ -192,8 +183,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return whether this reporting task has multiple versions available
      */
-    @ApiModelProperty(
-            value = "Whether the reporting task has multiple versions available."
+    @Schema(description = "Whether the reporting task has multiple versions available."
     )
     public Boolean getMultipleVersionsAvailable() {
         return multipleVersionsAvailable;
@@ -206,8 +196,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return whether this reporting task supports sensitive dynamic properties
      */
-    @ApiModelProperty(
-            value = "Whether the reporting task supports sensitive dynamic properties."
+    @Schema(description = "Whether the reporting task supports sensitive dynamic properties."
     )
     public Boolean getSupportsSensitiveDynamicProperties() {
         return supportsSensitiveDynamicProperties;
@@ -220,8 +209,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return current scheduling state of the reporting task
      */
-    @ApiModelProperty(
-            value = "The state of the reporting task.",
+    @Schema(description = "The state of the reporting task.",
             allowableValues = "RUNNING, STOPPED, DISABLED"
     )
     public String getState() {
@@ -235,8 +223,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return The scheduling strategy that determines how the {@link #getSchedulingPeriod()} value should be interpreted
      */
-    @ApiModelProperty(
-            value = "The scheduling strategy that determines how the schedulingPeriod value should be interpreted."
+    @Schema(description = "The scheduling strategy that determines how the schedulingPeriod value should be interpreted."
     )
     public String getSchedulingStrategy() {
         return schedulingStrategy;
@@ -249,8 +236,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return reporting task's properties
      */
-    @ApiModelProperty(
-            value = "The properties of the reporting task."
+    @Schema(description = "The properties of the reporting task."
     )
     public Map<String, String> getProperties() {
         return properties;
@@ -263,8 +249,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return Map of property name to descriptor
      */
-    @ApiModelProperty(
-            value = "The descriptors for the reporting tasks properties."
+    @Schema(description = "The descriptors for the reporting tasks properties."
     )
     public Map<String, PropertyDescriptorDTO> getDescriptors() {
         return descriptors;
@@ -277,8 +262,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return Set of sensitive dynamic property names
      */
-    @ApiModelProperty(
-            value = "Set of sensitive dynamic property names"
+    @Schema(description = "Set of sensitive dynamic property names"
     )
     public Set<String> getSensitiveDynamicPropertyNames() {
         return sensitiveDynamicPropertyNames;
@@ -291,8 +275,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return the URL for this reporting task custom configuration UI if applicable. Null otherwise
      */
-    @ApiModelProperty(
-            value = "The URL for the custom configuration UI for the reporting task."
+    @Schema(description = "The URL for the custom configuration UI for the reporting task."
     )
     public String getCustomUiUrl() {
         return customUiUrl;
@@ -305,8 +288,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return currently configured annotation data for the reporting task
      */
-    @ApiModelProperty(
-            value = "The annotation data for the repoting task. This is how the custom UI relays configuration to the reporting task."
+    @Schema(description = "The annotation data for the repoting task. This is how the custom UI relays configuration to the reporting task."
     )
     public String getAnnotationData() {
         return annotationData;
@@ -321,8 +303,7 @@ public class ReportingTaskDTO extends ComponentDTO {
      *
      * @return The validation errors
      */
-    @ApiModelProperty(
-            value = "Gets the validation errors from the reporting task. These validation errors represent the problems with the reporting task that must be resolved before "
+    @Schema(description = "Gets the validation errors from the reporting task. These validation errors represent the problems with the reporting task that must be resolved before "
                     + "it can be scheduled to run."
     )
     public Collection<String> getValidationErrors() {
@@ -333,8 +314,8 @@ public class ReportingTaskDTO extends ComponentDTO {
         this.validationErrors = validationErrors;
     }
 
-    @ApiModelProperty(value = "Indicates whether the Reporting Task is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Reporting Task is valid)",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY,
+    @Schema(description = "Indicates whether the Reporting Task is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Reporting Task is valid)",
+        accessMode = Schema.AccessMode.READ_ONLY,
         allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
     public String getValidationStatus() {
         return validationStatus;
@@ -347,8 +328,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return default scheduling period for the different scheduling strategies
      */
-    @ApiModelProperty(
-            value = "The default scheduling period for the different scheduling strategies."
+    @Schema(description = "The default scheduling period for the different scheduling strategies."
     )
     public Map<String, String> getDefaultSchedulingPeriod() {
         return defaultSchedulingPeriod;
@@ -361,8 +341,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     /**
      * @return number of active threads for this reporting task
      */
-    @ApiModelProperty(
-            value = "The number of active threads for the reporting task."
+    @Schema(description = "The number of active threads for the reporting task."
     )
     public Integer getActiveThreadCount() {
         return activeThreadCount;

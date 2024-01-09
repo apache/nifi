@@ -17,7 +17,7 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public class VersionedReportingTask extends VersionedConfigurableExtension {
 
@@ -26,7 +26,7 @@ public class VersionedReportingTask extends VersionedConfigurableExtension {
     private String schedulingPeriod;
     private String schedulingStrategy;
 
-    @ApiModelProperty(value = "The annotation for the reporting task. This is how the custom UI relays configuration to the reporting task.")
+    @Schema(description = "The annotation for the reporting task. This is how the custom UI relays configuration to the reporting task.")
     public String getAnnotationData() {
         return annotationData;
     }
@@ -35,7 +35,7 @@ public class VersionedReportingTask extends VersionedConfigurableExtension {
         this.annotationData = annotationData;
     }
 
-    @ApiModelProperty("The frequency with which to schedule the reporting task. The format of the value will depend on the value of schedulingStrategy.")
+    @Schema(description = "The frequency with which to schedule the reporting task. The format of the value will depend on the value of schedulingStrategy.")
     public String getSchedulingPeriod() {
         return schedulingPeriod;
     }
@@ -44,7 +44,7 @@ public class VersionedReportingTask extends VersionedConfigurableExtension {
         this.schedulingPeriod = setSchedulingPeriod;
     }
 
-    @ApiModelProperty("Indicates scheduling strategy that should dictate how the reporting task is triggered.")
+    @Schema(description = "Indicates scheduling strategy that should dictate how the reporting task is triggered.")
     public String getSchedulingStrategy() {
         return schedulingStrategy;
     }
@@ -58,7 +58,7 @@ public class VersionedReportingTask extends VersionedConfigurableExtension {
         return ComponentType.REPORTING_TASK;
     }
 
-    @ApiModelProperty("Indicates the scheduled state for the Reporting Task")
+    @Schema(description = "Indicates the scheduled state for the Reporting Task")
     public ScheduledState getScheduledState() {
         return scheduledState;
     }

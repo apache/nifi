@@ -16,13 +16,11 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 
-@ApiModel
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Relationship {
 
@@ -30,7 +28,7 @@ public class Relationship {
     private String description;
     private boolean autoTerminated;
 
-    @ApiModelProperty(value = "The name of the relationship")
+    @Schema(description = "The name of the relationship")
     public String getName() {
         return name;
     }
@@ -39,7 +37,7 @@ public class Relationship {
         this.name = name;
     }
 
-    @ApiModelProperty(value = "The description of the relationship")
+    @Schema(description = "The description of the relationship")
     public String getDescription() {
         return description;
     }
@@ -48,7 +46,7 @@ public class Relationship {
         this.description = description;
     }
 
-    @ApiModelProperty(value = "Whether or not the relationship is auto-terminated by default")
+    @Schema(description = "Whether or not the relationship is auto-terminated by default")
     public boolean isAutoTerminated() {
         return autoTerminated;
     }

@@ -68,6 +68,7 @@
         <module>nifi-single-user-utils</module>
         <module>nifi-site-to-site-client</module>
         <module>nifi-socket-utils</module>
+        <module>nifi-swagger-integration</module>
         <module>nifi-utils</module>
         <module>nifi-uuid5</module>
         <module>nifi-hashicorp-vault</module>

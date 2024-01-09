@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -35,7 +35,7 @@ public class SnippetEntity extends Entity {
      *
      * @return The SnippetDTO object
      */
-    @ApiModelProperty("The snippet.")
+    @Schema(description = "The snippet.")
     public SnippetDTO getSnippet() {
         return snippet;
     }
@@ -44,8 +44,7 @@ public class SnippetEntity extends Entity {
         this.snippet = snippet;
     }
 
-    @ApiModelProperty(
-            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    @Schema(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
     )
     public Boolean isDisconnectedNodeAcknowledged() {
         return disconnectedNodeAcknowledged;

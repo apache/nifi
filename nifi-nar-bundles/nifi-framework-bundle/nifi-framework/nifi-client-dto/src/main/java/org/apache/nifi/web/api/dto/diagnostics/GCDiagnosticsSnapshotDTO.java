@@ -21,7 +21,7 @@ import java.util.Date;
 
 import jakarta.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @XmlType(name = "gcDiagnosticsSnapshot")
 public class GCDiagnosticsSnapshotDTO implements Cloneable {
@@ -29,7 +29,7 @@ public class GCDiagnosticsSnapshotDTO implements Cloneable {
     private Long collectionCount;
     private Long collectionMillis;
 
-    @ApiModelProperty("The timestamp of when the Snapshot was taken")
+    @Schema(description = "The timestamp of when the Snapshot was taken")
     public Date getTimestamp() {
         return timestamp;
     }
@@ -38,7 +38,7 @@ public class GCDiagnosticsSnapshotDTO implements Cloneable {
         this.timestamp = timestamp;
     }
 
-    @ApiModelProperty("The number of times that Garbage Collection has occurred")
+    @Schema(description = "The number of times that Garbage Collection has occurred")
     public Long getCollectionCount() {
         return collectionCount;
     }
@@ -47,7 +47,7 @@ public class GCDiagnosticsSnapshotDTO implements Cloneable {
         this.collectionCount = collectionCount;
     }
 
-    @ApiModelProperty("The number of milliseconds that the Garbage Collector spent performing Garbage Collection duties")
+    @Schema(description = "The number of milliseconds that the Garbage Collector spent performing Garbage Collection duties")
     public Long getCollectionMillis() {
         return collectionMillis;
     }

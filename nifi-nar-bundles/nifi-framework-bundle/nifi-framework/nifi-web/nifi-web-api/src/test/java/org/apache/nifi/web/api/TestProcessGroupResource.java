@@ -90,7 +90,7 @@ public class TestProcessGroupResource {
         doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
 
         assertThrows(AccessDeniedException.class, () ->
-                processGroupResource.updateProcessGroup(httpServletRequest, "id", processGroupEntity));
+                processGroupResource.updateProcessGroup("id", processGroupEntity));
 
         verify(serviceFacade, never()).verifyUpdateProcessGroup(any());
         verify(serviceFacade, never()).updateProcessGroup(any(), any());

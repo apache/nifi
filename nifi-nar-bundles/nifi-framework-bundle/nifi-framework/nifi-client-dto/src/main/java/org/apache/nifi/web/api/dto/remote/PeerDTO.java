@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.remote;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -31,8 +31,7 @@ public class PeerDTO {
     private boolean secure;
     private int flowFileCount;
 
-    @ApiModelProperty(
-            value = "The hostname of this peer."
+    @Schema(description = "The hostname of this peer."
     )
     public String getHostname() {
         return hostname;
@@ -42,8 +41,7 @@ public class PeerDTO {
         this.hostname = hostname;
     }
 
-    @ApiModelProperty(
-            value = "The port number of this peer."
+    @Schema(description = "The port number of this peer."
     )
     public int getPort() {
         return port;
@@ -53,8 +51,7 @@ public class PeerDTO {
         this.port = port;
     }
 
-    @ApiModelProperty(
-            value = "Returns if this peer connection is secure."
+    @Schema(description = "Returns if this peer connection is secure."
     )
     public boolean isSecure() {
         return secure;
@@ -65,8 +62,7 @@ public class PeerDTO {
     }
 
 
-    @ApiModelProperty(
-            value = "The number of flowFiles this peer holds."
+    @Schema(description = "The number of flowFiles this peer holds."
     )
     public int getFlowFileCount() {
         return flowFileCount;

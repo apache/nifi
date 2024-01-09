@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
 import jakarta.xml.bind.annotation.XmlType;
@@ -31,8 +31,7 @@ public class ParameterProviderParameterFetchEntity extends Entity {
     private RevisionDTO revision;
     private Boolean disconnectedNodeAcknowledged;
 
-    @ApiModelProperty(
-            value = "The id of the parameter provider."
+    @Schema(description = "The id of the parameter provider."
     )
     public String getId() {
         return id;
@@ -45,8 +44,7 @@ public class ParameterProviderParameterFetchEntity extends Entity {
     /**
      * @return revision for this request/response
      */
-    @ApiModelProperty(
-            value = "The revision for this request/response. The revision is required for any mutable flow requests and is included in all responses."
+    @Schema(description = "The revision for this request/response. The revision is required for any mutable flow requests and is included in all responses."
     )
     public RevisionDTO getRevision() {
         return revision;
@@ -56,8 +54,7 @@ public class ParameterProviderParameterFetchEntity extends Entity {
         this.revision = revision;
     }
 
-    @ApiModelProperty(
-            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    @Schema(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
     )
     public Boolean isDisconnectedNodeAcknowledged() {
         return disconnectedNodeAcknowledged;

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.Map;
@@ -33,8 +33,7 @@ public class ComponentHistoryDTO {
     /**
      * @return component id
      */
-    @ApiModelProperty(
-            value = "The component id."
+    @Schema(description = "The component id."
     )
     public String getComponentId() {
         return componentId;
@@ -47,8 +46,7 @@ public class ComponentHistoryDTO {
     /**
      * @return history for this components properties
      */
-    @ApiModelProperty(
-            value = "The history for the properties of the component."
+    @Schema(description = "The history for the properties of the component."
     )
     public Map<String, PropertyHistoryDTO> getPropertyHistory() {
         return propertyHistory;

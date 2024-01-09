@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.Collection;
@@ -41,7 +41,7 @@ public class AffectedComponentDTO {
 
     private Collection<String> validationErrors;
 
-    @ApiModelProperty("The UUID of the Process Group that this component is in")
+    @Schema(description = "The UUID of the Process Group that this component is in")
     public String getProcessGroupId() {
         return processGroupId;
     }
@@ -50,7 +50,7 @@ public class AffectedComponentDTO {
         this.processGroupId = processGroupId;
     }
 
-    @ApiModelProperty("The UUID of this component")
+    @Schema(description = "The UUID of this component")
     public String getId() {
         return id;
     }
@@ -59,7 +59,7 @@ public class AffectedComponentDTO {
         this.id = id;
     }
 
-    @ApiModelProperty(value = "The type of this component",
+    @Schema(description = "The type of this component",
         allowableValues = COMPONENT_TYPE_PROCESSOR + "," + COMPONENT_TYPE_CONTROLLER_SERVICE + ", "
             + COMPONENT_TYPE_INPUT_PORT + ", " + COMPONENT_TYPE_OUTPUT_PORT + ", "
             + COMPONENT_TYPE_REMOTE_INPUT_PORT + ", " + COMPONENT_TYPE_REMOTE_OUTPUT_PORT + ", " + COMPONENT_TYPE_STATELESS_GROUP)
@@ -71,7 +71,7 @@ public class AffectedComponentDTO {
         this.referenceType = referenceType;
     }
 
-    @ApiModelProperty("The name of this component.")
+    @Schema(description = "The name of this component.")
     public String getName() {
         return name;
     }
@@ -83,8 +83,7 @@ public class AffectedComponentDTO {
     /**
      * @return active thread count for the referencing component
      */
-    @ApiModelProperty(
-            value = "The number of active threads for the referencing component."
+    @Schema(description = "The number of active threads for the referencing component."
     )
     public Integer getActiveThreadCount() {
         return activeThreadCount;
@@ -97,8 +96,7 @@ public class AffectedComponentDTO {
     /**
      * @return Any validation error associated with this component
      */
-    @ApiModelProperty(
-            value = "The validation errors for the component."
+    @Schema(description = "The validation errors for the component."
     )
     public Collection<String> getValidationErrors() {
         return validationErrors;
@@ -108,7 +106,7 @@ public class AffectedComponentDTO {
         this.validationErrors = validationErrors;
     }
 
-    @ApiModelProperty("The scheduled state of a processor or reporting task referencing a controller service. If this component is another controller "
+    @Schema(description = "The scheduled state of a processor or reporting task referencing a controller service. If this component is another controller "
         + "service, this field represents the controller service state.")
     public String getState() {
         return state;

@@ -17,7 +17,7 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Objects;
 
@@ -29,7 +29,7 @@ public class VersionedFlowCoordinates {
     private int version;
     private Boolean latest;
 
-    @ApiModelProperty("The identifier of the Flow Registry that contains the flow")
+    @Schema(description = "The identifier of the Flow Registry that contains the flow")
     public String getRegistryId() {
         return registryId;
     }
@@ -38,7 +38,7 @@ public class VersionedFlowCoordinates {
         this.registryId = registryId;
     }
 
-    @ApiModelProperty("The location of the Flow Registry that stores the flow")
+    @Schema(description = "The location of the Flow Registry that stores the flow")
     public String getStorageLocation() {
         return storageLocation;
     }
@@ -47,7 +47,7 @@ public class VersionedFlowCoordinates {
         this.storageLocation = storageLocation;
     }
 
-    @ApiModelProperty("The UUID of the bucket that the flow resides in")
+    @Schema(description = "The UUID of the bucket that the flow resides in")
     public String getBucketId() {
         return bucketId;
     }
@@ -56,7 +56,7 @@ public class VersionedFlowCoordinates {
         this.bucketId = bucketId;
     }
 
-    @ApiModelProperty("The UUID of the flow")
+    @Schema(description = "The UUID of the flow")
     public String getFlowId() {
         return flowId;
     }
@@ -65,7 +65,7 @@ public class VersionedFlowCoordinates {
         this.flowId = flowId;
     }
 
-    @ApiModelProperty("The version of the flow")
+    @Schema(description = "The version of the flow")
     public int getVersion() {
         return version;
     }
@@ -74,7 +74,7 @@ public class VersionedFlowCoordinates {
         this.version = version;
     }
 
-    @ApiModelProperty("Whether or not these coordinates point to the latest version of the flow")
+    @Schema(description = "Whether or not these coordinates point to the latest version of the flow")
     public Boolean getLatest() {
         return latest;
     }

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 import java.util.Collection;
@@ -53,8 +53,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
     /**
      * @return user-defined name of the flow analysis rule
      */
-    @ApiModelProperty(
-            value = "The name of the flow analysis rule."
+    @Schema(description = "The name of the flow analysis rule."
     )
     public String getName() {
         return name;
@@ -67,8 +66,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
     /**
      * @return user-defined comments for the flow analysis rule
      */
-    @ApiModelProperty(
-            value = "The comments of the flow analysis rule."
+    @Schema(description = "The comments of the flow analysis rule."
     )
     public String getComments() {
         return comments;
@@ -81,8 +79,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
     /**
      * @return type of flow analysis rule
      */
-    @ApiModelProperty(
-            value = "The fully qualified type of the flow analysis rule."
+    @Schema(description = "The fully qualified type of the flow analysis rule."
     )
     public String getType() {
         return type;
@@ -97,8 +94,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
      *
      * @return The bundle details
      */
-    @ApiModelProperty(
-            value = "The details of the artifact that bundled this flow analysis rule type."
+    @Schema(description = "The details of the artifact that bundled this flow analysis rule type."
     )
     public BundleDTO getBundle() {
         return bundle;
@@ -110,8 +106,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
     /**
      * @return whether this flow analysis rule persists state
      */
-    @ApiModelProperty(
-        value = "Whether the flow analysis rule persists state."
+    @Schema(description = "Whether the flow analysis rule persists state."
     )
     public Boolean getPersistsState() {
         return persistsState;
@@ -124,8 +119,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
     /**
      * @return whether this flow analysis rule requires elevated privileges
      */
-    @ApiModelProperty(
-            value = "Whether the flow analysis rule requires elevated privileges."
+    @Schema(description = "Whether the flow analysis rule requires elevated privileges."
     )
     public Boolean getRestricted() {
         return restricted;
@@ -138,8 +132,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
     /**
      * @return Whether the flow analysis rule has been deprecated.
      */
-    @ApiModelProperty(
-            value = "Whether the flow analysis rule has been deprecated."
+    @Schema(description = "Whether the flow analysis rule has been deprecated."
     )
     public Boolean getDeprecated() {
         return deprecated;
@@ -152,8 +145,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
     /**
      * @return whether the underlying extension is missing
      */
-    @ApiModelProperty(
-            value = "Whether the underlying extension is missing."
+    @Schema(description = "Whether the underlying extension is missing."
     )
     public Boolean getExtensionMissing() {
         return isExtensionMissing;
@@ -166,8 +158,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
     /**
      * @return whether this flow analysis rule has multiple versions available
      */
-    @ApiModelProperty(
-            value = "Whether the flow analysis rule has multiple versions available."
+    @Schema(description = "Whether the flow analysis rule has multiple versions available."
     )
     public Boolean getMultipleVersionsAvailable() {
         return multipleVersionsAvailable;
@@ -180,8 +171,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
     /**
      * @return whether this flow analysis rule supports sensitive dynamic properties
      */
-    @ApiModelProperty(
-            value = "Whether the flow analysis rule supports sensitive dynamic properties."
+    @Schema(description = "Whether the flow analysis rule supports sensitive dynamic properties."
     )
     public Boolean getSupportsSensitiveDynamicProperties() {
         return supportsSensitiveDynamicProperties;
@@ -194,8 +184,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
     /**
      * @return current scheduling state of the flow analysis rule
      */
-    @ApiModelProperty(
-            value = "The state of the flow analysis rule.",
+    @Schema(description = "The state of the flow analysis rule.",
             allowableValues = "ENABLED, DISABLED"
     )
     public String getState() {
@@ -209,8 +198,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
     /**
      * @return Enforcement Policy
      */
-    @ApiModelProperty(
-            value = "Enforcement Policy."
+    @Schema(description = "Enforcement Policy."
     )
     public String getEnforcementPolicy() {
         return enforcementPolicy;
@@ -223,8 +211,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
     /**
      * @return flow analysis rule's properties
      */
-    @ApiModelProperty(
-            value = "The properties of the flow analysis rule."
+    @Schema(description = "The properties of the flow analysis rule."
     )
     public Map<String, String> getProperties() {
         return properties;
@@ -237,8 +224,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
     /**
      * @return Map of property name to descriptor
      */
-    @ApiModelProperty(
-            value = "The descriptors for the flow analysis rules properties."
+    @Schema(description = "The descriptors for the flow analysis rules properties."
     )
     public Map<String, PropertyDescriptorDTO> getDescriptors() {
         return descriptors;
@@ -251,8 +237,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
     /**
      * @return Set of sensitive dynamic property names
      */
-    @ApiModelProperty(
-            value = "Set of sensitive dynamic property names"
+    @Schema(description = "Set of sensitive dynamic property names"
     )
     public Set<String> getSensitiveDynamicPropertyNames() {
         return sensitiveDynamicPropertyNames;
@@ -267,8 +252,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
      *
      * @return The validation errors
      */
-    @ApiModelProperty(
-            value = "Gets the validation errors from the flow analysis rule. These validation errors represent the problems with the flow analysis rule that must be resolved before "
+    @Schema(description = "Gets the validation errors from the flow analysis rule. These validation errors represent the problems with the flow analysis rule that must be resolved before "
                     + "it can be scheduled to run."
     )
     public Collection<String> getValidationErrors() {
@@ -279,8 +263,8 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
         this.validationErrors = validationErrors;
     }
 
-    @ApiModelProperty(value = "Indicates whether the Flow Analysis Rule is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Flow Analysis Rule is valid)",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY,
+    @Schema(description = "Indicates whether the Flow Analysis Rule is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Flow Analysis Rule is valid)",
+        accessMode = Schema.AccessMode.READ_ONLY,
         allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
     public String getValidationStatus() {
         return validationStatus;

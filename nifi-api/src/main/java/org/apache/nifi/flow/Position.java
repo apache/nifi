@@ -17,12 +17,11 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Objects;
 
-@ApiModel(description = "The position of a component on the graph")
+@Schema(description = "The position of a component on the graph")
 public class Position {
     private double x;
     private double y;
@@ -35,7 +34,7 @@ public class Position {
         this.y = y;
     }
 
-    @ApiModelProperty("The x coordinate.")
+    @Schema(description = "The x coordinate.")
     public double getX() {
         return x;
     }
@@ -44,7 +43,7 @@ public class Position {
         this.x = x;
     }
 
-    @ApiModelProperty("The y coordinate.")
+    @Schema(description = "The y coordinate.")
     public double getY() {
         return y;
     }

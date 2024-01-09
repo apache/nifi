@@ -17,34 +17,32 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.io.Serializable;
 
-@ApiModel
 public class SystemInfo implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty("Machine architecture of the device, e.g., ARM, x86")
+    @Schema(description = "Machine architecture of the device, e.g., ARM, x86")
     private String machineArch;
 
     private String operatingSystem;
 
-    @ApiModelProperty(value = "Size of physical memory of the device in bytes", allowableValues = "range[0, 9223372036854775807]")
+    @Schema(description = "Size of physical memory of the device in bytes", allowableValues = "range[0, 9223372036854775807]")
     private Long physicalMem;
 
-    @ApiModelProperty(
-            value = "Number of virtual cores on the device",
+    @Schema(description = "Number of virtual cores on the device",
             name = "vCores",
             allowableValues = "range[0, 2147483647]")
     private Integer vCores;
 
-    @ApiModelProperty
+    @Schema(description = "Memory usage")
     private Long memoryUsage;
 
-    @ApiModelProperty
+    @Schema(description = "CPU utilization")
     private Double cpuUtilization;
+
     private Double cpuLoadAverage;
 
     public String getMachineArch() {

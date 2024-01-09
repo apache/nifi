@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
 
@@ -34,8 +34,7 @@ public class RelationshipDTO {
     /**
      * @return the relationship name
      */
-    @ApiModelProperty(
-            value = "The relationship name."
+    @Schema(description = "The relationship name."
     )
     public String getName() {
         return name;
@@ -48,8 +47,7 @@ public class RelationshipDTO {
     /**
      * @return the relationship description
      */
-    @ApiModelProperty(
-            value = "The relationship description."
+    @Schema(description = "The relationship description."
     )
     public String getDescription() {
         return description;
@@ -62,8 +60,7 @@ public class RelationshipDTO {
     /**
      * @return true if relationship is auto terminated;false otherwise
      */
-    @ApiModelProperty(
-            value = "Whether or not flowfiles sent to this relationship should auto terminate."
+    @Schema(description = "Whether or not flowfiles sent to this relationship should auto terminate."
     )
     public Boolean isAutoTerminate() {
         return autoTerminate;
@@ -76,8 +73,7 @@ public class RelationshipDTO {
     /**
      * @return true if relationship is retry;false otherwise
      */
-    @ApiModelProperty(
-            value = "Whether or not flowfiles sent to this relationship should retry."
+    @Schema(description = "Whether or not flowfiles sent to this relationship should retry."
     )
     public Boolean isRetry() {
         return retry;
