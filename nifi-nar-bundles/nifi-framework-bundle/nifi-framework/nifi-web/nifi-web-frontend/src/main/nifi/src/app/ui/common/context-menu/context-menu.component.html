@@ -29,9 +29,9 @@
                         cdkMenuItem
                         [cdkMenuTriggerFor]="subMenu"
                         *ngIf="menuComponent.menu as subMenu">
-                        <span class="context-menu-item-img" [class]="item.clazz"></span>
-                        <span class="context-menu-item-text">{{ item.text }}</span>
-                        <span class="context-menu-group-item-img fa fa-caret-right"></span>
+                        <div class="context-menu-item-img" [class]="item.clazz"></div>
+                        <div class="context-menu-item-text">{{ item.text }}</div>
+                        <div class="context-menu-group-item-img fa fa-caret-right"></div>
                     </button>
                     <fd-context-menu
                         #menuComponent
@@ -41,8 +41,8 @@
 
                 <ng-template #regularMenuItem>
                     <button class="context-menu-item" (click)="menuItemClicked(item, $event)" cdkMenuItem>
-                        <span class="context-menu-item-img" [class]="item.clazz"></span>
-                        <span class="context-menu-item-text">{{ item.text }}</span>
+                        <div class="context-menu-item-img" [class]="item.clazz"></div>
+                        <div class="context-menu-item-text">{{ item.text }}</div>
                     </button>
                 </ng-template>
             </ng-template>

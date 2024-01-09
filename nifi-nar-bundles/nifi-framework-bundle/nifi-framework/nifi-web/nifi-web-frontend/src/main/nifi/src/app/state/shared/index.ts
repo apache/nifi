@@ -255,6 +255,7 @@ export interface RequiredPermission {
 export interface Revision {
     version: number;
     clientId?: string;
+    lastModifier?: string;
 }
 
 export interface BulletinEntity {

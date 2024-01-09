@@ -1200,4 +1200,237 @@ export class CanvasUtils {
         }
         return '#ffffff';
     }
+
+    /**
+     * Determines if the components in the specified selection are runnable.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                    Whether the selection is runnable
+     */
+    public areRunnable(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.empty()) {
+            return true;
+        }
+
+        let runnable = true;
+        selection.each((data, index, nodes) => {
+            if (!this.isRunnable(d3.select(nodes[index]))) {
+                runnable = false;
+            }
+        });
+        return runnable;
+    }
+
+    /**
+     * Determines if any of the components in the specified selection are runnable or can start transmitting.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                    Whether the selection is runnable
+     */
+    public areAnyRunnable(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.empty()) {
+            return true;
+        }
+
+        let runnable = false;
+        selection.each((data, index, nodes) => {
+            const d = d3.select(nodes[index]);
+            if (this.isRunnable(d) || this.canStartTransmitting(d)) {
+                runnable = true;
+            }
+        });
+        return runnable;
+    }
+
+    /**
+     * Determines if the component in the specified selection is runnable.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                    Whether the selection is runnable
+     */
+    public isRunnable(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.size() !== 1) {
+            return false;
+        }
+        if (this.isProcessGroup(selection)) {
+            return true;
+        }
+        if (!this.canOperate(selection)) {
+            return false;
+        }
+
+        let runnable = false;
+        const selectionData = selection.datum();
+        if (this.isProcessor(selection) || this.isInputPort(selection) || this.isOutputPort(selection)) {
+            runnable =
+                this.supportsModification(selection) && selectionData.status.aggregateSnapshot.runStatus === 'Stopped';
+        }
+        return runnable;
+    }
+
+    /**
+     * Determines if the components in the specified selection are stoppable.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                    Whether the selection is stoppable
+     */
+    public areStoppable(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.empty()) {
+            return true;
+        }
+
+        let stoppable = true;
+        selection.each((data, index, nodes) => {
+            if (!this.isStoppable(d3.select(nodes[index]))) {
+                stoppable = false;
+            }
+        });
+
+        return stoppable;
+    }
+
+    /**
+     * Determines if any of the components in the specified selection are stoppable.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                    Whether the selection is stoppable
+     */
+    public areAnyStoppable(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.empty()) {
+            return true;
+        }
+
+        let stoppable = false;
+        selection.each((data, index, nodes) => {
+            const d = d3.select(nodes[index]);
+            if (this.isStoppable(d) || this.canStopTransmitting(d)) {
+                stoppable = true;
+            }
+        });
+
+        return stoppable;
+    }
+
+    /**
+     * Determines if the component in the specified selection is runnable.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                    Whether the selection is runnable
+     */
+    public isStoppable(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.size() !== 1) {
+            return false;
+        }
+        if (this.isProcessGroup(selection)) {
+            return true;
+        }
+        if (!this.canOperate(selection)) {
+            return false;
+        }
+
+        let stoppable = false;
+        const selectionData = selection.datum();
+        if (this.isProcessor(selection) || this.isInputPort(selection) || this.isOutputPort(selection)) {
+            stoppable = selectionData.status.aggregateSnapshot.runStatus === 'Running';
+        }
+        return stoppable;
+    }
+
+    public getStartable(selection: d3.Selection<any, any, any, any>) {
+        return selection.filter((d, index, nodes) => {
+            const context = nodes[index];
+            return this.isRunnable(d3.select(context)) || this.canStartTransmitting(d3.select(context));
+        });
+    }
+
+    public getStoppable(selection: d3.Selection<any, any, any, any>) {
+        return selection.filter((d, index, nodes) => {
+            const context = nodes[index];
+            return this.isStoppable(d3.select(context)) || this.canStopTransmitting(d3.select(context));
+        });
+    }
+
+    public canAllStartTransmitting(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.empty()) {
+            return false;
+        }
+
+        let canStartTransmitting = true;
+        selection.each((data, index, nodes) => {
+            if (!this.canStartTransmitting(d3.select(nodes[index]))) {
+                canStartTransmitting = false;
+            }
+        });
+        return canStartTransmitting;
+    }
+
+    /**
+     * Determines if the components in the specified selection support starting transmission.
+     *
+     * @param {d3.Selection} selection
+     */
+    public canStartTransmitting(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        if ((!this.canModify(selection) || !this.canRead(selection)) && !this.canOperate(selection)) {
+            return false;
+        }
+
+        return this.isRemoteProcessGroup(selection);
+    }
+
+    /**
+     * Determines if the components in the specified selection support stopping transmission.
+     *
+     * @param {d3.Selection} selection
+     */
+    public canStopTransmitting(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        if ((!this.canModify(selection) || this.canRead(selection)) && !this.canOperate(selection)) {
+            return false;
+        }
+
+        return this.isRemoteProcessGroup(selection);
+    }
+
+    /**
+     * Determines if the specified selection can all stop transmitting.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                    Whether the selection can stop transmitting
+     */
+    public canAllStopTransmitting(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.empty()) {
+            return false;
+        }
+
+        let canStopTransmitting = true;
+        selection.each((data, index, nodes) => {
+            if (!this.canStopTransmitting(d3.select(nodes[index]))) {
+                canStopTransmitting = false;
+            }
+        });
+        return canStopTransmitting;
+    }
+    /**
+     * Determines whether the components in the specified selection can be operated.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}            Whether the selection can be operated
+     */
+    public canOperate(selection: d3.Selection<any, any, any, any>): boolean {
+        const selectionSize = selection.size();
+        const writableSize = selection
+            .filter((d) => {
+                return d.permissions.canWrite || d.operatePermissions?.canWrite;
+            })
+            .size();
+
+        return selectionSize === writableSize;
+    }
 }
