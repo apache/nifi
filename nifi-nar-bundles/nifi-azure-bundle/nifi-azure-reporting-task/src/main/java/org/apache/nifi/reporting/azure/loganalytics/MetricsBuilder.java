@@ -22,7 +22,7 @@ import java.util.List;
 /**
  * MetricsBuilder builds the list of metrics
  */
-public class MetricsBuilder{
+public class MetricsBuilder {
     private List<Metric> metrics = new ArrayList<>();
 
     private String computer;
@@ -39,23 +39,23 @@ public class MetricsBuilder{
         this.processGroupName = processGroupName;
         this.processGroupId = processGroupId;
         this.categoryName = category;
-        if (category.equals(Metric.CATEGORY_PROCESSOR)){
+        if (category.equals(Metric.CATEGORY_PROCESSOR)) {
             isProcessorMetric = true;
         }
     }
 
     public MetricsBuilder(String category, String instanceId, String processGroupId, String processGroupName, String processorId, String processorName) {
-        this(category, instanceId,processGroupId,processGroupName);
+        this(category, instanceId, processGroupId, processGroupName);
         this.processorId = processorId;
-        this.processorName =processorName;
+        this.processorName = processorName;
     }
 
-    public MetricsBuilder setProcessorId(String processorId){
+    public MetricsBuilder setProcessorId(String processorId) {
         this.processorId = processorId;
         return this;
     }
 
-    public MetricsBuilder setProcessorName(String processorName){
+    public MetricsBuilder setProcessorName(String processorName) {
         this.processorName = processorName;
         return this;
     }
@@ -65,14 +65,14 @@ public class MetricsBuilder{
         return this;
     }
 
-    public MetricsBuilder metric(String metricName, long count){
+    public MetricsBuilder metric(String metricName, long count) {
         final Metric metric = buildMetric(metricName);
         metric.setCount(count);
         metrics.add(metric);
         return this;
     }
 
-    public MetricsBuilder metric(String metricName, double count){
+    public MetricsBuilder metric(String metricName, double count) {
         final Metric metric = buildMetric(metricName);
         metric.setCount(count);
         metrics.add(metric);
@@ -155,17 +155,14 @@ public class MetricsBuilder{
     }
 
     private Metric buildMetric(String metricName) {
-        final Metric metric;
-        if(isProcessorMetric) {
-            metric =  new Metric(this.computer, this.processGroupId, this.processGroupName);
+        final Metric metric = new Metric(this.computer, this.processGroupId, this.processGroupName);
+        if (this.isProcessorMetric) {
             metric.setProcessorId(this.processorId);
             metric.setProcessorName(this.processorName);
-        } else {
-            metric = new Metric(this.computer, this.processGroupId, this.processGroupName);
         }
         metric.setCategoryName(this.categoryName);
         metric.setName(metricName);
-        if(this.tags != null) {
+        if (this.tags != null) {
             metric.setTags(this.tags);
         }
         return metric;

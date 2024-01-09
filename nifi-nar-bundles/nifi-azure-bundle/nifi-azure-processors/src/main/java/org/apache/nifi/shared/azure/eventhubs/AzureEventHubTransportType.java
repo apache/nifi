@@ -28,12 +28,12 @@ public enum AzureEventHubTransportType implements DescribedValue {
 
     private final String value;
     private final String description;
-    private final AmqpTransportType azureType;
+    private final AmqpTransportType amqpTransportType;
 
-    AzureEventHubTransportType(final String value, final String description, final AmqpTransportType azureType) {
+    AzureEventHubTransportType(final String value, final String description, final AmqpTransportType amqpTransportType) {
         this.value = value;
         this.description = description;
-        this.azureType = azureType;
+        this.amqpTransportType = amqpTransportType;
     }
 
     @Override
@@ -51,7 +51,7 @@ public enum AzureEventHubTransportType implements DescribedValue {
         return description;
     }
 
-    public AmqpTransportType asAzureType() {
-        return this.azureType;
+    public AmqpTransportType asAmqpTransportType() {
+        return this.amqpTransportType;
     }
 }

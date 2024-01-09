@@ -360,7 +360,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
         final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
         final boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
         final String fullyQualifiedNamespace = String.format("%s%s", namespace, serviceBusEndpoint);
-        final AmqpTransportType transportType = context.getProperty(TRANSPORT_TYPE).asDescribedValue(AzureEventHubTransportType.class).asAzureType();
+        final AmqpTransportType transportType = context.getProperty(TRANSPORT_TYPE).asDescribedValue(AzureEventHubTransportType.class).asAmqpTransportType();
 
         final EventHubClientBuilder eventHubClientBuilder = new EventHubClientBuilder();
         eventHubClientBuilder.transportType(transportType);
