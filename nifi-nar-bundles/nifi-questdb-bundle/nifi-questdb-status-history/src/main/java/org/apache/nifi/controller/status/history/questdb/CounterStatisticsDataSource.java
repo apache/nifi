@@ -56,7 +56,7 @@ final class CounterStatisticsDataSource implements InsertRowDataSource {
             if (processorStatus.getStatus().getCounters() != null) {
                 for (final Map.Entry<String, Long> counter : processorStatus.getStatus().getCounters().entrySet()) {
                     counterStatistics.add(new CounterStatistic(
-                        processorStatus.getCapturedAt(),
+                        processorStatus.getCaptured(),
                         processorStatus.getStatus().getId(),
                         counter.getKey(),
                         counter.getValue()

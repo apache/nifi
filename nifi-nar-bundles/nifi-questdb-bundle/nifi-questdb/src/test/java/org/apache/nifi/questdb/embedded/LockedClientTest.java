@@ -26,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -38,8 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class LockedClientTest {
-    private static final int LOCK_ATTEMPT_TIME = 20;
-    private static final TimeUnit LOCK_ATTEMPT_TIME_UNIT = TimeUnit.MILLISECONDS;
+    private static final Duration LOCK_ATTEMPT_DURATION = Duration.of(20, TimeUnit.MILLISECONDS.toChronoUnit());
 
     // The LockedQuestDbClient supports different types of locks as well, but the intention here is to prove expected behaviour with read-write lock
     private ReentrantReadWriteLock lock;
@@ -59,7 +59,7 @@ public class LockedClientTest {
     public void testCompile() throws InterruptedException {
         final Client testSubject = new Step3SustainerClient(
             latchStep3,
-            new LockedClient(lock.readLock(), LOCK_ATTEMPT_TIME, LOCK_ATTEMPT_TIME_UNIT, new Step1And2SustainerClient(latchStep1, latchStep2))
+            new LockedClient(lock.readLock(), LOCK_ATTEMPT_DURATION, new Step1And2SustainerClient(latchStep1, latchStep2))
         );
 
         executeCompileOnDifferentThread(testSubject);
@@ -70,7 +70,7 @@ public class LockedClientTest {
     public void testCompileWhenException() throws InterruptedException {
         final Client testSubject = new Step3SustainerClient(
             latchStep3,
-            new LockedClient(lock.readLock(), LOCK_ATTEMPT_TIME, LOCK_ATTEMPT_TIME_UNIT, new Step1And2SustainerClient(latchStep1, latchStep2, true))
+            new LockedClient(lock.readLock(), LOCK_ATTEMPT_DURATION, new Step1And2SustainerClient(latchStep1, latchStep2, true))
         );
 
         executeCompileOnDifferentThread(testSubject);
@@ -81,7 +81,7 @@ public class LockedClientTest {
     public void testInsertEntries() throws InterruptedException {
         final Client testSubject = new Step3SustainerClient(
             latchStep3,
-            new LockedClient(lock.readLock(), LOCK_ATTEMPT_TIME, LOCK_ATTEMPT_TIME_UNIT, new Step1And2SustainerClient(latchStep1, latchStep2))
+            new LockedClient(lock.readLock(), LOCK_ATTEMPT_DURATION, new Step1And2SustainerClient(latchStep1, latchStep2))
         );
 
         executeInsertOnDifferentThread(testSubject);
@@ -92,7 +92,7 @@ public class LockedClientTest {
     public void testInsertEntriesWhenException() throws InterruptedException {
         final Client testSubject = new Step3SustainerClient(
             latchStep3,
-            new LockedClient(lock.readLock(),  LOCK_ATTEMPT_TIME, LOCK_ATTEMPT_TIME_UNIT, new Step1And2SustainerClient(latchStep1, latchStep2, true))
+            new LockedClient(lock.readLock(), LOCK_ATTEMPT_DURATION, new Step1And2SustainerClient(latchStep1, latchStep2, true))
         );
 
         executeInsertOnDifferentThread(testSubject);
@@ -103,7 +103,7 @@ public class LockedClientTest {
     public void testQuery() throws InterruptedException {
         final Client testSubject = new Step3SustainerClient(
             latchStep3,
-            new LockedClient(lock.readLock(),  LOCK_ATTEMPT_TIME, LOCK_ATTEMPT_TIME_UNIT, new Step1And2SustainerClient(latchStep1, latchStep2))
+            new LockedClient(lock.readLock(), LOCK_ATTEMPT_DURATION, new Step1And2SustainerClient(latchStep1, latchStep2))
         );
 
         executeQueryOnDifferentThread(testSubject);
@@ -114,7 +114,7 @@ public class LockedClientTest {
     public void testQueryWhenException() throws InterruptedException {
         final Client testSubject = new Step3SustainerClient(
             latchStep3,
-            new LockedClient(lock.readLock(),  LOCK_ATTEMPT_TIME, LOCK_ATTEMPT_TIME_UNIT, new Step1And2SustainerClient(latchStep1, latchStep2, true))
+            new LockedClient(lock.readLock(), LOCK_ATTEMPT_DURATION, new Step1And2SustainerClient(latchStep1, latchStep2, true))
         );
 
         executeQueryOnDifferentThread(testSubject);
@@ -125,7 +125,7 @@ public class LockedClientTest {
     public void testLockIsReleasedAfterExceptionWhenCompile() {
         final Client testSubject = new Step3SustainerClient(
             new CountDownLatch(0),
-            new LockedClient(lock.readLock(), LOCK_ATTEMPT_TIME, LOCK_ATTEMPT_TIME_UNIT, new Step1And2SustainerClient(new CountDownLatch(0), new CountDownLatch(0), true))
+            new LockedClient(lock.readLock(), LOCK_ATTEMPT_DURATION, new Step1And2SustainerClient(new CountDownLatch(0), new CountDownLatch(0), true))
         );
         assertThrows(ConditionFailedException.class, () -> testSubject.execute(SELECT_QUERY));
         assertEquals(0, lock.getReadLockCount());
@@ -135,7 +135,7 @@ public class LockedClientTest {
     public void testLockIsReleasedAfterExceptionWhenInsertEntries() {
         final Client testSubject = new Step3SustainerClient(
             new CountDownLatch(0),
-            new LockedClient(lock.readLock(), LOCK_ATTEMPT_TIME, LOCK_ATTEMPT_TIME_UNIT, new Step1And2SustainerClient(new CountDownLatch(0), new CountDownLatch(0), true))
+            new LockedClient(lock.readLock(), LOCK_ATTEMPT_DURATION, new Step1And2SustainerClient(new CountDownLatch(0), new CountDownLatch(0), true))
         );
         assertThrows(ConditionFailedException.class, () -> testSubject.insert(EVENT_TABLE_NAME, QuestDbTestUtil.getEventTableDataSource(Collections.emptyList())));
         assertEquals(0, lock.getReadLockCount());
@@ -145,7 +145,7 @@ public class LockedClientTest {
     public void testLockIsReleasedAfterExceptionWhenQueryEntries() {
         final Client testSubject = new Step3SustainerClient(
             new CountDownLatch(0),
-            new LockedClient(lock.readLock(), LOCK_ATTEMPT_TIME, LOCK_ATTEMPT_TIME_UNIT, new Step1And2SustainerClient(new CountDownLatch(0), new CountDownLatch(0), true))
+            new LockedClient(lock.readLock(), LOCK_ATTEMPT_DURATION, new Step1And2SustainerClient(new CountDownLatch(0), new CountDownLatch(0), true))
         );
         assertThrows(ConditionFailedException.class, () -> testSubject.query(SELECT_QUERY, RequestMapping.getResultProcessor(QuestDbTestUtil.EVENT_TABLE_REQUEST_MAPPING)));
         assertEquals(0, lock.getReadLockCount());
@@ -154,7 +154,7 @@ public class LockedClientTest {
     @Test
     public void testCompileWhenUnsuccessfulLockingBecauseOfReadLock() throws InterruptedException {
         final Client client = Mockito.mock(Client.class);
-        final Client testSubject = new LockedClient(lock.readLock(), LOCK_ATTEMPT_TIME, LOCK_ATTEMPT_TIME_UNIT, client);
+        final Client testSubject = new LockedClient(lock.readLock(), LOCK_ATTEMPT_DURATION, client);
         final CountDownLatch lockLatch = new CountDownLatch(1);
 
         new Thread(() -> {
@@ -169,7 +169,7 @@ public class LockedClientTest {
     @Test
     public void testInsertWhenUnsuccessfulLockingBecauseOfReadLock() throws InterruptedException {
         final Client client = Mockito.mock(Client.class);
-        final Client testSubject = new LockedClient(lock.readLock(), LOCK_ATTEMPT_TIME, LOCK_ATTEMPT_TIME_UNIT, client);
+        final Client testSubject = new LockedClient(lock.readLock(), LOCK_ATTEMPT_DURATION, client);
         final CountDownLatch lockLatch = new CountDownLatch(1);
 
         new Thread(() -> {
@@ -184,7 +184,7 @@ public class LockedClientTest {
     @Test
     public void testQueryWhenUnsuccessfulLockingBecauseOfReadLock() throws InterruptedException {
         final Client client = Mockito.mock(Client.class);
-        final Client testSubject = new LockedClient(lock.readLock(), LOCK_ATTEMPT_TIME, LOCK_ATTEMPT_TIME_UNIT, client);
+        final Client testSubject = new LockedClient(lock.readLock(), LOCK_ATTEMPT_DURATION, client);
         final CountDownLatch lockLatch = new CountDownLatch(1);
 
         new Thread(() -> {

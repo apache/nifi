@@ -43,7 +43,7 @@ final class ComponentStatusDataSource<T> implements InsertRowDataSource {
     @Override
     public void fillRowData(final InsertRowContext context) {
         final CapturedStatus<T> status = statuses.next();
-        context.initializeRow(status.getCapturedAt());
+        context.initializeRow(status.getCaptured());
         context.addString(1, acquireId.apply(status.getStatus()));
 
         for (final Map.Entry<Integer, MetricDescriptor<T>> metric : metricDescriptors.entrySet()) {

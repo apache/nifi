@@ -36,12 +36,12 @@ final class RequestMappingBasedQueryResultProcessor<T> implements QueryResultPro
         final T entry = mapping.getNewInstance();
 
         for (int position = 0; position < mapping.getNumberOfFields(); position++) {
-            if (!ENTRY_FILLERS.containsKey(mapping.getFieldTypeAt(position))) {
-                throw new IllegalArgumentException(String.format("Unknown field type \"%s\"", mapping.getFieldTypeAt(position)));
+            if (!ENTRY_FILLERS.containsKey(mapping.getFieldType(position))) {
+                throw new IllegalArgumentException(String.format("Unknown field type \"%s\"", mapping.getFieldType(position)));
             }
 
-            final BiFunction<Integer, QueryRowContext, ?> integerRecordBiFunction = ENTRY_FILLERS.get(mapping.getFieldTypeAt(position));
-            mapping.getMappingAt(position).accept(entry, integerRecordBiFunction.apply(position, context));
+            final BiFunction<Integer, QueryRowContext, ?> integerRecordBiFunction = ENTRY_FILLERS.get(mapping.getFieldType(position));
+            mapping.getMapping(position).accept(entry, integerRecordBiFunction.apply(position, context));
         }
 
         result.add(entry);

@@ -23,6 +23,7 @@ import org.apache.nifi.questdb.QueryResultProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -30,14 +31,14 @@ import java.util.concurrent.locks.Lock;
 final class LockedClient implements Client {
     private static final Logger LOGGER = LoggerFactory.getLogger(LockedClient.class);
     private final Lock lock;
-    private final long lockAttemptTime;
-    private final TimeUnit lockAttemptTimeUnit;
+
+    private final Duration lockAttemptDuration;
+
     private final Client client;
 
-    LockedClient(final Lock lock, final long lockAttemptTime, final TimeUnit lockAttemptTimeUnit, final Client client) {
+    LockedClient(final Lock lock, final Duration lockAttemptDuration, final Client client) {
         this.lock = lock;
-        this.lockAttemptTime = lockAttemptTime;
-        this.lockAttemptTimeUnit = lockAttemptTimeUnit;
+        this.lockAttemptDuration = lockAttemptDuration;
         this.client = client;
     }
 
@@ -70,7 +71,7 @@ final class LockedClient implements Client {
     private <R> R lockedOperation(final Callable<R> operation) throws DatabaseException {
         LOGGER.debug("Start locking client {}", client.toString());
         try {
-            if (!lock.tryLock(lockAttemptTime, lockAttemptTimeUnit)) {
+            if (!lock.tryLock(lockAttemptDuration.toMillis(), TimeUnit.MILLISECONDS)) {
                 throw new LockUnsuccessfulException("Could not lock read lock on the database");
             }
         } catch (final InterruptedException e) {
@@ -97,8 +98,7 @@ final class LockedClient implements Client {
     public String toString() {
         return "LockedQuestDbClient{" +
                 "lock=" + lock +
-                ", lockAttemptTime=" + lockAttemptTime +
-                ", lockAttemptTimeUnit=" + lockAttemptTimeUnit +
+                ", lockAttemptTime=" + lockAttemptDuration +
                 ", client=" + client +
                 '}';
     }

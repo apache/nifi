@@ -19,9 +19,9 @@ package org.apache.nifi.questdb.embedded;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 final class SimpleEmbeddedDatabaseManagerContext implements EmbeddedDatabaseManagerContext {
     final private Set<ManagedTableDefinition> tableDefinitions = new HashSet<>();
@@ -29,10 +29,8 @@ final class SimpleEmbeddedDatabaseManagerContext implements EmbeddedDatabaseMana
     private String persistLocation;
     private String backupLocation;
     private int numberOfAttemptedRetries;
-    private int lockAttemptTime;
-    private TimeUnit lockAttemptTimeUnit;
-    private int rolloverFrequency;
-    private TimeUnit rolloverFrequencyTimeUnit;
+    private Duration lockAttemptDuration;
+    private Duration rolloverFrequnecyDuration;
 
     @Override
     public String getPersistLocation() {
@@ -60,33 +58,18 @@ final class SimpleEmbeddedDatabaseManagerContext implements EmbeddedDatabaseMana
     }
 
     @Override
-    public File getBackupLocationAsFile() {
-        return getBackupLocationAsPath().toFile();
-    }
-
-    @Override
     public int getNumberOfAttemptedRetries() {
         return numberOfAttemptedRetries;
     }
 
     @Override
-    public int getLockAttemptTime() {
-        return lockAttemptTime;
+    public Duration getLockAttemptTime() {
+        return lockAttemptDuration;
     }
 
     @Override
-    public int getRolloverFrequency() {
-        return rolloverFrequency;
-    }
-
-    @Override
-    public TimeUnit getRolloverFrequencyTimeUnit() {
-        return rolloverFrequencyTimeUnit;
-    }
-
-    @Override
-    public TimeUnit getLockAttemptTimeUnit() {
-        return lockAttemptTimeUnit;
+    public Duration getRolloverFrequency() {
+        return rolloverFrequnecyDuration;
     }
 
     @Override
@@ -106,20 +89,12 @@ final class SimpleEmbeddedDatabaseManagerContext implements EmbeddedDatabaseMana
         this.numberOfAttemptedRetries = numberOfAttemptedRetries;
     }
 
-    void setLockAttemptTime(final int lockAttemptTime) {
-        this.lockAttemptTime = lockAttemptTime;
+    void setLockAttemptDuration(final Duration lockAttemptDuration) {
+        this.lockAttemptDuration = lockAttemptDuration;
     }
 
-    void setLockAttemptTimeUnit(final TimeUnit lockAttemptTimeUnit) {
-        this.lockAttemptTimeUnit = lockAttemptTimeUnit;
-    }
-
-    public void setRolloverFrequency(final int rolloverFrequency) {
-        this.rolloverFrequency = rolloverFrequency;
-    }
-
-    public void setRolloverFrequencyTimeUnit(final TimeUnit rolloverFrequencyTimeUnit) {
-        this.rolloverFrequencyTimeUnit = rolloverFrequencyTimeUnit;
+    void setRolloverFrequencyDuration(final Duration rolloverFreqencyDuration) {
+        this.rolloverFrequnecyDuration = rolloverFreqencyDuration;
     }
 
     void addTableDefinition(final ManagedTableDefinition tableDefinition) {
@@ -128,15 +103,13 @@ final class SimpleEmbeddedDatabaseManagerContext implements EmbeddedDatabaseMana
 
     @Override
     public String toString() {
-        return "SimpleEmbeddedQuestDbManagerContext{" +
+        return "SimpleEmbeddedDatabaseManagerContext{" +
                 "tableDefinitions=" + tableDefinitions +
-                ", path='" + persistLocation + '\'' +
+                ", persistLocation='" + persistLocation + '\'' +
                 ", backupLocation='" + backupLocation + '\'' +
                 ", numberOfAttemptedRetries=" + numberOfAttemptedRetries +
-                ", lockAttemptTime=" + lockAttemptTime +
-                ", lockAttemptTimeUnit=" + lockAttemptTimeUnit +
-                ", rolloverFrequency=" + rolloverFrequency +
-                ", rolloverFrequencyTimeUnit=" + rolloverFrequencyTimeUnit +
+                ", lockAttemptDuration=" + lockAttemptDuration +
+                ", rolloverFrequnecyDuration=" + rolloverFrequnecyDuration +
                 '}';
     }
 }

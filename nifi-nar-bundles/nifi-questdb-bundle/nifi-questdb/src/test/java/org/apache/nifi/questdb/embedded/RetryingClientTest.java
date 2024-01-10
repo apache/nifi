@@ -45,7 +45,7 @@ public class RetryingClientTest {
 
     private TestClient testQuestDbClient;
 
-    private RetryingClient testSubject;
+    private Client testSubject;
 
     @Test
     public void testCompileRealClientIsCalledOnceWhenNoError() throws DatabaseException {
@@ -144,7 +144,7 @@ public class RetryingClientTest {
 
     private void setUpTestSubject(final int numberOfErrors) {
         testQuestDbClient = new TestClient(numberOfErrors);
-        testSubject = RetryingClient.getInstance(2, (i, e) -> {}, testQuestDbClient, fallbackClient);
+        testSubject = SpringRetryingClient.getInstance(2, (i, e) -> {}, testQuestDbClient, fallbackClient);
     }
 
     private static class TestClient implements Client {

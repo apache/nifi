@@ -37,7 +37,7 @@ final class GarbageCollectionStatusDataSource implements InsertRowDataSource {
     @Override
     public void fillRowData(final InsertRowContext context) {
         final CapturedStatus<GarbageCollectionStatus> status = statuses.next();
-        context.initializeRow(status.getCapturedAt())
+        context.initializeRow(status.getCaptured())
             .addString(1, status.getStatus().getMemoryManagerName())
             .addLong(2, status.getStatus().getCollectionCount())
             .addLong(3, status.getStatus().getCollectionMillis());

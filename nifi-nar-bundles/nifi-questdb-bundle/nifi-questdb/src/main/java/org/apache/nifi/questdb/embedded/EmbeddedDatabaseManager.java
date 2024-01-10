@@ -40,6 +40,7 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -64,7 +65,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
     @Override
     public void init() {
         if (state.get() != EmbeddedDatabaseManagerStatus.UNINITIALIZED) {
-            throw new IllegalStateException("Manager is already initialized!");
+            throw new IllegalStateException("Manager is already initialized");
         }
 
         ensureDatabaseIsReady();
@@ -87,9 +88,9 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
                 boolean couldMoveOldToBackup = false;
 
                 try {
-                    LOGGER.error("Database is corrupted. Recreation is triggered.", e);
-                    final File backupFolder = new File(context.getBackupLocationAsFile(), "backup_" + System.currentTimeMillis());
-                    FileUtils.ensureDirectoryExistAndCanAccess(context.getBackupLocationAsFile());
+                    LOGGER.error("Database is corrupted. Recreation is triggered. Manager tries to move corrupted database files to the backup location: {}", context.getBackupLocation(), e);
+                    final File backupFolder = new File(context.getBackupLocationAsPath().toFile(), "backup_" + System.currentTimeMillis());
+                    FileUtils.ensureDirectoryExistAndCanAccess(context.getBackupLocationAsPath().toFile());
                     Files.move(context.getPersistLocationAsPath(), backupFolder.toPath());
                     couldMoveOldToBackup = true;
                 } catch (IOException ex) {
@@ -132,9 +133,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
         try {
             FileUtils.ensureDirectoryExistAndCanAccess(context.getPersistLocationAsPath().toFile());
         } catch (final Exception e) {
-            final String errorMessage = String.format("Database directory creation failed [%s]", context.getPersistLocationAsPath());
-            LOGGER.error(errorMessage, e.toString());
-            throw new CorruptedDatabaseException(errorMessage, e);
+            throw new CorruptedDatabaseException(String.format("Database directory creation failed [%s]", context.getPersistLocationAsPath()), e);
         }
     }
 
@@ -151,8 +150,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
             LOGGER.info("Database connection successful [{}]", absolutePath);
             this.engine.set(engine);
         } catch (final Exception e) {
-            LOGGER.error("Database connection failed [{}]", absolutePath, e);
-            throw new CorruptedDatabaseException(e);
+            throw new CorruptedDatabaseException(String.format("Database connection failed [%s]", absolutePath), e);
         }
     }
 
@@ -165,11 +163,11 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
             for (final ManagedTableDefinition tableDefinition : context.getTableDefinitions()) {
                 if (!databaseFiles.containsKey(tableDefinition.getName())) {
                     try {
-                        LOGGER.info("Creating table {}", tableDefinition.getName());
+                        LOGGER.debug("Creating table {}", tableDefinition.getName());
                         client.execute(tableDefinition.getDefinition());
-                        LOGGER.info("Table {} is created", tableDefinition.getName());
+                        LOGGER.debug("Table {} is created", tableDefinition.getName());
                     } catch (DatabaseException e) {
-                        throw new CorruptedDatabaseException(e);
+                        throw new CorruptedDatabaseException(String.format("Creating table [%s] has failed", tableDefinition.getName()), e);
                     }
                 } else if (!databaseFiles.get(tableDefinition.getName()).isDirectory()) {
                     throw new CorruptedDatabaseException(String.format("Table %s cannot be created because there is already a file exists with the given name", tableDefinition.getName()));
@@ -200,9 +198,9 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
     private void startRollover() {
         final RolloverWorker rolloverWorker = new RolloverWorker(acquireClient(), context.getTableDefinitions());
         final ScheduledFuture<?> rolloverFuture = scheduledExecutorService.scheduleWithFixedDelay(
-                rolloverWorker, context.getRolloverFrequency(), context.getRolloverFrequency(), context.getRolloverFrequencyTimeUnit());
+                rolloverWorker, context.getRolloverFrequency().toMillis(), context.getRolloverFrequency().toMillis(), TimeUnit.MILLISECONDS);
         scheduledFutures.add(rolloverFuture);
-        LOGGER.debug("Rollover is started");
+        LOGGER.debug("Rollover started");
     }
 
     private void stopRollover() {
@@ -218,8 +216,8 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
                 cancelFailed++;
             }
         }
-        LOGGER.debug("Rollover shutdown task cancellation status: completed [{}] failed [{}]", cancelCompleted, cancelFailed);
 
+        LOGGER.debug("Rollover shutdown task cancellation status: completed [{}] failed [{}]", cancelCompleted, cancelFailed);
         final List<Runnable> tasks = scheduledExecutorService.shutdownNow();
         LOGGER.debug("Rollover Scheduled Task Service shutdown remaining tasks [{}]", tasks.size());
     }
@@ -230,7 +228,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
 
     public Client acquireClient() {
         checkIfManagerIsInitialised();
-        final Client fallback = new DummyClient();
+        final Client fallback = new NoOpClient();
 
         if (state.get() == EmbeddedDatabaseManagerStatus.CORRUPTED) {
             LOGGER.warn("The database is corrupted. Dummy client is returned");
@@ -240,11 +238,10 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
         final LockedClient lockedClient = new LockedClient(
                 databaseStructureLock.readLock(),
                 context.getLockAttemptTime(),
-                context.getLockAttemptTimeUnit(),
                 new ConditionAwareClient(() -> state.get() == EmbeddedDatabaseManagerStatus.HEALTHY, getUnmanagedClient())
         );
 
-        return RetryingClient.getInstance(context.getNumberOfAttemptedRetries(), this::errorAction, lockedClient, fallback);
+        return SpringRetryingClient.getInstance(context.getNumberOfAttemptedRetries(), this::errorAction, lockedClient, fallback);
     }
 
     private void checkIfManagerIsInitialised() {
@@ -253,25 +250,25 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
         }
     }
 
-    private void errorAction(final int attemptNumber, final Exception exception) {
-        if (shouldRestoreDatabase(attemptNumber, exception)) {
+    private void errorAction(final int attemptNumber, final Throwable throwable) {
+        if (shouldRestoreDatabase(attemptNumber, throwable)) {
             LOGGER.error("Database manager tries to restore database after the first failed attempt if necessary");
             ensureDatabaseIsReady();
         } else {
-            LOGGER.warn("Error happened at attempt {}: {}", attemptNumber, exception);
+            LOGGER.warn("Error happened at attempt {}: {}", attemptNumber, throwable);
         }
     }
 
-    private boolean shouldRestoreDatabase(final int attemptNumber, final Exception exception) {
+    private boolean shouldRestoreDatabase(final int attemptNumber, final Throwable throwable) {
         if (state.get() == EmbeddedDatabaseManagerStatus.CORRUPTED
                 || state.get() == EmbeddedDatabaseManagerStatus.CLOSED
         ) {
             return false;
         }
 
-        if (exception instanceof ConditionFailedException
-            || exception instanceof LockUnsuccessfulException
-            || exception instanceof ClientDisconnectedException
+        if (throwable instanceof ConditionFailedException
+            || throwable instanceof LockUnsuccessfulException
+            || throwable instanceof ClientDisconnectedException
         ) {
             return false;
         }

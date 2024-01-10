@@ -46,12 +46,12 @@ final class SimpleRequestMapping<T> implements RequestMapping<T> {
     }
 
     @Override
-    public Class<?> getFieldTypeAt(final int position) {
+    public Class<?> getFieldType(final int position) {
         return fieldMappings.get(position).getKey();
     }
 
     @Override
-    public BiConsumer<T, Object> getMappingAt(final int position) {
+    public BiConsumer<T, Object> getMapping(final int position) {
         return fieldMappings.get(position).getRight();
     }
 }

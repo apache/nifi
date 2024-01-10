@@ -147,7 +147,7 @@ final class QuestDbStatusHistoryStorage implements StatusHistoryStorage {
         try {
             client.insert(tableName, source);
         } catch (final DatabaseException e) {
-            LOGGER.error("Error during storing snapshots to " + tableName, e);
+            LOGGER.error("Error during storing snapshots to table [{}]", tableName, e);
         }
     }
 

@@ -41,7 +41,7 @@ final class NodeStatusDataSource implements InsertRowDataSource {
     @Override
     public void fillRowData(final InsertRowContext context) {
         final CapturedStatus<NodeStatus> status = statuses.next();
-        context.initializeRow(status.getCapturedAt());
+        context.initializeRow(status.getCaptured());
 
         for (final Map.Entry<Integer, MetricDescriptor<NodeStatus>> metric : metrics.entrySet()) {
             context.addLong(metric.getKey(), metric.getValue().getValueFunction().getValue(status.getStatus()));

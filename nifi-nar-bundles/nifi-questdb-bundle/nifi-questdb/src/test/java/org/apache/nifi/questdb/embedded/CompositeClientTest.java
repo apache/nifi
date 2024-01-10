@@ -27,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -52,8 +53,7 @@ import static org.mockito.Mockito.when;
 public class CompositeClientTest extends EmbeddedQuestDbTest {
     private static final int NUMBER_OF_RETRIES = 3;
     private static final int NUMBER_OF_ATTEMPTS = NUMBER_OF_RETRIES + 1;
-    private static final int LOCK_ATTEMPT_TIME = 20;
-    private static final TimeUnit LOCK_ATTEMPT_TIME_UNIT = TimeUnit.MILLISECONDS;
+    private static final Duration LOCK_ATTEMPT_DURATION = Duration.of(20, TimeUnit.MILLISECONDS.toChronoUnit());
 
     @Mock
     Client client;
@@ -62,7 +62,7 @@ public class CompositeClientTest extends EmbeddedQuestDbTest {
     Client fallback;
 
     @Mock
-    BiConsumer<Integer, Exception> errorAction;
+    BiConsumer<Integer, Throwable> errorAction;
 
     @Mock
     ConditionAwareClient.Condition condition;
@@ -189,17 +189,16 @@ public class CompositeClientTest extends EmbeddedQuestDbTest {
         assertErrorActionIsCalled(1);
     }
 
-    private RetryingClient getTestSubject() {
+    private Client getTestSubject() {
         final LockedClient lockedClient = new LockedClient(
                 databaseStructureLock.readLock(),
-                LOCK_ATTEMPT_TIME,
-                LOCK_ATTEMPT_TIME_UNIT,
+                LOCK_ATTEMPT_DURATION,
                 new ConditionAwareClient(condition, client)
         );
 
         lockedClientSpy = spy(lockedClient);
 
-        return RetryingClient.getInstance(NUMBER_OF_RETRIES, errorAction, lockedClientSpy, fallback);
+        return SpringRetryingClient.getInstance(NUMBER_OF_RETRIES, errorAction, lockedClientSpy, fallback);
     }
 
     private void assertWrappedClientIsNotCalled() throws DatabaseException {

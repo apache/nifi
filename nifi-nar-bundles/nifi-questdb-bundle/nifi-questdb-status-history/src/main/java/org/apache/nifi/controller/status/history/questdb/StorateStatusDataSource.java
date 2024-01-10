@@ -53,7 +53,7 @@ final class StorateStatusDataSource implements InsertRowDataSource {
     static InsertRowDataSource getInstance(final Collection<CapturedStatus<NodeStatus>> nodeStatuses) {
         final List<StorageStatusStatistic> statuses = new ArrayList<>();
         for (final CapturedStatus<NodeStatus> nodeStatus : nodeStatuses) {
-            final Instant capturedAt = nodeStatus.getCapturedAt();
+            final Instant capturedAt = nodeStatus.getCaptured();
             nodeStatus.getStatus().getContentRepositories().forEach(storageStatus -> statuses.add(new StorageStatusStatistic(storageStatus, StorageStatusType.CONTENT, capturedAt)));
             nodeStatus.getStatus().getProvenanceRepositories().forEach(storageStatus -> statuses.add(new StorageStatusStatistic(storageStatus, StorageStatusType.PROVENANCE, capturedAt)));
         }

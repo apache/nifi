@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.questdb;
 
+import java.io.Closeable;
+
 /**
  * Provides access to database via distributing clients. Also responsible to ensure the health of the database connection
  * and database if possible.
  */
-public interface DatabaseManager {
+public interface DatabaseManager extends Closeable {
     /**
      * @return A client to execute queries against the managed database instance.
      */

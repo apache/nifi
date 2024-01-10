@@ -20,6 +20,7 @@ import org.apache.nifi.questdb.DatabaseManager;
 import org.apache.nifi.questdb.rollover.RolloverStrategy;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -32,14 +33,12 @@ public final class EmbeddedDatabaseManagerBuilder {
     }
 
     public EmbeddedDatabaseManagerBuilder lockAttemptTime(final int lockAttemptTime, final TimeUnit lockAttemptTimeUnit) {
-        context.setLockAttemptTime(lockAttemptTime);
-        context.setLockAttemptTimeUnit(lockAttemptTimeUnit);
+        context.setLockAttemptDuration(Duration.of(lockAttemptTime, lockAttemptTimeUnit.toChronoUnit()));
         return this;
     }
 
     public EmbeddedDatabaseManagerBuilder rolloverFrequency(final int rolloverFrequency, final TimeUnit rolloverFrequencyTimeUnit) {
-        context.setRolloverFrequency(rolloverFrequency);
-        context.setRolloverFrequencyTimeUnit(rolloverFrequencyTimeUnit);
+        context.setRolloverFrequencyDuration(Duration.of(rolloverFrequency, rolloverFrequencyTimeUnit.toChronoUnit()));
         return this;
     }
 
@@ -63,24 +62,24 @@ public final class EmbeddedDatabaseManagerBuilder {
     }
 
     public DatabaseManager build() {
-        if (context.getLockAttemptTime() <= 0) {
+        Objects.requireNonNull(context.getLockAttemptTime(), "Lock attempt must be specified");
+
+        if (context.getLockAttemptTime().toMillis() <= 0) {
             throw new IllegalArgumentException("Lock attempt time must be bigger than 0");
         }
 
-        Objects.requireNonNull(context.getLockAttemptTimeUnit(), "Lock attempt time unit must be specified");
+        Objects.requireNonNull(context.getRolloverFrequency(), "Rollover frequency must be specified");
 
-        if (context.getRolloverFrequency() <= 0) {
+        if (context.getRolloverFrequency().toMillis() <= 0) {
             throw new IllegalArgumentException("Rollover frequency must be bigger than 0");
         }
-
-        Objects.requireNonNull(context.getRolloverFrequencyTimeUnit(), "Rollover frequency unit must be specified");
 
         if (context.getNumberOfAttemptedRetries() < 1) {
             throw new IllegalArgumentException("Number of attempted retries must be at least 1");
         }
 
-        if (context.getTableDefinitions().size() < 1) {
-            throw new IllegalArgumentException("There must be at least on table speficied");
+        if (context.getTableDefinitions().isEmpty()) {
+            throw new IllegalArgumentException("There must be at least on table specified");
         }
 
         if (context.getBackupLocation() == null) {

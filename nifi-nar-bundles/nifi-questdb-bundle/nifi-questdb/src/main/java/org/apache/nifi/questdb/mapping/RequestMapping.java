@@ -24,8 +24,8 @@ import java.util.function.BiConsumer;
 public interface RequestMapping<T> {
     T getNewInstance();
     int getNumberOfFields();
-    Class<?> getFieldTypeAt(int position);
-    BiConsumer<T, Object> getMappingAt(int position);
+    Class<?> getFieldType(int position);
+    BiConsumer<T, Object> getMapping(int position);
 
     static <T> QueryResultProcessor<List<T>> getResultProcessor(final RequestMapping<T> mapping) {
         return new RequestMappingBasedQueryResultProcessor<>(mapping);

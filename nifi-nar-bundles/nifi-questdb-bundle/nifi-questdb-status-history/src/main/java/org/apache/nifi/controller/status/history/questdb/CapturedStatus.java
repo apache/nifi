@@ -21,19 +21,19 @@ import java.util.Objects;
 
 final class CapturedStatus<T> {
     private final T status;
-    private final Instant capturedAt;
+    private final Instant captured;
 
-    CapturedStatus(final T status, final Instant capturedAt) {
+    CapturedStatus(final T status, final Instant captured) {
         this.status = status;
-        this.capturedAt = capturedAt;
+        this.captured = captured;
     }
 
     T getStatus() {
         return status;
     }
 
-    Instant getCapturedAt() {
-        return capturedAt;
+    Instant getCaptured() {
+        return captured;
     }
 
     @Override
@@ -41,11 +41,11 @@ final class CapturedStatus<T> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final CapturedStatus<?> that = (CapturedStatus<?>) o;
-        return Objects.equals(status, that.status) && Objects.equals(capturedAt, that.capturedAt);
+        return Objects.equals(status, that.status) && Objects.equals(captured, that.captured);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(status, capturedAt);
+        return Objects.hash(status, captured);
     }
 }

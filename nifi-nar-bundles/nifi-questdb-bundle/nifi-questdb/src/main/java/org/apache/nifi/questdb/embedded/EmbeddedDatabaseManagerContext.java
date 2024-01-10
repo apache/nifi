@@ -18,8 +18,8 @@ package org.apache.nifi.questdb.embedded;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 interface EmbeddedDatabaseManagerContext {
     String getPersistLocation();
@@ -28,12 +28,11 @@ interface EmbeddedDatabaseManagerContext {
 
     String getBackupLocation();
     Path getBackupLocationAsPath();
-    File getBackupLocationAsFile();
 
     int getNumberOfAttemptedRetries();
-    int getLockAttemptTime();
-    TimeUnit getLockAttemptTimeUnit();
-    int getRolloverFrequency();
-    TimeUnit getRolloverFrequencyTimeUnit();
+
+    Duration getLockAttemptTime();
+    Duration getRolloverFrequency();
+
     Set<ManagedTableDefinition> getTableDefinitions();
 }

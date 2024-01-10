@@ -22,8 +22,8 @@ import org.apache.nifi.questdb.QueryResultProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class DummyClient implements Client {
-    private static final Logger LOGGER = LoggerFactory.getLogger(DummyClient.class);
+final class NoOpClient implements Client {
+    private static final Logger LOGGER = LoggerFactory.getLogger(NoOpClient.class);
 
     @Override
     public void execute(final String query) {
