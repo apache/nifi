@@ -127,7 +127,7 @@ public class TestListS3 {
                 .verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
         assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, results.get(0).getOutcome());
         assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, results.get(1).getOutcome());
-        assertTrue(results.get(1).getExplanation().contains("finding 3 objects"));
+        assertTrue(results.get(1).getExplanation().contains("finding 3 total object(s)"));
     }
 
     @Test
