@@ -165,7 +165,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
     public static final PropertyDescriptor TRACKING_TIME_WINDOW = new PropertyDescriptor.Builder()
         .fromPropertyDescriptor(ListedEntityTracker.TRACKING_TIME_WINDOW)
-        .dependsOn(INITIAL_LISTING_TARGET, ListedEntityTracker.INITIAL_LISTING_TARGET_WINDOW)
+        .dependsOn(ListedEntityTracker.TRACKING_STATE_CACHE)
         .required(true)
         .build();
 
@@ -580,7 +580,8 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
             List<ListableEntityWrapper<S3VersionSummary>> listedEntities = bucketLister.listVersions().getVersionSummaries()
                 .stream()
-                .filter(s3VersionSummary -> s3VersionSummary.getLastModified().getTime() >= minTimestampToList)
+                .filter(s3VersionSummary -> s3VersionSummary.getLastModified().getTime() >= minTimestampToList
+                        && includeObjectInListing(context, s3VersionSummary))
                 .map(s3VersionSummary -> new ListableEntityWrapper<S3VersionSummary>(
                     s3VersionSummary,
                     S3VersionSummary::getKey,
@@ -1131,8 +1132,6 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
         final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, logger, attributes));
         final String bucketName = context.getProperty(BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions(attributes).getValue();
-        final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
-        final Long maxAgeMilliseconds = context.getProperty(MAX_AGE) != null ? context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
 
         if (bucketName == null || bucketName.trim().isEmpty()) {
             results.add(new ConfigVerificationResult.Builder()
@@ -1145,35 +1144,27 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
 
         final S3BucketLister bucketLister = getS3BucketLister(context, client);
-        final long listingTimestamp = System.currentTimeMillis();
 
         // Attempt to perform a listing of objects in the S3 bucket
         try {
-            int listCount = 0;
-            int totalListCount = 0;
-            VersionListing versionListing;
+            int totalItems = 0;
+            int totalMatchingItems = 0;
             do {
-                versionListing = bucketLister.listVersions();
+                final VersionListing versionListing = bucketLister.listVersions();
                 for (final S3VersionSummary versionSummary : versionListing.getVersionSummaries()) {
-                    long lastModified = versionSummary.getLastModified().getTime();
-                    if ((maxAgeMilliseconds != null && (lastModified < (listingTimestamp - maxAgeMilliseconds)))
-                    || lastModified > (listingTimestamp - minAgeMilliseconds)) {
-                        continue;
+                    totalItems++;
+                    if (includeObjectInListing(context, versionSummary)) {
+                        totalMatchingItems++;
                     }
-
-                    listCount++;
                 }
                 bucketLister.setNextMarker();
-
-                totalListCount += listCount;
-
-                listCount = 0;
             } while (bucketLister.isTruncated());
 
             results.add(new ConfigVerificationResult.Builder()
                 .verificationStepName("Perform Listing")
                 .outcome(Outcome.SUCCESSFUL)
-                .explanation("Successfully listed contents of bucket '" + bucketName + "', finding " + totalListCount + " objects matching the filter")
+                .explanation("Successfully listed contents of bucket '" + bucketName + "', finding " + totalItems + " total object(s). "
+                        + totalMatchingItems + " objects matched the filter.")
                 .build());
 
             logger.info("Successfully verified configuration");
@@ -1188,5 +1179,18 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
 
         return results;
+    }
+
+    /**
+     * Return whether to include the entity in the listing, based on the minimum and maximum object age (if configured).
+     */
+    private boolean includeObjectInListing(final ProcessContext context, final S3VersionSummary versionSummary) {
+        final Long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final Long maxAgeMilliseconds = context.getProperty(MAX_AGE) != null ? context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
+        final long lastModifiedTime = versionSummary.getLastModified().getTime();
+        final long currentTime = System.currentTimeMillis();
+
+        return (minAgeMilliseconds == null || currentTime > lastModifiedTime + minAgeMilliseconds)
+                && (maxAgeMilliseconds == null || currentTime < lastModifiedTime + maxAgeMilliseconds);
     }
 }
