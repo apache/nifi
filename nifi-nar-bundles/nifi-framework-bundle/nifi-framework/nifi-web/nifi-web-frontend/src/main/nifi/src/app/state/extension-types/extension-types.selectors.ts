@@ -44,3 +44,8 @@ export const selectRegistryClientTypes = createSelector(
     selectExtensionTypesState,
     (state: ExtensionTypesState) => state.registryClientTypes
 );
+
+export const selectFlowAnalysisRuleTypes = createSelector(
+    selectExtensionTypesState,
+    (state: ExtensionTypesState) => state.flowAnalysisRuleTypes
+);

@@ -18,26 +18,23 @@
 import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
-import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { NiFiCommon } from '../../../../service/nifi-common.service';
-import { MatSort, MatSortModule } from '@angular/material/sort';
-import { NgClass, NgIf } from '@angular/common';
-import {
-    BulletinsTipInput,
-    ControllerServiceEntity,
-    TextTipInput,
-    ValidationErrorsTipInput
-} from '../../../../state/shared';
-import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
-import { TextTip } from '../../tooltips/text-tip/text-tip.component';
-import { BulletinsTip } from '../../tooltips/bulletins-tip/bulletins-tip.component';
-import { ValidationErrorsTip } from '../../tooltips/validation-errors-tip/validation-errors-tip.component';
 import { RouterLink } from '@angular/router';
+import { NgClass, NgIf } from '@angular/common';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatSort, MatSortModule } from '@angular/material/sort';
+import { FlowAnalysisRuleEntity } from '../../../state/flow-analysis-rules';
+import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
+import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
+import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { BulletinsTipInput, TextTipInput, ValidationErrorsTipInput } from '../../../../../state/shared';
+import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { ReportingTaskEntity } from '../../../state/reporting-tasks';
 
 @Component({
-    selector: 'controller-service-table',
+    selector: 'flow-analysis-rule-table',
     standalone: true,
-    templateUrl: './controller-service-table.component.html',
+    templateUrl: './flow-analysis-rule-table.component.html',
     imports: [
         MatButtonModule,
         MatDialogModule,
@@ -48,13 +45,13 @@ import { RouterLink } from '@angular/router';
         NifiTooltipDirective,
         RouterLink
     ],
-    styleUrls: ['./controller-service-table.component.scss', '../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./flow-analysis-rule-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
 })
-export class ControllerServiceTable implements AfterViewInit {
-    @Input() set controllerServices(controllerServiceEntities: ControllerServiceEntity[]) {
-        this.dataSource = new MatTableDataSource<ControllerServiceEntity>(controllerServiceEntities);
+export class FlowAnalysisRuleTable implements AfterViewInit {
+    @Input() set flowAnalysisRules(FlowAnalysisRuleEntities: FlowAnalysisRuleEntity[]) {
+        this.dataSource = new MatTableDataSource<FlowAnalysisRuleEntity>(FlowAnalysisRuleEntities);
         this.dataSource.sort = this.sort;
-        this.dataSource.sortingDataAccessor = (data: ControllerServiceEntity, displayColumn: string) => {
+        this.dataSource.sortingDataAccessor = (data: FlowAnalysisRuleEntity, displayColumn: string) => {
             if (displayColumn == 'name') {
                 return this.formatType(data);
             } else if (displayColumn == 'type') {
@@ -63,33 +60,27 @@ export class ControllerServiceTable implements AfterViewInit {
                 return this.formatBundle(data);
             } else if (displayColumn == 'state') {
                 return this.formatState(data);
-            } else if (displayColumn == 'scope') {
-                return this.formatScope(data);
             }
             return '';
         };
     }
-    @Input() selectedServiceId!: string;
-    @Input() formatScope!: (entity: ControllerServiceEntity) => string;
-    @Input() definedByCurrentGroup!: (entity: ControllerServiceEntity) => boolean;
+    @Input() selectedFlowAnalysisRuleId!: string;
+    @Input() definedByCurrentGroup!: (entity: FlowAnalysisRuleEntity) => boolean;
 
-    @Output() selectControllerService: EventEmitter<ControllerServiceEntity> =
-        new EventEmitter<ControllerServiceEntity>();
-    @Output() deleteControllerService: EventEmitter<ControllerServiceEntity> =
-        new EventEmitter<ControllerServiceEntity>();
-    @Output() configureControllerService: EventEmitter<ControllerServiceEntity> =
-        new EventEmitter<ControllerServiceEntity>();
-    @Output() enableControllerService: EventEmitter<ControllerServiceEntity> =
-        new EventEmitter<ControllerServiceEntity>();
-    @Output() disableControllerService: EventEmitter<ControllerServiceEntity> =
-        new EventEmitter<ControllerServiceEntity>();
+    @Output() selectFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> = new EventEmitter<FlowAnalysisRuleEntity>();
+    @Output() deleteFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> = new EventEmitter<FlowAnalysisRuleEntity>();
+    @Output() configureFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> =
+        new EventEmitter<FlowAnalysisRuleEntity>();
+    @Output() enableFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> = new EventEmitter<FlowAnalysisRuleEntity>();
+    @Output() disableFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> =
+        new EventEmitter<FlowAnalysisRuleEntity>();
 
     protected readonly TextTip = TextTip;
     protected readonly BulletinsTip = BulletinsTip;
     protected readonly ValidationErrorsTip = ValidationErrorsTip;
 
-    displayedColumns: string[] = ['moreDetails', 'name', 'type', 'bundle', 'state', 'scope', 'actions'];
-    dataSource: MatTableDataSource<ControllerServiceEntity> = new MatTableDataSource<ControllerServiceEntity>();
+    displayedColumns: string[] = ['moreDetails', 'name', 'type', 'bundle', 'state', 'actions'];
+    dataSource: MatTableDataSource<FlowAnalysisRuleEntity> = new MatTableDataSource<FlowAnalysisRuleEntity>();
 
     @ViewChild(MatSort) sort!: MatSort;
 
@@ -99,53 +90,53 @@ export class ControllerServiceTable implements AfterViewInit {
         this.dataSource.sort = this.sort;
     }
 
-    canRead(entity: ControllerServiceEntity): boolean {
+    canRead(entity: FlowAnalysisRuleEntity): boolean {
         return entity.permissions.canRead;
     }
 
-    canWrite(entity: ControllerServiceEntity): boolean {
+    canWrite(entity: FlowAnalysisRuleEntity): boolean {
         return entity.permissions.canWrite;
     }
 
-    canOperate(entity: ControllerServiceEntity): boolean {
+    canOperate(entity: FlowAnalysisRuleEntity): boolean {
         if (this.canWrite(entity)) {
             return true;
         }
         return !!entity.operatePermissions?.canWrite;
     }
 
-    hasComments(entity: ControllerServiceEntity): boolean {
+    hasComments(entity: FlowAnalysisRuleEntity): boolean {
         return !this.nifiCommon.isBlank(entity.component.comments);
     }
 
-    getCommentsTipData(entity: ControllerServiceEntity): TextTipInput {
+    getCommentsTipData(entity: FlowAnalysisRuleEntity): TextTipInput {
         return {
             text: entity.component.comments
         };
     }
 
-    hasErrors(entity: ControllerServiceEntity): boolean {
+    hasErrors(entity: FlowAnalysisRuleEntity): boolean {
         return !this.nifiCommon.isEmpty(entity.component.validationErrors);
     }
 
-    getValidationErrorsTipData(entity: ControllerServiceEntity): ValidationErrorsTipInput {
+    getValidationErrorsTipData(entity: FlowAnalysisRuleEntity): ValidationErrorsTipInput {
         return {
             isValidating: entity.status.validationStatus === 'VALIDATING',
             validationErrors: entity.component.validationErrors
         };
     }
 
-    hasBulletins(entity: ControllerServiceEntity): boolean {
+    hasBulletins(entity: FlowAnalysisRuleEntity): boolean {
         return !this.nifiCommon.isEmpty(entity.bulletins);
     }
 
-    getBulletinsTipData(entity: ControllerServiceEntity): BulletinsTipInput {
+    getBulletinsTipData(entity: FlowAnalysisRuleEntity): BulletinsTipInput {
         return {
             bulletins: entity.bulletins
         };
     }
 
-    getStateIcon(entity: ControllerServiceEntity): string {
+    getStateIcon(entity: FlowAnalysisRuleEntity): string {
         if (entity.status.validationStatus === 'VALIDATING') {
             return 'validating fa fa-spin fa-circle-o-notch';
         } else if (entity.status.validationStatus === 'INVALID') {
@@ -164,7 +155,7 @@ export class ControllerServiceTable implements AfterViewInit {
         return '';
     }
 
-    formatState(entity: ControllerServiceEntity): string {
+    formatState(entity: FlowAnalysisRuleEntity): string {
         if (entity.status.validationStatus === 'VALIDATING') {
             return 'Validating';
         } else if (entity.status.validationStatus === 'INVALID') {
@@ -183,58 +174,54 @@ export class ControllerServiceTable implements AfterViewInit {
         return '';
     }
 
-    formatType(entity: ControllerServiceEntity): string {
+    formatType(entity: FlowAnalysisRuleEntity): string {
         return this.nifiCommon.formatType(entity.component);
     }
 
-    formatBundle(entity: ControllerServiceEntity): string {
+    formatBundle(entity: FlowAnalysisRuleEntity): string {
         return this.nifiCommon.formatBundle(entity.component.bundle);
     }
 
-    getServiceLink(entity: ControllerServiceEntity): string[] {
-        if (entity.parentGroupId == null) {
-            return ['/settings', 'management-controller-services', entity.id];
-        } else {
-            return ['/process-groups', entity.parentGroupId, 'controller-services', entity.id];
-        }
-    }
-
-    isDisabled(entity: ControllerServiceEntity): boolean {
+    isDisabled(entity: FlowAnalysisRuleEntity): boolean {
         return entity.status.runStatus === 'DISABLED';
     }
 
-    isEnabledOrEnabling(entity: ControllerServiceEntity): boolean {
+    isEnabledOrEnabling(entity: FlowAnalysisRuleEntity): boolean {
         return entity.status.runStatus === 'ENABLED' || entity.status.runStatus === 'ENABLING';
     }
 
-    canConfigure(entity: ControllerServiceEntity): boolean {
+    hasActiveThreads(entity: ReportingTaskEntity): boolean {
+        return entity.status?.activeThreadCount > 0;
+    }
+
+    canConfigure(entity: FlowAnalysisRuleEntity): boolean {
         return this.canRead(entity) && this.canWrite(entity);
     }
 
-    configureClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
+    configureClicked(entity: FlowAnalysisRuleEntity, event: MouseEvent): void {
         event.stopPropagation();
-        this.configureControllerService.next(entity);
+        this.configureFlowAnalysisRule.next(entity);
     }
 
-    canEnable(entity: ControllerServiceEntity): boolean {
+    canEnable(entity: FlowAnalysisRuleEntity): boolean {
         const userAuthorized: boolean = this.canRead(entity) && this.canOperate(entity);
         return userAuthorized && this.isDisabled(entity) && entity.status.validationStatus === 'VALID';
     }
 
-    enabledClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
-        this.enableControllerService.next(entity);
+    enabledClicked(entity: FlowAnalysisRuleEntity, event: MouseEvent): void {
+        this.enableFlowAnalysisRule.next(entity);
     }
 
-    canDisable(entity: ControllerServiceEntity): boolean {
+    canDisable(entity: FlowAnalysisRuleEntity): boolean {
         const userAuthorized: boolean = this.canRead(entity) && this.canOperate(entity);
         return userAuthorized && this.isEnabledOrEnabling(entity);
     }
 
-    disableClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
-        this.disableControllerService.next(entity);
+    disableClicked(entity: FlowAnalysisRuleEntity, event: MouseEvent): void {
+        this.disableFlowAnalysisRule.next(entity);
     }
 
-    canChangeVersion(entity: ControllerServiceEntity): boolean {
+    canChangeVersion(entity: FlowAnalysisRuleEntity): boolean {
         return (
             this.isDisabled(entity) &&
             this.canRead(entity) &&
@@ -243,17 +230,16 @@ export class ControllerServiceTable implements AfterViewInit {
         );
     }
 
-    canDelete(entity: ControllerServiceEntity): boolean {
-        const canWriteParent: boolean = true; // TODO canWriteControllerServiceParent(dataContext)
+    canDelete(entity: FlowAnalysisRuleEntity): boolean {
+        const canWriteParent: boolean = true; // TODO canWriteFlowAnalysisRuleParent(dataContext)
         return this.isDisabled(entity) && this.canRead(entity) && this.canWrite(entity) && canWriteParent;
     }
 
-    deleteClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
-        event.stopPropagation();
-        this.deleteControllerService.next(entity);
+    deleteClicked(entity: FlowAnalysisRuleEntity): void {
+        this.deleteFlowAnalysisRule.next(entity);
     }
 
-    canViewState(entity: ControllerServiceEntity): boolean {
+    canViewState(entity: FlowAnalysisRuleEntity): boolean {
         return this.canRead(entity) && this.canWrite(entity) && entity.component.persistsState === true;
     }
 
@@ -262,13 +248,13 @@ export class ControllerServiceTable implements AfterViewInit {
         return false;
     }
 
-    select(entity: ControllerServiceEntity): void {
-        this.selectControllerService.next(entity);
+    select(entity: FlowAnalysisRuleEntity): void {
+        this.selectFlowAnalysisRule.next(entity);
     }
 
-    isSelected(entity: ControllerServiceEntity): boolean {
-        if (this.selectedServiceId) {
-            return entity.id == this.selectedServiceId;
+    isSelected(entity: FlowAnalysisRuleEntity): boolean {
+        if (this.selectedFlowAnalysisRuleId) {
+            return entity.id == this.selectedFlowAnalysisRuleId;
         }
         return false;
     }

@@ -27,6 +27,8 @@ import { reportingTasksFeatureKey, ReportingTasksState } from './reporting-tasks
 import { reportingTasksReducer } from './reporting-tasks/reporting-tasks.reducer';
 import { registryClientsFeatureKey, RegistryClientsState } from './registry-clients';
 import { registryClientsReducer } from './registry-clients/registry-clients.reducer';
+import { flowAnalysisRulesFeatureKey, FlowAnalysisRulesState } from './flow-analysis-rules';
+import { flowAnalysisRulesReducer } from './flow-analysis-rules/flow-analysis-rules.reducer';
 
 export const settingsFeatureKey = 'settings';
 
@@ -34,6 +36,7 @@ export interface SettingsState {
     [generalFeatureKey]: GeneralState;
     [managementControllerServicesFeatureKey]: ManagementControllerServicesState;
     [reportingTasksFeatureKey]: ReportingTasksState;
+    [flowAnalysisRulesFeatureKey]: FlowAnalysisRulesState;
     [registryClientsFeatureKey]: RegistryClientsState;
 }
 
@@ -42,6 +45,7 @@ export function reducers(state: SettingsState | undefined, action: Action) {
         [generalFeatureKey]: generalReducer,
         [managementControllerServicesFeatureKey]: managementControllerServicesReducer,
         [reportingTasksFeatureKey]: reportingTasksReducer,
+        [flowAnalysisRulesFeatureKey]: flowAnalysisRulesReducer,
         [registryClientsFeatureKey]: registryClientsReducer
     })(state, action);
 }

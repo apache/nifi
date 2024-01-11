@@ -17,24 +17,19 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { FlowAnalysisRules } from './flow-analysis-rules.component';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/flow-analysis-rules/flow-analysis-rules.reducer';
+import { FlowAnalysisRuleTable } from './flow-analysis-rule-table.component';
+import { MatTableModule } from '@angular/material/table';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
-describe('FlowAnalysisRules', () => {
-    let component: FlowAnalysisRules;
-    let fixture: ComponentFixture<FlowAnalysisRules>;
+describe('FlowAnalysisRuleTable', () => {
+    let component: FlowAnalysisRuleTable;
+    let fixture: ComponentFixture<FlowAnalysisRuleTable>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [FlowAnalysisRules],
-            providers: [
-                provideMockStore({
-                    initialState
-                })
-            ]
+            imports: [BrowserAnimationsModule, MatTableModule, FlowAnalysisRuleTable]
         });
-        fixture = TestBed.createComponent(FlowAnalysisRules);
+        fixture = TestBed.createComponent(FlowAnalysisRuleTable);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

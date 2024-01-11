@@ -120,6 +120,11 @@ export interface UpdateReportingTaskRequest {
     postUpdateNavigation?: string[];
 }
 
+export interface UpdateFlowAnalysisRuleRequest {
+    payload: any;
+    postUpdateNavigation?: string[];
+}
+
 export interface SetEnableControllerServiceDialogRequest {
     id: string;
     controllerService: ControllerServiceEntity;
