@@ -16,8 +16,11 @@
  */
 package org.apache.nifi.lookup;
 
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.lookup.configuration2.CommonsConfigurationLookupService;
 import org.apache.nifi.lookup.configuration2.SafeXMLConfiguration;
 
@@ -28,6 +31,13 @@ import org.apache.nifi.lookup.configuration2.SafeXMLConfiguration;
         " Example XML configuration file and how to access specific configuration can be found at" +
         " http://commons.apache.org/proper/commons-configuration/userguide/howto_hierarchical.html." +
         " External entity processing is disabled.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+                        explanation = "Provides operator the ability to read from any file that NiFi has access to.")
+        }
+)
 public class XMLFileLookupService extends CommonsConfigurationLookupService<SafeXMLConfiguration> {
 
 }
