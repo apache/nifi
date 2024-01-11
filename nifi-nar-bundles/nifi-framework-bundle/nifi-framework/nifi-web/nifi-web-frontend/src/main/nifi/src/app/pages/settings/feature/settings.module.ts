@@ -33,6 +33,7 @@ import { ReportingTasksModule } from '../ui/reporting-tasks/reporting-tasks.modu
 import { MatTabsModule } from '@angular/material/tabs';
 import { ReportingTasksEffects } from '../state/reporting-tasks/reporting-tasks.effects';
 import { RegistryClientsEffects } from '../state/registry-clients/registry-clients.effects';
+import { FlowAnalysisRulesEffects } from '../state/flow-analysis-rules/flow-analysis-rules.effects';
 
 @NgModule({
     declarations: [Settings],
@@ -51,6 +52,7 @@ import { RegistryClientsEffects } from '../state/registry-clients/registry-clien
             GeneralEffects,
             ManagementControllerServicesEffects,
             ReportingTasksEffects,
+            FlowAnalysisRulesEffects,
             RegistryClientsEffects
         ),
         MatTabsModule

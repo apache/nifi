@@ -978,6 +978,7 @@ public class ControllerResource extends ApplicationResource {
         // create the response entity
         final FlowAnalysisRulesEntity entity = new FlowAnalysisRulesEntity();
         entity.setFlowAnalysisRules(flowAnalysisRules);
+        entity.setCurrentTime(new Date());
 
         // generate the response
         return generateOkResponse(entity).build();
