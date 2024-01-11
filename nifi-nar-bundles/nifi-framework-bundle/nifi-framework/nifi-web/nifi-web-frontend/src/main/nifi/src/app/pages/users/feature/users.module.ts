@@ -25,6 +25,7 @@ import { EffectsModule } from '@ngrx/effects';
 import { MatDialogModule } from '@angular/material/dialog';
 import { UserListingEffects } from '../state/user-listing/user-listing.effects';
 import { UserListingModule } from '../ui/user-listing/user-listing.module';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
 
 @NgModule({
     declarations: [Users],
@@ -35,7 +36,8 @@ import { UserListingModule } from '../ui/user-listing/user-listing.module';
         StoreModule.forFeature(usersFeatureKey, reducers),
         EffectsModule.forFeature(UserListingEffects),
         MatDialogModule,
-        UserListingModule
+        UserListingModule,
+        Navigation
     ]
 })
 export class UsersModule {}

@@ -15,35 +15,46 @@
  * limitations under the License.
  */
 
-.flow-status {
-    border-bottom: 1px solid #aabbc3;
-    box-sizing: content-box;
-    font-size: 15px;
+.nifi-navigation {
+    .icon {
+        font-size: 32px;
+        color: #004849;
+    }
 
+    .current-user {
+        font-family: 'Roboto Slab';
+        font-style: normal;
+        font-weight: normal;
+        font-size: 12px;
+        max-width: 250px;
+        text-overflow: ellipsis;
+        line-height: normal;
+        overflow: hidden;
+        white-space: nowrap;
+        color: #262626;
+    }
+
+    a {
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+
+    .global-menu {
+        height: 64px;
+        width: 64px;
+        border-radius: 0;
+    }
+
+    .global-menu:hover {
+        background-color: #e3e8eb;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+    }
+}
+
+button.global-menu-item {
     .fa,
     .icon {
-        font-style: normal;
+        text-align: start;
         color: #728e9b;
-    }
-
-    .status-value {
-        white-space: nowrap;
-        font-weight: 500;
-        color: #775351;
-        text-shadow: none;
-    }
-
-    .controller-bulletins {
-        border-left: 1px solid #aabbc3;
-        background-color: #728e9b;
-        cursor: default;
-    }
-
-    .controller-bulletins.has-bulletins {
-        background-color: #ba554a;
-    }
-
-    .controller-bulletins .fa {
-        color: #fff;
     }
 }

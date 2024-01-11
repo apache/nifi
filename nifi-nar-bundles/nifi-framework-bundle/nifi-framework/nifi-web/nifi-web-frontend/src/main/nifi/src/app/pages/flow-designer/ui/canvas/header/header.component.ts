@@ -26,10 +26,6 @@ import {
     selectCurrentProcessGroupId,
     selectLastRefreshed
 } from '../../../state/flow/flow.selectors';
-import { selectCurrentUser } from '../../../../../state/current-user/current-user.selectors';
-import { CurrentUser } from '../../../../../state/current-user';
-import { AuthStorage } from '../../../../../service/auth-storage.service';
-import { AuthService } from '../../../../../service/auth.service';
 import { LoadingService } from '../../../../../service/loading.service';
 import { NewCanvasItem } from './new-canvas-item/new-canvas-item.component';
 import { MatButtonModule } from '@angular/material/button';
@@ -38,9 +34,7 @@ import { AsyncPipe, NgIf, NgOptimizedImage } from '@angular/common';
 import { MatDividerModule } from '@angular/material/divider';
 import { RouterLink } from '@angular/router';
 import { FlowStatus } from './flow-status/flow-status.component';
-import { getNodeStatusHistoryAndOpenDialog } from '../../../../../state/status-history/status-history.actions';
-import { getSystemDiagnosticsAndOpenDialog } from '../../../../../state/system-diagnostics/system-diagnostics.actions';
-import { selectFlowConfiguration } from '../../../../../state/flow-configuration/flow-configuration.selectors';
+import { Navigation } from '../../../../../ui/common/navigation/navigation.component';
 
 @Component({
     selector: 'fd-header',
@@ -55,7 +49,8 @@ import { selectFlowConfiguration } from '../../../../../state/flow-configuration
         RouterLink,
         NgIf,
         FlowStatus,
-        NgOptimizedImage
+        NgOptimizedImage,
+        Navigation
     ],
     styleUrls: ['./header.component.scss']
 })
@@ -66,46 +61,10 @@ export class HeaderComponent {
     lastRefreshed$ = this.store.select(selectLastRefreshed);
     clusterSummary$ = this.store.select(selectClusterSummary);
     controllerBulletins$ = this.store.select(selectControllerBulletins);
-    currentUser$ = this.store.select(selectCurrentUser);
-    flowConfiguration$ = this.store.select(selectFlowConfiguration);
     currentProcessGroupId$ = this.store.select(selectCurrentProcessGroupId);
 
     constructor(
         private store: Store<CanvasState>,
-        private authStorage: AuthStorage,
-        private authService: AuthService,
         public loadingService: LoadingService
     ) {}
-
-    allowLogin(user: CurrentUser): boolean {
-        return user.anonymous && location.protocol === 'https:';
-    }
-
-    hasToken(): boolean {
-        return this.authStorage.hasToken();
-    }
-
-    logout(): void {
-        this.authService.logout();
-    }
-
-    viewNodeStatusHistory(): void {
-        this.store.dispatch(
-            getNodeStatusHistoryAndOpenDialog({
-                request: {
-                    source: 'menu'
-                }
-            })
-        );
-    }
-
-    viewSystemDiagnostics() {
-        this.store.dispatch(
-            getSystemDiagnosticsAndOpenDialog({
-                request: {
-                    nodewise: false
-                }
-            })
-        );
-    }
 }
