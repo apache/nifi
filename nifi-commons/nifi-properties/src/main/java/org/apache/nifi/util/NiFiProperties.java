@@ -296,8 +296,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION = "nifi.analytics.connection.model.implementation";
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_NAME = "nifi.analytics.connection.model.score.name";
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD = "nifi.analytics.connection.model.score.threshold";
-    public static final String ANALYTICS_PREDICTION_PARALLEL_PROCESSING_THREADS = "nifi.analytics.prediction.parallel.processing.threads";
-    public static final String ANALYTICS_PREDICTION_PARALLEL_PROCESSING_TIMEOUT = "nifi.analytics.prediction.parallel.processing.timeout";
 
     // flow analysis properties
     public static final String BACKGROUND_FLOW_ANALYSIS_SCHEDULE = "nifi.flow.analysis.background.task.schedule";
