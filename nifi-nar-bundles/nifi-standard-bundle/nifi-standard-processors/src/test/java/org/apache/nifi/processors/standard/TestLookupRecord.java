@@ -528,6 +528,101 @@ public class TestLookupRecord {
     }
 
     @Test
+    public void testLookupEmptyArray() throws InitializationException, IOException {
+        TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
+        final MapLookup lookupService = new MapLookupForInPlaceReplacement();
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", jsonWriter);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+
+        runner.addControllerService("reader", jsonReader);
+        runner.enableControllerService(jsonReader);
+        runner.addControllerService("writer", jsonWriter);
+        runner.enableControllerService(jsonWriter);
+        runner.addControllerService("lookup", lookupService);
+        runner.enableControllerService(lookupService);
+
+        runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_SUCCESS);
+        runner.setProperty(LookupRecord.REPLACEMENT_STRATEGY, LookupRecord.REPLACE_EXISTING_VALUES);
+        runner.setProperty(LookupRecord.RECORD_READER, "reader");
+        runner.setProperty(LookupRecord.RECORD_WRITER, "writer");
+        runner.setProperty(LookupRecord.LOOKUP_SERVICE, "lookup");
+        runner.setProperty("lookupLanguage", "/locales[*]/language");
+        runner.setProperty("lookupRegion", "/locales[*]/region");
+        runner.setProperty("lookupCurrency", "/currencies[*]/currency");
+        runner.setProperty("lookupFoo", "/foo/foo");
+        runner.setProperty("lookupBar", "/bar");
+
+        lookupService.addValue("CA", "Canada");
+        lookupService.addValue("CAD", "Canadian dollar");
+        lookupService.addValue("en", "English");
+        lookupService.addValue("EUR", "Euro");
+        lookupService.addValue("ja", "Japanese");
+        lookupService.addValue("JP", "Japan");
+        lookupService.addValue("JPY", "Japanese yen");
+        lookupService.addValue("US", "United States");
+        lookupService.addValue("USD", "United States Dollar");
+        lookupService.addValue("fr", "French");
+        lookupService.addValue("FR", "France");
+        lookupService.addValue("original", "updated");
+        lookupService.addValue("orgValue", "newValue");
+        lookupService.addValue("orgValue2", "newValue2");
+
+        runner.enqueue(new File("src/test/resources/TestLookupRecord/lookup-array-input-empty-array.json").toPath());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(LookupRecord.REL_SUCCESS);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).get(0);
+        out.assertContentEquals(new File("src/test/resources/TestLookupRecord/lookup-array-output-empty-array.json").toPath());
+    }
+
+    @Test
+    public void testLookupMissingJsonField() throws InitializationException, IOException {
+        TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
+        final MapLookup lookupService = new MapLookupForInPlaceReplacement();
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", jsonWriter);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+
+        runner.addControllerService("reader", jsonReader);
+        runner.enableControllerService(jsonReader);
+        runner.addControllerService("writer", jsonWriter);
+        runner.enableControllerService(jsonWriter);
+        runner.addControllerService("lookup", lookupService);
+        runner.enableControllerService(lookupService);
+
+        runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_MATCHED_UNMATCHED);
+        runner.setProperty(LookupRecord.REPLACEMENT_STRATEGY, LookupRecord.REPLACE_EXISTING_VALUES);
+        runner.setProperty(LookupRecord.RECORD_READER, "reader");
+        runner.setProperty(LookupRecord.RECORD_WRITER, "writer");
+        runner.setProperty(LookupRecord.LOOKUP_SERVICE, "lookup");
+        runner.setProperty("lookupFoo", "/foo/foo");
+
+        lookupService.addValue("original", "updated");
+
+        runner.enqueue(new File("src/test/resources/TestLookupRecord/lookup-array-input-missing.json").toPath());
+        runner.run();
+
+        runner.assertTransferCount(LookupRecord.REL_UNMATCHED, 1);
+        final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).get(0);
+        outUnmatched.assertContentEquals(new File("src/test/resources/TestLookupRecord/lookup-array-output-missing-unmatched.json").toPath());
+
+        runner.assertTransferCount(LookupRecord.REL_MATCHED, 1);
+        final MockFlowFile outMatched = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).get(0);
+        outMatched.assertContentEquals(new File("src/test/resources/TestLookupRecord/lookup-array-output-missing-matched.json").toPath());
+    }
+
+    @Test
     public void testLookupArrayKeyNotInLRS() throws InitializationException, IOException {
         TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
         final MapLookup lookupService = new MapLookupForInPlaceReplacement();

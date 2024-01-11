@@ -487,7 +487,13 @@ public class LookupRecord extends AbstractProcessor {
                 final RecordPath recordPath = entry.getValue();
 
                 final RecordPathResult pathResult = recordPath.evaluate(record);
-                final List<FieldValue> lookupFieldValues = pathResult.getSelectedFields()
+                final List<FieldValue> allFieldValues = pathResult.getSelectedFields().toList();
+                if (allFieldValues.isEmpty()) {
+                    // An empty JSON array was found which counts as a match.
+                    // Since array is empty, no further processing is needed, so continue.
+                    continue;
+                }
+                final List<FieldValue> lookupFieldValues = allFieldValues.stream()
                     .filter(fieldVal -> fieldVal.getValue() != null)
                     .collect(Collectors.toList());
 
