@@ -19,11 +19,14 @@ package org.apache.nifi.lookup;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
@@ -55,6 +58,13 @@ import java.util.stream.Stream;
         "A reloadable CSV file-based lookup service. When the lookup key is found in the CSV file, " +
         "the columns are returned as a Record. All returned fields will be strings. The first line of the csv file " +
         "is considered as header."
+)
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+                        explanation = "Provides operator the ability to read from any file that NiFi has access to.")
+        }
 )
 public class CSVRecordLookupService extends AbstractCSVLookupService implements RecordLookupService {
 
