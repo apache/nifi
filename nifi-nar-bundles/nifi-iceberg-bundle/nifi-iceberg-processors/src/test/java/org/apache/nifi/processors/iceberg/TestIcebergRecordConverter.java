@@ -72,7 +72,9 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -132,6 +134,22 @@ public class TestIcebergRecordConverter {
                             3, 4, Types.StringType.get(), Types.LongType.get()
                     )
             ))
+    );
+
+    private static final Schema RECORD_IN_LIST_SCHEMA = new Schema(
+            Types.NestedField.required(0, "list", Types.ListType.ofRequired(
+                    1, Types.StructType.of(
+                            Types.NestedField.required(2, "string", Types.StringType.get()),
+                            Types.NestedField.required(3, "integer", Types.IntegerType.get())))
+            )
+    );
+
+    private static final Schema RECORD_IN_MAP_SCHEMA = new Schema(
+            Types.NestedField.required(0, "map", Types.MapType.ofRequired(
+                    1, 2, Types.StringType.get(), Types.StructType.of(
+                            Types.NestedField.required(3, "string", Types.StringType.get()),
+                            Types.NestedField.required(4, "integer", Types.IntegerType.get())))
+            )
     );
 
     private static final Schema PRIMITIVES_SCHEMA = new Schema(
@@ -240,6 +258,22 @@ public class TestIcebergRecordConverter {
         List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("map", new MapDataType(
                 new MapDataType(RecordFieldType.LONG.getDataType()))));
+
+        return new SimpleRecordSchema(fields);
+    }
+
+    private static RecordSchema getRecordInListSchema() {
+        List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("list", new ArrayDataType(
+                new RecordDataType(getNestedStructSchema2()))));
+
+        return new SimpleRecordSchema(fields);
+    }
+
+    private static RecordSchema getRecordInMapSchema() {
+        List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("map", new MapDataType(
+                new RecordDataType(getNestedStructSchema2()))));
 
         return new SimpleRecordSchema(fields);
     }
@@ -385,6 +419,34 @@ public class TestIcebergRecordConverter {
         values.put("map", map);
 
         return new MapRecord(getMapSchema(), values);
+    }
+
+    private static Record setupRecordInListTestRecord() {
+        Map<String, Object> struct1 = new HashMap<>();
+        struct1.put("string", "Test String 1");
+        struct1.put("integer", 10);
+
+        Map<String, Object> struct2 = new HashMap<>();
+        struct2.put("string", "Test String 2");
+        struct2.put("integer", 20);
+
+        return new MapRecord(getRecordInListSchema(), Collections.singletonMap("list", Arrays.asList(struct1, struct2)));
+    }
+
+    private static Record setupRecordInMapTestRecord() {
+        Map<String, Object> struct1 = new HashMap<>();
+        struct1.put("string", "Test String 1");
+        struct1.put("integer", 10);
+
+        Map<String, Object> struct2 = new HashMap<>();
+        struct2.put("string", "Test String 2");
+        struct2.put("integer", 20);
+
+        Map<String, Map<String, Object>> map = new HashMap<>();
+        map.put("key1", struct1);
+        map.put("key2", struct2);
+
+        return new MapRecord(getMapSchema(), Collections.singletonMap("map", map));
     }
 
     private static Record setupPrimitivesTestRecord() {
@@ -800,6 +862,78 @@ public class TestIcebergRecordConverter {
         Map baseMap = (Map) nestedMap.get("key");
 
         assertEquals(42L, baseMap.get("nested_key"));
+    }
+
+    @DisabledOnOs(WINDOWS)
+    @Test
+    public void testRecordInList() throws IOException {
+        RecordSchema nifiSchema = getRecordInListSchema();
+        Record record = setupRecordInListTestRecord();
+        final FileFormat format = FileFormat.AVRO;
+
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(RECORD_IN_LIST_SCHEMA, nifiSchema, format, UnmatchedColumnBehavior.IGNORE_UNMATCHED_COLUMN, logger);
+        GenericRecord genericRecord = recordConverter.convert(record);
+
+        writeTo(format, RECORD_IN_LIST_SCHEMA, genericRecord, tempFile);
+
+        List<GenericRecord> results = readFrom(format, RECORD_IN_LIST_SCHEMA, tempFile.toInputFile());
+
+        assertEquals(1, results.size());
+        assertInstanceOf(GenericRecord.class, results.get(0));
+        GenericRecord resultRecord = results.get(0);
+
+        assertEquals(1, resultRecord.size());
+        assertInstanceOf(List.class, resultRecord.get(0));
+        List<?> fieldList = resultRecord.get(0, List.class);
+
+        assertEquals(2, fieldList.size());
+        assertInstanceOf(GenericRecord.class, fieldList.get(0));
+        assertInstanceOf(GenericRecord.class, fieldList.get(1));
+
+        GenericRecord record1 = (GenericRecord) fieldList.get(0);
+        GenericRecord record2 = (GenericRecord) fieldList.get(1);
+
+        assertEquals("Test String 1", record1.get(0, String.class));
+        assertEquals(Integer.valueOf(10), record1.get(1, Integer.class));
+
+        assertEquals("Test String 2", record2.get(0, String.class));
+        assertEquals(Integer.valueOf(20), record2.get(1, Integer.class));
+    }
+
+    @DisabledOnOs(WINDOWS)
+    @Test
+    public void testRecordInMap() throws IOException {
+        RecordSchema nifiSchema = getRecordInMapSchema();
+        Record record = setupRecordInMapTestRecord();
+        final FileFormat format = FileFormat.ORC;
+
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(RECORD_IN_MAP_SCHEMA, nifiSchema, format, UnmatchedColumnBehavior.IGNORE_UNMATCHED_COLUMN, logger);
+        GenericRecord genericRecord = recordConverter.convert(record);
+
+        writeTo(format, RECORD_IN_MAP_SCHEMA, genericRecord, tempFile);
+
+        List<GenericRecord> results = readFrom(format, RECORD_IN_MAP_SCHEMA, tempFile.toInputFile());
+
+        assertEquals(1, results.size());
+        assertInstanceOf(GenericRecord.class, results.get(0));
+        GenericRecord resultRecord = results.get(0);
+
+        assertEquals(1, resultRecord.size());
+        assertInstanceOf(Map.class, resultRecord.get(0));
+        Map recordMap = resultRecord.get(0, Map.class);
+
+        assertEquals(2, recordMap.size());
+        assertInstanceOf(GenericRecord.class, recordMap.get("key1"));
+        assertInstanceOf(GenericRecord.class, recordMap.get("key2"));
+
+        GenericRecord record1 = (GenericRecord) recordMap.get("key1");
+        GenericRecord record2 = (GenericRecord) recordMap.get("key2");
+
+        assertEquals("Test String 1", record1.get(0, String.class));
+        assertEquals(Integer.valueOf(10), record1.get(1, Integer.class));
+
+        assertEquals("Test String 2", record2.get(0, String.class));
+        assertEquals(Integer.valueOf(20), record2.get(1, Integer.class));
     }
 
     @DisabledOnOs(WINDOWS)
