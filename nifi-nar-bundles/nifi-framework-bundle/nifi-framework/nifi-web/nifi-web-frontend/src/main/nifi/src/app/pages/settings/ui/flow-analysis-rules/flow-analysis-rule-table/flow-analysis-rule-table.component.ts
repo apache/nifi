@@ -195,7 +195,7 @@ export class FlowAnalysisRuleTable implements AfterViewInit {
     }
 
     canConfigure(entity: FlowAnalysisRuleEntity): boolean {
-        return this.canRead(entity) && this.canWrite(entity);
+        return this.canRead(entity) && this.canWrite(entity) && this.isDisabled(entity);;
     }
 
     configureClicked(entity: FlowAnalysisRuleEntity, event: MouseEvent): void {
