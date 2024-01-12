@@ -96,7 +96,6 @@ import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { GroupComponents } from '../../ui/canvas/items/process-group/group-components/group-components.component';
 import { EditProcessGroup } from '../../ui/canvas/items/process-group/edit-process-group/edit-process-group.component';
 import { CreateControllerService } from '../../../../ui/common/controller-service/create-controller-service/create-controller-service.component';
-import * as ControllerServicesActions from '../controller-services/controller-services.actions';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { ControllerServiceService } from '../../service/controller-service.service';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
@@ -1045,17 +1044,6 @@ export class FlowEffects {
                                                 .pipe(
                                                     take(1),
                                                     switchMap((createReponse) => {
-                                                        // dispatch an inline create service success action so the new service is in the state
-                                                        this.store.dispatch(
-                                                            ControllerServicesActions.inlineCreateControllerServiceSuccess(
-                                                                {
-                                                                    response: {
-                                                                        controllerService: createReponse
-                                                                    }
-                                                                }
-                                                            )
-                                                        );
-
                                                         // fetch an updated property descriptor
                                                         return this.flowService
                                                             .getPropertyDescriptor(processorId, descriptor.name, false)

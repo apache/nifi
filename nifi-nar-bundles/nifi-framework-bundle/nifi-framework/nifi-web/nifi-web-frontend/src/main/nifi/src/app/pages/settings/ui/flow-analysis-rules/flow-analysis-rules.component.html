@@ -30,7 +30,6 @@
                 <flow-analysis-rule-table
                     [selectedFlowAnalysisRuleId]="selectedFlowAnalysisRuleId$ | async"
                     [flowAnalysisRules]="flowAnalysisRuleState.flowAnalysisRules"
-                    [canModifyParent]="canModifyParent(currentUser)"
                     (configureFlowAnalysisRule)="configureFlowAnalysisRule($event)"
                     (selectFlowAnalysisRule)="selectFlowAnalysisRule($event)"
                     (enableFlowAnalysisRule)="enableFlowAnalysisRule($event)"

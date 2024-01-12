@@ -30,6 +30,7 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { BulletinsTipInput, TextTipInput, ValidationErrorsTipInput } from '../../../../../state/shared';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { ReportingTaskEntity } from '../../../state/reporting-tasks';
+import { CurrentUser } from '../../../../../state/current-user';
 
 @Component({
     selector: 'flow-analysis-rule-table',
@@ -49,12 +50,11 @@ import { ReportingTaskEntity } from '../../../state/reporting-tasks';
 })
 export class FlowAnalysisRuleTable {
     @Input() set flowAnalysisRules(flowAnalysisRuleEntities: FlowAnalysisRuleEntity[]) {
-        this.dataSource = new MatTableDataSource<FlowAnalysisRuleEntity>(flowAnalysisRuleEntities);
         this.dataSource.data = this.sortFlowAnalysisRules(flowAnalysisRuleEntities, this.sort);
     }
     @Input() selectedFlowAnalysisRuleId!: string;
     @Input() definedByCurrentGroup!: (entity: FlowAnalysisRuleEntity) => boolean;
-    @Input() canModifyParent!: (entity: FlowAnalysisRuleEntity) => boolean;
+    @Input() currentUser!: CurrentUser;
 
     @Output() selectFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> = new EventEmitter<FlowAnalysisRuleEntity>();
     @Output() deleteFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> = new EventEmitter<FlowAnalysisRuleEntity>();
@@ -91,7 +91,7 @@ export class FlowAnalysisRuleTable {
             let retVal: number = 0;
             switch (sort.active) {
                 case 'name':
-                    retVal = this.nifiCommon.compareString(this.formatType(a), this.formatType(b));
+                    retVal = this.nifiCommon.compareString(a.component.name, b.component.name);
                     break;
                 case 'type':
                     retVal = this.nifiCommon.compareString(this.formatType(a), this.formatType(b));
@@ -196,8 +196,8 @@ export class FlowAnalysisRuleTable {
         return entity.status.runStatus === 'DISABLED';
     }
 
-    isEnabledOrEnabling(entity: FlowAnalysisRuleEntity): boolean {
-        return entity.status.runStatus === 'ENABLED' || entity.status.runStatus === 'ENABLING';
+    isEnabled(entity: FlowAnalysisRuleEntity): boolean {
+        return entity.status.runStatus === 'ENABLED';
     }
 
     hasActiveThreads(entity: ReportingTaskEntity): boolean {
@@ -224,7 +224,7 @@ export class FlowAnalysisRuleTable {
 
     canDisable(entity: FlowAnalysisRuleEntity): boolean {
         const userAuthorized: boolean = this.canRead(entity) && this.canOperate(entity);
-        return userAuthorized && this.isEnabledOrEnabling(entity);
+        return userAuthorized && this.isEnabled(entity);
     }
 
     disableClicked(entity: FlowAnalysisRuleEntity, event: MouseEvent): void {
@@ -241,7 +241,11 @@ export class FlowAnalysisRuleTable {
     }
 
     canDelete(entity: FlowAnalysisRuleEntity): boolean {
-        return this.isDisabled(entity) && this.canRead(entity) && this.canWrite(entity) && this.canModifyParent(entity);
+        return this.isDisabled(entity) && this.canRead(entity) && this.canWrite(entity) && this.canModifyParent();
+    }
+
+    canModifyParent(): boolean {
+        return this.currentUser.controllerPermissions.canRead && this.currentUser.controllerPermissions.canWrite;
     }
 
     deleteClicked(entity: FlowAnalysisRuleEntity): void {

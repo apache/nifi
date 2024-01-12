@@ -43,7 +43,6 @@ import { EditFlowAnalysisRule } from '../../ui/flow-analysis-rules/edit-flow-ana
 import { CreateFlowAnalysisRuleSuccess } from './index';
 import { NewPropertyDialog } from '../../../../ui/common/new-property-dialog/new-property-dialog.component';
 import { CreateControllerService } from '../../../../ui/common/controller-service/create-controller-service/create-controller-service.component';
-import * as ManagementControllerServicesActions from '../management-controller-services/management-controller-services.actions';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 
 @Injectable()
@@ -327,17 +326,6 @@ export class FlowAnalysisRulesEffects {
                                                 .pipe(
                                                     take(1),
                                                     switchMap((createResponse) => {
-                                                        // dispatch an inline create service success action so the new service is in the state
-                                                        this.store.dispatch(
-                                                            ManagementControllerServicesActions.inlineCreateControllerServiceSuccess(
-                                                                {
-                                                                    response: {
-                                                                        controllerService: createResponse
-                                                                    }
-                                                                }
-                                                            )
-                                                        );
-
                                                         // fetch an updated property descriptor
                                                         return this.flowAnalysisRuleService
                                                             .getPropertyDescriptor(ruleId, descriptor.name, false)

@@ -43,7 +43,6 @@ import { CreateReportingTaskSuccess } from './index';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { CreateControllerService } from '../../../../ui/common/controller-service/create-controller-service/create-controller-service.component';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
-import * as ManagementControllerServicesActions from '../management-controller-services/management-controller-services.actions';
 import { Client } from '../../../../service/client.service';
 
 @Injectable()
@@ -327,17 +326,6 @@ export class ReportingTasksEffects {
                                                 .pipe(
                                                     take(1),
                                                     switchMap((createResponse) => {
-                                                        // dispatch an inline create service success action so the new service is in the state
-                                                        this.store.dispatch(
-                                                            ManagementControllerServicesActions.inlineCreateControllerServiceSuccess(
-                                                                {
-                                                                    response: {
-                                                                        controllerService: createResponse
-                                                                    }
-                                                                }
-                                                            )
-                                                        );
-
                                                         // fetch an updated property descriptor
                                                         return this.reportingTaskService
                                                             .getPropertyDescriptor(taskId, descriptor.name, false)

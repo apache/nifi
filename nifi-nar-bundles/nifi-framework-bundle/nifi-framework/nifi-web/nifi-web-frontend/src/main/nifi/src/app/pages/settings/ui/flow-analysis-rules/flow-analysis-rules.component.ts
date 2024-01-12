@@ -88,11 +88,6 @@ export class FlowAnalysisRules implements OnInit, OnDestroy {
         return state.loadedTimestamp == initialState.loadedTimestamp;
     }
 
-    canModifyParent(currentUser: CurrentUser): (entity: FlowAnalysisRuleEntity) => boolean {
-        return (entity: FlowAnalysisRuleEntity) =>
-            currentUser.controllerPermissions.canRead && currentUser.controllerPermissions.canWrite;
-    }
-
     openNewFlowAnalysisRuleDialog(): void {
         this.store.dispatch(openNewFlowAnalysisRuleDialog());
     }
