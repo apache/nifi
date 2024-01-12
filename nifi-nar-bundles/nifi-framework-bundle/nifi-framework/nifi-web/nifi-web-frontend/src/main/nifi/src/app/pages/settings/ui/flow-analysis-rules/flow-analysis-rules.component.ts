@@ -40,6 +40,7 @@ import { initialState } from '../../state/flow-analysis-rules/flow-analysis-rule
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NiFiState } from '../../../../state';
 import { FlowAnalysisRuleEntity, FlowAnalysisRulesState } from '../../state/flow-analysis-rules';
+import { CurrentUser } from '../../../../state/current-user';
 
 @Component({
     selector: 'flow-analysis-rules',
@@ -85,6 +86,11 @@ export class FlowAnalysisRules implements OnInit, OnDestroy {
     isInitialLoading(state: FlowAnalysisRulesState): boolean {
         // using the current timestamp to detect the initial load event
         return state.loadedTimestamp == initialState.loadedTimestamp;
+    }
+
+    canModifyParent(currentUser: CurrentUser): (entity: FlowAnalysisRuleEntity) => boolean {
+        return (entity: FlowAnalysisRuleEntity) =>
+            currentUser.controllerPermissions.canRead && currentUser.controllerPermissions.canWrite;
     }
 
     openNewFlowAnalysisRuleDialog(): void {

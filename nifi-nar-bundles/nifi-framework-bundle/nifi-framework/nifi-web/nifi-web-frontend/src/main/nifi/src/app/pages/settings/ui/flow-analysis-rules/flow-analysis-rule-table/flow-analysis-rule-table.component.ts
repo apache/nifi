@@ -66,6 +66,7 @@ export class FlowAnalysisRuleTable implements AfterViewInit {
     }
     @Input() selectedFlowAnalysisRuleId!: string;
     @Input() definedByCurrentGroup!: (entity: FlowAnalysisRuleEntity) => boolean;
+    @Input() canModifyParent!: (entity: FlowAnalysisRuleEntity) => boolean;
 
     @Output() selectFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> = new EventEmitter<FlowAnalysisRuleEntity>();
     @Output() deleteFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> = new EventEmitter<FlowAnalysisRuleEntity>();
@@ -223,8 +224,7 @@ export class FlowAnalysisRuleTable implements AfterViewInit {
     }
 
     canDelete(entity: FlowAnalysisRuleEntity): boolean {
-        const canWriteParent: boolean = true; // TODO canWriteFlowAnalysisRuleParent(dataContext)
-        return this.isDisabled(entity) && this.canRead(entity) && this.canWrite(entity) && canWriteParent;
+        return this.isDisabled(entity) && this.canRead(entity) && this.canWrite(entity) && this.canModifyParent(entity);
     }
 
     deleteClicked(entity: FlowAnalysisRuleEntity): void {
