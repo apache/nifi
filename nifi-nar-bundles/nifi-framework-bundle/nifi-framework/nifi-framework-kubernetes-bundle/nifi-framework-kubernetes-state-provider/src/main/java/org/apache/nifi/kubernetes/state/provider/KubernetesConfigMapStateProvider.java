@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,6 +41,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.nifi.components.AbstractConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProvider;
@@ -47,19 +49,25 @@ import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.kubernetes.client.ServiceAccountNamespaceProvider;
 import org.apache.nifi.kubernetes.client.StandardKubernetesClientProvider;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.StandardValidators;
 
 /**
  * State Provider implementation based on Kubernetes ConfigMaps with Base64 encoded keys to meet Kubernetes constraints
  */
 public class KubernetesConfigMapStateProvider extends AbstractConfigurableComponent implements StateProvider {
+    static final PropertyDescriptor CONFIG_MAP_NAME_PREFIX = new PropertyDescriptor.Builder()
+        .name("ConfigMap Name Prefix")
+        .description("Optional prefix that the Provider will prepend to Kubernetes ConfigMap names. The resulting ConfigMap name will contain nifi-component and the component identifier.")
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .required(false)
+        .build();
+
     private static final int MAX_UPDATE_ATTEMPTS = 5;
     private static final Scope[] SUPPORTED_SCOPES = { Scope.CLUSTER };
 
     private static final Charset KEY_CHARACTER_SET = StandardCharsets.UTF_8;
 
-    private static final String CONFIG_MAP_NAME_FORMAT = "nifi-component-%s";
-
-    private static final Pattern CONFIG_MAP_NAME_PATTERN = Pattern.compile("^nifi-component-(.+)$");
+    private static final String CONFIG_MAP_CORE_NAME = "nifi-component";
 
     private static final int COMPONENT_ID_GROUP = 1;
 
@@ -70,6 +78,10 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
 
     private final AtomicBoolean enabled = new AtomicBoolean();
 
+    private String CONFIG_MAP_NAME_FORMAT;
+
+    private Pattern CONFIG_MAP_NAME_PATTERN;
+
     private KubernetesClient kubernetesClient;
 
     private String namespace;
@@ -77,6 +89,13 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
     private String identifier;
 
     private ComponentLog logger;
+
+    @Override
+    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(CONFIG_MAP_NAME_PREFIX);
+        return properties;
+    }
 
     /**
      * Get configured component identifier
@@ -99,6 +118,12 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
         this.logger = context.getLogger();
         this.kubernetesClient = getKubernetesClient();
         this.namespace = new ServiceAccountNamespaceProvider().getNamespace();
+
+        String configMapNamePrefix = context.getProperty(CONFIG_MAP_NAME_PREFIX).isSet() ? context.getProperty(CONFIG_MAP_NAME_PREFIX).getValue() : null;
+        CONFIG_MAP_NAME_FORMAT = configMapNamePrefix != null
+            ? String.format("%s-%s-%%s", configMapNamePrefix, CONFIG_MAP_CORE_NAME) : String.format("%s-%%s", CONFIG_MAP_CORE_NAME);
+        CONFIG_MAP_NAME_PATTERN = Pattern.compile(configMapNamePrefix != null
+            ? String.format("^%s-%s-(.+)$", configMapNamePrefix, CONFIG_MAP_CORE_NAME) : String.format("^%s-(.+)$", CONFIG_MAP_CORE_NAME));
     }
 
     /**

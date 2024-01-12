@@ -326,6 +326,9 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String PYTHON_CONTROLLER_DEBUGPY_HOST = "nifi.python.controller.debugpy.host";
     public static final String PYTHON_CONTROLLER_DEBUGPY_LOGS_DIR = "nifi.python.controller.debugpy.logs.directory";
 
+    // kubernetes properties
+    public static final String CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX = "nifi.cluster.leader.election.kubernetes.lease.prefix";
+
     public static final String DEFAULT_PYTHON_WORKING_DIRECTORY = "./work/python";
 
     // automatic diagnostic defaults
@@ -398,6 +401,7 @@ public class NiFiProperties extends ApplicationProperties {
     private static final String DEFAULT_SECURITY_USER_JWS_KEY_ROTATION_PERIOD = "PT1H";
     public static final String DEFAULT_WEB_SHOULD_SEND_SERVER_VERSION = "true";
     public static final int DEFAULT_LISTENER_BOOTSTRAP_PORT = 0;
+    public static final String DEFAULT_CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX = null;
 
     // cluster common defaults
     public static final String DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "5 sec";
