@@ -208,7 +208,7 @@ export class ControllerServiceTable implements AfterViewInit {
     }
 
     canConfigure(entity: ControllerServiceEntity): boolean {
-        return this.canRead(entity) && this.canWrite(entity) && this.isDisabled(entity);;
+        return this.canRead(entity) && this.canWrite(entity) && this.isDisabled(entity);
     }
 
     configureClicked(entity: ControllerServiceEntity, event: MouseEvent): void {

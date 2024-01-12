@@ -17,7 +17,14 @@
 
 <div class="relative h-full border">
     <div class="flow-analysis-rule-table listing-table absolute inset-0 overflow-y-auto">
-        <table mat-table [dataSource]="dataSource" matSort matSortDisableClear>
+        <table
+            mat-table
+            [dataSource]="dataSource"
+            matSort
+            matSortDisableClear
+            (matSortChange)="updateSort($event)"
+            [matSortActive]="sort.active"
+            [matSortDirection]="sort.direction">
             <!-- More Details Column -->
             <ng-container matColumnDef="moreDetails">
                 <th mat-header-cell *matHeaderCellDef></th>

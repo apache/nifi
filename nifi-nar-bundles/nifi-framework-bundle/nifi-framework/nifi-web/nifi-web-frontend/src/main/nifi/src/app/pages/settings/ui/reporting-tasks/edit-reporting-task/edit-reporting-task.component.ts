@@ -34,7 +34,7 @@ import {
     InlineServiceCreationResponse,
     Property,
     SelectOption,
-    TextTipInput,
+    TextTipInput
 } from '../../../../../state/shared';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';

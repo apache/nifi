@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
 import { NgClass, NgIf } from '@angular/common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { FlowAnalysisRuleEntity } from '../../../state/flow-analysis-rules';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
@@ -47,22 +47,10 @@ import { ReportingTaskEntity } from '../../../state/reporting-tasks';
     ],
     styleUrls: ['./flow-analysis-rule-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
 })
-export class FlowAnalysisRuleTable implements AfterViewInit {
-    @Input() set flowAnalysisRules(FlowAnalysisRuleEntities: FlowAnalysisRuleEntity[]) {
-        this.dataSource = new MatTableDataSource<FlowAnalysisRuleEntity>(FlowAnalysisRuleEntities);
-        this.dataSource.sort = this.sort;
-        this.dataSource.sortingDataAccessor = (data: FlowAnalysisRuleEntity, displayColumn: string) => {
-            if (displayColumn == 'name') {
-                return this.formatType(data);
-            } else if (displayColumn == 'type') {
-                return this.formatType(data);
-            } else if (displayColumn == 'bundle') {
-                return this.formatBundle(data);
-            } else if (displayColumn == 'state') {
-                return this.formatState(data);
-            }
-            return '';
-        };
+export class FlowAnalysisRuleTable {
+    @Input() set flowAnalysisRules(flowAnalysisRuleEntities: FlowAnalysisRuleEntity[]) {
+        this.dataSource = new MatTableDataSource<FlowAnalysisRuleEntity>(flowAnalysisRuleEntities);
+        this.dataSource.data = this.sortFlowAnalysisRules(flowAnalysisRuleEntities, this.sort);
     }
     @Input() selectedFlowAnalysisRuleId!: string;
     @Input() definedByCurrentGroup!: (entity: FlowAnalysisRuleEntity) => boolean;
@@ -76,6 +64,11 @@ export class FlowAnalysisRuleTable implements AfterViewInit {
     @Output() disableFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> =
         new EventEmitter<FlowAnalysisRuleEntity>();
 
+    sort: Sort = {
+        active: 'name',
+        direction: 'asc'
+    };
+
     protected readonly TextTip = TextTip;
     protected readonly BulletinsTip = BulletinsTip;
     protected readonly ValidationErrorsTip = ValidationErrorsTip;
@@ -83,12 +76,36 @@ export class FlowAnalysisRuleTable implements AfterViewInit {
     displayedColumns: string[] = ['moreDetails', 'name', 'type', 'bundle', 'state', 'actions'];
     dataSource: MatTableDataSource<FlowAnalysisRuleEntity> = new MatTableDataSource<FlowAnalysisRuleEntity>();
 
-    @ViewChild(MatSort) sort!: MatSort;
-
     constructor(private nifiCommon: NiFiCommon) {}
 
-    ngAfterViewInit(): void {
-        this.dataSource.sort = this.sort;
+    updateSort(sort: Sort): void {
+        this.sort = sort;
+        this.dataSource.data = this.sortFlowAnalysisRules(this.dataSource.data, sort);
+    }
+
+    sortFlowAnalysisRules(items: FlowAnalysisRuleEntity[], sort: Sort): FlowAnalysisRuleEntity[] {
+        const data: FlowAnalysisRuleEntity[] = items.slice();
+        return data.sort((a, b) => {
+            const isAsc = sort.direction === 'asc';
+
+            let retVal: number = 0;
+            switch (sort.active) {
+                case 'name':
+                    retVal = this.nifiCommon.compareString(this.formatType(a), this.formatType(b));
+                    break;
+                case 'type':
+                    retVal = this.nifiCommon.compareString(this.formatType(a), this.formatType(b));
+                    break;
+                case 'bundle':
+                    retVal = this.nifiCommon.compareString(this.formatBundle(a), this.formatBundle(b));
+                    break;
+                case 'state':
+                    retVal = this.nifiCommon.compareString(this.formatState(a), this.formatState(b));
+                    break;
+            }
+
+            return retVal * (isAsc ? 1 : -1);
+        });
     }
 
     canRead(entity: FlowAnalysisRuleEntity): boolean {
@@ -188,7 +205,7 @@ export class FlowAnalysisRuleTable implements AfterViewInit {
     }
 
     canConfigure(entity: FlowAnalysisRuleEntity): boolean {
-        return this.canRead(entity) && this.canWrite(entity) && this.isDisabled(entity);;
+        return this.canRead(entity) && this.canWrite(entity) && this.isDisabled(entity);
     }
 
     configureClicked(entity: FlowAnalysisRuleEntity, event: MouseEvent): void {

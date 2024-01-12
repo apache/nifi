@@ -18,31 +18,42 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as FlowAnalysisRuleActions from './flow-analysis-rules.actions';
-import { catchError, from, map, Observable, of, switchMap, take, takeUntil, tap, withLatestFrom } from 'rxjs';
+import { catchError, from, map, NEVER, Observable, of, switchMap, take, takeUntil, tap, withLatestFrom } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { selectFlowAnalysisRuleTypes } from '../../../../state/extension-types/extension-types.selectors';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { FlowAnalysisRuleService } from '../../service/flow-analysis-rule.service';
+import { Client } from '../../../../service/client.service';
+import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { CreateFlowAnalysisRule } from '../../ui/flow-analysis-rules/create-flow-analysis-rule/create-flow-analysis-rule.component';
 import { Router } from '@angular/router';
 import { selectSaving } from '../management-controller-services/management-controller-services.selectors';
 import {
+    InlineServiceCreationRequest,
+    InlineServiceCreationResponse,
     NewPropertyDialogRequest,
     NewPropertyDialogResponse,
     Property,
+    PropertyDescriptor,
     UpdateControllerServiceRequest
 } from '../../../../state/shared';
 import { EditFlowAnalysisRule } from '../../ui/flow-analysis-rules/edit-flow-analysis-rule/edit-flow-analysis-rule.component';
 import { CreateFlowAnalysisRuleSuccess } from './index';
 import { NewPropertyDialog } from '../../../../ui/common/new-property-dialog/new-property-dialog.component';
+import { CreateControllerService } from '../../../../ui/common/controller-service/create-controller-service/create-controller-service.component';
+import * as ManagementControllerServicesActions from '../management-controller-services/management-controller-services.actions';
+import { ExtensionTypesService } from '../../../../service/extension-types.service';
 
 @Injectable()
 export class FlowAnalysisRulesEffects {
     constructor(
         private actions$: Actions,
         private store: Store<NiFiState>,
+        private client: Client,
+        private managementControllerServiceService: ManagementControllerServiceService,
+        private extensionTypesService: ExtensionTypesService,
         private flowAnalysisRuleService: FlowAnalysisRuleService,
         private dialog: MatDialog,
         private router: Router
@@ -203,13 +214,13 @@ export class FlowAnalysisRulesEffects {
                 ofType(FlowAnalysisRuleActions.openConfigureFlowAnalysisRuleDialog),
                 map((action) => action.request),
                 tap((request) => {
-                    const taskId: string = request.id;
+                    const ruleId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditFlowAnalysisRule, {
                         data: {
                             flowAnalysisRule: request.flowAnalysisRule
                         },
-                        id: taskId,
+                        id: ruleId,
                         panelClass: 'large-dialog'
                     });
 
@@ -271,8 +282,87 @@ export class FlowAnalysisRulesEffects {
                     };
 
                     editDialogReference.componentInstance.goToService = (serviceId: string) => {
-                        const commands: string[] = ['/settings', 'flow-analysis-rules', serviceId];
-                        goTo(commands, 'Flow Analysis Rule');
+                        const commands: string[] = ['/settings', 'management-controller-services', serviceId];
+                        goTo(commands, 'Controller Service');
+                    };
+
+                    editDialogReference.componentInstance.createNewService = (
+                        request: InlineServiceCreationRequest
+                    ): Observable<InlineServiceCreationResponse> => {
+                        const descriptor: PropertyDescriptor = request.descriptor;
+
+                        // fetch all services that implement the requested service api
+                        return this.extensionTypesService
+                            .getImplementingControllerServiceTypes(
+                                // @ts-ignore
+                                descriptor.identifiesControllerService,
+                                descriptor.identifiesControllerServiceBundle
+                            )
+                            .pipe(
+                                take(1),
+                                switchMap((implementingTypesResponse) => {
+                                    // show the create controller service dialog with the types that implemented the interface
+                                    const createServiceDialogReference = this.dialog.open(CreateControllerService, {
+                                        data: {
+                                            controllerServiceTypes: implementingTypesResponse.controllerServiceTypes
+                                        },
+                                        panelClass: 'medium-dialog'
+                                    });
+
+                                    return createServiceDialogReference.componentInstance.createControllerService.pipe(
+                                        take(1),
+                                        switchMap((controllerServiceType) => {
+                                            // typically this sequence would be implemented with ngrx actions, however we are
+                                            // currently in an edit session and we need to return both the value (new service id)
+                                            // and updated property descriptor so the table renders correctly
+                                            return this.managementControllerServiceService
+                                                .createControllerService({
+                                                    revision: {
+                                                        clientId: this.client.getClientId(),
+                                                        version: 0
+                                                    },
+                                                    controllerServiceType: controllerServiceType.type,
+                                                    controllerServiceBundle: controllerServiceType.bundle
+                                                })
+                                                .pipe(
+                                                    take(1),
+                                                    switchMap((createResponse) => {
+                                                        // dispatch an inline create service success action so the new service is in the state
+                                                        this.store.dispatch(
+                                                            ManagementControllerServicesActions.inlineCreateControllerServiceSuccess(
+                                                                {
+                                                                    response: {
+                                                                        controllerService: createResponse
+                                                                    }
+                                                                }
+                                                            )
+                                                        );
+
+                                                        // fetch an updated property descriptor
+                                                        return this.flowAnalysisRuleService
+                                                            .getPropertyDescriptor(ruleId, descriptor.name, false)
+                                                            .pipe(
+                                                                take(1),
+                                                                map((descriptorResponse) => {
+                                                                    createServiceDialogReference.close();
+
+                                                                    return {
+                                                                        value: createResponse.id,
+                                                                        descriptor:
+                                                                            descriptorResponse.propertyDescriptor
+                                                                    };
+                                                                })
+                                                            );
+                                                    }),
+                                                    catchError((error) => {
+                                                        // TODO - show error
+                                                        return NEVER;
+                                                    })
+                                                );
+                                        })
+                                    );
+                                })
+                            );
                     };
 
                     editDialogReference.componentInstance.editFlowAnalysisRule
@@ -295,7 +385,7 @@ export class FlowAnalysisRulesEffects {
                             this.store.dispatch(
                                 FlowAnalysisRuleActions.selectFlowAnalysisRule({
                                     request: {
-                                        id: taskId
+                                        id: ruleId
                                     }
                                 })
                             );

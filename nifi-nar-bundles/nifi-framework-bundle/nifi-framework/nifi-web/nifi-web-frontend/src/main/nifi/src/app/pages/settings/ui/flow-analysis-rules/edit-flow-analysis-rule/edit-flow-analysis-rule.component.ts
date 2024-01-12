@@ -27,7 +27,13 @@ import { MatSelectModule } from '@angular/material/select';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { Client } from '../../../../../service/client.service';
-import { Property, SelectOption, TextTipInput } from '../../../../../state/shared';
+import {
+    InlineServiceCreationRequest,
+    InlineServiceCreationResponse,
+    Property,
+    SelectOption,
+    TextTipInput
+} from '../../../../../state/shared';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
@@ -38,6 +44,7 @@ import {
     FlowAnalysisRuleEntity,
     UpdateFlowAnalysisRuleRequest
 } from '../../../state/flow-analysis-rules';
+import { FlowAnalysisRuleTable } from '../flow-analysis-rule-table/flow-analysis-rule-table.component';
 
 @Component({
     selector: 'edit-flow-analysis-rule',
@@ -57,12 +64,14 @@ import {
         AsyncPipe,
         NifiSpinnerDirective,
         MatTooltipModule,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        FlowAnalysisRuleTable
     ],
     styleUrls: ['./edit-flow-analysis-rule.component.scss']
 })
 export class EditFlowAnalysisRule {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
+    @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() saving$!: Observable<boolean>;
     @Input() goToService!: (serviceId: string) => void;
     @Output() editFlowAnalysisRule: EventEmitter<UpdateFlowAnalysisRuleRequest> =

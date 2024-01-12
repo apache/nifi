@@ -23,6 +23,7 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { PropertyTable } from '../../../../ui/common/property-table/property-table.component';
 
 @NgModule({
     declarations: [FlowAnalysisRules],
@@ -33,7 +34,8 @@ import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-toolti
         MatSortModule,
         MatTableModule,
         NifiTooltipDirective,
-        FlowAnalysisRuleTable
+        FlowAnalysisRuleTable,
+        PropertyTable
     ]
 })
 export class FlowAnalysisRulesModule {}

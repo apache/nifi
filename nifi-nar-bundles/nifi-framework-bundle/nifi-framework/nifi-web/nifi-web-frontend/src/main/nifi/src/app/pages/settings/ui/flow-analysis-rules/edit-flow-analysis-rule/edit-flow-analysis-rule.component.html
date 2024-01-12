@@ -61,7 +61,11 @@
             </mat-tab>
             <mat-tab label="Properties">
                 <div class="tab-content py-4">
-                    <property-table formControlName="properties" [createNewProperty]="createNewProperty">
+                    <property-table
+                        formControlName="properties"
+                        [createNewProperty]="createNewProperty"
+                        [createNewService]="createNewService"
+                        [goToService]="goToService">
                     </property-table>
                 </div>
             </mat-tab>
