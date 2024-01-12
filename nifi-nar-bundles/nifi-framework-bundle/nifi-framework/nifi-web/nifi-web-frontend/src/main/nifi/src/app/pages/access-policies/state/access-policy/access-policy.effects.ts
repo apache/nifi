@@ -27,7 +27,7 @@ import { AccessPolicyService } from '../../service/access-policy.service';
 import { AccessPolicyEntity, ComponentResourceAction, PolicyStatus, ResourceAction } from '../shared';
 import { selectAccessPolicy, selectResourceAction, selectSaving } from './access-policy.selectors';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
-import { TenantEntity } from '../../../../state/shared';
+import { isDefinedAndNotNull, TenantEntity } from '../../../../state/shared';
 import { AddTenantToPolicyDialog } from '../../ui/common/add-tenant-to-policy-dialog/add-tenant-to-policy-dialog.component';
 import { AddTenantsToPolicyRequest } from './index';
 import { ComponentAccessPolicies } from '../../ui/component-access-policies/component-access-policies.component';
@@ -62,13 +62,11 @@ export class AccessPolicyEffects {
     reloadAccessPolicy$ = createEffect(() =>
         this.actions$.pipe(
             ofType(AccessPolicyActions.reloadAccessPolicy),
-            withLatestFrom(this.store.select(selectResourceAction)),
-            filter(([action, resourceAction]) => resourceAction != null),
+            withLatestFrom(this.store.select(selectResourceAction).pipe(isDefinedAndNotNull())),
             switchMap(([action, resourceAction]) => {
                 return of(
                     AccessPolicyActions.loadAccessPolicy({
                         request: {
-                            // @ts-ignore
                             resourceAction
                         }
                     })
@@ -139,10 +137,8 @@ export class AccessPolicyEffects {
     createAccessPolicy$ = createEffect(() =>
         this.actions$.pipe(
             ofType(AccessPolicyActions.createAccessPolicy),
-            withLatestFrom(this.store.select(selectResourceAction)),
-            filter(([action, resourceAction]) => resourceAction != null),
+            withLatestFrom(this.store.select(selectResourceAction).pipe(isDefinedAndNotNull())),
             switchMap(([action, resourceAction]) =>
-                // @ts-ignore
                 from(this.accessPoliciesService.createAccessPolicy(resourceAction)).pipe(
                     map((response) => {
                         const accessPolicy: AccessPolicyEntity = response;
@@ -243,12 +239,8 @@ export class AccessPolicyEffects {
         this.actions$.pipe(
             ofType(AccessPolicyActions.addTenantsToPolicy),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectAccessPolicy)),
-            filter(([request, accessPolicyEntity]) => accessPolicyEntity != null),
-            switchMap(([request, accessPolicyEntity]) => {
-                // @ts-ignore
-                const accessPolicy: AccessPolicyEntity = accessPolicyEntity;
-
+            withLatestFrom(this.store.select(selectAccessPolicy).pipe(isDefinedAndNotNull())),
+            switchMap(([request, accessPolicy]) => {
                 const users: TenantEntity[] = [...accessPolicy.component.users, ...request.users];
                 const userGroups: TenantEntity[] = [...accessPolicy.component.userGroups, ...request.userGroups];
 
@@ -303,12 +295,8 @@ export class AccessPolicyEffects {
         this.actions$.pipe(
             ofType(AccessPolicyActions.removeTenantFromPolicy),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectAccessPolicy)),
-            filter(([request, accessPolicyEntity]) => accessPolicyEntity != null),
-            switchMap(([request, accessPolicyEntity]) => {
-                // @ts-ignore
-                const accessPolicy: AccessPolicyEntity = accessPolicyEntity;
-
+            withLatestFrom(this.store.select(selectAccessPolicy).pipe(isDefinedAndNotNull())),
+            switchMap(([request, accessPolicy]) => {
                 const users: TenantEntity[] = [...accessPolicy.component.users];
                 const userGroups: TenantEntity[] = [...accessPolicy.component.userGroups];
 
@@ -376,17 +364,17 @@ export class AccessPolicyEffects {
     deleteAccessPolicy$ = createEffect(() =>
         this.actions$.pipe(
             ofType(AccessPolicyActions.deleteAccessPolicy),
-            withLatestFrom(this.store.select(selectResourceAction), this.store.select(selectAccessPolicy)),
-            filter(([action, resourceAction, accessPolicy]) => resourceAction != null && accessPolicy != null),
+            withLatestFrom(
+                this.store.select(selectResourceAction).pipe(isDefinedAndNotNull()),
+                this.store.select(selectAccessPolicy).pipe(isDefinedAndNotNull())
+            ),
             switchMap(([action, resourceAction, accessPolicy]) =>
-                // @ts-ignore
                 from(this.accessPoliciesService.deleteAccessPolicy(accessPolicy)).pipe(
                     map((response) => {
                         // the policy was removed, we need to reload the policy for this resource and action to fetch
                         // the inherited policy or correctly when it's not found
                         return AccessPolicyActions.loadAccessPolicy({
                             request: {
-                                // @ts-ignore
                                 resourceAction
                             }
                         });

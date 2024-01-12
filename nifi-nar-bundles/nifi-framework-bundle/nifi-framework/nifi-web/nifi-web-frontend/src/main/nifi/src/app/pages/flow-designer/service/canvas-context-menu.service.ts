@@ -32,6 +32,7 @@ import {
     navigateToEditCurrentProcessGroup,
     navigateToManageComponentPolicies,
     navigateToProvenanceForComponent,
+    navigateToQueueListing,
     navigateToViewStatusHistoryForComponent,
     reloadFlow,
     replayLastProvenanceEvent,
@@ -688,13 +689,19 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    // TODO - canListQueue
-                    return false;
+                    return this.canvasUtils.isConnection(selection);
                 },
                 clazz: 'fa fa-list',
                 text: 'List queue',
-                action: () => {
-                    // TODO - listQueue
+                action: (selection: any) => {
+                    const selectionData = selection.datum();
+                    this.store.dispatch(
+                        navigateToQueueListing({
+                            request: {
+                                connectionId: selectionData.id
+                            }
+                        })
+                    );
                 }
             },
             {

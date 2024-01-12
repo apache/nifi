@@ -17,21 +17,22 @@
 
 import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe, NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
+import { AsyncPipe, KeyValuePipe, NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { NiFiCommon } from '../../../service/nifi-common.service';
 import { MatTabsModule } from '@angular/material/tabs';
-import { Attribute, ProvenanceEventDialogRequest } from '../../../state/shared';
+import { FlowFileDialogRequest } from '../../../state/queue-listing';
+import { NiFiCommon } from '../../../../../service/nifi-common.service';
 
 @Component({
-    selector: 'provenance-event-dialog',
+    selector: 'flowfile-dialog',
     standalone: true,
-    templateUrl: './provenance-event-dialog.component.html',
+    templateUrl: './flowfile-dialog.component.html',
     imports: [
+        ReactiveFormsModule,
         MatDialogModule,
         MatInputModule,
         MatCheckboxModule,
@@ -42,21 +43,19 @@ import { Attribute, ProvenanceEventDialogRequest } from '../../../state/shared';
         MatDatepickerModule,
         MatTabsModule,
         NgTemplateOutlet,
-        FormsModule
+        FormsModule,
+        KeyValuePipe
     ],
-    styleUrls: ['./provenance-event-dialog.component.scss']
+    styleUrls: ['./flowfile-dialog.component.scss']
 })
-export class ProvenanceEventDialog {
+export class FlowFileDialog {
     @Input() contentViewerAvailable!: boolean;
 
-    @Output() downloadContent: EventEmitter<string> = new EventEmitter<string>();
-    @Output() viewContent: EventEmitter<string> = new EventEmitter<string>();
-    @Output() replay: EventEmitter<void> = new EventEmitter<void>();
-
-    onlyShowModifiedAttributes: boolean = false;
+    @Output() downloadContent: EventEmitter<void> = new EventEmitter<void>();
+    @Output() viewContent: EventEmitter<void> = new EventEmitter<void>();
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) public request: ProvenanceEventDialogRequest,
+        @Inject(MAT_DIALOG_DATA) public request: FlowFileDialogRequest,
         private nifiCommon: NiFiCommon
     ) {}
 
@@ -68,30 +67,11 @@ export class ProvenanceEventDialog {
         return this.nifiCommon.formatDuration(duration);
     }
 
-    attributeValueChanged(attribute: Attribute): boolean {
-        return attribute.value != attribute.previousValue;
+    downloadContentClicked(): void {
+        this.downloadContent.next();
     }
 
-    shouldShowAttribute(attribute: Attribute): boolean {
-        // if the attribute value has changed, show it
-        if (this.attributeValueChanged(attribute)) {
-            return true;
-        }
-
-        // attribute value hasn't changed, only show when
-        // the user does not want to only see modified attributes
-        return !this.onlyShowModifiedAttributes;
-    }
-
-    downloadContentClicked(direction: string): void {
-        this.downloadContent.next(direction);
-    }
-
-    viewContentClicked(direction: string): void {
-        this.viewContent.next(direction);
-    }
-
-    replayClicked(): void {
-        this.replay.next();
+    viewContentClicked(): void {
+        this.viewContent.next();
     }
 }

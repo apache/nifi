@@ -188,6 +188,11 @@ export class CanvasView {
     public updateCanvasVisibility(): void {
         const self: CanvasView = this;
         const canvasContainer: any = document.getElementById('canvas-container');
+
+        if (canvasContainer == null) {
+            return;
+        }
+
         let translate = [this.x, this.y];
         const scale = this.k;
 

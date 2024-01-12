@@ -686,6 +686,18 @@ export class FlowEffects {
         { dispatch: false }
     );
 
+    navigateToQueueListing$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.navigateToQueueListing),
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/queue', request.connectionId]);
+                })
+            ),
+        { dispatch: false }
+    );
+
     navigateToViewStatusHistoryForComponent$ = createEffect(
         () =>
             this.actions$.pipe(

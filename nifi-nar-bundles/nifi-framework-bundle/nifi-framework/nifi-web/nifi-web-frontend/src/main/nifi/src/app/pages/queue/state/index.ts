@@ -16,27 +16,23 @@
  */
 
 /*
-  Provenance
+  Queue Listing
  */
 
 import { Action, combineReducers, createFeatureSelector } from '@ngrx/store';
-import { provenanceEventListingFeatureKey, ProvenanceEventListingState } from './provenance-event-listing';
-import { provenanceEventListingReducer } from './provenance-event-listing/provenance-event-listing.reducer';
-import { lineageFeatureKey, LineageState } from './lineage';
-import { lineageReducer } from './lineage/lineage.reducer';
+import { queueListingFeatureKey, QueueListingState } from './queue-listing';
+import { queueListingReducer } from './queue-listing/queue-listing.reducer';
 
-export const provenanceFeatureKey = 'provenance';
+export const queueFeatureKey = 'queue';
 
-export interface ProvenanceState {
-    [provenanceEventListingFeatureKey]: ProvenanceEventListingState;
-    [lineageFeatureKey]: LineageState;
+export interface QueueState {
+    [queueListingFeatureKey]: QueueListingState;
 }
 
-export function reducers(state: ProvenanceState | undefined, action: Action) {
+export function reducers(state: QueueState | undefined, action: Action) {
     return combineReducers({
-        [provenanceEventListingFeatureKey]: provenanceEventListingReducer,
-        [lineageFeatureKey]: lineageReducer
+        [queueListingFeatureKey]: queueListingReducer
     })(state, action);
 }
 
-export const selectProvenanceState = createFeatureSelector<ProvenanceState>(provenanceFeatureKey);
+export const selectQueueState = createFeatureSelector<QueueState>(queueFeatureKey);

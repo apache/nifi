@@ -67,7 +67,8 @@ import {
     UpdateConnectionRequest,
     UpdateConnectionSuccess,
     UpdatePositionsRequest,
-    UploadProcessGroupRequest
+    UploadProcessGroupRequest,
+    NavigateToQueueListing
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
 
@@ -313,6 +314,11 @@ export const navigateToEditCurrentProcessGroup = createAction(
 export const navigateToControllerServicesForProcessGroup = createAction(
     `${CANVAS_PREFIX} Navigate To Controller Services For Process Group`,
     props<{ request: NavigateToControllerServicesRequest }>()
+);
+
+export const navigateToQueueListing = createAction(
+    `${CANVAS_PREFIX} Navigate To Queue Listing`,
+    props<{ request: NavigateToQueueListing }>()
 );
 
 export const editCurrentProcessGroup = createAction(

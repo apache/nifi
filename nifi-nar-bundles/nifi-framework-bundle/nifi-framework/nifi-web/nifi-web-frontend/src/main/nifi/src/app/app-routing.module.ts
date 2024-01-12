@@ -69,6 +69,11 @@ const routes: Routes = [
         loadChildren: () => import('./pages/bulletins/feature/bulletins.module').then((m) => m.BulletinsModule)
     },
     {
+        path: 'queue',
+        canMatch: [authenticationGuard],
+        loadChildren: () => import('./pages/queue/feature/queue.module').then((m) => m.QueueModule)
+    },
+    {
         path: '',
         canMatch: [authenticationGuard],
         loadChildren: () =>
