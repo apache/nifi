@@ -261,7 +261,7 @@ export class ReportingTasksEffects {
                         if (editDialogReference.componentInstance.editReportingTaskForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
                                 data: {
-                                    title: 'Controller Service Configuration',
+                                    title: 'Reporting Task Configuration',
                                     message: `Save changes before going to this ${destination}?`
                                 },
                                 panelClass: 'small-dialog'

@@ -250,7 +250,7 @@ export class FlowAnalysisRulesEffects {
                         if (editDialogReference.componentInstance.editFlowAnalysisRuleForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
                                 data: {
-                                    title: 'Controller Service Configuration',
+                                    title: 'Flow Analysis Rule Configuration',
                                     message: `Save changes before going to this ${destination}?`
                                 },
                                 panelClass: 'small-dialog'
