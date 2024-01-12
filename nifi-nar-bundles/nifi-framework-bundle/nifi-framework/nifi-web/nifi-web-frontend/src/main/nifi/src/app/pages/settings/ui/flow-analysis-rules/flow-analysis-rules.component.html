@@ -28,6 +28,7 @@
             </div>
             <div class="flex-1">
                 <flow-analysis-rule-table
+                    [currentUser]="currentUser"
                     [selectedFlowAnalysisRuleId]="selectedFlowAnalysisRuleId$ | async"
                     [flowAnalysisRules]="flowAnalysisRuleState.flowAnalysisRules"
                     (configureFlowAnalysisRule)="configureFlowAnalysisRule($event)"

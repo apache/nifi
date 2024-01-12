@@ -53,7 +53,6 @@ export class FlowAnalysisRuleTable {
         this.dataSource.data = this.sortFlowAnalysisRules(flowAnalysisRuleEntities, this.sort);
     }
     @Input() selectedFlowAnalysisRuleId!: string;
-    @Input() definedByCurrentGroup!: (entity: FlowAnalysisRuleEntity) => boolean;
     @Input() currentUser!: CurrentUser;
 
     @Output() selectFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> = new EventEmitter<FlowAnalysisRuleEntity>();
