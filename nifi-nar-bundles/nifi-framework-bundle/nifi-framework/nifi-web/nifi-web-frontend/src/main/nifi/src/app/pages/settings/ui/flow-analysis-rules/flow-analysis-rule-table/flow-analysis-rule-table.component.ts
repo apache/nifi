@@ -235,11 +235,6 @@ export class FlowAnalysisRuleTable implements AfterViewInit {
         return this.canRead(entity) && this.canWrite(entity) && entity.component.persistsState === true;
     }
 
-    canManageAccessPolicies(): boolean {
-        // TODO
-        return false;
-    }
-
     select(entity: FlowAnalysisRuleEntity): void {
         this.selectFlowAnalysisRule.next(entity);
     }
