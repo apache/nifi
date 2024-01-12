@@ -17,15 +17,17 @@
 
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
-import * as ReportingTaskActions from './reporting-tasks.actions';
+import * as FlowAnalysisRuleActions from './flow-analysis-rules.actions';
 import { catchError, from, map, NEVER, Observable, of, switchMap, take, takeUntil, tap, withLatestFrom } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
-import { selectReportingTaskTypes } from '../../../../state/extension-types/extension-types.selectors';
+import { selectFlowAnalysisRuleTypes } from '../../../../state/extension-types/extension-types.selectors';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
-import { ReportingTaskService } from '../../service/reporting-task.service';
-import { CreateReportingTask } from '../../ui/reporting-tasks/create-reporting-task/create-reporting-task.component';
+import { FlowAnalysisRuleService } from '../../service/flow-analysis-rule.service';
+import { Client } from '../../../../service/client.service';
+import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
+import { CreateFlowAnalysisRule } from '../../ui/flow-analysis-rules/create-flow-analysis-rule/create-flow-analysis-rule.component';
 import { Router } from '@angular/router';
 import { selectSaving } from '../management-controller-services/management-controller-services.selectors';
 import {
@@ -37,43 +39,41 @@ import {
     PropertyDescriptor,
     UpdateControllerServiceRequest
 } from '../../../../state/shared';
+import { EditFlowAnalysisRule } from '../../ui/flow-analysis-rules/edit-flow-analysis-rule/edit-flow-analysis-rule.component';
+import { CreateFlowAnalysisRuleSuccess } from './index';
 import { NewPropertyDialog } from '../../../../ui/common/new-property-dialog/new-property-dialog.component';
-import { EditReportingTask } from '../../ui/reporting-tasks/edit-reporting-task/edit-reporting-task.component';
-import { CreateReportingTaskSuccess } from './index';
-import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { CreateControllerService } from '../../../../ui/common/controller-service/create-controller-service/create-controller-service.component';
-import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
-import { Client } from '../../../../service/client.service';
+import { ExtensionTypesService } from '../../../../service/extension-types.service';
 
 @Injectable()
-export class ReportingTasksEffects {
+export class FlowAnalysisRulesEffects {
     constructor(
         private actions$: Actions,
         private store: Store<NiFiState>,
         private client: Client,
-        private reportingTaskService: ReportingTaskService,
         private managementControllerServiceService: ManagementControllerServiceService,
         private extensionTypesService: ExtensionTypesService,
+        private flowAnalysisRuleService: FlowAnalysisRuleService,
         private dialog: MatDialog,
         private router: Router
     ) {}
 
-    loadReportingTasks$ = createEffect(() =>
+    loadFlowAnalysisRule$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(ReportingTaskActions.loadReportingTasks),
+            ofType(FlowAnalysisRuleActions.loadFlowAnalysisRules),
             switchMap(() =>
-                from(this.reportingTaskService.getReportingTasks()).pipe(
+                from(this.flowAnalysisRuleService.getFlowAnalysisRule()).pipe(
                     map((response) =>
-                        ReportingTaskActions.loadReportingTasksSuccess({
+                        FlowAnalysisRuleActions.loadFlowAnalysisRulesSuccess({
                             response: {
-                                reportingTasks: response.reportingTasks,
+                                flowAnalysisRules: response.flowAnalysisRules,
                                 loadedTimestamp: response.currentTime
                             }
                         })
                     ),
                     catchError((error) =>
                         of(
-                            ReportingTaskActions.reportingTasksApiError({
+                            FlowAnalysisRuleActions.flowAnalysisRuleApiError({
                                 error: error.error
                             })
                         )
@@ -83,15 +83,15 @@ export class ReportingTasksEffects {
         )
     );
 
-    openNewReportingTaskDialog$ = createEffect(
+    openNewFlowAnalysisRuleDialog$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(ReportingTaskActions.openNewReportingTaskDialog),
-                withLatestFrom(this.store.select(selectReportingTaskTypes)),
-                tap(([action, reportingTaskTypes]) => {
-                    this.dialog.open(CreateReportingTask, {
+                ofType(FlowAnalysisRuleActions.openNewFlowAnalysisRuleDialog),
+                withLatestFrom(this.store.select(selectFlowAnalysisRuleTypes)),
+                tap(([action, flowAnalysisRuleTypes]) => {
+                    this.dialog.open(CreateFlowAnalysisRule, {
                         data: {
-                            reportingTaskTypes
+                            flowAnalysisRuleTypes
                         },
                         panelClass: 'medium-dialog'
                     });
@@ -100,22 +100,22 @@ export class ReportingTasksEffects {
         { dispatch: false }
     );
 
-    createReportingTask$ = createEffect(() =>
+    createFlowAnalysisRule$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(ReportingTaskActions.createReportingTask),
+            ofType(FlowAnalysisRuleActions.createFlowAnalysisRule),
             map((action) => action.request),
             switchMap((request) =>
-                from(this.reportingTaskService.createReportingTask(request)).pipe(
+                from(this.flowAnalysisRuleService.createFlowAnalysisRule(request)).pipe(
                     map((response) =>
-                        ReportingTaskActions.createReportingTaskSuccess({
+                        FlowAnalysisRuleActions.createFlowAnalysisRuleSuccess({
                             response: {
-                                reportingTask: response
+                                flowAnalysisRule: response
                             }
                         })
                     ),
                     catchError((error) =>
                         of(
-                            ReportingTaskActions.reportingTasksApiError({
+                            FlowAnalysisRuleActions.flowAnalysisRuleApiError({
                                 error: error.error
                             })
                         )
@@ -125,18 +125,18 @@ export class ReportingTasksEffects {
         )
     );
 
-    createReportingTaskSuccess$ = createEffect(() =>
+    createFlowAnalysisRuleSuccess$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(ReportingTaskActions.createReportingTaskSuccess),
+            ofType(FlowAnalysisRuleActions.createFlowAnalysisRuleSuccess),
             map((action) => action.response),
             tap(() => {
                 this.dialog.closeAll();
             }),
-            switchMap((response: CreateReportingTaskSuccess) =>
+            switchMap((response: CreateFlowAnalysisRuleSuccess) =>
                 of(
-                    ReportingTaskActions.selectReportingTask({
+                    FlowAnalysisRuleActions.selectFlowAnalysisRule({
                         request: {
-                            id: response.reportingTask.id
+                            id: response.flowAnalysisRule.id
                         }
                     })
                 )
@@ -144,23 +144,23 @@ export class ReportingTasksEffects {
         )
     );
 
-    promptReportingTaskDeletion$ = createEffect(
+    promptFlowAnalysisRuleDeletion$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(ReportingTaskActions.promptReportingTaskDeletion),
+                ofType(FlowAnalysisRuleActions.promptFlowAnalysisRuleDeletion),
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
                         data: {
-                            title: 'Delete Reporting Task',
-                            message: `Delete reporting task ${request.reportingTask.component.name}?`
+                            title: 'Delete Flow Analysis Rule',
+                            message: `Delete reporting task ${request.flowAnalysisRule.component.name}?`
                         },
                         panelClass: 'small-dialog'
                     });
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
                         this.store.dispatch(
-                            ReportingTaskActions.deleteReportingTask({
+                            FlowAnalysisRuleActions.deleteFlowAnalysisRule({
                                 request
                             })
                         );
@@ -170,22 +170,22 @@ export class ReportingTasksEffects {
         { dispatch: false }
     );
 
-    deleteReportingTask$ = createEffect(() =>
+    deleteFlowAnalysisRule$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(ReportingTaskActions.deleteReportingTask),
+            ofType(FlowAnalysisRuleActions.deleteFlowAnalysisRule),
             map((action) => action.request),
             switchMap((request) =>
-                from(this.reportingTaskService.deleteReportingTask(request)).pipe(
+                from(this.flowAnalysisRuleService.deleteFlowAnalysisRule(request)).pipe(
                     map((response) =>
-                        ReportingTaskActions.deleteReportingTaskSuccess({
+                        FlowAnalysisRuleActions.deleteFlowAnalysisRuleSuccess({
                             response: {
-                                reportingTask: response
+                                flowAnalysisRule: response
                             }
                         })
                     ),
                     catchError((error) =>
                         of(
-                            ReportingTaskActions.reportingTasksApiError({
+                            FlowAnalysisRuleActions.flowAnalysisRuleApiError({
                                 error: error.error
                             })
                         )
@@ -195,31 +195,31 @@ export class ReportingTasksEffects {
         )
     );
 
-    navigateToEditReportingTask$ = createEffect(
+    navigateToEditFlowAnalysisRule$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(ReportingTaskActions.navigateToEditReportingTask),
+                ofType(FlowAnalysisRuleActions.navigateToEditFlowAnalysisRule),
                 map((action) => action.id),
                 tap((id) => {
-                    this.router.navigate(['/settings', 'reporting-tasks', id, 'edit']);
+                    this.router.navigate(['/settings', 'flow-analysis-rules', id, 'edit']);
                 })
             ),
         { dispatch: false }
     );
 
-    openConfigureReportingTaskDialog$ = createEffect(
+    openConfigureFlowAnalysisRuleDialog$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(ReportingTaskActions.openConfigureReportingTaskDialog),
+                ofType(FlowAnalysisRuleActions.openConfigureFlowAnalysisRuleDialog),
                 map((action) => action.request),
                 tap((request) => {
-                    const taskId: string = request.id;
+                    const ruleId: string = request.id;
 
-                    const editDialogReference = this.dialog.open(EditReportingTask, {
+                    const editDialogReference = this.dialog.open(EditFlowAnalysisRule, {
                         data: {
-                            reportingTask: request.reportingTask
+                            flowAnalysisRule: request.flowAnalysisRule
                         },
-                        id: taskId,
+                        id: ruleId,
                         panelClass: 'large-dialog'
                     });
 
@@ -238,7 +238,7 @@ export class ReportingTasksEffects {
                         return newPropertyDialogReference.componentInstance.newProperty.pipe(
                             take(1),
                             switchMap((dialogResponse: NewPropertyDialogResponse) => {
-                                return this.reportingTaskService
+                                return this.flowAnalysisRuleService
                                     .getPropertyDescriptor(request.id, dialogResponse.name, dialogResponse.sensitive)
                                     .pipe(
                                         take(1),
@@ -257,10 +257,10 @@ export class ReportingTasksEffects {
                     };
 
                     const goTo = (commands: string[], destination: string): void => {
-                        if (editDialogReference.componentInstance.editReportingTaskForm.dirty) {
+                        if (editDialogReference.componentInstance.editFlowAnalysisRuleForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
                                 data: {
-                                    title: 'Reporting Task Configuration',
+                                    title: 'Flow Analysis Rule Configuration',
                                     message: `Save changes before going to this ${destination}?`
                                 },
                                 panelClass: 'small-dialog'
@@ -327,8 +327,8 @@ export class ReportingTasksEffects {
                                                     take(1),
                                                     switchMap((createResponse) => {
                                                         // fetch an updated property descriptor
-                                                        return this.reportingTaskService
-                                                            .getPropertyDescriptor(taskId, descriptor.name, false)
+                                                        return this.flowAnalysisRuleService
+                                                            .getPropertyDescriptor(ruleId, descriptor.name, false)
                                                             .pipe(
                                                                 take(1),
                                                                 map((descriptorResponse) => {
@@ -353,14 +353,14 @@ export class ReportingTasksEffects {
                             );
                     };
 
-                    editDialogReference.componentInstance.editReportingTask
+                    editDialogReference.componentInstance.editFlowAnalysisRule
                         .pipe(takeUntil(editDialogReference.afterClosed()))
                         .subscribe((updateControllerServiceRequest: UpdateControllerServiceRequest) => {
                             this.store.dispatch(
-                                ReportingTaskActions.configureReportingTask({
+                                FlowAnalysisRuleActions.configureFlowAnalysisRule({
                                     request: {
-                                        id: request.reportingTask.id,
-                                        uri: request.reportingTask.uri,
+                                        id: request.flowAnalysisRule.id,
+                                        uri: request.flowAnalysisRule.uri,
                                         payload: updateControllerServiceRequest.payload,
                                         postUpdateNavigation: updateControllerServiceRequest.postUpdateNavigation
                                     }
@@ -371,9 +371,9 @@ export class ReportingTasksEffects {
                     editDialogReference.afterClosed().subscribe((response) => {
                         if (response != 'ROUTED') {
                             this.store.dispatch(
-                                ReportingTaskActions.selectReportingTask({
+                                FlowAnalysisRuleActions.selectFlowAnalysisRule({
                                     request: {
-                                        id: taskId
+                                        id: ruleId
                                     }
                                 })
                             );
@@ -384,24 +384,24 @@ export class ReportingTasksEffects {
         { dispatch: false }
     );
 
-    configureReportingTask$ = createEffect(() =>
+    configureFlowAnalysisRule$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(ReportingTaskActions.configureReportingTask),
+            ofType(FlowAnalysisRuleActions.configureFlowAnalysisRule),
             map((action) => action.request),
             switchMap((request) =>
-                from(this.reportingTaskService.updateReportingTask(request)).pipe(
+                from(this.flowAnalysisRuleService.updateFlowAnalysisRule(request)).pipe(
                     map((response) =>
-                        ReportingTaskActions.configureReportingTaskSuccess({
+                        FlowAnalysisRuleActions.configureFlowAnalysisRuleSuccess({
                             response: {
                                 id: request.id,
-                                reportingTask: response,
+                                flowAnalysisRule: response,
                                 postUpdateNavigation: request.postUpdateNavigation
                             }
                         })
                     ),
                     catchError((error) =>
                         of(
-                            ReportingTaskActions.reportingTasksApiError({
+                            FlowAnalysisRuleActions.flowAnalysisRuleApiError({
                                 error: error.error
                             })
                         )
@@ -411,10 +411,10 @@ export class ReportingTasksEffects {
         )
     );
 
-    configureReportingTaskSuccess$ = createEffect(
+    configureFlowAnalysisRuleSuccess$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(ReportingTaskActions.configureReportingTaskSuccess),
+                ofType(FlowAnalysisRuleActions.configureFlowAnalysisRuleSuccess),
                 map((action) => action.response),
                 tap((response) => {
                     if (response.postUpdateNavigation) {
@@ -428,63 +428,95 @@ export class ReportingTasksEffects {
         { dispatch: false }
     );
 
-    startReportingTask$ = createEffect(() =>
-        this.actions$.pipe(
-            ofType(ReportingTaskActions.startReportingTask),
-            map((action) => action.request),
-            switchMap((request) =>
-                from(this.reportingTaskService.startReportingTask(request)).pipe(
-                    map((response) =>
-                        ReportingTaskActions.startReportingTaskSuccess({
-                            response: {
-                                reportingTask: response
-                            }
-                        })
-                    ),
-                    catchError((error) =>
-                        of(
-                            ReportingTaskActions.reportingTasksApiError({
-                                error: error.error
-                            })
-                        )
-                    )
-                )
-            )
-        )
-    );
-
-    stopReportingTask$ = createEffect(() =>
-        this.actions$.pipe(
-            ofType(ReportingTaskActions.stopReportingTask),
-            map((action) => action.request),
-            switchMap((request) =>
-                from(this.reportingTaskService.stopReportingTask(request)).pipe(
-                    map((response) =>
-                        ReportingTaskActions.stopReportingTaskSuccess({
-                            response: {
-                                reportingTask: response
-                            }
-                        })
-                    ),
-                    catchError((error) =>
-                        of(
-                            ReportingTaskActions.reportingTasksApiError({
-                                error: error.error
-                            })
-                        )
-                    )
-                )
-            )
-        )
-    );
-
-    selectReportingTask$ = createEffect(
+    selectFlowAnalysisRule$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(ReportingTaskActions.selectReportingTask),
+                ofType(FlowAnalysisRuleActions.selectFlowAnalysisRule),
                 map((action) => action.request),
                 tap((request) => {
-                    this.router.navigate(['/settings', 'reporting-tasks', request.id]);
+                    this.router.navigate(['/settings', 'flow-analysis-rules', request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    enableFlowAnalysisRule$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowAnalysisRuleActions.enableFlowAnalysisRule),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.flowAnalysisRuleService.setEnable(request, true)).pipe(
+                    map((response) =>
+                        FlowAnalysisRuleActions.enableFlowAnalysisRuleSuccess({
+                            response: {
+                                id: request.id,
+                                flowAnalysisRule: response,
+                                postUpdateNavigation: response.postUpdateNavigation
+                            }
+                        })
+                    ),
+                    catchError((error) =>
+                        of(
+                            FlowAnalysisRuleActions.flowAnalysisRuleApiError({
+                                error: error.error
+                            })
+                        )
+                    )
+                )
+            )
+        )
+    );
+
+    enableFlowAnalysisRuleSuccess$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowAnalysisRuleActions.enableFlowAnalysisRuleSuccess),
+                map((action) => action.response),
+                tap((response) => {
+                    if (response.postUpdateNavigation) {
+                        this.router.navigate(response.postUpdateNavigation);
+                    }
+                })
+            ),
+        { dispatch: false }
+    );
+
+    disableFlowAnalysisRule$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowAnalysisRuleActions.disableFlowAnalysisRule),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.flowAnalysisRuleService.setEnable(request, false)).pipe(
+                    map((response) =>
+                        FlowAnalysisRuleActions.disableFlowAnalysisRuleSuccess({
+                            response: {
+                                id: request.id,
+                                flowAnalysisRule: response,
+                                postUpdateNavigation: response.postUpdateNavigation
+                            }
+                        })
+                    ),
+                    catchError((error) =>
+                        of(
+                            FlowAnalysisRuleActions.flowAnalysisRuleApiError({
+                                error: error.error
+                            })
+                        )
+                    )
+                )
+            )
+        )
+    );
+
+    disableFlowAnalysisRuleSuccess$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowAnalysisRuleActions.disableFlowAnalysisRuleSuccess),
+                map((action) => action.response),
+                tap((response) => {
+                    if (response.postUpdateNavigation) {
+                        this.router.navigate(response.postUpdateNavigation);
+                    }
                 })
             ),
         { dispatch: false }

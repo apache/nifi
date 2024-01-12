@@ -32,19 +32,18 @@ import {
     ControllerServiceReferencingComponent,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
-    Parameter,
-    ParameterContextReferenceEntity,
     Property,
-    PropertyTipInput,
     SelectOption,
-    TextTipInput,
-    UpdateControllerServiceRequest,
-    UpdateReportingTaskRequest
+    TextTipInput
 } from '../../../../../state/shared';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
-import { EditReportingTaskDialogRequest, ReportingTaskEntity } from '../../../state/reporting-tasks';
+import {
+    EditReportingTaskDialogRequest,
+    ReportingTaskEntity,
+    UpdateReportingTaskRequest
+} from '../../../state/reporting-tasks';
 import { ControllerServiceApi } from '../../../../../ui/common/controller-service/controller-service-api/controller-service-api.component';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
