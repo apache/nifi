@@ -51,6 +51,11 @@ export interface ConfigureFlowAnalysisRuleSuccess {
     postUpdateNavigation?: string[];
 }
 
+export interface UpdateFlowAnalysisRuleRequest {
+    payload: any;
+    postUpdateNavigation?: string[];
+}
+
 export interface EnableFlowAnalysisRuleSuccess {
     id: string;
     flowAnalysisRule: FlowAnalysisRuleEntity;

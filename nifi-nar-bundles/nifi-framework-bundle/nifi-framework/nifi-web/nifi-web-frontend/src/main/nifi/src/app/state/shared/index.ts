@@ -115,16 +115,6 @@ export interface UpdateControllerServiceRequest {
     postUpdateNavigation?: string[];
 }
 
-export interface UpdateReportingTaskRequest {
-    payload: any;
-    postUpdateNavigation?: string[];
-}
-
-export interface UpdateFlowAnalysisRuleRequest {
-    payload: any;
-    postUpdateNavigation?: string[];
-}
-
 export interface SetEnableControllerServiceDialogRequest {
     id: string;
     controllerService: ControllerServiceEntity;

@@ -58,6 +58,11 @@ export interface ConfigureReportingTaskRequest {
     postUpdateNavigation?: string[];
 }
 
+export interface UpdateReportingTaskRequest {
+    payload: any;
+    postUpdateNavigation?: string[];
+}
+
 export interface EditReportingTaskDialogRequest {
     id: string;
     reportingTask: ReportingTaskEntity;

@@ -27,13 +27,17 @@ import { MatSelectModule } from '@angular/material/select';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { Client } from '../../../../../service/client.service';
-import { Property, SelectOption, TextTipInput, UpdateFlowAnalysisRuleRequest } from '../../../../../state/shared';
+import { Property, SelectOption, TextTipInput } from '../../../../../state/shared';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { EditFlowAnalysisRuleDialogRequest, FlowAnalysisRuleEntity } from '../../../state/flow-analysis-rules';
+import {
+    EditFlowAnalysisRuleDialogRequest,
+    FlowAnalysisRuleEntity,
+    UpdateFlowAnalysisRuleRequest
+} from '../../../state/flow-analysis-rules';
 
 @Component({
     selector: 'edit-flow-analysis-rule',
