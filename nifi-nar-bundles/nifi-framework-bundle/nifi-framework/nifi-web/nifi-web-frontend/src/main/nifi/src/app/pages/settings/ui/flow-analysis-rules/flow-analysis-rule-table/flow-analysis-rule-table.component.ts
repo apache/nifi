@@ -144,11 +144,7 @@ export class FlowAnalysisRuleTable implements AfterViewInit {
         } else {
             if (entity.status.runStatus === 'DISABLED') {
                 return 'disabled icon icon-enable-false';
-            } else if (entity.status.runStatus === 'DISABLING') {
-                return 'disabled icon icon-enable-false';
             } else if (entity.status.runStatus === 'ENABLED') {
-                return 'enabled fa fa-flash';
-            } else if (entity.status.runStatus === 'ENABLING') {
                 return 'enabled fa fa-flash';
             }
         }
@@ -163,12 +159,8 @@ export class FlowAnalysisRuleTable implements AfterViewInit {
         } else {
             if (entity.status.runStatus === 'DISABLED') {
                 return 'Disabled';
-            } else if (entity.status.runStatus === 'DISABLING') {
-                return 'Disabling';
             } else if (entity.status.runStatus === 'ENABLED') {
                 return 'Enabled';
-            } else if (entity.status.runStatus === 'ENABLING') {
-                return 'Enabling';
             }
         }
         return '';
