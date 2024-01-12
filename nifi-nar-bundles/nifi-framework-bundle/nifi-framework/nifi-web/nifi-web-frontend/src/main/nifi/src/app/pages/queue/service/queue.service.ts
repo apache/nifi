@@ -16,16 +16,10 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { NiFiCommon } from '../../../service/nifi-common.service';
-import { ParameterContextUpdateRequest, SubmitParameterContextUpdate } from '../../../state/shared';
-import {
-    FlowFileSummary,
-    ListingRequest,
-    ListingRequestEntity,
-    SubmitQueueListingRequest
-} from '../state/queue-listing';
+import { FlowFileSummary, ListingRequest, SubmitQueueListingRequest } from '../state/queue-listing';
 
 @Injectable({ providedIn: 'root' })
 export class QueueService {
