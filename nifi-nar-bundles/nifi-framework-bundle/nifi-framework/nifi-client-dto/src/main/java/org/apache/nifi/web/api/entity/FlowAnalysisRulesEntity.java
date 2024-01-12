@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
@@ -48,9 +48,9 @@ public class FlowAnalysisRulesEntity extends Entity {
      * @return current time on the server
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-            value = "The current time on the system.",
-            dataType = "string"
+    @Schema(
+            description = "The current time on the system.",
+            type = "string"
     )
     public Date getCurrentTime() {
         return currentTime;
