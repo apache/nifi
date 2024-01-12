@@ -69,16 +69,17 @@
                                     <mat-select
                                         formControlName="policyAction"
                                         (selectionChange)="policyActionChanged($event.value)">
-                                        <mat-option
-                                            *ngFor="let option of policyActionOptions"
-                                            [disabled]="!isComponentPolicy(option, policyComponentState)"
-                                            [value]="option.value"
-                                            nifiTooltip
-                                            [tooltipComponentType]="TextTip"
-                                            [tooltipInputData]="getSelectOptionTipData(option)"
-                                            [delayClose]="false"
-                                            >{{ option.text }}
-                                        </mat-option>
+                                        <ng-container *ngFor="let option of policyActionOptions">
+                                            <mat-option
+                                                *ngIf="isComponentPolicy(option, policyComponentState)"
+                                                [value]="option.value"
+                                                nifiTooltip
+                                                [tooltipComponentType]="TextTip"
+                                                [tooltipInputData]="getSelectOptionTipData(option)"
+                                                [delayClose]="false"
+                                                >{{ option.text }}
+                                            </mat-option>
+                                        </ng-container>
                                     </mat-select>
                                 </mat-form-field>
                             </div>

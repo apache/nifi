@@ -18,14 +18,18 @@
 import { RouterModule, Routes } from '@angular/router';
 import { NgModule } from '@angular/core';
 import { AccessPolicies } from './access-policies.component';
-import { authorizationGuard } from '../../../service/guard/authorization.guard';
-import { CurrentUser } from '../../../state/current-user';
+import { FlowConfiguration } from '../../../state/flow-configuration';
+import { checkFlowConfiguration } from '../../../service/guard/flow-configuration.guard';
 
 const routes: Routes = [
     {
         path: '',
         component: AccessPolicies,
-        canMatch: [authorizationGuard((user: CurrentUser) => user.tenantsPermissions.canRead)],
+        canMatch: [
+            checkFlowConfiguration(
+                (flowConfiguration: FlowConfiguration) => flowConfiguration.supportsManagedAuthorizer
+            )
+        ],
         children: [
             {
                 path: 'global',

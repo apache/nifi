@@ -19,21 +19,23 @@ import { CanMatchFn, Route, Router, UrlSegment } from '@angular/router';
 import { inject } from '@angular/core';
 import { map } from 'rxjs';
 import { Store } from '@ngrx/store';
-import { CurrentUser, CurrentUserState } from '../../state/current-user';
-import { selectCurrentUser } from '../../state/current-user/current-user.selectors';
+import { FlowConfiguration, FlowConfigurationState } from '../../state/flow-configuration';
+import { selectFlowConfiguration } from '../../state/flow-configuration/flow-configuration.selectors';
 
-export const authorizationGuard = (authorizationCheck: (user: CurrentUser) => boolean): CanMatchFn => {
+export const checkFlowConfiguration = (
+    flowConfigurationCheck: (flowConfiguration: FlowConfiguration) => boolean
+): CanMatchFn => {
     return (route: Route, state: UrlSegment[]) => {
         const router: Router = inject(Router);
-        const store: Store<CurrentUserState> = inject(Store<CurrentUserState>);
+        const store: Store<FlowConfigurationState> = inject(Store<FlowConfigurationState>);
 
-        return store.select(selectCurrentUser).pipe(
-            map((currentUser) => {
-                if (authorizationCheck(currentUser)) {
+        return store.select(selectFlowConfiguration).pipe(
+            map((flowConfiguration) => {
+                if (flowConfiguration && flowConfigurationCheck(flowConfiguration)) {
                     return true;
                 }
 
-                // TODO - replace with 403 error page
+                // TODO - replace with 409 error page
                 return router.parseUrl('/');
             })
         );
