@@ -39,7 +39,7 @@ export interface TenantItem {
     imports: [MatTableModule, MatSortModule, NgIf],
     styleUrls: ['./policy-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
 })
-export class PolicyTable implements AfterViewInit {
+export class PolicyTable {
     displayedColumns: string[] = ['user', 'actions'];
     dataSource: MatTableDataSource<TenantItem> = new MatTableDataSource<TenantItem>();
 
@@ -78,7 +78,7 @@ export class PolicyTable implements AfterViewInit {
     @Output() removeTenantFromPolicy: EventEmitter<RemoveTenantFromPolicyRequest> =
         new EventEmitter<RemoveTenantFromPolicyRequest>();
 
-    _policy: AccessPolicyEntity | undefined;
+    private _policy: AccessPolicyEntity | undefined;
     selectedTenantId: string | null = null;
 
     sort: Sort = {
@@ -87,8 +87,6 @@ export class PolicyTable implements AfterViewInit {
     };
 
     constructor(private nifiCommon: NiFiCommon) {}
-
-    ngAfterViewInit(): void {}
 
     updateSort(sort: Sort): void {
         this.sort = sort;

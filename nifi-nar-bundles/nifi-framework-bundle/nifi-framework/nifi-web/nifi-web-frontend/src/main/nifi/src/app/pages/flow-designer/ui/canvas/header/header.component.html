@@ -122,27 +122,31 @@
                         <i class="fa fa-fw mr-2"></i>
                         System Diagnostics
                     </button>
-                    <mat-divider></mat-divider>
-                    <button
-                        mat-menu-item
-                        class="global-menu-item"
-                        [routerLink]="['/users']"
-                        [disabled]="!user.tenantsPermissions.canRead">
-                        <i class="fa fa-fw fa-users mr-2"></i>
-                        Users
-                    </button>
-                    <button
-                        mat-menu-item
-                        class="global-menu-item"
-                        [routerLink]="['/access-policies', 'global']"
-                        [disabled]="
-                            !user.tenantsPermissions.canRead ||
-                            !user.policiesPermissions.canRead ||
-                            !user.policiesPermissions.canWrite
-                        ">
-                        <i class="fa fa-fw fa-key mr-2"></i>
-                        Policies
-                    </button>
+                    <ng-container *ngIf="flowConfiguration$ | async as flowConfiguration">
+                        <ng-container *ngIf="flowConfiguration.supportsManagedAuthorizer">
+                            <mat-divider></mat-divider>
+                            <button
+                                mat-menu-item
+                                class="global-menu-item"
+                                [routerLink]="['/users']"
+                                [disabled]="!user.tenantsPermissions.canRead">
+                                <i class="fa fa-fw fa-users mr-2"></i>
+                                Users
+                            </button>
+                            <button
+                                mat-menu-item
+                                class="global-menu-item"
+                                [routerLink]="['/access-policies', 'global']"
+                                [disabled]="
+                                    !user.tenantsPermissions.canRead ||
+                                    !user.policiesPermissions.canRead ||
+                                    !user.policiesPermissions.canWrite
+                                ">
+                                <i class="fa fa-fw fa-key mr-2"></i>
+                                Policies
+                            </button>
+                        </ng-container>
+                    </ng-container>
                     <mat-divider></mat-divider>
                     <button mat-menu-item class="global-menu-item">
                         <i class="fa fa-fw fa-question-circle mr-2"></i>

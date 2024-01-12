@@ -34,13 +34,13 @@ import {
     selectAccessPolicyState,
     selectComponentResourceActionFromRoute
 } from '../../state/access-policy/access-policy.selectors';
-import { filter } from 'rxjs';
+import { distinctUntilChanged, filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { ComponentType, SelectOption, TextTipInput } from '../../../../state/shared';
 import { TextTip } from '../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { AccessPolicyEntity, Action, PolicyStatus, ResourceAction } from '../../state/shared';
+import { AccessPolicyEntity, Action, ComponentResourceAction, PolicyStatus, ResourceAction } from '../../state/shared';
 import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { loadTenants, resetTenantsState } from '../../state/tenants/tenants.actions';
@@ -146,6 +146,19 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
             .select(selectComponentResourceActionFromRoute)
             .pipe(
                 filter((resourceAction) => resourceAction != null),
+                distinctUntilChanged((a, b) => {
+                    // @ts-ignore
+                    const aResourceAction: ComponentResourceAction = a;
+                    // @ts-ignore
+                    const bResourceAction: ComponentResourceAction = b;
+
+                    return (
+                        aResourceAction.action == bResourceAction.action &&
+                        aResourceAction.policy == bResourceAction.policy &&
+                        aResourceAction.resource == bResourceAction.resource &&
+                        aResourceAction.resourceIdentifier == bResourceAction.resourceIdentifier
+                    );
+                }),
                 takeUntilDestroyed()
             )
             .subscribe((componentResourceAction) => {
@@ -298,6 +311,8 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
                 return 'icon-label';
             case 'remote-process-groups':
                 return 'icon-group-remote';
+            case 'parameter-contexts':
+                return 'icon-drop';
         }
 
         return 'icon-group';
@@ -317,6 +332,8 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
                 return 'Label';
             case 'remote-process-groups':
                 return 'Remote Process Group';
+            case 'parameter-contexts':
+                return 'Parameter Contexts';
         }
 
         return 'Process Group';

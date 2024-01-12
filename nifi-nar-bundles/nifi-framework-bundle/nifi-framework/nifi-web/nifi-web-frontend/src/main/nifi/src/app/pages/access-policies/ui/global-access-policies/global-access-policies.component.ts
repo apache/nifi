@@ -34,20 +34,20 @@ import {
     selectAccessPolicyState,
     selectGlobalResourceActionFromRoute
 } from '../../state/access-policy/access-policy.selectors';
-import { filter } from 'rxjs';
+import { distinctUntilChanged, filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
-import { ComponentType, RequiredPermission, SelectOption, TenantEntity, TextTipInput } from '../../../../state/shared';
+import { ComponentType, RequiredPermission, SelectOption, TextTipInput } from '../../../../state/shared';
 import { TextTip } from '../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { AccessPolicyEntity, Action, PolicyStatus } from '../../state/shared';
+import { AccessPolicyEntity, Action, PolicyStatus, ResourceAction } from '../../state/shared';
 import { loadExtensionTypesForPolicies } from '../../../../state/extension-types/extension-types.actions';
 import { selectRequiredPermissions } from '../../../../state/extension-types/extension-types.selectors';
 import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
-import { SetEnableStep } from '../../../../state/contoller-service-state';
 import { AccessPoliciesState } from '../../state';
 import { loadTenants, resetTenantsState } from '../../state/tenants/tenants.actions';
+import { loadCurrentUser } from '../../../../state/current-user/current-user.actions';
 
 @Component({
     selector: 'global-access-policies',
@@ -127,6 +127,16 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
             .select(selectGlobalResourceActionFromRoute)
             .pipe(
                 filter((resourceAction) => resourceAction != null),
+                distinctUntilChanged((aResourceAction, bResourceAction) => {
+                    // @ts-ignore
+                    const a: ResourceAction = aResourceAction;
+                    // @ts-ignore
+                    const b: ResourceAction = bResourceAction;
+
+                    return (
+                        a.action == b.action && a.resource == b.resource && a.resourceIdentifier == b.resourceIdentifier
+                    );
+                }),
                 takeUntilDestroyed()
             )
             .subscribe((resourceAction) => {
@@ -286,6 +296,9 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        // reload the current user to ensure the latest global policies
+        this.store.dispatch(loadCurrentUser());
+
         this.store.dispatch(resetAccessPolicyState());
         this.store.dispatch(resetTenantsState());
     }

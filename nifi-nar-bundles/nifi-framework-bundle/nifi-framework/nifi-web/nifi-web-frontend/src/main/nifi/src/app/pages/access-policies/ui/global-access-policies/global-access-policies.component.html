@@ -102,12 +102,14 @@
                 <div *ngIf="flowConfiguration.supportsConfigurableAuthorizer" class="flex gap-x-2 items-center">
                     <button
                         class="nifi-button"
+                        title="Add users/groups to this policy"
                         [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
                         (click)="addTenantToPolicy()">
                         <i class="fa fa-user-plus"></i>
                     </button>
                     <button
                         class="nifi-button"
+                        title="Delete this policy"
                         [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
                         (click)="deletePolicy()">
                         <i class="fa fa-trash"></i>
@@ -135,19 +137,22 @@
         </div>
     </ng-template>
 </ng-container>
-<ng-template #inheritedFromPolicies let-policy let-supportsConfigurableAuthorizer>
+<ng-template #inheritedFromPolicies let-policy let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
     Showing effective policy inherited from all policies.
     <ng-container *ngIf="supportsConfigurableAuthorizer">
         <a (click)="createNewPolicy()">Override</a> this policy.
     </ng-container>
 </ng-template>
-<ng-template #inheritedFromController let-policy let-supportsConfigurableAuthorizer>
+<ng-template #inheritedFromController let-policy let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
     Showing effective policy inherited from the controller.
     <ng-container *ngIf="supportsConfigurableAuthorizer">
         <a (click)="createNewPolicy()">Override</a> this policy.
     </ng-container>
 </ng-template>
-<ng-template #inheritedFromNoRestrictions let-policy let-supportsConfigurableAuthorizer>
+<ng-template
+    #inheritedFromNoRestrictions
+    let-policy
+    let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
     No restriction specific users.
     <ng-container *ngIf="supportsConfigurableAuthorizer">
         <a (click)="createNewPolicy()">Create</a> a new policy.

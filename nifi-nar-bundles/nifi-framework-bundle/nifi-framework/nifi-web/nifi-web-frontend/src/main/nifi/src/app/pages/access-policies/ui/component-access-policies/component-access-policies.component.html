@@ -87,12 +87,14 @@
                     <div *ngIf="flowConfiguration.supportsConfigurableAuthorizer" class="flex gap-x-2">
                         <button
                             class="nifi-button"
+                            title="Add users/groups to this policy"
                             [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
                             (click)="addTenantToPolicy()">
                             <i class="fa fa-user-plus"></i>
                         </button>
                         <button
                             class="nifi-button"
+                            title="Delete this policy"
                             [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
                             (click)="deletePolicy()">
                             <i class="fa fa-trash"></i>
@@ -121,25 +123,28 @@
         </ng-container>
     </ng-template>
 </ng-container>
-<ng-template #inheritedFromPolicies let-policy let-supportsConfigurableAuthorizer>
+<ng-template #inheritedFromPolicies let-policy let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
     No component specific administrators.
     <ng-container *ngIf="supportsConfigurableAuthorizer">
         <a (click)="createNewPolicy()">Add</a> policy for additional administrators.
     </ng-container>
 </ng-template>
-<ng-template #inheritedFromController let-policy let-supportsConfigurableAuthorizer>
+<ng-template #inheritedFromController let-policy let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
     Showing effective policy inherited from the controller.
     <ng-container *ngIf="supportsConfigurableAuthorizer">
         <a (click)="createNewPolicy()">Override</a> this policy.
     </ng-container>
 </ng-template>
-<ng-template #inheritedFromGlobalParameterContexts let-policy let-supportsConfigurableAuthorizer>
+<ng-template
+    #inheritedFromGlobalParameterContexts
+    let-policy
+    let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
     Showing effective policy inherited from global parameter context policy.
     <ng-container *ngIf="supportsConfigurableAuthorizer">
         <a (click)="createNewPolicy()">Override</a> this policy.
     </ng-container>
 </ng-template>
-<ng-template #inheritedFromProcessGroup let-policy let-supportsConfigurableAuthorizer>
+<ng-template #inheritedFromProcessGroup let-policy let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
     Showing effective policy inherited from <a [routerLink]="getInheritedProcessGroupRoute(policy)">Process Group</a>.
     <ng-container *ngIf="supportsConfigurableAuthorizer">
         <a (click)="createNewPolicy()">Override</a> this policy.

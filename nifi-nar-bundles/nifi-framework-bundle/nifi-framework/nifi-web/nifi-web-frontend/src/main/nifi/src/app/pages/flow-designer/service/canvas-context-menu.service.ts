@@ -741,7 +741,9 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    return this.canvasUtils.supportsManagedAuthorizer() && this.canvasUtils.canManagePolicies(selection);
+                    return (
+                        this.canvasUtils.supportsManagedAuthorizer() && this.canvasUtils.canManagePolicies(selection)
+                    );
                 },
                 clazz: 'fa fa-key',
                 text: 'Manage access policies',

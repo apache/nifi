@@ -35,11 +35,9 @@ export interface ResourceAction {
     action: Action;
 }
 
-export interface ComponentResourceAction {
-    resource: string;
+export interface ComponentResourceAction extends ResourceAction {
     resourceIdentifier: string;
     policy: string;
-    action: Action;
 }
 
 export interface AccessPolicyEntity {

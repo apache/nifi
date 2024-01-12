@@ -40,6 +40,7 @@ import { RouterLink } from '@angular/router';
 import { FlowStatus } from './flow-status/flow-status.component';
 import { getNodeStatusHistoryAndOpenDialog } from '../../../../../state/status-history/status-history.actions';
 import { getSystemDiagnosticsAndOpenDialog } from '../../../../../state/system-diagnostics/system-diagnostics.actions';
+import { selectFlowConfiguration } from '../../../../../state/flow-configuration/flow-configuration.selectors';
 
 @Component({
     selector: 'fd-header',
@@ -66,6 +67,7 @@ export class HeaderComponent {
     clusterSummary$ = this.store.select(selectClusterSummary);
     controllerBulletins$ = this.store.select(selectControllerBulletins);
     currentUser$ = this.store.select(selectCurrentUser);
+    flowConfiguration$ = this.store.select(selectFlowConfiguration);
     currentProcessGroupId$ = this.store.select(selectCurrentProcessGroupId);
 
     constructor(
