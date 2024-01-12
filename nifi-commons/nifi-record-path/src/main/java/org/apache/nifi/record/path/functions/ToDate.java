@@ -21,10 +21,16 @@ import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 import org.apache.nifi.record.path.util.RecordPathUtils;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StringUtils;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoField;
+import java.time.temporal.TemporalAccessor;
 import java.util.Date;
+import java.util.TimeZone;
 import java.util.stream.Stream;
 
 public class ToDate extends RecordPathSegment {
@@ -53,20 +59,61 @@ public class ToDate extends RecordPathSegment {
         return fieldValues.filter(fv -> fv.getValue() != null)
                 .map(fv -> {
 
-                    if (!(fv.getValue() instanceof String)) {
+                    final Object fieldValue = fv.getValue();
+                    if (!(fieldValue instanceof String)) {
                         return fv;
                     }
 
-                    final java.text.DateFormat dateFormat = getDateFormat(this.dateFormat, this.timeZoneID, context);
+                    final DateTimeFormatter dateTimeFormatter = getDateTimeFormatter(dateFormat, context);
 
                     final Date dateValue;
                     try {
-                        dateValue = DataTypeUtils.toDate(fv.getValue(), () -> dateFormat, fv.getField().getFieldName());
-                    } catch (final Exception e) {
-                        return fv;
-                    }
+                        final TemporalAccessor parsed = dateTimeFormatter.parse(fieldValue.toString());
 
-                    if (dateValue == null) {
+                        int year = 0;
+                        if (parsed.isSupported(ChronoField.YEAR_OF_ERA)) {
+                            year = parsed.get(ChronoField.YEAR_OF_ERA);
+                        }
+
+                        int month = 0;
+                        if (parsed.isSupported(ChronoField.MONTH_OF_YEAR)) {
+                            month = parsed.get(ChronoField.MONTH_OF_YEAR);
+                        }
+
+                        int day = 0;
+                        if (parsed.isSupported(ChronoField.DAY_OF_MONTH)) {
+                            day = parsed.get(ChronoField.DAY_OF_MONTH);
+                        }
+
+                        int hour = 0;
+                        if (parsed.isSupported(ChronoField.HOUR_OF_DAY)) {
+                            hour = parsed.get(ChronoField.HOUR_OF_DAY);
+                        }
+
+                        int minute = 0;
+                        if (parsed.isSupported(ChronoField.MINUTE_OF_HOUR)) {
+                            minute = parsed.get(ChronoField.MINUTE_OF_HOUR);
+                        }
+
+                        int second = 0;
+                        if (parsed.isSupported(ChronoField.SECOND_OF_MINUTE)) {
+                            second = parsed.get(ChronoField.SECOND_OF_MINUTE);
+                        }
+
+                        int nano = 0;
+                        if (parsed.isSupported(ChronoField.MILLI_OF_SECOND)) {
+                            nano = parsed.get(ChronoField.NANO_OF_SECOND);
+                        }
+
+                        ZoneId zoneId = getZoneId(context);
+                        if (zoneId == null) {
+                            zoneId = ZoneId.systemDefault();
+                        }
+
+                        final ZonedDateTime zonedDateTime = ZonedDateTime.of(year, month, day, hour, minute, second, nano, zoneId);
+                        final Instant instant = zonedDateTime.toInstant();
+                        dateValue = Date.from(instant);
+                    } catch (final Exception e) {
                         return fv;
                     }
 
@@ -74,7 +121,7 @@ public class ToDate extends RecordPathSegment {
                 });
     }
 
-    private java.text.DateFormat getDateFormat(final RecordPathSegment dateFormatSegment, final RecordPathSegment timeZoneID, final RecordPathEvaluationContext context) {
+    private DateTimeFormatter getDateTimeFormatter(final RecordPathSegment dateFormatSegment, final RecordPathEvaluationContext context) {
         if (dateFormatSegment == null) {
             return null;
         }
@@ -85,18 +132,31 @@ public class ToDate extends RecordPathSegment {
         }
 
         try {
-            if (timeZoneID == null) {
-                return DataTypeUtils.getDateFormat(dateFormatString);
-            } else {
-                final String timeZoneStr = RecordPathUtils.getFirstStringValue(timeZoneID, context);
-                if (StringUtils.isEmpty(timeZoneStr)) {
-                    return null;
-                }
-                return DataTypeUtils.getDateFormat(dateFormatString, timeZoneStr);
+            final ZoneId zoneId = getZoneId(context);
+            final DateTimeFormatter formatter = DateTimeFormatter.ofPattern(dateFormatString);
+            if (zoneId != null) {
+                formatter.withZone(zoneId);
             }
+            return formatter;
         } catch (final Exception e) {
             return null;
         }
     }
 
+    private ZoneId getZoneId(final RecordPathEvaluationContext context) {
+        final ZoneId zoneId;
+
+        if (timeZoneID == null) {
+            zoneId = null;
+        } else {
+            final String timeZoneStr = RecordPathUtils.getFirstStringValue(timeZoneID, context);
+            if (StringUtils.isEmpty(timeZoneStr)) {
+                zoneId = null;
+            } else {
+                zoneId = TimeZone.getTimeZone(timeZoneStr).toZoneId();
+            }
+        }
+
+        return zoneId;
+    }
 }

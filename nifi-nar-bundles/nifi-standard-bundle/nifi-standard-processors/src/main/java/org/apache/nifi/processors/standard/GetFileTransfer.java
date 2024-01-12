@@ -32,14 +32,13 @@ import org.apache.nifi.util.StopWatch;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -69,6 +68,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
     public static final String FILE_GROUP_ATTRIBUTE = "file.group";
     public static final String FILE_PERMISSIONS_ATTRIBUTE = "file.permissions";
     public static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
+    protected static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(FILE_MODIFY_DATE_ATTR_FORMAT);
 
     private final AtomicLong lastPollTime = new AtomicLong(-1L);
     private final Lock listingLock = new ReentrantLock();
@@ -277,8 +277,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
     protected Map<String, String> getAttributesFromFile(FileInfo info) {
         Map<String, String> attributes = new HashMap<>();
         if (info != null) {
-            final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-            attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, formatter.format(new Date(info.getLastModifiedTime())));
+            attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(info.getLastModifiedTime()).atZone(ZoneId.systemDefault())));
             attributes.put(FILE_PERMISSIONS_ATTRIBUTE, info.getPermissions());
             attributes.put(FILE_OWNER_ATTRIBUTE, info.getOwner());
             attributes.put(FILE_GROUP_ATTRIBUTE, info.getGroup());

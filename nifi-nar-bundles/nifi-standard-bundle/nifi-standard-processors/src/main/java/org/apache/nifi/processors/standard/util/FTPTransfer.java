@@ -23,12 +23,11 @@ import java.io.InputStream;
 import java.net.Proxy;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -444,9 +443,9 @@ public class FTPTransfer implements FileTransfer {
         final String lastModifiedTime = ctx.getProperty(LAST_MODIFIED_TIME).evaluateAttributeExpressions(flowFile).getValue();
         if (lastModifiedTime != null && !lastModifiedTime.trim().isEmpty()) {
             try {
-                final DateFormat informat = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-                final Date fileModifyTime = informat.parse(lastModifiedTime);
-                final DateFormat outformat = new SimpleDateFormat(FTP_TIMEVAL_FORMAT, Locale.US);
+                final DateTimeFormatter informat = DateTimeFormatter.ofPattern(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
+                final OffsetDateTime fileModifyTime = OffsetDateTime.parse(lastModifiedTime, informat);
+                final DateTimeFormatter outformat = DateTimeFormatter.ofPattern(FTP_TIMEVAL_FORMAT, Locale.US);
                 final String time = outformat.format(fileModifyTime);
                 if (!client.setModificationTime(tempFilename, time)) {
                     // FTP server probably doesn't support MFMT command

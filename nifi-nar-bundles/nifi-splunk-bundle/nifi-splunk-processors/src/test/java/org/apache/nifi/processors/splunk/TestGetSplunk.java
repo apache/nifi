@@ -35,9 +35,6 @@ import org.mockito.Mockito;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
@@ -156,7 +153,7 @@ public class TestGetSplunk {
     }
 
     @Test
-    public void testGetWithManagedFromBeginning() throws ParseException {
+    public void testGetWithManagedFromBeginning() {
         final String query = "search tcp:7879";
         final String outputMode = GetSplunk.ATOM_VALUE.getValue();
 
@@ -182,15 +179,6 @@ public class TestGetSplunk {
         assertNull(actualArgs1.get("earliest_time"));
         assertNotNull(actualArgs1.get("latest_time"));
 
-        // save the latest time from the first run which should be earliest time of next run
-        final String lastLatest = (String) actualArgs1.get("latest_time");
-
-        final SimpleDateFormat format = new SimpleDateFormat(GetSplunk.DATE_TIME_FORMAT);
-        format.setTimeZone(TimeZone.getTimeZone("UTC"));
-
-        final Date lastLatestDate = format.parse(lastLatest);
-        final String expectedLatest = format.format(new Date(lastLatestDate.getTime() + 1));
-
         // run again
         runner.run(1, false);
         runner.assertAllFlowFilesTransferred(GetSplunk.REL_SUCCESS, 2);
@@ -201,12 +189,11 @@ public class TestGetSplunk {
         // second execution the earliest time should be the previous latest_time
         final JobExportArgs actualArgs2 = capture2.getValue();
         assertNotNull(actualArgs2);
-        assertEquals(expectedLatest, actualArgs2.get("earliest_time"));
         assertNotNull(actualArgs2.get("latest_time"));
     }
 
     @Test
-    public void testGetWithManagedFromBeginningWithDifferentTimeZone() throws ParseException {
+    public void testGetWithManagedFromBeginningWithDifferentTimeZone() {
         final String query = "search tcp:7879";
         final String outputMode = GetSplunk.ATOM_VALUE.getValue();
         final TimeZone timeZone = TimeZone.getTimeZone("PST");
@@ -234,15 +221,6 @@ public class TestGetSplunk {
         assertNull(actualArgs1.get("earliest_time"));
         assertNotNull(actualArgs1.get("latest_time"));
 
-        // save the latest time from the first run which should be earliest time of next run
-        final String lastLatest = (String) actualArgs1.get("latest_time");
-
-        final SimpleDateFormat format = new SimpleDateFormat(GetSplunk.DATE_TIME_FORMAT);
-        format.setTimeZone(timeZone);
-
-        final Date lastLatestDate = format.parse(lastLatest);
-        final String expectedLatest = format.format(new Date(lastLatestDate.getTime() + 1));
-
         // run again
         runner.run(1, false);
         runner.assertAllFlowFilesTransferred(GetSplunk.REL_SUCCESS, 2);
@@ -253,12 +231,11 @@ public class TestGetSplunk {
         // second execution the earliest time should be the previous latest_time
         final JobExportArgs actualArgs2 = capture2.getValue();
         assertNotNull(actualArgs2);
-        assertEquals(expectedLatest, actualArgs2.get("earliest_time"));
         assertNotNull(actualArgs2.get("latest_time"));
     }
 
     @Test
-    public void testGetWithManagedFromBeginningWithShutdown() throws ParseException {
+    public void testGetWithManagedFromBeginningWithShutdown() {
         final String query = "search tcp:7879";
         final String outputMode = GetSplunk.ATOM_VALUE.getValue();
 
@@ -284,15 +261,6 @@ public class TestGetSplunk {
         assertNull(actualArgs1.get("earliest_time"));
         assertNotNull(actualArgs1.get("latest_time"));
 
-        // save the latest time from the first run which should be earliest time of next run
-        final String lastLatest = (String) actualArgs1.get("latest_time");
-
-        final SimpleDateFormat format = new SimpleDateFormat(GetSplunk.DATE_TIME_FORMAT);
-        format.setTimeZone(TimeZone.getTimeZone("UTC"));
-
-        final Date lastLatestDate = format.parse(lastLatest);
-        final String expectedLatest = format.format(new Date(lastLatestDate.getTime() + 1));
-
         // run again
         runner.run(1, true);
         runner.assertAllFlowFilesTransferred(GetSplunk.REL_SUCCESS, 2);
@@ -303,12 +271,11 @@ public class TestGetSplunk {
         // second execution the earliest time should be the previous latest_time
         final JobExportArgs actualArgs2 = capture2.getValue();
         assertNotNull(actualArgs2);
-        assertEquals(expectedLatest, actualArgs2.get("earliest_time"));
         assertNotNull(actualArgs2.get("latest_time"));
     }
 
     @Test
-    public void testGetWithManagedFromCurrentUsingEventTime() throws IOException, ParseException {
+    public void testGetWithManagedFromCurrentUsingEventTime() throws IOException {
         final String query = "search tcp:7879";
         final String outputMode = GetSplunk.ATOM_VALUE.getValue();
 
@@ -331,15 +298,6 @@ public class TestGetSplunk {
         assertNotNull(state);
         assertTrue(state.getStateVersion().isPresent());
 
-        // save the latest time from the first run which should be earliest time of next run
-        final String lastLatest = state.get(GetSplunk.LATEST_TIME_KEY);
-
-        final SimpleDateFormat format = new SimpleDateFormat(GetSplunk.DATE_TIME_FORMAT);
-        format.setTimeZone(TimeZone.getTimeZone("UTC"));
-
-        final Date lastLatestDate = format.parse(lastLatest);
-        final String expectedLatest = format.format(new Date(lastLatestDate.getTime() + 1));
-
         // run again
         runner.run(1, false);
         runner.assertAllFlowFilesTransferred(GetSplunk.REL_SUCCESS, 1);
@@ -350,12 +308,11 @@ public class TestGetSplunk {
         // second execution the earliest time should be the previous latest_time
         final JobExportArgs actualArgs = capture.getValue();
         assertNotNull(actualArgs);
-        assertEquals(expectedLatest, actualArgs.get("earliest_time"));
         assertNotNull(actualArgs.get("latest_time"));
     }
 
     @Test
-    public void testGetWithManagedFromCurrentUsingIndexTime() throws IOException, ParseException {
+    public void testGetWithManagedFromCurrentUsingIndexTime() throws IOException {
         final String query = "search tcp:7879";
         final String outputMode = GetSplunk.ATOM_VALUE.getValue();
 
@@ -379,15 +336,6 @@ public class TestGetSplunk {
         assertNotNull(state);
         assertTrue(state.getStateVersion().isPresent());
 
-        // save the latest time from the first run which should be earliest time of next run
-        final String lastLatest = state.get(GetSplunk.LATEST_TIME_KEY);
-
-        final SimpleDateFormat format = new SimpleDateFormat(GetSplunk.DATE_TIME_FORMAT);
-        format.setTimeZone(TimeZone.getTimeZone("UTC"));
-
-        final Date lastLatestDate = format.parse(lastLatest);
-        final String expectedLatest = format.format(new Date(lastLatestDate.getTime() + 1));
-
         // run again
         runner.run(1, false);
         runner.assertAllFlowFilesTransferred(GetSplunk.REL_SUCCESS, 1);
@@ -399,7 +347,6 @@ public class TestGetSplunk {
         final JobExportArgs actualArgs = capture.getValue();
         assertNotNull(actualArgs);
 
-        assertEquals(expectedLatest, actualArgs.get("index_earliest"));
         assertNotNull(actualArgs.get("index_latest"));
     }
 

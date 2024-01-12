@@ -27,9 +27,8 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -539,7 +538,7 @@ public class TestPutSQL {
 
     // Not specifying a format for the date fields here to continue to test backwards compatibility
     @Test
-    public void testUsingTimestampValuesEpochAndString() throws InitializationException, ProcessException, SQLException, ParseException {
+    public void testUsingTimestampValuesEpochAndString() throws InitializationException, ProcessException, SQLException {
         final TestRunner runner = initTestRunner();
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
@@ -549,8 +548,8 @@ public class TestPutSQL {
 
         final String arg2TS = "2001-01-01 00:01:01.001";
         final String art3TS = "2002-02-02 12:02:02.002";
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        java.util.Date parsedDate = dateFormat.parse(arg2TS);
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+        java.util.Date parsedDate = Date.from(LocalDateTime.parse(arg2TS, dateTimeFormatter).atZone(ZoneId.systemDefault()).toInstant());
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.TIMESTAMP));
@@ -620,7 +619,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testUsingDateTimeValuesWithFormatAttribute() throws InitializationException, ProcessException, SQLException, ParseException {
+    public void testUsingDateTimeValuesWithFormatAttribute() throws InitializationException, ProcessException, SQLException {
         final TestRunner runner = initTestRunner();
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
@@ -630,8 +629,6 @@ public class TestPutSQL {
 
         final String dateStr = "2002-03-04";
         final String timeStr = "02:03:04";
-        final String timeFormatString = "HH:mm:ss";
-        final String dateFormatString ="yyyy-MM-dd";
 
         final DateTimeFormatter timeFormatter= DateTimeFormatter.ISO_LOCAL_TIME;
         LocalTime parsedTime = LocalTime.parse(timeStr, timeFormatter);
@@ -658,11 +655,9 @@ public class TestPutSQL {
         // Since Derby database which is used for unit test does not have timezone in DATE and TIME type,
         // and PutSQL converts date string into long representation using local timezone,
         // we need to use local timezone.
-        SimpleDateFormat timeFormat = new SimpleDateFormat(timeFormatString);
-        java.util.Date parsedLocalTime = timeFormat.parse(timeStr);
+        java.util.Date parsedLocalTime = java.sql.Time.valueOf(timeStr);
 
-        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatString);
-        java.util.Date parsedLocalDate = dateFormat.parse(dateStr);
+        java.util.Date parsedLocalDate = java.sql.Date.valueOf(dateStr);
 
         // test Long pattern without format attribute
         attributes = new HashMap<>();
@@ -825,7 +820,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testUsingTimeValuesEpochAndString() throws InitializationException, ProcessException, SQLException, ParseException {
+    public void testUsingTimeValuesEpochAndString() throws InitializationException, ProcessException, SQLException {
         final TestRunner runner = initTestRunner();
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
@@ -836,8 +831,8 @@ public class TestPutSQL {
         final String arg2TS = "00:01:02";
         final String art3TS = "02:03:04";
         final String timeFormatString = "HH:mm:ss";
-        SimpleDateFormat dateFormat = new SimpleDateFormat(timeFormatString);
-        java.util.Date parsedDate = dateFormat.parse(arg2TS);
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(timeFormatString);
+        java.util.Date parsedDate = Date.from(LocalTime.parse(arg2TS, dateTimeFormatter).atDate(LocalDate.now()).atZone(ZoneId.systemDefault()).toInstant());
 
 
         final Map<String, String> attributes = new HashMap<>();
@@ -858,7 +853,7 @@ public class TestPutSQL {
 
                 assertTrue(rs.next());
                 assertEquals(1, rs.getInt(1));
-                assertEquals(arg2TS, dateFormat.format(rs.getTime(2)));
+                assertEquals(arg2TS, rs.getTime(2).toString());
                 assertEquals(art3TS, rs.getString(3));
                 assertFalse(rs.next());
             }
@@ -866,7 +861,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testUsingDateValuesEpochAndString() throws InitializationException, ProcessException, SQLException, ParseException {
+    public void testUsingDateValuesEpochAndString() throws InitializationException, ProcessException, SQLException {
         final TestRunner runner = initTestRunner();
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
@@ -876,8 +871,7 @@ public class TestPutSQL {
 
         final String arg2TS = "2001-01-01";
         final String art3TS = "2002-02-02";
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        java.util.Date parsedDate = dateFormat.parse(arg2TS);
+        java.util.Date parsedDate = java.sql.Date.valueOf(arg2TS);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.DATE));

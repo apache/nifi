@@ -19,6 +19,8 @@ package org.apache.nifi.processors.iceberg.converter;
 
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.field.FieldConverter;
+import org.apache.nifi.serialization.record.field.StandardFieldConverterRegistry;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
@@ -27,7 +29,10 @@ import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
 import javax.annotation.Nullable;
 import java.io.Serializable;
-import java.time.ZoneId;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.util.Optional;
 
 public class RecordFieldGetter {
 
@@ -64,10 +69,16 @@ public class RecordFieldGetter {
                 fieldGetter = record -> record.getAsInt(fieldName);
                 break;
             case DATE:
-                fieldGetter = record -> DataTypeUtils.toLocalDate(record.getValue(fieldName), () -> DataTypeUtils.getDateTimeFormatter(dataType.getFormat(), ZoneId.systemDefault()), fieldName);
+                fieldGetter = record -> {
+                    final FieldConverter<Object, LocalDate> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDate.class);
+                    return converter.convertField(record.getValue(fieldName), Optional.ofNullable(dataType.getFormat()), fieldName);
+                };
                 break;
             case TIME:
-                fieldGetter = record -> DataTypeUtils.toTime(record.getValue(fieldName), () -> DataTypeUtils.getDateFormat(dataType.getFormat()), fieldName);
+                fieldGetter = record -> {
+                    final FieldConverter<Object, Time> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(Time.class);
+                    return converter.convertField(record.getValue(fieldName), Optional.ofNullable(dataType.getFormat()), fieldName);
+                };
                 break;
             case LONG:
                 fieldGetter = record -> record.getAsLong(fieldName);
@@ -82,7 +93,10 @@ public class RecordFieldGetter {
                 fieldGetter = record -> record.getAsDouble(fieldName);
                 break;
             case TIMESTAMP:
-                fieldGetter = record -> DataTypeUtils.toTimestamp(record.getValue(fieldName), () -> DataTypeUtils.getDateFormat(dataType.getFormat()), fieldName);
+                fieldGetter = record -> {
+                    final FieldConverter<Object, Timestamp> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(Timestamp.class);
+                    return converter.convertField(record.getValue(fieldName), Optional.ofNullable(dataType.getFormat()), fieldName);
+                };
                 break;
             case UUID:
                 fieldGetter = record -> DataTypeUtils.toUUID(record.getValue(fieldName));

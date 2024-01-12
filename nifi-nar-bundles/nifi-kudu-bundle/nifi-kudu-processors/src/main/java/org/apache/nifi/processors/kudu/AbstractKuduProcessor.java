@@ -21,7 +21,6 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -63,7 +62,7 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.field.FieldConverter;
-import org.apache.nifi.serialization.record.field.ObjectTimestampFieldConverter;
+import org.apache.nifi.serialization.record.field.StandardFieldConverterRegistry;
 import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
@@ -125,7 +124,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    private static final FieldConverter<Object, Timestamp> TIMESTAMP_FIELD_CONVERTER = new ObjectTimestampFieldConverter();
+    private static final FieldConverter<Object, Timestamp> TIMESTAMP_FIELD_CONVERTER = StandardFieldConverterRegistry.getRegistry().getFieldConverter(Timestamp.class);
     /** Timestamp Pattern overrides default RecordFieldType.TIMESTAMP pattern of yyyy-MM-dd HH:mm:ss with optional microseconds */
     private static final String MICROSECOND_TIMESTAMP_PATTERN = "yyyy-MM-dd HH:mm:ss[.SSSSSS]";
 
@@ -328,7 +327,8 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
      * @return Date object or null when value is null
      */
     private Date getDate(final Object value, final String recordFieldName, final String format) {
-        final LocalDate localDate = DataTypeUtils.toLocalDate(value, () -> DataTypeUtils.getDateTimeFormatter(format, ZoneId.systemDefault()), recordFieldName);
+        final FieldConverter<Object, LocalDate> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDate.class);
+        final LocalDate localDate = converter.convertField(value, Optional.ofNullable(format), recordFieldName);
         return Date.valueOf(localDate);
     }
 

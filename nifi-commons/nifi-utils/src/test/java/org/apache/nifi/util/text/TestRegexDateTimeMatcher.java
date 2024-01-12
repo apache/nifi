@@ -45,8 +45,6 @@ public class TestRegexDateTimeMatcher {
         exampleToPattern.put("12 Dec 2018", "dd MMM yyyy");
         exampleToPattern.put("12 December 2018", "dd MMM yyyy");
 
-        // TODO: The following examples are taken from the SimpleDateFormat's JavaDoc. Ensure that this is not a licensing concern,
-        // since it is not being distributed.
         exampleToPattern.put("2001.07.04 AD at 12:08:56 PDT", "yyyy.MM.dd G 'at' HH:mm:ss z");
         exampleToPattern.put("Wed, Jul 4, '01", "EEE, MMM d, ''yy");
         exampleToPattern.put("12:08 PM", "h:mm a");

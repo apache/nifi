@@ -29,9 +29,9 @@ import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -76,11 +76,11 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
     @Override
     protected Map<String, String> createAttributes(final FileInfo fileInfo, final ProcessContext context) {
         final Map<String, String> attributes = new HashMap<>();
-        final DateFormat formatter = new SimpleDateFormat(ListFile.FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(ListFile.FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
         attributes.put(getProtocolName() + ".remote.host", context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue());
         attributes.put(getProtocolName() + ".remote.port", context.getProperty(UNDEFAULTED_PORT).evaluateAttributeExpressions().getValue());
         attributes.put(getProtocolName() + ".listing.user", context.getProperty(USERNAME).evaluateAttributeExpressions().getValue());
-        attributes.put(ListFile.FILE_LAST_MODIFY_TIME_ATTRIBUTE, formatter.format(new Date(fileInfo.getLastModifiedTime())));
+        attributes.put(ListFile.FILE_LAST_MODIFY_TIME_ATTRIBUTE, dateTimeFormatter.format(Instant.ofEpochMilli(fileInfo.getLastModifiedTime()).atZone(ZoneId.systemDefault())));
         attributes.put(ListFile.FILE_PERMISSIONS_ATTRIBUTE, fileInfo.getPermissions());
         attributes.put(ListFile.FILE_OWNER_ATTRIBUTE, fileInfo.getOwner());
         attributes.put(ListFile.FILE_GROUP_ATTRIBUTE, fileInfo.getGroup());

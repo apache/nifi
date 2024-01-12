@@ -44,14 +44,13 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.DateFormat;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiPredicate;
-import java.util.function.Supplier;
 
 public abstract class AbstractJsonRowRecordReader implements RecordReader {
     public static final String DEFAULT_MAX_STRING_LENGTH = "20 MB";
@@ -80,9 +79,9 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             .build();
 
     private final ComponentLog logger;
-    private final Supplier<DateFormat> lazyDateFormat;
-    private final Supplier<DateFormat> lazyTimeFormat;
-    private final Supplier<DateFormat> lazyTimestampFormat;
+    private final String dateFormat;
+    private final String timeFormat;
+    private final String timestampFormat;
 
     private boolean firstObjectConsumed = false;
     private JsonParser jsonParser;
@@ -94,13 +93,9 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     private AbstractJsonRowRecordReader(final ComponentLog logger, final String dateFormat, final String timeFormat, final String timestampFormat) {
         this.logger = logger;
 
-        final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
-        final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
-        final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
-
-        lazyDateFormat = () -> df;
-        lazyTimeFormat = () -> tf;
-        lazyTimestampFormat = () -> tsf;
+        this.dateFormat = dateFormat;
+        this.timeFormat = timeFormat;
+        this.timestampFormat = timestampFormat;
     }
 
     /**
@@ -170,16 +165,16 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         }
     }
 
-    protected Supplier<DateFormat> getLazyDateFormat() {
-        return lazyDateFormat;
+    protected Optional<String> getDateFormat() {
+        return Optional.ofNullable(dateFormat);
     }
 
-    protected Supplier<DateFormat> getLazyTimeFormat() {
-        return lazyTimeFormat;
+    protected Optional<String> getTimeFormat() {
+        return Optional.ofNullable(timeFormat);
     }
 
-    protected Supplier<DateFormat> getLazyTimestampFormat() {
-        return lazyTimestampFormat;
+    protected Optional<String> getTimestampFormat() {
+        return Optional.ofNullable(timestampFormat);
     }
 
 
@@ -238,7 +233,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                 case TIME:
                 case TIMESTAMP:
                     try {
-                        return DataTypeUtils.convertType(textValue, dataType, lazyDateFormat, lazyTimeFormat, lazyTimestampFormat, fieldName);
+                        return DataTypeUtils.convertType(textValue, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
                     } catch (final Exception e) {
                         return textValue;
                     }
