@@ -38,7 +38,13 @@ import { distinctUntilChanged, filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
-import { ComponentType, RequiredPermission, SelectOption, TextTipInput } from '../../../../state/shared';
+import {
+    ComponentType,
+    isDefinedAndNotNull,
+    RequiredPermission,
+    SelectOption,
+    TextTipInput
+} from '../../../../state/shared';
 import { TextTip } from '../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { AccessPolicyEntity, Action, PolicyStatus, ResourceAction } from '../../state/shared';
 import { loadExtensionTypesForPolicies } from '../../../../state/extension-types/extension-types.actions';
@@ -126,13 +132,8 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
         this.store
             .select(selectGlobalResourceActionFromRoute)
             .pipe(
-                filter((resourceAction) => resourceAction != null),
-                distinctUntilChanged((aResourceAction, bResourceAction) => {
-                    // @ts-ignore
-                    const a: ResourceAction = aResourceAction;
-                    // @ts-ignore
-                    const b: ResourceAction = bResourceAction;
-
+                isDefinedAndNotNull(),
+                distinctUntilChanged((a, b) => {
                     return (
                         a.action == b.action && a.resource == b.resource && a.resourceIdentifier == b.resourceIdentifier
                     );

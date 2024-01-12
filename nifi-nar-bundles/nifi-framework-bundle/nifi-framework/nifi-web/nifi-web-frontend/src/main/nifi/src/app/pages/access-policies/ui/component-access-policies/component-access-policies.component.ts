@@ -38,7 +38,7 @@ import { distinctUntilChanged, filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
-import { ComponentType, SelectOption, TextTipInput } from '../../../../state/shared';
+import { ComponentType, isDefinedAndNotNull, SelectOption, TextTipInput } from '../../../../state/shared';
 import { TextTip } from '../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { AccessPolicyEntity, Action, ComponentResourceAction, PolicyStatus, ResourceAction } from '../../state/shared';
 import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
@@ -145,18 +145,13 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
         this.store
             .select(selectComponentResourceActionFromRoute)
             .pipe(
-                filter((resourceAction) => resourceAction != null),
+                isDefinedAndNotNull(),
                 distinctUntilChanged((a, b) => {
-                    // @ts-ignore
-                    const aResourceAction: ComponentResourceAction = a;
-                    // @ts-ignore
-                    const bResourceAction: ComponentResourceAction = b;
-
                     return (
-                        aResourceAction.action == bResourceAction.action &&
-                        aResourceAction.policy == bResourceAction.policy &&
-                        aResourceAction.resource == bResourceAction.resource &&
-                        aResourceAction.resourceIdentifier == bResourceAction.resourceIdentifier
+                        a.action == b.action &&
+                        a.policy == b.policy &&
+                        a.resource == b.resource &&
+                        a.resourceIdentifier == b.resourceIdentifier
                     );
                 }),
                 takeUntilDestroyed()
