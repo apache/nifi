@@ -30,6 +30,7 @@ import {
     navigateToControllerServicesForProcessGroup,
     navigateToEditComponent,
     navigateToEditCurrentProcessGroup,
+    navigateToManageComponentPolicies,
     navigateToProvenanceForComponent,
     navigateToViewStatusHistoryForComponent,
     reloadFlow,
@@ -740,13 +741,57 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    // TODO - canManagePolicies
-                    return false;
+                    return (
+                        this.canvasUtils.supportsManagedAuthorizer() && this.canvasUtils.canManagePolicies(selection)
+                    );
                 },
                 clazz: 'fa fa-key',
                 text: 'Manage access policies',
-                action: () => {
-                    // TODO - managePolicies
+                action: (selection: any) => {
+                    if (selection.empty()) {
+                        this.store.dispatch(
+                            navigateToManageComponentPolicies({
+                                request: {
+                                    resource: 'process-groups',
+                                    id: this.canvasUtils.getProcessGroupId()
+                                }
+                            })
+                        );
+                    } else {
+                        const selectionData = selection.datum();
+                        const componentType: ComponentType = selectionData.type;
+
+                        let resource: string = 'process-groups';
+                        switch (componentType) {
+                            case ComponentType.Processor:
+                                resource = 'processors';
+                                break;
+                            case ComponentType.InputPort:
+                                resource = 'input-ports';
+                                break;
+                            case ComponentType.OutputPort:
+                                resource = 'output-ports';
+                                break;
+                            case ComponentType.Funnel:
+                                resource = 'funnels';
+                                break;
+                            case ComponentType.Label:
+                                resource = 'labels';
+                                break;
+                            case ComponentType.RemoteProcessGroup:
+                                resource = 'remote-process-groups';
+                                break;
+                        }
+
+                        this.store.dispatch(
+                            navigateToManageComponentPolicies({
+                                request: {
+                                    resource,
+                                    id: selectionData.id
+                                }
+                            })
+                        );
+                    }
                 }
             },
             {

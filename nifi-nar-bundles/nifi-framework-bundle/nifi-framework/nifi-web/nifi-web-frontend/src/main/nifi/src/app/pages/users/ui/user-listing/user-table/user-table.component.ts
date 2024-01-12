@@ -16,13 +16,17 @@
  */
 
 import { AfterViewInit, Component, EventEmitter, Input, Output } from '@angular/core';
-import { MatTableDataSource } from '@angular/material/table';
-import { Sort } from '@angular/material/sort';
-import { FormBuilder, FormGroup } from '@angular/forms';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatSortModule, Sort } from '@angular/material/sort';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime } from 'rxjs';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { CurrentUser } from '../../../../../state/current-user';
 import { AccessPolicySummaryEntity, UserEntity, UserGroupEntity } from '../../../../../state/shared';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { NgIf } from '@angular/common';
+import { MatInputModule } from '@angular/material/input';
 
 export interface TenantItem {
     id: string;
@@ -39,7 +43,17 @@ export interface Tenants {
 
 @Component({
     selector: 'user-table',
+    standalone: true,
     templateUrl: './user-table.component.html',
+    imports: [
+        ReactiveFormsModule,
+        MatFormFieldModule,
+        MatSelectModule,
+        NgIf,
+        MatTableModule,
+        MatSortModule,
+        MatInputModule
+    ],
     styleUrls: ['./user-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
 })
 export class UserTable implements AfterViewInit {

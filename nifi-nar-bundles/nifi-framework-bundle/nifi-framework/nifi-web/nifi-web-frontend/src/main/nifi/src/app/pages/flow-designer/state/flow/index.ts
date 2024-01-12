@@ -215,6 +215,11 @@ export interface OpenComponentDialogRequest {
     type: ComponentType;
 }
 
+export interface NavigateToManageComponentPoliciesRequest {
+    resource: string;
+    id: string;
+}
+
 export interface EditComponentDialogRequest {
     type: ComponentType;
     uri: string;

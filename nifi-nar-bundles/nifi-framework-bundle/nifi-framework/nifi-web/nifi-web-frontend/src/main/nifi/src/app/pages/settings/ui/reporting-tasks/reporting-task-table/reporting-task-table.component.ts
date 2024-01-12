@@ -24,6 +24,8 @@ import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bu
 import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { BulletinsTipInput, TextTipInput, ValidationErrorsTipInput } from '../../../../../state/shared';
+import { FlowConfiguration } from '../../../../../state/flow-configuration';
+import { CurrentUser } from '../../../../../state/current-user';
 
 @Component({
     selector: 'reporting-task-table',
@@ -48,6 +50,8 @@ export class ReportingTaskTable implements AfterViewInit {
         };
     }
     @Input() selectedReportingTaskId!: string;
+    @Input() flowConfiguration!: FlowConfiguration;
+    @Input() currentUser!: CurrentUser;
 
     @Output() selectReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() deleteReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
@@ -214,7 +218,8 @@ export class ReportingTaskTable implements AfterViewInit {
     }
 
     canDelete(entity: ReportingTaskEntity): boolean {
-        const canWriteParent: boolean = true; // TODO canModifyController()
+        const canWriteParent: boolean =
+            this.currentUser.controllerPermissions.canRead && this.currentUser.controllerPermissions.canWrite;
         return (
             (this.isDisabled(entity) || this.isStopped(entity)) &&
             this.canRead(entity) &&
@@ -237,8 +242,11 @@ export class ReportingTaskTable implements AfterViewInit {
     }
 
     canManageAccessPolicies(): boolean {
-        // TODO
-        return false;
+        return this.flowConfiguration.supportsManagedAuthorizer && this.currentUser.tenantsPermissions.canRead;
+    }
+
+    getPolicyLink(entity: ReportingTaskEntity): string[] {
+        return ['/access-policies', 'read', 'component', 'reporting-tasks', entity.id];
     }
 
     select(entity: ReportingTaskEntity): void {

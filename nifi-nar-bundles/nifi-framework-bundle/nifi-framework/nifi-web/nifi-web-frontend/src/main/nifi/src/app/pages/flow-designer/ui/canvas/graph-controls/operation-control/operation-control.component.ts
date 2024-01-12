@@ -21,6 +21,7 @@ import {
     getParameterContextsAndOpenGroupComponentsDialog,
     navigateToEditComponent,
     navigateToEditCurrentProcessGroup,
+    navigateToManageComponentPolicies,
     setOperationCollapsed,
     startComponents,
     startCurrentProcessGroup,
@@ -40,6 +41,7 @@ import {
 } from '../../../../state/flow';
 import { NgIf } from '@angular/common';
 import { BreadcrumbEntity } from '../../../../state/shared';
+import { ComponentType } from '../../../../../../state/shared';
 
 @Component({
     selector: 'operation-control',
@@ -199,13 +201,59 @@ export class OperationControl {
         }
     }
 
+    supportsManagedAuthorizer(): boolean {
+        return this.canvasUtils.supportsManagedAuthorizer();
+    }
+
     canManageAccess(selection: any): boolean {
-        // TODO
-        return false;
+        return this.canvasUtils.canManagePolicies(selection);
     }
 
     manageAccess(selection: any): void {
-        // TODO
+        if (selection.empty()) {
+            this.store.dispatch(
+                navigateToManageComponentPolicies({
+                    request: {
+                        resource: 'process-groups',
+                        id: this.breadcrumbEntity.id
+                    }
+                })
+            );
+        } else {
+            const selectionData = selection.datum();
+            const componentType: ComponentType = selectionData.type;
+
+            let resource: string = 'process-groups';
+            switch (componentType) {
+                case ComponentType.Processor:
+                    resource = 'processors';
+                    break;
+                case ComponentType.InputPort:
+                    resource = 'input-ports';
+                    break;
+                case ComponentType.OutputPort:
+                    resource = 'output-ports';
+                    break;
+                case ComponentType.Funnel:
+                    resource = 'funnels';
+                    break;
+                case ComponentType.Label:
+                    resource = 'labels';
+                    break;
+                case ComponentType.RemoteProcessGroup:
+                    resource = 'remote-process-groups';
+                    break;
+            }
+
+            this.store.dispatch(
+                navigateToManageComponentPolicies({
+                    request: {
+                        resource,
+                        id: selectionData.id
+                    }
+                })
+            );
+        }
     }
 
     canEnable(selection: any): boolean {

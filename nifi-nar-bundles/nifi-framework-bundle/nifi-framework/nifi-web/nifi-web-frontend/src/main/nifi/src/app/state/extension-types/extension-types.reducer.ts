@@ -22,6 +22,7 @@ import {
     extensionTypesApiError,
     loadExtensionTypesForCanvas,
     loadExtensionTypesForCanvasSuccess,
+    loadExtensionTypesForPoliciesSuccess,
     loadExtensionTypesForSettingsSuccess
 } from './extension-types.actions';
 
@@ -56,6 +57,16 @@ export const extensionTypesReducer = createReducer(
         controllerServiceTypes: response.controllerServiceTypes,
         reportingTaskTypes: response.reportingTaskTypes,
         registryClientTypes: response.registryClientTypes,
+        parameterProviderTypes: response.parameterProviderTypes,
+        flowAnalysisRuleTypes: response.flowAnalysisRuleTypes,
+        error: null,
+        status: 'success' as const
+    })),
+    on(loadExtensionTypesForPoliciesSuccess, (state, { response }) => ({
+        ...state,
+        processorTypes: response.processorTypes,
+        controllerServiceTypes: response.controllerServiceTypes,
+        reportingTaskTypes: response.reportingTaskTypes,
         parameterProviderTypes: response.parameterProviderTypes,
         flowAnalysisRuleTypes: response.flowAnalysisRuleTypes,
         error: null,

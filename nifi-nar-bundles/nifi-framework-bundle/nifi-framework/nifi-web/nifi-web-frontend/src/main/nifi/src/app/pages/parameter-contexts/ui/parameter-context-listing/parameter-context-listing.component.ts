@@ -35,6 +35,9 @@ import {
 import { initialState } from '../../state/parameter-context-listing/parameter-context-listing.reducer';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
+import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
+import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 
 @Component({
     selector: 'parameter-context-listing',
@@ -44,6 +47,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 export class ParameterContextListing implements OnInit {
     parameterContextListingState$ = this.store.select(selectParameterContextListingState);
     selectedParameterContextId$ = this.store.select(selectParameterContextIdFromRoute);
+    currentUser$ = this.store.select(selectCurrentUser);
+    flowConfiguration$ = this.store.select(selectFlowConfiguration);
 
     constructor(private store: Store<ParameterContextListingState>) {
         this.store
@@ -72,6 +77,7 @@ export class ParameterContextListing implements OnInit {
     }
 
     ngOnInit(): void {
+        this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(loadParameterContexts());
     }
 

@@ -45,6 +45,7 @@ import {
     MoveComponentsRequest,
     NavigateToComponentRequest,
     NavigateToControllerServicesRequest,
+    NavigateToManageComponentPoliciesRequest,
     OpenComponentDialogRequest,
     OpenGroupComponentsDialogRequest,
     LoadChildProcessGroupRequest,
@@ -293,6 +294,11 @@ export const viewStatusHistoryForComponent = createAction(
 export const navigateToEditComponent = createAction(
     `${CANVAS_PREFIX} Navigate To Edit Component`,
     props<{ request: OpenComponentDialogRequest }>()
+);
+
+export const navigateToManageComponentPolicies = createAction(
+    `${CANVAS_PREFIX} Navigate To Manage Component Policies`,
+    props<{ request: NavigateToManageComponentPoliciesRequest }>()
 );
 
 export const editComponent = createAction(

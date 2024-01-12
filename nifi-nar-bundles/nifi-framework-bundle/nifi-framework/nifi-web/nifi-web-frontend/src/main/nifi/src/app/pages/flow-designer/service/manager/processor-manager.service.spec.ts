@@ -32,6 +32,8 @@ import { selectCurrentUser } from '../../../../state/current-user/current-user.s
 import * as fromUser from '../../../../state/current-user/current-user.reducer';
 import { parameterFeatureKey } from '../../state/parameter';
 import * as fromParameter from '../../state/parameter/parameter.reducer';
+import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
+import * as fromFlowConfiguration from '../../../../state/flow-configuration/flow-configuration.reducer';
 
 describe('ProcessorManager', () => {
     let service: ProcessorManager;
@@ -60,6 +62,10 @@ describe('ProcessorManager', () => {
                         {
                             selector: selectCurrentUser,
                             value: fromUser.initialState.user
+                        },
+                        {
+                            selector: selectFlowConfiguration,
+                            value: fromFlowConfiguration.initialState.flowConfiguration
                         }
                     ]
                 })

@@ -144,6 +144,12 @@
                                 (click)="deleteClicked(item, $event)"
                                 title="Delete"></div>
                             <div class="pointer fa fa-tasks" *ngIf="canViewState(item)" title="View State"></div>
+                            <div
+                                class="pointer fa fa-key"
+                                *ngIf="canManageAccessPolicies()"
+                                (click)="$event.stopPropagation()"
+                                [routerLink]="getPolicyLink(item)"
+                                title="Delete"></div>
                         </div>
                     </ng-container>
                     <ng-template #notDefinedByCurrentGroup>
@@ -152,7 +158,6 @@
                             title="Go To"
                             [routerLink]="getServiceLink(item)"></div>
                     </ng-template>
-                    <div class="pointer fa fa-key" *ngIf="canManageAccessPolicies()" title="Access Policies"></div>
                 </td>
             </ng-container>
 

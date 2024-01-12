@@ -23,17 +23,19 @@
     <ng-template #loaded>
         <div class="flex flex-col h-full gap-y-2">
             <div class="flex-1" *ngIf="currentUser$ | async as user">
-                <user-table
-                    [tenants]="{ users: userListingState.users, userGroups: userListingState.userGroups }"
-                    [selectedTenantId]="selectedTenantId$ | async"
-                    [currentUser]="(currentUser$ | async)!"
-                    [configurableUsersAndGroups]="true"
-                    (createTenant)="createTenant()"
-                    (selectTenant)="selectTenant($event)"
-                    (editTenant)="editTenant($event)"
-                    (deleteUser)="deleteUser($event)"
-                    (deleteUserGroup)="deleteUserGroup($event)"
-                    (viewAccessPolicies)="viewAccessPolicies($event)"></user-table>
+                <ng-container *ngIf="(flowConfiguration$ | async)! as flowConfiguration">
+                    <user-table
+                        [tenants]="{ users: userListingState.users, userGroups: userListingState.userGroups }"
+                        [selectedTenantId]="selectedTenantId$ | async"
+                        [currentUser]="user"
+                        [configurableUsersAndGroups]="flowConfiguration.supportsConfigurableUsersAndGroups"
+                        (createTenant)="createTenant()"
+                        (selectTenant)="selectTenant($event)"
+                        (editTenant)="editTenant($event)"
+                        (deleteUser)="deleteUser($event)"
+                        (deleteUserGroup)="deleteUserGroup($event)"
+                        (viewAccessPolicies)="viewAccessPolicies($event)"></user-table>
+                </ng-container>
             </div>
             <div class="flex justify-between">
                 <div class="refresh-container flex items-center gap-x-2">

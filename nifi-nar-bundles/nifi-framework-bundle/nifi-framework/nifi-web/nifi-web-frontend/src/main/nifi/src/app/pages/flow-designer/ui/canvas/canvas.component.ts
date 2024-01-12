@@ -63,6 +63,7 @@ import { initialState } from '../../state/flow/flow.reducer';
 import { ContextMenuDefinitionProvider } from '../../../../ui/common/context-menu/context-menu.component';
 import { CanvasContextMenu } from '../../service/canvas-context-menu.service';
 import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
+import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 
 @Component({
     selector: 'fd-canvas',
@@ -270,6 +271,7 @@ export class Canvas implements OnInit, OnDestroy {
         this.createSvg();
         this.canvasView.init(this.viewContainerRef, this.svg, this.canvas);
 
+        this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(startProcessGroupPolling());
     }
 
