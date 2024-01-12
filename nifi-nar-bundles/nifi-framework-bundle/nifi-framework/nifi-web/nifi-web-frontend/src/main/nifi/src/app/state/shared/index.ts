@@ -15,6 +15,17 @@
  * limitations under the License.
  */
 
+import { filter, Observable } from 'rxjs';
+
+export function isDefinedAndNotNull<T>() {
+    return (source$: Observable<null | undefined | T>) =>
+        source$.pipe(
+            filter((input: null | undefined | T): input is T => {
+                return input !== null && typeof input !== undefined;
+            })
+        );
+}
+
 export interface OkDialogRequest {
     title: string;
     message: string;

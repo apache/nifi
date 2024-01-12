@@ -42,6 +42,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { selectAbout } from '../../../../state/about/about.selectors';
 import { FlowFileDialog } from '../../ui/queue-listing/flowfile-dialog/flowfile-dialog.component';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { isDefinedAndNotNull } from '../../../../state/shared';
 
 @Injectable()
 export class QueueListingEffects {
@@ -167,10 +168,8 @@ export class QueueListingEffects {
     pollQueueListingRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(QueueListingActions.pollQueueListingRequest),
-            withLatestFrom(this.store.select(selectListingRequestEntity)),
-            filter((requestEntity) => requestEntity != null),
+            withLatestFrom(this.store.select(selectListingRequestEntity).pipe(isDefinedAndNotNull())),
             switchMap(([action, requestEntity]) => {
-                // @ts-ignore
                 return from(this.queueService.pollQueueListingRequest(requestEntity.listingRequest)).pipe(
                     map((response) =>
                         QueueListingActions.pollQueueListingRequestSuccess({
@@ -304,10 +303,8 @@ export class QueueListingEffects {
             this.actions$.pipe(
                 ofType(QueueListingActions.viewFlowFileContent),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectAbout)),
-                filter((about) => about != null),
+                withLatestFrom(this.store.select(selectAbout).pipe(isDefinedAndNotNull())),
                 tap(([request, about]) => {
-                    // @ts-ignore
                     this.queueService.viewContent(request.flowfileSummary, about.contentViewerUrl);
                 })
             ),

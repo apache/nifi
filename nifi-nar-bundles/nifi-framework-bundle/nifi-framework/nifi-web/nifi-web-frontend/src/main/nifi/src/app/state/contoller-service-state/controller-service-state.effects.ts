@@ -37,7 +37,7 @@ import { selectControllerService, selectControllerServiceSetEnableRequest } from
 import { OkDialog } from '../../ui/common/ok-dialog/ok-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
 import { ControllerServiceStateService } from '../../service/controller-service-state.service';
-import { ControllerServiceEntity, ControllerServiceReferencingComponentEntity } from '../shared';
+import { ControllerServiceEntity, ControllerServiceReferencingComponentEntity, isDefinedAndNotNull } from '../shared';
 import { SetEnableRequest, SetEnableStep } from './index';
 
 @Injectable()
@@ -53,12 +53,10 @@ export class ControllerServiceStateEffects {
         this.actions$.pipe(
             ofType(ControllerServiceActions.submitEnableRequest),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectControllerService)),
-            filter(([request, controllerService]) => !!controllerService),
+            withLatestFrom(this.store.select(selectControllerService).pipe(isDefinedAndNotNull())),
             switchMap(([request, controllerService]) => {
                 if (
                     request.scope === 'SERVICE_AND_REFERENCING_COMPONENTS' &&
-                    // @ts-ignore
                     this.hasUnauthorizedReferences(controllerService.component.referencingComponents)
                 ) {
                     return of(
@@ -79,10 +77,8 @@ export class ControllerServiceStateEffects {
     submitDisableRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ControllerServiceActions.submitDisableRequest),
-            withLatestFrom(this.store.select(selectControllerService)),
-            filter(([request, controllerService]) => !!controllerService),
+            withLatestFrom(this.store.select(selectControllerService).pipe(isDefinedAndNotNull())),
             switchMap(([request, controllerService]) => {
-                // @ts-ignore
                 if (this.hasUnauthorizedReferences(controllerService.component.referencingComponents)) {
                     return of(
                         ControllerServiceActions.setEnableStepFailure({
@@ -168,20 +164,16 @@ export class ControllerServiceStateEffects {
         this.actions$.pipe(
             ofType(ControllerServiceActions.pollControllerService),
             withLatestFrom(
-                this.store.select(selectControllerService),
+                this.store.select(selectControllerService).pipe(isDefinedAndNotNull()),
                 this.store.select(selectControllerServiceSetEnableRequest)
             ),
-            filter(([action, controllerService, setEnableRequest]) => !!controllerService),
-            switchMap(([action, controllerService, setEnableRequest]) => {
-                // @ts-ignore
-                const cs: ControllerServiceEntity = controllerService;
-
-                return from(this.controllerServiceStateService.getControllerService(cs.id)).pipe(
+            switchMap(([action, controllerService, setEnableRequest]) =>
+                from(this.controllerServiceStateService.getControllerService(controllerService.id)).pipe(
                     map((response) =>
                         ControllerServiceActions.pollControllerServiceSuccess({
                             response: {
                                 controllerService: response,
-                                currentStep: this.getNextStep(setEnableRequest, cs)
+                                currentStep: this.getNextStep(setEnableRequest, controllerService)
                             },
                             previousStep: setEnableRequest.currentStep
                         })
@@ -196,8 +188,8 @@ export class ControllerServiceStateEffects {
                             })
                         )
                     )
-                );
-            })
+                )
+            )
         )
     );
 

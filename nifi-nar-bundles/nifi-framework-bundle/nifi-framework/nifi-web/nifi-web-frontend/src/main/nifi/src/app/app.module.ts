@@ -42,7 +42,6 @@ import { ControllerServiceStateEffects } from './state/contoller-service-state/c
 import { SystemDiagnosticsEffects } from './state/system-diagnostics/system-diagnostics.effects';
 import { FlowConfigurationEffects } from './state/flow-configuration/flow-configuration.effects';
 
-// @ts-ignore
 @NgModule({
     declarations: [AppComponent],
     imports: [
