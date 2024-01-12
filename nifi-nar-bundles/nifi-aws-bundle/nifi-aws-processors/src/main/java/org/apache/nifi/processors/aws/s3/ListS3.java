@@ -161,6 +161,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     public static final PropertyDescriptor INITIAL_LISTING_TARGET = new PropertyDescriptor.Builder()
         .fromPropertyDescriptor(ListedEntityTracker.INITIAL_LISTING_TARGET)
         .dependsOn(LISTING_STRATEGY, BY_ENTITIES)
+        .required(true)
         .build();
 
     public static final PropertyDescriptor TRACKING_TIME_WINDOW = new PropertyDescriptor.Builder()
