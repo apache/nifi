@@ -270,6 +270,11 @@ export class FlowAnalysisRulesEffects {
                         }
                     };
 
+                    editDialogReference.componentInstance.goToService = (serviceId: string) => {
+                        const commands: string[] = ['/settings', 'flow-analysis-rules', serviceId];
+                        goTo(commands, 'Flow Analysis Rule');
+                    };
+
                     editDialogReference.componentInstance.editFlowAnalysisRule
                         .pipe(takeUntil(editDialogReference.afterClosed()))
                         .subscribe((updateControllerServiceRequest: UpdateControllerServiceRequest) => {

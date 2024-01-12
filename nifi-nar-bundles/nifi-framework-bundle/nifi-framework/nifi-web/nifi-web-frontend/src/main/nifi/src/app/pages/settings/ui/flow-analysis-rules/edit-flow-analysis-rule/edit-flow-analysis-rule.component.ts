@@ -60,6 +60,7 @@ import { EditFlowAnalysisRuleDialogRequest, FlowAnalysisRuleEntity } from '../..
 export class EditFlowAnalysisRule {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() saving$!: Observable<boolean>;
+    @Input() goToService!: (serviceId: string) => void;
     @Output() editFlowAnalysisRule: EventEmitter<UpdateFlowAnalysisRuleRequest> =
         new EventEmitter<UpdateFlowAnalysisRuleRequest>();
 
