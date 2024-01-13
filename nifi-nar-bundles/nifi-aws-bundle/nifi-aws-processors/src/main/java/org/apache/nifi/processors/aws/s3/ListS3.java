@@ -322,8 +322,8 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     private volatile boolean justElectedPrimaryNode = false;
     private volatile boolean resetEntityTrackingState = false;
     private volatile ListedEntityTracker<ListableEntityWrapper<S3VersionSummary>> listedEntityTracker;
-    private Long minObjectAgeMilliseconds;
-    private Long maxObjectAgeMilliseconds;
+    private volatile Long minObjectAgeMilliseconds;
+    private volatile Long maxObjectAgeMilliseconds;
 
     @OnPrimaryNodeStateChange
     public void onPrimaryNodeChange(final PrimaryNodeState newState) {
