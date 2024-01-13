@@ -478,15 +478,15 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
         final ListingSnapshot currentListing = listing.get();
         final long startNanos = System.nanoTime();
-        final long listingTimestamp = System.currentTimeMillis();
-        final long currentTimestamp = currentListing.getTimestamp();
+        final long currentTimestamp = System.currentTimeMillis();
+        final long listingTimestamp = currentListing.getTimestamp();
         final Set<String> currentKeys = currentListing.getKeys();
         int listCount = 0;
         int totalListCount = 0;
-        long latestListedTimestampInThisCycle = currentTimestamp;
+        long latestListedTimestampInThisCycle = listingTimestamp;
 
         final Set<String> listedKeys = new HashSet<>();
-        getLogger().trace("Start listing, listingTimestamp={}, currentTimestamp={}, currentKeys={}", new Object[]{listingTimestamp, currentTimestamp, currentKeys});
+        getLogger().trace("Start listing, listingTimestamp={}, currentTimestamp={}, currentKeys={}", new Object[]{currentTimestamp, listingTimestamp, currentKeys});
 
         final S3ObjectWriter writer;
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
@@ -503,8 +503,9 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                 final VersionListing versionListing = bucketLister.listVersions();
                 for (S3VersionSummary versionSummary : versionListing.getVersionSummaries()) {
                     final long lastModified = versionSummary.getLastModified().getTime();
-                    if (lastModified == currentTimestamp && currentKeys.contains(versionSummary.getKey())
-                            || !includeObjectInListing(versionSummary, listingTimestamp)) {
+                    if (lastModified < listingTimestamp
+                            || lastModified == listingTimestamp && currentKeys.contains(versionSummary.getKey())
+                            || !includeObjectInListing(versionSummary, currentTimestamp)) {
                         continue;
                     }
 
@@ -550,7 +551,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
 
         final Set<String> updatedKeys = new HashSet<>();
-        if (latestListedTimestampInThisCycle <= currentTimestamp) {
+        if (latestListedTimestampInThisCycle <= listingTimestamp) {
             updatedKeys.addAll(currentKeys);
         }
         updatedKeys.addAll(listedKeys);
