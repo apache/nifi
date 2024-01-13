@@ -54,6 +54,7 @@ import {
     ContextMenuDefinitionProvider,
     ContextMenuItemDefinition
 } from '../../../ui/common/context-menu/context-menu.component';
+import { promptEmptyQueueRequest, promptEmptyQueuesRequest } from '../state/queue/queue.actions';
 
 @Injectable({ providedIn: 'root' })
 export class CanvasContextMenu implements ContextMenuDefinitionProvider {
@@ -1045,33 +1046,44 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    // TODO - canEmptyQueue
-                    return false;
+                    return this.canvasUtils.isConnection(selection);
                 },
                 clazz: 'fa fa-minus-circle',
                 text: 'Empty queue',
-                action: () => {
-                    // TODO - emptyQueue
+                action: (selection: any) => {
+                    const selectionData = selection.datum();
+
+                    this.store.dispatch(
+                        promptEmptyQueueRequest({
+                            request: {
+                                connectionId: selectionData.id
+                            }
+                        })
+                    );
                 }
             },
             {
                 condition: (selection: any) => {
-                    return this.canvasUtils.isProcessGroup(selection);
+                    return selection.empty() || this.canvasUtils.isProcessGroup(selection);
                 },
                 clazz: 'fa fa-minus-circle',
                 text: 'Empty all queues',
-                action: () => {
-                    // TODO - emptyAllQueues in selected PG
-                }
-            },
-            {
-                condition: (selection: any) => {
-                    return this.canvasUtils.emptySelection(selection);
-                },
-                clazz: 'fa fa-minus-circle',
-                text: 'Empty all queues',
-                action: () => {
-                    // TODO - emptyAllQueues in current PG
+                action: (selection: any) => {
+                    let processGroupId: string;
+                    if (selection.empty()) {
+                        processGroupId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        const selectionData = selection.datum();
+                        processGroupId = selectionData.id;
+                    }
+
+                    this.store.dispatch(
+                        promptEmptyQueuesRequest({
+                            request: {
+                                processGroupId
+                            }
+                        })
+                    );
                 }
             },
             {
