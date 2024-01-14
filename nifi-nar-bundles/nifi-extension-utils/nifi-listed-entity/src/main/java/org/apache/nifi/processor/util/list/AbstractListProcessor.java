@@ -34,11 +34,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
-import org.apache.nifi.distributed.cache.client.Serializer;
-import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
-import org.apache.nifi.distributed.cache.client.exception.SerializationException;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -59,7 +55,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -73,6 +68,9 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import static org.apache.nifi.processor.util.list.DistributedMapCacheClientSerialization.stringDeserializer;
+import static org.apache.nifi.processor.util.list.DistributedMapCacheClientSerialization.stringSerializer;
 
 /**
  * <p>
@@ -241,7 +239,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             .description("Specify how to determine new/updated entities. See each strategy descriptions for detail.")
             .required(true)
             .allowableValues(BY_TIMESTAMPS, BY_ENTITIES, NO_TRACKING)
-            .defaultValue(BY_TIMESTAMPS.getValue())
+            .defaultValue(BY_TIMESTAMPS)
             .build();
 
     public static final PropertyDescriptor RECORD_WRITER = new Builder()
@@ -434,8 +432,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         // Retrieve state from Distributed Cache Client, establishing the latest file seen
         if (client != null) {
-            final StringSerDe serde = new StringSerDe();
-            final String serializedState = client.get(getKey(path), serde, serde);
+            final String serializedState = client.get(getKey(path), stringSerializer, stringDeserializer);
             if (serializedState != null && !serializedState.isEmpty()) {
                 final EntityListing listing = deserialize(serializedState);
                 minTimestamp = listing.getLatestTimestamp().getTime();
@@ -443,7 +440,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
             // remove entry from distributed cache server
             try {
-                client.remove(path, new StringSerDe());
+                client.remove(path, stringSerializer);
             } catch (final IOException ioe) {
                 getLogger().warn("Failed to remove entry from Distributed Cache Service. However, the state has already been migrated to use the new "
                     + "State Management service, so the Distributed Cache Service is no longer needed.");
@@ -1073,23 +1070,6 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
      * @return The user-friendly name for the container
      */
     protected abstract String getListingContainerName(final ProcessContext context);
-
-    private static class StringSerDe implements Serializer<String>, Deserializer<String> {
-
-        @Override
-        public String deserialize(final byte[] value) throws DeserializationException, IOException {
-            if (value == null) {
-                return null;
-            }
-
-            return new String(value, StandardCharsets.UTF_8);
-        }
-        @Override
-        public void serialize(final String value, final OutputStream out) throws SerializationException, IOException {
-            out.write(value.getBytes(StandardCharsets.UTF_8));
-        }
-
-    }
 
     @OnScheduled
     public void initListedEntityTracker(ProcessContext context) {

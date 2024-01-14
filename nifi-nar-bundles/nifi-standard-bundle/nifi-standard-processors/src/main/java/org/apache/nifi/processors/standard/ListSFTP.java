@@ -114,6 +114,7 @@ public class ListSFTP extends ListFileTransfer {
         properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
         properties.add(ListedEntityTracker.TRACKING_STATE_CACHE);
         properties.add(ListedEntityTracker.TRACKING_TIME_WINDOW);
+        properties.add(ListedEntityTracker.TRACKING_MODE);
         properties.add(ListedEntityTracker.INITIAL_LISTING_TARGET);
         properties.add(ListFile.MIN_AGE);
         properties.add(ListFile.MAX_AGE);

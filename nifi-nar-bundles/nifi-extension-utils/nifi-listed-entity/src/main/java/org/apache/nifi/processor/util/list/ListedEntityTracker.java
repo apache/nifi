@@ -16,16 +16,13 @@
  */
 package org.apache.nifi.processor.util.list;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
-import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -38,13 +35,10 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.util.StringUtils;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,16 +47,18 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
 
 import static java.lang.String.format;
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.REL_SUCCESS;
+import static org.apache.nifi.processor.util.list.DistributedMapCacheClientSerialization.listedEntitiesDeserializer;
+import static org.apache.nifi.processor.util.list.DistributedMapCacheClientSerialization.listedEntitiesSerializer;
+import static org.apache.nifi.processor.util.list.DistributedMapCacheClientSerialization.stringSerializer;
 
 public class ListedEntityTracker<T extends ListableEntity> {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
     protected volatile Map<String, ListedEntity> alreadyListedEntities;
 
     private static final String NOTE = "Used by 'Tracking Entities' strategy.";
@@ -87,17 +83,27 @@ public class ListedEntityTracker<T extends ListableEntity> {
             .name("et-time-window")
             .displayName("Entity Tracking Time Window")
             .description(format("Specify how long this processor should track already-listed entities." +
-                    " 'Tracking Entities' strategy can pick any entity whose timestamp is inside the specified time window." +
-                    " For example, if set to '30 minutes', any entity having timestamp in recent 30 minutes will be the listing target when this processor runs." +
-                    " A listed entity is considered 'new/updated' and a FlowFile is emitted if one of following condition meets:" +
+                    " Which feature of an entity is tracked depends on the 'Entity Tracking Mode' selected," +
+                    " by default the entity's timestamp is used." +
+                    " A listed entity is considered 'new / updated' and a FlowFile is emitted if one of following condition meets:" +
                     " 1. does not exist in the already-listed entities," +
                     " 2. has newer timestamp than the cached entity," +
                     " 3. has different size than the cached entity." +
-                    " If a cached entity's timestamp becomes older than specified time window, that entity will be removed from the cached already-listed entities." +
+                    " If a cached entity entry becomes older than specified time window, that entity will be removed from the cached already-listed entities." +
                     " %s", NOTE))
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("3 hours")
+            .build();
+
+    public static final PropertyDescriptor TRACKING_MODE = new PropertyDescriptor.Builder()
+            .name("Entity Tracking Mode")
+                .displayName("Entity Tracking Mode")
+            .description(format("Specify by which feature of an entity it should be tracked. %s", NOTE))
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues(EntityTrackingMode.class)
+            .defaultValue(EntityTrackingMode.TRACK_ENTITY_TIMESTAMP)
             .build();
 
     public static final AllowableValue INITIAL_LISTING_TARGET_ALL = new AllowableValue("all", "All Available",
@@ -111,7 +117,8 @@ public class ListedEntityTracker<T extends ListableEntity> {
             .description(format("Specify how initial listing should be handled." +
                     " %s", NOTE))
             .allowableValues(INITIAL_LISTING_TARGET_WINDOW, INITIAL_LISTING_TARGET_ALL)
-            .defaultValue(INITIAL_LISTING_TARGET_ALL.getValue())
+            .defaultValue(INITIAL_LISTING_TARGET_ALL)
+            .dependsOn(TRACKING_MODE, EntityTrackingMode.TRACK_ENTITY_TIMESTAMP)
             .build();
 
     public static final PropertyDescriptor NODE_IDENTIFIER = new PropertyDescriptor.Builder()
@@ -127,24 +134,6 @@ public class ListedEntityTracker<T extends ListableEntity> {
 
     static final Supplier<Long> DEFAULT_CURRENT_TIMESTAMP_SUPPLIER = System::currentTimeMillis;
     private final Supplier<Long> currentTimestampSupplier;
-
-    private final Serializer<String> stringSerializer = (v, o) -> o.write(v.getBytes(StandardCharsets.UTF_8));
-
-    private final Serializer<Map<String, ListedEntity>> listedEntitiesSerializer = (v, o) -> {
-        final GZIPOutputStream gzipOutputStream = new GZIPOutputStream(o);
-        objectMapper.writeValue(gzipOutputStream, v);
-        // Finish writing gzip data without closing the underlying stream.
-        gzipOutputStream.finish();
-    };
-
-    private final Deserializer<Map<String, ListedEntity>> listedEntitiesDeserializer = v -> {
-        if (v == null || v.length == 0) {
-            return null;
-        }
-        try (final GZIPInputStream in = new GZIPInputStream(new ByteArrayInputStream(v))) {
-            return objectMapper.readValue(in, new TypeReference<Map<String, ListedEntity>>() {});
-        }
-    };
 
     private final String componentId;
     private final ComponentLog logger;
@@ -237,7 +226,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
                               Function<Long, Collection<T>> listEntities,
                               Function<T, Map<String, String>> createAttributes) throws ProcessException {
 
-        boolean initialListing = false;
+        boolean isInitialListing = false;
         mapCacheClient = context.getProperty(TRACKING_STATE_CACHE).asControllerService(DistributedMapCacheClient.class);
         this.scope = scope;
         if (Scope.LOCAL.equals(scope)) {
@@ -253,7 +242,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
                 final Map<String, ListedEntity> fetchedListedEntities = fetchListedEntities();
                 if (fetchedListedEntities == null) {
                     this.alreadyListedEntities = new ConcurrentHashMap<>();
-                    initialListing = true;
+                    isInitialListing = true;
                 } else {
                     this.alreadyListedEntities = new ConcurrentHashMap<>(fetchedListedEntities);
                 }
@@ -262,16 +251,18 @@ public class ListedEntityTracker<T extends ListableEntity> {
             }
         }
 
-        final long currentTimeMillis = currentTimestampSupplier.get();
-        final long watchWindowMillis = context.getProperty(TRACKING_TIME_WINDOW).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+        final EntityTrackingMode trackingMode = determineEntityTrackingMode(context);
+        final long watchWindowMillis = context.getProperty(TRACKING_TIME_WINDOW).evaluateAttributeExpressions()
+                .asTimePeriod(TimeUnit.MILLISECONDS);
 
-        final String initialListingTarget = context.getProperty(INITIAL_LISTING_TARGET).getValue();
-        final long minTimestampToList = (initialListing && INITIAL_LISTING_TARGET_ALL.getValue().equals(initialListingTarget))
-                ? -1 : currentTimeMillis - watchWindowMillis;
+        final long currentTimeMillis = currentTimestampSupplier.get();
+        final long watchWindowStartTimeMillis = currentTimeMillis - watchWindowMillis;
+
+        final long minTimestampToList = determineMinTimestampToList(context, trackingMode, isInitialListing, watchWindowStartTimeMillis);
 
         final Collection<T> listedEntities = listEntities.apply(minTimestampToList);
 
-        if (listedEntities.size() == 0) {
+        if (listedEntities.isEmpty()) {
             logger.debug("No entity is listed. Yielding.");
             context.yield();
             return;
@@ -291,6 +282,8 @@ public class ListedEntityTracker<T extends ListableEntity> {
                 return true;
             }
 
+            updateListingTimestamp(identifier, alreadyListedEntity, currentTimeMillis);
+
             if (entity.getTimestamp() > alreadyListedEntity.getTimestamp()) {
                 logger.trace("Picked {} having newer timestamp {} than {}.", new Object[]{identifier, entity.getTimestamp(), alreadyListedEntity.getTimestamp()});
                 return true;
@@ -306,18 +299,16 @@ public class ListedEntityTracker<T extends ListableEntity> {
         }).collect(Collectors.toList());
 
         // Find old enough entries.
-        final List<String> oldEntityIds = alreadyListedEntities.entrySet().stream()
-                .filter(entry -> entry.getValue().getTimestamp() < minTimestampToList).map(Map.Entry::getKey)
-                .collect(Collectors.toList());
+        final List<String> outdatedCacheEntryIds = findOutdatedCacheEntries(trackingMode, watchWindowStartTimeMillis);
 
-        if (updatedEntities.isEmpty() && oldEntityIds.isEmpty()) {
+        if (updatedEntities.isEmpty() && outdatedCacheEntryIds.isEmpty()) {
             logger.debug("None of updated or old entity was found. Yielding.");
             context.yield();
             return;
         }
 
         // Remove old entries.
-        oldEntityIds.forEach(oldEntityId -> alreadyListedEntities.remove(oldEntityId));
+        outdatedCacheEntryIds.forEach(oldEntityId -> alreadyListedEntities.remove(oldEntityId));
 
         // Emit updated entities.
         if (context.getProperty(AbstractListProcessor.RECORD_WRITER).isSet()) {
@@ -334,14 +325,64 @@ public class ListedEntityTracker<T extends ListableEntity> {
         // In case persisting listed entities failure, same entities may be listed again, but better than not listing.
         session.commitAsync(() -> {
             try {
-                logger.debug("Removed old entities count: {}, Updated entities count: {}", new Object[]{oldEntityIds.size(), updatedEntities.size()});
-                logger.trace("Removed old entities: {}, Updated entities: {}", new Object[]{oldEntityIds, updatedEntities});
+                logger.debug("Removed old entities count: {}, Updated entities count: {}", new Object[]{outdatedCacheEntryIds.size(), updatedEntities.size()});
+                logger.trace("Removed old entities: {}, Updated entities: {}", new Object[]{outdatedCacheEntryIds, updatedEntities});
 
                 persistListedEntities(alreadyListedEntities);
             } catch (IOException e) {
                 throw new ProcessException("Failed to persist already-listed entities due to " + e, e);
             }
         });
+    }
+
+    private static EntityTrackingMode determineEntityTrackingMode(ProcessContext context) {
+        final PropertyValue trackingModeProperty = context.getProperty(TRACKING_MODE);
+
+        if (trackingModeProperty.isSet()) {
+            return trackingModeProperty.asDescribedValue(EntityTrackingMode.class);
+        } else {
+            return EntityTrackingMode.TRACK_ENTITY_TIMESTAMP;
+        }
+    }
+
+    private static long determineMinTimestampToList(
+            final ProcessContext context,
+            final EntityTrackingMode trackingMode,
+            final boolean isInitialListing,
+            final long watchWindowStartTimeMillis
+    ) {
+        return switch (trackingMode) {
+            case TRACK_ENTITY_TIMESTAMP -> {
+                if (isInitialListing) {
+                    final String initialListingTarget = context.getProperty(INITIAL_LISTING_TARGET).getValue();
+
+                    if (initialListingTarget.equals(INITIAL_LISTING_TARGET_ALL.getValue())) {
+                        yield 0;
+                    }
+                }
+                yield watchWindowStartTimeMillis;
+            }
+            case TRACK_LAST_LISTING_TIME -> 0;
+        };
+    }
+
+    private List<String> findOutdatedCacheEntries(EntityTrackingMode trackingMode, long watchWindowStartTimeMillis) {
+        final Predicate<Map.Entry<String, ListedEntity>> predicate = switch (trackingMode) {
+            case TRACK_ENTITY_TIMESTAMP -> entry -> entry.getValue().getTimestamp() < watchWindowStartTimeMillis;
+            case TRACK_LAST_LISTING_TIME -> entry -> entry.getValue().getListingTimestamp() < watchWindowStartTimeMillis;
+        };
+
+        return alreadyListedEntities.entrySet().stream()
+                .filter(predicate)
+                .map(Map.Entry::getKey)
+                .toList();
+    }
+
+    private void updateListingTimestamp(String identifier, ListedEntity alreadyListedEntity, long currentTimeMillis) {
+        alreadyListedEntities.put(
+                identifier,
+                new ListedEntity(alreadyListedEntity.getTimestamp(), alreadyListedEntity.getSize(), currentTimeMillis)
+        );
     }
 
     protected void createRecordsForEntities(final ProcessContext context, final ProcessSession session, final List<T> updatedEntities) throws IOException, SchemaNotFoundException {
@@ -351,6 +392,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
         }
 
         final RecordSetWriterFactory writerFactory = context.getProperty(AbstractListProcessor.RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final long currentTimeMillis = currentTimestampSupplier.get();
 
         FlowFile flowFile = session.create();
         final WriteResult writeResult;
@@ -361,8 +403,8 @@ public class ListedEntityTracker<T extends ListableEntity> {
             for (T updatedEntity : updatedEntities) {
                 recordSetWriter.write(updatedEntity.toRecord());
 
-                // In order to reduce object size, discard meta data captured at the sub-classes.
-                final ListedEntity listedEntity = new ListedEntity(updatedEntity.getTimestamp(), updatedEntity.getSize());
+                // In order to reduce object size, discard metadata captured at the subclasses.
+                final ListedEntity listedEntity = new ListedEntity(updatedEntity.getTimestamp(), updatedEntity.getSize(), currentTimeMillis);
                 alreadyListedEntities.put(updatedEntity.getIdentifier(), listedEntity);
             }
 
@@ -377,14 +419,20 @@ public class ListedEntityTracker<T extends ListableEntity> {
     }
 
     protected void createFlowFilesForEntities(ProcessContext context, final ProcessSession session, final List<T> updatedEntities, final Function<T, Map<String, String>> createAttributes) {
+        if (updatedEntities.isEmpty()) {
+            logger.debug("No entities to write FlowFiles for");
+            return;
+        }
+
+        final long currentTimeMillis = currentTimestampSupplier.get();
+
         for (T updatedEntity : updatedEntities) {
             FlowFile flowFile = session.create();
             flowFile = session.putAllAttributes(flowFile, createAttributes.apply(updatedEntity));
             session.transfer(flowFile, REL_SUCCESS);
-            // In order to reduce object size, discard meta data captured at the sub-classes.
-            final ListedEntity listedEntity = new ListedEntity(updatedEntity.getTimestamp(), updatedEntity.getSize());
+            // In order to reduce object size, discard metadata captured at the subclasses.
+            final ListedEntity listedEntity = new ListedEntity(updatedEntity.getTimestamp(), updatedEntity.getSize(), currentTimeMillis);
             alreadyListedEntities.put(updatedEntity.getIdentifier(), listedEntity);
         }
     }
-
 }
