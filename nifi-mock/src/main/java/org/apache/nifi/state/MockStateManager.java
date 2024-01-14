@@ -29,10 +29,20 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static org.apache.nifi.state.MockStateManager.ExecutionMode.CLUSTERED;
+import static org.apache.nifi.state.MockStateManager.ExecutionMode.STANDALONE;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class MockStateManager implements StateManager {
+
+    public enum ExecutionMode {
+        // in CLUSTERED mode separate state maps are used for the CLUSTER and the LOCAL scopes
+        CLUSTERED,
+        // in STANDALONE mode the same state map (the local one) is used for both the CLUSTER and the LOCAL scopes
+        STANDALONE
+    }
+
     private final AtomicInteger versionIndex = new AtomicInteger(0);
 
     private StateMap localStateMap = new MockStateMap(null, -1L);
@@ -49,6 +59,8 @@ public class MockStateManager implements StateManager {
 
     private final boolean usesLocalState;
     private final boolean usesClusterState;
+
+    private ExecutionMode executionMode = CLUSTERED;
 
     public MockStateManager(final Object component) {
         final Stateful stateful = component.getClass().getAnnotation(Stateful.class);
@@ -78,13 +90,17 @@ public class MockStateManager implements StateManager {
         localStateMap = new MockStateMap(null, -1L);
     }
 
+    public void setExecutionMode(ExecutionMode executionMode) {
+        this.executionMode = executionMode;
+    }
+
     @Override
     public synchronized void setState(final Map<String, String> state, final Scope scope) throws IOException {
         verifyAnnotation(scope);
         verifyCanSet(scope);
         final StateMap stateMap = new MockStateMap(state, versionIndex.incrementAndGet());
 
-        if (scope == Scope.CLUSTER) {
+        if (scope == Scope.CLUSTER && executionMode == CLUSTERED) {
             clusterStateMap = stateMap;
         } else {
             localStateMap = stateMap;
@@ -102,7 +118,7 @@ public class MockStateManager implements StateManager {
         verifyAnnotation(scope);
         if (scope == Scope.CLUSTER) {
             clusterRetrievedCount.incrementAndGet();
-            return clusterStateMap;
+            return executionMode == CLUSTERED ? clusterStateMap : localStateMap;
         } else {
             localRetrievedCount.incrementAndGet();
             return localStateMap;
@@ -120,9 +136,13 @@ public class MockStateManager implements StateManager {
     public synchronized boolean replace(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) throws IOException {
         verifyAnnotation(scope);
         if (scope == Scope.CLUSTER) {
-            if (oldValue == clusterStateMap) {
+            if (executionMode == CLUSTERED && oldValue == clusterStateMap) {
                 verifyCanSet(scope);
                 clusterStateMap = new MockStateMap(newValue, versionIndex.incrementAndGet());
+                return true;
+            } else if (executionMode == STANDALONE && oldValue == localStateMap) {
+                verifyCanSet(scope);
+                localStateMap = new MockStateMap(newValue, versionIndex.incrementAndGet());
                 return true;
             }
 
@@ -176,7 +196,7 @@ public class MockStateManager implements StateManager {
 
     private String getValue(final String key, final Scope scope) {
         final StateMap stateMap;
-        if (scope == Scope.CLUSTER) {
+        if (scope == Scope.CLUSTER && executionMode == CLUSTERED) {
             stateMap = clusterStateMap;
         } else {
             stateMap = localStateMap;

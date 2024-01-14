@@ -22,8 +22,11 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.processors.azure.eventhub.ConsumeAzureEventHub;
 import org.apache.nifi.state.MockStateManager;
+import org.apache.nifi.state.MockStateManager.ExecutionMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -57,7 +60,7 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
 
     @BeforeEach
     void beforeEach() throws IOException {
-        addToState(KEY_CLIENT_ID, CLIENT_ID_1);
+        addToState(KEY_CLIENT_ID, CLIENT_ID_1, Scope.LOCAL);
     }
 
     @Test
@@ -88,15 +91,20 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
         testListCheckpoints(checkpoint1, checkpoint2);
     }
 
-    @Test
-    void testCleanUp() throws IOException {
+    @ParameterizedTest
+    @EnumSource(ExecutionMode.class)
+    void testCleanUp(ExecutionMode executionMode) throws IOException {
+        stateManager.setExecutionMode(executionMode);
+
         initStateWithAllItems();
 
-        assertEquals(11, stateManager.getState(Scope.CLUSTER).toMap().size());
+        int expectedBefore = executionMode == ExecutionMode.CLUSTERED ? 10 : 11;
+        assertEquals(expectedBefore, stateManager.getState(Scope.CLUSTER).toMap().size());
 
         checkpointStore.cleanUp(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP);
 
-        assertEquals(5, stateManager.getState(Scope.CLUSTER).toMap().size());
+        int expectedAfter = executionMode == ExecutionMode.CLUSTERED ? 4 : 5;
+        assertEquals(expectedAfter, stateManager.getState(Scope.CLUSTER).toMap().size());
 
         testListOwnerships(partitionOwnership1, partitionOwnership2);
         testListCheckpoints(checkpoint1, checkpoint2);
@@ -104,8 +112,11 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
         assertStoredClientId();
     }
 
-    @Test
-    void testClaimOwnership() throws IOException {
+    @ParameterizedTest
+    @EnumSource(ExecutionMode.class)
+    void testClaimOwnership(ExecutionMode executionMode) throws IOException {
+        stateManager.setExecutionMode(executionMode);
+
         addToState(partitionOwnership1);
 
         addToState(checkpoint1);
@@ -252,8 +263,11 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
         assertStoredCheckpoints(checkpoint1);
     }
 
-    @Test
-    void testNewCheckpoint() throws IOException {
+    @ParameterizedTest
+    @EnumSource(ExecutionMode.class)
+    void testNewCheckpoint(ExecutionMode executionMode) throws IOException {
+        stateManager.setExecutionMode(executionMode);
+
         addToState(partitionOwnership1);
         addToState(partitionOwnership2);
 
@@ -330,25 +344,25 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
     }
 
     private void assertStoredClientId() {
-        stateManager.assertStateEquals(KEY_CLIENT_ID, CLIENT_ID_1, Scope.CLUSTER);
+        stateManager.assertStateEquals(KEY_CLIENT_ID, CLIENT_ID_1, Scope.LOCAL);
     }
 
     private void addToState(PartitionOwnership partitionOwnership) throws IOException {
         setETagAndLastModified(partitionOwnership);
 
-        addToState(createOwnershipKey(partitionOwnership), createOwnershipValue(partitionOwnership));
+        addToState(createOwnershipKey(partitionOwnership), createOwnershipValue(partitionOwnership), Scope.CLUSTER);
     }
 
     private void addToState(Checkpoint checkpoint) throws IOException {
-        addToState(createCheckpointKey(checkpoint), createCheckpointValue(checkpoint));
+        addToState(createCheckpointKey(checkpoint), createCheckpointValue(checkpoint), Scope.CLUSTER);
     }
 
-    private void addToState(String key, String value) throws IOException {
-        Map<String, String> map = new HashMap<>(stateManager.getState(Scope.CLUSTER).toMap());
+    private void addToState(String key, String value, Scope scope) throws IOException {
+        Map<String, String> map = new HashMap<>(stateManager.getState(scope).toMap());
 
         map.put(key, value);
 
-        stateManager.setState(map, Scope.CLUSTER);
+        stateManager.setState(map, scope);
     }
 
     private void initStateWithAllItems() throws IOException {
