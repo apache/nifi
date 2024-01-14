@@ -27,6 +27,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.azure.eventhub.checkpoint.exception.ClusterNodeDisconnectedException;
 import org.apache.nifi.processors.azure.eventhub.checkpoint.exception.ConcurrentStateModificationException;
 import org.apache.nifi.processors.azure.eventhub.checkpoint.exception.StateNotAvailableException;
 import org.slf4j.Logger;
@@ -44,8 +45,9 @@ import java.util.function.BiFunction;
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.KEY_CHECKPOINT;
-import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.KEY_OWNERSHIP;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointConstants.KEY_IS_CLUSTERED;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointConstants.KEY_PREFIX_CHECKPOINT;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointConstants.KEY_PREFIX_OWNERSHIP;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.checkpointToString;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.convertOwnership;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.convertPartitionContext;
@@ -121,7 +123,7 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                     Map<String, String> newMap = oldState.toMap().entrySet().stream()
                             .filter(e -> {
                                 String key = e.getKey();
-                                if (!key.startsWith(KEY_OWNERSHIP) && !key.startsWith(KEY_CHECKPOINT)) {
+                                if (!key.startsWith(KEY_PREFIX_OWNERSHIP) && !key.startsWith(KEY_PREFIX_CHECKPOINT)) {
                                     return true;
                                 }
                                 PartitionContext context = convertPartitionContext(key);
@@ -149,7 +151,11 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
     public Flux<PartitionOwnership> listOwnership(String fullyQualifiedNamespace, String eventHubName, String consumerGroup) {
         return getState()
                 .doFirst(() -> debug("listOwnership() -> Entering [{}, {}, {}]", fullyQualifiedNamespace, eventHubName, consumerGroup))
-                .flatMapMany(this::getOwnerships)
+                .flatMapMany(state -> {
+                    checkDisconnectedNode(state);
+
+                    return getOwnerships(state);
+                })
                 .filter(ownership ->
                         ownership.getFullyQualifiedNamespace().equalsIgnoreCase(fullyQualifiedNamespace)
                                 && ownership.getEventHubName().equalsIgnoreCase(eventHubName)
@@ -165,6 +171,8 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
         return getState()
                 .doFirst(() -> debug("claimOwnership() -> Entering [{}]", ownershipListToString(requestedPartitionOwnerships)))
                 .flatMapMany(oldState -> {
+                    checkDisconnectedNode(oldState);
+
                     Map<String, String> newMap = new HashMap<>(oldState.toMap());
 
                     List<PartitionOwnership> claimedOwnerships = new ArrayList<>();
@@ -220,7 +228,11 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
     public Flux<Checkpoint> listCheckpoints(String fullyQualifiedNamespace, String eventHubName, String consumerGroup) {
         return getState()
                 .doFirst(() -> debug("listCheckpoints() -> Entering [{}, {}, {}]", fullyQualifiedNamespace, eventHubName, consumerGroup))
-                .flatMapMany(this::getCheckpoints)
+                .flatMapMany(state -> {
+                    checkDisconnectedNode(state);
+
+                    return getCheckpoints(state);
+                })
                 .filter(checkpoint ->
                         checkpoint.getFullyQualifiedNamespace().equalsIgnoreCase(fullyQualifiedNamespace)
                                 && checkpoint.getEventHubName().equalsIgnoreCase(eventHubName)
@@ -236,6 +248,8 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
         return getState()
                 .doFirst(() -> debug("updateCheckpoint() -> Entering [{}]", checkpointToString(checkpoint)))
                 .flatMap(oldState -> {
+                    checkDisconnectedNode(oldState);
+
                     Map<String, String> newMap = new HashMap<>(oldState.toMap());
 
                     newMap.put(createCheckpointKey(checkpoint), createCheckpointValue(checkpoint));
@@ -256,11 +270,11 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
     }
 
     private Flux<PartitionOwnership> getOwnerships(StateMap state) {
-        return getEntries(state, KEY_OWNERSHIP, ComponentStateCheckpointStoreUtils::convertOwnership);
+        return getEntries(state, KEY_PREFIX_OWNERSHIP, ComponentStateCheckpointStoreUtils::convertOwnership);
     }
 
     private Flux<Checkpoint> getCheckpoints(StateMap state) {
-        return getEntries(state, KEY_CHECKPOINT, ComponentStateCheckpointStoreUtils::convertCheckpoint);
+        return getEntries(state, KEY_PREFIX_CHECKPOINT, ComponentStateCheckpointStoreUtils::convertCheckpoint);
     }
 
     private <T> Flux<T> getEntries(StateMap state, String kind, BiFunction<String, String, T> converter) throws ProcessException {
@@ -268,6 +282,15 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                 .filter(e -> e.getKey().startsWith(kind))
                 .map(e -> converter.apply(e.getKey(), e.getValue()))
                 .collect(collectingAndThen(toList(), Flux::fromIterable));
+    }
+
+    private void checkDisconnectedNode(StateMap state) {
+        // if _isClustered key is available in the state (that is the local cache is accessed via cluster scope) and it is true, then it is a disconnected cluster node
+        boolean disconnectedNode = Boolean.parseBoolean(state.get(KEY_IS_CLUSTERED));
+
+        if (disconnectedNode) {
+            throw new ClusterNodeDisconnectedException("The node has been disconnected from the cluster, the checkpoint store is not accessible");
+        }
     }
 
     private void debug(String message, Object... arguments) {

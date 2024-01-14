@@ -101,6 +101,8 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointConstants.KEY_CLIENT_ID;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointConstants.KEY_IS_CLUSTERED;
 
 @Tags({"azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams"})
 @CapabilityDescription("Receives messages from Microsoft Azure Event Hubs with checkpointing to ensure consistent event processing. "
@@ -325,8 +327,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             PROXY_CONFIGURATION_SERVICE
     );
 
-    public static final String KEY_CLIENT_ID = "clientid";
-
     private volatile ProcessSessionFactory processSessionFactory;
     private volatile EventProcessorClient eventProcessorClient;
     private volatile RecordReaderFactory readerFactory;
@@ -411,7 +411,12 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         String clientId = stateManager.getState(Scope.LOCAL).get(KEY_CLIENT_ID);
         if (clientId == null) {
             clientId = UUID.randomUUID().toString();
-            stateManager.setState(Collections.singletonMap(KEY_CLIENT_ID, clientId), Scope.LOCAL);
+
+            final Map<String, String> clientState = new HashMap<>();
+            clientState.put(KEY_CLIENT_ID, clientId);
+            clientState.put(KEY_IS_CLUSTERED, Boolean.toString(getNodeTypeProvider().isClustered()));
+
+            stateManager.setState(clientState, Scope.LOCAL);
         }
 
         this.clientId = clientId;

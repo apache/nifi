@@ -25,10 +25,10 @@ import org.apache.nifi.processor.exception.ProcessException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-final class ComponentStateCheckpointStoreUtils {
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointConstants.KEY_PREFIX_CHECKPOINT;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointConstants.KEY_PREFIX_OWNERSHIP;
 
-    static final String KEY_OWNERSHIP = "ownership";
-    static final String KEY_CHECKPOINT = "checkpoint";
+final class ComponentStateCheckpointStoreUtils {
 
     private ComponentStateCheckpointStoreUtils() {
     }
@@ -89,7 +89,7 @@ final class ComponentStateCheckpointStoreUtils {
 
     static String createOwnershipKey(PartitionOwnership partitionOwnership) {
         return createKey(
-                KEY_OWNERSHIP,
+                KEY_PREFIX_OWNERSHIP,
                 partitionOwnership.getFullyQualifiedNamespace(),
                 partitionOwnership.getEventHubName(),
                 partitionOwnership.getConsumerGroup(),
@@ -99,7 +99,7 @@ final class ComponentStateCheckpointStoreUtils {
 
     static String createCheckpointKey(Checkpoint checkpoint) {
         return createKey(
-                KEY_CHECKPOINT,
+                KEY_PREFIX_CHECKPOINT,
                 checkpoint.getFullyQualifiedNamespace(),
                 checkpoint.getEventHubName(),
                 checkpoint.getConsumerGroup(),
