@@ -31,8 +31,6 @@
         <module>nifi-standard-parameter-providers</module>
         <module>nifi-standard-content-viewer</module>
         <module>nifi-standard-nar</module>
-        <module>nifi-jolt-transform-json-ui</module>
-        <module>nifi-standard-utils</module>
     </modules>
     <properties>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>

@@ -10,7 +10,7 @@ This product includes the following work from the Apache Hadoop project under Ap
 This includes derived works from the Apache Software License V2 library Jolt (https://github.com/bazaarvoice/jolt)
   Copyright 2013-2014 Bazaarvoice, Inc
   The derived work is adapted from com.bazaarvoice.jolt.chainr.ChainrBuilder.java, com.bazaarvoice.jolt.chainr.spec.ChainrSpec.java,
-  com.bazaarvoice.jolt.chainr.spec.ChainrEntry.java and can be found in the org.apache.nifi.processors.standard.util.jolt.TransformFactory.java class.
+  com.bazaarvoice.jolt.chainr.spec.ChainrEntry.java and can be found in the util.org.apache.nifi.processors.jolt.TransformFactory.java class.
 
 This includes derived works from Apache Calcite available under Apache Software License V2.  Portions of code found in 
   https://github.com/apache/calcite/blob/master/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvProjectTableScanRule.java
