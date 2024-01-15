@@ -16,32 +16,31 @@
  */
 package org.apache.nifi.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
 import java.net.URI;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.HttpMethod;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeParameterReference;
@@ -63,13 +62,7 @@ import org.apache.nifi.web.api.entity.SnippetEntity;
  * RESTful endpoint for querying dataflow snippets.
  */
 @Path("/snippets")
-@Api(
-    value = "/snippets",
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Endpoint for accessing dataflow snippets.")
-})
+@Tag(name = "Snippets")
 public class SnippetResource extends ApplicationResource {
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
@@ -109,8 +102,8 @@ public class SnippetResource extends ApplicationResource {
      * (including referenced services) but those will be enforced when the snippet is used.
      *
      * @param authorizer authorizer
-     * @param lookup     lookup
-     * @param action     action
+     * @param lookup lookup
+     * @param action action
      */
     private void authorizeSnippetRequest(final SnippetDTO snippetRequest, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action) {
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
@@ -133,36 +126,33 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Creates a snippet based off the specified configuration.
      *
-     * @param httpServletRequest request
-     * @param requestSnippetEntity      A snippetEntity
+     * @param requestSnippetEntity A snippetEntity
      * @return A snippetEntity
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Creates a snippet. The snippet will be automatically discarded if not used in a subsequent request after 1 minute.",
-            response = SnippetEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read or Write - /{component-type}/{uuid} - For every component (all Read or all Write) in the Snippet and their descendant components")
+    @Operation(
+            summary = "Creates a snippet. The snippet will be automatically discarded if not used in a subsequent request after 1 minute.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = SnippetEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read or Write - /{component-type}/{uuid} - For every component (all Read or all Write) in the Snippet and their descendant components")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response createSnippet(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The snippet configuration details.",
+            @Parameter(
+                    description = "The snippet configuration details.",
                     required = true
-            )
-            final SnippetEntity requestSnippetEntity) {
+            ) final SnippetEntity requestSnippetEntity) {
 
         if (requestSnippetEntity == null || requestSnippetEntity.getSnippet() == null) {
             throw new IllegalArgumentException("Snippet details must be specified.");
@@ -218,41 +208,39 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Move's the components in this Snippet into a new Process Group.
      *
-     * @param httpServletRequest request
-     * @param snippetId          The id of the snippet.
-     * @param requestSnippetEntity      A snippetEntity
+     * @param snippetId The id of the snippet.
+     * @param requestSnippetEntity A snippetEntity
      * @return A snippetEntity
      */
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    @ApiOperation(
-            value = "Move's the components in this Snippet into a new Process Group and discards the snippet",
-            response = SnippetEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write Process Group - /process-groups/{uuid}"),
-                    @Authorization(value = "Write - /{component-type}/{uuid} - For each component in the Snippet and their descendant components")
+    @Operation(
+            summary = "Move's the components in this Snippet into a new Process Group and discards the snippet",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = SnippetEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write Process Group - /process-groups/{uuid}"),
+                    @SecurityRequirement(name = "Write - /{component-type}/{uuid} - For each component in the Snippet and their descendant components")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response updateSnippet(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The snippet id.",
+            @Parameter(
+                    description = "The snippet id.",
                     required = true
             )
             @PathParam("id") String snippetId,
-            @ApiParam(
-                    value = "The snippet configuration details.",
+            @Parameter(
+                    description = "The snippet configuration details.",
                     required = true
             ) final SnippetEntity requestSnippetEntity) {
 
@@ -312,40 +300,37 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Removes the specified snippet.
      *
-     * @param httpServletRequest request
-     * @param snippetId          The id of the snippet to remove.
+     * @param snippetId The id of the snippet to remove.
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    @ApiOperation(
-            value = "Deletes the components in a snippet and discards the snippet",
-            response = SnippetEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /{component-type}/{uuid} - For each component in the Snippet and their descendant components"),
-                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}"),
+    @Operation(
+            summary = "Deletes the components in a snippet and discards the snippet",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = SnippetEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /{component-type}/{uuid} - For each component in the Snippet and their descendant components"),
+                    @SecurityRequirement(name = "Write - Parent Process Group - /process-groups/{uuid}"),
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response deleteSnippet(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
-                    required = false
+            @Parameter(
+                    description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
             )
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
-            @ApiParam(
-                    value = "The snippet id.",
+            @Parameter(
+                    description = "The snippet id.",
                     required = true
             )
             @PathParam("id") final String snippetId) {

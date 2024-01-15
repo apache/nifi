@@ -16,13 +16,11 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
 
-@ApiModel
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Dependency {
 
@@ -30,7 +28,7 @@ public class Dependency {
     private String propertyDisplayName;
     private DependentValues dependentValues;
 
-    @ApiModelProperty(value = "The name of the dependent property")
+    @Schema(description = "The name of the dependent property")
     public String getPropertyName() {
         return propertyName;
     }
@@ -39,7 +37,7 @@ public class Dependency {
         this.propertyName = propertyName;
     }
 
-    @ApiModelProperty(value = "The display name of the dependent property")
+    @Schema(description = "The display name of the dependent property")
     public String getPropertyDisplayName() {
         return propertyDisplayName;
     }
@@ -48,7 +46,7 @@ public class Dependency {
         this.propertyDisplayName = propertyDisplayName;
     }
 
-    @ApiModelProperty(value = "The values of the dependent property that enable the depending property")
+    @Schema(description = "The values of the dependent property that enable the depending property")
     public DependentValues getDependentValues() {
         return dependentValues;
     }

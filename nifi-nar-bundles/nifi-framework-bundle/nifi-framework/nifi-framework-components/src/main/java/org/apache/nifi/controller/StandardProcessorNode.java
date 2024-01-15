@@ -2110,7 +2110,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             final List<ControllerServiceCreationDetails> servicesCreated = propertyConfig.getCreatedServices();
             servicesCreated.forEach(serviceFactory::create);
 
-            overwriteProperties(propertyConfig.getProperties());
+            overwriteProperties(propertyConfig.getRawProperties());
         }
     }
 

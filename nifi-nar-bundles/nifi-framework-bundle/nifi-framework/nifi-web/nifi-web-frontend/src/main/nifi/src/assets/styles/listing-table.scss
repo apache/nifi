@@ -18,6 +18,7 @@
 .listing-table {
     table {
         width: 100%;
+        table-layout: fixed;
 
         td,
         th {
@@ -45,11 +46,16 @@
             background-color: #f4f6f7;
         }
 
-        .fa,
-        .icon {
+        .fa {
             color: #004849;
             width: 10px;
             height: 14px;
+            text-align: center;
+        }
+
+        .icon {
+            color: #004849;
+            width: 10px;
             text-align: center;
         }
 
@@ -73,4 +79,8 @@
 
 ::ng-deep .mat-sort-header-arrow {
     color: #fff;
+}
+
+::ng-deep .mat-sort-header-content {
+    overflow: hidden;
 }

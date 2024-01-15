@@ -23,8 +23,6 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.processors.cipher.compatibility.CompatibilityModeEncryptionScheme;
-import org.apache.nifi.processors.cipher.compatibility.CompatibilityModeKeyDerivationStrategy;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -33,6 +31,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.cipher.compatibility.CompatibilityModeEncryptionScheme;
+import org.apache.nifi.processors.cipher.compatibility.CompatibilityModeKeyDerivationStrategy;
 import org.apache.nifi.processors.cipher.io.DecryptStreamCallback;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -47,13 +47,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidKeySpecException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 @SideEffectFree
@@ -103,16 +99,13 @@ public class DecryptContentCompatibility extends AbstractProcessor {
             .description("Decryption failed")
             .build();
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             ENCRYPTION_SCHEME,
             KEY_DERIVATION_STRATEGY,
             PASSWORD
-    ));
+    );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            SUCCESS,
-            FAILURE
-    )));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(SUCCESS, FAILURE);
 
     private static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
 
@@ -149,15 +142,16 @@ public class DecryptContentCompatibility extends AbstractProcessor {
             return;
         }
 
-        final String scheme = context.getProperty(ENCRYPTION_SCHEME).getValue();
-        final CompatibilityModeEncryptionScheme encryptionScheme = getEncryptionScheme(scheme);
+        final CompatibilityModeEncryptionScheme encryptionScheme =
+                context.getProperty(ENCRYPTION_SCHEME).asDescribedValue(CompatibilityModeEncryptionScheme.class);
+        final String scheme = encryptionScheme.getValue();
         final Cipher cipher = getCipher(scheme);
 
         final char[] password = context.getProperty(PASSWORD).getValue().toCharArray();
         final PBEKeySpec keySpec = new PBEKeySpec(password);
 
-        final String strategy = context.getProperty(KEY_DERIVATION_STRATEGY).getValue();
-        final CompatibilityModeKeyDerivationStrategy keyDerivationStrategy = CompatibilityModeKeyDerivationStrategy.valueOf(strategy);
+        final CompatibilityModeKeyDerivationStrategy keyDerivationStrategy =
+                context.getProperty(KEY_DERIVATION_STRATEGY).asDescribedValue(CompatibilityModeKeyDerivationStrategy.class);
         final StreamCallback callback = new DecryptCallback(cipher, keySpec, keyDerivationStrategy);
 
         final Map<String, String> attributes = new LinkedHashMap<>();
@@ -174,13 +168,6 @@ public class DecryptContentCompatibility extends AbstractProcessor {
             getLogger().error("Decryption failed using [{}] {}", scheme, flowFile, e);
             session.transfer(flowFile, FAILURE);
         }
-    }
-
-    private CompatibilityModeEncryptionScheme getEncryptionScheme(final String scheme) {
-        final Optional<CompatibilityModeEncryptionScheme> encryptionSchemeFound = Arrays.stream(CompatibilityModeEncryptionScheme.values())
-                .filter(encryptionScheme -> encryptionScheme.getValue().equals(scheme))
-                .findFirst();
-        return encryptionSchemeFound.orElseThrow(() -> new IllegalArgumentException(String.format("Encryption Scheme [%s] not found", scheme)));
     }
 
     private Cipher getCipher(final String transformation) {

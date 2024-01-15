@@ -28,12 +28,17 @@ export interface LoadExtensionTypesForCanvasResponse {
 export interface LoadExtensionTypesForSettingsResponse {
     controllerServiceTypes: DocumentedType[];
     reportingTaskTypes: DocumentedType[];
+    registryClientTypes: DocumentedType[];
     flowAnalysisRuleTypes: DocumentedType[];
     parameterProviderTypes: DocumentedType[];
 }
 
-export interface CreateExtensionRequest {
-    types: DocumentedType[];
+export interface LoadExtensionTypesForPoliciesResponse {
+    processorTypes: DocumentedType[];
+    controllerServiceTypes: DocumentedType[];
+    reportingTaskTypes: DocumentedType[];
+    flowAnalysisRuleTypes: DocumentedType[];
+    parameterProviderTypes: DocumentedType[];
 }
 
 export interface ExtensionTypesState {
@@ -41,6 +46,7 @@ export interface ExtensionTypesState {
     controllerServiceTypes: DocumentedType[];
     prioritizerTypes: DocumentedType[];
     reportingTaskTypes: DocumentedType[];
+    registryClientTypes: DocumentedType[];
     flowAnalysisRuleTypes: DocumentedType[];
     parameterProviderTypes: DocumentedType[];
     error: string | null;

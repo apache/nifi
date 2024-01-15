@@ -424,7 +424,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
         startRunner(inputFlowFileContent, Collections.emptyMap());
 
         // THEN
-        DataLakeStorageException e = (DataLakeStorageException) runner.getLogger().getErrorMessages().get(0).getThrowable();
+        DataLakeStorageException e = (DataLakeStorageException) runner.getLogger().getErrorMessages().getFirst().getThrowable();
         assertEquals(expectedErrorCode, e.getStatusCode());
 
         assertFailure(expectedFlowFileContent);
@@ -439,7 +439,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
         startRunner(inputFlowFileContent, attributes);
 
         // THEN
-        Throwable exception = runner.getLogger().getErrorMessages().get(0).getThrowable();
+        Throwable exception = runner.getLogger().getErrorMessages().getFirst().getThrowable();
         assertEquals(ProcessException.class, exception.getClass());
 
         assertFailure(expectedFlowFileContent);
@@ -459,7 +459,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
     }
 
     private void setRunnerProperties(String fileSystem, String directory, String filename) {
-        runner.setProperty(DeleteAzureDataLakeStorage.FILESYSTEM_OBJECT_TYPE, filename != null ? FS_TYPE_FILE.getValue() : FS_TYPE_DIRECTORY.getValue());
+        runner.setProperty(DeleteAzureDataLakeStorage.FILESYSTEM_OBJECT_TYPE, filename != null ? FS_TYPE_FILE : FS_TYPE_DIRECTORY);
         runner.setProperty(DeleteAzureDataLakeStorage.FILESYSTEM, fileSystem);
         runner.setProperty(DeleteAzureDataLakeStorage.DIRECTORY, directory);
         if (filename != null) {
@@ -475,13 +475,13 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
     private void assertSuccess(String directory, String filename, String expectedFlowFileContent, int expectedNumberOfProvenanceEvents, ProvenanceEventType expectedEventType) {
         runner.assertAllFlowFilesTransferred(DeleteAzureDataLakeStorage.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteAzureDataLakeStorage.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteAzureDataLakeStorage.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals(expectedFlowFileContent);
 
         int actualNumberOfProvenanceEvents = runner.getProvenanceEvents().size();
         assertEquals(expectedNumberOfProvenanceEvents, actualNumberOfProvenanceEvents);
 
-        ProvenanceEventType actualEventType = runner.getProvenanceEvents().get(0).getEventType();
+        ProvenanceEventType actualEventType = runner.getProvenanceEvents().getFirst().getEventType();
         assertEquals(expectedEventType, actualEventType);
 
         if (filename != null) {
@@ -493,7 +493,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
     private void assertFailure(String expectedFlowFileContent) {
         runner.assertAllFlowFilesTransferred(DeleteAzureDataLakeStorage.REL_FAILURE, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteAzureDataLakeStorage.REL_FAILURE).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteAzureDataLakeStorage.REL_FAILURE).getFirst();
         flowFile.assertContentEquals(expectedFlowFileContent);
     }
 

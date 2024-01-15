@@ -17,11 +17,11 @@
 
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -41,7 +41,7 @@ public class ProcessorStatusDTO implements Cloneable {
     private ProcessorStatusSnapshotDTO aggregateSnapshot;
     private List<NodeProcessorStatusSnapshotDTO> nodeSnapshots;
 
-    @ApiModelProperty("The unique ID of the process group that the Processor belongs to")
+    @Schema(description = "The unique ID of the process group that the Processor belongs to")
     public String getGroupId() {
         return groupId;
     }
@@ -50,7 +50,7 @@ public class ProcessorStatusDTO implements Cloneable {
         this.groupId = groupId;
     }
 
-    @ApiModelProperty("The unique ID of the Processor")
+    @Schema(description = "The unique ID of the Processor")
     public String getId() {
         return id;
     }
@@ -59,7 +59,7 @@ public class ProcessorStatusDTO implements Cloneable {
         this.id = id;
     }
 
-    @ApiModelProperty("The name of the Processor")
+    @Schema(description = "The name of the Processor")
     public String getName() {
         return name;
     }
@@ -68,7 +68,7 @@ public class ProcessorStatusDTO implements Cloneable {
         this.name = name;
     }
 
-    @ApiModelProperty("The type of the Processor")
+    @Schema(description = "The type of the Processor")
     public String getType() {
         return type;
     }
@@ -77,7 +77,7 @@ public class ProcessorStatusDTO implements Cloneable {
         this.type = type;
     }
 
-    @ApiModelProperty(value="The run status of the Processor",
+    @Schema(description = "The run status of the Processor",
             allowableValues = "Running, Stopped, Validating, Disabled, Invalid")
     public String getRunStatus() {
         return runStatus;
@@ -88,10 +88,7 @@ public class ProcessorStatusDTO implements Cloneable {
     }
 
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-            value="The timestamp of when the stats were last refreshed",
-            dataType = "string"
-    )
+    @Schema(description = "The timestamp of when the stats were last refreshed", type = "string")
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;
     }
@@ -100,7 +97,7 @@ public class ProcessorStatusDTO implements Cloneable {
         this.statsLastRefreshed = statsLastRefreshed;
     }
 
-    @ApiModelProperty("A status snapshot that represents the aggregate stats of all nodes in the cluster. If the NiFi instance is "
+    @Schema(description = "A status snapshot that represents the aggregate stats of all nodes in the cluster. If the NiFi instance is "
         + "a standalone instance, rather than a cluster, this represents the stats of the single instance.")
     public ProcessorStatusSnapshotDTO getAggregateSnapshot() {
         return aggregateSnapshot;
@@ -110,7 +107,7 @@ public class ProcessorStatusDTO implements Cloneable {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    @ApiModelProperty("A status snapshot for each node in the cluster. If the NiFi instance is a standalone instance, rather than "
+    @Schema(description = "A status snapshot for each node in the cluster. If the NiFi instance is a standalone instance, rather than "
         + "a cluster, this may be null.")
     public List<NodeProcessorStatusSnapshotDTO> getNodeSnapshots() {
         return nodeSnapshots;

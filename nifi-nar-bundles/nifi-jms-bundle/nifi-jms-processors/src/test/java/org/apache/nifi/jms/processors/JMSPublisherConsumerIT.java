@@ -18,7 +18,6 @@ package org.apache.nifi.jms.processors;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.lang3.SerializationUtils;
 import org.apache.nifi.jms.processors.JMSConsumer.JMSResponse;
 import org.apache.nifi.logging.ComponentLog;
 import org.junit.jupiter.api.Test;
@@ -28,15 +27,15 @@ import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
 import org.springframework.jms.support.JmsHeaders;
 
-import javax.jms.BytesMessage;
-import javax.jms.JMSException;
-import javax.jms.MapMessage;
-import javax.jms.Message;
-import javax.jms.ObjectMessage;
-import javax.jms.Session;
-import javax.jms.StreamMessage;
-import javax.jms.TextMessage;
-import javax.jms.Topic;
+import jakarta.jms.BytesMessage;
+import jakarta.jms.JMSException;
+import jakarta.jms.MapMessage;
+import jakarta.jms.Message;
+import jakarta.jms.ObjectMessage;
+import jakarta.jms.Session;
+import jakarta.jms.StreamMessage;
+import jakarta.jms.TextMessage;
+import jakarta.jms.Topic;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -70,9 +69,9 @@ public class JMSPublisherConsumerIT {
         };
 
         Consumer<JMSResponse> responseChecker = response -> {
-            assertEquals(
-                "stringAsObject",
-                SerializationUtils.deserialize(response.getMessageBody())
+            assertArrayEquals(
+                ObjectMessage.class.getSimpleName().getBytes(StandardCharsets.UTF_8),
+                response.getMessageBody()
             );
         };
 
@@ -447,7 +446,7 @@ public class JMSPublisherConsumerIT {
                     }
 
                     callbackInvoked.set(true);
-                    assertEquals("1", new String(response.getMessageBody()));
+                    assertEquals("2", new String(response.getMessageBody()));
                     acknowledge(response);
                 });
             }
@@ -464,7 +463,7 @@ public class JMSPublisherConsumerIT {
                         }
 
                         callbackInvoked.set(true);
-                        assertEquals("2", new String(response.getMessageBody()));
+                        assertEquals("1", new String(response.getMessageBody()));
                         throw new RuntimeException("intentional to avoid explicit ack");
                     });
                 }
@@ -483,7 +482,7 @@ public class JMSPublisherConsumerIT {
                         }
 
                         callbackInvoked.set(true);
-                        assertEquals("2", new String(response.getMessageBody()));
+                        assertEquals("1", new String(response.getMessageBody()));
                         acknowledge(response);
                     });
                 }

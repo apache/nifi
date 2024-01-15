@@ -18,6 +18,7 @@ package org.apache.nifi.processors.slack.consume;
 
 import com.slack.api.methods.response.users.UsersInfoResponse;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processors.slack.util.SlackResponseUtil;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -46,11 +47,11 @@ public class UsernameLookup {
                 return username;
             }
 
-            final String errorMessage = ConsumeSlackUtil.getErrorMessage(response.getError(), response.getNeeded(), response.getProvided(), response.getWarning());
+            final String errorMessage = SlackResponseUtil.getErrorMessage(response.getError(), response.getNeeded(), response.getProvided(), response.getWarning());
             logger.warn("Failed to retrieve Username for User ID {}: {}", userId, errorMessage);
             return null;
         } catch (final Exception e) {
-            if (ConsumeSlackUtil.isRateLimited(e)) {
+            if (SlackResponseUtil.isRateLimited(e)) {
                 logger.warn("Failed to retrieve Username for User ID {} because the Rate Limit has been exceeded", userId);
             } else {
                 logger.warn("Failed to retrieve Username for User ID {}: {}", userId, e.getMessage(), e);

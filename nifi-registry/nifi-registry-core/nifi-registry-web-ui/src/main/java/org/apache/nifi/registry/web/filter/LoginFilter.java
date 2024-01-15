@@ -20,7 +20,6 @@ import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.FilterConfig;
 import jakarta.servlet.ServletContext;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletResponse;
@@ -34,23 +33,20 @@ public class LoginFilter implements Filter {
     private ServletContext servletContext;
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
+    public void init(FilterConfig filterConfig) {
         servletContext = filterConfig.getServletContext();
     }
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException {
         final boolean supportsOidc = Boolean.parseBoolean(servletContext.getInitParameter("oidc-supported"));
 
+        final HttpServletResponse httpResponse = (HttpServletResponse) response;
         if (supportsOidc) {
-            final ServletContext apiContext = servletContext.getContext("/nifi-registry-api");
-            apiContext.getRequestDispatcher("/access/oidc/request").forward(request, response);
-
+            httpResponse.sendRedirect("/nifi-registry-api/access/oidc/request");
         } else {
             // Forward the client to the default login page for basic credential login
-            final HttpServletResponse httpResponse = (HttpServletResponse) response;
             httpResponse.sendRedirect("/nifi-registry/#/login");
-
         }
     }
 

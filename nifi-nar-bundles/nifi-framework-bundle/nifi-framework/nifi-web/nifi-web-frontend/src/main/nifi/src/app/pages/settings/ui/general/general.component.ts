@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { GeneralState } from '../../state/general';
 import { Store } from '@ngrx/store';
-import { loadControllerConfig } from '../../state/general/general.actions';
+import { loadControllerConfig, resetGeneralState } from '../../state/general/general.actions';
 import { selectGeneral } from '../../state/general/general.selectors';
 
 @Component({
@@ -26,12 +26,16 @@ import { selectGeneral } from '../../state/general/general.selectors';
     templateUrl: './general.component.html',
     styleUrls: ['./general.component.scss']
 })
-export class General implements OnInit {
+export class General implements OnInit, OnDestroy {
     general$ = this.store.select(selectGeneral);
 
     constructor(private store: Store<GeneralState>) {}
 
     ngOnInit(): void {
         this.store.dispatch(loadControllerConfig());
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(resetGeneralState());
     }
 }

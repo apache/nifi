@@ -24,10 +24,6 @@ import com.couchbase.client.java.document.Document;
 import com.couchbase.client.java.error.CASMismatchException;
 import com.couchbase.client.java.error.DocumentAlreadyExistsException;
 import com.couchbase.client.java.error.DocumentDoesNotExistException;
-import com.couchbase.client.java.query.Delete;
-import com.couchbase.client.java.query.N1qlQuery;
-import com.couchbase.client.java.query.N1qlQueryResult;
-import com.couchbase.client.java.query.Statement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -38,26 +34,20 @@ import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.couchbase.client.java.query.dsl.functions.PatternMatchingFunctions.regexpContains;
 import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.BUCKET_NAME;
 import static org.apache.nifi.couchbase.CouchbaseConfigurationProperties.COUCHBASE_CLUSTER_SERVICE;
 
-// TODO: Doc
 @Tags({"distributed", "cache", "map", "cluster", "couchbase"})
 @CapabilityDescription("Provides the ability to communicate with a Couchbase Server cluster as a DistributedMapCacheServer." +
         " This can be used in order to share a Map between nodes in a NiFi cluster." +
         " Couchbase Server cluster can provide a high available and persistent cache storage.")
 public class CouchbaseMapCacheClient extends AbstractControllerService implements AtomicDistributedMapCacheClient<Long> {
-
-    private static final Logger logger = LoggerFactory.getLogger(CouchbaseMapCacheClient.class);
 
     private CouchbaseClusterControllerService clusterService;
     private Bucket bucket;
@@ -196,7 +186,7 @@ public class CouchbaseMapCacheClient extends AbstractControllerService implement
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
     }
 
     @Override
@@ -207,15 +197,5 @@ public class CouchbaseMapCacheClient extends AbstractControllerService implement
         } catch (DocumentDoesNotExistException e) {
             return false;
         }
-    }
-
-    @Override
-    public long removeByPattern(String regex) throws IOException {
-        Statement statement = Delete.deleteFromCurrentBucket().where(regexpContains("meta().id", regex));
-        final N1qlQueryResult result = bucket.query(N1qlQuery.simple(statement));
-        if (logger.isDebugEnabled()) {
-            logger.debug("Deleted documents using regex {}, result={}", regex, result);
-        }
-        return result.info().mutationCount();
     }
 }

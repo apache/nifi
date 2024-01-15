@@ -18,6 +18,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { FlowAnalysisRules } from './flow-analysis-rules.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../state/flow-analysis-rules/flow-analysis-rules.reducer';
 
 describe('FlowAnalysisRules', () => {
     let component: FlowAnalysisRules;
@@ -25,7 +27,12 @@ describe('FlowAnalysisRules', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [FlowAnalysisRules]
+            declarations: [FlowAnalysisRules],
+            providers: [
+                provideMockStore({
+                    initialState
+                })
+            ]
         });
         fixture = TestBed.createComponent(FlowAnalysisRules);
         component = fixture.componentInstance;

@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a RemoteProcessGroupDTO.
@@ -53,8 +53,7 @@ public class RemoteProcessGroupEntity extends ComponentEntity implements Permiss
     /**
      * @return the remote process group status
      */
-    @ApiModelProperty(
-        value = "The status of the remote process group."
+    @Schema(description = "The status of the remote process group."
     )
     public RemoteProcessGroupStatusDTO getStatus() {
         return status;
@@ -67,8 +66,7 @@ public class RemoteProcessGroupEntity extends ComponentEntity implements Permiss
     /**
      * @return number of Remote Input Ports currently available in the remote NiFi instance
      */
-    @ApiModelProperty(
-        value = "The number of remote input ports currently available on the target."
+    @Schema(description = "The number of remote input ports currently available on the target."
     )
     public Integer getInputPortCount() {
         return inputPortCount;
@@ -81,8 +79,7 @@ public class RemoteProcessGroupEntity extends ComponentEntity implements Permiss
     /**
      * @return number of Remote Output Ports currently available in the remote NiFi instance
      */
-    @ApiModelProperty(
-        value = "The number of remote output ports currently available on the target."
+    @Schema(description = "The number of remote output ports currently available on the target."
     )
     public Integer getOutputPortCount() {
         return outputPortCount;
@@ -95,8 +92,7 @@ public class RemoteProcessGroupEntity extends ComponentEntity implements Permiss
     /**
      * @return The permissions for this component operations
      */
-    @ApiModelProperty(
-            value = "The permissions for this component operations."
+    @Schema(description = "The permissions for this component operations."
     )
     @Override
     public PermissionsDTO getOperatePermissions() {

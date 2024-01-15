@@ -23,7 +23,8 @@ import org.apache.nifi.web.util.LifecycleManagementException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.HttpMethod;
+import jakarta.ws.rs.HttpMethod;
+
 import java.net.URI;
 import java.util.Map;
 
@@ -31,7 +32,7 @@ public abstract class AbstractParameterResource extends ApplicationResource {
     private static final Logger logger = LoggerFactory.getLogger(AbstractParameterResource.class);
 
     public NodeResponse updateParameterContext(final ParameterContextEntity parameterContext, final URI updateUri,
-                                           final Map<String, String> headers, final NiFiUser user) throws LifecycleManagementException {
+                                               final Map<String, String> headers, final NiFiUser user) throws LifecycleManagementException {
         final NodeResponse clusterResponse;
         try {
             logger.debug("Replicating PUT request to {} for user {}", updateUri, user);

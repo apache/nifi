@@ -17,10 +17,10 @@
 
 package org.apache.nifi.processors.snowflake.util;
 
+import org.apache.nifi.components.DescribedValue;
+
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Stream;
-import org.apache.nifi.components.DescribedValue;
 
 public enum SnowflakeInternalStageType implements DescribedValue {
     USER("user", "User", "Use the user's internal stage") {
@@ -33,12 +33,12 @@ public enum SnowflakeInternalStageType implements DescribedValue {
         @Override
         public String getStage(final SnowflakeInternalStageTypeParameters parameters) {
             final StringBuilder stringBuilder = new StringBuilder("@");
-            Optional.ofNullable(parameters.getDatabase())
+            Optional.ofNullable(parameters.database())
                     .ifPresent(database -> stringBuilder.append(database).append("."));
-            Optional.ofNullable(parameters.getSchema())
+            Optional.ofNullable(parameters.schema())
                     .ifPresent(schema -> stringBuilder.append(schema).append("."));
 
-            stringBuilder.append("%").append(Objects.requireNonNull(parameters.getTable()));
+            stringBuilder.append("%").append(Objects.requireNonNull(parameters.table()));
             return stringBuilder.toString();
         }
     },
@@ -46,11 +46,11 @@ public enum SnowflakeInternalStageType implements DescribedValue {
         @Override
         public String getStage(final SnowflakeInternalStageTypeParameters parameters) {
             final StringBuilder stringBuilder = new StringBuilder("@");
-            Optional.ofNullable(parameters.getDatabase())
+            Optional.ofNullable(parameters.database())
                     .ifPresent(database -> stringBuilder.append(database).append("."));
-            Optional.ofNullable(parameters.getSchema())
+            Optional.ofNullable(parameters.schema())
                     .ifPresent(schema -> stringBuilder.append(schema).append("."));
-            stringBuilder.append(Objects.requireNonNull(parameters.getStageName()));
+            stringBuilder.append(Objects.requireNonNull(parameters.stageName()));
             return stringBuilder.toString();
         }
     };
@@ -82,11 +82,4 @@ public enum SnowflakeInternalStageType implements DescribedValue {
 
     public abstract String getStage(final SnowflakeInternalStageTypeParameters parameters);
 
-    public static SnowflakeInternalStageType forName(String stageType) {
-        return Stream.of(values())
-                .filter(internalStageType -> internalStageType.getValue().equalsIgnoreCase(stageType))
-                .findFirst()
-                .orElseThrow(
-                        () -> new IllegalArgumentException("Invalid SnowflakeInternalStageType: " + stageType));
-    }
 }

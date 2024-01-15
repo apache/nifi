@@ -17,9 +17,9 @@
 
 package org.apache.nifi.web.api.dto.diagnostics;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @XmlType(name = "nodeJVMDiagnosticsSnapshot")
 public class NodeJVMDiagnosticsSnapshotDTO {
@@ -29,7 +29,7 @@ public class NodeJVMDiagnosticsSnapshotDTO {
 
     private JVMDiagnosticsSnapshotDTO snapshot;
 
-    @ApiModelProperty("The unique ID that identifies the node")
+    @Schema(description = "The unique ID that identifies the node")
     public String getNodeId() {
         return nodeId;
     }
@@ -38,7 +38,7 @@ public class NodeJVMDiagnosticsSnapshotDTO {
         this.nodeId = nodeId;
     }
 
-    @ApiModelProperty("The API address of the node")
+    @Schema(description = "The API address of the node")
     public String getAddress() {
         return address;
     }
@@ -47,7 +47,7 @@ public class NodeJVMDiagnosticsSnapshotDTO {
         this.address = address;
     }
 
-    @ApiModelProperty("The API port used to communicate with the node")
+    @Schema(description = "The API port used to communicate with the node")
     public Integer getApiPort() {
         return apiPort;
     }
@@ -56,7 +56,7 @@ public class NodeJVMDiagnosticsSnapshotDTO {
         this.apiPort = apiPort;
     }
 
-    @ApiModelProperty("The JVM Diagnostics Snapshot")
+    @Schema(description = "The JVM Diagnostics Snapshot")
     public JVMDiagnosticsSnapshotDTO getSnapshot() {
         return snapshot;
     }

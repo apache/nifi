@@ -34,9 +34,7 @@ import org.apache.nifi.parameter.VerifiableParameterProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.services.azure.AzureCredentialsService;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,15 +76,11 @@ public class AzureKeyVaultSecretsParameterProvider extends AbstractParameterProv
 
     static final String GROUP_NAME_TAG = "group-name";
 
-    private static final List<PropertyDescriptor> PROPERTIES;
-
-    static {
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(AZURE_CREDENTIALS_SERVICE);
-        props.add(KEY_VAULT_URI);
-        props.add(GROUP_NAME_PATTERN);
-        PROPERTIES = Collections.unmodifiableList(props);
-    }
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            AZURE_CREDENTIALS_SERVICE,
+            KEY_VAULT_URI,
+            GROUP_NAME_PATTERN
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -94,11 +88,10 @@ public class AzureKeyVaultSecretsParameterProvider extends AbstractParameterProv
     }
 
     @Override
-    public List<ParameterGroup> fetchParameters(final ConfigurationContext context) throws IOException {
+    public List<ParameterGroup> fetchParameters(final ConfigurationContext context) {
         final SecretClient secretClient = configureSecretClient(context);
         final List<KeyVaultSecret> secrets = getAllSecrets(secretClient);
-        final List<ParameterGroup> groups = getParameterGroupsFromSecrets(context, secrets);
-        return groups;
+        return getParameterGroupsFromSecrets(context, secrets);
     }
 
     @Override

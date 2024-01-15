@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.status.PortStatusSnapshotDTO;
 
@@ -32,7 +32,7 @@ public class PortStatusSnapshotEntity extends Entity implements ReadablePermissi
     /**
      * @return The port id
      */
-    @ApiModelProperty("The id of the port.")
+    @Schema(description = "The id of the port.")
     public String getId() {
         return id;
     }

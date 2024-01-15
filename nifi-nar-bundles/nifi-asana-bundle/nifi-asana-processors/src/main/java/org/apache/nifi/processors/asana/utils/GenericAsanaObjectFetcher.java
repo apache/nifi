@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.processors.asana.utils;
 
-import static java.util.Collections.emptySet;
-
 import com.asana.Json;
 import com.asana.models.Resource;
 import com.google.gson.reflect.TypeToken;
+import org.apache.commons.collections4.iterators.FilterIterator;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -40,7 +40,8 @@ import java.util.Set;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-import org.apache.commons.collections4.iterators.FilterIterator;
+
+import static java.util.Collections.emptySet;
 
 public abstract class GenericAsanaObjectFetcher<T extends Resource> extends AbstractAsanaObjectFetcher {
     private static final String LAST_FINGERPRINTS = ".lastFingerprints";
@@ -163,7 +164,7 @@ public abstract class GenericAsanaObjectFetcher<T extends Resource> extends Abst
                 uncompressedBytes.write(buffer, 0, n);
             }
         }
-        return new String(uncompressedBytes.toByteArray(), StandardCharsets.UTF_8);
+        return uncompressedBytes.toString(StandardCharsets.UTF_8);
     }
 
     private String calculateSecureHash(String input) {

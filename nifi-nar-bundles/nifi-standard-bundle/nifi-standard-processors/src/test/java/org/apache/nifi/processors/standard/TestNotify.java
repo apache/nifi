@@ -30,14 +30,10 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -60,7 +56,7 @@ public class TestNotify {
     }
 
     @Test
-    public void testNotify() throws InitializationException, IOException {
+    public void testNotify() throws IOException {
         runner.setProperty(Notify.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
         runner.setProperty(Notify.ATTRIBUTE_CACHE_REGEX, ".*");
 
@@ -82,7 +78,7 @@ public class TestNotify {
     }
 
     @Test
-    public void testNotifyCounters() throws InitializationException, IOException {
+    public void testNotifyCounters() throws IOException {
         runner.setProperty(Notify.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
         runner.setProperty(Notify.ATTRIBUTE_CACHE_REGEX, ".*");
         runner.setProperty(Notify.SIGNAL_COUNTER_NAME, "${status}");
@@ -120,7 +116,7 @@ public class TestNotify {
     }
 
     @Test
-    public void testNotifyCountersBatch() throws InitializationException, IOException {
+    public void testNotifyCountersBatch() throws IOException {
         runner.setProperty(Notify.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
         runner.setProperty(Notify.ATTRIBUTE_CACHE_REGEX, ".*");
         runner.setProperty(Notify.SIGNAL_COUNTER_NAME, "${status}");
@@ -174,7 +170,7 @@ public class TestNotify {
     }
 
     @Test
-    public void testNotifyCountersUsingDelta() throws InitializationException, IOException {
+    public void testNotifyCountersUsingDelta() throws IOException {
         runner.setProperty(Notify.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
         runner.setProperty(Notify.ATTRIBUTE_CACHE_REGEX, ".*");
         runner.setProperty(Notify.SIGNAL_COUNTER_NAME, "${status}");
@@ -217,7 +213,7 @@ public class TestNotify {
     }
 
     @Test
-    public void testIllegalDelta() throws InitializationException, IOException {
+    public void testIllegalDelta() throws IOException {
         runner.setProperty(Notify.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
         runner.setProperty(Notify.ATTRIBUTE_CACHE_REGEX, ".*");
         runner.setProperty(Notify.SIGNAL_COUNTER_NAME, "${status}");
@@ -307,9 +303,7 @@ public class TestNotify {
         final Map<String, String> props = new HashMap<>();
         props.put("releaseSignalAttribute", "2");
         runner.enqueue(new byte[] {}, props);
-        final AssertionError e = assertThrows(AssertionError.class, () -> {
-            runner.run();
-        });
+        final AssertionError e = assertThrows(AssertionError.class, () -> runner.run());
         assertTrue(e.getCause() instanceof RuntimeException);
         service.setFailOnCalls(false);
 
@@ -335,15 +329,14 @@ public class TestNotify {
         }
 
         @Override
-        public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
+        public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
             unsupported();
             return false;
         }
 
         @Override
-        @SuppressWarnings("unchecked")
         public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer,
-            final Deserializer<V> valueDeserializer) throws IOException {
+            final Deserializer<V> valueDeserializer) {
             unsupported();
             return null;
         }
@@ -360,7 +353,6 @@ public class TestNotify {
         }
 
         @Override
-        @SuppressWarnings("unchecked")
         public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
             verifyNotFail();
 
@@ -381,23 +373,6 @@ public class TestNotify {
         public <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
             verifyNotFail();
             return values.remove(key) != null;
-        }
-
-        @Override
-        public long removeByPattern(String regex) throws IOException {
-            verifyNotFail();
-            final List<Object> removedRecords = new ArrayList<>();
-            Pattern p = Pattern.compile(regex);
-            for (Object key : values.keySet()) {
-                // Key must be backed by something that can be converted into a String
-                Matcher m = p.matcher(key.toString());
-                if (m.matches()) {
-                    removedRecords.add(values.get(key));
-                }
-            }
-            final long numRemoved = removedRecords.size();
-            removedRecords.forEach(values::remove);
-            return numRemoved;
         }
 
         @Override

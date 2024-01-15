@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Set;
 
 /**
@@ -51,8 +51,7 @@ public class ControllerDTO {
     /**
      * @return id of this NiFi controller
      */
-    @ApiModelProperty(
-            value = "The id of the NiFi."
+    @Schema(description = "The id of the NiFi."
     )
     public String getId() {
         return id;
@@ -67,8 +66,7 @@ public class ControllerDTO {
      *
      * @return The name of this controller
      */
-    @ApiModelProperty(
-            value = "The name of the NiFi."
+    @Schema(description = "The name of the NiFi."
     )
     public String getName() {
         return name;
@@ -81,8 +79,7 @@ public class ControllerDTO {
     /**
      * @return comments of this NiFi controller
      */
-    @ApiModelProperty(
-            value = "The comments for the NiFi."
+    @Schema(description = "The comments for the NiFi."
     )
     public String getComments() {
         return comments;
@@ -95,8 +92,7 @@ public class ControllerDTO {
     /**
      * @return input ports available to send data to this NiFi controller
      */
-    @ApiModelProperty(
-            value = "The input ports available to send data to for the NiFi."
+    @Schema(description = "The input ports available to send data to for the NiFi."
     )
     public Set<PortDTO> getInputPorts() {
         return inputPorts;
@@ -109,8 +105,7 @@ public class ControllerDTO {
     /**
      * @return output ports available to received data from this NiFi controller
      */
-    @ApiModelProperty(
-            value = "The output ports available to received data from the NiFi."
+    @Schema(description = "The output ports available to received data from the NiFi."
     )
     public Set<PortDTO> getOutputPorts() {
         return outputPorts;
@@ -123,8 +118,7 @@ public class ControllerDTO {
     /**
      * @return Instance ID of the cluster, if this node is connected to a Cluster Manager, or of this individual instance of in standalone mode
      */
-    @ApiModelProperty(
-            value = "If clustered, the id of the Cluster Manager, otherwise the id of the NiFi."
+    @Schema(description = "If clustered, the id of the Cluster Manager, otherwise the id of the NiFi."
     )
     public String getInstanceId() {
         return instanceId;
@@ -139,8 +133,7 @@ public class ControllerDTO {
      *
      * @return a integer between 1 and 65535, or null, if not configured for remote transfer
      */
-    @ApiModelProperty(
-            value = "The Socket Port on which this instance is listening for Remote Transfers of Flow Files. If this instance is not configured to receive Flow Files from remote "
+    @Schema(description = "The Socket Port on which this instance is listening for Remote Transfers of Flow Files. If this instance is not configured to receive Flow Files from remote "
                     + "instances, this will be null."
     )
     public Integer getRemoteSiteListeningPort() {
@@ -156,8 +149,7 @@ public class ControllerDTO {
      *
      * @return a integer between 1 and 65535, or null, if not configured for remote transfer
      */
-    @ApiModelProperty(
-            value = "The HTTP(S) Port on which this instance is listening for Remote Transfers of Flow Files. If this instance is not configured to receive Flow Files from remote "
+    @Schema(description = "The HTTP(S) Port on which this instance is listening for Remote Transfers of Flow Files. If this instance is not configured to receive Flow Files from remote "
                     + "instances, this will be null."
     )
     public Integer getRemoteSiteHttpListeningPort() {
@@ -171,8 +163,7 @@ public class ControllerDTO {
     /**
      * @return Indicates whether or not Site-to-Site communications with this instance is secure (2-way authentication)
      */
-    @ApiModelProperty(
-            value = "Indicates whether or not Site-to-Site communications with this instance is secure (2-way authentication)."
+    @Schema(description = "Indicates whether or not Site-to-Site communications with this instance is secure (2-way authentication)."
     )
     public Boolean isSiteToSiteSecure() {
         return siteToSiteSecure;
@@ -185,8 +176,7 @@ public class ControllerDTO {
     /**
      * @return number of running components in this process group
      */
-    @ApiModelProperty(
-            value = "The number of running components in the NiFi."
+    @Schema(description = "The number of running components in the NiFi."
     )
     public Integer getRunningCount() {
         return runningCount;
@@ -199,8 +189,7 @@ public class ControllerDTO {
     /**
      * @return number of stopped components in this process group
      */
-    @ApiModelProperty(
-            value = "The number of stopped components in the NiFi."
+    @Schema(description = "The number of stopped components in the NiFi."
     )
     public Integer getStoppedCount() {
         return stoppedCount;
@@ -213,8 +202,7 @@ public class ControllerDTO {
     /**
      * @return number of active remote ports contained in this process group
      */
-    @ApiModelProperty(
-            value = "The number of active remote ports contained in the NiFi."
+    @Schema(description = "The number of active remote ports contained in the NiFi."
     )
     public Integer getActiveRemotePortCount() {
         return activeRemotePortCount;
@@ -227,8 +215,7 @@ public class ControllerDTO {
     /**
      * @return number of inactive remote ports contained in this process group
      */
-    @ApiModelProperty(
-            value = "The number of inactive remote ports contained in the NiFi."
+    @Schema(description = "The number of inactive remote ports contained in the NiFi."
     )
     public Integer getInactiveRemotePortCount() {
         return inactiveRemotePortCount;
@@ -241,8 +228,7 @@ public class ControllerDTO {
     /**
      * @return number of input ports contained in this process group
      */
-    @ApiModelProperty(
-            value = "The number of input ports contained in the NiFi."
+    @Schema(description = "The number of input ports contained in the NiFi."
     )
     public Integer getInputPortCount() {
         return inputPortCount;
@@ -255,8 +241,7 @@ public class ControllerDTO {
     /**
      * @return number of invalid components in this process group
      */
-    @ApiModelProperty(
-            value = "The number of invalid components in the NiFi."
+    @Schema(description = "The number of invalid components in the NiFi."
     )
     public Integer getInvalidCount() {
         return invalidCount;
@@ -269,8 +254,7 @@ public class ControllerDTO {
     /**
      * @return number of disabled components in this process group
      */
-    @ApiModelProperty(
-            value = "The number of disabled components in the NiFi."
+    @Schema(description = "The number of disabled components in the NiFi."
     )
     public Integer getDisabledCount() {
         return disabledCount;
@@ -283,8 +267,7 @@ public class ControllerDTO {
     /**
      * @return number of output ports in this process group
      */
-    @ApiModelProperty(
-            value = "The number of output ports in the NiFi."
+    @Schema(description = "The number of output ports in the NiFi."
     )
     public Integer getOutputPortCount() {
         return outputPortCount;

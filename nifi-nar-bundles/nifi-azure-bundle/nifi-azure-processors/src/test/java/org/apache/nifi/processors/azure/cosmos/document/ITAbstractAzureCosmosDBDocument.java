@@ -59,7 +59,6 @@ public abstract class ITAbstractAzureCosmosDBDocument {
     protected static CosmosContainer container;
 
     static {
-
         CONFIG = new Properties();
         assertDoesNotThrow(() -> {
             final FileInputStream fis = new FileInputStream(CREDENTIALS_FILE);

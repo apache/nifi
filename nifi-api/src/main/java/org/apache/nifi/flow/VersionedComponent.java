@@ -17,7 +17,7 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Objects;
 
@@ -31,7 +31,7 @@ public abstract class VersionedComponent {
     private String comments;
     private Position position;
 
-    @ApiModelProperty("The component's unique identifier")
+    @Schema(description = "The component's unique identifier")
     public String getIdentifier() {
         return identifier;
     }
@@ -40,7 +40,7 @@ public abstract class VersionedComponent {
         this.identifier = identifier;
     }
 
-    @ApiModelProperty("The instance ID of an existing component that is described by this VersionedComponent, or null if this is not mapped to an instantiated component")
+    @Schema(description = "The instance ID of an existing component that is described by this VersionedComponent, or null if this is not mapped to an instantiated component")
     public String getInstanceIdentifier() {
         return instanceIdentifier;
     }
@@ -49,7 +49,7 @@ public abstract class VersionedComponent {
         this.instanceIdentifier = instanceIdentifier;
     }
 
-    @ApiModelProperty("The ID of the Process Group that this component belongs to")
+    @Schema(description = "The ID of the Process Group that this component belongs to")
     public String getGroupIdentifier() {
         return groupId;
     }
@@ -58,7 +58,7 @@ public abstract class VersionedComponent {
         this.groupId = groupId;
     }
 
-    @ApiModelProperty("The component's name")
+    @Schema(description = "The component's name")
     public String getName() {
         return name;
     }
@@ -67,7 +67,7 @@ public abstract class VersionedComponent {
         this.name = name;
     }
 
-    @ApiModelProperty("The component's position on the graph")
+    @Schema(description = "The component's position on the graph")
     public Position getPosition() {
         return position;
     }
@@ -76,7 +76,7 @@ public abstract class VersionedComponent {
         this.position = position;
     }
 
-    @ApiModelProperty("The user-supplied comments for the component")
+    @Schema(description = "The user-supplied comments for the component")
     public String getComments() {
         return comments;
     }

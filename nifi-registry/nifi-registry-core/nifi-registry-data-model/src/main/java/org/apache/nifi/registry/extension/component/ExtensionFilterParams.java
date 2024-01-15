@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.extension;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.extension.manifest.ExtensionType;
 import org.apache.nifi.registry.extension.bundle.BundleType;
 
@@ -29,7 +28,6 @@ import java.util.Set;
 /**
  * Parameters for filtering on extensions. All parameters will be AND'd together, but tags will be OR'd.
  */
-@ApiModel
 public class ExtensionFilterParams {
 
     private final BundleType bundleType;
@@ -49,17 +47,17 @@ public class ExtensionFilterParams {
         this.tags = Collections.unmodifiableSet(new HashSet<>(builder.tags));
     }
 
-    @ApiModelProperty("The type of bundle")
+    @Schema(description = "The type of bundle")
     public BundleType getBundleType() {
         return bundleType;
     }
 
-    @ApiModelProperty("The type of extension")
+    @Schema(description = "The type of extension")
     public ExtensionType getExtensionType() {
         return extensionType;
     }
 
-    @ApiModelProperty("The tags")
+    @Schema(description = "The tags")
     public Set<String> getTags() {
         return tags;
     }

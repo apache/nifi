@@ -31,15 +31,14 @@ public interface AzureEventHubComponent {
             .displayName("Transport Type")
             .description("Advanced Message Queuing Protocol Transport Type for communication with Azure Event Hubs")
             .allowableValues(AzureEventHubTransportType.class)
-            .defaultValue(AzureEventHubTransportType.AMQP.getValue())
+            .defaultValue(AzureEventHubTransportType.AMQP)
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
     ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.HTTP_AUTH};
-    PropertyDescriptor PROXY_CONFIGURATION_SERVICE
-            = new PropertyDescriptor.Builder()
+    PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS))
-            .dependsOn(TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS.getValue())
+            .dependsOn(TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS)
             .build();
 }

@@ -20,13 +20,6 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobRange;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -49,6 +42,13 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12;
 import org.apache.nifi.processors.azure.ClientSideEncryptionSupport;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBTYPE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_CONTAINER;
@@ -139,7 +139,7 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 im
             .required(false)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             STORAGE_CREDENTIALS_SERVICE,
             CONTAINER,
             BLOB_NAME,
@@ -149,7 +149,7 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 im
             CSE_KEY_TYPE,
             CSE_KEY_ID,
             CSE_LOCAL_KEY
-    ));
+    );
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {

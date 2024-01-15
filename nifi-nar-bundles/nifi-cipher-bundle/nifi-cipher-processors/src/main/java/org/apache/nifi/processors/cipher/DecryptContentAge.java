@@ -20,7 +20,6 @@ import com.exceptionfactory.jagged.DecryptingChannelFactory;
 import com.exceptionfactory.jagged.RecipientStanzaReader;
 import com.exceptionfactory.jagged.framework.armor.ArmoredDecryptingChannelFactory;
 import com.exceptionfactory.jagged.framework.stream.StandardDecryptingChannelFactory;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -31,7 +30,6 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceReference;
-import org.apache.nifi.components.resource.ResourceReferences;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.flowfile.FlowFile;
@@ -61,7 +59,6 @@ import java.security.Provider;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -93,7 +90,7 @@ public class DecryptContentAge extends AbstractProcessor implements VerifiablePr
             .displayName("Private Key Source")
             .description("Source of information determines the loading strategy for X25519 Private Key Identities")
             .required(true)
-            .defaultValue(KeySource.PROPERTIES.getValue())
+            .defaultValue(KeySource.PROPERTIES)
             .allowableValues(KeySource.class)
             .build();
 
@@ -118,9 +115,9 @@ public class DecryptContentAge extends AbstractProcessor implements VerifiablePr
             .dependsOn(PRIVATE_KEY_SOURCE, KeySource.RESOURCES)
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = new LinkedHashSet<>(Arrays.asList(SUCCESS, FAILURE));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(SUCCESS, FAILURE);
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = Arrays.asList(
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             PRIVATE_KEY_SOURCE,
             PRIVATE_KEY_IDENTITIES,
             PRIVATE_KEY_IDENTITY_RESOURCES
@@ -227,20 +224,13 @@ public class DecryptContentAge extends AbstractProcessor implements VerifiablePr
     }
 
     private List<RecipientStanzaReader> getRecipientStanzaReaders(final PropertyContext context) throws IOException {
-        final KeySource keySource = KeySource.valueOf(context.getProperty(PRIVATE_KEY_SOURCE).getValue());
-
-        final List<ResourceReference> resources = new ArrayList<>();
-
-        if (KeySource.PROPERTIES == keySource) {
-            final ResourceReference resource = context.getProperty(PRIVATE_KEY_IDENTITIES).asResource();
-            resources.add(resource);
-        } else {
-            final ResourceReferences resourceReferences = context.getProperty(PRIVATE_KEY_IDENTITY_RESOURCES).asResources();
-            resources.addAll(resourceReferences.asList());
-        }
+        final KeySource keySource = context.getProperty(PRIVATE_KEY_SOURCE).asDescribedValue(KeySource.class);
+        final List<ResourceReference> resources = switch (keySource) {
+            case PROPERTIES -> List.of(context.getProperty(PRIVATE_KEY_IDENTITIES).asResource());
+            case RESOURCES -> context.getProperty(PRIVATE_KEY_IDENTITY_RESOURCES).asResources().asList();
+        };
 
         final List<RecipientStanzaReader> recipientStanzaReaders = new ArrayList<>();
-
         for (final ResourceReference resource : resources) {
             try (final InputStream inputStream = resource.read()) {
                 final List<RecipientStanzaReader> readers = PRIVATE_KEY_READER.read(inputStream);
@@ -285,15 +275,11 @@ public class DecryptContentAge extends AbstractProcessor implements VerifiablePr
         }
 
         private DecryptingChannelFactory getDecryptingChannelFactory(final byte[] versionIndicator) {
-            final DecryptingChannelFactory decryptingChannelFactory;
-
             if (Arrays.equals(BINARY_VERSION_INDICATOR, versionIndicator)) {
-                decryptingChannelFactory = new StandardDecryptingChannelFactory(CIPHER_PROVIDER);
+                return new StandardDecryptingChannelFactory(CIPHER_PROVIDER);
             } else {
-                decryptingChannelFactory = new ArmoredDecryptingChannelFactory(CIPHER_PROVIDER);
+                return new ArmoredDecryptingChannelFactory(CIPHER_PROVIDER);
             }
-
-            return decryptingChannelFactory;
         }
     }
 }

@@ -17,8 +17,8 @@
 
 package org.apache.nifi.minifi.c2.util;
 
-import javax.servlet.ServletRequest;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 public class HttpRequestUtil {
     public static String getQueryString(HttpServletRequest request) {

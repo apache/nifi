@@ -117,7 +117,7 @@ import java.util.stream.Stream;
         Choose a RecordWriter that writes the data in the desired output format.
 
         Add a single additional property. The name of the property should describe the criteria. \
-        The property's value should be a RecordPath that returns `true` if the Record meets the criteria or `false otherwise.
+        The property's value should be a RecordPath that returns `true` if the Record meets the criteria or `false` otherwise.
 
         For example, if we want to separate records based on whether or not they have a transaction total of more than $1,000 we could add a new property named \
         `largeTransaction` with a value of `/transaction/total > 1000`. This will create two FlowFiles. In the first, all records will have a total over `1000`. \

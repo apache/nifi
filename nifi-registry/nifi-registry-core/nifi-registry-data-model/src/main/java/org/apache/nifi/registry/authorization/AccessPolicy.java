@@ -17,8 +17,7 @@
 
 package org.apache.nifi.registry.authorization;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -27,13 +26,12 @@ import java.util.Set;
 /**
  * Access policy details, including the users and user groups to which the policy applies.
  */
-@ApiModel
 public class AccessPolicy extends AccessPolicySummary {
 
     private Set<Tenant> users;
     private Set<Tenant> userGroups;
 
-    @ApiModelProperty(value = "The set of user IDs associated with this access policy.")
+    @Schema(description = "The set of user IDs associated with this access policy.")
     public Set<Tenant> getUsers() {
         return users;
     }
@@ -51,7 +49,7 @@ public class AccessPolicy extends AccessPolicySummary {
         }
     }
 
-    @ApiModelProperty(value = "The set of user group IDs associated with this access policy.")
+    @Schema(description = "The set of user group IDs associated with this access policy.")
     public Set<Tenant> getUserGroups() {
         return userGroups;
     }

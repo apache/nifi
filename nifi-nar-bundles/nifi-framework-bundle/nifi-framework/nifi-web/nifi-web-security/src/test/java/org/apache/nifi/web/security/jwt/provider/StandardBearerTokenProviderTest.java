@@ -36,6 +36,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.net.URI;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -59,17 +60,15 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class StandardBearerTokenProviderTest {
-    private static final String USERNAME = "USERNAME";
-
     private static final String IDENTITY = "IDENTITY";
 
-    private static final Duration EXPIRATION = Duration.ofHours(1);
+    private static final Instant EXPIRATION = Instant.now().plusSeconds(300);
 
     private static final Duration MAXIMUM_DURATION_EXCEEDED = Duration.parse("PT12H5M");
 
     private static final Duration MINIMUM_DURATION_EXCEEDED = Duration.parse("PT30S");
 
-    private static final String ISSUER = "ISSUER";
+    private static final URI ISSUER = URI.create("https://localhost:8443");
 
     private static final String KEY_ALGORITHM = "RSA";
 
@@ -84,6 +83,9 @@ public class StandardBearerTokenProviderTest {
     @Mock
     private JwsSignerProvider jwsSignerProvider;
 
+    @Mock
+    private IssuerProvider issuerProvider;
+
     private StandardBearerTokenProvider provider;
 
     private JWSVerifier jwsVerifier;
@@ -97,7 +99,7 @@ public class StandardBearerTokenProviderTest {
 
     @BeforeEach
     public void setProvider() {
-        provider = new StandardBearerTokenProvider(jwsSignerProvider);
+        provider = new StandardBearerTokenProvider(jwsSignerProvider, issuerProvider);
 
         jwsVerifier = new RSASSAVerifier((RSAPublicKey) keyPair.getPublic());
         final JWSSigner jwsSigner = new RSASSASigner(keyPair.getPrivate());
@@ -105,11 +107,13 @@ public class StandardBearerTokenProviderTest {
         final String keyIdentifier = UUID.randomUUID().toString();
         final JwsSignerContainer jwsSignerContainer = new JwsSignerContainer(keyIdentifier, JWS_ALGORITHM, jwsSigner);
         when(jwsSignerProvider.getJwsSignerContainer(isA(Instant.class))).thenReturn(jwsSignerContainer);
+
+        when(issuerProvider.getIssuer()).thenReturn(ISSUER);
     }
 
     @Test
     public void testGetBearerToken() throws ParseException, JOSEException {
-        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, USERNAME, EXPIRATION.toMillis(), ISSUER);
+        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, EXPIRATION, Collections.emptySet());
 
         final String bearerToken = provider.getBearerToken(loginAuthenticationToken);
 
@@ -121,7 +125,7 @@ public class StandardBearerTokenProviderTest {
         final GrantedAuthority grantedAuthority = new SimpleGrantedAuthority(GROUP);
         final Collection<GrantedAuthority> authorities = Collections.singletonList(grantedAuthority);
 
-        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, USERNAME, EXPIRATION.toMillis(), ISSUER, authorities);
+        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, EXPIRATION, authorities);
 
         final String bearerToken = provider.getBearerToken(loginAuthenticationToken);
 
@@ -130,8 +134,8 @@ public class StandardBearerTokenProviderTest {
 
     @Test
     public void testGetBearerTokenExpirationMaximum() throws ParseException, JOSEException {
-        final long expiration = MAXIMUM_DURATION_EXCEEDED.toMillis();
-        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, USERNAME, expiration, ISSUER);
+        final Instant expiration = Instant.now().plus(MAXIMUM_DURATION_EXCEEDED);
+        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, expiration, Collections.emptySet());
 
         final String bearerToken = provider.getBearerToken(loginAuthenticationToken);
 
@@ -140,7 +144,7 @@ public class StandardBearerTokenProviderTest {
         final Date claimExpirationTime = claims.getExpirationTime();
         assertNotNull(claimExpirationTime, "Expiration Time not found");
 
-        final Date loginExpirationTime = new Date(loginAuthenticationToken.getExpiration());
+        final Date loginExpirationTime = Date.from(loginAuthenticationToken.getExpiration());
         assertNotSame(loginExpirationTime.toString(), claimExpirationTime.toString(), "Expiration Time matched");
 
         assertTrue(claimExpirationTime.toInstant().isBefore(loginExpirationTime.toInstant()), "Claim Expiration after Login Expiration");
@@ -148,8 +152,8 @@ public class StandardBearerTokenProviderTest {
 
     @Test
     public void testGetBearerTokenExpirationMinimum() throws ParseException, JOSEException {
-        final long expiration = MINIMUM_DURATION_EXCEEDED.toMillis();
-        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, USERNAME, expiration, ISSUER);
+        final Instant expiration = Instant.now().plus(MINIMUM_DURATION_EXCEEDED);
+        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, expiration, Collections.emptySet());
 
         final String bearerToken = provider.getBearerToken(loginAuthenticationToken);
 
@@ -158,7 +162,7 @@ public class StandardBearerTokenProviderTest {
         final Date claimExpirationTime = claims.getExpirationTime();
         assertNotNull(claimExpirationTime, "Expiration Time not found");
 
-        final Date loginExpirationTime = new Date(loginAuthenticationToken.getExpiration());
+        final Date loginExpirationTime = Date.from(loginAuthenticationToken.getExpiration());
         assertNotSame(loginExpirationTime.toString(), claimExpirationTime.toString(), "Expiration Time matched");
 
         assertTrue(claimExpirationTime.toInstant().isAfter(loginExpirationTime.toInstant()), "Claim Expiration before Login Expiration");
@@ -179,13 +183,13 @@ public class StandardBearerTokenProviderTest {
         final Date claimExpirationTime = claims.getExpirationTime();
         assertNotNull(claimExpirationTime, "Expiration Time not found");
 
-        final Date loginExpirationTime = new Date(loginAuthenticationToken.getExpiration());
+        final Date loginExpirationTime = Date.from(loginAuthenticationToken.getExpiration());
         assertEquals(loginExpirationTime.toString(), claimExpirationTime.toString(), "Expiration Time not matched");
 
-        assertEquals(ISSUER, claims.getIssuer());
-        assertEquals(Collections.singletonList(ISSUER), claims.getAudience());
+        assertEquals(ISSUER.toString(), claims.getIssuer());
+        assertEquals(Collections.singletonList(ISSUER.toString()), claims.getAudience());
         assertEquals(IDENTITY, claims.getSubject());
-        assertEquals(USERNAME, claims.getClaim(SupportedClaim.PREFERRED_USERNAME.getClaim()));
+        assertEquals(IDENTITY, claims.getClaim(SupportedClaim.PREFERRED_USERNAME.getClaim()));
         assertNotNull(claims.getJWTID(), "JSON Web Token Identifier not found");
 
         final List<String> groups = claims.getStringListClaim(SupportedClaim.GROUPS.getClaim());

@@ -35,11 +35,14 @@ public class AvroParquetHDFSRecordReader implements HDFSRecordReader {
     private GenericRecord lastRecord;
     private RecordSchema recordSchema;
     private boolean initialized = false;
+    private final Long recordsToRead;
+    private long recordsRead = 0;
 
     private final ParquetReader<GenericRecord> parquetReader;
 
-    public AvroParquetHDFSRecordReader(final ParquetReader<GenericRecord> parquetReader) {
+    public AvroParquetHDFSRecordReader(final ParquetReader<GenericRecord> parquetReader, final Long recordsToRead) {
         this.parquetReader = parquetReader;
+        this.recordsToRead = recordsToRead;
     }
 
     @Override
@@ -48,7 +51,7 @@ public class AvroParquetHDFSRecordReader implements HDFSRecordReader {
             return null;
         }
 
-        lastRecord = parquetReader.read();
+        lastRecord = readNextRecord();
         initialized = true;
 
         if (lastRecord == null) {
@@ -63,10 +66,18 @@ public class AvroParquetHDFSRecordReader implements HDFSRecordReader {
         return new MapRecord(recordSchema, values);
     }
 
-
     @Override
     public void close() throws IOException {
         parquetReader.close();
     }
 
+    private GenericRecord readNextRecord() throws IOException {
+        // No more records are available
+        if ((recordsToRead != null) && (recordsRead == recordsToRead)) {
+            return null;
+        }
+        GenericRecord result = parquetReader.read();
+        recordsRead++;
+        return result;
+    }
 }

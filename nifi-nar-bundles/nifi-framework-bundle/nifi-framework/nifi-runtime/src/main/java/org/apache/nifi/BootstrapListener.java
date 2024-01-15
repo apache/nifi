@@ -205,20 +205,43 @@ public class BootstrapListener {
                                         logger.info("Received DUMP request from Bootstrap");
                                         writeDump(socket.getOutputStream());
                                         break;
+                                    case CLUSTER_STATUS:
+                                        logger.info("Received CLUSTER_STATUS request from Bootstrap");
+                                        final String clusterStatus = getClusterStatus();
+                                        sendAnswer(socket.getOutputStream(), clusterStatus);
+                                        break;
                                     case DECOMMISSION:
                                         logger.info("Received DECOMMISSION request from Bootstrap");
+
+                                        boolean shutdown = true;
+                                        final String[] decommissionArgs = request.getArgs();
+                                        if (decommissionArgs != null) {
+                                            for (final String arg : decommissionArgs) {
+                                                if ("--shutdown=false".equalsIgnoreCase(arg)) {
+                                                    shutdown = false;
+                                                    break;
+                                                }
+                                            }
+                                        }
+
+                                        logger.info("Command indicates that after decommission, shutdown={}", shutdown);
 
                                         try {
                                             decommission();
                                             sendAnswer(socket.getOutputStream(), "DECOMMISSION");
-                                            nifi.shutdownHook(false);
+
+                                            if (shutdown) {
+                                                nifi.shutdownHook(false);
+                                            }
                                         } catch (final Exception e) {
                                             final OutputStream out = socket.getOutputStream();
 
                                             out.write(("Failed to decommission node: " + e + "; see app-log for additional details").getBytes(StandardCharsets.UTF_8));
                                             out.flush();
                                         } finally {
-                                            socket.close();
+                                            if (shutdown) {
+                                                socket.close();
+                                            }
                                         }
 
                                         break;
@@ -273,6 +296,10 @@ public class BootstrapListener {
     private void writeDump(final OutputStream out) throws IOException {
         final DiagnosticsDump diagnosticsDump = nifi.getServer().getThreadDumpFactory().create(true);
         diagnosticsDump.writeTo(out);
+    }
+
+    private String getClusterStatus() {
+        return nifi.getServer().getClusterDetailsFactory().getConnectionState().name();
     }
 
     private void decommission() throws InterruptedException {
@@ -346,7 +373,8 @@ public class BootstrapListener {
             DECOMMISSION,
             PING,
             IS_LOADED,
-            STATUS_HISTORY
+            STATUS_HISTORY,
+            CLUSTER_STATUS
         }
 
         private final RequestType requestType;

@@ -32,12 +32,10 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.services.azure.data.explorer.KustoQueryService;
 import org.apache.nifi.services.azure.data.explorer.KustoQueryResponse;
+import org.apache.nifi.services.azure.data.explorer.KustoQueryService;
 
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -92,9 +90,9 @@ public class QueryAzureDataExplorer extends AbstractProcessor {
 
     protected static final String APPLICATION_JSON = "application/json";
 
-    private static final Set<Relationship> RELATIONSHIPS = new LinkedHashSet<>(Arrays.asList(SUCCESS, FAILURE));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(SUCCESS, FAILURE);
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = Arrays.asList(KUSTO_QUERY_SERVICE, DATABASE_NAME, QUERY);
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(KUSTO_QUERY_SERVICE, DATABASE_NAME, QUERY);
 
     private volatile KustoQueryService service;
 

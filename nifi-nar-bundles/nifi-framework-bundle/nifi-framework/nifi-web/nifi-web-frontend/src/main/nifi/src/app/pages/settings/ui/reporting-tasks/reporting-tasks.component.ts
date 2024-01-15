@@ -15,35 +15,74 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
+import { filter, switchMap, take } from 'rxjs';
 import { ReportingTaskEntity, ReportingTasksState } from '../../state/reporting-tasks';
 import {
     selectReportingTaskIdFromRoute,
-    selectReportingTasksState
+    selectReportingTasksState,
+    selectSingleEditedReportingTask,
+    selectTask
 } from '../../state/reporting-tasks/reporting-tasks.selectors';
 import {
     loadReportingTasks,
+    navigateToEditReportingTask,
+    openConfigureReportingTaskDialog,
     openNewReportingTaskDialog,
     promptReportingTaskDeletion,
-    selectReportingTask,
+    resetReportingTasksState,
     startReportingTask,
-    stopReportingTask
+    stopReportingTask,
+    selectReportingTask
 } from '../../state/reporting-tasks/reporting-tasks.actions';
 import { initialState } from '../../state/reporting-tasks/reporting-tasks.reducer';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
+import { NiFiState } from '../../../../state';
+import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
+import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 
 @Component({
     selector: 'reporting-tasks',
     templateUrl: './reporting-tasks.component.html',
     styleUrls: ['./reporting-tasks.component.scss']
 })
-export class ReportingTasks implements OnInit {
+export class ReportingTasks implements OnInit, OnDestroy {
     reportingTaskState$ = this.store.select(selectReportingTasksState);
     selectedReportingTaskId$ = this.store.select(selectReportingTaskIdFromRoute);
+    currentUser$ = this.store.select(selectCurrentUser);
+    flowConfiguration$ = this.store.select(selectFlowConfiguration);
 
-    constructor(private store: Store<ReportingTasksState>) {}
+    constructor(private store: Store<NiFiState>) {
+        this.store
+            .select(selectSingleEditedReportingTask)
+            .pipe(
+                filter((id: string) => id != null),
+                switchMap((id: string) =>
+                    this.store.select(selectTask(id)).pipe(
+                        filter((entity) => entity != null),
+                        take(1)
+                    )
+                ),
+                takeUntilDestroyed()
+            )
+            .subscribe((entity) => {
+                if (entity) {
+                    this.store.dispatch(
+                        openConfigureReportingTaskDialog({
+                            request: {
+                                id: entity.id,
+                                reportingTask: entity
+                            }
+                        })
+                    );
+                }
+            });
+    }
 
     ngOnInit(): void {
+        this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(loadReportingTasks());
     }
 
@@ -64,7 +103,7 @@ export class ReportingTasks implements OnInit {
         this.store.dispatch(
             selectReportingTask({
                 request: {
-                    reportingTask: entity
+                    id: entity.id
                 }
             })
         );
@@ -76,6 +115,14 @@ export class ReportingTasks implements OnInit {
                 request: {
                     reportingTask: entity
                 }
+            })
+        );
+    }
+
+    configureReportingTask(entity: ReportingTaskEntity): void {
+        this.store.dispatch(
+            navigateToEditReportingTask({
+                id: entity.id
             })
         );
     }
@@ -98,5 +145,9 @@ export class ReportingTasks implements OnInit {
                 }
             })
         );
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(resetReportingTasksState());
     }
 }

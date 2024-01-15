@@ -32,12 +32,24 @@ import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../tooltips/text-tip/text-tip.component';
 import { BulletinsTip } from '../../tooltips/bulletins-tip/bulletins-tip.component';
 import { ValidationErrorsTip } from '../../tooltips/validation-errors-tip/validation-errors-tip.component';
+import { RouterLink } from '@angular/router';
+import { FlowConfiguration } from '../../../../state/flow-configuration';
+import { CurrentUser } from '../../../../state/current-user';
 
 @Component({
     selector: 'controller-service-table',
     standalone: true,
     templateUrl: './controller-service-table.component.html',
-    imports: [MatButtonModule, MatDialogModule, MatTableModule, MatSortModule, NgIf, NgClass, NifiTooltipDirective],
+    imports: [
+        MatButtonModule,
+        MatDialogModule,
+        MatTableModule,
+        MatSortModule,
+        NgIf,
+        NgClass,
+        NifiTooltipDirective,
+        RouterLink
+    ],
     styleUrls: ['./controller-service-table.component.scss', '../../../../../assets/styles/listing-table.scss']
 })
 export class ControllerServiceTable implements AfterViewInit {
@@ -60,12 +72,21 @@ export class ControllerServiceTable implements AfterViewInit {
         };
     }
     @Input() selectedServiceId!: string;
+    @Input() formatScope!: (entity: ControllerServiceEntity) => string;
+    @Input() definedByCurrentGroup!: (entity: ControllerServiceEntity) => boolean;
+    @Input() flowConfiguration!: FlowConfiguration;
+    @Input() currentUser!: CurrentUser;
+    @Input() canModifyParent!: (entity: ControllerServiceEntity) => boolean;
 
     @Output() selectControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
     @Output() deleteControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
     @Output() configureControllerService: EventEmitter<ControllerServiceEntity> =
+        new EventEmitter<ControllerServiceEntity>();
+    @Output() enableControllerService: EventEmitter<ControllerServiceEntity> =
+        new EventEmitter<ControllerServiceEntity>();
+    @Output() disableControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
 
     protected readonly TextTip = TextTip;
@@ -175,14 +196,12 @@ export class ControllerServiceTable implements AfterViewInit {
         return this.nifiCommon.formatBundle(entity.component.bundle);
     }
 
-    formatScope(entity: ControllerServiceEntity): string {
-        // TODO - how to resolve parent pg label (breadcrumb?)
-        return 'Controller';
-    }
-
-    definedByCurrentGroup(entity: ControllerServiceEntity): boolean {
-        // TODO
-        return true;
+    getServiceLink(entity: ControllerServiceEntity): string[] {
+        if (entity.parentGroupId == null) {
+            return ['/settings', 'management-controller-services', entity.id];
+        } else {
+            return ['/process-groups', entity.parentGroupId, 'controller-services', entity.id];
+        }
     }
 
     isDisabled(entity: ControllerServiceEntity): boolean {
@@ -203,11 +222,21 @@ export class ControllerServiceTable implements AfterViewInit {
     }
 
     canEnable(entity: ControllerServiceEntity): boolean {
-        return this.canOperate(entity) && this.isDisabled(entity) && entity.status.validationStatus === 'VALID';
+        const userAuthorized: boolean = this.canRead(entity) && this.canOperate(entity);
+        return userAuthorized && this.isDisabled(entity) && entity.status.validationStatus === 'VALID';
+    }
+
+    enabledClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
+        this.enableControllerService.next(entity);
     }
 
     canDisable(entity: ControllerServiceEntity): boolean {
-        return this.canOperate(entity) && this.isEnabledOrEnabling(entity);
+        const userAuthorized: boolean = this.canRead(entity) && this.canOperate(entity);
+        return userAuthorized && this.isEnabledOrEnabling(entity);
+    }
+
+    disableClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
+        this.disableControllerService.next(entity);
     }
 
     canChangeVersion(entity: ControllerServiceEntity): boolean {
@@ -220,8 +249,7 @@ export class ControllerServiceTable implements AfterViewInit {
     }
 
     canDelete(entity: ControllerServiceEntity): boolean {
-        const canWriteParent: boolean = true; // TODO canWriteControllerServiceParent(dataContext)
-        return this.isDisabled(entity) && this.canRead(entity) && this.canWrite(entity) && canWriteParent;
+        return this.isDisabled(entity) && this.canRead(entity) && this.canWrite(entity) && this.canModifyParent(entity);
     }
 
     deleteClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
@@ -234,8 +262,11 @@ export class ControllerServiceTable implements AfterViewInit {
     }
 
     canManageAccessPolicies(): boolean {
-        // TODO
-        return false;
+        return this.flowConfiguration.supportsManagedAuthorizer && this.currentUser.tenantsPermissions.canRead;
+    }
+
+    getPolicyLink(entity: ControllerServiceEntity): string[] {
+        return ['/access-policies', 'read', 'component', 'controller-services', entity.id];
     }
 
     select(entity: ControllerServiceEntity): void {

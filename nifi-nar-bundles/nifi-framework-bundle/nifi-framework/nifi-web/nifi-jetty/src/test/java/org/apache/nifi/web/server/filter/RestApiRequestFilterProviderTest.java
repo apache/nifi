@@ -17,13 +17,13 @@
 package org.apache.nifi.web.server.filter;
 
 import org.apache.nifi.util.NiFiProperties;
-import org.eclipse.jetty.servlet.FilterHolder;
-import org.eclipse.jetty.servlets.DoSFilter;
+import org.eclipse.jetty.ee10.servlet.FilterHolder;
+import org.eclipse.jetty.ee10.servlets.DoSFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.web.header.HeaderWriterFilter;
 
-import javax.servlet.Filter;
+import jakarta.servlet.Filter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;

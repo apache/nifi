@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.dto.action.details;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 
 /**
@@ -35,9 +35,8 @@ public class PurgeDetailsDTO extends ActionDetailsDTO {
      * @return end date for this purge action
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
-    @ApiModelProperty(
-            value = "The end date for the purge action.",
-            dataType = "string"
+    @Schema(description = "The end date for the purge action.",
+            type = "string"
     )
     public Date getEndDate() {
         return endDate;

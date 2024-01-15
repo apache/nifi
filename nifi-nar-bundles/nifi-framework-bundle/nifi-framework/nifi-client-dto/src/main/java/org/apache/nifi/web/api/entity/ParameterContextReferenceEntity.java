@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ParameterContextReferenceDTO.
@@ -37,8 +37,7 @@ public class ParameterContextReferenceEntity implements Permissible<ParameterCon
      *
      * @return The id
      */
-    @ApiModelProperty(
-            value = "The id of the component."
+    @Schema(description = "The id of the component."
     )
     public String getId() {
         return this.id;
@@ -53,8 +52,7 @@ public class ParameterContextReferenceEntity implements Permissible<ParameterCon
      *
      * @return The permissions
      */
-    @ApiModelProperty(
-            value = "The permissions for this component."
+    @Schema(description = "The permissions for this component."
     )
     public PermissionsDTO getPermissions() {
         return permissions;

@@ -82,7 +82,8 @@
                         <div
                             class="pointer fa fa-key"
                             *ngIf="canManageAccessPolicies()"
-                            (click)="managePoliciesClicked(item, $event)"
+                            (click)="$event.stopPropagation()"
+                            [routerLink]="getPolicyLink(item)"
                             title="Access Policies"></div>
                         <!-- TODO go to parameter provider -->
                     </div>

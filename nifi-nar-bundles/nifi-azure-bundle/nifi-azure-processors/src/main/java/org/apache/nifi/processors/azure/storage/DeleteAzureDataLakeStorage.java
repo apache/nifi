@@ -39,8 +39,6 @@ import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
@@ -59,8 +57,8 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             .displayName("Filesystem Object Type")
             .description("They type of the file system object to be deleted. It can be either folder or file.")
             .allowableValues(FS_TYPE_FILE, FS_TYPE_DIRECTORY)
+            .defaultValue(FS_TYPE_FILE)
             .required(true)
-            .defaultValue(FS_TYPE_FILE.toString())
             .build();
 
     public static final PropertyDescriptor FILE = new PropertyDescriptor.Builder()
@@ -73,14 +71,14 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             .dependsOn(FILESYSTEM_OBJECT_TYPE, FS_TYPE_FILE)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             ADLS_CREDENTIALS_SERVICE,
             FILESYSTEM,
             FILESYSTEM_OBJECT_TYPE,
             DIRECTORY,
             FILE,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
-    ));
+    );
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {

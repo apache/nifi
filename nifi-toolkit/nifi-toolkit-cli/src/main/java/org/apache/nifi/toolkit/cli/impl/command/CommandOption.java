@@ -88,6 +88,8 @@ public enum CommandOption {
     PG_VAR_VALUE("val", "varValue", "The value of a variable", true),
     KEEP_EXISTING_PARAMETER_CONTEXT("kepc", "keep-existing-parameter-context", "If false, only directly associated Parameter Contexts will be copied, "
             + "inherited Contexts with no direct assignment to a Process Group are ignored", true),
+    INCLUDE_REFERENCED_SERVICES("irs", "include-referenced-services", "Indicates that " +
+            "referenced services from outside the target group will be included.", false),
 
     POS_X("px", "posX", "The x coordinate of a position", true),
     POS_Y("py", "posY", "The y coordinate of a position", true),

@@ -178,10 +178,6 @@ public class TestDetectDuplicate {
         }
 
         @Override
-        public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        }
-
-        @Override
         protected java.util.List<PropertyDescriptor> getSupportedPropertyDescriptors() {
             final List<PropertyDescriptor> props = new ArrayList<>();
             props.add(DistributedMapCacheClientService.HOSTNAME);
@@ -192,7 +188,7 @@ public class TestDetectDuplicate {
         }
 
         @Override
-        public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
+        public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
             if (exists) {
                 return false;
             }
@@ -205,7 +201,7 @@ public class TestDetectDuplicate {
         @Override
         @SuppressWarnings("unchecked")
         public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer,
-                final Deserializer<V> valueDeserializer) throws IOException {
+                final Deserializer<V> valueDeserializer) {
             if (exists) {
                 return (V) cacheValue;
             }
@@ -232,16 +228,6 @@ public class TestDetectDuplicate {
         public <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
             exists = false;
             return true;
-        }
-
-        @Override
-        public long removeByPattern(String regex) throws IOException {
-            if (exists) {
-                exists = false;
-                return 1L;
-            } else {
-                return 0L;
-            }
         }
 
         @Override

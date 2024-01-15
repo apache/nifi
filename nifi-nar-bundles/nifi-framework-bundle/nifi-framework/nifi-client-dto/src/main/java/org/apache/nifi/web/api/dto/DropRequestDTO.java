@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimestampAdapter;
 
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 
 /**
@@ -56,8 +56,7 @@ public class DropRequestDTO {
      *
      * @return The id
      */
-    @ApiModelProperty(
-            value = "The id for this drop request."
+    @Schema(description = "The id for this drop request."
     )
     public String getId() {
         return this.id;
@@ -72,8 +71,7 @@ public class DropRequestDTO {
      *
      * @return The uri
      */
-    @ApiModelProperty(
-            value = "The URI for future requests to this drop request."
+    @Schema(description = "The URI for future requests to this drop request."
     )
     public String getUri() {
         return uri;
@@ -87,9 +85,8 @@ public class DropRequestDTO {
      * @return time the query was submitted
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
-    @ApiModelProperty(
-            value = "The timestamp when the query was submitted.",
-            dataType = "string"
+    @Schema(description = "The timestamp when the query was submitted.",
+            type = "string"
     )
     public Date getSubmissionTime() {
         return submissionTime;
@@ -102,8 +99,7 @@ public class DropRequestDTO {
     /**
      * @return percent completed
      */
-    @ApiModelProperty(
-            value = "The current percent complete."
+    @Schema(description = "The current percent complete."
     )
     public Integer getPercentCompleted() {
         return percentCompleted;
@@ -116,8 +112,7 @@ public class DropRequestDTO {
     /**
      * @return whether the query has finished
      */
-    @ApiModelProperty(
-            value = "Whether the query has finished."
+    @Schema(description = "Whether the query has finished."
     )
     public Boolean isFinished() {
         return finished;
@@ -130,8 +125,7 @@ public class DropRequestDTO {
     /**
      * @return the reason, if any, that this drop request failed
      */
-    @ApiModelProperty(
-        value = "The reason, if any, that this drop request failed."
+    @Schema(description = "The reason, if any, that this drop request failed."
     )
     public String getFailureReason() {
         return failureReason;
@@ -145,9 +139,8 @@ public class DropRequestDTO {
      * @return the time this request was last updated
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
-    @ApiModelProperty(
-            value = "The last time this drop request was updated.",
-            dataType = "string"
+    @Schema(description = "The last time this drop request was updated.",
+            type = "string"
     )
     public Date getLastUpdated() {
         return lastUpdated;
@@ -160,8 +153,7 @@ public class DropRequestDTO {
     /**
      * @return the number of flow files currently queued.
      */
-    @ApiModelProperty(
-            value = "The number of flow files currently queued."
+    @Schema(description = "The number of flow files currently queued."
     )
     public Integer getCurrentCount() {
         return currentCount;
@@ -174,8 +166,7 @@ public class DropRequestDTO {
     /**
      * @return the size of the flow files currently queued in bytes.
      */
-    @ApiModelProperty(
-            value = "The size of flow files currently queued in bytes."
+    @Schema(description = "The size of flow files currently queued in bytes."
     )
     public Long getCurrentSize() {
         return currentSize;
@@ -188,8 +179,7 @@ public class DropRequestDTO {
     /**
      * @return the count and size of the currently queued flow files.
      */
-    @ApiModelProperty(
-            value = "The count and size of flow files currently queued."
+    @Schema(description = "The count and size of flow files currently queued."
     )
     public String getCurrent() {
         return current;
@@ -202,8 +192,7 @@ public class DropRequestDTO {
     /**
      * @return the number of flow files to be dropped as a result of this request.
      */
-    @ApiModelProperty(
-            value = "The number of flow files to be dropped as a result of this request."
+    @Schema(description = "The number of flow files to be dropped as a result of this request."
     )
     public Integer getOriginalCount() {
         return originalCount;
@@ -216,8 +205,7 @@ public class DropRequestDTO {
     /**
      * @return the size of the flow files to be dropped as a result of this request in bytes.
      */
-    @ApiModelProperty(
-            value = "The size of flow files to be dropped as a result of this request in bytes."
+    @Schema(description = "The size of flow files to be dropped as a result of this request in bytes."
     )
     public Long getOriginalSize() {
         return originalSize;
@@ -230,8 +218,7 @@ public class DropRequestDTO {
     /**
      * @return the count and size of flow files to be dropped as a result of this request.
      */
-    @ApiModelProperty(
-            value = "The count and size of flow files to be dropped as a result of this request."
+    @Schema(description = "The count and size of flow files to be dropped as a result of this request."
     )
     public String getOriginal() {
         return original;
@@ -244,8 +231,7 @@ public class DropRequestDTO {
     /**
      * @return the number of flow files that have been dropped thus far.
      */
-    @ApiModelProperty(
-            value = "The number of flow files that have been dropped thus far."
+    @Schema(description = "The number of flow files that have been dropped thus far."
     )
     public Integer getDroppedCount() {
         return droppedCount;
@@ -258,8 +244,7 @@ public class DropRequestDTO {
     /**
      * @return the size of the flow files that have been dropped thus far in bytes.
      */
-    @ApiModelProperty(
-            value = "The size of flow files that have been dropped thus far in bytes."
+    @Schema(description = "The size of flow files that have been dropped thus far in bytes."
     )
     public Long getDroppedSize() {
         return droppedSize;
@@ -272,8 +257,7 @@ public class DropRequestDTO {
     /**
      * @return the count and size of the flow files that have been dropped thus far.
      */
-    @ApiModelProperty(
-            value = "The count and size of flow files that have been dropped thus far."
+    @Schema(description = "The count and size of flow files that have been dropped thus far."
     )
     public String getDropped() {
         return dropped;
@@ -286,8 +270,7 @@ public class DropRequestDTO {
     /**
      * @return the current state of the drop request.
      */
-    @ApiModelProperty(
-            value = "The current state of the drop request."
+    @Schema(description = "The current state of the drop request."
     )
     public String getState() {
         return state;

@@ -79,12 +79,11 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
                     + " Use this to skip over rows of data at the top of a worksheet that are not part of the dataset.")
             .required(true)
             .defaultValue("1")
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
     private volatile ConfigurationContext configurationContext;
-    private volatile int firstRow;
     private volatile String dateFormat;
     private volatile String timeFormat;
     private volatile String timestampFormat;
@@ -92,7 +91,6 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         this.configurationContext = context;
-        this.firstRow = getStartingRow(context);
         this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
         this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
@@ -107,6 +105,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
         in.reset();
 
         final List<String> requiredSheets = getRequiredSheets(variables);
+        final int firstRow = getStartingRow(variables);
         final ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withDateFormat(dateFormat)
                 .withRequiredSheets(requiredSheets)
@@ -154,8 +153,8 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
         return SchemaInferenceUtil.INFER_SCHEMA;
     }
 
-    private int getStartingRow(final PropertyContext context) {
-        int rawStartingRow = context.getProperty(STARTING_ROW).asInteger();
+    private int getStartingRow(final Map<String, String> variables) {
+        int rawStartingRow = configurationContext.getProperty(STARTING_ROW).evaluateAttributeExpressions(variables).asInteger();
         return getZeroBasedIndex(rawStartingRow);
     }
 

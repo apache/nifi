@@ -1,0 +1,83 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+div.operation-control {
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+    background-color: rgba(249, 250, 251, 0.9);
+    border-top: 1px solid #aabbc3;
+    border-right: 1px solid #aabbc3;
+    border-bottom: 1px solid #aabbc3;
+    margin-bottom: 2px;
+
+    .fa,
+    .icon {
+        font-size: 18px;
+        color: #004849;
+    }
+
+    .operation-control-header {
+        .fa {
+            height: 34px;
+            width: 34px;
+            line-height: 34px;
+            text-align: center;
+        }
+
+        &:hover {
+            background: linear-gradient(90deg, rgba(227, 232, 235, 0) 252px, rgba(227, 232, 235, 1) 34px);
+        }
+    }
+
+    .operation-control-title {
+        font-size: 12px;
+        font-family: 'Roboto Slab';
+        color: #262626;
+        letter-spacing: 0.05rem;
+    }
+
+    .operation-context-logo {
+        text-align: start;
+        height: 40px;
+        line-height: 40px;
+
+        .icon {
+            font-size: 32px;
+            color: #ad9897;
+        }
+    }
+
+    .operation-context-name {
+        font-size: 15px;
+        color: #262626;
+        height: 20px;
+        width: 225px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .operation-context-type {
+        font-size: 12px;
+        color: #728e9b;
+    }
+
+    .operation-context-id {
+        height: 18px;
+        font-size: 12px;
+        color: #775351;
+    }
+}

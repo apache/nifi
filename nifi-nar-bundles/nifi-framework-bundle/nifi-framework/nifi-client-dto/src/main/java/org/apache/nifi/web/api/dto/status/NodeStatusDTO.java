@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.NodeDTO;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * DTO for serializing the node status.
@@ -33,8 +33,7 @@ public class NodeStatusDTO {
     /**
      * @return the node
      */
-    @ApiModelProperty(
-            value = "The node."
+    @Schema(description = "The node."
     )
     public NodeDTO getNode() {
         return node;
@@ -47,8 +46,7 @@ public class NodeStatusDTO {
     /**
      * @return the controller status
      */
-    @ApiModelProperty(
-            value = "The controller status for each node."
+    @Schema(description = "The controller status for each node."
     )
     public ProcessGroupStatusDTO getControllerStatus() {
         return controllerStatus;

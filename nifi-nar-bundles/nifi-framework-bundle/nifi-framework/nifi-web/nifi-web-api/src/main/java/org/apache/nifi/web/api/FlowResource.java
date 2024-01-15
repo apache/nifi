@@ -18,14 +18,14 @@ package org.apache.nifi.web.api;
 
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.exporter.common.TextFormat;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
@@ -88,6 +88,7 @@ import org.apache.nifi.web.api.entity.ControllerStatusEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisResultEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisRuleTypesEntity;
+import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryBucketEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryBucketsEntity;
@@ -128,22 +129,21 @@ import org.apache.nifi.web.api.request.FlowMetricsRegistry;
 import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HttpMethod;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.StreamingOutput;
+
 import java.text.Collator;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -170,16 +170,9 @@ import static org.apache.nifi.web.api.entity.ScheduleComponentsEntity.STATE_ENAB
  * RESTful endpoint for managing a Flow.
  */
 @Path("/flow")
-@Api(
-    value = "/flow",
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Endpoint for accessing the flow structure and component status.")
-})
+@Tag(name = "Flow")
 public class FlowResource extends ApplicationResource {
 
-    private static final String NIFI_REGISTRY_TYPE = "org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient";
     private static final String RECURSIVE = "false";
 
     private static final String VERSIONED_REPORTING_TASK_SNAPSHOT_FILENAME_PATTERN = "VersionedReportingTaskSnapshot-%s.json";
@@ -261,19 +254,19 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.TEXT_PLAIN)
     @Path("client-id")
-    @ApiOperation(
-            value = "Generates a client id.",
-            response = String.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Generates a client id.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = String.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response generateClientId() {
@@ -290,19 +283,19 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("config")
-    @ApiOperation(
-            value = "Retrieves the configuration for this NiFi flow",
-            response = FlowConfigurationEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Retrieves the configuration for this NiFi flow",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowConfigurationEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getFlowConfig() {
@@ -326,11 +319,11 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("current-user")
-    @ApiOperation(
-            value = "Retrieves the user identity of the user making the request",
-            response = CurrentUserEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Retrieves the user identity of the user making the request",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = CurrentUserEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     public Response getCurrentUser() {
@@ -364,27 +357,28 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("process-groups/{id}")
-    @ApiOperation(
-            value = "Gets a process group",
-            response = ProcessGroupFlowEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets a process group",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ProcessGroupFlowEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             },
-            notes = "If the uiOnly query parameter is provided with a value of true, the returned entity may only contain fields that are necessary for rendering the NiFi User Interface. As such, " +
-                "the selected fields may change at any time, even during incremental releases, without warning. As a result, this parameter should not be provided by any client other than the UI."
+            description = "If the uiOnly query parameter is provided with a value of true, the returned entity may only contain fields that are necessary for rendering the NiFi User Interface. As " +
+                    "such, " +
+                    "the selected fields may change at any time, even during incremental releases, without warning. As a result, this parameter should not be provided by any client other than the UI."
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getFlow(
-            @ApiParam(
-                    value = "The process group id."
+            @Parameter(
+                    description = "The process group id."
             )
             @PathParam("id") final String groupId,
             @QueryParam("uiOnly") @DefaultValue("false") final boolean uiOnly) {
@@ -401,6 +395,41 @@ public class FlowResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("process-groups/{id}/breadcrumbs")
+    @Operation(
+            summary = "Gets the breadcrumbs for a process group",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowBreadcrumbEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
+    public Response getBreadcrumbs(
+            @Parameter(description = "The process group id.")
+            @PathParam("id") final String groupId) {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // get the breadcrumbs for this process group
+        final FlowBreadcrumbEntity breadcrumbEntity = serviceFacade.getProcessGroupBreadcrumbs(groupId);
+        return generateOkResponse(breadcrumbEntity).build();
+    }
+
     /**
      * Retrieves the metrics of the entire flow.
      *
@@ -410,44 +439,42 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("metrics/{producer}")
-    @ApiOperation(
-            value = "Gets all metrics for the flow from a particular node",
-            response = StreamingOutput.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets all metrics for the flow from a particular node",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = StreamingOutput.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getFlowMetrics(
-            @ApiParam(
-                    value = "The producer for flow file metrics. Each producer may have its own output format.",
-                    required = true,
-                    allowableValues = "prometheus"
+            @Parameter(
+                    description = "The producer for flow file metrics. Each producer may have its own output format.",
+                    required = true
             )
             @PathParam("producer") final String producer,
-            @ApiParam(
-                    value = "Set of included metrics registries",
-                    allowableValues = "NIFI,JVM,BULLETIN,CONNECTION"
+            @Parameter(
+                    description = "Set of included metrics registries"
             )
             @QueryParam("includedRegistries") final Set<FlowMetricsRegistry> includedRegistries,
-            @ApiParam(
-                    value = "Regular Expression Pattern to be applied against the sample name field"
+            @Parameter(
+                    description = "Regular Expression Pattern to be applied against the sample name field"
             )
             @QueryParam("sampleName") final String sampleName,
-            @ApiParam(
-                    value = "Regular Expression Pattern to be applied against the sample label value field"
+            @Parameter(
+                    description = "Regular Expression Pattern to be applied against the sample label value field"
             )
             @QueryParam("sampleLabelValue") final String sampleLabelValue,
-            @ApiParam(
-                    value = "Name of the first field of JSON object. Applicable for JSON producer only."
+            @Parameter(
+                    description = "Name of the first field of JSON object. Applicable for JSON producer only."
             )
             @QueryParam("rootFieldName") final String rootFieldName
     ) {
@@ -491,26 +518,27 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("controller/controller-services")
-    @ApiOperation(
-            value = "Gets controller services for reporting tasks",
-            response = ControllerServicesEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets controller services for reporting tasks",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ControllerServicesEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             },
-            notes = "If the uiOnly query parameter is provided with a value of true, the returned entity may only contain fields that are necessary for rendering the NiFi User Interface. As such, " +
-                "the selected fields may change at any time, even during incremental releases, without warning. As a result, this parameter should not be provided by any client other than the UI."
+            description = "If the uiOnly query parameter is provided with a value of true, the returned entity may only contain fields that are necessary for rendering the NiFi User Interface. As " +
+             "such, " +
+                    "the selected fields may change at any time, even during incremental releases, without warning. As a result, this parameter should not be provided by any client other than the UI."
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getControllerServicesFromController(@QueryParam("uiOnly") @DefaultValue("false") final boolean uiOnly,
                                                         @QueryParam("includeReferencingComponents") @DefaultValue("true")
-                                                        @ApiParam("Whether or not to include services' referencing components in the response") boolean includeReferences) {
+                                                        @Parameter(description = "Whether or not to include services' referencing components in the response") boolean includeReferences) {
 
         authorizeFlow();
 
@@ -544,29 +572,38 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("process-groups/{id}/controller-services")
-    @ApiOperation(
-            value = "Gets all controller services",
-            response = ControllerServicesEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets all controller services",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ControllerServicesEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             },
-            notes = "If the uiOnly query parameter is provided with a value of true, the returned entity may only contain fields that are necessary for rendering the NiFi User Interface. As such, " +
-                "the selected fields may change at any time, even during incremental releases, without warning. As a result, this parameter should not be provided by any client other than the UI."
+            description = "If the uiOnly query parameter is provided with a value of true, the returned entity may only contain fields that are necessary for rendering the NiFi User Interface. As " +
+             "such, " +
+                    "the selected fields may change at any time, even during incremental releases, without warning. As a result, this parameter should not be provided by any client other than the UI."
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getControllerServicesFromGroup(
-            @ApiParam(value = "The process group id.", required = true) @PathParam("id") String groupId,
-            @ApiParam("Whether or not to include parent/ancestor process groups") @QueryParam("includeAncestorGroups") @DefaultValue("true") boolean includeAncestorGroups,
-            @ApiParam("Whether or not to include descendant process groups") @QueryParam("includeDescendantGroups") @DefaultValue("false") boolean includeDescendantGroups,
-            @ApiParam("Whether or not to include services' referencing components in the response") @QueryParam("includeReferencingComponents") @DefaultValue("true") boolean includeReferences,
-            @QueryParam("uiOnly") @DefaultValue("false") final boolean uiOnly) {
+            @Parameter(description = "The process group id.", required = true)
+            @PathParam("id") final String groupId,
+            @Parameter(description = "Whether or not to include parent/ancestor process groups")
+            @QueryParam("includeAncestorGroups")
+            @DefaultValue("true") final boolean includeAncestorGroups,
+            @Parameter(description = "Whether or not to include descendant process groups")
+            @QueryParam("includeDescendantGroups")
+            @DefaultValue("false") final boolean includeDescendantGroups,
+            @Parameter(description = "Whether or not to include services' referencing components in the response")
+            @QueryParam("includeReferencingComponents")
+            @DefaultValue("true") final boolean includeReferences,
+            @QueryParam("uiOnly")
+            @DefaultValue("false") final boolean uiOnly) {
 
         authorizeFlow();
 
@@ -604,19 +641,19 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("parameter-providers")
-    @ApiOperation(
-            value = "Gets all parameter providers",
-            response = ParameterProvidersEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets all parameter providers",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ParameterProvidersEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getParameterProviders() {
@@ -652,19 +689,19 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("reporting-tasks")
-    @ApiOperation(
-            value = "Gets all reporting tasks",
-            response = ReportingTasksEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets all reporting tasks",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ReportingTasksEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getReportingTasks() {
@@ -695,22 +732,22 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("reporting-tasks/snapshot")
-    @ApiOperation(
-            value = "Get a snapshot of the given reporting tasks and any controller services they use",
-            response = VersionedReportingTaskSnapshot.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Get a snapshot of the given reporting tasks and any controller services they use",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = VersionedReportingTaskSnapshot.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getReportingTaskSnapshot(
-            @ApiParam(value = "Specifies a reporting task id to export. If not specified, all reporting tasks will be exported.")
+            @Parameter(description = "Specifies a reporting task id to export. If not specified, all reporting tasks will be exported.")
             @QueryParam("reportingTaskId") final String reportingTaskId
     ) {
 
@@ -734,22 +771,22 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("reporting-tasks/download")
-    @ApiOperation(
-            value = "Download a snapshot of the given reporting tasks and any controller services they use",
-            response = byte[].class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Download a snapshot of the given reporting tasks and any controller services they use",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = byte[].class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response downloadReportingTaskSnapshot(
-            @ApiParam(value = "Specifies a reporting task id to export. If not specified, all reporting tasks will be exported.")
+            @Parameter(description = "Specifies a reporting task id to export. If not specified, all reporting tasks will be exported.")
             @QueryParam("reportingTaskId") final String reportingTaskId
     ) {
 
@@ -771,8 +808,7 @@ public class FlowResource extends ApplicationResource {
     /**
      * Updates the specified process group.
      *
-     * @param httpServletRequest       request
-     * @param id                       The id of the process group.
+     * @param id The id of the process group.
      * @param requestScheduleComponentsEntity A scheduleComponentsEntity.
      * @return A processGroupEntity.
      */
@@ -780,32 +816,31 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("process-groups/{id}")
-    @ApiOperation(
-            value = "Schedule or unschedule components in the specified Process Group.",
-            response = ScheduleComponentsEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow"),
-                    @Authorization(value = "Write - /{component-type}/{uuid} or /operation/{component-type}/{uuid} - For every component being scheduled/unscheduled")
+    @Operation(
+            summary = "Schedule or unschedule components in the specified Process Group.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ScheduleComponentsEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow"),
+                    @SecurityRequirement(name = "Write - /{component-type}/{uuid} or /operation/{component-type}/{uuid} - For every component being scheduled/unscheduled")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response scheduleComponents(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The process group id.",
+            @Parameter(
+                    description = "The process group id.",
                     required = true
             )
             @PathParam("id") String id,
-            @ApiParam(
-                    value = "The request to schedule or unschedule. If the comopnents in the request are not specified, all authorized components will be considered.",
+            @Parameter(
+                    description = "The request to schedule or unschedule. If the comopnents in the request are not specified, all authorized components will be considered.",
                     required = true
             ) final ScheduleComponentsEntity requestScheduleComponentsEntity) {
 
@@ -878,35 +913,35 @@ public class FlowResource extends ApplicationResource {
 
                 // Any group that is configured to run as stateless whose parent is not stateless we will attempt to schedule
                 group.findAllProcessGroups().stream()
-                    .filter(child -> child.getExecutionEngine() == ExecutionEngine.STATELESS)
-                    .filter(child -> child.getParent() == null || child.getParent().resolveExecutionEngine() == ExecutionEngine.STANDARD)
-                    .filter(child -> OperationAuthorizable.isOperationAuthorized(child, authorizer, NiFiUserUtils.getNiFiUser()))
-                    .forEach(child -> {
-                        componentIds.add(child.getIdentifier());
-                        statelessGroupIdsToSchedule.add(child.getIdentifier());
-                        child.findAllProcessGroups().forEach(descendent -> statelessGroupIdsToSchedule.add(descendent.getIdentifier()));
-                    });
+                        .filter(child -> child.getExecutionEngine() == ExecutionEngine.STATELESS)
+                        .filter(child -> child.getParent() == null || child.getParent().resolveExecutionEngine() == ExecutionEngine.STANDARD)
+                        .filter(child -> OperationAuthorizable.isOperationAuthorized(child, authorizer, NiFiUserUtils.getNiFiUser()))
+                        .forEach(child -> {
+                            componentIds.add(child.getIdentifier());
+                            statelessGroupIdsToSchedule.add(child.getIdentifier());
+                            child.findAllProcessGroups().forEach(descendent -> statelessGroupIdsToSchedule.add(descendent.getIdentifier()));
+                        });
 
                 // ensure authorized for each processor we will attempt to schedule
                 group.findAllProcessors().stream()
-                    .filter(getProcessorFilter.get())
-                    .filter(processor -> !statelessGroupIdsToSchedule.contains(processor.getProcessGroupIdentifier()))
-                    .filter(processor -> OperationAuthorizable.isOperationAuthorized(processor, authorizer, NiFiUserUtils.getNiFiUser()))
-                    .forEach(processor -> componentIds.add(processor.getIdentifier()));
+                        .filter(getProcessorFilter.get())
+                        .filter(processor -> !statelessGroupIdsToSchedule.contains(processor.getProcessGroupIdentifier()))
+                        .filter(processor -> OperationAuthorizable.isOperationAuthorized(processor, authorizer, NiFiUserUtils.getNiFiUser()))
+                        .forEach(processor -> componentIds.add(processor.getIdentifier()));
 
                 // ensure authorized for each input port we will attempt to schedule
                 group.findAllInputPorts().stream()
-                    .filter(getPortFilter.get())
-                    .filter(processor -> !statelessGroupIdsToSchedule.contains(processor.getProcessGroupIdentifier()))
-                    .filter(inputPort -> OperationAuthorizable.isOperationAuthorized(inputPort, authorizer, NiFiUserUtils.getNiFiUser()))
-                    .forEach(inputPort -> componentIds.add(inputPort.getIdentifier()));
+                        .filter(getPortFilter.get())
+                        .filter(processor -> !statelessGroupIdsToSchedule.contains(processor.getProcessGroupIdentifier()))
+                        .filter(inputPort -> OperationAuthorizable.isOperationAuthorized(inputPort, authorizer, NiFiUserUtils.getNiFiUser()))
+                        .forEach(inputPort -> componentIds.add(inputPort.getIdentifier()));
 
                 // ensure authorized for each output port we will attempt to schedule
                 group.findAllOutputPorts().stream()
-                    .filter(getPortFilter.get())
-                    .filter(processor -> !statelessGroupIdsToSchedule.contains(processor.getProcessGroupIdentifier()))
-                    .filter(outputPort -> OperationAuthorizable.isOperationAuthorized(outputPort, authorizer, NiFiUserUtils.getNiFiUser()))
-                    .forEach(outputPort -> componentIds.add(outputPort.getIdentifier()));
+                        .filter(getPortFilter.get())
+                        .filter(processor -> !statelessGroupIdsToSchedule.contains(processor.getProcessGroupIdentifier()))
+                        .filter(outputPort -> OperationAuthorizable.isOperationAuthorized(outputPort, authorizer, NiFiUserUtils.getNiFiUser()))
+                        .forEach(outputPort -> componentIds.add(outputPort.getIdentifier()));
 
                 return componentIds;
             });
@@ -987,26 +1022,27 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("process-groups/{id}/controller-services")
-    @ApiOperation(value = "Enable or disable Controller Services in the specified Process Group.",
-        response = ActivateControllerServicesEntity.class,
-        authorizations = {
-            @Authorization(value = "Read - /flow"),
-            @Authorization(value = "Write - /{component-type}/{uuid} or /operation/{component-type}/{uuid} - For every service being enabled/disabled")
-        })
+    @Operation(
+            summary = "Enable or disable Controller Services in the specified Process Group.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ActivateControllerServicesEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow"),
+                    @SecurityRequirement(name = "Write - /{component-type}/{uuid} or /operation/{component-type}/{uuid} - For every service being enabled/disabled")
+            }
+    )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response activateControllerServices(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(value = "The process group id.", required = true)
+            @Parameter(description = "The process group id.", required = true)
             @PathParam("id") String id,
-            @ApiParam(value = "The request to schedule or unschedule. If the comopnents in the request are not specified, all authorized components will be considered.", required = true)
+            @Parameter(description = "The request to schedule or unschedule. If the comopnents in the request are not specified, all authorized components will be considered.", required = true)
             final ActivateControllerServicesEntity requestEntity) {
 
         if (requestEntity == null) {
@@ -1016,7 +1052,7 @@ public class FlowResource extends ApplicationResource {
         // ensure the same id is being used
         if (!id.equals(requestEntity.getId())) {
             throw new IllegalArgumentException(String.format("The process group id (%s) in the request body does "
-                + "not equal the process group id of the requested resource (%s).", requestEntity.getId(), id));
+                    + "not equal the process group id of the requested resource (%s).", requestEntity.getId(), id));
         }
 
         final ControllerServiceState desiredState;
@@ -1027,14 +1063,14 @@ public class FlowResource extends ApplicationResource {
                 desiredState = ControllerServiceState.valueOf(requestEntity.getState());
             } catch (final IllegalArgumentException iae) {
                 throw new IllegalArgumentException(String.format("The controller service state must be one of [%s].",
-                    StringUtils.join(EnumSet.of(ControllerServiceState.ENABLED, ControllerServiceState.DISABLED), ", ")));
+                        StringUtils.join(EnumSet.of(ControllerServiceState.ENABLED, ControllerServiceState.DISABLED), ", ")));
             }
         }
 
         // ensure its a supported scheduled state
         if (ControllerServiceState.DISABLING.equals(desiredState) || ControllerServiceState.ENABLING.equals(desiredState)) {
             throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].",
-                StringUtils.join(EnumSet.of(ControllerServiceState.ENABLED, ControllerServiceState.DISABLED), ", ")));
+                    StringUtils.join(EnumSet.of(ControllerServiceState.ENABLED, ControllerServiceState.DISABLED), ", ")));
         }
 
         // if the components are not specified, gather all components and their current revision
@@ -1051,10 +1087,10 @@ public class FlowResource extends ApplicationResource {
                 }
 
                 group.findAllControllerServices().stream()
-                    .filter(filter)
-                    .filter(service -> service.getProcessGroup().resolveExecutionEngine() == ExecutionEngine.STANDARD)
-                    .filter(service -> OperationAuthorizable.isOperationAuthorized(service, authorizer, NiFiUserUtils.getNiFiUser()))
-                    .forEach(service -> componentIds.add(service.getIdentifier()));
+                        .filter(filter)
+                        .filter(service -> service.getProcessGroup().resolveExecutionEngine() == ExecutionEngine.STANDARD)
+                        .filter(service -> OperationAuthorizable.isOperationAuthorized(service, authorizer, NiFiUserUtils.getNiFiUser()))
+                        .forEach(service -> componentIds.add(service.getIdentifier()));
                 return componentIds;
             });
 
@@ -1125,20 +1161,20 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("search-results")
-    @ApiOperation(
-            value = "Performs a search against this NiFi using the specified search term",
-            notes = "Only search results from authorized components will be returned.",
-            response = SearchResultsEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Performs a search against this NiFi using the specified search term",
+            description = "Only search results from authorized components will be returned.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = SearchResultsEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response searchFlow(
@@ -1168,19 +1204,19 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("status")
-    @ApiOperation(
-            value = "Gets the current status of this NiFi",
-            response = ControllerStatusEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets the current status of this NiFi",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ControllerStatusEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getControllerStatus() throws InterruptedException {
@@ -1210,19 +1246,19 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("cluster/summary")
-    @ApiOperation(
-            value = "The cluster summary for this NiFi",
-        response = ClusterSummaryEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "The cluster summary for this NiFi",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ClusterSummaryEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getClusterSummary() {
@@ -1266,23 +1302,23 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("controller/bulletins")
-    @ApiOperation(
-            value = "Retrieves Controller level bulletins",
-            response = ControllerBulletinsEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow"),
-                    @Authorization(value = "Read - /controller - For controller bulletins"),
-                    @Authorization(value = "Read - /controller-services/{uuid} - For controller service bulletins"),
-                    @Authorization(value = "Read - /reporting-tasks/{uuid} - For reporting task bulletins")
+    @Operation(
+            summary = "Retrieves Controller level bulletins",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ControllerBulletinsEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow"),
+                    @SecurityRequirement(name = "Read - /controller - For controller bulletins"),
+                    @SecurityRequirement(name = "Read - /controller-services/{uuid} - For controller service bulletins"),
+                    @SecurityRequirement(name = "Read - /reporting-tasks/{uuid} - For reporting task bulletins")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getBulletins() {
@@ -1306,19 +1342,19 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("banners")
-    @ApiOperation(
-            value = "Retrieves the banners for this NiFi",
-            response = BannerEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Retrieves the banners for this NiFi",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = BannerEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getBanners() {
@@ -1351,33 +1387,33 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("processor-types")
-    @ApiOperation(
-            value = "Retrieves the types of processors that this NiFi supports",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = ProcessorTypesEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Retrieves the types of processors that this NiFi supports",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ProcessorTypesEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getProcessorTypes(
-            @ApiParam(
-                value = "If specified, will only return types that are a member of this bundle group."
+            @Parameter(
+                    description = "If specified, will only return types that are a member of this bundle group."
             )
             @QueryParam("bundleGroupFilter") String bundleGroupFilter,
-            @ApiParam(
-                    value = "If specified, will only return types that are a member of this bundle artifact."
+            @Parameter(
+                    description = "If specified, will only return types that are a member of this bundle artifact."
             )
             @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
-            @ApiParam(
-                    value = "If specified, will only return types whose fully qualified classname matches."
+            @Parameter(
+                    description = "If specified, will only return types whose fully qualified classname matches."
             )
             @QueryParam("type") String typeFilter) throws InterruptedException {
 
@@ -1406,49 +1442,49 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("controller-service-types")
-    @ApiOperation(
-            value = "Retrieves the types of controller services that this NiFi supports",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = ControllerServiceTypesEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Retrieves the types of controller services that this NiFi supports",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ControllerServiceTypesEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getControllerServiceTypes(
-            @ApiParam(
-                    value = "If specified, will only return controller services that are compatible with this type of service."
+            @Parameter(
+                    description = "If specified, will only return controller services that are compatible with this type of service."
             )
             @QueryParam("serviceType") String serviceType,
-            @ApiParam(
-                    value = "If serviceType specified, is the bundle group of the serviceType."
+            @Parameter(
+                    description = "If serviceType specified, is the bundle group of the serviceType."
             )
             @QueryParam("serviceBundleGroup") String serviceBundleGroup,
-            @ApiParam(
-                    value = "If serviceType specified, is the bundle artifact of the serviceType."
+            @Parameter(
+                    description = "If serviceType specified, is the bundle artifact of the serviceType."
             )
             @QueryParam("serviceBundleArtifact") String serviceBundleArtifact,
-            @ApiParam(
-                    value = "If serviceType specified, is the bundle version of the serviceType."
+            @Parameter(
+                    description = "If serviceType specified, is the bundle version of the serviceType."
             )
             @QueryParam("serviceBundleVersion") String serviceBundleVersion,
-            @ApiParam(
-                    value = "If specified, will only return types that are a member of this bundle group."
+            @Parameter(
+                    description = "If specified, will only return types that are a member of this bundle group."
             )
             @QueryParam("bundleGroupFilter") String bundleGroupFilter,
-            @ApiParam(
-                    value = "If specified, will only return types that are a member of this bundle artifact."
+            @Parameter(
+                    description = "If specified, will only return types that are a member of this bundle artifact."
             )
             @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
-            @ApiParam(
-                    value = "If specified, will only return types whose fully qualified classname matches."
+            @Parameter(
+                    description = "If specified, will only return types whose fully qualified classname matches."
             )
             @QueryParam("typeFilter") String typeFilter) throws InterruptedException {
 
@@ -1483,33 +1519,33 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("reporting-task-types")
-    @ApiOperation(
-            value = "Retrieves the types of reporting tasks that this NiFi supports",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = ReportingTaskTypesEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Retrieves the types of reporting tasks that this NiFi supports",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ReportingTaskTypesEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getReportingTaskTypes(
-            @ApiParam(
-                    value = "If specified, will only return types that are a member of this bundle group."
+            @Parameter(
+                    description = "If specified, will only return types that are a member of this bundle group."
             )
             @QueryParam("bundleGroupFilter") String bundleGroupFilter,
-            @ApiParam(
-                    value = "If specified, will only return types that are a member of this bundle artifact."
+            @Parameter(
+                    description = "If specified, will only return types that are a member of this bundle artifact."
             )
             @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
-            @ApiParam(
-                    value = "If specified, will only return types whose fully qualified classname matches."
+            @Parameter(
+                    description = "If specified, will only return types whose fully qualified classname matches."
             )
             @QueryParam("type") String typeFilter) throws InterruptedException {
 
@@ -1531,20 +1567,20 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("runtime-manifest")
-    @ApiOperation(
-            value = "Retrieves the runtime manifest for this NiFi instance.",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = RuntimeManifestEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Retrieves the runtime manifest for this NiFi instance.",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = RuntimeManifestEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getRuntimeManifest() throws InterruptedException {
@@ -1573,36 +1609,33 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("parameter-provider-types")
-    @ApiOperation(
-            value = "Retrieves the types of parameter providers that this NiFi supports",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = ParameterProviderTypesEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Retrieves the types of parameter providers that this NiFi supports",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ParameterProviderTypesEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getParameterProviderTypes(
-            @ApiParam(
-                    value = "If specified, will only return types that are a member of this bundle group.",
-                    required = false
+            @Parameter(
+                    description = "If specified, will only return types that are a member of this bundle group."
             )
             @QueryParam("bundleGroupFilter") String bundleGroupFilter,
-            @ApiParam(
-                    value = "If specified, will only return types that are a member of this bundle artifact.",
-                    required = false
+            @Parameter(
+                    description = "If specified, will only return types that are a member of this bundle artifact."
             )
             @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
-            @ApiParam(
-                    value = "If specified, will only return types whose fully qualified classname matches.",
-                    required = false
+            @Parameter(
+                    description = "If specified, will only return types whose fully qualified classname matches."
             )
             @QueryParam("type") String typeFilter) throws InterruptedException {
 
@@ -1630,36 +1663,33 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis-rule-types")
-    @ApiOperation(
-            value = "Retrieves the types of available Flow Analysis Rules",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = FlowAnalysisRuleTypesEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Retrieves the types of available Flow Analysis Rules",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowAnalysisRuleTypesEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getFlowAnalysisRuleTypes(
-            @ApiParam(
-                    value = "If specified, will only return types that are a member of this bundle group.",
-                    required = false
+            @Parameter(
+                    description = "If specified, will only return types that are a member of this bundle group."
             )
             @QueryParam("bundleGroupFilter") String bundleGroupFilter,
-            @ApiParam(
-                    value = "If specified, will only return types that are a member of this bundle artifact.",
-                    required = false
+            @Parameter(
+                    description = "If specified, will only return types that are a member of this bundle artifact."
             )
             @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
-            @ApiParam(
-                    value = "If specified, will only return types whose fully qualified classname matches.",
-                    required = false
+            @Parameter(
+                    description = "If specified, will only return types whose fully qualified classname matches."
             )
             @QueryParam("type") String typeFilter) throws InterruptedException {
 
@@ -1687,20 +1717,20 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("prioritizers")
-    @ApiOperation(
-            value = "Retrieves the types of prioritizers that this NiFi supports",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = PrioritizerTypesEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Retrieves the types of prioritizers that this NiFi supports",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = PrioritizerTypesEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getPrioritizers() throws InterruptedException {
@@ -1727,19 +1757,19 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("about")
-    @ApiOperation(
-            value = "Retrieves details about this NiFi to put in the About dialog",
-            response = AboutEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Retrieves details about this NiFi to put in the About dialog",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = AboutEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getAboutInfo() {
@@ -1785,21 +1815,28 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registries")
-    @ApiOperation(value = "Gets the listing of available flow registry clients", response = FlowRegistryClientsEntity.class, authorizations = {
-            @Authorization(value = "Read - /flow")
-    })
-    @ApiResponses(value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-    })
+    @Operation(
+            summary = "Gets the listing of available flow registry clients",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowRegistryClientsEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
     public Response getRegistryClients() {
         authorizeFlow();
 
         final Set<FlowRegistryClientEntity> registryClients = serviceFacade.getRegistryClientsForUser();
         final FlowRegistryClientsEntity registryClientEntities = new FlowRegistryClientsEntity();
+        registryClientEntities.setCurrentTime(new Date());
         registryClientEntities.setRegistries(registryClients);
 
         return generateOkResponse(populateRemainingRegistryClientEntityContent(registryClientEntities)).build();
@@ -1832,19 +1869,25 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registries/{id}/buckets")
-    @ApiOperation(value = "Gets the buckets from the specified registry for the current user", response = FlowRegistryBucketsEntity.class, authorizations = {
-            @Authorization(value = "Read - /flow")
-    })
-    @ApiResponses(value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-    })
+    @Operation(
+            summary = "Gets the buckets from the specified registry for the current user",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowRegistryBucketsEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
     public Response getBuckets(
-            @ApiParam(
-                    value = "The registry id.",
+            @Parameter(
+                    description = "The registry id.",
                     required = true
             )
             @PathParam("id") String id) throws NiFiRegistryException {
@@ -1875,24 +1918,30 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registries/{registry-id}/buckets/{bucket-id}/flows")
-    @ApiOperation(value = "Gets the flows from the specified registry and bucket for the current user", response = VersionedFlowsEntity.class, authorizations = {
-            @Authorization(value = "Read - /flow")
-    })
-    @ApiResponses(value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-    })
+    @Operation(
+            summary = "Gets the flows from the specified registry and bucket for the current user",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = VersionedFlowsEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
     public Response getFlows(
-            @ApiParam(
-                value = "The registry client id.",
-                required = true
+            @Parameter(
+                    description = "The registry client id.",
+                    required = true
             )
             @PathParam("registry-id") String registryId,
-            @ApiParam(
-                    value = "The bucket id.",
+            @Parameter(
+                    description = "The bucket id.",
                     required = true
             )
             @PathParam("bucket-id") String bucketId) {
@@ -1923,31 +1972,35 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registries/{registry-id}/buckets/{bucket-id}/flows/{flow-id}/details")
-    @ApiOperation(value = "Gets the details of a flow from the specified registry and bucket for the specified flow for the current user",
-            response = VersionedFlowEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
-            })
-    @ApiResponses(value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-    })
+    @Operation(
+            summary = "Gets the details of a flow from the specified registry and bucket for the specified flow for the current user",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = VersionedFlowEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
     public Response getDetails(
-            @ApiParam(
-                    value = "The registry client id.",
+            @Parameter(
+                    description = "The registry client id.",
                     required = true
             )
             @PathParam("registry-id") String registryId,
-            @ApiParam(
-                    value = "The bucket id.",
+            @Parameter(
+                    description = "The bucket id.",
                     required = true
             )
             @PathParam("bucket-id") String bucketId,
-            @ApiParam(
-                    value = "The flow id.",
+            @Parameter(
+                    description = "The flow id.",
                     required = true
             )
             @PathParam("flow-id") String flowId) {
@@ -1962,31 +2015,35 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("registries/{registry-id}/buckets/{bucket-id}/flows/{flow-id}/versions")
-    @ApiOperation(value = "Gets the flow versions from the specified registry and bucket for the specified flow for the current user",
-                  response = VersionedFlowSnapshotMetadataSetEntity.class,
-                  authorizations = {
-            @Authorization(value = "Read - /flow")
-    })
-    @ApiResponses(value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-    })
+    @Operation(
+            summary = "Gets the flow versions from the specified registry and bucket for the specified flow for the current user",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = VersionedFlowSnapshotMetadataSetEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
     public Response getVersions(
-            @ApiParam(
-                    value = "The registry client id.",
+            @Parameter(
+                    description = "The registry client id.",
                     required = true
             )
             @PathParam("registry-id") String registryId,
-            @ApiParam(
-                    value = "The bucket id.",
+            @Parameter(
+                    description = "The bucket id.",
                     required = true
             )
             @PathParam("bucket-id") String bucketId,
-            @ApiParam(
-                    value = "The flow id.",
+            @Parameter(
+                    description = "The flow id.",
                     required = true
             )
             @PathParam("flow-id") String flowId) {
@@ -2008,13 +2065,13 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves all the of bulletins in this NiFi.
      *
-     * @param after      Supporting querying for bulletins after a particular
-     *                   bulletin id.
-     * @param limit      The max number of bulletins to return.
+     * @param after Supporting querying for bulletins after a particular
+     * bulletin id.
+     * @param limit The max number of bulletins to return.
      * @param sourceName Source name filter. Supports a regular expression.
-     * @param message    Message filter. Supports a regular expression.
-     * @param sourceId   Source id filter. Supports a regular expression.
-     * @param groupId    Group id filter. Supports a regular expression.
+     * @param message Message filter. Supports a regular expression.
+     * @param sourceId Source id filter. Supports a regular expression.
+     * @param groupId Group id filter. Supports a regular expression.
      * @return A bulletinBoardEntity.
      * @throws InterruptedException if interrupted
      */
@@ -2022,45 +2079,45 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("bulletin-board")
-    @ApiOperation(
-            value = "Gets current bulletins",
-            response = BulletinBoardEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow"),
-                    @Authorization(value = "Read - /{component-type}/{uuid} - For component specific bulletins")
+    @Operation(
+            summary = "Gets current bulletins",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = BulletinBoardEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow"),
+                    @SecurityRequirement(name = "Read - /{component-type}/{uuid} - For component specific bulletins")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getBulletinBoard(
-            @ApiParam(
-                    value = "Includes bulletins with an id after this value."
+            @Parameter(
+                    description = "Includes bulletins with an id after this value."
             )
             @QueryParam("after") LongParameter after,
-            @ApiParam(
-                    value = "Includes bulletins originating from this sources whose name match this regular expression."
+            @Parameter(
+                    description = "Includes bulletins originating from this sources whose name match this regular expression."
             )
             @QueryParam("sourceName") BulletinBoardPatternParameter sourceName,
-            @ApiParam(
-                    value = "Includes bulletins whose message that match this regular expression."
+            @Parameter(
+                    description = "Includes bulletins whose message that match this regular expression."
             )
             @QueryParam("message") BulletinBoardPatternParameter message,
-            @ApiParam(
-                    value = "Includes bulletins originating from this sources whose id match this regular expression."
+            @Parameter(
+                    description = "Includes bulletins originating from this sources whose id match this regular expression."
             )
             @QueryParam("sourceId") BulletinBoardPatternParameter sourceId,
-            @ApiParam(
-                    value = "Includes bulletins originating from this sources whose group id match this regular expression."
+            @Parameter(
+                    description = "Includes bulletins originating from this sources whose group id match this regular expression."
             )
             @QueryParam("groupId") BulletinBoardPatternParameter groupId,
-            @ApiParam(
-                    value = "The number of bulletins to limit the response to."
+            @Parameter(
+                    description = "The number of bulletins to limit the response to."
             )
             @QueryParam("limit") IntegerParameter limit) throws InterruptedException {
 
@@ -2119,33 +2176,33 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("processors/{id}/status")
-    @ApiOperation(
-            value = "Gets status for a processor",
-            response = ProcessorStatusEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets status for a processor",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ProcessorStatusEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getProcessorStatus(
-            @ApiParam(
-                    value = "Whether or not to include the breakdown per node. Optional, defaults to false"
+            @Parameter(
+                    description = "Whether or not to include the breakdown per node. Optional, defaults to false"
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
-            @ApiParam(
-                    value = "The id of the node where to get the status."
+            @Parameter(
+                    description = "The id of the node where to get the status."
             )
             @QueryParam("clusterNodeId") String clusterNodeId,
-            @ApiParam(
-                    value = "The processor id.",
+            @Parameter(
+                    description = "The processor id.",
                     required = true
             )
             @PathParam("id") String id) throws InterruptedException {
@@ -2190,33 +2247,33 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("input-ports/{id}/status")
-    @ApiOperation(
-            value = "Gets status for an input port",
-            response = PortStatusEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets status for an input port",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = PortStatusEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getInputPortStatus(
-            @ApiParam(
-                    value = "Whether or not to include the breakdown per node. Optional, defaults to false"
+            @Parameter(
+                    description = "Whether or not to include the breakdown per node. Optional, defaults to false"
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
-            @ApiParam(
-                    value = "The id of the node where to get the status."
+            @Parameter(
+                    description = "The id of the node where to get the status."
             )
             @QueryParam("clusterNodeId") String clusterNodeId,
-            @ApiParam(
-                    value = "The input port id.",
+            @Parameter(
+                    description = "The input port id.",
                     required = true
             )
             @PathParam("id") String id) throws InterruptedException {
@@ -2261,33 +2318,33 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("output-ports/{id}/status")
-    @ApiOperation(
-            value = "Gets status for an output port",
-            response = PortStatusEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets status for an output port",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = PortStatusEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getOutputPortStatus(
-            @ApiParam(
-                    value = "Whether or not to include the breakdown per node. Optional, defaults to false"
+            @Parameter(
+                    description = "Whether or not to include the breakdown per node. Optional, defaults to false"
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
-            @ApiParam(
-                    value = "The id of the node where to get the status."
+            @Parameter(
+                    description = "The id of the node where to get the status."
             )
             @QueryParam("clusterNodeId") String clusterNodeId,
-            @ApiParam(
-                    value = "The output port id.",
+            @Parameter(
+                    description = "The output port id.",
                     required = true
             )
             @PathParam("id") String id) throws InterruptedException {
@@ -2332,33 +2389,33 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("remote-process-groups/{id}/status")
-    @ApiOperation(
-            value = "Gets status for a remote process group",
-            response = RemoteProcessGroupStatusEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets status for a remote process group",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = RemoteProcessGroupStatusEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getRemoteProcessGroupStatus(
-            @ApiParam(
-                    value = "Whether or not to include the breakdown per node. Optional, defaults to false"
+            @Parameter(
+                    description = "Whether or not to include the breakdown per node. Optional, defaults to false"
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
-            @ApiParam(
-                    value = "The id of the node where to get the status."
+            @Parameter(
+                    description = "The id of the node where to get the status."
             )
             @QueryParam("clusterNodeId") String clusterNodeId,
-            @ApiParam(
-                    value = "The remote process group id."
+            @Parameter(
+                    description = "The remote process group id."
             )
             @PathParam("id") String id) throws InterruptedException {
 
@@ -2395,7 +2452,7 @@ public class FlowResource extends ApplicationResource {
      * Retrieves the status report for this NiFi.
      *
      * @param recursive Optional recursive flag that defaults to false. If set to true, all descendant groups and the status of their content will be included.
-     * @param groupId   The group id
+     * @param groupId The group id
      * @return A processGroupStatusEntity.
      * @throws InterruptedException if interrupted
      */
@@ -2403,39 +2460,39 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("process-groups/{id}/status")
-    @ApiOperation(
-            value = "Gets the status for a process group",
-            notes = "The status for a process group includes status for all descendent components. When invoked on the root group with "
+    @Operation(
+            summary = "Gets the status for a process group",
+            description = "The status for a process group includes status for all descendent components. When invoked on the root group with "
                     + "recursive set to true, it will return the current status of every component in the flow.",
-            response = ProcessGroupStatusEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ProcessGroupStatusEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getProcessGroupStatus(
-            @ApiParam(
-                    value = "Whether all descendant groups and the status of their content will be included. Optional, defaults to false"
+            @Parameter(
+                    description = "Whether all descendant groups and the status of their content will be included. Optional, defaults to false"
             )
             @QueryParam("recursive") @DefaultValue(RECURSIVE) Boolean recursive,
-            @ApiParam(
-                    value = "Whether or not to include the breakdown per node. Optional, defaults to false"
+            @Parameter(
+                    description = "Whether or not to include the breakdown per node. Optional, defaults to false"
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
-            @ApiParam(
-                    value = "The id of the node where to get the status."
+            @Parameter(
+                    description = "The id of the node where to get the status."
             )
             @QueryParam("clusterNodeId") String clusterNodeId,
-            @ApiParam(
-                    value = "The process group id.",
+            @Parameter(
+                    description = "The process group id.",
                     required = true
             )
             @PathParam("id") String groupId) throws InterruptedException {
@@ -2480,33 +2537,33 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("connections/{id}/status")
-    @ApiOperation(
-            value = "Gets status for a connection",
-            response = ConnectionStatusEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets status for a connection",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ConnectionStatusEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getConnectionStatus(
-            @ApiParam(
-                    value = "Whether or not to include the breakdown per node. Optional, defaults to false"
+            @Parameter(
+                    description = "Whether or not to include the breakdown per node. Optional, defaults to false"
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
-            @ApiParam(
-                    value = "The id of the node where to get the status."
+            @Parameter(
+                    description = "The id of the node where to get the status."
             )
             @QueryParam("clusterNodeId") String clusterNodeId,
-            @ApiParam(
-                    value = "The connection id.",
+            @Parameter(
+                    description = "The connection id.",
                     required = true
             )
             @PathParam("id") String id) throws InterruptedException {
@@ -2551,33 +2608,33 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("connections/{id}/statistics")
-    @ApiOperation(
-            value = "Gets statistics for a connection",
-            response = ConnectionStatisticsEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets statistics for a connection",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ConnectionStatisticsEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getConnectionStatistics(
-            @ApiParam(
-                    value = "Whether or not to include the breakdown per node. Optional, defaults to false"
+            @Parameter(
+                    description = "Whether or not to include the breakdown per node. Optional, defaults to false"
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
-            @ApiParam(
-                    value = "The id of the node where to get the statistics."
+            @Parameter(
+                    description = "The id of the node where to get the statistics."
             )
             @QueryParam("clusterNodeId") String clusterNodeId,
-            @ApiParam(
-                    value = "The connection id.",
+            @Parameter(
+                    description = "The connection id.",
                     required = true
             )
             @PathParam("id") String id) throws InterruptedException {
@@ -2626,25 +2683,25 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("processors/{id}/status/history")
-    @ApiOperation(
-            value = "Gets status history for a processor",
-            response = StatusHistoryEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets status history for a processor",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = StatusHistoryEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getProcessorStatusHistory(
-            @ApiParam(
-                    value = "The processor id.",
+            @Parameter(
+                    description = "The processor id.",
                     required = true
             )
             @PathParam("id") String id) throws InterruptedException {
@@ -2672,25 +2729,25 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("process-groups/{id}/status/history")
-    @ApiOperation(
-            value = "Gets status history for a remote process group",
-            response = StatusHistoryEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets status history for a remote process group",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = StatusHistoryEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getProcessGroupStatusHistory(
-            @ApiParam(
-                    value = "The process group id.",
+            @Parameter(
+                    description = "The process group id.",
                     required = true
             )
             @PathParam("id") String groupId) throws InterruptedException {
@@ -2718,25 +2775,25 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("remote-process-groups/{id}/status/history")
-    @ApiOperation(
-            value = "Gets the status history",
-            response = StatusHistoryEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets the status history",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = StatusHistoryEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getRemoteProcessGroupStatusHistory(
-            @ApiParam(
-                    value = "The remote process group id.",
+            @Parameter(
+                    description = "The remote process group id.",
                     required = true
             )
             @PathParam("id") String id) throws InterruptedException {
@@ -2764,25 +2821,25 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("connections/{id}/status/history")
-    @ApiOperation(
-            value = "Gets the status history for a connection",
-            response = StatusHistoryEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets the status history for a connection",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = StatusHistoryEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getConnectionStatusHistory(
-            @ApiParam(
-                    value = "The connection id.",
+            @Parameter(
+                    description = "The connection id.",
                     required = true
             )
             @PathParam("id") String id) throws InterruptedException {
@@ -2804,20 +2861,20 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("parameter-contexts")
-    @ApiOperation(
-        value = "Gets all Parameter Contexts",
-        response = ParameterContextsEntity.class,
-        authorizations = {
-            @Authorization(value = "Read - /parameter-contexts/{id} for each Parameter Context")
-        }
+    @Operation(
+            summary = "Gets all Parameter Contexts",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ParameterContextsEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /parameter-contexts/{id} for each Parameter Context")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
     )
     public Response getParameterContexts() {
         authorizeFlow();
@@ -2838,7 +2895,6 @@ public class FlowResource extends ApplicationResource {
     }
 
 
-
     // -------
     // history
     // -------
@@ -2846,81 +2902,81 @@ public class FlowResource extends ApplicationResource {
     /**
      * Queries the history of this Controller.
      *
-     * @param offset       The offset into the data. This parameter is required and is
-     *                     used in conjunction with count.
-     * @param count        The number of rows that should be returned. This parameter
-     *                     is required and is used in conjunction with page.
-     * @param sortColumn   The column to sort on. This parameter is optional. If
-     *                     not specified the results will be returned with the most recent first.
-     * @param sortOrder    The sort order.
-     * @param startDate    The start date/time for the query. The start date/time
-     *                     must be formatted as 'MM/dd/yyyy HH:mm:ss'. This parameter is optional
-     *                     and must be specified in the timezone of the server. The server's
-     *                     timezone can be determined by inspecting the result of a status or
-     *                     history request.
-     * @param endDate      The end date/time for the query. The end date/time must be
-     *                     formatted as 'MM/dd/yyyy HH:mm:ss'. This parameter is optional and must
-     *                     be specified in the timezone of the server. The server's timezone can be
-     *                     determined by inspecting the result of a status or history request.
+     * @param offset The offset into the data. This parameter is required and is
+     * used in conjunction with count.
+     * @param count The number of rows that should be returned. This parameter
+     * is required and is used in conjunction with page.
+     * @param sortColumn The column to sort on. This parameter is optional. If
+     * not specified the results will be returned with the most recent first.
+     * @param sortOrder The sort order.
+     * @param startDate The start date/time for the query. The start date/time
+     * must be formatted as 'MM/dd/yyyy HH:mm:ss'. This parameter is optional
+     * and must be specified in the timezone of the server. The server's
+     * timezone can be determined by inspecting the result of a status or
+     * history request.
+     * @param endDate The end date/time for the query. The end date/time must be
+     * formatted as 'MM/dd/yyyy HH:mm:ss'. This parameter is optional and must
+     * be specified in the timezone of the server. The server's timezone can be
+     * determined by inspecting the result of a status or history request.
      * @param userIdentity The user name of the user who's actions are being
-     *                     queried. This parameter is optional.
-     * @param sourceId     The id of the source being queried (usually a processor
-     *                     id). This parameter is optional.
+     * queried. This parameter is optional.
+     * @param sourceId The id of the source being queried (usually a processor
+     * id). This parameter is optional.
      * @return A historyEntity.
      */
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("history")
-    @ApiOperation(
-            value = "Gets configuration history",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = HistoryEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets configuration history",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = HistoryEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response queryHistory(
-            @ApiParam(
-                    value = "The offset into the result set.",
+            @Parameter(
+                    description = "The offset into the result set.",
                     required = true
             )
             @QueryParam("offset") IntegerParameter offset,
-            @ApiParam(
-                    value = "The number of actions to return.",
+            @Parameter(
+                    description = "The number of actions to return.",
                     required = true
             )
             @QueryParam("count") IntegerParameter count,
-            @ApiParam(
-                    value = "The field to sort on."
+            @Parameter(
+                    description = "The field to sort on."
             )
             @QueryParam("sortColumn") String sortColumn,
-            @ApiParam(
-                    value = "The direction to sort."
+            @Parameter(
+                    description = "The direction to sort."
             )
             @QueryParam("sortOrder") String sortOrder,
-            @ApiParam(
-                    value = "Include actions after this date."
+            @Parameter(
+                    description = "Include actions after this date."
             )
             @QueryParam("startDate") DateTimeParameter startDate,
-            @ApiParam(
-                    value = "Include actions before this date."
+            @Parameter(
+                    description = "Include actions before this date."
             )
             @QueryParam("endDate") DateTimeParameter endDate,
-            @ApiParam(
-                    value = "Include actions performed by this user."
+            @Parameter(
+                    description = "Include actions performed by this user."
             )
             @QueryParam("userIdentity") String userIdentity,
-            @ApiParam(
-                    value = "Include actions on this component."
+            @Parameter(
+                    description = "Include actions on this component."
             )
             @QueryParam("sourceId") String sourceId) {
 
@@ -3004,26 +3060,26 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("history/{id}")
-    @ApiOperation(
-            value = "Gets an action",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = ActionEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Gets an action",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ActionEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getAction(
-            @ApiParam(
-                    value = "The action id.",
+            @Parameter(
+                    description = "The action id.",
                     required = true
             )
             @PathParam("id") IntegerParameter id) {
@@ -3054,27 +3110,27 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("history/components/{componentId}")
-    @ApiOperation(
-            value = "Gets configuration history for a component",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = ComponentHistoryEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow"),
-                    @Authorization(value = "Read underlying component - /{component-type}/{uuid}")
+    @Operation(
+            summary = "Gets configuration history for a component",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ComponentHistoryEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow"),
+                    @SecurityRequirement(name = "Read underlying component - /{component-type}/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getComponentHistory(
-            @ApiParam(
-                    value = "The component id.",
+            @Parameter(
+                    description = "The component id.",
                     required = true
             )
             @PathParam("componentId") final String componentId) {
@@ -3145,27 +3201,28 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis/results/{processGroupId}")
-    @ApiOperation(
-        value = "Returns flow analysis results produced by the analysis of a given process group",
-        response = FlowAnalysisResultEntity.class,
-        authorizations = {
-            @Authorization(value = "Read - /flow")
-        })
-    @ApiResponses(value = {
-        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-        @ApiResponse(code = 401, message = "Client could not be authenticated."),
-        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-        @ApiResponse(code = 404, message = "The specified resource could not be found."),
-        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-    })
+    @Operation(
+            summary = "Returns flow analysis results produced by the analysis of a given process group",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowAnalysisResultEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
     public Response getFlowAnalysisResults(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The id of the process group representing (a part of) the flow to be analyzed.",
-            required = true
-        )
-        @PathParam("processGroupId")
-        final String processGroupId
+            @Parameter(
+                    description = "The id of the process group representing (a part of) the flow to be analyzed.",
+                    required = true
+            )
+            @PathParam("processGroupId") final String processGroupId
     ) {
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -3187,19 +3244,22 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("flow-analysis/results")
-    @ApiOperation(
-        value = "Returns all flow analysis results currently in effect",
-        response = FlowAnalysisResultEntity.class,
-        authorizations = {
-            @Authorization(value = "Read - /flow")
-        })
-    @ApiResponses(value = {
-        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-        @ApiResponse(code = 401, message = "Client could not be authenticated."),
-        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-        @ApiResponse(code = 404, message = "The specified resource could not be found."),
-        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-    })
+    @Operation(
+            summary = "Returns all flow analysis results currently in effect",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowAnalysisResultEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
     public Response getAllFlowAnalysisResults() {
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -3226,26 +3286,26 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("cluster/search-results")
-    @ApiOperation(
-            value = "Searches the cluster for a node with the specified address",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = ClusterSearchResultsEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow")
+    @Operation(
+            summary = "Searches the cluster for a node with the specified address",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ClusterSearchResultsEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response searchCluster(
-            @ApiParam(
-                    value = "Node address to search for.",
+            @Parameter(
+                    description = "Node address to search for.",
                     required = true
             )
             @QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) {

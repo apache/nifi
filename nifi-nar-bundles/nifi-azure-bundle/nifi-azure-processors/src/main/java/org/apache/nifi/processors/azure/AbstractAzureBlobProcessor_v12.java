@@ -33,10 +33,8 @@ import org.apache.nifi.processors.azure.storage.utils.BlobServiceClientFactory;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails_v12;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -80,10 +78,7 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
             .description("Unsuccessful operations will be transferred to the failure relationship.")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            REL_SUCCESS,
-            REL_FAILURE
-    )));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
 
     private volatile BlobServiceClientFactory clientFactory;
 
@@ -112,9 +107,7 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
         final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(storageCredentialsServiceProperty).asControllerService(AzureStorageCredentialsService_v12.class);
         final AzureStorageCredentialsDetails_v12 credentialsDetails = credentialsService.getCredentialsDetails(attributes);
 
-        final BlobServiceClient storageClient = clientFactory.getStorageClient(credentialsDetails);
-
-        return storageClient;
+        return clientFactory.getStorageClient(credentialsDetails);
     }
 
     protected Map<String, String> createBlobAttributesMap(BlobClient blobClient) {
@@ -132,7 +125,7 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
     }
 
     protected void applyBlobMetadata(Map<String, String> attributes, BlobClient blobClient) {
-        Supplier<BlobProperties> props = new Supplier() {
+        Supplier<BlobProperties> props = new Supplier<>() {
             BlobProperties properties;
             public BlobProperties get() {
                 if (properties == null) {

@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
+import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
 import org.apache.nifi.registry.client.NiFiRegistryClientConfig;
 import org.apache.nifi.registry.db.DatabaseProfileValueSource;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
@@ -214,7 +214,7 @@ public abstract class IntegrationTestBase {
 
         ObjectMapper mapper = JsonMapper.builder()
                 .defaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL))
-                .annotationIntrospector(new JaxbAnnotationIntrospector(TypeFactory.defaultInstance()))
+                .annotationIntrospector(new JakartaXmlBindAnnotationIntrospector(TypeFactory.defaultInstance()))
                 // Ignore unknown properties so that deployed client remain compatible with future versions of NiFi Registry that add new fields
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                 .build();

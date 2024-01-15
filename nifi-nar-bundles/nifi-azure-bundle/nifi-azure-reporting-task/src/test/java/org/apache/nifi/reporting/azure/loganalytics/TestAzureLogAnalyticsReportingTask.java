@@ -153,7 +153,7 @@ public class TestAzureLogAnalyticsReportingTask {
         testGroupStatus2.setInputCount(1000);
     }
     @Test
-    public void testOnTrigger() throws IOException, InterruptedException, InitializationException {
+    public void testOnTrigger() throws InitializationException {
         testedReportingTask.initialize(reportingInitContextStub);
         reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
         testedReportingTask.onTrigger(reportingContextStub);
@@ -162,7 +162,7 @@ public class TestAzureLogAnalyticsReportingTask {
         TestVerification.assertDatatFlowMetrics(collectedMetrics);
     }
     @Test
-    public void testOnTriggerWithOnePG() throws IOException, InterruptedException, InitializationException {
+    public void testOnTriggerWithOnePG() throws InitializationException {
         initTestGroupStatuses();
         reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.PROCESS_GROUP_IDS.getName(), TEST_GROUP1_ID);
         testedReportingTask.initialize(reportingInitContextStub);
@@ -174,7 +174,7 @@ public class TestAzureLogAnalyticsReportingTask {
         TestVerification.assertDatatFlowMetrics(collectedMetrics);
     }
     @Test
-    public void testOnTriggerWithPGList() throws IOException, InterruptedException, InitializationException {
+    public void testOnTriggerWithPGList() throws InitializationException {
         initTestGroupStatuses();
         initTestGroup2Statuses();
         reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.PROCESS_GROUP_IDS.getName(),
@@ -190,7 +190,7 @@ public class TestAzureLogAnalyticsReportingTask {
     }
 
     @Test
-    public void testEmitJVMMetrics() throws IOException, InterruptedException, InitializationException {
+    public void testEmitJVMMetrics() throws InitializationException {
         reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.SEND_JVM_METRICS.getName(), "true");
         testedReportingTask.initialize(reportingInitContextStub);
 
@@ -202,7 +202,7 @@ public class TestAzureLogAnalyticsReportingTask {
     }
 
     @Test
-    public void testAuthorization() throws IOException, InterruptedException, InitializationException {
+    public void testAuthorization() throws InitializationException {
 
         reportingContextStub.setProperty(AzureLogAnalyticsReportingTask.SEND_JVM_METRICS.getName(), "true");
         testedReportingTask.initialize(reportingInitContextStub);

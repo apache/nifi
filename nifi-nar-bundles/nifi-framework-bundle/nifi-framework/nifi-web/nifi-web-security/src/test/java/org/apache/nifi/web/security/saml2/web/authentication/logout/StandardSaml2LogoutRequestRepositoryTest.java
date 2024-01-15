@@ -29,7 +29,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutRequest;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 
-import javax.servlet.http.Cookie;
+import jakarta.servlet.http.Cookie;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;

@@ -297,6 +297,7 @@ import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEnti
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisResultEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
+import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
@@ -369,8 +370,8 @@ import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -4781,6 +4782,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessGroupStatus groupStatus = controllerFacade.getProcessGroupStatus(groupId, 1);
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroup);
         return entityFactory.createProcessGroupFlowEntity(dtoFactory.createProcessGroupFlowDto(processGroup, groupStatus, revisionManager, this::getProcessGroupBulletins, uiOnly), permissions);
+    }
+
+    @Override
+    public FlowBreadcrumbEntity getProcessGroupBreadcrumbs(final String groupId) {
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
+        return dtoFactory.createBreadcrumbEntity(processGroup);
     }
 
     @Override

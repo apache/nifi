@@ -18,6 +18,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { RegistryClients } from './registry-clients.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../state/registry-clients/registry-clients.reducer';
 
 describe('RegistryClients', () => {
     let component: RegistryClients;
@@ -25,7 +27,8 @@ describe('RegistryClients', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [RegistryClients]
+            declarations: [RegistryClients],
+            providers: [provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(RegistryClients);
         component = fixture.componentInstance;

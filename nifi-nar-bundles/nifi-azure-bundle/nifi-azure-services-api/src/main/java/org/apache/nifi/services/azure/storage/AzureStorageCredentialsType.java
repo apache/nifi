@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.services.azure.storage;
 
-import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.DescribedValue;
 
-public enum AzureStorageCredentialsType {
+public enum AzureStorageCredentialsType implements DescribedValue {
 
     ACCOUNT_KEY("Account Key", "The primary or secondary Account Key of the storage account that provides full access to the resources in the account"),
     SAS_TOKEN("SAS Token", "SAS (Shared Access Signature) Token generated for accessing resources in the storage account"),
@@ -34,9 +34,18 @@ public enum AzureStorageCredentialsType {
         this.description = description;
     }
 
-    public AllowableValue getAllowableValue() {
-        return new AllowableValue(name(), label, description);
+    @Override
+    public String getValue() {
+        return this.name();
     }
 
-}
+    @Override
+    public String getDisplayName() {
+        return this.label;
+    }
 
+    @Override
+    public String getDescription() {
+        return this.description;
+    }
+}

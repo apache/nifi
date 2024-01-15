@@ -26,7 +26,6 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.eclipse.jetty.webapp.WebAppContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +38,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -114,19 +112,6 @@ public class JettyServer {
     public void start() {
         try {
             server.start();
-
-            final Optional<Throwable> unavailableExceptionFound = Arrays.stream(server.getChildHandlers())
-                    .filter(handler -> handler instanceof WebAppContext)
-                    .map(handler -> (WebAppContext) handler)
-                    .map(WebAppContext::getUnavailableException)
-                    .filter(Objects::nonNull)
-                    .findFirst();
-
-            if (unavailableExceptionFound.isPresent()) {
-                final Throwable unavailableException = unavailableExceptionFound.get();
-                shutdown(unavailableException);
-            }
-
             final List<URI> applicationUrls = getApplicationUrls();
             if (applicationUrls.isEmpty()) {
                 logger.warn("Started Server without connectors");

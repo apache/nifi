@@ -18,7 +18,7 @@ package org.apache.nifi.cluster.protocol.message;
 
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "connectionResponseMessage")
 public class ConnectionResponseMessage extends ProtocolMessage {

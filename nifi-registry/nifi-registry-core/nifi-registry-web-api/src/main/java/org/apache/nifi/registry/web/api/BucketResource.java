@@ -16,18 +16,19 @@
  */
 package org.apache.nifi.registry.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.Extension;
-import io.swagger.annotations.ExtensionProperty;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
 import java.util.List;
 import java.util.Set;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.extensions.Extension;
+import io.swagger.v3.oas.annotations.extensions.ExtensionProperty;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -55,14 +56,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Path("/buckets")
-@Api(
-    value = "buckets",
-    authorizations = {@Authorization("Authorization")},
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Create named buckets in the registry to store NiFi objects such flows and extensions. Search for and retrieve existing buckets.")
-})
+@Tag(name = "Buckets")
 public class BucketResource extends ApplicationResource {
 
     @Autowired
@@ -73,26 +67,28 @@ public class BucketResource extends ApplicationResource {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Create bucket",
-            response = Bucket.class,
+    @Operation(
+            summary = "Create bucket",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = Bucket.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "write"),
-                            @ExtensionProperty(name = "resource", value = "/buckets") })
+                            @ExtensionProperty(name = "resource", value = "/buckets")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403)
+            }
+    )
     public Response createBucket(
-            @ApiParam(value = "The bucket to create", required = true)
-            final Bucket bucket,
-            @ApiParam(
-                    value = "Whether source properties like identifier should be kept")
-            @QueryParam("preserveSourceProperties")
-            final boolean preserveSourceProperties) {
+            @Parameter(description = "The bucket to create", required = true) final Bucket bucket,
+            @Parameter(description = "Whether source properties like identifier should be kept")
+            @QueryParam("preserveSourceProperties") final boolean preserveSourceProperties) {
 
         final Bucket createdBucket = serviceFacade.createBucket(bucket, preserveSourceProperties);
         publish(EventFactory.bucketCreated(createdBucket));
@@ -102,14 +98,13 @@ public class BucketResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get all buckets",
-            notes = "The returned list will include only buckets for which the user is authorized." +
+    @Operation(
+            summary = "Get all buckets",
+            description = "The returned list will include only buckets for which the user is authorized." +
                     "If the user is not authorized for any buckets, this returns an empty list.",
-            response = Bucket.class,
-            responseContainer = "List"
+            responses = @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = Bucket.class))))
     )
-    @ApiResponses({ @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401) })
+    @ApiResponses({@ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401)})
     public Response getBuckets() {
         // ServiceFacade will determine which buckets the user is authorized for
         // Note: We don't explicitly check for access to (READ, /buckets) because
@@ -127,24 +122,28 @@ public class BucketResource extends ApplicationResource {
     @Path("{bucketId}")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get bucket",
-            notes = "Gets the bucket with the given id.",
-            response = Bucket.class,
+    @Operation(
+            summary = "Get bucket",
+            description = "Gets the bucket with the given id.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = Bucket.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404)
+            }
+    )
     public Response getBucket(
             @PathParam("bucketId")
-            @ApiParam("The bucket identifier")
-            final String bucketId) {
+            @Parameter(description = "The bucket identifier") final String bucketId) {
 
         final Bucket bucket = serviceFacade.getBucket(bucketId);
         return Response.status(Response.Status.OK).entity(bucket).build();
@@ -154,28 +153,31 @@ public class BucketResource extends ApplicationResource {
     @Path("{bucketId}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Update bucket",
-            notes = "Updates the bucket with the given id.",
-            response = Bucket.class,
+    @Operation(
+            summary = "Update bucket",
+            description = "Updates the bucket with the given id.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = Bucket.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "write"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response updateBucket(
             @PathParam("bucketId")
-            @ApiParam("The bucket identifier")
-                final String bucketId,
-            @ApiParam(value = "The updated bucket", required = true)
-                final Bucket bucket) {
+            @Parameter(description = "The bucket identifier") final String bucketId,
+            @Parameter(description = "The updated bucket", required = true) final Bucket bucket) {
 
         if (StringUtils.isBlank(bucketId)) {
             throw new BadRequestException("Bucket id cannot be blank");
@@ -200,32 +202,34 @@ public class BucketResource extends ApplicationResource {
     @Path("{bucketId}")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Delete bucket",
-            notes = "Deletes the bucket with the given id, along with all objects stored in the bucket",
-            response = Bucket.class,
+    @Operation(
+            summary = "Delete bucket",
+            description = "Deletes the bucket with the given id, along with all objects stored in the bucket",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = Bucket.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "delete"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404)
+            }
+    )
     public Response deleteBucket(
-            @ApiParam(value = "The version is used to verify the client is working with the latest version of the entity.", required = true)
-            @QueryParam(VERSION)
-                final LongParameter version,
-            @ApiParam(value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.")
+            @Parameter(description = "The version is used to verify the client is working with the latest version of the entity.", required = true)
+            @QueryParam(VERSION) final LongParameter version,
+            @Parameter(description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.")
             @QueryParam(CLIENT_ID)
-            @DefaultValue(StringUtils.EMPTY)
-                final ClientIdParameter clientId,
+            @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @PathParam("bucketId")
-            @ApiParam("The bucket identifier")
-                final String bucketId) {
+            @Parameter(description = "The bucket identifier") final String bucketId) {
 
         if (StringUtils.isBlank(bucketId)) {
             throw new BadRequestException("Bucket id cannot be blank");
@@ -242,15 +246,14 @@ public class BucketResource extends ApplicationResource {
     @Path("fields")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get bucket fields",
-            notes = "Retrieves bucket field names for searching or sorting on buckets.",
-            response = Fields.class
+    @Operation(
+            summary = "Get bucket fields",
+            description = "Retrieves bucket field names for searching or sorting on buckets.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = Fields.class)))
     )
     public Response getAvailableBucketFields() {
         final Set<String> bucketFields = serviceFacade.getBucketFields();
         final Fields fields = new Fields(bucketFields);
         return Response.status(Response.Status.OK).entity(fields).build();
     }
-
 }

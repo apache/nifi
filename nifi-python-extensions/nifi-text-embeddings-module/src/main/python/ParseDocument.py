@@ -177,7 +177,7 @@ class ParseDocument(FlowFileTransform):
 
         input_format = context.getProperty(self.INPUT_FORMAT).evaluateAttributeExpressions(flowFile).getValue()
         if input_format == PLAIN_TEXT:
-            return [Document(page_content=str(flowFile.getContentsAsBytes()), metadata=metadata)]
+            return [Document(page_content=flowFile.getContentsAsBytes().decode('utf-8'), metadata=metadata)]
 
         element_strategy = context.getProperty(self.ELEMENT_STRATEGY).getValue()
         if element_strategy == SINGLE_DOCUMENT:

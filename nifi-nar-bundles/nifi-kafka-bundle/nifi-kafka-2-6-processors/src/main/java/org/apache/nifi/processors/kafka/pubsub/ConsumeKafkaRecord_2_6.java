@@ -39,12 +39,12 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
-import org.apache.nifi.kafka.shared.property.OutputStrategy;
-import org.apache.nifi.kafka.shared.validation.KafkaClientCustomValidationFunction;
 import org.apache.nifi.kafka.shared.property.KeyFormat;
+import org.apache.nifi.kafka.shared.property.OutputStrategy;
 import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
+import org.apache.nifi.kafka.shared.validation.KafkaClientCustomValidationFunction;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -117,7 +117,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
             .description("Specifies whether the Topic(s) provided are a comma separated list of names or a single regular expression")
             .required(true)
             .allowableValues(TOPIC_NAME, TOPIC_PATTERN)
-            .defaultValue(TOPIC_NAME.getValue())
+            .defaultValue(TOPIC_NAME)
             .build();
 
     static final PropertyDescriptor RECORD_READER = new Builder()
@@ -154,7 +154,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
                     + "more on the server (e.g. because that data has been deleted). Corresponds to Kafka's 'auto.offset.reset' property.")
             .required(true)
             .allowableValues(OFFSET_EARLIEST, OFFSET_LATEST, OFFSET_NONE)
-            .defaultValue(OFFSET_LATEST.getValue())
+            .defaultValue(OFFSET_LATEST)
             .build();
 
     static final PropertyDescriptor MAX_POLL_RECORDS = new Builder()
@@ -225,7 +225,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
             .displayName("Output Strategy")
             .description("The format used to output the Kafka record into a FlowFile record.")
             .required(true)
-            .defaultValue(OutputStrategy.USE_VALUE.getValue())
+            .defaultValue(OutputStrategy.USE_VALUE)
             .allowableValues(OutputStrategy.class)
             .build();
     static final PropertyDescriptor KEY_FORMAT = new PropertyDescriptor.Builder()
@@ -233,9 +233,9 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
             .displayName("Key Format")
             .description("Specifies how to represent the Kafka Record's Key in the output")
             .required(true)
-            .defaultValue(KeyFormat.BYTE_ARRAY.getValue())
+            .defaultValue(KeyFormat.BYTE_ARRAY)
             .allowableValues(KeyFormat.class)
-            .dependsOn(OUTPUT_STRATEGY, OutputStrategy.USE_WRAPPER.getValue())
+            .dependsOn(OUTPUT_STRATEGY, OutputStrategy.USE_WRAPPER)
             .build();
     static final PropertyDescriptor KEY_RECORD_READER = new PropertyDescriptor.Builder()
             .name("key-record-reader")
@@ -243,7 +243,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
             .description("The Record Reader to use for parsing the Kafka Record's key into a Record")
             .identifiesControllerService(RecordReaderFactory.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .dependsOn(KEY_FORMAT, KeyFormat.RECORD.getValue())
+            .dependsOn(KEY_FORMAT, KeyFormat.RECORD)
             .build();
     static final PropertyDescriptor HEADER_NAME_REGEX = new Builder()
         .name("header-name-regex")
@@ -257,7 +257,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(false)
-        .dependsOn(OUTPUT_STRATEGY, OutputStrategy.USE_VALUE.getValue())
+        .dependsOn(OUTPUT_STRATEGY, OutputStrategy.USE_VALUE)
         .build();
 
     static final PropertyDescriptor SEPARATE_BY_KEY = new Builder()
@@ -274,9 +274,9 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
         .description("If the <Separate By Key> property is set to true, FlowFiles that are emitted have an attribute named '" + KafkaFlowFileAttribute.KAFKA_KEY +
             "'. This property dictates how the value of the attribute should be encoded.")
         .required(true)
-        .defaultValue(KeyEncoding.UTF8.getValue())
+        .defaultValue(KeyEncoding.UTF8)
         .allowableValues(KeyEncoding.class)
-        .dependsOn(OUTPUT_STRATEGY, OutputStrategy.USE_VALUE.getValue())
+        .dependsOn(OUTPUT_STRATEGY, OutputStrategy.USE_VALUE)
         .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -289,49 +289,40 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
                 + "message will be routed to this Relationship as its own individual FlowFile.")
             .build();
 
-    static final List<PropertyDescriptor> DESCRIPTORS;
-    static final Set<Relationship> RELATIONSHIPS;
+    static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+            BOOTSTRAP_SERVERS,
+            TOPICS,
+            TOPIC_TYPE,
+            RECORD_READER,
+            RECORD_WRITER,
+            GROUP_ID,
+            OUTPUT_STRATEGY,
+            HEADER_NAME_REGEX,
+            KEY_ATTRIBUTE_ENCODING,
+            KEY_FORMAT,
+            KEY_RECORD_READER,
+            COMMIT_OFFSETS,
+            MAX_UNCOMMITTED_TIME,
+            HONOR_TRANSACTIONS,
+            SECURITY_PROTOCOL,
+            SASL_MECHANISM,
+            SELF_CONTAINED_KERBEROS_USER_SERVICE,
+            KERBEROS_SERVICE_NAME,
+            SASL_USERNAME,
+            SASL_PASSWORD,
+            TOKEN_AUTHENTICATION,
+            AWS_PROFILE_NAME,
+            SSL_CONTEXT_SERVICE,
+            SEPARATE_BY_KEY,
+            AUTO_OFFSET_RESET,
+            MESSAGE_HEADER_ENCODING,
+            MAX_POLL_RECORDS,
+            COMMS_TIMEOUT
+    );
+    static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_PARSE_FAILURE);
 
     private volatile ConsumerPool consumerPool = null;
     private final Set<ConsumerLease> activeLeases = Collections.synchronizedSet(new HashSet<>());
-
-    static {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(BOOTSTRAP_SERVERS);
-        descriptors.add(TOPICS);
-        descriptors.add(TOPIC_TYPE);
-        descriptors.add(RECORD_READER);
-        descriptors.add(RECORD_WRITER);
-        descriptors.add(GROUP_ID);
-        descriptors.add(OUTPUT_STRATEGY);
-        descriptors.add(HEADER_NAME_REGEX);
-        descriptors.add(KEY_ATTRIBUTE_ENCODING);
-        descriptors.add(KEY_FORMAT);
-        descriptors.add(KEY_RECORD_READER);
-        descriptors.add(COMMIT_OFFSETS);
-        descriptors.add(MAX_UNCOMMITTED_TIME);
-        descriptors.add(HONOR_TRANSACTIONS);
-        descriptors.add(SECURITY_PROTOCOL);
-        descriptors.add(SASL_MECHANISM);
-        descriptors.add(SELF_CONTAINED_KERBEROS_USER_SERVICE);
-        descriptors.add(KERBEROS_SERVICE_NAME);
-        descriptors.add(SASL_USERNAME);
-        descriptors.add(SASL_PASSWORD);
-        descriptors.add(TOKEN_AUTHENTICATION);
-        descriptors.add(AWS_PROFILE_NAME);
-        descriptors.add(SSL_CONTEXT_SERVICE);
-        descriptors.add(SEPARATE_BY_KEY);
-        descriptors.add(AUTO_OFFSET_RESET);
-        descriptors.add(MESSAGE_HEADER_ENCODING);
-        descriptors.add(MAX_POLL_RECORDS);
-        descriptors.add(COMMS_TIMEOUT);
-        DESCRIPTORS = Collections.unmodifiableList(descriptors);
-
-        final Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_SUCCESS);
-        rels.add(REL_PARSE_FAILURE);
-        RELATIONSHIPS = Collections.unmodifiableSet(rels);
-    }
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -418,7 +409,6 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
     }
 
     protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
-        final int maxLeases = context.getMaxConcurrentTasks();
         final Long maxUncommittedTime = context.getProperty(MAX_UNCOMMITTED_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
         final boolean commitOffsets = context.getProperty(COMMIT_OFFSETS).asBoolean();
 
@@ -442,8 +432,8 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
         final String charsetName = context.getProperty(MESSAGE_HEADER_ENCODING).evaluateAttributeExpressions().getValue();
         final Charset charset = Charset.forName(charsetName);
 
-        final OutputStrategy outputStrategy = OutputStrategy.valueOf(context.getProperty(OUTPUT_STRATEGY).getValue());
-        final String keyFormat = context.getProperty(KEY_FORMAT).getValue();
+        final OutputStrategy outputStrategy = context.getProperty(OUTPUT_STRATEGY).asDescribedValue(OutputStrategy.class);
+        final KeyFormat keyFormat = context.getProperty(KEY_FORMAT).asDescribedValue(KeyFormat.class);
         final RecordReaderFactory keyReaderFactory = context.getProperty(KEY_RECORD_READER).asControllerService(RecordReaderFactory.class);
 
         final String headerNameRegex = context.getProperty(HEADER_NAME_REGEX).getValue();
@@ -451,7 +441,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
         final Pattern headerNamePattern = isActiveHeaderNamePattern ? Pattern.compile(headerNameRegex) : null;
 
         final boolean separateByKey = context.getProperty(SEPARATE_BY_KEY).asBoolean();
-        final String keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
+        final KeyEncoding keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).asDescribedValue(KeyEncoding.class);
 
         final int[] partitionsToConsume;
         try {
@@ -468,12 +458,12 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
                 }
             }
 
-            return new ConsumerPool(maxLeases, readerFactory, writerFactory, props, topics, maxUncommittedTime, securityProtocol,
+            return new ConsumerPool(readerFactory, writerFactory, props, topics, maxUncommittedTime, securityProtocol,
                     bootstrapServers, log, honorTransactions, charset, headerNamePattern, separateByKey, keyEncoding, partitionsToConsume,
                     commitOffsets, outputStrategy, keyFormat, keyReaderFactory);
         } else if (topicType.equals(TOPIC_PATTERN.getValue())) {
             final Pattern topicPattern = Pattern.compile(topicListing.trim());
-            return new ConsumerPool(maxLeases, readerFactory, writerFactory, props, topicPattern, maxUncommittedTime, securityProtocol,
+            return new ConsumerPool(readerFactory, writerFactory, props, topicPattern, maxUncommittedTime, securityProtocol,
                     bootstrapServers, log, honorTransactions, charset, headerNamePattern, separateByKey, keyEncoding, partitionsToConsume,
                     commitOffsets, outputStrategy, keyFormat, keyReaderFactory);
         } else {

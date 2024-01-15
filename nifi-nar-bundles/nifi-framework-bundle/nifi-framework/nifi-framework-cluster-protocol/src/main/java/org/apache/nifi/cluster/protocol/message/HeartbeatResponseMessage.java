@@ -19,7 +19,7 @@ package org.apache.nifi.cluster.protocol.message;
 
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 

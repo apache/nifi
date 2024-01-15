@@ -25,11 +25,9 @@ import java.nio.charset.StandardCharsets;
  */
 public enum EncodedDelimiter implements DescribedValue {
     SALT("NiFiSALT", "Eight bytes appended to a stream after the salt bytes according to NiFi 0.5.0 conventions"),
-
     IV("NiFiIV", "Six bytes appended to a stream after the initialization vector bytes according to NiFi 0.5.0 conventions");
 
     private final byte[] delimiter;
-
     private final String description;
 
     EncodedDelimiter(

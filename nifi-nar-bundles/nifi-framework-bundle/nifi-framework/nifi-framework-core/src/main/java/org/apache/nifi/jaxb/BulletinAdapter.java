@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.jaxb;
 
-import javax.xml.bind.annotation.adapters.XmlAdapter;
+import jakarta.xml.bind.annotation.adapters.XmlAdapter;
 
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.reporting.Bulletin;

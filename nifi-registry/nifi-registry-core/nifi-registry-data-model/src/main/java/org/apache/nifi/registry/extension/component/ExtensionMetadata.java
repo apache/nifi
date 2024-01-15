@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.extension;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import jakarta.ws.rs.core.Link;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.extension.manifest.DeprecationNotice;
 import org.apache.nifi.extension.manifest.ExtensionType;
 import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
@@ -33,7 +32,6 @@ import org.apache.nifi.registry.link.LinkAdapter;
 import org.apache.nifi.registry.link.LinkableDocs;
 import org.apache.nifi.registry.link.LinkableEntity;
 
-@ApiModel
 public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, Comparable<ExtensionMetadata> {
 
     private String name;
@@ -48,7 +46,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
     private boolean hasAdditionalDetails;
     private Link linkDocs;
 
-    @ApiModelProperty(value = "The name of the extension")
+    @Schema(description = "The name of the extension")
     public String getName() {
         return name;
     }
@@ -57,7 +55,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         this.name = name;
     }
 
-    @ApiModelProperty(value = "The display name of the extension")
+    @Schema(description = "The display name of the extension")
     public String getDisplayName() {
         return displayName;
     }
@@ -66,7 +64,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         this.displayName = displayName;
     }
 
-    @ApiModelProperty(value = "The type of the extension")
+    @Schema(description = "The type of the extension")
     public ExtensionType getType() {
         return type;
     }
@@ -75,7 +73,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         this.type = type;
     }
 
-    @ApiModelProperty(value = "The description of the extension")
+    @Schema(description = "The description of the extension")
     public String getDescription() {
         return description;
     }
@@ -84,7 +82,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         this.description = description;
     }
 
-    @ApiModelProperty(value = "The deprecation notice of the extension")
+    @Schema(description = "The deprecation notice of the extension")
     public DeprecationNotice getDeprecationNotice() {
         return deprecationNotice;
     }
@@ -93,7 +91,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         this.deprecationNotice = deprecationNotice;
     }
 
-    @ApiModelProperty(value = "The tags of the extension")
+    @Schema(description = "The tags of the extension")
     public List<String> getTags() {
         return tags;
     }
@@ -102,7 +100,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         this.tags = tags;
     }
 
-    @ApiModelProperty(value = "The restrictions of the extension")
+    @Schema(description = "The restrictions of the extension")
     public Restricted getRestricted() {
         return restricted;
     }
@@ -111,7 +109,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         this.restricted = restricted;
     }
 
-    @ApiModelProperty(value = "The service APIs provided by the extension")
+    @Schema(description = "The service APIs provided by the extension")
     public List<ProvidedServiceAPI> getProvidedServiceAPIs() {
         return providedServiceAPIs;
     }
@@ -120,7 +118,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         this.providedServiceAPIs = providedServiceAPIs;
     }
 
-    @ApiModelProperty(value = "The information for the bundle where this extension is located")
+    @Schema(description = "The information for the bundle where this extension is located")
     public BundleInfo getBundleInfo() {
         return bundleInfo;
     }
@@ -129,7 +127,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         this.bundleInfo = bundleInfo;
     }
 
-    @ApiModelProperty(value = "Whether or not the extension has additional detail documentation")
+    @Schema(description = "Whether or not the extension has additional detail documentation")
     public boolean getHasAdditionalDetails() {
         return hasAdditionalDetails;
     }
@@ -141,8 +139,8 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
     @Override
     @XmlElement
     @XmlJavaTypeAdapter(LinkAdapter.class)
-    @ApiModelProperty(value = "A WebLink to the documentation for this extension.",
-        dataType = "org.apache.nifi.registry.link.JaxbLink", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "A WebLink to the documentation for this extension.",
+            type = "org.apache.nifi.registry.link.JaxbLink", accessMode = Schema.AccessMode.READ_ONLY)
     public Link getLinkDocs() {
         return linkDocs;
     }

@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Details about a bucket in a registry.
@@ -31,7 +31,7 @@ public class FlowRegistryBucketDTO {
     private String description;
     private Long created;
 
-    @ApiModelProperty("The bucket identifier")
+    @Schema(description = "The bucket identifier")
     public String getId() {
         return id;
     }
@@ -40,7 +40,7 @@ public class FlowRegistryBucketDTO {
         this.id = id;
     }
 
-    @ApiModelProperty("The bucket name")
+    @Schema(description = "The bucket name")
     public String getName() {
         return name;
     }
@@ -49,7 +49,7 @@ public class FlowRegistryBucketDTO {
         this.name = name;
     }
 
-    @ApiModelProperty("The bucket description")
+    @Schema(description = "The bucket description")
     public String getDescription() {
         return description;
     }
@@ -58,7 +58,7 @@ public class FlowRegistryBucketDTO {
         this.description = description;
     }
 
-    @ApiModelProperty("The created timestamp of this bucket")
+    @Schema(description = "The created timestamp of this bucket")
     public Long getCreated() {
         return created;
     }

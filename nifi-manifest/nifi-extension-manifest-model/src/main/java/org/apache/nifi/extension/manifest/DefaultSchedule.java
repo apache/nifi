@@ -16,13 +16,11 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
 
-@ApiModel
 @XmlAccessorType(XmlAccessType.FIELD)
 public class DefaultSchedule {
 
@@ -30,7 +28,7 @@ public class DefaultSchedule {
     private String period;
     private String concurrentTasks;
 
-    @ApiModelProperty("The default scheduling strategy")
+    @Schema(description = "The default scheduling strategy")
     public String getStrategy() {
         return strategy;
     }
@@ -39,7 +37,7 @@ public class DefaultSchedule {
         this.strategy = strategy;
     }
 
-    @ApiModelProperty("The default scheduling period")
+    @Schema(description = "The default scheduling period")
     public String getPeriod() {
         return period;
     }
@@ -48,7 +46,7 @@ public class DefaultSchedule {
         this.period = period;
     }
 
-    @ApiModelProperty("The default concurrent tasks")
+    @Schema(description = "The default concurrent tasks")
     public String getConcurrentTasks() {
         return concurrentTasks;
     }

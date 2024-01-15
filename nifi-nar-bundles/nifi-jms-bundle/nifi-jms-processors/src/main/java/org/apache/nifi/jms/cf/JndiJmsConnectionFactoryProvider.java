@@ -27,7 +27,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 
-import javax.jms.ConnectionFactory;
+import jakarta.jms.ConnectionFactory;
 import java.util.List;
 
 @Tags({"jms", "jndi", "messaging", "integration", "queue", "topic", "publish", "subscribe"})

@@ -27,6 +27,8 @@ import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.cluster.ClusterDetailsFactory;
+import org.apache.nifi.cluster.ConnectionState;
 import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.StandardFlowService;
@@ -214,6 +216,11 @@ public class HeadlessNiFiServer implements NiFiServer {
     @Override
     public DecommissionTask getDecommissionTask() {
         return null;
+    }
+
+    @Override
+    public ClusterDetailsFactory getClusterDetailsFactory() {
+        return () -> ConnectionState.NOT_CLUSTERED;
     }
 
     @Override

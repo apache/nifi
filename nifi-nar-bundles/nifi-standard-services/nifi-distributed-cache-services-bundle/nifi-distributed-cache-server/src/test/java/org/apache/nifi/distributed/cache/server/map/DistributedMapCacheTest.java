@@ -132,16 +132,6 @@ public class DistributedMapCacheTest {
     }
 
     @Test
-    public void testRemoveByPattern() throws IOException {
-        final String[] keys = {"keyRemoveByPattern1", "keyRemoveByPattern2", "keyRemoveByPattern3"};
-        final String value = "valueRemoveByPattern";
-        for (String key : keys) {
-            client.put(key, value, serializer, serializer);
-        }
-        assertEquals(3, client.removeByPattern("keyRemoveByPattern\\d{1}"));
-    }
-
-    @Test
     public void testSubMap() throws IOException {
         final String key = "keySubMap";
         final String value = "valueSubMap";
@@ -153,21 +143,6 @@ public class DistributedMapCacheTest {
         assertEquals(3, subMap.size());
         for (int i = 0; (i < 3); ++i) {
             assertEquals(value + i, subMap.get(key + i));
-        }
-    }
-
-    @Test
-    public void testRemoveByPatternAndGet() throws IOException {
-        final String key = "keyRemoveByPatternAndGet";
-        final String value = "valueRemoveByPatternAndGet";
-        for (int i = 0; (i < 3); ++i) {
-            client.put(key + i, value + i, serializer, serializer);
-        }
-        final Map<String, String> map = client.removeByPatternAndGet(
-                "keyRemoveByPatternAndGet\\d{1}", deserializer, deserializer);
-        assertEquals(3, map.size());
-        for (int i = 0; (i < 3); ++i) {
-            assertEquals(value + i, map.get(key + i));
         }
     }
 

@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 
@@ -41,7 +41,7 @@ public class ImageViewerController extends HttpServlet {
         if ("image/png".equals(content.getContentType()) || "image/jpeg".equals(content.getContentType())
                 || "image/gif".equals(content.getContentType()) || "image/webp".equals(content.getContentType())) {
             // defer to the jsp
-            request.getRequestDispatcher("/WEB-INF/jsp/image.jsp").include(request, response);
+            this.getServletContext().getRequestDispatcher("/WEB-INF/jsp/image.jsp").include(request, response);
         } else {
             final PrintWriter out = response.getWriter();
             out.println("Unexpected content type: " + content.getContentType());

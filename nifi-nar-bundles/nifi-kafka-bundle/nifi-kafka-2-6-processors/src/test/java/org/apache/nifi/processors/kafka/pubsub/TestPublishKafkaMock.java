@@ -266,7 +266,7 @@ public class TestPublishKafkaMock {
         final String valueString = mapper.writeValueAsString(valueNode);
         assertEquals(valueString, new String(producedRecord.value(), UTF_8));
         final List<MockFlowFile> success = runner.getFlowFilesForRelationship(PublishKafkaRecord_2_6.REL_SUCCESS);
-        final MockFlowFile flowFile1 = success.iterator().next();
+        final MockFlowFile flowFile1 = success.getFirst();
         assertNotNull(flowFile1.getAttribute("uuid"));
     }
 

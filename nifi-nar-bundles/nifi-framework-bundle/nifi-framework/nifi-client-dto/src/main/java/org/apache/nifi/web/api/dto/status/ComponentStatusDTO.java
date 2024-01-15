@@ -17,9 +17,9 @@
 
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * General DTO for serializing the status of a component.
@@ -39,11 +39,11 @@ public class ComponentStatusDTO{
     private Integer activeThreadCount;
 
     /**
-     * Sub-classes should override this method to provide API documentation using ApiModelProperty annotation with allowable values.
+     * Sub-classes should override this method to provide API documentation using @Schema annotation with allowable values.
      * @return the run status of the component
      */
-    @ApiModelProperty(value = "The run status of this component",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY,
+    @Schema(description = "The run status of this component",
+            accessMode = Schema.AccessMode.READ_ONLY,
             allowableValues = "ENABLED, ENABLING, DISABLED, DISABLING")
     public String getRunStatus() {
         return runStatus;
@@ -53,9 +53,9 @@ public class ComponentStatusDTO{
         this.runStatus = runStatus;
     }
 
-    @ApiModelProperty(value = "Indicates whether the component is valid, invalid, or still in the process of validating" +
+    @Schema(description = "Indicates whether the component is valid, invalid, or still in the process of validating" +
             " (i.e., it is unknown whether or not the component is valid)",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY,
+            accessMode = Schema.AccessMode.READ_ONLY,
             allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
     public String getValidationStatus() {
         return validationStatus;
@@ -68,8 +68,7 @@ public class ComponentStatusDTO{
     /**
      * @return number of active threads for this component
      */
-    @ApiModelProperty(
-            value = "The number of active threads for the component."
+    @Schema(description = "The number of active threads for the component."
     )
     public Integer getActiveThreadCount() {
         return activeThreadCount;

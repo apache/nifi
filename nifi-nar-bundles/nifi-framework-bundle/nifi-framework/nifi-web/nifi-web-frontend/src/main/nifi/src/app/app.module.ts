@@ -20,7 +20,6 @@ import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { FlowDesignerModule } from './pages/canvas/feature/flow-designer.module';
 import { StoreModule } from '@ngrx/store';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
@@ -28,16 +27,21 @@ import { environment } from './environments/environment';
 import { HTTP_INTERCEPTORS, HttpClientModule, HttpClientXsrfModule } from '@angular/common/http';
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { rootReducers } from './state';
-import { UserEffects } from './state/user/user.effects';
-import { LoginModule } from './pages/login/feature/login.module';
+import { CurrentUserEffects } from './state/current-user/current-user.effects';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LoadingInterceptor } from './service/interceptors/loading.interceptor';
 import { AuthInterceptor } from './service/interceptors/auth.interceptor';
 import { ExtensionTypesEffects } from './state/extension-types/extension-types.effects';
 import { PollingInterceptor } from './service/interceptors/polling.interceptor';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
+import { MatNativeDateModule } from '@angular/material/core';
+import { AboutEffects } from './state/about/about.effects';
+import { StatusHistoryEffects } from './state/status-history/status-history.effects';
+import { MatDialogModule } from '@angular/material/dialog';
+import { ControllerServiceStateEffects } from './state/contoller-service-state/controller-service-state.effects';
+import { SystemDiagnosticsEffects } from './state/system-diagnostics/system-diagnostics.effects';
+import { FlowConfigurationEffects } from './state/flow-configuration/flow-configuration.effects';
 
-// @ts-ignore
 @NgModule({
     declarations: [AppComponent],
     imports: [
@@ -54,13 +58,23 @@ import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
             routerState: RouterState.Minimal,
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
-        EffectsModule.forRoot(UserEffects, ExtensionTypesEffects),
+        EffectsModule.forRoot(
+            CurrentUserEffects,
+            ExtensionTypesEffects,
+            AboutEffects,
+            FlowConfigurationEffects,
+            StatusHistoryEffects,
+            ControllerServiceStateEffects,
+            SystemDiagnosticsEffects
+        ),
         StoreDevtoolsModule.instrument({
             maxAge: 25,
             logOnly: environment.production,
             autoPause: true
         }),
-        MatProgressSpinnerModule
+        MatProgressSpinnerModule,
+        MatNativeDateModule,
+        MatDialogModule
     ],
     providers: [
         {

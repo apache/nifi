@@ -25,26 +25,8 @@
     <artifactId>nifi-flow-registry-client-bundle</artifactId>
     <packaging>pom</packaging>
 
-    <properties>
-        <!-- Set JAX RS and Jersey versions for Registry Client library -->
-        <jakarta.rs.api.version>3.1.0</jakarta.rs.api.version>
-        <jersey.bom.version>3.1.3</jersey.bom.version>
-    </properties>
-
     <modules>
         <module>nifi-flow-registry-client-services</module>
         <module>nifi-flow-registry-client-nar</module>
     </modules>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.glassfish.jersey</groupId>
-                <artifactId>jersey-bom</artifactId>
-                <version>${jersey.bom.version}</version>
-                <scope>import</scope>
-                <type>pom</type>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 </project>

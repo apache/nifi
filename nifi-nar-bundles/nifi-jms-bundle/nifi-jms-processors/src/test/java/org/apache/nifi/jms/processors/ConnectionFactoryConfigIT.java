@@ -29,8 +29,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.jms.Connection;
-import javax.jms.JMSException;
+import jakarta.jms.Connection;
+import jakarta.jms.JMSException;
 
 /**
  * Tests for the different Connection Factory configurations of {@link PublishJMS} and {@link ConsumeJMS}:

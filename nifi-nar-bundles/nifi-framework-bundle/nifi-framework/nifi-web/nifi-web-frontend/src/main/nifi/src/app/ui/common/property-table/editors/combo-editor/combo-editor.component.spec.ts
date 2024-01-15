@@ -21,6 +21,7 @@ import { ComboEditor } from './combo-editor.component';
 import { PropertyItem } from '../../property-table.component';
 import { Parameter } from '../../../../../state/shared';
 import { of } from 'rxjs';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('ComboEditor', () => {
     let component: ComboEditor;
@@ -72,7 +73,7 @@ describe('ComboEditor', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [ComboEditor]
+            imports: [ComboEditor, BrowserAnimationsModule]
         });
         fixture = TestBed.createComponent(ComboEditor);
         component = fixture.componentInstance;

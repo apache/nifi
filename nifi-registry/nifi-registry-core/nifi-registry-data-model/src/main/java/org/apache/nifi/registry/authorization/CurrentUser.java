@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.registry.authorization;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel
 public class CurrentUser {
 
     private String identity;
@@ -28,7 +26,7 @@ public class CurrentUser {
     private boolean oidcLoginSupported;
     private ResourcePermissions resourcePermissions;
 
-    @ApiModelProperty(value = "The identity of the current user", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The identity of the current user", accessMode = Schema.AccessMode.READ_ONLY)
     public String getIdentity() {
         return identity;
     }
@@ -37,7 +35,7 @@ public class CurrentUser {
         this.identity = identity;
     }
 
-    @ApiModelProperty(value = "Indicates if the current user is anonymous", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "Indicates if the current user is anonymous", accessMode = Schema.AccessMode.READ_ONLY)
     public boolean isAnonymous() {
         return anonymous;
     }
@@ -46,12 +44,12 @@ public class CurrentUser {
         this.anonymous = anonymous;
     }
 
-    @ApiModelProperty(value = "Indicates if the NiFi Registry instance supports logging in")
+    @Schema(description = "Indicates if the NiFi Registry instance supports logging in")
     public boolean isLoginSupported() {
         return loginSupported;
     }
 
-    @ApiModelProperty(value = "Indicates if the NiFi Registry instance supports logging in with an OIDC provider")
+    @Schema(description = "Indicates if the NiFi Registry instance supports logging in with an OIDC provider")
     public boolean isOIDCLoginSupported() {
         return oidcLoginSupported;
     }
@@ -64,7 +62,7 @@ public class CurrentUser {
         this.oidcLoginSupported = oidcLoginSupported;
     }
 
-    @ApiModelProperty(value = "The access that the current user has to top level resources", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The access that the current user has to top level resources", accessMode = Schema.AccessMode.READ_ONLY)
     public ResourcePermissions getResourcePermissions() {
         return resourcePermissions;
     }

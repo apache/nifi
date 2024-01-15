@@ -17,7 +17,7 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.components.PortFunction;
 
 public class VersionedPort extends VersionedComponent {
@@ -27,7 +27,7 @@ public class VersionedPort extends VersionedComponent {
     private Boolean allowRemoteAccess;
     private PortFunction portFunction;
 
-    @ApiModelProperty("The number of tasks that should be concurrently scheduled for the port.")
+    @Schema(description = "The number of tasks that should be concurrently scheduled for the port.")
     public Integer getConcurrentlySchedulableTaskCount() {
         return concurrentlySchedulableTaskCount;
     }
@@ -36,7 +36,7 @@ public class VersionedPort extends VersionedComponent {
         this.concurrentlySchedulableTaskCount = concurrentlySchedulableTaskCount;
     }
 
-    @ApiModelProperty("The type of port.")
+    @Schema(description = "The type of port.")
     public PortType getType() {
         return type;
     }
@@ -45,7 +45,7 @@ public class VersionedPort extends VersionedComponent {
         this.type = type;
     }
 
-    @ApiModelProperty("The scheduled state of the component")
+    @Schema(description = "The scheduled state of the component")
     public ScheduledState getScheduledState() {
         return scheduledState;
     }
@@ -54,7 +54,7 @@ public class VersionedPort extends VersionedComponent {
         this.scheduledState = scheduledState;
     }
 
-    @ApiModelProperty("Whether or not this port allows remote access for site-to-site")
+    @Schema(description = "Whether or not this port allows remote access for site-to-site")
     public Boolean isAllowRemoteAccess() {
         return ((allowRemoteAccess != null) && allowRemoteAccess);
     }
@@ -67,7 +67,7 @@ public class VersionedPort extends VersionedComponent {
         this.allowRemoteAccess = allowRemoteAccess;
     }
 
-    @ApiModelProperty("Specifies how the Port should function")
+    @Schema(description = "Specifies how the Port should function")
     public PortFunction getPortFunction() {
         return portFunction;
     }

@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Resource that supports access/authorization policies.
@@ -35,8 +35,7 @@ public class ResourceDTO {
      *
      * @return The name of the resource
      */
-    @ApiModelProperty(
-            value = "The name of the resource."
+    @Schema(description = "The name of the resource."
     )
     public String getName() {
         return name;
@@ -51,8 +50,7 @@ public class ResourceDTO {
      *
      * @return The identifier of the resource
      */
-    @ApiModelProperty(
-            value = "The identifier of the resource."
+    @Schema(description = "The identifier of the resource."
     )
     public String getIdentifier() {
         return identifier;

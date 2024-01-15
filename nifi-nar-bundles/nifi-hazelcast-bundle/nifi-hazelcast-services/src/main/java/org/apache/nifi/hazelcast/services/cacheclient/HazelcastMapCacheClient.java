@@ -78,10 +78,11 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
             .name("hazelcast-entry-ttl")
             .displayName("Hazelcast Entry Lifetime")
             .description("Indicates how long the written entries should exist in Hazelcast. Setting it to '0 secs' means that the data" +
-                    "will exists until its deletion or until the Hazelcast server is shut down.")
+                    "will exists until its deletion or until the Hazelcast server is shut down. Using `EmbeddedHazelcastCacheManager` as" +
+                    "cache manager will not provide policies to limit the size of the cache.")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("0 secs") // Note: in case of Hazelcast IMap, negative value would mean "map default" which might be overridden by a different client.
+            .defaultValue("5 min") // Note: in case of Hazelcast IMap, negative value would mean "map default" which might be overridden by a different client.
             .build();
 
     private static final long STARTING_REVISION = 1;
@@ -178,11 +179,6 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
     @Override
     public <K> boolean remove(final K key, final Serializer<K> keySerializer) throws IOException {
         return cache.remove(getCacheEntryKey(key, keySerializer));
-    }
-
-    @Override
-    public long removeByPattern(final String regex) throws IOException {
-        return cache.removeAll(new RegexPredicate(regex));
     }
 
     private static class RegexPredicate implements Predicate<String>, Serializable {

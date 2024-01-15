@@ -23,7 +23,7 @@ Apache NiFi Team <dev@nifi.apache.org>
 == System Requirements
 Apache NiFi can run on something as simple as a laptop, but it can also be clustered across many enterprise-class servers. Therefore, the amount of hardware and memory needed will depend on the size and nature of the dataflow involved. The data is stored on disk while NiFi is processing it. So NiFi needs to have sufficient disk space allocated for its various repositories, particularly the content repository, flowfile repository, and provenance repository (see the <<system_properties>> section for more information about these repositories). NiFi has the following minimum system requirements:
 
-* Requires Java 17
+* Requires Java 21
 * Use of Python-based Processors (beta feature) requires Python 3.9+
 * Supported Operating Systems:
 ** Linux
@@ -81,17 +81,17 @@ See the <<system_properties>> section of this guide for more information about c
 
 The binary build of Apache NiFi that is provided by the Apache mirrors does not contain every NAR file that is part of the official release. This is due to size constraints imposed by the mirrors to reduce the expenses associated with hosting such a large project. The Developer Guide link:developer-guide.html#build[has a list] of optional Maven profiles that can be activated to build a binary distribution of NiFi with these extra capabilities.
 
-To execute build, download Java 17 from https://www.adoptium.net[Adoptium] or whichever distribution of the JDK your team uses (Adoptium is the rebranding of AdoptOpenJDK which is one of the most popular). Then install https://maven.apache.org[Apache Maven].
+Java 21 is required for building and running Apache NiFi.
 
 The next step is to download a copy of the Apache NiFi source code from the https://nifi.apache.org/download.html[NiFi Downloads page]. The reason you need the source build is that it includes a module called `nifi-assembly` which is the Maven module that builds a binary distribution. Expand the archive and run a Maven clean build. The following example shows how to build a distribution that activates the `graph` and `media` bundle profiles to add in support for graph databases and Apache Tika content and metadata extraction.
 
 `cd <nifi_source_folder>/nifi-assembly`
 
-`mvn clean install -Pinclude-grpc,include-graph,include-media`
+`./mvnw clean install -Pinclude-grpc,include-graph,include-media`
 
 There is also a specific profile allowing you to build NiFi with all of the additional bundles that are not included by default:
 
-`mvn clean install -Pinclude-all`
+`./mvnw clean install -Pinclude-all`
 
 This will include bundles such as gRPC, Atlas, Hive, Hive 1_1, Hive 3, Media, Rules, SQL Reporting, Accumulo, Ranger, ASN1, Snowflake, Iceberg, etc.
 
@@ -159,12 +159,6 @@ Set how long sockets stay in a TIMED_WAIT state when closed::
 You don't want your sockets to sit and linger too long given that you want to be
 able to quickly setup and teardown new sockets.  It is a good idea to read more about
 it and adjust to something like
-
-for kernel 2.6
-----
-sudo sysctl -w net.ipv4.netfilter.ip_conntrack_tcp_timeout_time_wait="1"
-----
-for kernel 3.0
 ----
 sudo sysctl -w net.netfilter.nf_conntrack_tcp_timeout_time_wait="1"
 ----
@@ -331,7 +325,7 @@ may be set:
 |==================================================================================================================================================
 
 Each property should take the form of a comma-separated list of common cipher names as specified
-link:https://docs.oracle.com/en/java/javase/17/docs/specs/security/standard-names.html[here^].  Regular expressions
+link:https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-names.html[here^].  Regular expressions
 (for example `^.*GCM_SHA256$`) may also be specified.
 
 The semantics match the use of the following Jetty APIs:
@@ -2851,7 +2845,7 @@ Failure to do so, may result in errors similar to the following:
 2016-01-08 16:08:57,888 ERROR [pool-26-thread-1-SendThread(localhost:2181)] o.a.zookeeper.client.ZooKeeperSaslClient An error: (java.security.PrivilegedActionException: javax.security.sasl.SaslException: GSS initiate failed [Caused by GSSException: No valid credentials provided (Mechanism level: Server not found in Kerberos database (7) - LOOKING_UP_SERVER)]) occurred when evaluating ZooKeeper Quorum Member's  received SASL token. ZooKeeper Client will go to AUTH_FAILED state.
 
 If there are problems communicating or authenticating with Kerberos, this
-link:https://docs.oracle.com/en/java/javase/17/security/troubleshooting.html[Troubleshooting Guide^] may be of value.
+link:https://docs.oracle.com/en/java/javase/21/security/troubleshooting.html[Troubleshooting Guide^] may be of value.
 
 One of the most important notes in the above Troubleshooting guide is the mechanism for turning on Debug output for Kerberos.
 This is done by setting the `sun.security.krb5.debug` environment variable.
@@ -2974,20 +2968,6 @@ properties for minimum and maximum Java Heap size, the garbage collector to use,
 |`nifi.bootstrap.sensitive.key`|The root key (in hexadecimal format) for encrypted sensitive configuration values. When NiFi is started, this root key is used to decrypt sensitive values from the _nifi.properties_ file into memory for later use.
 
 The Encrypt-Config Tool can be used to specify the root key, encrypt sensitive values in _nifi.properties_ and update _bootstrap.conf_. See the <<toolkit-guide.adoc#encrypt_config_tool,NiFi Toolkit Guide>> for an example.
-|`notification.services.file`|When NiFi is started, or stopped, or when the Bootstrap detects that NiFi has died, the Bootstrap is able to send notifications of these events
-to interested parties. This is configured by specifying an XML file that defines which notification services can be used. More about this
-file can be found in the <<notification_services>> section.
-|`notification.max.attempts`|If a notification service is configured but is unable to perform its function, it will try again up to a maximum number of attempts. This property
-configures what that maximum number of attempts is. The default value is `5`.
-|`nifi.start.notification.services`|This property is a comma-separated list of Notification Service identifiers that correspond to the Notification Services
-defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
-configured recipients whenever NiFi is started.
-|`nifi.stop.notification.services`|This property is a comma-separated list of Notification Service identifiers that correspond to the Notification Services
-defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
-configured recipients whenever NiFi is stopped.
-|`nifi.died.notification.services`|This property is a comma-separated list of Notification Service identifiers that correspond to the Notification Services
-                                 defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
-                                 configured recipients if the bootstrap determines that NiFi has unexpectedly died.
 |`nifi.diagnostics.on.shutdown.enabled`|(true or false) This property decides whether to run NiFi diagnostics before shutting down. The default value is `false`.
 |`nifi.diagnostics.on.shutdown.verbose`|(true or false) This property decides whether to run NiFi diagnostics in verbose mode. The default value is `false`.
 |`nifi.diagnostics.on.shutdown.directory`|This property specifies the location of the NiFi diagnostics directory. The default value is `./diagnostics`.
@@ -2995,118 +2975,6 @@ configured recipients whenever NiFi is stopped.
 |`nifi.diagnostics.on.shutdown.max.directory.size`|This property specifies the maximum permitted size of the diagnostics directory. If the limit is exceeded, the oldest files are deleted. The default value is `10 MB`.
 |`nifi.bootstrap.listen.port`|This property defines the port used to listen for communications from NiFi. If this property is missing, empty, or `0`, a random ephemeral port is used.
 |====
-
-[[notification_services]]
-== Notification Services
-When the NiFi bootstrap starts or stops NiFi, or detects that it has died unexpectedly, it is able to notify configured recipients. Currently,
-the only mechanisms supplied are to send an e-mail or HTTP POST notification. The notification services configuration file
-is an XML file where the notification capabilities are configured.
-
-The default location of the XML file is _conf/bootstrap-notification-services.xml_, but this value can be changed in the _conf/bootstrap.conf_ file.
-
-The syntax of the XML file is as follows:
-
-....
-<services>
-    <!-- any number of service elements can be defined. -->
-    <service>
-        <id>some-identifier</id>
-        <!-- The fully-qualified class name of the Notification Service. -->
-        <class>org.apache.nifi.bootstrap.notification.email.EmailNotificationService</class>
-
-        <!-- Any number of properties can be set using this syntax.
-             The properties available depend on the Notification Service. -->
-        <property name="Property Name 1">Property Value</property>
-        <property name="Another Property Name">Property Value 2</property>
-    </service>
-</services>
-....
-
-Once the desired services have been configured, they can then be referenced in the _bootstrap.conf_ file.
-
-=== Email Notification Service +
-
-The first Notifier is to send emails and the implementation is `org.apache.nifi.bootstrap.notification.email.EmailNotificationService`.
-It has the following properties available:
-
-|====
-|*Property*|*Required*|*Description*
-|`SMTP Hostname`|true|The hostname of the SMTP Server that is used to send Email Notifications
-|`SMTP Port`|true|The Port used for SMTP communications
-|`SMTP Username`|true|Username for the SMTP account
-|`SMTP Password`||Password for the SMTP account
-|`SMTP Auth`||Flag indicating whether authentication should be used
-|`SMTP TLS`||Flag indicating whether TLS should be enabled
-|`SMTP Socket Factory`||`javax.net.ssl.SSLSocketFactory`
-|`SMTP X-Mailer Header`||X-Mailer used in the header of the outgoing email
-|`Content Type`||Mime Type used to interpret the contents of the email, such as `text/plain` or `text/html`
-|`From`|true|Specifies the Email address to use as the sender. Otherwise, a "friendly name" can be used as the From address, but the value
-must be enclosed in double-quotes.
-|`To`||The recipients to include in the To-Line of the email
-|`CC`||The recipients to include in the CC-Line of the email
-|`BCC`||The recipients to include in the BCC-Line of the email
-|====
-
-
-In addition to the properties above that are marked as required, at least one of the `To`, `CC`, or `BCC` properties
-must be set.
-
-A complete example of configuring the Email service would look like the following:
-
-....
-     <service>
-        <id>email-notification</id>
-        <class>org.apache.nifi.bootstrap.notification.email.EmailNotificationService</class>
-        <property name="SMTP Hostname">smtp.gmail.com</property>
-        <property name="SMTP Port">587</property>
-        <property name="SMTP Username">username@gmail.com</property>
-        <property name="SMTP Password">super-secret-password</property>
-        <property name="SMTP TLS">true</property>
-        <property name="From">"NiFi Service Notifier"</property>
-        <property name="To">username@gmail.com</property>
-     </service>
-....
-
-=== HTTP Notification Service +
-
-The second Notifier is to send HTTP POST requests and the implementation is `org.apache.nifi.bootstrap.notification.http.HttpNotificationService`.
-It has the following properties available:
-
-|====
-|*Property*|*Required*|*Description*
-|`URL`|true|The URL to send the notification to. Expression language is supported.
-|`Connection timeout`||Max wait time for connection to remote service. Expression language is supported. This defaults to `10s`.
-|`Write timeout`||Max wait time for remote service to read the request sent. Expression language is supported. This defaults to `10s`.
-|`Truststore Filename`||The fully-qualified filename of the Truststore
-|`Truststore Type`||The Type of the Truststore. Either `JKS` or `PKCS12`
-|`Truststore Password`||The password for the Truststore
-|`Keystore Filename`||The fully-qualified filename of the Keystore
-|`Keystore Type`||The Type of the Keystore. Either `JKS` or `PKCS12`
-|`Keystore Password`||The password for the Keystore
-|`Key Password`||The password for the key. If this is not specified, but the Keystore Filename, Password, and Type are specified, then the Key Password will be assumed to be the same as the Keystore Password.
-|`SSL Protocol`||The algorithm to use for this SSL context. This can either be `SSL` or `TLS`.
-|====
-
-In addition to the properties above, dynamic properties can be added. They will be added as headers to the HTTP request. Expression language is supported.
-
-The notification message is in the body of the POST request. The type of notification is in the header "notification.type" and the subject uses the header "notification.subject".
-
-A complete example of configuring the HTTP service could look like the following:
-
-....
-     <service>
-        <id>http-notification</id>
-        <class>org.apache.nifi.bootstrap.notification.http.HttpNotificationService</class>
-        <property name="URL">https://testServer.com:8080/</property>
-        <property name="Truststore Filename">localhost-ts.jks</property>
-        <property name="Truststore Type">JKS</property>
-        <property name="Truststore Password">localtest<property>
-        <property name="Keystore Filename">localhost-ts.jks</property>
-        <property name="Keystore Type">JKS</property>
-        <property name="Keystore Password">localtest</property>
-        <property name="notification.timestamp">${now()}</property>
-     </service>
-....
 
 [[proxy_configuration]]
 == Proxy Configuration
@@ -4378,7 +4246,6 @@ Use the following table to guide the update of configuration files located in `<
 If you are using the `file-provider` authorizer, ensure that you copy the _users.xml_ and _authorizations.xml_ files from the existing to the new NiFi.
 
 Configuration best practices recommend creating a separate location outside of the NiFi base directory for storing such configuration files, for example: `/opt/nifi/configuration-resources/`. If you are storing these files in a separate directory, you do not need to move them. Instead, ensure that the new NiFi is pointing to the same files.
-|_bootstrap-notification-services.xml_       | Use the existing NiFi _bootstrap-notification-services.xml_  file to update properties in the new NiFi.
 |_bootstrap.conf_                            | Use the existing NiFi _bootstrap.conf_ file to update properties in the new NiFi.
 |_flow.json.gz_                               | If you retained the default location for storing flows (`<installation-directory>/conf/`), copy _flow.json.gz_ from the existing to the new NiFi base install `conf` directory. If you stored flows to an external location via _nifi.properties_, update the property `nifi.flow.configuration.file` to point there.
 

@@ -16,15 +16,13 @@
  */
 package org.apache.nifi.registry.extension.repo;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.registry.link.LinkableEntity;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.Comparator;
 import java.util.Objects;
 
-@ApiModel
 @XmlRootElement
 public class ExtensionRepoVersionSummary extends LinkableEntity implements Comparable<ExtensionRepoVersionSummary> {
 
@@ -37,7 +35,7 @@ public class ExtensionRepoVersionSummary extends LinkableEntity implements Compa
     private String author;
     private Long timestamp;
 
-    @ApiModelProperty(value = "The bucket name")
+    @Schema(description = "The bucket name")
     public String getBucketName() {
         return bucketName;
     }
@@ -46,7 +44,7 @@ public class ExtensionRepoVersionSummary extends LinkableEntity implements Compa
         this.bucketName = bucketName;
     }
 
-    @ApiModelProperty("The group id")
+    @Schema(description = "The group id")
     public String getGroupId() {
         return groupId;
     }
@@ -55,7 +53,7 @@ public class ExtensionRepoVersionSummary extends LinkableEntity implements Compa
         this.groupId = groupId;
     }
 
-    @ApiModelProperty("The artifact id")
+    @Schema(description = "The artifact id")
     public String getArtifactId() {
         return artifactId;
     }
@@ -64,7 +62,7 @@ public class ExtensionRepoVersionSummary extends LinkableEntity implements Compa
         this.artifactId = artifactId;
     }
 
-    @ApiModelProperty("The version")
+    @Schema(description = "The version")
     public String getVersion() {
         return version;
     }
@@ -73,7 +71,7 @@ public class ExtensionRepoVersionSummary extends LinkableEntity implements Compa
         this.version = version;
     }
 
-    @ApiModelProperty("The identity of the user that created this version")
+    @Schema(description = "The identity of the user that created this version")
     public String getAuthor() {
         return author;
     }
@@ -82,7 +80,7 @@ public class ExtensionRepoVersionSummary extends LinkableEntity implements Compa
         this.author = author;
     }
 
-    @ApiModelProperty("The timestamp of when this version was created")
+    @Schema(description = "The timestamp of when this version was created")
     public long getTimestamp() {
         return timestamp;
     }

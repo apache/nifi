@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * An implementation of the ConfigurationRequestContext that retrieves configuration

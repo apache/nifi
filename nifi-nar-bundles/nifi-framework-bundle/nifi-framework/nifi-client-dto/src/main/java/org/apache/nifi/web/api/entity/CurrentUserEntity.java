@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ComponentRestrictionPermissionDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.Set;
 
 /**
@@ -47,7 +47,7 @@ public class CurrentUserEntity extends Entity {
     /**
      * @return the user identity being serialized
      */
-    @ApiModelProperty("The user identity being serialized.")
+    @Schema(description = "The user identity being serialized.")
     public String getIdentity() {
         return identity;
     }
@@ -59,7 +59,7 @@ public class CurrentUserEntity extends Entity {
     /**
      * @return if the user is anonymous
      */
-    @ApiModelProperty("Whether the current user is anonymous.")
+    @Schema(description = "Whether the current user is anonymous.")
     public boolean isAnonymous() {
         return anonymous;
     }
@@ -71,7 +71,7 @@ public class CurrentUserEntity extends Entity {
     /**
      * @return if the use can query provenance
      */
-    @ApiModelProperty("Permissions for querying provenance.")
+    @Schema(description = "Permissions for querying provenance.")
     public PermissionsDTO getProvenancePermissions() {
         return provenancePermissions;
     }
@@ -83,7 +83,7 @@ public class CurrentUserEntity extends Entity {
     /**
      * @return permissions for accessing counters
      */
-    @ApiModelProperty("Permissions for accessing counters.")
+    @Schema(description = "Permissions for accessing counters.")
     public PermissionsDTO getCountersPermissions() {
         return countersPermissions;
     }
@@ -95,7 +95,7 @@ public class CurrentUserEntity extends Entity {
     /**
      * @return permissions for accessing users
      */
-    @ApiModelProperty("Permissions for accessing tenants.")
+    @Schema(description = "Permissions for accessing tenants.")
     public PermissionsDTO getTenantsPermissions() {
         return tenantsPermissions;
     }
@@ -107,7 +107,7 @@ public class CurrentUserEntity extends Entity {
     /**
      * @return permissions for accessing the controller
      */
-    @ApiModelProperty("Permissions for accessing the controller.")
+    @Schema(description = "Permissions for accessing the controller.")
     public PermissionsDTO getControllerPermissions() {
         return controllerPermissions;
     }
@@ -119,7 +119,7 @@ public class CurrentUserEntity extends Entity {
     /**
      * @return permissions for accessing the all policies
      */
-    @ApiModelProperty("Permissions for accessing the policies.")
+    @Schema(description = "Permissions for accessing the policies.")
     public PermissionsDTO getPoliciesPermissions() {
         return policiesPermissions;
     }
@@ -131,7 +131,7 @@ public class CurrentUserEntity extends Entity {
     /**
      * @return permissions for accessing the system
      */
-    @ApiModelProperty("Permissions for accessing system.")
+    @Schema(description = "Permissions for accessing system.")
     public PermissionsDTO getSystemPermissions() {
         return systemPermissions;
     }
@@ -143,7 +143,7 @@ public class CurrentUserEntity extends Entity {
     /**
      * @return permissions for accessing parameter contexts
      */
-    @ApiModelProperty("Permissions for accessing parameter contexts.")
+    @Schema(description = "Permissions for accessing parameter contexts.")
     public PermissionsDTO getParameterContextPermissions() {
         return parameterContextPermissions;
     }
@@ -155,7 +155,7 @@ public class CurrentUserEntity extends Entity {
     /**
      * @return permissions for accessing the restricted components
      */
-    @ApiModelProperty("Permissions for accessing restricted components. Note: the read permission are not used and will always be false.")
+    @Schema(description = "Permissions for accessing restricted components. Note: the read permission are not used and will always be false.")
     public PermissionsDTO getRestrictedComponentsPermissions() {
         return restrictedComponentsPermissions;
     }
@@ -167,7 +167,7 @@ public class CurrentUserEntity extends Entity {
     /**
      * @return permissions for specific component restrictions
      */
-    @ApiModelProperty("Permissions for specific component restrictions.")
+    @Schema(description = "Permissions for specific component restrictions.")
     public Set<ComponentRestrictionPermissionDTO> getComponentRestrictionPermissions() {
         return componentRestrictionPermissions;
     }
@@ -179,7 +179,7 @@ public class CurrentUserEntity extends Entity {
     /**
      * @return whether the current user can version flows
      */
-    @ApiModelProperty("Whether the current user can version flows.")
+    @Schema(description = "Whether the current user can version flows.")
     public boolean isCanVersionFlows() {
         return canVersionFlows;
     }

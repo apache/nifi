@@ -169,7 +169,7 @@ public class TestPutIcebergWithHiveCatalog {
                 .build();
 
         runner.assertTransferCount(PutIceberg.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).getFirst();
 
         String tableLocation = new URI(table.location()).getPath();
         assertTrue(table.spec().isPartitioned());
@@ -206,7 +206,7 @@ public class TestPutIcebergWithHiveCatalog {
                 .build();
 
         runner.assertTransferCount(PutIceberg.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).getFirst();
 
         String tableLocation = new URI(table.location()).getPath();
         assertTrue(table.spec().isPartitioned());
@@ -244,7 +244,7 @@ public class TestPutIcebergWithHiveCatalog {
                 .build();
 
         runner.assertTransferCount(PutIceberg.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).getFirst();
 
         String tableLocation = new URI(table.location()).getPath();
         assertTrue(table.spec().isPartitioned());
@@ -286,7 +286,7 @@ public class TestPutIcebergWithHiveCatalog {
                 .build();
 
         runner.assertTransferCount(PutIceberg.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutIceberg.REL_SUCCESS).getFirst();
 
         assertTrue(table.spec().isUnpartitioned());
         assertEquals("4", flowFile.getAttribute(ICEBERG_RECORD_COUNT));
@@ -299,7 +299,7 @@ public class TestPutIcebergWithHiveCatalog {
     private void assertProvenanceEvents() {
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
-        final ProvenanceEventRecord sendEvent = provenanceEvents.get(0);
+        final ProvenanceEventRecord sendEvent = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.SEND, sendEvent.getEventType());
         assertTrue(sendEvent.getTransitUri().endsWith(CATALOG_NAME + ".db/" + TABLE_NAME));
     }

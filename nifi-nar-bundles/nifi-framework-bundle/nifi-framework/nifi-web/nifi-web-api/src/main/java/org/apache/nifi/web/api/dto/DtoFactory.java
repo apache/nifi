@@ -248,7 +248,7 @@ import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
 
-import javax.ws.rs.WebApplicationException;
+import jakarta.ws.rs.WebApplicationException;
 import java.text.Collator;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -1842,7 +1842,6 @@ public final class DtoFactory {
        Collection<ValidationResult> validationErrors = null;
        if (component instanceof ProcessorNode) {
            final ProcessorNode node = ((ProcessorNode) component);
-           dto.setGroupId(node.getProcessGroup().getIdentifier());
            dto.setState(node.getScheduledState().name());
            dto.setActiveThreadCount(node.getActiveThreadCount());
            dto.setType(node.getComponentType());
@@ -1919,6 +1918,7 @@ public final class DtoFactory {
        orderedProperties.putAll(sortedProperties);
 
        // build the descriptor and property dtos
+       dto.setGroupId(processGroupId);
        dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
        dto.setProperties(new LinkedHashMap<String, String>());
        for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
@@ -2091,7 +2091,7 @@ public final class DtoFactory {
     * @param group group
     * @return dto
     */
-   private FlowBreadcrumbEntity createBreadcrumbEntity(final ProcessGroup group) {
+   public FlowBreadcrumbEntity createBreadcrumbEntity(final ProcessGroup group) {
        if (group == null) {
            return null;
        }
@@ -3417,6 +3417,7 @@ public final class DtoFactory {
        dto.setCategory(bulletin.getCategory());
        dto.setLevel(bulletin.getLevel());
        dto.setMessage(bulletin.getMessage());
+       dto.setSourceType(bulletin.getSourceType().name());
        return dto;
    }
 
@@ -4469,6 +4470,7 @@ public final class DtoFactory {
        copy.setLevel(original.getLevel());
        copy.setMessage(original.getMessage());
        copy.setNodeAddress(original.getNodeAddress());
+       copy.setSourceType(original.getSourceType());
        return copy;
    }
 

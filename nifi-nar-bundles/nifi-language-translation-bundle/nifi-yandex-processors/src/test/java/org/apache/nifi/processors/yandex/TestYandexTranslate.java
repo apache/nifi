@@ -25,10 +25,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
-import javax.ws.rs.client.Invocation;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status.Family;
-import javax.ws.rs.core.Response.StatusType;
+import jakarta.ws.rs.client.Invocation;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status.Family;
+import jakarta.ws.rs.core.Response.StatusType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

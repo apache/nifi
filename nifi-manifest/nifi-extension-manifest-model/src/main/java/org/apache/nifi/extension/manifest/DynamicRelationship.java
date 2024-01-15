@@ -16,20 +16,20 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+
+
 @XmlAccessorType(XmlAccessType.FIELD)
 public class DynamicRelationship {
 
     private String name;
     private String description;
 
-    @ApiModelProperty(value = "The description of the dynamic relationship name")
+    @Schema(description = "The description of the dynamic relationship name")
     public String getName() {
         return name;
     }
@@ -38,7 +38,7 @@ public class DynamicRelationship {
         this.name = name;
     }
 
-    @ApiModelProperty(value = "The description of the dynamic relationship")
+    @Schema(description = "The description of the dynamic relationship")
     public String getDescription() {
         return description;
     }

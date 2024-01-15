@@ -17,7 +17,6 @@
 
 import { createAction, props } from '@ngrx/store';
 import {
-    SubmitParameterContextUpdate,
     CreateParameterContextRequest,
     CreateParameterContextSuccess,
     DeleteParameterContextRequest,
@@ -25,9 +24,9 @@ import {
     EditParameterContextRequest,
     LoadParameterContextsResponse,
     SelectParameterContextRequest,
-    PollParameterContextUpdateSuccess,
     GetEffectiveParameterContext
 } from './index';
+import { PollParameterContextUpdateSuccess, SubmitParameterContextUpdate } from '../../../../state/shared';
 
 export const loadParameterContexts = createAction('[Parameter Context Listing] Load Parameter Contexts');
 

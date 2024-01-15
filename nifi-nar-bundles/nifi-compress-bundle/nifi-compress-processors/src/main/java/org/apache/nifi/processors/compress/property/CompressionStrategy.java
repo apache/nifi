@@ -16,14 +16,9 @@
  */
 package org.apache.nifi.processors.compress.property;
 
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.DescribedValue;
 
-import java.util.Arrays;
-import java.util.Optional;
-
 public enum CompressionStrategy implements DescribedValue {
-
     NONE("no compression", "No Compression", ""),
     MIME_TYPE_ATTRIBUTE("use mime.type attribute", "Use the [mime.type] attribute from the input FlowFile to determine the format", ""),
     GZIP("gzip", "GZIP", ".gz","application/gzip", "application/x-gzip"),
@@ -42,12 +37,6 @@ public enum CompressionStrategy implements DescribedValue {
     private final String value;
     private final String fileExtension;
     private final String[] mimeTypes;
-
-    public static Optional<CompressionStrategy> findValue(final String value) {
-        return Arrays.stream(CompressionStrategy.values())
-                .filter((compressionStrategy -> compressionStrategy.getValue().equalsIgnoreCase(value)))
-                .findFirst();
-    }
 
     CompressionStrategy(final String value, final String description, final String fileExtension, final String... mimeTypes) {
         this.value = value;
@@ -77,9 +66,5 @@ public enum CompressionStrategy implements DescribedValue {
 
     public String[] getMimeTypes() {
         return mimeTypes;
-    }
-
-    public AllowableValue asAllowableValue() {
-        return new AllowableValue(value, value, description);
     }
 }

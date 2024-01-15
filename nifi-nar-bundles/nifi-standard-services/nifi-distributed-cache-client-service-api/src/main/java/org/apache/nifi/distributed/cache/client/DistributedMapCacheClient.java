@@ -202,31 +202,6 @@ public interface DistributedMapCacheClient extends ControllerService {
     }
 
     /**
-     * Removes entries whose keys match the specified pattern
-     *
-     * @param regex The regular expression / pattern on which to match the keys to be removed
-     * @return The number of entries that were removed
-     * @throws IOException if any error occurred while removing an entry
-     */
-    long removeByPattern(String regex) throws IOException;
-
-    /**
-     * Removes entries whose keys match the specified pattern, and returns a map of entries that
-     * were removed.
-     *
-     * @param <K> type of key
-     * @param <V> type of value
-     * @param regex The regular expression / pattern on which to match the keys to be removed
-     * @param keyDeserializer key deserializer
-     * @param valueDeserializer value deserializer
-     * @return A map of key/value entries that were removed from the cache
-     * @throws IOException if any error occurred while removing an entry
-     */
-    default <K, V> Map<K, V> removeByPatternAndGet(String regex, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) throws IOException {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
      * Returns a set of all keys currently in the cache
      *
      * @param <K> type of key

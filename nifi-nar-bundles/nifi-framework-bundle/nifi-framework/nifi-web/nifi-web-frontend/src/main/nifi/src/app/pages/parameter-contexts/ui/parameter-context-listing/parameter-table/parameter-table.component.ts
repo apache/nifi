@@ -31,7 +31,7 @@ import { Observable, take } from 'rxjs';
 import { ParameterReferences } from '../parameter-references/parameter-references.component';
 import { Store } from '@ngrx/store';
 import { ParameterContextListingState } from '../../../state/parameter-context-listing';
-import { showOkDialog } from '../../../../canvas/state/flow/flow.actions';
+import { showOkDialog } from '../../../../flow-designer/state/flow/flow.actions';
 
 export interface ParameterItem {
     deleted: boolean;
@@ -74,7 +74,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
 
     displayedColumns: string[] = ['name', 'value', 'actions'];
     dataSource: MatTableDataSource<ParameterItem> = new MatTableDataSource<ParameterItem>();
-    selectedItem!: ParameterItem;
+    selectedItem: ParameterItem | null = null;
 
     isDisabled: boolean = false;
     isTouched: boolean = false;
@@ -280,7 +280,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
             item.entity.parameter.valueRemoved = true;
             item.deleted = true;
             item.dirty = true;
-
+            this.selectParameter(null);
             this.handleChanged();
         }
     }
@@ -327,7 +327,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
             });
     }
 
-    selectParameter(item: ParameterItem): void {
+    selectParameter(item: ParameterItem | null): void {
         this.selectedItem = item;
     }
 

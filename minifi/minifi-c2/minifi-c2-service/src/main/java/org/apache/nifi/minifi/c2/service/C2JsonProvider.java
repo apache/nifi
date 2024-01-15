@@ -18,15 +18,15 @@ package org.apache.nifi.minifi.c2.service;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
+import com.fasterxml.jackson.jakarta.rs.json.JacksonJsonProvider;
 
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.ext.Provider;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.ext.Provider;
 
 @Provider
 @Produces(MediaType.APPLICATION_JSON)
-public class C2JsonProvider extends JacksonJaxbJsonProvider {
+public class C2JsonProvider extends JacksonJsonProvider {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -38,7 +38,4 @@ public class C2JsonProvider extends JacksonJaxbJsonProvider {
         super();
         setMapper(objectMapper);
     }
-
-
-
 }

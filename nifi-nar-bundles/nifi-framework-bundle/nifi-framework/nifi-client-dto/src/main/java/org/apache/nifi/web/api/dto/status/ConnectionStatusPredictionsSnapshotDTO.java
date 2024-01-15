@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * DTO for serializing the status predictions of a connection.
@@ -33,7 +33,7 @@ public class ConnectionStatusPredictionsSnapshotDTO implements Cloneable {
     private Integer predictedPercentCount;
     private Integer predictedPercentBytes;
 
-    @ApiModelProperty("The predicted number of milliseconds before the connection will have backpressure applied, based on the queued count.")
+    @Schema(description = "The predicted number of milliseconds before the connection will have backpressure applied, based on the queued count.")
     public Long getPredictedMillisUntilCountBackpressure() {
         return predictedMillisUntilCountBackpressure;
     }
@@ -42,7 +42,7 @@ public class ConnectionStatusPredictionsSnapshotDTO implements Cloneable {
         this.predictedMillisUntilCountBackpressure = predictedMillisUntilCountBackpressure;
     }
 
-    @ApiModelProperty("The predicted number of milliseconds before the connection will have backpressure applied, based on the total number of bytes in the queue.")
+    @Schema(description = "The predicted number of milliseconds before the connection will have backpressure applied, based on the total number of bytes in the queue.")
     public Long getPredictedMillisUntilBytesBackpressure() {
         return predictedMillisUntilBytesBackpressure;
     }
@@ -51,7 +51,7 @@ public class ConnectionStatusPredictionsSnapshotDTO implements Cloneable {
         this.predictedMillisUntilBytesBackpressure = predictedMillisUntilBytesBackpressure;
     }
 
-    @ApiModelProperty("The predicted number of queued objects at the next configured interval.")
+    @Schema(description = "The predicted number of queued objects at the next configured interval.")
     public Integer getPredictedCountAtNextInterval() {
         return predictedCountAtNextInterval;
     }
@@ -60,7 +60,7 @@ public class ConnectionStatusPredictionsSnapshotDTO implements Cloneable {
         this.predictedCountAtNextInterval = predictedCountAtNextInterval;
     }
 
-    @ApiModelProperty("The configured interval (in seconds) for predicting connection queue count and size (and percent usage).")
+    @Schema(description = "The configured interval (in seconds) for predicting connection queue count and size (and percent usage).")
     public Integer getPredictionIntervalSeconds() {
         return predictionIntervalSeconds;
     }
@@ -69,7 +69,7 @@ public class ConnectionStatusPredictionsSnapshotDTO implements Cloneable {
         this.predictionIntervalSeconds = predictionIntervalSeconds;
     }
 
-    @ApiModelProperty("The predicted total number of bytes in the queue at the next configured interval.")
+    @Schema(description = "The predicted total number of bytes in the queue at the next configured interval.")
     public Long getPredictedBytesAtNextInterval() {
         return predictedBytesAtNextInterval;
     }
@@ -78,7 +78,7 @@ public class ConnectionStatusPredictionsSnapshotDTO implements Cloneable {
         this.predictedBytesAtNextInterval = predictedBytesAtNextInterval;
     }
 
-    @ApiModelProperty("Predicted connection percent use regarding queued flow files count and backpressure threshold if configured.")
+    @Schema(description = "Predicted connection percent use regarding queued flow files count and backpressure threshold if configured.")
     public Integer getPredictedPercentCount() {
         return predictedPercentCount;
     }
@@ -87,7 +87,7 @@ public class ConnectionStatusPredictionsSnapshotDTO implements Cloneable {
         this.predictedPercentCount = predictedPercentCount;
     }
 
-    @ApiModelProperty("Predicted connection percent use regarding queued flow files size and backpressure threshold if configured.")
+    @Schema(description = "Predicted connection percent use regarding queued flow files size and backpressure threshold if configured.")
     public Integer getPredictedPercentBytes() {
         return predictedPercentBytes;
     }

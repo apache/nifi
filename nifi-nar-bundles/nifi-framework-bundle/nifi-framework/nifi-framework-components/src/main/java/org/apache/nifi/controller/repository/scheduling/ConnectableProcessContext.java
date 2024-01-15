@@ -24,6 +24,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.resource.ResourceReference;
@@ -148,6 +150,11 @@ public class ConnectableProcessContext implements ProcessContext {
 
             @Override
             public ResourceReferences asResources() {
+                return null;
+            }
+
+            @Override
+            public <E extends Enum<E> & DescribedValue> E asDescribedValue(Class<E> enumType) throws IllegalArgumentException {
                 return null;
             }
 

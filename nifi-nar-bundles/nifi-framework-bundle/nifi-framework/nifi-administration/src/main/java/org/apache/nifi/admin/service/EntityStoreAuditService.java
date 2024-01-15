@@ -443,12 +443,20 @@ public class EntityStoreAuditService implements AuditService, Closeable {
         actionEntity.setLink(ActionLink.CONNECT_DETAILS.getProperty(), connectDetailsEntity);
 
         connectDetailsEntity.setProperty(ConnectDetailsEntity.SOURCE_ID.getProperty(), connectDetails.getSourceId());
-        connectDetailsEntity.setProperty(ConnectDetailsEntity.SOURCE_NAME.getProperty(), connectDetails.getSourceName());
         connectDetailsEntity.setProperty(ConnectDetailsEntity.SOURCE_TYPE.getProperty(), connectDetails.getSourceType().name());
+        if (connectDetails.getSourceName() != null) {
+            connectDetailsEntity.setProperty(ConnectDetailsEntity.SOURCE_NAME.getProperty(), connectDetails.getSourceName());
+        }
+
         connectDetailsEntity.setProperty(ConnectDetailsEntity.DESTINATION_ID.getProperty(), connectDetails.getDestinationId());
-        connectDetailsEntity.setProperty(ConnectDetailsEntity.DESTINATION_NAME.getProperty(), connectDetails.getDestinationName());
         connectDetailsEntity.setProperty(ConnectDetailsEntity.DESTINATION_TYPE.getProperty(), connectDetails.getDestinationType().name());
-        connectDetailsEntity.setProperty(ConnectDetailsEntity.RELATIONSHIP.getProperty(), connectDetails.getRelationship());
+        if (connectDetails.getDestinationName() != null) {
+            connectDetailsEntity.setProperty(ConnectDetailsEntity.DESTINATION_NAME.getProperty(), connectDetails.getDestinationName());
+        }
+
+        if (connectDetails.getRelationship() != null) {
+            connectDetailsEntity.setProperty(ConnectDetailsEntity.RELATIONSHIP.getProperty(), connectDetails.getRelationship());
+        }
     }
 
     private void addMoveDetails(final StoreTransaction storeTransaction, final Entity actionEntity, final MoveDetails moveDetails) {

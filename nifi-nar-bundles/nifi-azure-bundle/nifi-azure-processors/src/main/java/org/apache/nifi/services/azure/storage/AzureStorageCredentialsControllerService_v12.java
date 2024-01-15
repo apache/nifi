@@ -63,11 +63,11 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
             .displayName("Credentials Type")
             .description("Credentials type to be used for authenticating to Azure")
             .required(true)
-            .allowableValues(AzureStorageCredentialsType.ACCOUNT_KEY.getAllowableValue(),
-                    AzureStorageCredentialsType.SAS_TOKEN.getAllowableValue(),
-                    AzureStorageCredentialsType.MANAGED_IDENTITY.getAllowableValue(),
-                    AzureStorageCredentialsType.SERVICE_PRINCIPAL.getAllowableValue())
-            .defaultValue(AzureStorageCredentialsType.SAS_TOKEN.name())
+            .allowableValues(new AzureStorageCredentialsType[]{
+                    AzureStorageCredentialsType.ACCOUNT_KEY, AzureStorageCredentialsType.SAS_TOKEN,
+                    AzureStorageCredentialsType.MANAGED_IDENTITY, AzureStorageCredentialsType.SERVICE_PRINCIPAL
+            })
+            .defaultValue(AzureStorageCredentialsType.SAS_TOKEN)
             .build();
 
     public static final PropertyDescriptor ACCOUNT_KEY = new PropertyDescriptor.Builder()
@@ -76,7 +76,7 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
             .description(AzureStorageUtils.ACCOUNT_KEY_BASE_DESCRIPTION)
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.ACCOUNT_KEY.getAllowableValue())
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.ACCOUNT_KEY)
             .build();
 
     public static final PropertyDescriptor SAS_TOKEN = new PropertyDescriptor.Builder()
@@ -84,35 +84,35 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
             .description(AzureStorageUtils.SAS_TOKEN_BASE_DESCRIPTION)
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SAS_TOKEN.getAllowableValue())
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SAS_TOKEN)
             .build();
 
     public static final PropertyDescriptor MANAGED_IDENTITY_CLIENT_ID = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID)
-            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.MANAGED_IDENTITY.getAllowableValue())
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.MANAGED_IDENTITY)
             .build();
 
     public static final PropertyDescriptor SERVICE_PRINCIPAL_TENANT_ID = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID)
             .required(true)
-            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL.getAllowableValue())
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL)
             .build();
 
     public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_ID = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID)
             .required(true)
-            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL.getAllowableValue())
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL)
             .build();
 
     public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_SECRET = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET)
             .required(true)
-            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL.getAllowableValue())
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL)
             .build();
 
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.PROXY_CONFIGURATION_SERVICE)
-            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL.getAllowableValue(), AzureStorageCredentialsType.MANAGED_IDENTITY.getAllowableValue())
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL, AzureStorageCredentialsType.MANAGED_IDENTITY)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
@@ -144,7 +144,7 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
     public AzureStorageCredentialsDetails_v12 getCredentialsDetails(Map<String, String> attributes) {
         String accountName = context.getProperty(ACCOUNT_NAME).getValue();
         String endpointSuffix = context.getProperty(ENDPOINT_SUFFIX).getValue();
-        AzureStorageCredentialsType credentialsType = AzureStorageCredentialsType.valueOf(context.getProperty(CREDENTIALS_TYPE).getValue());
+        AzureStorageCredentialsType credentialsType = context.getProperty(CREDENTIALS_TYPE).asDescribedValue(AzureStorageCredentialsType.class);
         ProxyOptions proxyOptions = AzureStorageUtils.getProxyOptions(context);
 
         switch (credentialsType) {

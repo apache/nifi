@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-
-@ApiModel
 public enum InputRequirement {
 
     /**

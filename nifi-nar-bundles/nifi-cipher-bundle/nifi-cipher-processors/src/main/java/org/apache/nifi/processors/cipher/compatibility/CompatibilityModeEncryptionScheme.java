@@ -172,11 +172,8 @@ public enum CompatibilityModeEncryptionScheme implements DescribedValue {
     );
 
     private final String algorithm;
-
     private final String description;
-
     private final DigestAlgorithm digestAlgorithm;
-
     private final SymmetricCipher symmetricCipher;
 
     CompatibilityModeEncryptionScheme(

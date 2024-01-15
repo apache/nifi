@@ -17,7 +17,7 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -50,7 +50,7 @@ public class VersionedProcessGroup extends VersionedComponent {
     private String logFileSuffix;
 
 
-    @ApiModelProperty("The child Process Groups")
+    @Schema(description = "The child Process Groups")
     public Set<VersionedProcessGroup> getProcessGroups() {
         return processGroups;
     }
@@ -59,7 +59,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.processGroups = new HashSet<>(processGroups);
     }
 
-    @ApiModelProperty("The Remote Process Groups")
+    @Schema(description = "The Remote Process Groups")
     public Set<VersionedRemoteProcessGroup> getRemoteProcessGroups() {
         return remoteProcessGroups;
     }
@@ -68,7 +68,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.remoteProcessGroups = new HashSet<>(remoteProcessGroups);
     }
 
-    @ApiModelProperty("The Processors")
+    @Schema(description = "The Processors")
     public Set<VersionedProcessor> getProcessors() {
         return processors;
     }
@@ -77,7 +77,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.processors = new HashSet<>(processors);
     }
 
-    @ApiModelProperty("The Input Ports")
+    @Schema(description = "The Input Ports")
     public Set<VersionedPort> getInputPorts() {
         return inputPorts;
     }
@@ -86,7 +86,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.inputPorts = new HashSet<>(inputPorts);
     }
 
-    @ApiModelProperty("The Output Ports")
+    @Schema(description = "The Output Ports")
     public Set<VersionedPort> getOutputPorts() {
         return outputPorts;
     }
@@ -95,7 +95,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.outputPorts = new HashSet<>(outputPorts);
     }
 
-    @ApiModelProperty("The Connections")
+    @Schema(description = "The Connections")
     public Set<VersionedConnection> getConnections() {
         return connections;
     }
@@ -104,7 +104,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.connections = new HashSet<>(connections);
     }
 
-    @ApiModelProperty("The Labels")
+    @Schema(description = "The Labels")
     public Set<VersionedLabel> getLabels() {
         return labels;
     }
@@ -113,7 +113,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.labels = new HashSet<>(labels);
     }
 
-    @ApiModelProperty("The Funnels")
+    @Schema(description = "The Funnels")
     public Set<VersionedFunnel> getFunnels() {
         return funnels;
     }
@@ -122,7 +122,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.funnels = new HashSet<>(funnels);
     }
 
-    @ApiModelProperty("The Controller Services")
+    @Schema(description = "The Controller Services")
     public Set<VersionedControllerService> getControllerServices() {
         return controllerServices;
     }
@@ -140,12 +140,12 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.versionedFlowCoordinates = flowCoordinates;
     }
 
-    @ApiModelProperty("The coordinates where the remote flow is stored, or null if the Process Group is not directly under Version Control")
+    @Schema(description = "The coordinates where the remote flow is stored, or null if the Process Group is not directly under Version Control")
     public VersionedFlowCoordinates getVersionedFlowCoordinates() {
         return versionedFlowCoordinates;
     }
 
-    @ApiModelProperty("The name of the parameter context used by this process group")
+    @Schema(description = "The name of the parameter context used by this process group")
     public String getParameterContextName() {
         return parameterContextName;
     }
@@ -154,7 +154,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.parameterContextName = parameterContextName;
     }
 
-    @ApiModelProperty(value = "The configured FlowFile Concurrency for the Process Group")
+    @Schema(description = "The configured FlowFile Concurrency for the Process Group")
     public String getFlowFileConcurrency() {
         return flowfileConcurrency;
     }
@@ -163,7 +163,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.flowfileConcurrency = flowfileConcurrency;
     }
 
-    @ApiModelProperty(value = "The FlowFile Outbound Policy for the Process Group")
+    @Schema(description = "The FlowFile Outbound Policy for the Process Group")
     public String getFlowFileOutboundPolicy() {
         return flowfileOutboundPolicy;
     }
@@ -172,7 +172,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.flowfileOutboundPolicy = outboundPolicy;
     }
 
-    @ApiModelProperty(value = "The default FlowFile Expiration for this Process Group.")
+    @Schema(description = "The default FlowFile Expiration for this Process Group.")
     public String getDefaultFlowFileExpiration() {
         return defaultFlowFileExpiration;
     }
@@ -181,7 +181,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.defaultFlowFileExpiration = defaultFlowFileExpiration;
     }
 
-    @ApiModelProperty(value = "Default value used in this Process Group for the maximum number of objects that can be queued before back pressure is applied.")
+    @Schema(description = "Default value used in this Process Group for the maximum number of objects that can be queued before back pressure is applied.")
     public Long getDefaultBackPressureObjectThreshold() {
         return defaultBackPressureObjectThreshold;
     }
@@ -190,7 +190,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.defaultBackPressureObjectThreshold = defaultBackPressureObjectThreshold;
     }
 
-    @ApiModelProperty(value = "Default value used in this Process Group for the maximum data size of objects that can be queued before back pressure is applied.")
+    @Schema(description = "Default value used in this Process Group for the maximum data size of objects that can be queued before back pressure is applied.")
     public String getDefaultBackPressureDataSizeThreshold() {
         return defaultBackPressureDataSizeThreshold;
     }
@@ -199,7 +199,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.defaultBackPressureDataSizeThreshold = defaultBackPressureDataSizeThreshold;
     }
 
-    @ApiModelProperty(value = "The log file suffix for this Process Group for dedicated logging.")
+    @Schema(description = "The log file suffix for this Process Group for dedicated logging.")
     public String getLogFileSuffix() {
         return logFileSuffix;
     }
@@ -208,7 +208,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.logFileSuffix = logFileSuffix;
     }
 
-    @ApiModelProperty("The Scheduled State of the Process Group, if the group is configured to use the Stateless Execution Engine. Otherwise, this value has no relevance.")
+    @Schema(description = "The Scheduled State of the Process Group, if the group is configured to use the Stateless Execution Engine. Otherwise, this value has no relevance.")
     public ScheduledState getScheduledState() {
         return scheduledState;
     }
@@ -217,7 +217,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.scheduledState = scheduledState;
     }
 
-    @ApiModelProperty("The Execution Engine that should be used to run the components within the group.")
+    @Schema(description = "The Execution Engine that should be used to run the components within the group.")
     public ExecutionEngine getExecutionEngine() {
         return executionEngine;
     }
@@ -226,7 +226,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.executionEngine = executionEngine;
     }
 
-    @ApiModelProperty("The maximum number of concurrent tasks that should be scheduled for this Process Group when using the Stateless Engine")
+    @Schema(description = "The maximum number of concurrent tasks that should be scheduled for this Process Group when using the Stateless Engine")
     public Integer getMaxConcurrentTasks() {
         return maxConcurrentTasks;
     }
@@ -235,7 +235,7 @@ public class VersionedProcessGroup extends VersionedComponent {
         this.maxConcurrentTasks = maxConcurrentTasks;
     }
 
-    @ApiModelProperty("The maximum amount of time that the flow is allows to run using the Stateless engine before it times out and is considered a failure")
+    @Schema(description = "The maximum amount of time that the flow is allows to run using the Stateless engine before it times out and is considered a failure")
     public String getStatelessFlowTimeout() {
         return statelessFlowTimeout;
     }

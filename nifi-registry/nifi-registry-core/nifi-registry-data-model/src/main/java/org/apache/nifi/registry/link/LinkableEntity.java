@@ -16,24 +16,22 @@
  */
 package org.apache.nifi.registry.link;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.ws.rs.core.Link;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 /**
  * Base classes for domain objects that want to provide a hypermedia link.
  */
-@ApiModel
 public abstract class LinkableEntity {
 
     private Link link;
 
     @XmlElement
     @XmlJavaTypeAdapter(LinkAdapter.class)
-    @ApiModelProperty(value = "An WebLink to this entity.",
-        dataType = "org.apache.nifi.registry.link.JaxbLink", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "An WebLink to this entity.",
+        type = "org.apache.nifi.registry.link.JaxbLink", accessMode = Schema.AccessMode.READ_ONLY)
     public Link getLink() {
         return link;
     }

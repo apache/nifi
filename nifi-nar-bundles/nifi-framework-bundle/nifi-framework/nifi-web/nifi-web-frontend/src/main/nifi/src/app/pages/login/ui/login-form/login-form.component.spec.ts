@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { LoginForm } from './login-form.component';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../../state/user/user.reducer';
+import { initialState } from '../../../../state/current-user/current-user.reducer';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { RouterModule } from '@angular/router';

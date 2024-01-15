@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public abstract class UpdateStepDTO {
     private String description;
     private boolean complete;
     private String failureReason;
 
-    @ApiModelProperty(value = "Explanation of what happens in this step", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "Explanation of what happens in this step", accessMode = Schema.AccessMode.READ_ONLY)
     public String getDescription() {
         return description;
     }
@@ -32,7 +32,7 @@ public abstract class UpdateStepDTO {
         this.description = description;
     }
 
-    @ApiModelProperty(value = "Whether or not this step has completed", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "Whether or not this step has completed", accessMode = Schema.AccessMode.READ_ONLY)
     public boolean isComplete() {
         return complete;
     }
@@ -41,7 +41,7 @@ public abstract class UpdateStepDTO {
         this.complete = complete;
     }
 
-    @ApiModelProperty(value = "An explanation of why this step failed, or null if this step did not fail", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "An explanation of why this step failed, or null if this step did not fail", accessMode = Schema.AccessMode.READ_ONLY)
     public String getFailureReason() {
         return failureReason;
     }

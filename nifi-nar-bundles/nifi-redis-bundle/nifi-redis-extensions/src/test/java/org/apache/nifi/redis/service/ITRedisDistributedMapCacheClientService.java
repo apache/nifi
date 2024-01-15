@@ -44,7 +44,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -64,8 +63,10 @@ import java.util.function.Consumer;
 
 import static org.apache.nifi.redis.util.RedisUtils.REDIS_CONNECTION_POOL;
 import static org.apache.nifi.redis.util.RedisUtils.REDIS_MODE_SENTINEL;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -363,7 +364,6 @@ public class ITRedisDistributedMapCacheClientService {
                 return;
             }
 
-            final ByteArrayOutputStream out = new ByteArrayOutputStream();
             final Serializer<String> stringSerializer = new StringSerializer();
             final Deserializer<String> stringDeserializer = new StringDeserializer();
             final Deserializer<String> stringDeserializerWithoutNullCheck = new StringDeserializerWithoutNullCheck();
@@ -386,7 +386,7 @@ public class ITRedisDistributedMapCacheClientService {
 
                 // verify get returns null for a key that doesn't exist
                 final String missingValue = cacheClient.get("does-not-exist", stringSerializer, stringDeserializerWithoutNullCheck);
-                assertEquals(null, missingValue);
+                assertNull(missingValue);
 
                 // verify remove removes the entry and contains key returns false after
                 assertTrue(cacheClient.remove(key, stringSerializer));
@@ -406,14 +406,14 @@ public class ITRedisDistributedMapCacheClientService {
                 final String keyThatDoesntExist = key + "_DOES_NOT_EXIST";
                 assertFalse(cacheClient.containsKey(keyThatDoesntExist, stringSerializer));
                 final String getAndPutIfAbsentResultWhenDoesntExist = cacheClient.getAndPutIfAbsent(keyThatDoesntExist, value, stringSerializer, stringSerializer, stringDeserializer);
-                assertEquals(null, getAndPutIfAbsentResultWhenDoesntExist);
+                assertNull(getAndPutIfAbsentResultWhenDoesntExist);
                 assertEquals(value, cacheClient.get(keyThatDoesntExist, stringSerializer, stringDeserializer));
 
                 // verify atomic fetch returns the correct entry
                 final AtomicCacheEntry<String, String, byte[]> entry = cacheClient.fetch(key, stringSerializer, stringDeserializer);
                 assertEquals(key, entry.getKey());
                 assertEquals(value, entry.getValue());
-                assertTrue(Arrays.equals(value.getBytes(StandardCharsets.UTF_8), entry.getRevision().orElse(null)));
+                assertArrayEquals(value.getBytes(StandardCharsets.UTF_8), entry.getRevision().orElse(null));
 
                 final AtomicCacheEntry<String, String, byte[]> notLatestEntry = new AtomicCacheEntry<>(entry.getKey(), entry.getValue(), "not previous".getBytes(StandardCharsets.UTF_8));
 
@@ -437,9 +437,6 @@ public class ITRedisDistributedMapCacheClientService {
                 for (int i = 0; i < numToDelete; i++) {
                     cacheClient.put(key + "-" + i, value, stringSerializer, stringSerializer);
                 }
-
-                assertTrue(cacheClient.removeByPattern("test-redis-processor-*") >= numToDelete);
-                assertFalse(cacheClient.containsKey(key, stringSerializer));
 
                 Map<String, String> bulk = new HashMap<>();
                 bulk.put("bulk-1", "testing1");
@@ -474,14 +471,14 @@ public class ITRedisDistributedMapCacheClientService {
 
     private static class StringDeserializer implements Deserializer<String> {
         @Override
-        public String deserialize(byte[] input) throws DeserializationException, IOException {
+        public String deserialize(byte[] input) throws DeserializationException {
             return input == null ? null : new String(input, StandardCharsets.UTF_8);
         }
     }
 
     private static class StringDeserializerWithoutNullCheck implements Deserializer<String> {
         @Override
-        public String deserialize(byte[] input) throws DeserializationException, IOException {
+        public String deserialize(byte[] input) throws DeserializationException {
             return new String(input, StandardCharsets.UTF_8);
         }
     }

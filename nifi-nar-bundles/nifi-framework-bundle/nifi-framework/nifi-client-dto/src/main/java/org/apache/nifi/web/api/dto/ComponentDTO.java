@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Base class for all nifi components.
@@ -37,8 +37,7 @@ public class ComponentDTO {
      *
      * @return The id
      */
-    @ApiModelProperty(
-            value = "The id of the component."
+    @Schema(description = "The id of the component."
     )
     public String getId() {
         return this.id;
@@ -48,7 +47,7 @@ public class ComponentDTO {
         this.id = id;
     }
 
-    @ApiModelProperty("The ID of the corresponding component that is under version control")
+    @Schema(description = "The ID of the corresponding component that is under version control")
     public String getVersionedComponentId() {
         return versionedComponentId;
     }
@@ -60,8 +59,7 @@ public class ComponentDTO {
     /**
      * @return id for the parent group of this component if applicable, null otherwise
      */
-    @ApiModelProperty(
-            value = "The id of parent process group of this component if applicable."
+    @Schema(description = "The id of parent process group of this component if applicable."
     )
     public String getParentGroupId() {
         return parentGroupId;
@@ -76,8 +74,7 @@ public class ComponentDTO {
      *
      * @return The position
      */
-    @ApiModelProperty(
-        value = "The position of this component in the UI if applicable."
+    @Schema(description = "The position of this component in the UI if applicable."
     )
     public PositionDTO getPosition() {
         return position;

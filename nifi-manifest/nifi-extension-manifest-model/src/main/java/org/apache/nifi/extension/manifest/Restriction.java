@@ -16,15 +16,13 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import javax.validation.constraints.NotBlank;
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
 import java.util.Objects;
 
-@ApiModel
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Restriction {
 
@@ -33,7 +31,7 @@ public class Restriction {
     @NotBlank
     private String explanation;
 
-    @ApiModelProperty(value = "The permission required for this restriction")
+    @Schema(description = "The permission required for this restriction")
     public String getRequiredPermission() {
         return requiredPermission;
     }
@@ -42,7 +40,7 @@ public class Restriction {
         this.requiredPermission = requiredPermission;
     }
 
-    @ApiModelProperty(value = "The explanation of this restriction")
+    @Schema(description = "The explanation of this restriction")
     public String getExplanation() {
         return explanation;
     }

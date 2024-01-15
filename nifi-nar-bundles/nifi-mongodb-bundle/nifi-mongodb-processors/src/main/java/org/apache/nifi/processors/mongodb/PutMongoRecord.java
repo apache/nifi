@@ -115,9 +115,13 @@ public class PutMongoRecord extends AbstractMongoProcessor {
     static final PropertyDescriptor BYPASS_VALIDATION = new PropertyDescriptor.Builder()
             .name("bypass-validation")
             .displayName("Bypass Validation")
-            .description("Bypass schema validation during insert/upsert")
+            .description("""
+                    Enable or disable bypassing document schema validation during insert or update operations.
+                    Bypassing document validation is a Privilege Action in MongoDB.
+                    Enabling this property can result in authorization errors for users with limited privileges.
+            """)
             .allowableValues("True", "False")
-            .defaultValue("True")
+            .defaultValue("False")
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();

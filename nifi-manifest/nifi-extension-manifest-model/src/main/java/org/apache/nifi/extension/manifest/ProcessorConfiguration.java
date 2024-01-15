@@ -17,9 +17,6 @@
 
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-
-@ApiModel
 public class ProcessorConfiguration {
     private String processorClassName;
     private String configuration;

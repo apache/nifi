@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Details of a funnel.

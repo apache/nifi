@@ -21,7 +21,9 @@ import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.ActionDetails;
+import org.apache.nifi.action.details.ConnectDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
+import org.apache.nifi.action.details.FlowChangeConnectDetails;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.action.details.PurgeDetails;
 import org.apache.nifi.history.History;
@@ -72,6 +74,12 @@ class EntityStoreAuditServiceTest {
     private static final String SOURCE_NAME = "GenerateFlowFile";
 
     private static final Component SOURCE_TYPE = Component.Processor;
+
+    private static final String DESTINATION_NAME = "UpdateCounter";
+
+    private static final Component DESTINATION_TYPE = Component.Funnel;
+
+    private static final String RELATIONSHIP = "success";
 
     private static final Operation OPERATION = Operation.Add;
 
@@ -347,6 +355,55 @@ class EntityStoreAuditServiceTest {
         assertEquals(USER_IDENTITY, secondPreviousValue.getUserIdentity());
     }
 
+    @Test
+    void testAddActionsConnectDetailsMinimumPropertiesGetAction() {
+        final FlowChangeAction action = newAction();
+
+        final FlowChangeConnectDetails connectDetails = new FlowChangeConnectDetails();
+        connectDetails.setSourceId(SOURCE_ID);
+        connectDetails.setSourceType(SOURCE_TYPE);
+        connectDetails.setDestinationId(SECOND_SOURCE_ID);
+        connectDetails.setDestinationType(DESTINATION_TYPE);
+        action.setActionDetails(connectDetails);
+
+        final Collection<Action> actions = Collections.singletonList(action);
+
+        service.addActions(actions);
+
+        final Action actionFound = service.getAction(ACTION_ID);
+        assertEquals(ACTION_ID, actionFound.getId());
+        assertActionFound(actionFound);
+
+        final ActionDetails actionDetails = actionFound.getActionDetails();
+        assertConnectDetailsFound(connectDetails, actionDetails);
+    }
+
+    @Test
+    void testAddActionsConnectDetailsGetAction() {
+        final FlowChangeAction action = newAction();
+
+        final FlowChangeConnectDetails connectDetails = new FlowChangeConnectDetails();
+        connectDetails.setSourceName(SOURCE_NAME);
+        connectDetails.setSourceId(SOURCE_ID);
+        connectDetails.setSourceType(SOURCE_TYPE);
+        connectDetails.setDestinationName(DESTINATION_NAME);
+        connectDetails.setDestinationId(SECOND_SOURCE_ID);
+        connectDetails.setDestinationType(DESTINATION_TYPE);
+        connectDetails.setRelationship(RELATIONSHIP);
+        action.setActionDetails(connectDetails);
+
+        final Collection<Action> actions = Collections.singletonList(action);
+
+        service.addActions(actions);
+
+        final Action actionFound = service.getAction(ACTION_ID);
+        assertEquals(ACTION_ID, actionFound.getId());
+        assertActionFound(actionFound);
+
+        final ActionDetails actionDetails = actionFound.getActionDetails();
+        assertConnectDetailsFound(connectDetails, actionDetails);
+    }
+
     private FlowChangeAction newAction() {
         final FlowChangeAction action = new FlowChangeAction();
         action.setTimestamp(ACTION_TIMESTAMP);
@@ -365,5 +422,19 @@ class EntityStoreAuditServiceTest {
         assertEquals(SOURCE_NAME, actionFound.getSourceName());
         assertEquals(USER_IDENTITY, actionFound.getUserIdentity());
         assertEquals(OPERATION, actionFound.getOperation());
+    }
+
+    private void assertConnectDetailsFound(final ConnectDetails connectDetails, final ActionDetails actionDetails) {
+        assertNotNull(actionDetails);
+        assertInstanceOf(ConnectDetails.class, actionDetails);
+
+        final ConnectDetails connectDetailsFound = (ConnectDetails) actionDetails;
+        assertEquals(connectDetails.getSourceName(), connectDetailsFound.getSourceName());
+        assertEquals(connectDetails.getSourceId(), connectDetailsFound.getSourceId());
+        assertEquals(connectDetails.getSourceType(), connectDetailsFound.getSourceType());
+        assertEquals(connectDetails.getDestinationName(), connectDetailsFound.getDestinationName());
+        assertEquals(connectDetails.getDestinationId(), connectDetailsFound.getDestinationId());
+        assertEquals(connectDetails.getDestinationType(), connectDetailsFound.getDestinationType());
+        assertEquals(connectDetails.getRelationship(), connectDetailsFound.getRelationship());
     }
 }

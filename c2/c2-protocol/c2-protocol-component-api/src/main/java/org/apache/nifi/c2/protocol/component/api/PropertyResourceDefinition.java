@@ -16,22 +16,20 @@
  */
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 
 import java.io.Serializable;
 import java.util.Set;
 
-@ApiModel
 public class PropertyResourceDefinition implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private ResourceCardinality cardinality;
     private Set<ResourceType> resourceTypes;
 
-    @ApiModelProperty("The cardinality of the resource definition (i.e. single or multiple)")
+    @Schema(description = "The cardinality of the resource definition (i.e. single or multiple)")
     public ResourceCardinality getCardinality() {
         return cardinality;
     }
@@ -40,7 +38,7 @@ public class PropertyResourceDefinition implements Serializable {
         this.cardinality = cardinality;
     }
 
-    @ApiModelProperty("The types of resources that can be referenced")
+    @Schema(description = "The types of resources that can be referenced")
     public Set<ResourceType> getResourceTypes() {
         return resourceTypes;
     }

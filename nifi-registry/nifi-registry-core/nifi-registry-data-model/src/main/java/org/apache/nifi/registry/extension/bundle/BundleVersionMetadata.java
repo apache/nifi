@@ -16,18 +16,16 @@
  */
 package org.apache.nifi.registry.extension.bundle;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.registry.link.LinkableEntity;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.Objects;
 
-@ApiModel
 @XmlRootElement
 public class BundleVersionMetadata extends LinkableEntity implements Comparable<BundleVersionMetadata> {
 
@@ -75,7 +73,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
     private BuildInfo buildInfo;
 
 
-    @ApiModelProperty(value = "The id of this version of the extension bundle")
+    @Schema(description = "The id of this version of the extension bundle")
     public String getId() {
         return id;
     }
@@ -84,7 +82,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         this.id = id;
     }
 
-    @ApiModelProperty(value = "The id of the extension bundle this version is for")
+    @Schema(description = "The id of the extension bundle this version is for")
     public String getBundleId() {
         return bundleId;
     }
@@ -93,7 +91,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         this.bundleId = bundleId;
     }
 
-    @ApiModelProperty(value = "The id of the bucket the extension bundle belongs to", required = true)
+    @Schema(description = "The id of the bucket the extension bundle belongs to")
     public String getBucketId() {
         return bucketId;
     }
@@ -118,7 +116,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         this.artifactId = artifactId;
     }
 
-    @ApiModelProperty(value = "The version of the extension bundle")
+    @Schema(description = "The version of the extension bundle")
     public String getVersion() {
         return version;
     }
@@ -127,7 +125,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         this.version = version;
     }
 
-    @ApiModelProperty(value = "The timestamp of the create date of this version")
+    @Schema(description = "The timestamp of the create date of this version")
     public long getTimestamp() {
         return timestamp;
     }
@@ -136,7 +134,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         this.timestamp = timestamp;
     }
 
-    @ApiModelProperty(value = "The identity that created this version")
+    @Schema(description = "The identity that created this version")
     public String getAuthor() {
         return author;
     }
@@ -145,7 +143,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         this.author = author;
     }
 
-    @ApiModelProperty(value = "The description for this version")
+    @Schema(description = "The description for this version")
     public String getDescription() {
         return description;
     }
@@ -154,7 +152,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         this.description = description;
     }
 
-    @ApiModelProperty(value = "The hex representation of the SHA-256 digest of the binary content for this version")
+    @Schema(description = "The hex representation of the SHA-256 digest of the binary content for this version")
     public String getSha256() {
         return sha256;
     }
@@ -163,7 +161,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         this.sha256 = sha256;
     }
 
-    @ApiModelProperty(value = "Whether or not the client supplied a SHA-256 when uploading the bundle")
+    @Schema(description = "Whether or not the client supplied a SHA-256 when uploading the bundle")
     public Boolean getSha256Supplied() {
         return sha256Supplied;
     }
@@ -172,7 +170,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         this.sha256Supplied = sha256Supplied;
     }
 
-    @ApiModelProperty(value = "The size of the binary content for this version in bytes")
+    @Schema(description = "The size of the binary content for this version in bytes")
     public long getContentSize() {
         return contentSize;
     }
@@ -181,7 +179,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         this.contentSize = contentSize;
     }
 
-    @ApiModelProperty(value = "The version of the system API that this bundle version was built against")
+    @Schema(description = "The version of the system API that this bundle version was built against")
     public String getSystemApiVersion() {
         return systemApiVersion;
     }
@@ -190,7 +188,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         this.systemApiVersion = systemApiVersion;
     }
 
-    @ApiModelProperty(value = "The build information about this version")
+    @Schema(description = "The build information about this version")
     public BuildInfo getBuildInfo() {
         return buildInfo;
     }

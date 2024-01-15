@@ -30,10 +30,10 @@ import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import java.io.IOException;
@@ -165,10 +165,10 @@ public class StandardContentViewerController extends HttpServlet {
                 }
             }
 
-            // defer to the jsp
             request.setAttribute("mode", contentType);
             request.setAttribute("content", formatted);
-            request.getRequestDispatcher("/WEB-INF/jsp/codemirror.jsp").include(request, response);
+            // Render using JSP from this Servlet Context
+            this.getServletContext().getRequestDispatcher("/WEB-INF/jsp/codemirror.jsp").include(request, response);
         } else {
             final PrintWriter out = response.getWriter();
             out.println("Unexpected content type: " + contentType);

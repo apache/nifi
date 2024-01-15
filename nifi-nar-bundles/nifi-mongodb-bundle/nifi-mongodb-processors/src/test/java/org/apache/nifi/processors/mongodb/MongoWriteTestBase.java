@@ -24,6 +24,7 @@ import org.apache.nifi.mongodb.MongoDBClientService;
 import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.bson.BsonDocument;
 import org.bson.Document;
 
 import java.util.Arrays;
@@ -68,6 +69,8 @@ public class MongoWriteTestBase extends AbstractMongoIT {
     }
 
     public void teardown() {
+        mongoClient.getDatabase(DATABASE_NAME).getCollection(COLLECTION_NAME).deleteMany(BsonDocument.parse("{}"));
         mongoClient.getDatabase(DATABASE_NAME).drop();
+        mongoClient.close();
     }
 }

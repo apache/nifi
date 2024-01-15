@@ -26,14 +26,12 @@ import org.apache.nifi.distributed.cache.server.map.MapCacheRecord;
 import org.apache.nifi.distributed.cache.server.map.MapPutResult;
 import org.apache.nifi.distributed.cache.server.protocol.CacheOperationResult;
 import org.apache.nifi.distributed.cache.server.protocol.MapCacheRequest;
-import org.apache.nifi.distributed.cache.server.protocol.MapRemoveResponse;
 import org.apache.nifi.distributed.cache.server.protocol.MapSizeResponse;
 import org.apache.nifi.distributed.cache.server.protocol.MapValueResponse;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -106,23 +104,6 @@ public class MapCacheRequestHandler extends SimpleChannelInboundHandler<MapCache
             final ByteBuffer key = ByteBuffer.wrap(mapCacheRequest.getKey());
             final ByteBuffer removed = mapCache.remove(key);
             writeBytes(channelHandlerContext, cacheOperation, removed);
-        } else if (MapOperation.REMOVE_BY_PATTERN == cacheOperation) {
-            final String pattern = mapCacheRequest.getPattern();
-            final Map<ByteBuffer, ByteBuffer> removed = mapCache.removeByPattern(pattern);
-            final int size = removed == null ? 0 : removed.size();
-            writeRemoved(channelHandlerContext, cacheOperation, size);
-        } else if (MapOperation.REMOVE_BY_PATTERN_AND_GET == cacheOperation) {
-            final String pattern = mapCacheRequest.getPattern();
-            final Map<ByteBuffer, ByteBuffer> removed = mapCache.removeByPattern(pattern);
-            if  (removed == null) {
-                writeRemoved(channelHandlerContext, cacheOperation, 0);
-            } else {
-                writeSize(channelHandlerContext, cacheOperation, removed.size());
-                for (final Map.Entry<ByteBuffer, ByteBuffer> entry : removed.entrySet()) {
-                    writeBytes(channelHandlerContext, cacheOperation, entry.getKey());
-                    writeBytes(channelHandlerContext, cacheOperation, entry.getValue());
-                }
-            }
         } else if (MapOperation.REPLACE == cacheOperation) {
             final ByteBuffer key = ByteBuffer.wrap(mapCacheRequest.getKey());
             final ByteBuffer value = ByteBuffer.wrap(mapCacheRequest.getValue());
@@ -145,12 +126,6 @@ public class MapCacheRequestHandler extends SimpleChannelInboundHandler<MapCache
         log.debug("Map Cache Operation [{}] Success [{}]", cacheOperation, success);
         final CacheOperationResult cacheOperationResult = new CacheOperationResult(success);
         channelHandlerContext.writeAndFlush(cacheOperationResult);
-    }
-
-    private void writeRemoved(final ChannelHandlerContext channelHandlerContext, final CacheOperation cacheOperation, final long size) {
-        final MapRemoveResponse mapRemoveResponse = new MapRemoveResponse(size);
-        log.debug("Map Cache Operation [{}] Size [{}]", cacheOperation, size);
-        channelHandlerContext.writeAndFlush(mapRemoveResponse);
     }
 
     private void writeSize(final ChannelHandlerContext channelHandlerContext, final CacheOperation cacheOperation, final int size) {

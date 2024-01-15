@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.Map;
 
 /**
@@ -34,8 +34,7 @@ public class UpdateControllerServiceReferenceRequestEntity extends Entity {
     private Boolean disconnectedNodeAcknowledged;
     private Boolean uiOnly;
 
-    @ApiModelProperty(
-        value = "The identifier of the Controller Service."
+    @Schema(description = "The identifier of the Controller Service."
     )
     public String getId() {
         return id;
@@ -45,8 +44,7 @@ public class UpdateControllerServiceReferenceRequestEntity extends Entity {
         this.id = id;
     }
 
-    @ApiModelProperty(
-        value = "The new state of the references for the controller service.",
+    @Schema(description = "The new state of the references for the controller service.",
         allowableValues = "ENABLED, DISABLED, RUNNING, STOPPED"
     )
     public String getState() {
@@ -57,8 +55,7 @@ public class UpdateControllerServiceReferenceRequestEntity extends Entity {
         this.state = state;
     }
 
-    @ApiModelProperty(
-        value = "The revisions for all referencing components."
+    @Schema(description = "The revisions for all referencing components."
     )
     public Map<String, RevisionDTO> getReferencingComponentRevisions() {
         return referencingComponentRevisions;
@@ -68,8 +65,7 @@ public class UpdateControllerServiceReferenceRequestEntity extends Entity {
         this.referencingComponentRevisions = referencingComponentRevisions;
     }
 
-    @ApiModelProperty(
-            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    @Schema(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
     )
     public Boolean isDisconnectedNodeAcknowledged() {
         return disconnectedNodeAcknowledged;
@@ -79,9 +75,11 @@ public class UpdateControllerServiceReferenceRequestEntity extends Entity {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 
-    @ApiModelProperty(
-        value = "Indicates whether or not the response should only include fields necessary for rendering the NiFi User Interface. As such, when this value is set to true, some fields may be " +
-            "returned as null values, and the selected fields may change at any time without notice. As a result, this value should not be set to true by any client other than the UI."
+    @Schema(description = """
+            Indicates whether or not the response should only include fields necessary for rendering the NiFi User Interface.
+            As such, when this value is set to true, some fields may be returned as null values, and the selected fields may change at any time without notice.
+            As a result, this value should not be set to true by any client other than the UI.
+            """
     )
     public Boolean getUiOnly() {
         return uiOnly;

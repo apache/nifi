@@ -16,19 +16,17 @@
  */
 package org.apache.nifi.extension;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.SortedSet;
 
-@ApiModel
 public class ExtensionMetadataContainer {
 
     private int numResults;
     private ExtensionFilterParams filterParams;
     private SortedSet<ExtensionMetadata> extensions;
 
-    @ApiModelProperty("The number of extensions in the response")
+    @Schema(description = "The number of extensions in the response")
     public int getNumResults() {
         return numResults;
     }
@@ -37,7 +35,7 @@ public class ExtensionMetadataContainer {
         this.numResults = numResults;
     }
 
-    @ApiModelProperty("The filter parameters submitted for the request")
+    @Schema(description = "The filter parameters submitted for the request")
     public ExtensionFilterParams getFilterParams() {
         return filterParams;
     }
@@ -46,7 +44,7 @@ public class ExtensionMetadataContainer {
         this.filterParams = filterParams;
     }
 
-    @ApiModelProperty("The metadata for the extensions")
+    @Schema(description = "The metadata for the extensions")
     public SortedSet<ExtensionMetadata> getExtensions() {
         return extensions;
     }

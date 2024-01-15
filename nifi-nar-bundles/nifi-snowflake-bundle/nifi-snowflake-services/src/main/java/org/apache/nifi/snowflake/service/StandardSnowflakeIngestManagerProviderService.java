@@ -17,12 +17,6 @@
 
 package org.apache.nifi.snowflake.service;
 
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.spec.InvalidKeySpecException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import net.snowflake.ingest.SimpleIngestManager;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -35,11 +29,16 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.key.service.api.PrivateKeyService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.snowflake.SnowflakeIngestManagerProviderService;
+import org.apache.nifi.processors.snowflake.util.SnowflakeProperties;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.snowflake.service.util.AccountIdentifierFormat;
 import org.apache.nifi.snowflake.service.util.AccountIdentifierFormatParameters;
 import org.apache.nifi.snowflake.service.util.ConnectionUrlFormat;
-import org.apache.nifi.processors.snowflake.util.SnowflakeProperties;
+
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.spec.InvalidKeySpecException;
+import java.util.List;
 
 @Tags({"snowflake", "jdbc", "database", "connection"})
 @CapabilityDescription("Provides a Snowflake Ingest Manager for Snowflake pipe processors")
@@ -53,7 +52,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .required(true)
             .allowableValues(AccountIdentifierFormat.class)
-            .defaultValue(AccountIdentifierFormat.ACCOUNT_NAME.getValue())
+            .defaultValue(AccountIdentifierFormat.ACCOUNT_NAME)
             .build();
 
     public static final PropertyDescriptor HOST_URL = new PropertyDescriptor.Builder()
@@ -127,7 +126,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             .required(true)
             .build();
 
-    static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    static final List<PropertyDescriptor> PROPERTIES = List.of(
             ACCOUNT_IDENTIFIER_FORMAT,
             HOST_URL,
             ACCOUNT_LOCATOR,
@@ -140,7 +139,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             DATABASE,
             SCHEMA,
             PIPE
-    ));
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -153,20 +152,16 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
         final String user = context.getProperty(USER_NAME).evaluateAttributeExpressions().getValue();
-        final String database = context.getProperty(DATABASE)
-                .evaluateAttributeExpressions()
-                .getValue();
-        final String schema = context.getProperty(SCHEMA)
-                .evaluateAttributeExpressions()
-                .getValue();
+        final String database = context.getProperty(DATABASE).evaluateAttributeExpressions().getValue();
+        final String schema = context.getProperty(SCHEMA).evaluateAttributeExpressions().getValue();
         final String pipe = context.getProperty(PIPE).evaluateAttributeExpressions().getValue();
         fullyQualifiedPipeName = database + "." + schema + "." + pipe;
         final PrivateKeyService privateKeyService = context.getProperty(PRIVATE_KEY_SERVICE)
                 .asControllerService(PrivateKeyService.class);
         final PrivateKey privateKey = privateKeyService.getPrivateKey();
 
-        final AccountIdentifierFormat accountIdentifierFormat = AccountIdentifierFormat.forName(context.getProperty(ACCOUNT_IDENTIFIER_FORMAT)
-                .getValue());
+        final AccountIdentifierFormat accountIdentifierFormat = context.getProperty(ACCOUNT_IDENTIFIER_FORMAT)
+                .asDescribedValue(AccountIdentifierFormat.class);
         final AccountIdentifierFormatParameters parameters = getAccountIdentifierFormatParameters(context);
         final String account = accountIdentifierFormat.getAccount(parameters);
         final String host = accountIdentifierFormat.getHostname(parameters);
@@ -196,29 +191,13 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
     }
 
     private AccountIdentifierFormatParameters getAccountIdentifierFormatParameters(ConfigurationContext context) {
-        final String hostUrl = context.getProperty(HOST_URL)
-                .evaluateAttributeExpressions()
-                .getValue();
-        final String organizationName = context.getProperty(ORGANIZATION_NAME)
-                .evaluateAttributeExpressions()
-                .getValue();
-        final String accountName = context.getProperty(ACCOUNT_NAME)
-                .evaluateAttributeExpressions()
-                .getValue();
-        final String accountLocator = context.getProperty(ACCOUNT_LOCATOR)
-                .evaluateAttributeExpressions()
-                .getValue();
-        final String cloudRegion = context.getProperty(CLOUD_REGION)
-                .evaluateAttributeExpressions()
-                .getValue();
-        final String cloudType = context.getProperty(CLOUD_TYPE)
-                .evaluateAttributeExpressions()
-                .getValue();
-        return new AccountIdentifierFormatParameters(hostUrl,
-                organizationName,
-                accountName,
-                accountLocator,
-                cloudRegion,
-                cloudType);
+        return new AccountIdentifierFormatParameters(
+                context.getProperty(HOST_URL).evaluateAttributeExpressions().getValue(),
+                context.getProperty(ORGANIZATION_NAME).evaluateAttributeExpressions().getValue(),
+                context.getProperty(ACCOUNT_NAME).evaluateAttributeExpressions().getValue(),
+                context.getProperty(ACCOUNT_LOCATOR).evaluateAttributeExpressions().getValue(),
+                context.getProperty(CLOUD_REGION).evaluateAttributeExpressions().getValue(),
+                context.getProperty(CLOUD_TYPE).evaluateAttributeExpressions().getValue()
+        );
     }
 }

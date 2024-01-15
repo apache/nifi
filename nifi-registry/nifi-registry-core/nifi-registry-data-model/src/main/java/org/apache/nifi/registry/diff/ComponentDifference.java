@@ -17,7 +17,7 @@
 
 package org.apache.nifi.registry.diff;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * Represents a specific, individual difference that has changed between 2 versions.
@@ -30,7 +30,7 @@ public class ComponentDifference {
     private String differenceType;
     private String differenceTypeDescription;
 
-    @ApiModelProperty("The earlier value from the difference.")
+    @Schema(description = "The earlier value from the difference.")
     public String getValueA() {
         return valueA;
     }
@@ -39,7 +39,7 @@ public class ComponentDifference {
         this.valueA = valueA;
     }
 
-    @ApiModelProperty("The newer value from the difference.")
+    @Schema(description = "The newer value from the difference.")
     public String getValueB() {
         return valueB;
     }
@@ -48,7 +48,7 @@ public class ComponentDifference {
         this.valueB = valueB;
     }
 
-    @ApiModelProperty("The description of the change.")
+    @Schema(description = "The description of the change.")
     public String getChangeDescription() {
         return changeDescription;
     }
@@ -57,7 +57,7 @@ public class ComponentDifference {
         this.changeDescription = changeDescription;
     }
 
-    @ApiModelProperty("The key to the difference.")
+    @Schema(description = "The key to the difference.")
     public String getDifferenceType() {
         return differenceType;
     }
@@ -66,7 +66,7 @@ public class ComponentDifference {
         this.differenceType = differenceType;
     }
 
-    @ApiModelProperty("The description of the change type.")
+    @Schema(description = "The description of the change type.")
     public String getDifferenceTypeDescription() {
         return differenceTypeDescription;
     }

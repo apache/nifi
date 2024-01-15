@@ -108,6 +108,18 @@ public class TestStandardPropertyConfiguration {
     }
 
     @Test
+    public void testRenamePropertyToSameName() {
+        assertFalse(config.renameProperty("a", "a"));
+
+        assertFalse(config.isModified());
+        assertTrue(config.hasProperty("a"));
+        assertTrue(config.isPropertySet("a"));
+
+        final Map<String, String> expectedProperties = new HashMap<>(originalProperties);
+        assertEquals(expectedProperties, config.getProperties());
+    }
+
+    @Test
     public void testRenameNullProperty() {
         assertTrue(config.renameProperty("c", "X"));
 

@@ -236,7 +236,6 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         Random random = new Random();
         byte[] fileContentBytes = new byte[120_000_000];
         random.nextBytes(fileContentBytes);
-        String fileContent = new String(fileContentBytes);
         String inputFlowFileContent = "InputFlowFileContent";
 
         createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
@@ -446,7 +445,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         startRunner(inputFlowFileContent, Collections.emptyMap());
 
         // THEN
-        DataLakeStorageException e = (DataLakeStorageException)runner.getLogger().getErrorMessages().get(0).getThrowable();
+        DataLakeStorageException e = (DataLakeStorageException)runner.getLogger().getErrorMessages().getFirst().getThrowable();
         assertEquals(416, e.getStatusCode());
     }
 
@@ -489,7 +488,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         startRunner(inputFlowFileContent, attributes);
 
         // THEN
-        DataLakeStorageException e = (DataLakeStorageException)runner.getLogger().getErrorMessages().get(0).getThrowable();
+        DataLakeStorageException e = (DataLakeStorageException)runner.getLogger().getErrorMessages().getFirst().getThrowable();
         assertEquals(expectedErrorCode, e.getStatusCode());
 
         assertFailure(expectedFlowFileContent);
@@ -508,7 +507,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         startRunner(inputFlowFileContent, attributes);
 
         // THEN
-        Throwable exception = runner.getLogger().getErrorMessages().get(0).getThrowable();
+        Throwable exception = runner.getLogger().getErrorMessages().getFirst().getThrowable();
         assertEquals(ProcessException.class, exception.getClass());
 
         assertFailure(expectedFlowFileContent);
@@ -541,7 +540,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
     private void assertSuccess(String expectedFlowFileContent, Set<ProvenanceEventType> expectedEventTypes) {
         runner.assertAllFlowFilesTransferred(FetchAzureDataLakeStorage.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchAzureDataLakeStorage.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchAzureDataLakeStorage.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals(expectedFlowFileContent);
 
         Set<ProvenanceEventType> actualEventTypes = runner.getProvenanceEvents().stream()
@@ -552,7 +551,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
     private void assertFailure(String expectedFlowFileContent) {
         runner.assertAllFlowFilesTransferred(FetchAzureDataLakeStorage.REL_FAILURE, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchAzureDataLakeStorage.REL_FAILURE).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchAzureDataLakeStorage.REL_FAILURE).getFirst();
         flowFile.assertContentEquals(expectedFlowFileContent);
     }
 }

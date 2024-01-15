@@ -17,16 +17,16 @@
 
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.Set;
 
 @XmlRootElement(name = "runStatusDetailsRequest")
 public class RunStatusDetailsRequestEntity extends Entity {
     private Set<String> processorIds;
 
-    @ApiModelProperty("The IDs of all processors whose run status details should be provided")
+    @Schema(description = "The IDs of all processors whose run status details should be provided")
     public Set<String> getProcessorIds() {
         return processorIds;
     }

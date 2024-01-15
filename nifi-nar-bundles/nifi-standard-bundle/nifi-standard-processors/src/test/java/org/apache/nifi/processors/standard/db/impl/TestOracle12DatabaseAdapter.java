@@ -16,12 +16,15 @@
  */
 package org.apache.nifi.processors.standard.db.impl;
 
+import java.sql.Types;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.nifi.processors.standard.db.ColumnDescription;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
+import org.apache.nifi.processors.standard.db.TableSchema;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -149,6 +152,24 @@ public class TestOracle12DatabaseAdapter {
         // THEN
         testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, expected);
     }
+    @Test
+    public void testGetCreateTableStatement() {
+        assertTrue(db.supportsCreateTableIfNotExists());
+        final List<ColumnDescription> columns = Arrays.asList(
+                new ColumnDescription("col1", Types.INTEGER, true, 4, false),
+                new ColumnDescription("col2", Types.VARCHAR, false, 2000, true)
+        );
+        TableSchema tableSchema = new TableSchema("USERS", null, "TEST_TABLE", columns, true, Collections.singleton("COL1"), db.getColumnQuoteString());
+
+        String expectedStatement = "DECLARE\n\tsql_stmt long;\nBEGIN\n\tsql_stmt:='CREATE TABLE "
+                // Strings are returned as VARCHAR2(2000) regardless of reported size and that VARCHAR2 is not in java.sql.Types
+                + "\"USERS\".\"TEST_TABLE\" (\"col1\" INTEGER NOT NULL, \"col2\" VARCHAR2(2000))';"
+                + "\nEXECUTE IMMEDIATE sql_stmt;\nEXCEPTION\n\tWHEN OTHERS THEN\n\t\tIF SQLCODE = -955 THEN\n\t\t\t"
+                + "NULL;\n\t\tELSE\n\t\t\tRAISE;\n\t\tEND IF;\nEND;";
+        String actualStatement = db.getCreateTableStatement(tableSchema, true, true);
+        assertEquals(expectedStatement, actualStatement);
+    }
+
 
     private void testGetUpsertStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, IllegalArgumentException expected) {
         final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {

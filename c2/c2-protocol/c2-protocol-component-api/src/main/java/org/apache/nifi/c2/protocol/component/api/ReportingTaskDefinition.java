@@ -17,14 +17,12 @@
 
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-@ApiModel
 public class ReportingTaskDefinition extends ConfigurableExtensionDefinition {
     private static final long serialVersionUID = 1L;
 
@@ -32,7 +30,7 @@ public class ReportingTaskDefinition extends ConfigurableExtensionDefinition {
     private String defaultSchedulingStrategy;
     private Map<String, String> defaultSchedulingPeriodBySchedulingStrategy;
 
-    @ApiModelProperty("The supported scheduling strategies, such as TIME_DRIVER or CRON.")
+    @Schema(description = "The supported scheduling strategies, such as TIME_DRIVER or CRON.")
     public List<String> getSupportedSchedulingStrategies() {
         return (supportedSchedulingStrategies != null ? Collections.unmodifiableList(supportedSchedulingStrategies) : null);
     }
@@ -41,7 +39,7 @@ public class ReportingTaskDefinition extends ConfigurableExtensionDefinition {
         this.supportedSchedulingStrategies = supportedSchedulingStrategies;
     }
 
-    @ApiModelProperty("The default scheduling strategy for the reporting task.")
+    @Schema(description = "The default scheduling strategy for the reporting task.")
     public String getDefaultSchedulingStrategy() {
         return defaultSchedulingStrategy;
     }
@@ -50,7 +48,7 @@ public class ReportingTaskDefinition extends ConfigurableExtensionDefinition {
         this.defaultSchedulingStrategy = defaultSchedulingStrategy;
     }
 
-    @ApiModelProperty("The default scheduling period for each scheduling strategy. " +
+    @Schema(description = "The default scheduling period for each scheduling strategy. " +
             "The scheduling period is expected to be a time period, such as \"30 sec\".")
     public Map<String, String> getDefaultSchedulingPeriodBySchedulingStrategy() {
         return defaultSchedulingPeriodBySchedulingStrategy != null ? Collections.unmodifiableMap(defaultSchedulingPeriodBySchedulingStrategy) : null;

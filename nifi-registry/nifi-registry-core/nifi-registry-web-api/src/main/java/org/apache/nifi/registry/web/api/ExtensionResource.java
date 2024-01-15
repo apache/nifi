@@ -16,17 +16,18 @@
  */
 package org.apache.nifi.registry.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
 import java.util.Collections;
 import java.util.Set;
 import java.util.SortedSet;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -42,20 +43,12 @@ import org.apache.nifi.extension.manifest.ExtensionType;
 import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.registry.event.EventService;
 import org.apache.nifi.registry.extension.bundle.BundleType;
-import org.apache.nifi.registry.extension.bundle.BundleTypeValues;
 import org.apache.nifi.registry.web.service.ServiceFacade;
 import org.springframework.stereotype.Component;
 
 @Component
 @Path("/extensions")
-@Api(
-    value = "extensions",
-    authorizations = {@Authorization("Authorization")},
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Find and retrieve extensions.")
-})
+@Tag(name = "Extensions")
 public class ExtensionResource extends ApplicationResource {
 
     public ExtensionResource(final ServiceFacade serviceFacade, final EventService eventService) {
@@ -65,30 +58,29 @@ public class ExtensionResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get all extensions",
-            notes = "Gets the metadata for all extensions that match the filter params and are part of bundles located in buckets the " +
+    @Operation(
+            summary = "Get all extensions",
+            description = "Gets the metadata for all extensions that match the filter params and are part of bundles located in buckets the " +
                     "current user is authorized for. If the user is not authorized to any buckets, an empty result set will be returned." +
                     NON_GUARANTEED_ENDPOINT,
-            response = ExtensionMetadataContainer.class
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ExtensionMetadataContainer.class)))
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)}
+    )
     public Response getExtensions(
             @QueryParam("bundleType")
-            @ApiParam(value = "The type of bundles to return", allowableValues = BundleTypeValues.ALL_VALUES)
-                final BundleType bundleType,
+            @Parameter(description = "The type of bundles to return") final BundleType bundleType,
             @QueryParam("extensionType")
-            @ApiParam(value = "The type of extensions to return")
-                final ExtensionType extensionType,
+            @Parameter(description = "The type of extensions to return") final ExtensionType extensionType,
             @QueryParam("tag")
-            @ApiParam(value = "The tags to filter on, will be used in an OR statement")
-                final Set<String> tags
-            ) {
+            @Parameter(description = "The tags to filter on, will be used in an OR statement") final Set<String> tags
+    ) {
 
         final ExtensionFilterParams filterParams = new ExtensionFilterParams.Builder()
                 .bundleType(bundleType)
@@ -110,32 +102,31 @@ public class ExtensionResource extends ApplicationResource {
     @Path("provided-service-api")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get extensions providing service API",
-            notes = "Gets the metadata for extensions that provide the specified API and are part of bundles located in buckets the " +
+    @Operation(
+            summary = "Get extensions providing service API",
+            description = "Gets the metadata for extensions that provide the specified API and are part of bundles located in buckets the " +
                     "current user is authorized for. If the user is not authorized to any buckets, an empty result set will be returned." +
                     NON_GUARANTEED_ENDPOINT,
-            response = ExtensionMetadataContainer.class
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ExtensionMetadataContainer.class)))
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getExtensionsProvidingServiceAPI(
             @QueryParam("className")
-            @ApiParam(value = "The name of the service API class", required = true)
-                final String className,
+            @Parameter(description = "The name of the service API class", required = true) final String className,
             @QueryParam("groupId")
-            @ApiParam(value = "The groupId of the bundle containing the service API class", required = true)
-                final String groupId,
+            @Parameter(description = "The groupId of the bundle containing the service API class", required = true) final String groupId,
             @QueryParam("artifactId")
-            @ApiParam(value = "The artifactId of the bundle containing the service API class", required = true)
-                final String artifactId,
+            @Parameter(description = "The artifactId of the bundle containing the service API class", required = true) final String artifactId,
             @QueryParam("version")
-            @ApiParam(value = "The version of the bundle containing the service API class", required = true)
-                final String version
+            @Parameter(description = "The version of the bundle containing the service API class", required = true) final String version
     ) {
         final ProvidedServiceAPI serviceAPI = new ProvidedServiceAPI();
         serviceAPI.setClassName(className);
@@ -156,19 +147,21 @@ public class ExtensionResource extends ApplicationResource {
     @Path("/tags")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get extension tags",
-            notes = "Gets all the extension tags known to this NiFi Registry instance, along with the " +
+    @Operation(
+            summary = "Get extension tags",
+            description = "Gets all the extension tags known to this NiFi Registry instance, along with the " +
                     "number of extensions that have the given tag." + NON_GUARANTEED_ENDPOINT,
-            response = TagCount.class,
-            responseContainer = "List"
+            responses = @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = TagCount.class))))
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getTags() {
         final SortedSet<TagCount> tags = serviceFacade.getExtensionTags();
         return Response.status(Response.Status.OK).entity(tags).build();

@@ -24,7 +24,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import javax.jms.ConnectionFactory;
+import jakarta.jms.ConnectionFactory;
 import javax.net.ssl.SSLContext;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;

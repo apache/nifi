@@ -18,6 +18,8 @@
 import { createAction, props } from '@ngrx/store';
 import { ControllerConfigResponse, UpdateControllerConfigRequest } from './index';
 
+export const resetGeneralState = createAction('[General] Reset General State');
+
 export const loadControllerConfig = createAction('[General] Load Controller Config');
 
 export const loadControllerConfigSuccess = createAction(

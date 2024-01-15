@@ -21,12 +21,11 @@ import { HttpClient } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import {
-    SubmitParameterContextUpdate,
     CreateParameterContextRequest,
     DeleteParameterContextRequest,
-    ParameterContextEntity,
-    ParameterContextUpdateRequest
+    ParameterContextEntity
 } from '../state/parameter-context-listing';
+import { ParameterContextUpdateRequest, SubmitParameterContextUpdate } from '../../../state/shared';
 
 @Injectable({ providedIn: 'root' })
 export class ParameterContextService {
@@ -92,8 +91,4 @@ export class ParameterContextService {
             params: revision
         });
     }
-
-    // updateControllerConfig(controllerEntity: ControllerEntity): Observable<any> {
-    //     return this.httpClient.put(`${ControllerServiceService.API}/controller/config`, controllerEntity);
-    // }
 }

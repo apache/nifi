@@ -143,7 +143,7 @@ public interface JvmMetrics {
      * Returns the name of the currently-running jvm.
      *
      * @return the name of the currently-running jvm, eg  "Java HotSpot(TM) Client VM"
-     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/System.html#getProperties()">System.getProperties()</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/System.html#getProperties()">System.getProperties()</a>
      */
     String name();
 

@@ -165,8 +165,8 @@
             <scope>test</scope>
         </dependency>
         <dependency> <!-- handling this explicitly  Must be in root lib -->
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency> <!-- handling this explicitly  Must be in root lib -->

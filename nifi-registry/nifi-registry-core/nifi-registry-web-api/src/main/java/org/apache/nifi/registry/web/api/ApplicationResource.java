@@ -33,6 +33,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriBuilderException;
 import jakarta.ws.rs.core.UriInfo;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Objects;
@@ -180,7 +181,7 @@ public class ApplicationResource {
     /**
      * Generates a 201 Created response with the specified content.
      *
-     * @param uri    The URI
+     * @param uri The URI
      * @param entity entity
      * @return The response to be built
      */

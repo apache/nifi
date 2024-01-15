@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.FlowUpdateRequestDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
@@ -25,7 +25,7 @@ public abstract class FlowUpdateRequestEntity<T extends FlowUpdateRequestDTO> ex
     protected RevisionDTO processGroupRevision;
     protected T request;
 
-    @ApiModelProperty("The revision for the Process Group being updated.")
+    @Schema(description = "The revision for the Process Group being updated.")
     public RevisionDTO getProcessGroupRevision() {
         return processGroupRevision;
     }
@@ -34,7 +34,7 @@ public abstract class FlowUpdateRequestEntity<T extends FlowUpdateRequestDTO> ex
         this.processGroupRevision = revision;
     }
 
-    @ApiModelProperty("The Process Group Update Request")
+    @Schema(description = "The Process Group Update Request")
     public abstract T getRequest();
 
     public abstract void setRequest(T request);

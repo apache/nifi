@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Set;
 
 /**
@@ -35,9 +35,8 @@ public class UserDTO extends TenantDTO {
     /**
      * @return groups to which the user belongs
      */
-    @ApiModelProperty(
-            value = "The groups to which the user belongs. This field is read only and it provided for convenience.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The groups to which the user belongs. This field is read only and it provided for convenience.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public Set<TenantEntity> getUserGroups() {
         return userGroups;
@@ -50,9 +49,8 @@ public class UserDTO extends TenantDTO {
     /**
      * @return policies this user is part of
      */
-    @ApiModelProperty(
-            value = "The access policies this user belongs to.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The access policies this user belongs to.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public Set<AccessPolicySummaryEntity> getAccessPolicies() {
         return accessPolicies;

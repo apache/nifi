@@ -25,8 +25,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.Arrays;
 
-import org.apache.nifi.bootstrap.exception.InvalidCommandException;
-
 public class BootstrapCodec {
 
     private final RunNiFi runner;

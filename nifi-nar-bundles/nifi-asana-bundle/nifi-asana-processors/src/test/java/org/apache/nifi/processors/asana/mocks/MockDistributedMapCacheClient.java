@@ -70,9 +70,4 @@ public class MockDistributedMapCacheClient extends AbstractControllerService imp
     public <K> boolean remove(K key, Serializer<K> serializer) {
         throw new NotImplementedException();
     }
-
-    @Override
-    public long removeByPattern(String regex) {
-        throw new NotImplementedException();
-    }
 }

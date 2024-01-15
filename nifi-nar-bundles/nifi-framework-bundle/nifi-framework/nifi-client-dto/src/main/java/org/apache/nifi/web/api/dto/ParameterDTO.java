@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Set;
 
 @XmlType(name = "parameter")
@@ -35,7 +35,7 @@ public class ParameterDTO {
     private ParameterContextReferenceEntity parameterContext;
     private Boolean inherited;
 
-    @ApiModelProperty("The name of the Parameter")
+    @Schema(description = "The name of the Parameter")
     public String getName() {
         return name;
     }
@@ -44,7 +44,7 @@ public class ParameterDTO {
         this.name = name;
     }
 
-    @ApiModelProperty(value = "Whether or not the Parameter is inherited from another context", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "Whether or not the Parameter is inherited from another context", accessMode = Schema.AccessMode.READ_ONLY)
     public Boolean getInherited() {
         return inherited;
     }
@@ -53,7 +53,7 @@ public class ParameterDTO {
         this.inherited = inherited;
     }
 
-    @ApiModelProperty("The description of the Parameter")
+    @Schema(description = "The description of the Parameter")
     public String getDescription() {
         return description;
     }
@@ -62,7 +62,7 @@ public class ParameterDTO {
         this.description = description;
     }
 
-    @ApiModelProperty("Whether or not the Parameter is sensitive")
+    @Schema(description = "Whether or not the Parameter is sensitive")
     public Boolean getSensitive() {
         return sensitive;
     }
@@ -71,7 +71,7 @@ public class ParameterDTO {
         this.sensitive = sensitive;
     }
 
-    @ApiModelProperty("Whether or not the Parameter is provided by a ParameterProvider")
+    @Schema(description = "Whether or not the Parameter is provided by a ParameterProvider")
     public Boolean getProvided() {
         return provided;
     }
@@ -80,7 +80,7 @@ public class ParameterDTO {
         this.provided = provided;
     }
 
-    @ApiModelProperty("The value of the Parameter")
+    @Schema(description = "The value of the Parameter")
     public String getValue() {
         return value;
     }
@@ -89,8 +89,13 @@ public class ParameterDTO {
         this.value = value;
     }
 
-    @ApiModelProperty("Whether or not the value of the Parameter was removed. When a request is made to change a parameter, the value may be null. The absence of the value may be used either to " +
-        "indicate that the value is not to be changed, or that the value is to be set to null (i.e., removed). This denotes which of the two scenarios is being encountered.")
+    @Schema(description = """
+        Whether or not the value of the Parameter was removed.
+        When a request is made to change a parameter, the value may be null.
+        The absence of the value may be used either to indicate that the value is not to be changed, or that the value is to be set to null (i.e., removed).
+        This denotes which of the two scenarios is being encountered.
+        """
+    )
     public Boolean getValueRemoved() {
         return valueRemoved;
     }
@@ -99,7 +104,7 @@ public class ParameterDTO {
         this.valueRemoved = valueRemoved;
     }
 
-    @ApiModelProperty("The set of all components in the flow that are referencing this Parameter")
+    @Schema(description = "The set of all components in the flow that are referencing this Parameter")
     public Set<AffectedComponentEntity> getReferencingComponents() {
         return referencingComponents;
     }
@@ -108,7 +113,7 @@ public class ParameterDTO {
         this.parameterContext = parameterContext;
     }
 
-    @ApiModelProperty("A reference to the Parameter Context that contains this one")
+    @Schema(description = "A reference to the Parameter Context that contains this one")
     public ParameterContextReferenceEntity getParameterContext() {
         return parameterContext;
     }

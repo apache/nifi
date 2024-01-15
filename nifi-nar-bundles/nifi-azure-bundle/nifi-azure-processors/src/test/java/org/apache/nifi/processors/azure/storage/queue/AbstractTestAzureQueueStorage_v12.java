@@ -30,7 +30,7 @@ public abstract class AbstractTestAzureQueueStorage_v12 {
     protected void setupStorageCredentialsService() throws InitializationException {
         runner.addControllerService(CREDENTIALS_SERVICE_IDENTIFIER, credentialsService);
         runner.setProperty(credentialsService, AzureStorageCredentialsControllerService_v12.ACCOUNT_NAME, "account-name");
-        runner.setProperty(credentialsService, AzureStorageCredentialsControllerService_v12.CREDENTIALS_TYPE, AzureStorageCredentialsType.ACCOUNT_KEY.getAllowableValue());
+        runner.setProperty(credentialsService, AzureStorageCredentialsControllerService_v12.CREDENTIALS_TYPE, AzureStorageCredentialsType.ACCOUNT_KEY);
         runner.setProperty(credentialsService, AzureStorageCredentialsControllerService_v12.ACCOUNT_KEY, "account-key");
     }
 }

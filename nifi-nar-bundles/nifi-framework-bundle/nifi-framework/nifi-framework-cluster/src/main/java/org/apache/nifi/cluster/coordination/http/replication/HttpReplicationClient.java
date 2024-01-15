@@ -20,7 +20,7 @@ package org.apache.nifi.cluster.coordination.http.replication;
 import java.io.IOException;
 import java.util.Map;
 
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 public interface HttpReplicationClient {
 

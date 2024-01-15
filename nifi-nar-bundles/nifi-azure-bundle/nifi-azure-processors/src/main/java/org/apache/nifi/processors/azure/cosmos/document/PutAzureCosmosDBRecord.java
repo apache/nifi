@@ -47,14 +47,13 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
-@Tags({ "azure", "cosmos", "insert", "record", "put" })
+@Tags({"azure", "cosmos", "insert", "record", "put"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("This processor is a record-aware processor for inserting data into Cosmos DB with Core SQL API. It uses a configured record reader and " +
         "schema to read an incoming record set from the body of a Flowfile and then inserts those records into " +
@@ -67,49 +66,37 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
     static final AllowableValue UPSERT_CONFLICT = new AllowableValue("UPSERT", "Upsert", "Conflicting records will be upserted, and FlowFile will not be routed to failure");
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
-        .name("record-reader")
-        .displayName("Record Reader")
-        .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema")
-        .identifiesControllerService(RecordReaderFactory.class)
-        .required(true)
-        .build();
+            .name("record-reader")
+            .displayName("Record Reader")
+            .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema")
+            .identifiesControllerService(RecordReaderFactory.class)
+            .required(true)
+            .build();
 
     static final PropertyDescriptor INSERT_BATCH_SIZE = new PropertyDescriptor.Builder()
-        .name("insert-batch-size")
-        .displayName("Insert Batch Size")
-        .description("The number of records to group together for one single insert operation against Cosmos DB")
-        .defaultValue("20")
-        .required(false)
-        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .build();
+            .name("insert-batch-size")
+            .displayName("Insert Batch Size")
+            .description("The number of records to group together for one single insert operation against Cosmos DB")
+            .defaultValue("20")
+            .required(false)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor CONFLICT_HANDLE_STRATEGY = new PropertyDescriptor.Builder()
-        .name("azure-cosmos-db-conflict-handling-strategy")
-        .displayName("Cosmos DB Conflict Handling Strategy")
-        .description("Choose whether to ignore or upsert when conflict error occurs during insertion")
-        .required(false)
-        .allowableValues(IGNORE_CONFLICT, UPSERT_CONFLICT)
-        .defaultValue(IGNORE_CONFLICT.getValue())
-        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .build();
+            .name("azure-cosmos-db-conflict-handling-strategy")
+            .displayName("Cosmos DB Conflict Handling Strategy")
+            .description("Choose whether to ignore or upsert when conflict error occurs during insertion")
+            .required(false)
+            .allowableValues(IGNORE_CONFLICT, UPSERT_CONFLICT)
+            .defaultValue(IGNORE_CONFLICT)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
 
-
-    private final static Set<Relationship> relationships;
-    private final static List<PropertyDescriptor> propertyDescriptors;
-
-    static {
-        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-        _propertyDescriptors.addAll(descriptors);
-        _propertyDescriptors.add(RECORD_READER_FACTORY);
-        _propertyDescriptors.add(INSERT_BATCH_SIZE);
-        _propertyDescriptors.add(CONFLICT_HANDLE_STRATEGY);
-        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
-
-        final Set<Relationship> _relationships = new HashSet<>();
-        _relationships.add(REL_SUCCESS);
-        _relationships.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(_relationships);
-    }
+    private final static Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
+    private final static List<PropertyDescriptor> propertyDescriptors = Stream.concat(
+            descriptors.stream(),
+            Stream.of(RECORD_READER_FACTORY, INSERT_BATCH_SIZE, CONFLICT_HANDLE_STRATEGY)
+    ).toList();
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -121,19 +108,19 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
         return propertyDescriptors;
     }
 
-    protected void bulkInsert(final List<Map<String, Object>> records) throws CosmosException{
+    protected void bulkInsert(final List<Map<String, Object>> records) throws CosmosException {
         // In the future, this method will be replaced by calling createItems API
         // for example, this.container.createItems(records);
         // currently, no createItems API available in Azure Cosmos Java SDK
         final ComponentLog logger = getLogger();
         final CosmosContainer container = getContainer();
-        for (Map<String, Object> record : records){
+        for (Map<String, Object> record : records) {
             try {
                 container.createItem(record);
             } catch (ConflictException e) {
                 // insert with unique id is expected. In case conflict occurs, use the selected strategy.
                 // By default, it will ignore.
-                if (conflictHandlingStrategy != null && conflictHandlingStrategy.equals(UPSERT_CONFLICT.getValue())){
+                if (conflictHandlingStrategy != null && conflictHandlingStrategy.equals(UPSERT_CONFLICT.getValue())) {
                     container.upsertItem(record);
                 } else {
                     if (logger.isDebugEnabled()) {
@@ -168,7 +155,7 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
             while ((record = reader.nextRecord()) != null) {
                 // Convert each Record to HashMap
                 Map<String, Object> contentMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(schema));
-                if(contentMap.containsKey("id")) {
+                if (contentMap.containsKey("id")) {
                     final Object idObj = contentMap.get("id");
                     final String idStr = (idObj == null) ? "" : String.valueOf(idObj);
                     if (idObj == null || StringUtils.isBlank(idStr)) {

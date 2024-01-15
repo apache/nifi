@@ -182,6 +182,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
         descriptors.add(USERNAME);
         descriptors.add(PASSWORD);
         descriptors.add(CONSISTENCY_LEVEL);
+        descriptors.add(COMPRESSION_TYPE);
         descriptors.add(CHARSET);
     }
 

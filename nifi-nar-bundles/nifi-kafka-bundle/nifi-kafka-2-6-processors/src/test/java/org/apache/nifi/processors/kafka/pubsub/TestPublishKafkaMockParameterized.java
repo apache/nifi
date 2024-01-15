@@ -260,11 +260,7 @@ public class TestPublishKafkaMockParameterized {
                 patternAttributeName,
                 UTF_8,
                 null,
-                null) {
-            @Override
-            protected long getTimestamp() {
-                return 1000000000000L;
-            }
-        };
+                null
+        );
     }
 }

@@ -41,6 +41,7 @@ import org.apache.nifi.remote.RemoteGroupPort;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -500,6 +501,16 @@ public final class StandardConnection implements Connection {
     }
 
     private void verifySourceStoppedOrFunnel(final Connection connection) {
+        verifySourceStoppedOrFunnel(connection, new HashSet<>());
+    }
+
+    private void verifySourceStoppedOrFunnel(final Connection connection, final Set<Connection> connectionsSeen) {
+        final boolean added = connectionsSeen.add(connection);
+        if (!added) {
+            // If we've already seen this Connection, no need to process it again.
+            return;
+        }
+
         final Connectable sourceComponent = connection.getSource();
         if (!sourceComponent.isRunning()) {
             return;
@@ -513,7 +524,7 @@ public final class StandardConnection implements Connection {
 
         // Source is a funnel and is running. We need to then check all of its upstream components.
         for (final Connection incoming : sourceComponent.getIncomingConnections()) {
-            verifySourceStoppedOrFunnel(incoming);
+            verifySourceStoppedOrFunnel(incoming, connectionsSeen);
         }
     }
 
