@@ -175,14 +175,14 @@ public class ValidateCsv extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor GET_ALL_VIOLATIONS = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor INCLUDE_ALL_VIOLATIONS = new PropertyDescriptor.Builder()
             .name("validate-csv-violations")
-            .displayName("Get all violations")
-            .description("If true, the validation.error.message attribute would contain the list of all the violations"
+            .displayName("Include all violations")
+            .description("If true, the validation.error.message attribute would include the list of all the violations"
                     + " for the first invalid line. Note that setting this property to true would slightly decrease"
                     + " the performances as all columns would be validated. If false, a line is invalid as soon as a"
                     + " column is found violating the specified constraint and only this violation for the first invalid"
-                    + " line will be indicated in the validation.error.message attribute.")
+                    + " line will be included in the validation.error.message attribute.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -209,7 +209,7 @@ public class ValidateCsv extends AbstractProcessor {
         properties.add(QUOTE_CHARACTER);
         properties.add(END_OF_LINE_CHARACTER);
         properties.add(VALIDATION_STRATEGY);
-        properties.add(GET_ALL_VIOLATIONS);
+        properties.add(INCLUDE_ALL_VIOLATIONS);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -461,7 +461,7 @@ public class ValidateCsv extends AbstractProcessor {
         final String schema = context.getProperty(SCHEMA).evaluateAttributeExpressions(flowFile).getValue();
         final CellProcessor[] cellProcs = this.parseSchema(schema);
         final boolean isWholeFFValidation = context.getProperty(VALIDATION_STRATEGY).getValue().equals(VALIDATE_WHOLE_FLOWFILE.getValue());
-        final boolean getAllViolations = context.getProperty(GET_ALL_VIOLATIONS).asBoolean();
+        final boolean includeAllViolations = context.getProperty(INCLUDE_ALL_VIOLATIONS).asBoolean();
 
         final AtomicReference<Boolean> valid = new AtomicReference<Boolean>(true);
         final AtomicReference<Boolean> isFirstLineValid = new AtomicReference<Boolean>(true);
@@ -512,7 +512,7 @@ public class ValidateCsv extends AbstractProcessor {
                         try {
 
                             // read next row and check if no more row
-                            stop = listReader.read(getAllViolations && valid.get(), cellProcs) == null;
+                            stop = listReader.read(includeAllViolations && valid.get(), cellProcs) == null;
 
                             if(!isWholeFFValidation && !stop) {
                                 validFF.set(session.append(validFF.get(), new OutputStreamCallback() {
@@ -632,24 +632,24 @@ public class ValidateCsv extends AbstractProcessor {
             super(reader, preferences);
         }
 
-        public List<Object> read(boolean getAllViolations, CellProcessor... processors) throws IOException {
+        public List<Object> read(boolean includeAllViolations, CellProcessor... processors) throws IOException {
             if( processors == null ) {
                 throw new NullPointerException("Processors should not be null");
             }
             if( readRow() ) {
-                executeProcessors(new ArrayList<Object>(getColumns().size()), processors, getAllViolations);
-                return new ArrayList<Object>(getColumns());
+                executeProcessors(new ArrayList<>(getColumns().size()), processors, includeAllViolations);
+                return new ArrayList<>(getColumns());
             }
             return null; // EOF
         }
 
-        protected List<Object> executeProcessors(List<Object> processedColumns, CellProcessor[] processors, boolean getAllViolations) {
-            this.executeCellProcessors(processedColumns, getColumns(), processors, getLineNumber(), getRowNumber(), getAllViolations);
+        protected List<Object> executeProcessors(List<Object> processedColumns, CellProcessor[] processors, boolean includeAllViolations) {
+            this.executeCellProcessors(processedColumns, getColumns(), processors, getLineNumber(), getRowNumber(), includeAllViolations);
             return processedColumns;
         }
 
         private void executeCellProcessors(final List<Object> destination, final List<?> source,
-                final CellProcessor[] processors, final int lineNo, final int rowNo, boolean getAllViolations) {
+                final CellProcessor[] processors, final int lineNo, final int rowNo, boolean includeAllViolations) {
 
                 if( destination == null ) {
                     throw new NullPointerException("destination should not be null");
@@ -661,7 +661,7 @@ public class ValidateCsv extends AbstractProcessor {
 
                 // the context used when cell processors report exceptions
                 final CsvContext context = new CsvContext(lineNo, rowNo, 1);
-                context.setRowSource(new ArrayList<Object>(source));
+                context.setRowSource(new ArrayList<>(source));
 
                 if( source.size() != processors.length ) {
                     throw new SuperCsvException(String.format(
@@ -672,7 +672,7 @@ public class ValidateCsv extends AbstractProcessor {
 
                 destination.clear();
 
-                List<String> errors = new ArrayList<String>();
+                List<String> errors = new ArrayList<>();
 
                 for( int i = 0; i < source.size(); i++ ) {
 
@@ -688,7 +688,7 @@ public class ValidateCsv extends AbstractProcessor {
 
                     } catch (SuperCsvException e) {
 
-                        if(getAllViolations) {
+                        if(includeAllViolations) {
                             if(errors.isEmpty()) {
                                 errors.add(String.format("At {line=%d, row=%d}", e.getCsvContext().getLineNumber(), e.getCsvContext().getRowNumber()));
                             }

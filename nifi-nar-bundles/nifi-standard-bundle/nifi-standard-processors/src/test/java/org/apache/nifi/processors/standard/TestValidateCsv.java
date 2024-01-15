@@ -111,7 +111,7 @@ public class TestValidateCsv {
         runner.setProperty(ValidateCsv.END_OF_LINE_CHARACTER, "\r\n");
         runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "\"");
         runner.setProperty(ValidateCsv.HEADER, "false");
-        runner.setProperty(ValidateCsv.GET_ALL_VIOLATIONS, "true");
+        runner.setProperty(ValidateCsv.INCLUDE_ALL_VIOLATIONS, "true");
 
         runner.setProperty(ValidateCsv.SCHEMA, "Null, ParseDate(\"dd/MM/yyyy\"), Optional(ParseDouble())");
 
