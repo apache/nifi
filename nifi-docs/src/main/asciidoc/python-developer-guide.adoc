@@ -315,7 +315,7 @@ class PrettyPrintJson(FlowFileTransform):
         numspaces = PropertyDescriptor(name="Number of Spaces",
             description="Number of spaces to use for pretty-printing",
             validators=[StandardValidators.POSITIVE_INTEGER_VALIDATOR],
-            defaultValue="4",
+            default_value="4",
             required=True)
         self.descriptors = [numspaces]
 
