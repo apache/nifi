@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8"/>
+        <title>ProtobufReader</title>
+        <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+    </head>
+
+    <body>
+        <p>
+            The ProtobufReader Controller Service reads and parses a Protocol Buffers Message from binary format and creates a Record object.
+            The Controller Service must be configured with the same '.proto' file that was used for the Message encoding, and the fully qualified
+            name of the Message type including its package (e.g. mypackage.MyMessage). The Reader will always generate one record from the input
+            data which represents the provided Protocol Buffers Message type.
+            Further information about Protocol Buffers can be found here:
+            <a href="https://protobuf.dev/">protobuf.dev</a>
+        </p>
+
+        <h2>Data Type Mapping</h2>
+
+        <p>
+            When a record is parsed from incoming data, the Controller Service is going to map the Proto Message field types to the corresponding
+            NiFi data types. The mapping between the provided Message fields and the encoded input is always based on the field tag numbers.
+            When a field is defined as 'repeated' then it's data type will be an array with data type of it's originally specified type.
+            The following tables show which proto field type will correspond to which NiFi field type after the conversion.
+        </p>
+
+        <h3>
+            Scalar Value Types
+        </h3>
+
+        <p>
+            <table>
+                <tr><th>Proto Type</th><th>Proto Wire Type</th><th>NiFi Data Type</th></tr>
+                <tr><td>double</td><td>fixed64</td><td>double</td></tr>
+                <tr><td>float</td><td>fixed32</td><td>float</td></tr>
+                <tr><td>int32</td><td>varint</td><td>int</td></tr>
+                <tr><td>int64</td><td>varint</td><td>long</td></tr>
+                <tr><td>uint32</td><td>varint</td><td>long</td></tr>
+                <tr><td>uint64</td><td>varint</td><td>bigint</td></tr>
+                <tr><td>sint32</td><td>varint</td><td>long</td></tr>
+                <tr><td>sint64</td><td>varint</td><td>long</td></tr>
+                <tr><td>fixed32</td><td>fixed32</td><td>long</td></tr>
+                <tr><td>fixed64</td><td>fixed64</td><td>bigint</td></tr>
+                <tr><td>sfixed32</td><td>varint</td><td>int</td></tr>
+                <tr><td>sfixed64</td><td>varint</td><td>long</td></tr>
+                <tr><td>bool</td><td>varint</td><td>boolean</td></tr>
+                <tr><td>string</td><td>length delimited</td><td>string</td></tr>
+                <tr><td>bytes</td><td>length delimited</td><td>array[byte]</td></tr>
+            </table>
+        </p>
+
+        <h3>
+            Composite Value Types
+        </h3>
+
+        <p>
+            <table>
+                <tr><th>Proto Type</th><th>Proto Wire Type</th><th>NiFi Data Type</th></tr>
+                <tr><td>message</td><td>length delimited</td><td>record</td></tr>
+                <tr><td>enum</td><td>varint</td><td>enum</td></tr>
+                <tr><td>map</td><td>length delimited</td><td>map</td></tr>
+                <tr><td>oneof</td><td>-</td><td>choice</td></tr>
+            </table>
+        </p>
+
+        <h2>Schemas and Type Coercion</h2>
+
+        <p>
+            When a record is parsed from incoming data, it is separated into fields. Each of these fields is then looked up against the
+            configured schema (by field name) in order to determine what the type of the data should be. If the field is not present in
+            the schema, that field will be stored in the Record's value list on its original type. If the field is found in the schema,
+            the data type of the received data is compared against the data type specified in the schema. If the types match, the value
+            of that field is used as-is. If the schema indicates that the field should be of a different type, then the Controller Service
+            will attempt to coerce the data into the type specified by the schema. If the field cannot be coerced into the specified type,
+            an Exception will be thrown.
+        </p>
+
+        <p>
+            The following rules apply when attempting to coerce a field value from one data type to another:
+        </p>
+
+        <ul>
+            <li>Any data type can be coerced into a String type.</li>
+            <li>Any numeric data type (Int, Long, Float, Double) can be coerced into any other numeric data type.</li>
+            <li>Any numeric value can be coerced into a Date, Time, or Timestamp type, by assuming that the Long value is the number of
+            milliseconds since epoch (Midnight GMT, January 1, 1970).</li>
+            <li>A String value can be coerced into a Date, Time, or Timestamp type, if its format matches the configured "Date Format," "Time Format,"
+                or "Timestamp Format."</li>
+            <li>A String value can be coerced into a numeric value if the value is of the appropriate type. For example, the String value
+                <code>8</code> can be coerced into any numeric type. However, the String value <code>8.2</code> can be coerced into a Double or Float
+                type but not an Integer.</li>
+            <li>A String value of "true" or "false" (regardless of case) can be coerced into a Boolean value.</li>
+            <li>A String value that is not empty can be coerced into a Char type. If the String contains more than 1 character, the first character is used
+                and the rest of the characters are ignored.</li>
+        </ul>
+
+        <p>
+            If none of the above rules apply when attempting to coerce a value from one data type to another, the coercion will fail and an Exception
+            will be thrown.
+        </p>
+
+        <h2>Schema Access Strategy</h2>
+
+        <p>
+            Beside the common Schema Access strategies like getting the schema from property value or accessing it from Schema Registry,
+            the ProtobufReader Controller Service offers another access strategy option called "Generate from Proto file". When using this strategy,
+            the Reader will generate the Record Schema from the provided '.proto' file and Message type. This is a recommended strategy when the user
+            doesn't want to manually create the schema or when no type coercion is needed.
+        </p>
+
+
+        <h2>Protobuf Any Field Type</h2>
+
+        <p>
+            Protocol Buffers offers further Message types called Well-Known Types. These are additionally provided messages that defines
+            complex structured types and wrappers for scalar types. The Any type is one of these Well-Known Types which is used to store an arbitrary
+            serialized Message along with an URL that describes the type of the serialized Message. Since the Message type and the embedded Message will be
+            available only when the Any Message is already populated with data, the ProtobufReader needs to do this Message processing at data conversion time.
+            The Reader is capable to generate schema for the embedded Message in the Any field and replace it in the result Record schema.
+        </p>
+
+        <h3>Example</h3>
+
+        <p>
+            There is a Message called 'TestMessage' which has only one field that is an Any typed field. There is another Message called 'NestedMessage'
+            that we would like to add as serialized Message in the value of 'anyField'.
+        </p>
+
+<code><pre>
+message Any {
+    string type_url = 1;
+    bytes value = 2;
+}
+
+message TestMessage {
+    google.protobuf.Any anyField = 3;
+}
+
+message NestedMessage {
+    string field_1 = 1;
+    string field_2 = 2;
+    string field_3 = 3;
+}
+</pre></code>
+
+        <p>
+            With normal data conversion our result would look like this:
+        </p>
+
+<code><pre>
+{
+    anyField : {
+        type_url : "type.googleapis.com/NestedMessage"
+        value : [84, 101, 115, 116, 32, 98, 121, 116, 101, 115]
+    }
+}
+</pre></code>
+
+        <p>
+            Result after the Protobuf Reader replaces the Any Message's fields with the processed embedded Message:
+        </p>
+
+<code><pre>
+{
+    anyField : {
+        field_1 : "value 1",
+        field_2 : "value 2",
+        field_3 : "value 3"
+    }
+}
+</pre></code>
+
+    </body>
+</html>
