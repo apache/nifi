@@ -392,8 +392,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.ForkJoinWorkerThread;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -410,7 +410,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private static final Logger logger = LoggerFactory.getLogger(StandardNiFiServiceFacade.class);
     private static final int VALIDATION_WAIT_MILLIS = 50;
     private static final String ROOT_PROCESS_GROUP = "RootProcessGroup";
-    private static final int PARALLEL_PROCESSING_THREADS = 6;
 
     // nifi core components
     private ControllerFacade controllerFacade;
@@ -462,7 +461,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     private RuleViolationsManager ruleViolationsManager;
 
-    private final ForkJoinPool parallelProcessingThreadPool = createParallelProcessingThreadPool();
+    private Executor parallelProcessingExecutor;
 
     // -----------------------------------------
     // Synchronization methods
@@ -6244,33 +6243,37 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final boolean analyticsEnabled = Boolean.parseBoolean(properties.getProperty(NiFiProperties.ANALYTICS_PREDICTION_ENABLED, Boolean.FALSE.toString()));
 
         if (analyticsEnabled) {
+            if (parallelProcessingExecutor == null) {
+                parallelProcessingExecutor = Executors.newVirtualThreadPerTaskExecutor();
+            }
             // We need to make processing timeout shorter than the web request timeout as if they overlap Jetty may throw IllegalStateException
             final long parallelProcessingTimeout = Math.round(FormatUtils.getPreciseTimeDuration(
                     properties.getProperty(NiFiProperties.WEB_REQUEST_TIMEOUT, "1 min"), TimeUnit.MILLISECONDS)) - 5000;
 
             final CountDownLatch countDownLatch = new CountDownLatch(connections.size());
             try {
-                parallelProcessingThreadPool.submit(
-                        () -> connections.parallelStream().forEach((c) -> {
-                            try {
-                                final StatusAnalytics statusAnalytics = controllerFacade.getConnectionStatusAnalytics(c.getIdentifier());
-                                PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry,
-                                        statusAnalytics,
-                                        instanceId,
-                                        "Connection",
-                                        c.getName(),
-                                        c.getIdentifier(),
-                                        c.getProcessGroup().getIdentifier(),
-                                        c.getSource().getName(),
-                                        c.getSource().getIdentifier(),
-                                        c.getDestination().getName(),
-                                        c.getDestination().getIdentifier()
-                                );
-                                predictions.add(statusAnalytics.getPredictions());
-                            } finally {
-                                countDownLatch.countDown();
-                            }
-                        }));
+                for (Connection c : connections) {
+                    parallelProcessingExecutor.execute(() -> {
+                        try {
+                            final StatusAnalytics statusAnalytics = controllerFacade.getConnectionStatusAnalytics(c.getIdentifier());
+                            PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry,
+                                    statusAnalytics,
+                                    instanceId,
+                                    "Connection",
+                                    c.getName(),
+                                    c.getIdentifier(),
+                                    c.getProcessGroup().getIdentifier(),
+                                    c.getSource().getName(),
+                                    c.getSource().getIdentifier(),
+                                    c.getDestination().getName(),
+                                    c.getDestination().getIdentifier()
+                            );
+                            predictions.add(statusAnalytics.getPredictions());
+                        } finally {
+                            countDownLatch.countDown();
+                        }
+                    });
+                }
             } finally {
                 try {
                     boolean finished = countDownLatch.await(parallelProcessingTimeout, TimeUnit.MILLISECONDS);
@@ -6331,15 +6334,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         );
 
         return metricsRegistries;
-    }
-
-    private ForkJoinPool createParallelProcessingThreadPool() {
-        final ForkJoinPool.ForkJoinWorkerThreadFactory factory = pool -> {
-            final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
-            worker.setName("analytics-prediction-parallel-processing-thread-" + UUID.randomUUID());
-            return worker;
-        };
-        return new ForkJoinPool(PARALLEL_PROCESSING_THREADS, factory, null, false);
     }
 
     @Override
