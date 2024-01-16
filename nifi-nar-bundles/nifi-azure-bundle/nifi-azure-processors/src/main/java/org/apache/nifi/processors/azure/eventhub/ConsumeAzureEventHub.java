@@ -66,6 +66,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointStrategy;
 import org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStore;
+import org.apache.nifi.processors.azure.eventhub.checkpoint.exception.ComponentStateCheckpointStoreException;
 import org.apache.nifi.processors.azure.eventhub.position.EarliestEventPositionProvider;
 import org.apache.nifi.processors.azure.eventhub.position.LegacyBlobStorageEventPositionProvider;
 import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
@@ -581,7 +582,14 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             }
         }
 
-        getLogger().error("Receive Events failed Namespace [{}] Event Hub [{}] Consumer Group [{}] Partition [{}]",
+        final String errorMessage;
+        if (throwable instanceof ComponentStateCheckpointStoreException) {
+            errorMessage = "Failed to access Component State Checkpoint Store";
+        } else {
+            errorMessage = "Receive Events failed";
+        }
+
+        getLogger().error(errorMessage + ". Namespace [{}] Event Hub [{}] Consumer Group [{}] Partition [{}]",
                 partitionContext.getFullyQualifiedNamespace(),
                 partitionContext.getEventHubName(),
                 partitionContext.getConsumerGroup(),

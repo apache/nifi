@@ -19,7 +19,8 @@ package org.apache.nifi.processors.azure.eventhub.checkpoint;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStore.ConcurrentStateModificationException;
+import org.apache.nifi.processors.azure.eventhub.checkpoint.exception.ConcurrentStateModificationException;
+import org.apache.nifi.processors.azure.eventhub.checkpoint.exception.StateNotAvailableException;
 import org.apache.nifi.state.MockStateMap;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,7 +56,7 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
         when(stateManager.getState(Scope.CLUSTER)).thenThrow(IOException.class);
 
         StepVerifier.create(checkpointStore.listOwnership(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP))
-                .expectError(IOException.class)
+                .expectError(StateNotAvailableException.class)
                 .verify();
 
         verify(stateManager).getState(Scope.CLUSTER);
@@ -67,7 +68,7 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
         when(stateManager.getState(Scope.CLUSTER)).thenThrow(IOException.class);
 
         StepVerifier.create(checkpointStore.listCheckpoints(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP))
-                .expectError(IOException.class)
+                .expectError(StateNotAvailableException.class)
                 .verify();
 
         verify(stateManager).getState(Scope.CLUSTER);
@@ -79,7 +80,7 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
         when(stateManager.getState(Scope.CLUSTER)).thenThrow(IOException.class);
 
         StepVerifier.create(checkpointStore.claimOwnership(Collections.singletonList(partitionOwnership1)))
-                .expectError(IOException.class)
+                .expectError(StateNotAvailableException.class)
                 .verify();
 
         verify(stateManager, times(1)).getState(Scope.CLUSTER);
@@ -93,7 +94,7 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
         when(stateManager.replace(eq(state), anyMap(), eq(Scope.CLUSTER))).thenThrow(IOException.class);
 
         StepVerifier.create(checkpointStore.claimOwnership(Collections.singletonList(partitionOwnership1)))
-                .expectError(IOException.class)
+                .expectError(StateNotAvailableException.class)
                 .verify();
 
         verify(stateManager).getState(Scope.CLUSTER);
@@ -106,7 +107,7 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
         when(stateManager.getState(Scope.CLUSTER)).thenThrow(IOException.class);
 
         StepVerifier.create(checkpointStore.updateCheckpoint(checkpoint1))
-                .expectError(IOException.class)
+                .expectError(StateNotAvailableException.class)
                 .verify();
 
         verify(stateManager, times(1)).getState(Scope.CLUSTER);
@@ -120,7 +121,7 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
         when(stateManager.replace(eq(state), anyMap(), eq(Scope.CLUSTER))).thenThrow(IOException.class);
 
         StepVerifier.create(checkpointStore.updateCheckpoint(checkpoint1))
-                .expectError(IOException.class)
+                .expectError(StateNotAvailableException.class)
                 .verify();
 
         verify(stateManager, times(1)).getState(Scope.CLUSTER);
@@ -133,7 +134,7 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
         when(stateManager.getState(Scope.CLUSTER)).thenThrow(IOException.class);
 
         StepVerifier.create(checkpointStore.cleanUpMono(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP + "-2"))
-                .expectError(IOException.class)
+                .expectError(StateNotAvailableException.class)
                 .verify();
 
         verify(stateManager).getState(Scope.CLUSTER);
@@ -147,7 +148,7 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
         when(stateManager.replace(eq(state), anyMap(), eq(Scope.CLUSTER))).thenThrow(IOException.class);
 
         StepVerifier.create(checkpointStore.cleanUpMono(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP + "-2"))
-                .expectError(IOException.class)
+                .expectError(StateNotAvailableException.class)
                 .verify();
 
         verify(stateManager, times(1)).getState(Scope.CLUSTER);

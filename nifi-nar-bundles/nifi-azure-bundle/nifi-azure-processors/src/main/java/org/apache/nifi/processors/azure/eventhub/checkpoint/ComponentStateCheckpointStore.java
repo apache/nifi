@@ -27,13 +27,14 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.azure.eventhub.checkpoint.exception.ConcurrentStateModificationException;
+import org.apache.nifi.processors.azure.eventhub.checkpoint.exception.StateNotAvailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -140,9 +141,8 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                     }
                 })
                 .doOnSuccess(__ -> debug("cleanUp() -> Succeeded"))
-                .doOnError(throwable -> debug("cleanUp() -> Failed: {}", throwable.getMessage()))
-                .retryWhen(createRetrySpec())
-                .doOnError(ConcurrentStateModificationException.class, throwable -> debug("cleanUp() -> Retry failed: {}", throwable.getMessage()));
+                .retryWhen(createRetrySpec("cleanUp"))
+                .doOnError(throwable -> debug("cleanUp() -> Failed: {}", throwable.getMessage()));
     }
 
     @Override
@@ -212,9 +212,8 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                 })
                 .doOnNext(partitionOwnership -> debug("claimOwnership() -> Returning {}", ownershipToString(partitionOwnership)))
                 .doOnComplete(() -> debug("claimOwnership() -> Succeeded"))
-                .doOnError(throwable -> debug("claimOwnership() -> Failed: {}", throwable.getMessage()))
-                .retryWhen(createRetrySpec())
-                .doOnError(ConcurrentStateModificationException.class, throwable -> debug("claimOwnership() -> Retry failed: {}", throwable.getMessage()));
+                .retryWhen(createRetrySpec("claimOwnership"))
+                .doOnError(throwable -> debug("claimOwnership() -> Failed: {}", throwable.getMessage()));
     }
 
     @Override
@@ -244,16 +243,16 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                     return updateState(oldState, newMap);
                 })
                 .doOnSuccess(__ -> debug("updateCheckpoint() -> Succeeded"))
-                .doOnError(throwable -> debug("updateCheckpoint() -> Failed: {}", throwable.getMessage()))
-                .retryWhen(createRetrySpec())
-                .doOnError(ConcurrentStateModificationException.class, throwable -> debug("updateCheckpoint() -> Retry failed: {}", throwable.getMessage()));
+                .retryWhen(createRetrySpec("updateCheckpoint"))
+                .doOnError(throwable -> debug("updateCheckpoint() -> Failed: {}", throwable.getMessage()));
     }
 
-    private Retry createRetrySpec() {
+    private Retry createRetrySpec(String methodName) {
         return Retry.max(10)
                 .filter(t -> t instanceof ConcurrentStateModificationException)
-                .onRetryExhaustedThrow(((retrySpec, retrySignal) -> new ConcurrentStateModificationException(
-                        String.format("Retrials of concurrent state modifications has been exhausted (%d retrials)", 10))));
+                .doBeforeRetry(retrySignal -> debug(methodName + "() -> Retry: {}", retrySignal))
+                .onRetryExhaustedThrow((retrySpec, retrySignal) -> new ConcurrentStateModificationException(
+                        String.format("Retrials of concurrent state modifications has been exhausted (%d retrials)", 10)));
     }
 
     private Flux<PartitionOwnership> getOwnerships(StateMap state) {
@@ -283,8 +282,8 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                     try {
                         StateMap state = stateManager.getState(Scope.CLUSTER);
                         return Mono.just(state);
-                    } catch (IOException e) {
-                        return Mono.error(e);
+                    } catch (Exception e) {
+                        return Mono.error(new StateNotAvailableException(e));
                     }
                 }
         );
@@ -301,16 +300,11 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                             return Mono.error(new ConcurrentStateModificationException(
                                     String.format("Component state with version [%s] has been modified by another instance" , oldState.getStateVersion().orElse("new"))));
                         }
-                    } catch (IOException e) {
-                        return Mono.error(e);
+                    } catch (Exception e) {
+                        return Mono.error(new StateNotAvailableException(e));
                     }
                 }
         );
     }
 
-    static class ConcurrentStateModificationException extends Exception {
-        ConcurrentStateModificationException(String message) {
-            super(message);
-        }
-    }
 }
