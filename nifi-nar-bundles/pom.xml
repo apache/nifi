@@ -110,6 +110,7 @@
         <module>nifi-apicurio-bundle</module>
         <module>nifi-jolt-bundle</module>
         <module>nifi-questdb-bundle</module>
+        <module>nifi-protobuf-bundle</module>
     </modules>
 
     <repositories>
