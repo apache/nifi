@@ -96,7 +96,6 @@ import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
-import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.history.ProcessGroupStatusDescriptor;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.events.BulletinFactory;
@@ -354,6 +353,7 @@ import org.apache.nifi.web.revision.RevisionUpdate;
 import org.apache.nifi.web.revision.StandardRevisionClaim;
 import org.apache.nifi.web.revision.StandardRevisionUpdate;
 import org.apache.nifi.web.revision.UpdateRevisionTask;
+import org.apache.nifi.web.util.PredictionBasedParallelProcessingService;
 import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -443,6 +443,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private final JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
     private final ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry = new ConnectionAnalyticsMetricsRegistry();
     private final ClusterMetricsRegistry clusterMetricsRegistry = new ClusterMetricsRegistry();
+    private PredictionBasedParallelProcessingService parallelProcessingService;
+
 
     // -----------------------------------------
     // Synchronization methods
@@ -6116,28 +6118,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         PrometheusMetricsUtil.createAggregatedNifiMetrics(nifiMetricsRegistry, aggregatedMetrics, instanceId,ROOT_PROCESS_GROUP, rootPGName, rootPGId);
 
         // Get Connection Status Analytics (predictions, e.g.)
-        Set<Connection> connections = controllerFacade.getFlowManager().findAllConnections();
-        for (Connection c : connections) {
-            // If a ResourceNotFoundException is thrown, analytics hasn't been enabled
-            try {
-                final StatusAnalytics statusAnalytics = controllerFacade.getConnectionStatusAnalytics(c.getIdentifier());
-                PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry,
-                        statusAnalytics,
-                        instanceId,
-                        "Connection",
-                        c.getName(),
-                        c.getIdentifier(),
-                        c.getProcessGroup().getIdentifier(),
-                        c.getSource().getName(),
-                        c.getSource().getIdentifier(),
-                        c.getDestination().getName(),
-                        c.getDestination().getIdentifier()
-                );
-                PrometheusMetricsUtil.aggregateConnectionPredictionMetrics(aggregatedMetrics, statusAnalytics.getPredictions());
-            } catch (ResourceNotFoundException rnfe) {
-                break;
-            }
-        }
+        Collection<Map<String, Long>> predictions = parallelProcessingService.createConnectionStatusAnalyticsMetricsAndCollectPredictions(
+                controllerFacade, connectionAnalyticsMetricsRegistry, instanceId);
+
+        predictions.forEach((prediction) -> PrometheusMetricsUtil.aggregateConnectionPredictionMetrics(aggregatedMetrics, prediction));
         PrometheusMetricsUtil.createAggregatedConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry, aggregatedMetrics, instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId);
 
         // Create a query to get all bulletins
@@ -6496,5 +6480,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     public void setFlowRegistryDAO(FlowRegistryDAO flowRegistryDao) {
         this.flowRegistryDAO = flowRegistryDao;
+    }
+
+    public void setParallelProcessingService(PredictionBasedParallelProcessingService parallelProcessingService) {
+        this.parallelProcessingService = parallelProcessingService;
     }
 }
