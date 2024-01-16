@@ -67,7 +67,22 @@ const routes: Routes = [
                     }
                 ]
             },
-            { path: 'flow-analysis-rules', component: FlowAnalysisRules },
+            {
+                path: 'flow-analysis-rules',
+                component: FlowAnalysisRules,
+                children: [
+                    {
+                        path: ':id',
+                        component: FlowAnalysisRules,
+                        children: [
+                            {
+                                path: 'edit',
+                                component: FlowAnalysisRules
+                            }
+                        ]
+                    }
+                ]
+            },
             {
                 path: 'registry-clients',
                 component: RegistryClients,

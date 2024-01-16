@@ -19,24 +19,11 @@ import { NgModule } from '@angular/core';
 import { UserListing } from './user-listing.component';
 import { CommonModule } from '@angular/common';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { MatTableModule } from '@angular/material/table';
-import { MatSortModule } from '@angular/material/sort';
-import { MatInputModule } from '@angular/material/input';
-import { ReactiveFormsModule } from '@angular/forms';
-import { MatSelectModule } from '@angular/material/select';
 import { UserTable } from './user-table/user-table.component';
 
 @NgModule({
-    declarations: [UserListing, UserTable],
+    declarations: [UserListing],
     exports: [UserListing],
-    imports: [
-        CommonModule,
-        NgxSkeletonLoaderModule,
-        MatTableModule,
-        MatSortModule,
-        MatInputModule,
-        ReactiveFormsModule,
-        MatSelectModule
-    ]
+    imports: [CommonModule, NgxSkeletonLoaderModule, UserTable]
 })
 export class UserListingModule {}

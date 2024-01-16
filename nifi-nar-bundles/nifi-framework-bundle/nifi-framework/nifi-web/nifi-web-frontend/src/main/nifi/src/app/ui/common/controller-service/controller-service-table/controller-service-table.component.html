@@ -31,27 +31,27 @@
                                 because of the gap between items. simple solution is to
                                 just wrap the target.
                             -->
-                            <div>
+                            <div *ngIf="hasComments(item)">
                                 <div
                                     class="pointer fa fa-comment"
-                                    *ngIf="hasComments(item)"
                                     nifiTooltip
+                                    [delayClose]="false"
                                     [tooltipComponentType]="TextTip"
                                     [tooltipInputData]="getCommentsTipData(item)"></div>
                             </div>
-                            <div>
+                            <div *ngIf="hasErrors(item)">
                                 <div
                                     class="pointer fa fa-warning has-errors"
-                                    *ngIf="hasErrors(item)"
                                     nifiTooltip
+                                    [delayClose]="false"
                                     [tooltipComponentType]="ValidationErrorsTip"
                                     [tooltipInputData]="getValidationErrorsTipData(item)"></div>
                             </div>
-                            <div>
+                            <div *ngIf="hasBulletins(item)">
                                 <div
                                     class="pointer fa fa-sticky-note-o"
-                                    *ngIf="hasBulletins(item)"
                                     nifiTooltip
+                                    [delayClose]="false"
                                     [tooltipComponentType]="BulletinsTip"
                                     [tooltipInputData]="getBulletinsTipData(item)"></div>
                             </div>
@@ -144,6 +144,12 @@
                                 (click)="deleteClicked(item, $event)"
                                 title="Delete"></div>
                             <div class="pointer fa fa-tasks" *ngIf="canViewState(item)" title="View State"></div>
+                            <div
+                                class="pointer fa fa-key"
+                                *ngIf="canManageAccessPolicies()"
+                                (click)="$event.stopPropagation()"
+                                [routerLink]="getPolicyLink(item)"
+                                title="Delete"></div>
                         </div>
                     </ng-container>
                     <ng-template #notDefinedByCurrentGroup>
@@ -152,7 +158,6 @@
                             title="Go To"
                             [routerLink]="getServiceLink(item)"></div>
                     </ng-template>
-                    <div class="pointer fa fa-key" *ngIf="canManageAccessPolicies()" title="Access Policies"></div>
                 </td>
             </ng-container>
 

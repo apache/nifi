@@ -17,6 +17,7 @@
 
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { extensionTypesFeatureKey, ExtensionTypesState } from './index';
+import { DocumentedType, RequiredPermission } from '../shared';
 
 export const selectExtensionTypesState = createFeatureSelector<ExtensionTypesState>(extensionTypesFeatureKey);
 
@@ -43,4 +44,57 @@ export const selectReportingTaskTypes = createSelector(
 export const selectRegistryClientTypes = createSelector(
     selectExtensionTypesState,
     (state: ExtensionTypesState) => state.registryClientTypes
+);
+
+export const selectFlowAnalysisRuleTypes = createSelector(
+    selectExtensionTypesState,
+    (state: ExtensionTypesState) => state.flowAnalysisRuleTypes
+);
+
+export const selectTypesToIdentifyComponentRestrictions = createSelector(
+    selectExtensionTypesState,
+    (state: ExtensionTypesState) => {
+        const types: DocumentedType[] = [];
+
+        if (state.processorTypes) {
+            types.push(...state.processorTypes);
+        }
+        if (state.controllerServiceTypes) {
+            types.push(...state.controllerServiceTypes);
+        }
+        if (state.reportingTaskTypes) {
+            types.push(...state.reportingTaskTypes);
+        }
+        if (state.parameterProviderTypes) {
+            types.push(...state.parameterProviderTypes);
+        }
+        if (state.flowAnalysisRuleTypes) {
+            types.push(...state.flowAnalysisRuleTypes);
+        }
+
+        return types;
+    }
+);
+
+export const selectRequiredPermissions = createSelector(
+    selectTypesToIdentifyComponentRestrictions,
+    (documentedTypes: DocumentedType[]) => {
+        const requiredPermissions: Map<string, RequiredPermission> = new Map<string, RequiredPermission>();
+
+        documentedTypes
+            .filter((documentedType) => documentedType.restricted)
+            .forEach((documentedType) => {
+                if (documentedType.explicitRestrictions) {
+                    documentedType.explicitRestrictions.forEach((explicitRestriction) => {
+                        const requiredPermission: RequiredPermission = explicitRestriction.requiredPermission;
+
+                        if (!requiredPermissions.has(requiredPermission.id)) {
+                            requiredPermissions.set(requiredPermission.id, requiredPermission);
+                        }
+                    });
+                }
+            });
+
+        return Array.from(requiredPermissions.values());
+    }
 );

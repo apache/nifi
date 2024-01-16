@@ -215,6 +215,11 @@ export interface OpenComponentDialogRequest {
     type: ComponentType;
 }
 
+export interface NavigateToManageComponentPoliciesRequest {
+    resource: string;
+    id: string;
+}
+
 export interface EditComponentDialogRequest {
     type: ComponentType;
     uri: string;
@@ -223,6 +228,10 @@ export interface EditComponentDialogRequest {
 
 export interface NavigateToControllerServicesRequest {
     id: string;
+}
+
+export interface NavigateToQueueListing {
+    connectionId: string;
 }
 
 export interface EditCurrentProcessGroupRequest {

@@ -20,6 +20,8 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { ParameterContextEntity } from '../../../state/parameter-context-listing';
+import { FlowConfiguration } from '../../../../../state/flow-configuration';
+import { CurrentUser } from '../../../../../state/current-user';
 
 @Component({
     selector: 'parameter-context-table',
@@ -43,7 +45,10 @@ export class ParameterContextTable implements AfterViewInit {
             return '';
         };
     }
+
     @Input() selectedParameterContextId!: string;
+    @Input() flowConfiguration!: FlowConfiguration;
+    @Input() currentUser!: CurrentUser;
 
     @Output() selectParameterContext: EventEmitter<ParameterContextEntity> = new EventEmitter<ParameterContextEntity>();
     @Output() editParameterContext: EventEmitter<ParameterContextEntity> = new EventEmitter<ParameterContextEntity>();
@@ -86,8 +91,10 @@ export class ParameterContextTable implements AfterViewInit {
     }
 
     canDelete(entity: ParameterContextEntity): boolean {
-        // TODO canModifyParameterContexts
-        return this.canRead(entity) && this.canWrite(entity);
+        const canModifyParameterContexts: boolean =
+            this.currentUser.parameterContextPermissions.canRead &&
+            this.currentUser.parameterContextPermissions.canWrite;
+        return canModifyParameterContexts && this.canRead(entity) && this.canWrite(entity);
     }
 
     deleteClicked(entity: ParameterContextEntity, event: MouseEvent): void {
@@ -96,12 +103,11 @@ export class ParameterContextTable implements AfterViewInit {
     }
 
     canManageAccessPolicies(): boolean {
-        // TODO nfCanvasUtils.isManagedAuthorizer() && nfCommon.canAccessTenants()
-        return false;
+        return this.flowConfiguration.supportsManagedAuthorizer && this.currentUser.tenantsPermissions.canRead;
     }
 
-    managePoliciesClicked(entity: ParameterContextEntity, event: MouseEvent): void {
-        event.stopPropagation();
+    getPolicyLink(entity: ParameterContextEntity): string[] {
+        return ['/access-policies', 'read', 'component', 'parameter-contexts', entity.id];
     }
 
     select(entity: ParameterContextEntity): void {

@@ -38,6 +38,8 @@ import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { selectCurrentUser } from '../../../../../state/current-user/current-user.selectors';
 import * as fromUser from '../../../../../state/current-user/current-user.reducer';
+import { selectFlowConfiguration } from '../../../../../state/flow-configuration/flow-configuration.selectors';
+import * as fromFlowConfiguration from '../../../../../state/flow-configuration/flow-configuration.reducer';
 
 describe('HeaderComponent', () => {
     let component: HeaderComponent;
@@ -105,6 +107,10 @@ describe('HeaderComponent', () => {
                         {
                             selector: selectCurrentUser,
                             value: fromUser.initialState.user
+                        },
+                        {
+                            selector: selectFlowConfiguration,
+                            value: fromFlowConfiguration.initialState.flowConfiguration
                         }
                     ]
                 })

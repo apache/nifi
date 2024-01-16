@@ -53,6 +53,12 @@ const routes: Routes = [
         loadChildren: () => import('./pages/users/feature/users.module').then((m) => m.UsersModule)
     },
     {
+        path: 'access-policies',
+        canMatch: [authenticationGuard],
+        loadChildren: () =>
+            import('./pages/access-policies/feature/access-policies.module').then((m) => m.AccessPoliciesModule)
+    },
+    {
         path: 'summary',
         canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/summary/feature/summary.module').then((m) => m.SummaryModule)
@@ -61,6 +67,11 @@ const routes: Routes = [
         path: 'bulletins',
         canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/bulletins/feature/bulletins.module').then((m) => m.BulletinsModule)
+    },
+    {
+        path: 'queue',
+        canMatch: [authenticationGuard],
+        loadChildren: () => import('./pages/queue/feature/queue.module').then((m) => m.QueueModule)
     },
     {
         path: '',

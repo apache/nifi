@@ -58,11 +58,11 @@ import {
 } from '../../state/flow/flow.selectors';
 import { filter, map, switchMap, take, withLatestFrom } from 'rxjs';
 import { restoreViewport, zoomFit } from '../../state/transform/transform.actions';
-import { ComponentType } from '../../../../state/shared';
+import { ComponentType, isDefinedAndNotNull } from '../../../../state/shared';
 import { initialState } from '../../state/flow/flow.reducer';
-import { ContextMenuDefinitionProvider } from '../../../../ui/common/context-menu/context-menu.component';
 import { CanvasContextMenu } from '../../service/canvas-context-menu.service';
 import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
+import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 
 @Component({
     selector: 'fd-canvas',
@@ -167,37 +167,33 @@ export class Canvas implements OnInit, OnDestroy {
             .pipe(
                 filter((processGroupId) => processGroupId != initialState.id),
                 switchMap(() => this.store.select(selectSingleEditedComponent)),
-                // ensure there is a selected component
-                filter((selectedComponent) => selectedComponent != null),
+                isDefinedAndNotNull(),
                 switchMap((selectedComponent) => {
-                    // @ts-ignore
-                    const component: SelectedComponent = selectedComponent;
-
                     let component$;
-                    switch (component.componentType) {
+                    switch (selectedComponent.componentType) {
                         case ComponentType.Processor:
-                            component$ = this.store.select(selectProcessor(component.id));
+                            component$ = this.store.select(selectProcessor(selectedComponent.id));
                             break;
                         case ComponentType.InputPort:
-                            component$ = this.store.select(selectInputPort(component.id));
+                            component$ = this.store.select(selectInputPort(selectedComponent.id));
                             break;
                         case ComponentType.OutputPort:
-                            component$ = this.store.select(selectOutputPort(component.id));
+                            component$ = this.store.select(selectOutputPort(selectedComponent.id));
                             break;
                         case ComponentType.ProcessGroup:
-                            component$ = this.store.select(selectProcessGroup(component.id));
+                            component$ = this.store.select(selectProcessGroup(selectedComponent.id));
                             break;
                         case ComponentType.RemoteProcessGroup:
-                            component$ = this.store.select(selectRemoteProcessGroup(component.id));
+                            component$ = this.store.select(selectRemoteProcessGroup(selectedComponent.id));
                             break;
                         case ComponentType.Connection:
-                            component$ = this.store.select(selectConnection(component.id));
+                            component$ = this.store.select(selectConnection(selectedComponent.id));
                             break;
                         case ComponentType.Funnel:
-                            component$ = this.store.select(selectFunnel(component.id));
+                            component$ = this.store.select(selectFunnel(selectedComponent.id));
                             break;
                         case ComponentType.Label:
-                            component$ = this.store.select(selectLabel(component.id));
+                            component$ = this.store.select(selectLabel(selectedComponent.id));
                             break;
                         default:
                             throw 'Unrecognized Component Type';
@@ -270,6 +266,7 @@ export class Canvas implements OnInit, OnDestroy {
         this.createSvg();
         this.canvasView.init(this.viewContainerRef, this.svg, this.canvas);
 
+        this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(startProcessGroupPolling());
     }
 

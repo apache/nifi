@@ -504,4 +504,11 @@ export class NiFiCommon {
     public getPolicyTypeListing(value: string): SelectOption | undefined {
         return this.policyTypeListing.find((policy: SelectOption) => value === policy.value);
     }
+
+    /**
+     * Gets all policy types for every global resource.
+     */
+    public getAllPolicyTypeListing(): SelectOption[] {
+        return this.policyTypeListing;
+    }
 }

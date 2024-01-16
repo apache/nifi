@@ -401,7 +401,6 @@ public class NiFiProperties extends ApplicationProperties {
     private static final String DEFAULT_SECURITY_USER_JWS_KEY_ROTATION_PERIOD = "PT1H";
     public static final String DEFAULT_WEB_SHOULD_SEND_SERVER_VERSION = "true";
     public static final int DEFAULT_LISTENER_BOOTSTRAP_PORT = 0;
-    public static final String DEFAULT_CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX = null;
 
     // cluster common defaults
     public static final String DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "5 sec";

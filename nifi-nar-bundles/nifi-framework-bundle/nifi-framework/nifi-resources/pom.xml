@@ -270,7 +270,6 @@
         <nifi.python.max.processes.per.extension.type>10</nifi.python.max.processes.per.extension.type>
         <nifi.python.logs.dir>./logs</nifi.python.logs.dir>
         
-        <!--  nifi.properties: kubernetes properties -->
         <nifi.cluster.leader.election.kubernetes.lease.prefix />
 
         <nifi.performance.tracking.percentage>0</nifi.performance.tracking.percentage>

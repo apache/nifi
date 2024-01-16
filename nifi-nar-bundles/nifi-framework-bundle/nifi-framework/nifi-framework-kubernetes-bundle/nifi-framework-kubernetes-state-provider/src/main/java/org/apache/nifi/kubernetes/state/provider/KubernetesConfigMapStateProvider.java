@@ -67,7 +67,9 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
 
     private static final Charset KEY_CHARACTER_SET = StandardCharsets.UTF_8;
 
-    private static final String CONFIG_MAP_CORE_NAME = "nifi-component";
+    private static final String CONFIG_MAP_NAME_FORMAT = "%snifi-component-%%s";
+
+    private static final String CONFIG_MAP_NAME_PATTERN_FORMAT = "^%snifi-component-(.+)$";
 
     private static final int COMPONENT_ID_GROUP = 1;
 
@@ -78,9 +80,9 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
 
     private final AtomicBoolean enabled = new AtomicBoolean();
 
-    private String CONFIG_MAP_NAME_FORMAT;
+    private String configMapNameFormat;
 
-    private Pattern CONFIG_MAP_NAME_PATTERN;
+    private Pattern configMapNamePattern;
 
     private KubernetesClient kubernetesClient;
 
@@ -119,11 +121,10 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
         this.kubernetesClient = getKubernetesClient();
         this.namespace = new ServiceAccountNamespaceProvider().getNamespace();
 
-        String configMapNamePrefix = context.getProperty(CONFIG_MAP_NAME_PREFIX).isSet() ? context.getProperty(CONFIG_MAP_NAME_PREFIX).getValue() : null;
-        CONFIG_MAP_NAME_FORMAT = configMapNamePrefix != null
-            ? String.format("%s-%s-%%s", configMapNamePrefix, CONFIG_MAP_CORE_NAME) : String.format("%s-%%s", CONFIG_MAP_CORE_NAME);
-        CONFIG_MAP_NAME_PATTERN = Pattern.compile(configMapNamePrefix != null
-            ? String.format("^%s-%s-(.+)$", configMapNamePrefix, CONFIG_MAP_CORE_NAME) : String.format("^%s-(.+)$", CONFIG_MAP_CORE_NAME));
+        String configMapNamePrefix = context.getProperty(CONFIG_MAP_NAME_PREFIX).isSet()
+                ? context.getProperty(CONFIG_MAP_NAME_PREFIX).getValue() + "-" : "";
+        configMapNameFormat = String.format(CONFIG_MAP_NAME_FORMAT, configMapNamePrefix);
+        configMapNamePattern = Pattern.compile(String.format(CONFIG_MAP_NAME_PATTERN_FORMAT, configMapNamePrefix));
     }
 
     /**
@@ -356,7 +357,7 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
         return configMapList.getItems().stream()
                 .map(ConfigMap::getMetadata)
                 .map(ObjectMeta::getName)
-                .map(CONFIG_MAP_NAME_PATTERN::matcher)
+                .map(configMapNamePattern::matcher)
                 .filter(Matcher::matches)
                 .map(matcher -> matcher.group(COMPONENT_ID_GROUP))
                 .collect(Collectors.toUnmodifiableList());
@@ -388,7 +389,7 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
     }
 
     private String getConfigMapName(final String componentId) {
-        return String.format(CONFIG_MAP_NAME_FORMAT, componentId);
+        return String.format(configMapNameFormat, componentId);
     }
 
     private Optional<String> getVersion(final ConfigMap configMap) {

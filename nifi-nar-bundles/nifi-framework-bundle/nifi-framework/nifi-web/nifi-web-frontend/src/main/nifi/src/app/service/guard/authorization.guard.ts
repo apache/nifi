@@ -33,7 +33,7 @@ export const authorizationGuard = (authorizationCheck: (user: CurrentUser) => bo
                     return true;
                 }
 
-                // TODO - replace with 404 error page
+                // TODO - replace with 403 error page
                 return router.parseUrl('/');
             })
         );

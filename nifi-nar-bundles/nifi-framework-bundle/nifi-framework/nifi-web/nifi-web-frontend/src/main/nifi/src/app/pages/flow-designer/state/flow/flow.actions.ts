@@ -45,6 +45,7 @@ import {
     MoveComponentsRequest,
     NavigateToComponentRequest,
     NavigateToControllerServicesRequest,
+    NavigateToManageComponentPoliciesRequest,
     OpenComponentDialogRequest,
     OpenGroupComponentsDialogRequest,
     LoadChildProcessGroupRequest,
@@ -66,7 +67,8 @@ import {
     UpdateConnectionRequest,
     UpdateConnectionSuccess,
     UpdatePositionsRequest,
-    UploadProcessGroupRequest
+    UploadProcessGroupRequest,
+    NavigateToQueueListing
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
 
@@ -295,6 +297,11 @@ export const navigateToEditComponent = createAction(
     props<{ request: OpenComponentDialogRequest }>()
 );
 
+export const navigateToManageComponentPolicies = createAction(
+    `${CANVAS_PREFIX} Navigate To Manage Component Policies`,
+    props<{ request: NavigateToManageComponentPoliciesRequest }>()
+);
+
 export const editComponent = createAction(
     `${CANVAS_PREFIX} Edit Component`,
     props<{ request: EditComponentDialogRequest }>()
@@ -307,6 +314,11 @@ export const navigateToEditCurrentProcessGroup = createAction(
 export const navigateToControllerServicesForProcessGroup = createAction(
     `${CANVAS_PREFIX} Navigate To Controller Services For Process Group`,
     props<{ request: NavigateToControllerServicesRequest }>()
+);
+
+export const navigateToQueueListing = createAction(
+    `${CANVAS_PREFIX} Navigate To Queue Listing`,
+    props<{ request: NavigateToQueueListing }>()
 );
 
 export const editCurrentProcessGroup = createAction(

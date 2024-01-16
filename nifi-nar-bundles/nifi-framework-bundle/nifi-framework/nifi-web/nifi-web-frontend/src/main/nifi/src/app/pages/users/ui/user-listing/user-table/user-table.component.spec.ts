@@ -172,8 +172,8 @@ describe('UserTable', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [UserTable],
             imports: [
+                UserTable,
                 MatTableModule,
                 MatSortModule,
                 MatInputModule,
