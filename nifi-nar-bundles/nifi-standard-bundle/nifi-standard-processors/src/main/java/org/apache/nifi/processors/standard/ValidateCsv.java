@@ -651,14 +651,6 @@ public class ValidateCsv extends AbstractProcessor {
         private void executeCellProcessors(final List<Object> destination, final List<?> source,
                 final CellProcessor[] processors, final int lineNo, final int rowNo, boolean includeAllViolations) {
 
-                if( destination == null ) {
-                    throw new NullPointerException("destination should not be null");
-                } else if( source == null ) {
-                    throw new NullPointerException("source should not be null");
-                } else if( processors == null ) {
-                    throw new NullPointerException("processors should not be null");
-                }
-
                 // the context used when cell processors report exceptions
                 final CsvContext context = new CsvContext(lineNo, rowNo, 1);
                 context.setRowSource(new ArrayList<>(source));
