@@ -16,23 +16,10 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as QueueActions from './queue.actions';
 import { Store } from '@ngrx/store';
-import {
-    asyncScheduler,
-    catchError,
-    filter,
-    from,
-    interval,
-    map,
-    of,
-    switchMap,
-    take,
-    takeUntil,
-    tap,
-    withLatestFrom
-} from 'rxjs';
+import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { selectDropConnectionId, selectDropProcessGroupId, selectDropRequestEntity } from './queue.selectors';
 import { QueueService } from '../../service/queue.service';
 import { DropRequest } from './index';
@@ -215,7 +202,7 @@ export class QueueEffects {
     pollEmptyQueueRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(QueueActions.pollEmptyQueueRequest),
-            withLatestFrom(this.store.select(selectDropRequestEntity).pipe(isDefinedAndNotNull())),
+            concatLatestFrom(() => this.store.select(selectDropRequestEntity).pipe(isDefinedAndNotNull())),
             switchMap(([action, dropEntity]) => {
                 return from(this.queueService.pollEmptyQueueRequest(dropEntity.dropRequest)).pipe(
                     map((response) =>
@@ -256,7 +243,7 @@ export class QueueEffects {
     deleteEmptyQueueRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(QueueActions.deleteEmptyQueueRequest),
-            withLatestFrom(this.store.select(selectDropRequestEntity).pipe(isDefinedAndNotNull())),
+            concatLatestFrom(() => this.store.select(selectDropRequestEntity).pipe(isDefinedAndNotNull())),
             switchMap(([action, dropEntity]) => {
                 this.dialog.closeAll();
 
@@ -287,7 +274,10 @@ export class QueueEffects {
             this.actions$.pipe(
                 ofType(QueueActions.showEmptyQueueResults),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectDropConnectionId), this.store.select(selectDropProcessGroupId)),
+                concatLatestFrom(() => [
+                    this.store.select(selectDropConnectionId),
+                    this.store.select(selectDropProcessGroupId)
+                ]),
                 tap(([request, connectionId, processGroupId]) => {
                     const dropRequest: DropRequest = request.dropEntity.dropRequest;
                     const droppedTokens: string[] = dropRequest.dropped.split(/ \/ /);
@@ -336,6 +326,15 @@ export class QueueEffects {
                         this.store.dispatch(resetQueueState());
                     });
                 })
+            ),
+        { dispatch: false }
+    );
+
+    queueApiError$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(QueueActions.queueApiError),
+                tap((action) => this.dialog.closeAll())
             ),
         { dispatch: false }
     );

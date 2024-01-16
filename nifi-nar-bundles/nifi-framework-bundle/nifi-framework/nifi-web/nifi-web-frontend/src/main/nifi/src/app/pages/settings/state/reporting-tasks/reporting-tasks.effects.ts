@@ -16,9 +16,9 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ReportingTaskActions from './reporting-tasks.actions';
-import { catchError, from, map, NEVER, Observable, of, switchMap, take, takeUntil, tap, withLatestFrom } from 'rxjs';
+import { catchError, from, map, NEVER, Observable, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
@@ -87,7 +87,7 @@ export class ReportingTasksEffects {
         () =>
             this.actions$.pipe(
                 ofType(ReportingTaskActions.openNewReportingTaskDialog),
-                withLatestFrom(this.store.select(selectReportingTaskTypes)),
+                concatLatestFrom(() => this.store.select(selectReportingTaskTypes)),
                 tap(([action, reportingTaskTypes]) => {
                     this.dialog.open(CreateReportingTask, {
                         data: {
