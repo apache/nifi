@@ -73,6 +73,11 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AzureStorageUtils.PROXY_CONFIGURATION_SERVICE)
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL, AzureStorageCredentialsType.MANAGED_IDENTITY)
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
             ACCOUNT_NAME,
             ENDPOINT_SUFFIX,
