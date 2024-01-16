@@ -141,7 +141,11 @@
                                 *ngIf="canDelete(item)"
                                 (click)="deleteClicked(item, $event)"
                                 title="Delete"></div>
-                            <div class="pointer fa fa-tasks" *ngIf="canViewState(item)" title="View State"></div>
+                            <div
+                                class="pointer fa fa-tasks"
+                                *ngIf="canViewState(item)"
+                                (click)="viewStateClicked(item)"
+                                title="View State"></div>
                             <div
                                 class="pointer fa fa-key"
                                 *ngIf="canManageAccessPolicies()"

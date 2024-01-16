@@ -55,6 +55,7 @@ import {
     ContextMenuItemDefinition
 } from '../../../ui/common/context-menu/context-menu.component';
 import { promptEmptyQueueRequest, promptEmptyQueuesRequest } from '../state/queue/queue.actions';
+import { getComponentStateAndOpenDialog } from '../../../state/component-state/component-state.actions';
 
 @Injectable({ providedIn: 'root' })
 export class CanvasContextMenu implements ContextMenuDefinitionProvider {
@@ -679,13 +680,21 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    // TODO - isStatefulProcessor
-                    return false;
+                    return this.canvasUtils.isStatefulProcessor(selection);
                 },
                 clazz: 'fa fa-tasks',
                 text: 'View state',
-                action: () => {
-                    // TODO - viewState
+                action: (selection: any) => {
+                    const selectionData = selection.datum();
+                    this.store.dispatch(
+                        getComponentStateAndOpenDialog({
+                            request: {
+                                componentName: selectionData.component.name,
+                                componentUri: selectionData.uri,
+                                canClear: this.canvasUtils.isConfigurable(selection)
+                            }
+                        })
+                    );
                 }
             },
             {

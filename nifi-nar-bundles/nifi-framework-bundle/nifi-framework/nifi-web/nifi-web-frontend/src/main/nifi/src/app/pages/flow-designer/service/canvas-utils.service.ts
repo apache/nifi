@@ -465,6 +465,28 @@ export class CanvasUtils {
     }
 
     /**
+     * Determines whether the current selection is a stateful processor.
+     *
+     * @param {selection} selection
+     */
+    public isStatefulProcessor(selection: any): boolean {
+        // ensure the correct number of components are selected
+        if (selection.size() !== 1) {
+            return false;
+        }
+        if (this.canRead(selection) === false || this.canModify(selection) === false) {
+            return false;
+        }
+
+        if (this.isProcessor(selection)) {
+            const processorData: any = selection.datum();
+            return processorData.component.persistsState === true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * Determines whether the user can configure or open the policy management page.
      */
     public canManagePolicies(selection: any): boolean {

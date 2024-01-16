@@ -45,6 +45,7 @@ import { selectCurrentUser } from '../../../../state/current-user/current-user.s
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { NiFiState } from '../../../../state';
 import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
+import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 
 @Component({
     selector: 'controller-services',
@@ -184,6 +185,18 @@ export class ControllerServices implements OnInit, OnDestroy {
                 request: {
                     id: entity.id,
                     controllerService: entity
+                }
+            })
+        );
+    }
+
+    viewStateControllerService(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            getComponentStateAndOpenDialog({
+                request: {
+                    componentUri: entity.uri,
+                    componentName: entity.component.name,
+                    canClear: entity.component.state === 'DISABLED'
                 }
             })
         );

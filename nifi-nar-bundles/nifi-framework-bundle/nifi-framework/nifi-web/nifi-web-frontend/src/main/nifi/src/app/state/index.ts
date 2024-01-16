@@ -31,6 +31,8 @@ import { systemDiagnosticsFeatureKey, SystemDiagnosticsState } from './system-di
 import { systemDiagnosticsReducer } from './system-diagnostics/system-diagnostics.reducer';
 import { flowConfigurationFeatureKey, FlowConfigurationState } from './flow-configuration';
 import { flowConfigurationReducer } from './flow-configuration/flow-configuration.reducer';
+import { componentStateFeatureKey, ComponentStateState } from './component-state';
+import { componentStateReducer } from './component-state/component-state.reducer';
 
 export interface NiFiState {
     router: RouterReducerState;
@@ -41,6 +43,7 @@ export interface NiFiState {
     [statusHistoryFeatureKey]: StatusHistoryState;
     [controllerServiceStateFeatureKey]: ControllerServiceState;
     [systemDiagnosticsFeatureKey]: SystemDiagnosticsState;
+    [componentStateFeatureKey]: ComponentStateState;
 }
 
 export const rootReducers: ActionReducerMap<NiFiState> = {
@@ -51,5 +54,6 @@ export const rootReducers: ActionReducerMap<NiFiState> = {
     [flowConfigurationFeatureKey]: flowConfigurationReducer,
     [statusHistoryFeatureKey]: statusHistoryReducer,
     [controllerServiceStateFeatureKey]: controllerServiceStateReducer,
-    [systemDiagnosticsFeatureKey]: systemDiagnosticsReducer
+    [systemDiagnosticsFeatureKey]: systemDiagnosticsReducer,
+    [componentStateFeatureKey]: componentStateReducer
 };

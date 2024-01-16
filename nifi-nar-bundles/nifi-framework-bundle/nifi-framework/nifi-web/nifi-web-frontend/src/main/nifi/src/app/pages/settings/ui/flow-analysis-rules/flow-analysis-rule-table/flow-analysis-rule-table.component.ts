@@ -60,6 +60,8 @@ export class FlowAnalysisRuleTable {
     @Output() configureFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> =
         new EventEmitter<FlowAnalysisRuleEntity>();
     @Output() enableFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> = new EventEmitter<FlowAnalysisRuleEntity>();
+    @Output() viewStateFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> =
+        new EventEmitter<FlowAnalysisRuleEntity>();
     @Output() disableFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> =
         new EventEmitter<FlowAnalysisRuleEntity>();
 
@@ -253,6 +255,10 @@ export class FlowAnalysisRuleTable {
 
     canViewState(entity: FlowAnalysisRuleEntity): boolean {
         return this.canRead(entity) && this.canWrite(entity) && entity.component.persistsState === true;
+    }
+
+    viewStateClicked(entity: FlowAnalysisRuleEntity): void {
+        this.viewStateFlowAnalysisRule.next(entity);
     }
 
     select(entity: FlowAnalysisRuleEntity): void {

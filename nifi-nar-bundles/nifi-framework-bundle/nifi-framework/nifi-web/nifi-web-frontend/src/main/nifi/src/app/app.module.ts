@@ -41,6 +41,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { ControllerServiceStateEffects } from './state/contoller-service-state/controller-service-state.effects';
 import { SystemDiagnosticsEffects } from './state/system-diagnostics/system-diagnostics.effects';
 import { FlowConfigurationEffects } from './state/flow-configuration/flow-configuration.effects';
+import { ComponentStateEffects } from './state/component-state/component-state.effects';
 
 @NgModule({
     declarations: [AppComponent],
@@ -65,7 +66,8 @@ import { FlowConfigurationEffects } from './state/flow-configuration/flow-config
             FlowConfigurationEffects,
             StatusHistoryEffects,
             ControllerServiceStateEffects,
-            SystemDiagnosticsEffects
+            SystemDiagnosticsEffects,
+            ComponentStateEffects
         ),
         StoreDevtoolsModule.instrument({
             maxAge: 25,
