@@ -1,0 +1,11 @@
+
+Ö
+test_proto2.protogoogle/protobuf/any.proto"Š
+Proto2Message
+field1 (Rfield1%
+field2 (	:Missing fieldRfield20
+anyField (2.google.protobuf.AnyRanyField*d€€€€"a
+AnyValueMessage&
+anyValueField1 (	RanyValueField1&
+anyValueField2 (	RanyValueField2:6
+extensionField.Proto2Messaged (RextensionField
