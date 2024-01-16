@@ -101,6 +101,65 @@ public class TestMonitorActivity {
     }
 
     @Test
+    public void testFirstMessageWithWaitForActivityTrue() {
+        final TestableProcessor processor = new TestableProcessor(1000);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
+        runner.setProperty(MonitorActivity.THRESHOLD, "100 millis");
+        runner.setProperty(MonitorActivity.WAIT_FOR_ACTIVITY, "true");
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS, 1);
+        runner.clearTransferState();
+
+        processor.resetLastSuccessfulTransfer();
+
+        runNext(runner);
+        runner.assertAllFlowFilesTransferred(MonitorActivity.REL_INACTIVE, 1);
+        runner.clearTransferState();
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("key", "value");
+        attributes.put("key1", "value1");
+
+        runner.enqueue(new byte[0], attributes);
+        runNext(runner);
+
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 1);
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 1);
+
+        MockFlowFile restoredFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).get(0);
+        String flowFileContent = new String(restoredFlowFile.toByteArray());
+        assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
+        restoredFlowFile.assertAttributeNotExists("key");
+        restoredFlowFile.assertAttributeNotExists("key1");
+
+        runner.clearTransferState();
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "true");
+
+        processor.resetLastSuccessfulTransfer();
+        runNext(runner);
+
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 1);
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        runner.enqueue(new byte[0], attributes);
+        runNext(runner);
+
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 1);
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 1);
+
+        restoredFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).get(0);
+        flowFileContent = new String(restoredFlowFile.toByteArray());
+        assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
+        restoredFlowFile.assertAttributeNotExists("key");
+        restoredFlowFile.assertAttributeNotExists("key1");
+    }
+    @Test
     public void testReconcileAfterFirstStartWhenLastSuccessIsAlreadySet() throws Exception {
         final String lastSuccessInCluster = String.valueOf(System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(5));
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(0));
@@ -349,6 +408,32 @@ public class TestMonitorActivity {
         while(rerun);
     }
 
+    @Timeout(5)
+    @Test
+    public void testFirstRunNoMessagesWithWaitForActivityTrue() throws InterruptedException {
+        // don't use the TestableProcessor, we want the real timestamp from @OnScheduled
+        final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
+        runner.setProperty(MonitorActivity.WAIT_FOR_ACTIVITY, "true");
+        int threshold = 100;
+        int rerun = 0;
+        do {
+            runner.setProperty(MonitorActivity.THRESHOLD, threshold + " millis");
+
+            Thread.sleep(1000L);
+
+            // shouldn't generate inactivity b/c run() will reset the lastSuccessfulTransfer if @OnSchedule & onTrigger
+            // does not  get called more than MonitorActivity.THRESHOLD apart
+            runner.run();
+            runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+            runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
+            threshold += threshold;
+            rerun++;
+            runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
+            runner.clearTransferState();
+        }
+        while(rerun < 10);
+    }
     /**
      * Since each call to run() will call @OnScheduled methods which will set the lastSuccessfulTransfer to the
      * current time, we need a way to create an artificial time difference between calls to run.
