@@ -444,4 +444,9 @@
         <packageUrl regex="true">^pkg:maven/info\.picocli/picocli@.*$</packageUrl>
         <cve>CVE-2015-0897</cve>
     </suppress>
+    <suppress>
+        <notes>CVE-2023-36052 applies to Azure CLI not Azure Java libraries</notes>
+        <packageUrl regex="true">^pkg:maven/com\.azure/.*$</packageUrl>
+        <cve>CVE-2023-36052</cve>
+    </suppress>
 </suppressions>
