@@ -108,8 +108,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
-        <com.amazonaws.version>1.12.573</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.20.148</software.amazon.awssdk.version>
+        <com.amazonaws.version>1.12.637</com.amazonaws.version>
+        <software.amazon.awssdk.version>2.23.3</software.amazon.awssdk.version>
         <gson.version>2.10.1</gson.version>
         <io.fabric8.kubernetes.client.version>6.9.2</io.fabric8.kubernetes.client.version>
         <kotlin.version>1.9.10</kotlin.version>
