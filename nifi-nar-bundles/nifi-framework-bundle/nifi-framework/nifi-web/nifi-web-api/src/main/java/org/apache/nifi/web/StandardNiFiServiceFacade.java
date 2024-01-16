@@ -174,6 +174,7 @@ import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.VerifiableReportingTask;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FlowDifferenceFilters;
+import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
@@ -379,6 +380,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -395,6 +399,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private static final Logger logger = LoggerFactory.getLogger(StandardNiFiServiceFacade.class);
     private static final int VALIDATION_WAIT_MILLIS = 50;
     private static final String ROOT_PROCESS_GROUP = "RootProcessGroup";
+    private static final int PARALLEL_PROCESSING_THREADS = 6;
 
     // nifi core components
     private ControllerFacade controllerFacade;
@@ -443,6 +448,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private final JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
     private final ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry = new ConnectionAnalyticsMetricsRegistry();
     private final ClusterMetricsRegistry clusterMetricsRegistry = new ClusterMetricsRegistry();
+    private ForkJoinPool parallelProcessingThreadPool;
 
     // -----------------------------------------
     // Synchronization methods
@@ -6117,27 +6123,53 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         // Get Connection Status Analytics (predictions, e.g.)
         Set<Connection> connections = controllerFacade.getFlowManager().findAllConnections();
-        for (Connection c : connections) {
-            // If a ResourceNotFoundException is thrown, analytics hasn't been enabled
+        Collection<Map<String, Long>> predictions = Collections.synchronizedList(new ArrayList<>());
+
+        final boolean analyticsEnabled = Boolean.parseBoolean(properties.getProperty(NiFiProperties.ANALYTICS_PREDICTION_ENABLED, Boolean.FALSE.toString()));
+
+        if (analyticsEnabled) {
+            if (parallelProcessingThreadPool == null) {
+                parallelProcessingThreadPool = createParallelProcessingThreadPool();
+            }
+            // We need to make processing timeout shorter than the web request timeout as if they overlap Jetty may throw IllegalStateException
+            final long parallelProcessingTimeout = Math.round(FormatUtils.getPreciseTimeDuration(
+                    properties.getProperty(NiFiProperties.WEB_REQUEST_TIMEOUT, "1 min"), TimeUnit.MILLISECONDS)) - 5000;
+
+            final CountDownLatch countDownLatch = new CountDownLatch(connections.size());
             try {
-                final StatusAnalytics statusAnalytics = controllerFacade.getConnectionStatusAnalytics(c.getIdentifier());
-                PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry,
-                        statusAnalytics,
-                        instanceId,
-                        "Connection",
-                        c.getName(),
-                        c.getIdentifier(),
-                        c.getProcessGroup().getIdentifier(),
-                        c.getSource().getName(),
-                        c.getSource().getIdentifier(),
-                        c.getDestination().getName(),
-                        c.getDestination().getIdentifier()
-                );
-                PrometheusMetricsUtil.aggregateConnectionPredictionMetrics(aggregatedMetrics, statusAnalytics.getPredictions());
-            } catch (ResourceNotFoundException rnfe) {
-                break;
+                parallelProcessingThreadPool.submit(
+                        () -> connections.parallelStream().forEach((c) -> {
+                            try {
+                                final StatusAnalytics statusAnalytics = controllerFacade.getConnectionStatusAnalytics(c.getIdentifier());
+                                PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry,
+                                        statusAnalytics,
+                                        instanceId,
+                                        "Connection",
+                                        c.getName(),
+                                        c.getIdentifier(),
+                                        c.getProcessGroup().getIdentifier(),
+                                        c.getSource().getName(),
+                                        c.getSource().getIdentifier(),
+                                        c.getDestination().getName(),
+                                        c.getDestination().getIdentifier()
+                                );
+                                predictions.add(statusAnalytics.getPredictions());
+                            } finally {
+                                countDownLatch.countDown();
+                            }
+                        }));
+            } finally {
+                try {
+                    boolean finished = countDownLatch.await(parallelProcessingTimeout, TimeUnit.MILLISECONDS);
+                    if (!finished) {
+                        throw new WebApplicationException("Populating flow metrics timed out");
+                    }
+                } catch (InterruptedException e) {
+                    throw new WebApplicationException("Populating flow metrics cancelled");
+                }
             }
         }
+        predictions.forEach((prediction) -> PrometheusMetricsUtil.aggregateConnectionPredictionMetrics(aggregatedMetrics, prediction));
         PrometheusMetricsUtil.createAggregatedConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry, aggregatedMetrics, instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId);
 
         // Create a query to get all bulletins
@@ -6185,6 +6217,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         );
 
         return metricsRegistries;
+    }
+
+    private ForkJoinPool createParallelProcessingThreadPool() {
+        final ForkJoinPool.ForkJoinWorkerThreadFactory factory = pool -> {
+            final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
+            worker.setName("analytics-prediction-parallel-processing-thread-" + UUID.randomUUID());
+            return worker;
+        };
+        return new ForkJoinPool(PARALLEL_PROCESSING_THREADS, factory, null, false);
     }
 
     @Override
