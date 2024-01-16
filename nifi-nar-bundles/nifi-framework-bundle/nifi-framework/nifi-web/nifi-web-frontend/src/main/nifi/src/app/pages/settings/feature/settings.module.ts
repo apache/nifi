@@ -34,6 +34,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { ReportingTasksEffects } from '../state/reporting-tasks/reporting-tasks.effects';
 import { RegistryClientsEffects } from '../state/registry-clients/registry-clients.effects';
 import { FlowAnalysisRulesEffects } from '../state/flow-analysis-rules/flow-analysis-rules.effects';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
 
 @NgModule({
     declarations: [Settings],
@@ -55,7 +56,8 @@ import { FlowAnalysisRulesEffects } from '../state/flow-analysis-rules/flow-anal
             FlowAnalysisRulesEffects,
             RegistryClientsEffects
         ),
-        MatTabsModule
+        MatTabsModule,
+        Navigation
     ]
 })
 export class SettingsModule {}

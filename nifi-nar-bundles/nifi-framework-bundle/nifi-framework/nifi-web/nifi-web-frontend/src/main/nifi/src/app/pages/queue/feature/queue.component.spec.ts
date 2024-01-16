@@ -22,15 +22,23 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { initialState } from '../state/queue-listing/queue-listing.reducer';
+import { Component } from '@angular/core';
 
 describe('Queue', () => {
     let component: Queue;
     let fixture: ComponentFixture<Queue>;
 
+    @Component({
+        selector: 'navigation',
+        standalone: true,
+        template: ''
+    })
+    class MockNavigation {}
+
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Queue],
-            imports: [RouterModule, RouterTestingModule],
+            imports: [RouterModule, RouterTestingModule, MockNavigation],
             providers: [
                 provideMockStore({
                     initialState

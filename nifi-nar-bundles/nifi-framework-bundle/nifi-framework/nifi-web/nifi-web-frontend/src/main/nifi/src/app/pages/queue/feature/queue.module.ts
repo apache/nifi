@@ -17,17 +17,14 @@
 
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { StoreModule } from '@ngrx/store';
-import { EffectsModule } from '@ngrx/effects';
 import { Queue } from './queue.component';
 import { QueueRoutingModule } from './queue-routing.module';
-import { queueFeatureKey, reducers } from '../state';
 import { MatDialogModule } from '@angular/material/dialog';
-import { QueueListingEffects } from '../state/queue-listing/queue-listing.effects';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
 
 @NgModule({
     declarations: [Queue],
     exports: [Queue],
-    imports: [CommonModule, MatDialogModule, QueueRoutingModule]
+    imports: [CommonModule, MatDialogModule, QueueRoutingModule, Navigation]
 })
 export class QueueModule {}

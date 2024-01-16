@@ -15,14 +15,14 @@
   ~  limitations under the License.
   -->
 
-<div class="p-4 flex flex-col h-screen justify-between gap-y-5">
-    <div class="flex justify-between">
+<div class="pb-5 flex flex-col h-screen justify-between gap-y-5">
+    <header class="nifi-header">
+        <navigation></navigation>
+    </header>
+    <div class="px-5">
         <h3 class="text-xl bold access-policies-header">Access Policies</h3>
-        <button class="nifi-button" [routerLink]="['/']">
-            <i class="fa fa-times"></i>
-        </button>
     </div>
-    <div class="flex-1">
+    <div class="px-5 flex-1">
         <router-outlet></router-outlet>
     </div>
 </div>

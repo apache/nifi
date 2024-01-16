@@ -17,36 +17,26 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ParameterContexts } from './parameter-contexts.component';
+import { Navigation } from './navigation.component';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../state/parameter-context-listing/parameter-context-listing.reducer';
-import { ParameterContextListing } from '../ui/parameter-context-listing/parameter-context-listing.component';
-import { RouterModule } from '@angular/router';
+import { initialState } from '../../../state/current-user/current-user.reducer';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
-import { Component } from '@angular/core';
 
-describe('ParameterContexts', () => {
-    let component: ParameterContexts;
-    let fixture: ComponentFixture<ParameterContexts>;
-
-    @Component({
-        selector: 'navigation',
-        standalone: true,
-        template: ''
-    })
-    class MockNavigation {}
+describe('Navigation', () => {
+    let component: Navigation;
+    let fixture: ComponentFixture<Navigation>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ParameterContexts, ParameterContextListing],
-            imports: [RouterModule, RouterTestingModule, MockNavigation],
+            imports: [Navigation, HttpClientTestingModule, RouterTestingModule],
             providers: [
                 provideMockStore({
                     initialState
                 })
             ]
         });
-        fixture = TestBed.createComponent(ParameterContexts);
+        fixture = TestBed.createComponent(Navigation);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });
