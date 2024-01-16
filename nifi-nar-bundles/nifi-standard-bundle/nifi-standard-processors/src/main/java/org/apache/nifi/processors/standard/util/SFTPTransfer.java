@@ -55,12 +55,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -744,9 +743,9 @@ public class SFTPTransfer implements FileTransfer {
         final String lastModifiedTime = ctx.getProperty(LAST_MODIFIED_TIME).evaluateAttributeExpressions(flowFile).getValue();
         if (lastModifiedTime != null && !lastModifiedTime.trim().isEmpty()) {
             try {
-                final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-                final Date fileModifyTime = formatter.parse(lastModifiedTime);
-                int time = (int) (fileModifyTime.getTime() / 1000L);
+                final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
+                final OffsetDateTime offsetDateTime = OffsetDateTime.parse(lastModifiedTime, dateTimeFormatter);
+                int time = (int) offsetDateTime.toEpochSecond();
 
                 final FileAttributes tempAttributes = sftpClient.stat(tempPath);
 

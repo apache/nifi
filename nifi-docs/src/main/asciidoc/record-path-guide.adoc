@@ -640,7 +640,7 @@ Converts a Date to a String in the given format with an optional time zone. The 
 time zone when the second argument is not provided.
 
 The first argument to this function must be a Date or a Number, and the second argument must be a format String that
-follows the Java SimpleDateFormat, and the third argument, optional, must be a format String that
+follows the Java DateTimeFormatter, and the third argument, optional, must be a format String that
 either an abbreviation such as "PST", a full name such as "America/Los_Angeles", or a custom ID such as "GMT-8:00"
 
 For example, given a schema such as:

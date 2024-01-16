@@ -14,25 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.util.text;
+package org.apache.nifi.serialization.record.field;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
-class SimpleDateFormatMatcher implements DateTimeMatcher {
-    private final DateFormat dateFormat;
+/**
+ * Caching Registry containing DateTimeFormatter objects for internal use with Field Converters
+ */
+class DateTimeFormatterRegistry {
+    private static final Map<String, DateTimeFormatter> FORMATTERS = new ConcurrentHashMap<>();
 
-    public SimpleDateFormatMatcher(final String format) {
-        this.dateFormat = new SimpleDateFormat(format);
-    }
-
-    @Override
-    public boolean matches(final String text) {
-        try {
-            dateFormat.parse(text);
-            return true;
-        } catch (final Exception e) {
-            return false;
-        }
+    static DateTimeFormatter getDateTimeFormatter(final String pattern) {
+        Objects.requireNonNull(pattern, "Pattern required");
+        final DateTimeFormatter formatter = FORMATTERS.computeIfAbsent(pattern, DateTimeFormatter::ofPattern);
+        FORMATTERS.putIfAbsent(pattern, formatter);
+        return formatter;
     }
 }

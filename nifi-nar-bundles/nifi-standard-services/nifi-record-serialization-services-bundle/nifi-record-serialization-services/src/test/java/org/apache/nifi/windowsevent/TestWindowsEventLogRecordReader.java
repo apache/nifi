@@ -40,7 +40,7 @@ public class TestWindowsEventLogRecordReader {
 
     private static final String DATE_FORMAT = RecordFieldType.DATE.getDefaultFormat();
     private static final String TIME_FORMAT = RecordFieldType.TIME.getDefaultFormat();
-    private static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS"; // The timestamps have nanoseconds but need a SimpleDateFormat string here
+    private static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS";
 
     @Test
     public void testSingleEvent() throws IOException, MalformedRecordException {

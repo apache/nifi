@@ -34,12 +34,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
-import java.text.DateFormat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.Optional;
 
 /**
  * CEF (Common Event Format) based implementation for {@code org.apache.nifi.serialization.RecordReader}. The implementation
@@ -54,10 +53,6 @@ final class CEFRecordReader implements RecordReader {
     private static final String DATE_FORMAT = "MMM dd yyyy";
     private static final String TIME_FORMAT = "HH:mm:ss";
     private static final String DATETIME_FORMAT = DATE_FORMAT + " " + TIME_FORMAT;
-
-    private static final Supplier<DateFormat> DATE_FORMAT_SUPPLIER = () -> DataTypeUtils.getDateFormat(DATE_FORMAT);
-    private static final Supplier<DateFormat> TIME_FORMAT_SUPPLIER = () -> DataTypeUtils.getDateFormat(TIME_FORMAT);
-    private static final Supplier<DateFormat> DATETIME_FORMAT_SUPPLIER = () -> DataTypeUtils.getDateFormat(DATETIME_FORMAT);
 
     private final RecordSchema schema;
     private final BufferedReader reader;
@@ -161,7 +156,7 @@ final class CEFRecordReader implements RecordReader {
     }
 
     private Object convert(final Object value, final DataType dataType, final String fieldName) {
-        return DataTypeUtils.convertType(prepareValue(value), dataType, DATE_FORMAT_SUPPLIER, TIME_FORMAT_SUPPLIER, DATETIME_FORMAT_SUPPLIER, fieldName);
+        return DataTypeUtils.convertType(prepareValue(value), dataType, Optional.of(DATE_FORMAT), Optional.of(TIME_FORMAT), Optional.of(DATETIME_FORMAT), fieldName);
     }
 
     private Object convertSimpleIfPossible(final Object value, final DataType dataType, final String fieldName) {
@@ -181,12 +176,12 @@ final class CEFRecordReader implements RecordReader {
             case DOUBLE:
             case DECIMAL:
                 if (DataTypeUtils.isCompatibleDataType(preparedValue, dataType)) {
-                    return DataTypeUtils.convertType(preparedValue, dataType, DATE_FORMAT_SUPPLIER, TIME_FORMAT_SUPPLIER, DATETIME_FORMAT_SUPPLIER, fieldName);
+                    return DataTypeUtils.convertType(preparedValue, dataType, Optional.of(DATE_FORMAT), Optional.of(TIME_FORMAT), Optional.of(DATETIME_FORMAT), fieldName);
                 }
                 break;
             case TIMESTAMP:
                 if (DataTypeUtils.isTimestampTypeCompatible(preparedValue, DATETIME_FORMAT)) {
-                    return DataTypeUtils.convertType(preparedValue, dataType, DATE_FORMAT_SUPPLIER, TIME_FORMAT_SUPPLIER, DATETIME_FORMAT_SUPPLIER, fieldName);
+                    return DataTypeUtils.convertType(preparedValue, dataType, Optional.of(DATE_FORMAT), Optional.of(TIME_FORMAT), Optional.of(DATETIME_FORMAT), fieldName);
                 }
                 break;
         }

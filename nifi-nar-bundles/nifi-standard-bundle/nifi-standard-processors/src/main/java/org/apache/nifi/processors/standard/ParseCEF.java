@@ -97,7 +97,7 @@ public class ParseCEF extends AbstractProcessor {
     private final static DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
     // for some reason Jackson doesnt seem to be able to use DateTieFormater
-    // so we use a SimpleDateFormat to format within flowfile-content
+    // so we use a DateFormat to format within flowfile-content
     private final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
 

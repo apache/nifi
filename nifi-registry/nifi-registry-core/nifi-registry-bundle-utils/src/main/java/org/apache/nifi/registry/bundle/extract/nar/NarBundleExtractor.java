@@ -31,8 +31,10 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Date;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
@@ -49,18 +51,19 @@ public class NarBundleExtractor implements BundleExtractor {
     /**
      * The name of the JarEntry that contains the extension-docs.xml file.
      */
-    private static String EXTENSION_DESCRIPTOR_ENTRY = "META-INF/docs/extension-manifest.xml";
+    private static final String EXTENSION_DESCRIPTOR_ENTRY = "META-INF/docs/extension-manifest.xml";
 
     /**
      * The pattern of a JarEntry for additionalDetails.html entries.
      */
-    private static Pattern ADDITIONAL_DETAILS_ENTRY_PATTERN =
+    private static final Pattern ADDITIONAL_DETAILS_ENTRY_PATTERN =
             Pattern.compile("META-INF\\/docs\\/additional-details\\/(.+)\\/additionalDetails.html");
 
     /**
      * The format of the date string in the NAR MANIFEST for Built-Timestamp.
      */
-    private static String BUILT_TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+    private static final String BUILT_TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(BUILT_TIMESTAMP_FORMAT);
 
     /**
      * Used in place of any build info that is not present.
@@ -129,9 +132,8 @@ public class NarBundleExtractor implements BundleExtractor {
         final String buildJdk = attributes.getValue(NarManifestEntry.BUILD_JDK.getManifestName());
         final String builtBy = attributes.getValue(NarManifestEntry.BUILT_BY.getManifestName());
 
-        final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(BUILT_TIMESTAMP_FORMAT);
         try {
-            final Date buildDate = simpleDateFormat.parse(buildTimestamp);
+            final Date buildDate = Date.from(LocalDateTime.parse(buildTimestamp, DATE_TIME_FORMATTER).toInstant(ZoneOffset.UTC));
 
             final BuildInfo buildInfo = new BuildInfo();
             buildInfo.setBuildTool(isBlank(buildJdk) ? NA : buildJdk);
@@ -143,7 +145,7 @@ public class NarBundleExtractor implements BundleExtractor {
             buildInfo.setBuildFlags(NA);
             return buildInfo;
 
-        } catch (ParseException e) {
+        } catch (DateTimeParseException e) {
             throw new BundleException("Unable to parse " + NarManifestEntry.BUILD_TIMESTAMP.getManifestName(), e);
         } catch (Exception e) {
             throw new BundleException("Unable to create build info for bundle due to: " + e.getMessage(), e);
@@ -225,7 +227,7 @@ public class NarBundleExtractor implements BundleExtractor {
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
             // do nothing
         }
     }

@@ -14,35 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.util.text;
 
-package org.apache.nifi.serialization;
+import java.time.format.DateTimeFormatter;
 
-import java.text.SimpleDateFormat;
+class DateTimeFormatterMatcher implements DateTimeMatcher {
+    private final DateTimeFormatter dateTimeFormatter;
 
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
-
-public class SimpleDateFormatValidator implements Validator {
-
-    @Override
-    public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-        try {
-            new SimpleDateFormat(input);
-        } catch (final Exception e) {
-            return new ValidationResult.Builder()
-                .input(input)
-                .subject(subject)
-                .valid(false)
-                .explanation("Invalid Date format: " + e.getMessage())
-                .build();
-        }
-
-        return new ValidationResult.Builder()
-            .input(input)
-            .subject(subject)
-            .valid(true)
-            .build();
+    public DateTimeFormatterMatcher(final String format) {
+        this.dateTimeFormatter = DateTimeFormatter.ofPattern(format);
     }
 
+    @Override
+    public boolean matches(final String text) {
+        try {
+            dateTimeFormatter.parse(text);
+            return true;
+        } catch (final Exception e) {
+            return false;
+        }
+    }
 }

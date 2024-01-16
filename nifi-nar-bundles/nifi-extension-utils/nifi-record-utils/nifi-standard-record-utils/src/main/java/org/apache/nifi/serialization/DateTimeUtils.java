@@ -28,7 +28,7 @@ public class DateTimeUtils {
             + "If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy for a two-digit month, followed by "
             + "a two-digit day, followed by a four-digit year, all separated by '/' characters, as in 01/01/2017).")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-        .addValidator(new SimpleDateFormatValidator())
+        .addValidator(new DateTimeFormatValidator())
         .required(false)
         .build();
 
@@ -39,7 +39,7 @@ public class DateTimeUtils {
             + "If specified, the value must match the Java Simple Date Format (for example, HH:mm:ss for a two-digit hour in 24-hour format, followed by "
             + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 18:04:15).")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-        .addValidator(new SimpleDateFormatValidator())
+        .addValidator(new DateTimeFormatValidator())
         .required(false)
         .build();
 
@@ -51,7 +51,7 @@ public class DateTimeUtils {
             + "a two-digit day, followed by a four-digit year, all separated by '/' characters; and then followed by a two-digit hour in 24-hour format, followed by "
             + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 01/01/2017 18:04:15).")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-        .addValidator(new SimpleDateFormatValidator())
+        .addValidator(new DateTimeFormatValidator())
         .required(false)
         .build();
 }

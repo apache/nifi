@@ -49,8 +49,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
@@ -175,8 +175,8 @@ public class TestListS3 {
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
 
-        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        final String lastModifiedString = dateFormat.format(lastModified);
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        final String lastModifiedString = dateTimeFormatter.format(lastModified.toInstant().atZone(ZoneOffset.systemDefault()));
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS).get(0);
         flowFile.assertAttributeEquals("record.count", "3");

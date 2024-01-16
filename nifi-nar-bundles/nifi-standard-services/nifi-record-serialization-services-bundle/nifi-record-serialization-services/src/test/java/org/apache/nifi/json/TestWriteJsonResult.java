@@ -45,9 +45,6 @@ import java.nio.file.Paths;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -59,7 +56,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class TestWriteJsonResult {
 
     @Test
-    void testDataTypes() throws IOException, ParseException {
+    void testDataTypes() throws IOException {
         final List<RecordField> fields = new ArrayList<>();
         for (final RecordFieldType fieldType : RecordFieldType.values()) {
             if (fieldType == RecordFieldType.CHOICE) {
@@ -77,8 +74,6 @@ class TestWriteJsonResult {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-        final long time = df.parse("2017/01/01 17:00:00.000").getTime();
 
         final Map<String, Object> map = new LinkedHashMap<>();
         map.put("height", 48);
@@ -97,8 +92,8 @@ class TestWriteJsonResult {
         valueMap.put("double", 8.0D);
         valueMap.put("decimal", BigDecimal.valueOf(8.1D));
         valueMap.put("date", Date.valueOf("2017-01-01"));
-        valueMap.put("time", new Time(time));
-        valueMap.put("timestamp", new Timestamp(time));
+        valueMap.put("time", Time.valueOf("17:00:00"));
+        valueMap.put("timestamp", Timestamp.valueOf("2017-01-01 17:00:00"));
         valueMap.put("record", null);
         valueMap.put("array", null);
         valueMap.put("enum", null);

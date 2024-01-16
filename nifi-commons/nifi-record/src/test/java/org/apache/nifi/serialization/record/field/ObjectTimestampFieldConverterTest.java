@@ -17,7 +17,6 @@
 package org.apache.nifi.serialization.record.field;
 
 import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
@@ -88,7 +87,7 @@ public class ObjectTimestampFieldConverterTest {
     @Test
     public void testConvertFieldStringFormatNullNumberFormatException() {
         final String field = String.class.getSimpleName();
-        final IllegalTypeConversionException exception = assertThrows(IllegalTypeConversionException.class, () -> CONVERTER.convertField(field, Optional.empty(), FIELD_NAME));
+        final FieldConversionException exception = assertThrows(FieldConversionException.class, () -> CONVERTER.convertField(field, Optional.empty(), FIELD_NAME));
         assertTrue(exception.getMessage().contains(field));
     }
 
@@ -108,7 +107,7 @@ public class ObjectTimestampFieldConverterTest {
 
     @Test
     public void testConvertFieldStringFormatCustomFormatterException() {
-        final IllegalTypeConversionException exception = assertThrows(IllegalTypeConversionException.class, () -> CONVERTER.convertField(DATE_TIME_DEFAULT, DATE_TIME_NANOSECONDS_PATTERN, FIELD_NAME));
+        final FieldConversionException exception = assertThrows(FieldConversionException.class, () -> CONVERTER.convertField(DATE_TIME_DEFAULT, DATE_TIME_NANOSECONDS_PATTERN, FIELD_NAME));
         assertTrue(exception.getMessage().contains(DATE_TIME_DEFAULT));
     }
 }

@@ -145,7 +145,8 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 
 import java.text.Collator;
-import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -800,8 +801,8 @@ public class FlowResource extends ApplicationResource {
                 ? serviceFacade.getVersionedReportingTaskSnapshot() :
                 serviceFacade.getVersionedReportingTaskSnapshot(reportingTaskId);
 
-        final SimpleDateFormat dateFormat = new SimpleDateFormat(VERSIONED_REPORTING_TASK_SNAPSHOT_DATE_FORMAT);
-        final String filename = VERSIONED_REPORTING_TASK_SNAPSHOT_FILENAME_PATTERN.formatted(dateFormat.format(new Date()));
+        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern(VERSIONED_REPORTING_TASK_SNAPSHOT_DATE_FORMAT);
+        final String filename = VERSIONED_REPORTING_TASK_SNAPSHOT_FILENAME_PATTERN.formatted(formatter.format(OffsetDateTime.now()));
         return generateOkResponse(snapshot).header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", filename)).build();
     }
 

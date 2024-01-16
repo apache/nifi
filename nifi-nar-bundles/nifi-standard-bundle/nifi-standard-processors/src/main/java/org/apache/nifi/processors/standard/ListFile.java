@@ -63,8 +63,10 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileOwnerAttributeView;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermissions;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -286,6 +288,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     public static final String FILE_GROUP_ATTRIBUTE = "file.group";
     public static final String FILE_PERMISSIONS_ATTRIBUTE = "file.permissions";
     public static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -426,13 +429,11 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         final Path absPath = filePath.toAbsolutePath();
         final String absPathString = absPath.getParent().toString() + File.separator;
 
-        final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-
         attributes.put(CoreAttributes.PATH.key(), relativePathString);
         attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getFileName());
         attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), absPathString);
         attributes.put(FILE_SIZE_ATTRIBUTE, Long.toString(fileInfo.getSize()));
-        attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, formatter.format(new Date(fileInfo.getLastModifiedTime())));
+        attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, formatDateTime(fileInfo.getLastModifiedTime()));
 
         if (includeFileAttributes) {
             final TimingInfo timingInfo = performanceTracker.getTimingInfo(relativePath.toString(), file.getName());
@@ -445,8 +446,8 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                         try {
                             BasicFileAttributeView view = Files.getFileAttributeView(filePath, BasicFileAttributeView.class);
                             BasicFileAttributes attrs = view.readAttributes();
-                            attributes.put(FILE_CREATION_TIME_ATTRIBUTE, formatter.format(new Date(attrs.creationTime().toMillis())));
-                            attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, formatter.format(new Date(attrs.lastAccessTime().toMillis())));
+                            attributes.put(FILE_CREATION_TIME_ATTRIBUTE, formatDateTime(attrs.creationTime().toMillis()));
+                            attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, formatDateTime(attrs.lastAccessTime().toMillis()));
                         } catch (Exception ignore) {
                         } // allow other attributes if these fail
                     }
@@ -662,6 +663,11 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 || MIN_SIZE.equals(property)
                 || MAX_SIZE.equals(property)
                 || IGNORE_HIDDEN_FILES.equals(property);
+    }
+
+    private String formatDateTime(final long dateTime) {
+        final ZonedDateTime zonedDateTime = Instant.ofEpochMilli(dateTime).atZone(ZoneId.systemDefault());
+        return DATE_TIME_FORMATTER.format(zonedDateTime);
     }
 
     private BiPredicate<Path, BasicFileAttributes> createFileFilter(final ProcessContext context, final PerformanceTracker performanceTracker,
@@ -1267,7 +1273,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         CHECK_HIDDEN,
         CHECK_READABLE,
         FILTER,
-        RETRIEVE_NEXT_FILE_FROM_OS;
+        RETRIEVE_NEXT_FILE_FROM_OS
     }
 
     private static class ProcessorStoppedException extends RuntimeException {
