@@ -408,32 +408,50 @@ public class TestMonitorActivity {
         while(rerun);
     }
 
-    @Timeout(5)
     @Test
-    public void testFirstRunNoMessagesWithWaitForActivityTrue() throws InterruptedException {
+    public void testRunNoMessagesWithWaitForActivityTrue() throws InterruptedException {
         // don't use the TestableProcessor, we want the real timestamp from @OnScheduled
         final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
+        runner.setProperty(MonitorActivity.THRESHOLD, "5 secs");
         runner.setProperty(MonitorActivity.WAIT_FOR_ACTIVITY, "true");
-        int threshold = 100;
-        int rerun = 0;
-        do {
-            runner.setProperty(MonitorActivity.THRESHOLD, threshold + " millis");
 
-            Thread.sleep(1000L);
-
-            // shouldn't generate inactivity b/c run() will reset the lastSuccessfulTransfer if @OnSchedule & onTrigger
-            // does not  get called more than MonitorActivity.THRESHOLD apart
-            runner.run();
-            runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
-            runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
-            threshold += threshold;
-            rerun++;
-            runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
-            runner.clearTransferState();
-        }
-        while(rerun < 10);
+        // shouldn't generate inactivity b/c run() will reset the lastSuccessfulTransfer if @OnSchedule & onTrigger
+        // does not  get called more than MonitorActivity.THRESHOLD apart
+        runner.run();
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
+        Thread.sleep(10000L);
+        runNext(runner);
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
+        runner.clearTransferState();
     }
+
+    @Test
+    public void testRunNoMessagesWithWaitForActivityFalse() throws InterruptedException {
+        // don't use the TestableProcessor, we want the real timestamp from @OnScheduled
+        final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
+        runner.setProperty(MonitorActivity.THRESHOLD, "5 secs");
+        runner.setProperty(MonitorActivity.WAIT_FOR_ACTIVITY, "false");
+
+        // shouldn't generate inactivity b/c run() will reset the lastSuccessfulTransfer if @OnSchedule & onTrigger
+        // does not  get called more than MonitorActivity.THRESHOLD apart
+        runner.run();
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
+        Thread.sleep(10000L);
+        runNext(runner);
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 1);
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
+        runner.clearTransferState();
+    }
+
     /**
      * Since each call to run() will call @OnScheduled methods which will set the lastSuccessfulTransfer to the
      * current time, we need a way to create an artificial time difference between calls to run.
