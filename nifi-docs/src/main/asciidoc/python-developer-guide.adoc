@@ -427,7 +427,7 @@ that there are no longer any invocations of the `transform` method running when 
 [[requirements]]
 == Requirements
 
-The Python API requires that Python 3.9+ is available on the machine hosting NiFi.
+The Python API requires that Python 3.9, 3.10 or 3.11 is available on the machine hosting NiFi (Python 3.12 is not supported yet).
 
 Each Processor may have its own list of requirements / dependencies. These are made available to the Processor by creating a separate
 environment for each Processor implementation (not for each instance of a Processor on the canvas). PyPI is then used to install these
