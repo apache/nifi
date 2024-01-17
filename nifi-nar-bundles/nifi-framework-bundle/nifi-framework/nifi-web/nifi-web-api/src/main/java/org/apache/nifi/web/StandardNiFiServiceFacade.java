@@ -17,6 +17,7 @@
 package org.apache.nifi.web;
 
 import io.prometheus.client.CollectorRegistry;
+import jakarta.annotation.PostConstruct;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -461,7 +462,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     private RuleViolationsManager ruleViolationsManager;
 
+    private boolean analyticsEnabled;
     private Executor parallelProcessingExecutor;
+
+    @PostConstruct
+    public void postConstruct() {
+        analyticsEnabled = Boolean.parseBoolean(
+                properties.getProperty(NiFiProperties.ANALYTICS_PREDICTION_ENABLED, Boolean.FALSE.toString()));
+
+        if(analyticsEnabled) {
+            parallelProcessingExecutor = Executors.newVirtualThreadPerTaskExecutor();
+        }
+    }
 
     // -----------------------------------------
     // Synchronization methods
@@ -6240,12 +6252,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // Get Connection Status Analytics (predictions, e.g.)
         Set<Connection> connections = controllerFacade.getFlowManager().findAllConnections();
         Collection<Map<String, Long>> predictions = Collections.synchronizedList(new ArrayList<>());
-        final boolean analyticsEnabled = Boolean.parseBoolean(properties.getProperty(NiFiProperties.ANALYTICS_PREDICTION_ENABLED, Boolean.FALSE.toString()));
 
         if (analyticsEnabled) {
-            if (parallelProcessingExecutor == null) {
-                parallelProcessingExecutor = Executors.newVirtualThreadPerTaskExecutor();
-            }
             // We need to make processing timeout shorter than the web request timeout as if they overlap Jetty may throw IllegalStateException
             final long parallelProcessingTimeout = Math.round(FormatUtils.getPreciseTimeDuration(
                     properties.getProperty(NiFiProperties.WEB_REQUEST_TIMEOUT, "1 min"), TimeUnit.MILLISECONDS)) - 5000;
