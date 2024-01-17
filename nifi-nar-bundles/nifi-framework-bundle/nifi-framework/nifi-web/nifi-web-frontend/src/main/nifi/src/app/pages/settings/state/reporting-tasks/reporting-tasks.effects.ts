@@ -44,6 +44,7 @@ import { ExtensionTypesService } from '../../../../service/extension-types.servi
 import { CreateControllerService } from '../../../../ui/common/controller-service/create-controller-service/create-controller-service.component';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { Client } from '../../../../service/client.service';
+import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 
 @Injectable()
 export class ReportingTasksEffects {
@@ -55,7 +56,8 @@ export class ReportingTasksEffects {
         private managementControllerServiceService: ManagementControllerServiceService,
         private extensionTypesService: ExtensionTypesService,
         private dialog: MatDialog,
-        private router: Router
+        private router: Router,
+        private propertyTableHelperService: PropertyTableHelperService
     ) {}
 
     loadReportingTasks$ = createEffect(() =>
@@ -225,36 +227,8 @@ export class ReportingTasksEffects {
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
 
-                    editDialogReference.componentInstance.createNewProperty = (
-                        existingProperties: string[],
-                        allowsSensitive: boolean
-                    ): Observable<Property> => {
-                        const dialogRequest: NewPropertyDialogRequest = { existingProperties, allowsSensitive };
-                        const newPropertyDialogReference = this.dialog.open(NewPropertyDialog, {
-                            data: dialogRequest,
-                            panelClass: 'small-dialog'
-                        });
-
-                        return newPropertyDialogReference.componentInstance.newProperty.pipe(
-                            take(1),
-                            switchMap((dialogResponse: NewPropertyDialogResponse) => {
-                                return this.reportingTaskService
-                                    .getPropertyDescriptor(request.id, dialogResponse.name, dialogResponse.sensitive)
-                                    .pipe(
-                                        take(1),
-                                        map((response) => {
-                                            newPropertyDialogReference.close();
-
-                                            return {
-                                                property: dialogResponse.name,
-                                                value: null,
-                                                descriptor: response.propertyDescriptor
-                                            };
-                                        })
-                                    );
-                            })
-                        );
-                    };
+                    editDialogReference.componentInstance.createNewProperty =
+                        this.propertyTableHelperService.createNewProperty(request.id, this.reportingTaskService);
 
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editReportingTaskForm.dirty) {
@@ -285,73 +259,12 @@ export class ReportingTasksEffects {
                         goTo(commands, 'Controller Service');
                     };
 
-                    editDialogReference.componentInstance.createNewService = (
-                        request: InlineServiceCreationRequest
-                    ): Observable<InlineServiceCreationResponse> => {
-                        const descriptor: PropertyDescriptor = request.descriptor;
-
-                        // fetch all services that implement the requested service api
-                        return this.extensionTypesService
-                            .getImplementingControllerServiceTypes(
-                                // @ts-ignore
-                                descriptor.identifiesControllerService,
-                                descriptor.identifiesControllerServiceBundle
-                            )
-                            .pipe(
-                                take(1),
-                                switchMap((implementingTypesResponse) => {
-                                    // show the create controller service dialog with the types that implemented the interface
-                                    const createServiceDialogReference = this.dialog.open(CreateControllerService, {
-                                        data: {
-                                            controllerServiceTypes: implementingTypesResponse.controllerServiceTypes
-                                        },
-                                        panelClass: 'medium-dialog'
-                                    });
-
-                                    return createServiceDialogReference.componentInstance.createControllerService.pipe(
-                                        take(1),
-                                        switchMap((controllerServiceType) => {
-                                            // typically this sequence would be implemented with ngrx actions, however we are
-                                            // currently in an edit session and we need to return both the value (new service id)
-                                            // and updated property descriptor so the table renders correctly
-                                            return this.managementControllerServiceService
-                                                .createControllerService({
-                                                    revision: {
-                                                        clientId: this.client.getClientId(),
-                                                        version: 0
-                                                    },
-                                                    controllerServiceType: controllerServiceType.type,
-                                                    controllerServiceBundle: controllerServiceType.bundle
-                                                })
-                                                .pipe(
-                                                    take(1),
-                                                    switchMap((createResponse) => {
-                                                        // fetch an updated property descriptor
-                                                        return this.reportingTaskService
-                                                            .getPropertyDescriptor(taskId, descriptor.name, false)
-                                                            .pipe(
-                                                                take(1),
-                                                                map((descriptorResponse) => {
-                                                                    createServiceDialogReference.close();
-
-                                                                    return {
-                                                                        value: createResponse.id,
-                                                                        descriptor:
-                                                                            descriptorResponse.propertyDescriptor
-                                                                    };
-                                                                })
-                                                            );
-                                                    }),
-                                                    catchError((error) => {
-                                                        // TODO - show error
-                                                        return NEVER;
-                                                    })
-                                                );
-                                        })
-                                    );
-                                })
-                            );
-                    };
+                    editDialogReference.componentInstance.createNewService =
+                        this.propertyTableHelperService.createNewService(
+                            request.id,
+                            this.managementControllerServiceService,
+                            this.reportingTaskService
+                        );
 
                     editDialogReference.componentInstance.editReportingTask
                         .pipe(takeUntil(editDialogReference.afterClosed()))

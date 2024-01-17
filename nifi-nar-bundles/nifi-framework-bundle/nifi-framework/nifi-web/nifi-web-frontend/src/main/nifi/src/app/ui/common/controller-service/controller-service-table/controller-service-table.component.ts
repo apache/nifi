@@ -55,12 +55,13 @@ import { CurrentUser } from '../../../../state/current-user';
 export class ControllerServiceTable {
     @Input() initialSortColumn: 'name' | 'type' | 'bundle' | 'state' | 'scope' = 'name';
     @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
+    activeSort: Sort = {
+        active: this.initialSortColumn,
+        direction: this.initialSortDirection
+    };
 
     @Input() set controllerServices(controllerServiceEntities: ControllerServiceEntity[]) {
-        this.dataSource.data = this.sortEntities(controllerServiceEntities, {
-            active: this.initialSortColumn,
-            direction: this.initialSortDirection
-        });
+        this.dataSource.data = this.sortEntities(controllerServiceEntities, this.activeSort);
     }
 
     @Input() selectedServiceId!: string;
@@ -277,6 +278,7 @@ export class ControllerServiceTable {
     }
 
     sortData(sort: Sort) {
+        this.activeSort = sort;
         this.dataSource.data = this.sortEntities(this.dataSource.data, sort);
     }
 

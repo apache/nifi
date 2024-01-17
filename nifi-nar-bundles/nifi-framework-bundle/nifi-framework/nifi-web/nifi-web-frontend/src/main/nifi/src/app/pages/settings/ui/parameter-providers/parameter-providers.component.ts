@@ -15,11 +15,109 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { NiFiState } from '../../../../state';
+import { ParameterProviderEntity, ParameterProvidersState } from '../../state/parameter-providers';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
+import {
+    selectParameterProvider,
+    selectParameterProviderIdFromRoute,
+    selectParameterProvidersState,
+    selectSingleEditedParameterProvider
+} from '../../state/parameter-providers/parameter-providers.selectors';
+import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
+import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
+import * as ParameterProviderActions from '../../state/parameter-providers/parameter-providers.actions';
+import { initialParameterProvidersState } from '../../state/parameter-providers/parameter-providers.reducer';
+import { filter, switchMap, take } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'parameter-providers',
     templateUrl: './parameter-providers.component.html',
     styleUrls: ['./parameter-providers.component.scss']
 })
-export class ParameterProviders {}
+export class ParameterProviders implements OnInit, OnDestroy {
+    currentUser$ = this.store.select(selectCurrentUser);
+    parameterProvidersState$ = this.store.select(selectParameterProvidersState);
+    selectedParameterProviderId$ = this.store.select(selectParameterProviderIdFromRoute);
+    flowConfiguration$ = this.store.select(selectFlowConfiguration);
+
+    constructor(private store: Store<NiFiState>) {
+        this.store
+            .select(selectSingleEditedParameterProvider)
+            .pipe(
+                filter((id: string) => !!id),
+                switchMap((id: string) =>
+                    this.store.select(selectParameterProvider(id)).pipe(
+                        filter((entity) => !!entity),
+                        take(1)
+                    )
+                ),
+                takeUntilDestroyed()
+            )
+            .subscribe((entity) => {
+                if (entity) {
+                    this.store.dispatch(
+                        ParameterProviderActions.openConfigureParameterProviderDialog({
+                            request: {
+                                id: entity.id,
+                                parameterProvider: entity
+                            }
+                        })
+                    );
+                }
+            });
+    }
+
+    ngOnInit(): void {
+        this.store.dispatch(loadFlowConfiguration());
+        this.store.dispatch(ParameterProviderActions.loadParameterProviders());
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(ParameterProviderActions.resetParameterProvidersState());
+    }
+
+    isInitialLoading(state: ParameterProvidersState): boolean {
+        // using the current timestamp to detect the initial load event
+        return state.loadedTimestamp == initialParameterProvidersState.loadedTimestamp;
+    }
+
+    refreshParameterProvidersListing(): void {
+        this.store.dispatch(ParameterProviderActions.loadParameterProviders());
+    }
+
+    openNewParameterProviderDialog() {
+        this.store.dispatch(ParameterProviderActions.openNewParameterProviderDialog());
+    }
+
+    openConfigureParameterProviderDialog(parameterProvider: ParameterProviderEntity) {
+        this.store.dispatch(
+            ParameterProviderActions.navigateToEditParameterProvider({
+                id: parameterProvider.component.id
+            })
+        );
+    }
+
+    selectParameterProvider(parameterProvider: ParameterProviderEntity) {
+        this.store.dispatch(
+            ParameterProviderActions.selectParameterProvider({
+                request: {
+                    id: parameterProvider.id
+                }
+            })
+        );
+    }
+
+    deleteParameterProvider(parameterProvider: ParameterProviderEntity) {
+        this.store.dispatch(
+            ParameterProviderActions.promptParameterProviderDeletion({
+                request: {
+                    parameterProvider
+                }
+            })
+        );
+    }
+}

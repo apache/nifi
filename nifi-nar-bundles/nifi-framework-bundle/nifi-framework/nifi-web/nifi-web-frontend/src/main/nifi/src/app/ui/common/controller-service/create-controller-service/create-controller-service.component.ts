@@ -17,7 +17,7 @@
 
 import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { CreateControllerServiceRequest, DocumentedType } from '../../../../state/shared';
+import { CreateControllerServiceDialogRequest, DocumentedType } from '../../../../state/shared';
 import { ExtensionCreation } from '../../extension-creation/extension-creation.component';
 import { Observable } from 'rxjs';
 import { AsyncPipe } from '@angular/common';
@@ -35,7 +35,7 @@ export class CreateControllerService {
 
     controllerServiceTypes: DocumentedType[];
 
-    constructor(@Inject(MAT_DIALOG_DATA) private dialogRequest: CreateControllerServiceRequest) {
+    constructor(@Inject(MAT_DIALOG_DATA) private dialogRequest: CreateControllerServiceDialogRequest) {
         this.controllerServiceTypes = dialogRequest.controllerServiceTypes;
     }
 

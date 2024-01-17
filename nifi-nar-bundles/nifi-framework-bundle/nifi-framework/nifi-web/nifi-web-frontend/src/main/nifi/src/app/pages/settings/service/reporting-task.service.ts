@@ -28,9 +28,10 @@ import {
     StartReportingTaskRequest,
     StopReportingTaskRequest
 } from '../state/reporting-tasks';
+import { PropertyDescriptorRetriever } from '../../../state/shared';
 
 @Injectable({ providedIn: 'root' })
-export class ReportingTaskService {
+export class ReportingTaskService implements PropertyDescriptorRetriever {
     private static readonly API: string = '../nifi-api';
 
     /**

@@ -35,6 +35,7 @@ import { ReportingTasksEffects } from '../state/reporting-tasks/reporting-tasks.
 import { RegistryClientsEffects } from '../state/registry-clients/registry-clients.effects';
 import { FlowAnalysisRulesEffects } from '../state/flow-analysis-rules/flow-analysis-rules.effects';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { ParameterProvidersEffects } from '../state/parameter-providers/parameter-providers.effects';
 
 @NgModule({
     declarations: [Settings],
@@ -54,7 +55,8 @@ import { Navigation } from '../../../ui/common/navigation/navigation.component';
             ManagementControllerServicesEffects,
             ReportingTasksEffects,
             FlowAnalysisRulesEffects,
-            RegistryClientsEffects
+            RegistryClientsEffects,
+            ParameterProvidersEffects
         ),
         MatTabsModule,
         Navigation

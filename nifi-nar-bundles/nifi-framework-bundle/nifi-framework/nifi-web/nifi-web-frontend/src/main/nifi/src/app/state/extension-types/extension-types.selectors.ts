@@ -51,6 +51,11 @@ export const selectFlowAnalysisRuleTypes = createSelector(
     (state: ExtensionTypesState) => state.flowAnalysisRuleTypes
 );
 
+export const selectParameterProviderTypes = createSelector(
+    selectExtensionTypesState,
+    (state: ExtensionTypesState) => state.parameterProviderTypes
+);
+
 export const selectTypesToIdentifyComponentRestrictions = createSelector(
     selectExtensionTypesState,
     (state: ExtensionTypesState) => {

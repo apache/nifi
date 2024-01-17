@@ -306,6 +306,7 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
                 return 'icon-label';
             case 'remote-process-groups':
                 return 'icon-group-remote';
+            case 'parameter-providers':
             case 'parameter-contexts':
                 return 'icon-drop';
         }
@@ -329,6 +330,8 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
                 return 'Remote Process Group';
             case 'parameter-contexts':
                 return 'Parameter Contexts';
+            case 'parameter-providers':
+                return 'Parameter Provider';
         }
 
         return 'Process Group';

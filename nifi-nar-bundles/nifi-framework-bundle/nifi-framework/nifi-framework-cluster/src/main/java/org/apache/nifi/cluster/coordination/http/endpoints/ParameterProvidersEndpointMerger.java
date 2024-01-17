@@ -23,6 +23,7 @@ import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ParameterProvidersEntity;
 
 import java.net.URI;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -60,6 +61,7 @@ public class ParameterProvidersEndpointMerger extends AbstractSingleEntityEndpoi
         }
 
         clientEntity.setParameterProviders(new HashSet<>(providerEntities.values()));
+        clientEntity.setCurrentTime(new Date());
     }
 
 }

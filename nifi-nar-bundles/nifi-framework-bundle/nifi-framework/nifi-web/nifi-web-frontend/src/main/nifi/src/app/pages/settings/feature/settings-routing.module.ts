@@ -99,7 +99,26 @@ const routes: Routes = [
                     }
                 ]
             },
-            { path: 'parameter-providers', component: ParameterProviders }
+            {
+                path: 'parameter-providers',
+                component: ParameterProviders,
+                children: [
+                    {
+                        path: ':id',
+                        component: ParameterProviders,
+                        children: [
+                            {
+                                path: 'edit',
+                                component: ParameterProviders
+                            },
+                            {
+                                path: 'fetch',
+                                component: ParameterProviders
+                            }
+                        ]
+                    }
+                ]
+            }
         ]
     }
 ];

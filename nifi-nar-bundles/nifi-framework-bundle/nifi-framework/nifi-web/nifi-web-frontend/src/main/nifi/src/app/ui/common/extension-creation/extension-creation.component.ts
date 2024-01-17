@@ -49,16 +49,17 @@ export class ExtensionCreation {
             this.selectedType = documentedTypes[0];
         }
 
-        this.dataSource.data = this.sortEntities(documentedTypes, {
-            active: this.initialSortColumn,
-            direction: this.initialSortDirection
-        });
+        this.dataSource.data = this.sortEntities(documentedTypes, this.activeSort);
     }
 
     @Input() componentType!: string;
     @Input() saving!: boolean;
     @Input() initialSortColumn: 'type' | 'version' | 'tags' = 'type';
     @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
+    activeSort: Sort = {
+        active: this.initialSortColumn,
+        direction: this.initialSortDirection
+    };
 
     @Output() extensionTypeSelected: EventEmitter<DocumentedType> = new EventEmitter<DocumentedType>();
 
@@ -151,6 +152,7 @@ export class ExtensionCreation {
     }
 
     sortData(sort: Sort) {
+        this.activeSort = sort;
         this.dataSource.data = this.sortEntities(this.dataSource.data, sort);
     }
 

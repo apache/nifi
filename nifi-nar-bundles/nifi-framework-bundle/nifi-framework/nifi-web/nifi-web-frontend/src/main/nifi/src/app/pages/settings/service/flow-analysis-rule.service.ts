@@ -27,9 +27,10 @@ import {
     EnableFlowAnalysisRuleRequest,
     FlowAnalysisRuleEntity
 } from '../state/flow-analysis-rules';
+import { PropertyDescriptorRetriever } from '../../../state/shared';
 
 @Injectable({ providedIn: 'root' })
-export class FlowAnalysisRuleService {
+export class FlowAnalysisRuleService implements PropertyDescriptorRetriever {
     private static readonly API: string = '../nifi-api';
 
     /**

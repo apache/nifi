@@ -38,12 +38,12 @@ import {
     UpdateComponentRequest,
     UploadProcessGroupRequest
 } from '../state/flow';
-import { ComponentType } from '../../../state/shared';
+import { ComponentType, PropertyDescriptorRetriever } from '../../../state/shared';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 
 @Injectable({ providedIn: 'root' })
-export class FlowService {
+export class FlowService implements PropertyDescriptorRetriever {
     private static readonly API: string = '../nifi-api';
 
     constructor(

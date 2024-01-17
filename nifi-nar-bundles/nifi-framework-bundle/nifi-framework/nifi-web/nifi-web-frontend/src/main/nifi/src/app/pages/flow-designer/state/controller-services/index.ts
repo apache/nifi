@@ -31,13 +31,6 @@ export interface LoadControllerServicesResponse {
     loadedTimestamp: string;
 }
 
-export interface CreateControllerServiceRequest {
-    processGroupId: string;
-    controllerServiceType: string;
-    controllerServiceBundle: Bundle;
-    revision: Revision;
-}
-
 export interface CreateControllerServiceSuccess {
     controllerService: ControllerServiceEntity;
 }

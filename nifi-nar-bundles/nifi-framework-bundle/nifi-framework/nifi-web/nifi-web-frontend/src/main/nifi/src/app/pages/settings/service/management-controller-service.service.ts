@@ -16,19 +16,23 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import {
     ConfigureControllerServiceRequest,
-    CreateControllerServiceRequest,
     DeleteControllerServiceRequest
 } from '../state/management-controller-services';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
-import { ControllerServiceEntity } from '../../../state/shared';
+import {
+    ControllerServiceCreator,
+    ControllerServiceEntity,
+    CreateControllerServiceRequest,
+    PropertyDescriptorRetriever
+} from '../../../state/shared';
 
 @Injectable({ providedIn: 'root' })
-export class ManagementControllerServiceService {
+export class ManagementControllerServiceService implements ControllerServiceCreator, PropertyDescriptorRetriever {
     private static readonly API: string = '../nifi-api';
 
     /**

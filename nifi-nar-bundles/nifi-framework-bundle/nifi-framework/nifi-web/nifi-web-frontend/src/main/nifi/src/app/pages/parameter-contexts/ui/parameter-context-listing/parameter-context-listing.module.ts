@@ -28,7 +28,7 @@ import { RouterLink } from '@angular/router';
 
 @NgModule({
     declarations: [ParameterContextListing, ParameterContextTable],
-    exports: [ParameterContextListing],
+    exports: [ParameterContextListing, ParameterContextTable],
     imports: [
         CommonModule,
         NgxSkeletonLoaderModule,

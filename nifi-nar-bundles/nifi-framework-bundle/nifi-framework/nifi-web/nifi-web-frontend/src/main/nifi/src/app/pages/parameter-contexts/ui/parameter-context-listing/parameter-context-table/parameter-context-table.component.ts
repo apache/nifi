@@ -31,12 +31,13 @@ import { CurrentUser } from '../../../../../state/current-user';
 export class ParameterContextTable {
     @Input() initialSortColumn: 'name' | 'provider' | 'description' = 'name';
     @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
+    activeSort: Sort = {
+        active: this.initialSortColumn,
+        direction: this.initialSortDirection
+    };
 
     @Input() set parameterContexts(parameterContextEntities: ParameterContextEntity[]) {
-        this.dataSource.data = this.sortEntities(parameterContextEntities, {
-            active: this.initialSortColumn,
-            direction: this.initialSortDirection
-        });
+        this.dataSource.data = this.sortEntities(parameterContextEntities, this.activeSort);
     }
 
     @Input() selectedParameterContextId!: string;
@@ -109,6 +110,7 @@ export class ParameterContextTable {
     }
 
     sortData(sort: Sort) {
+        this.activeSort = sort;
         this.dataSource.data = this.sortEntities(this.dataSource.data, sort);
     }
 

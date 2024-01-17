@@ -672,6 +672,7 @@ public class FlowResource extends ApplicationResource {
         // create the response entity
         final ParameterProvidersEntity entity = new ParameterProvidersEntity();
         entity.setParameterProviders(parameterProviders);
+        entity.setCurrentTime(new Date());
 
         // generate the response
         return generateOkResponse(entity).build();

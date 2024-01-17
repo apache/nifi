@@ -16,19 +16,20 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
+import { NEVER, Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
-import { ControllerServiceEntity } from '../../../state/shared';
 import {
-    ConfigureControllerServiceRequest,
+    ControllerServiceCreator,
+    ControllerServiceEntity,
     CreateControllerServiceRequest,
-    DeleteControllerServiceRequest
-} from '../state/controller-services';
+    PropertyDescriptorRetriever
+} from '../../../state/shared';
+import { ConfigureControllerServiceRequest, DeleteControllerServiceRequest } from '../state/controller-services';
 
 @Injectable({ providedIn: 'root' })
-export class ControllerServiceService {
+export class ControllerServiceService implements ControllerServiceCreator, PropertyDescriptorRetriever {
     private static readonly API: string = '../nifi-api';
 
     /**
@@ -69,17 +70,20 @@ export class ControllerServiceService {
     }
 
     createControllerService(createControllerService: CreateControllerServiceRequest): Observable<any> {
-        const processGroupId: string = createControllerService.processGroupId;
-        return this.httpClient.post(
-            `${ControllerServiceService.API}/process-groups/${processGroupId}/controller-services`,
-            {
-                revision: createControllerService.revision,
-                component: {
-                    bundle: createControllerService.controllerServiceBundle,
-                    type: createControllerService.controllerServiceType
+        if (createControllerService.processGroupId) {
+            const processGroupId: string = createControllerService.processGroupId;
+            return this.httpClient.post(
+                `${ControllerServiceService.API}/process-groups/${processGroupId}/controller-services`,
+                {
+                    revision: createControllerService.revision,
+                    component: {
+                        bundle: createControllerService.controllerServiceBundle,
+                        type: createControllerService.controllerServiceType
+                    }
                 }
-            }
-        );
+            );
+        }
+        return NEVER;
     }
 
     getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<any> {

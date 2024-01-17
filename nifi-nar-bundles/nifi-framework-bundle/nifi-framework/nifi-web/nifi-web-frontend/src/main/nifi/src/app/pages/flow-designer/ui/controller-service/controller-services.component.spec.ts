@@ -22,6 +22,8 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../state/controller-services/controller-services.reducer';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Component } from '@angular/core';
+import { ControllerServicesModule } from './controller-services.module';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('ControllerServices', () => {
     let component: ControllerServices;
@@ -37,7 +39,7 @@ describe('ControllerServices', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [ControllerServices],
-            imports: [RouterTestingModule, MockNavigation],
+            imports: [RouterTestingModule, MockNavigation, ControllerServicesModule, HttpClientTestingModule],
             providers: [
                 provideMockStore({
                     initialState

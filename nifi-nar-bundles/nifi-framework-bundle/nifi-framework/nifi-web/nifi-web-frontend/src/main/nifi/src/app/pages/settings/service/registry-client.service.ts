@@ -26,9 +26,10 @@ import {
     EditRegistryClientRequest,
     RegistryClientEntity
 } from '../state/registry-clients';
+import { PropertyDescriptorRetriever } from '../../../state/shared';
 
 @Injectable({ providedIn: 'root' })
-export class RegistryClientService {
+export class RegistryClientService implements PropertyDescriptorRetriever {
     private static readonly API: string = '../nifi-api';
 
     /**

@@ -24,12 +24,6 @@ export interface LoadManagementControllerServicesResponse {
     loadedTimestamp: string;
 }
 
-export interface CreateControllerServiceRequest {
-    controllerServiceType: string;
-    controllerServiceBundle: Bundle;
-    revision: Revision;
-}
-
 export interface CreateControllerServiceSuccess {
     controllerService: ControllerServiceEntity;
 }
