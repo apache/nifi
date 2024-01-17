@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard;
+package org.apache.nifi.processor.util.file.transfer;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.flowfile.FlowFile;
@@ -25,8 +25,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
-import org.apache.nifi.processors.standard.util.FileInfo;
-import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.File;
@@ -67,6 +65,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
     public static final String FILE_OWNER_ATTRIBUTE = "file.owner";
     public static final String FILE_GROUP_ATTRIBUTE = "file.group";
     public static final String FILE_PERMISSIONS_ATTRIBUTE = "file.permissions";
+    public static final String FILE_SIZE_ATTRIBUTE = "file.size";
     public static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
     protected static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(FILE_MODIFY_DATE_ATTR_FORMAT);
 

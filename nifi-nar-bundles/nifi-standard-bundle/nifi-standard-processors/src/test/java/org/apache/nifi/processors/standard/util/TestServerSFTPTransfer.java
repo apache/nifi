@@ -21,6 +21,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.file.transfer.FileInfo;
 import org.apache.nifi.util.MockPropertyContext;
 import org.apache.sshd.common.file.virtualfs.VirtualFileSystemFactory;
 import org.apache.sshd.server.SshServer;

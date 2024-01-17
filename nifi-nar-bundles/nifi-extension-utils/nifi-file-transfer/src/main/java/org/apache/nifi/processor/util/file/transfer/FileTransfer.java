@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.util;
+package org.apache.nifi.processor.util.file.transfer;
 
 import java.io.Closeable;
 import java.io.File;
