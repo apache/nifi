@@ -431,7 +431,7 @@
                 buildRuleViolationsList: function(rules, violationsAndRecs) {
                     var ruleViolationCountEl = $('#rule-violation-count');
                     var ruleViolationListEl = $('#rule-violations-list');
-                    // var ruleWarningCountEl = $('#rule-warning-count');
+                    var ruleWarningCountEl = $('#rule-warning-count');
                     var ruleWarningListEl = $('#rule-warnings-list');
                     var violations = violationsAndRecs.filter(function (violation) {
                         return violation.enforcementPolicy === 'ENFORCE'
@@ -440,6 +440,7 @@
                         return violation.enforcementPolicy === 'WARN'
                     });
                     ruleViolationCountEl.empty().text('(' + violations.length + ')');
+                    ruleWarningCountEl.empty().text('(' + warnings.length + ')');
                     ruleViolationListEl.empty();
                     violations.forEach(function(violation) {
                         var rule = rules.find(function(rule) {
@@ -720,9 +721,18 @@
                                                 .removeClass()
                                                 .addClass(ruleInfo.enforcementPolicy.toLowerCase() + ' rule-type-pill')
                                                 .append(ruleInfo.enforcementPolicy);
-                            $('#rule-display-name').empty().append(ruleInfo.descriptors['component-type'].displayName);
+                            $('#rule-display-name').empty().append(ruleInfo.name);
                             $('#rule-description').empty().append(ruleInfo.descriptors['component-type'].description);
                             $( "#rule-menu-more-info-dialog" ).modal( "show" );
+                            $('.rule-docs-link').click(function () {
+                                // open the documentation for this flow analysis rule
+                                nfShell.showPage('../nifi-docs/documentation?' + $.param({
+                                    select: ruleInfo.type,
+                                    group: ruleInfo.bundle.group,
+                                    artifact: ruleInfo.bundle.artifact,
+                                    version: ruleInfo.bundle.version
+                                })).done(function () {});
+                            });
                             unbindRuleMenuHandling();
                         };
 
@@ -776,7 +786,16 @@
                                                     .append(violationInfo.enforcementPolicy);
                             $('#violation-display-name').empty().append(violationInfo.violationMessage);
                             $('#violation-description').empty().append(rule.descriptors['component-type'].description);
-                            $( "#violation-menu-more-info-dialog" ).modal( "show" );
+                            $('#violation-menu-more-info-dialog').modal( "show" );
+                            $('.violation-docs-link').click(function () {
+                                // open the documentation for this flow analysis rule
+                                nfShell.showPage('../nifi-docs/documentation?' + $.param({
+                                    select: rule.type,
+                                    group: rule.bundle.group,
+                                    artifact: rule.bundle.artifact,
+                                    version: rule.bundle.version
+                                })).done(function () {});
+                            });
                             unbindViolationMenuHandling();
                         }
 
@@ -947,7 +966,6 @@
                         url: '../nifi-api/process-groups/' + groupId + '/flow-analysis-requests',
                         dataType: 'json'
                     }).done(function (response) {
-                        console.log(response);
                     }).fail(nfErrorHandler.handleAjaxError);
                 },
 

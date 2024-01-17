@@ -27,11 +27,11 @@
             <div>
                 <div class="flow-analysis-violations-options">
                     <div class="nf-checkbox checkbox-unchecked" id="show-only-violations"></div>
-                    <span class="nf-checkbox-label show-only-violations-label">Only show violations</span>
+                    <span class="nf-checkbox-label show-only-violations-label">Show enforced violations</span>
                 </div>
                 <div class="flow-analysis-warnings-options">
                     <div class="nf-checkbox checkbox-unchecked" id="show-only-warnings"></div>
-                    <span class="nf-checkbox-label show-only-warnings-label">Only show warnings</span>
+                    <span class="nf-checkbox-label show-only-warnings-label">Show warning violations</span>
                 </div>
             </div>
         </div>
@@ -41,7 +41,7 @@
 
         <div id="required-rules" class="required-rules">
             <div>
-                <div>Required Rules <span id="required-rule-count" class="required-rule-count"></span></div>
+                <div>Enforced Rules <span id="required-rule-count" class="required-rule-count"></span></div>
             </div>
             <ul id="required-rules-list" class="required-rules-list">
             </ul>
@@ -49,21 +49,21 @@
 
         <div id="recommended-rules" class="recommended-rules">
             <div>
-                <div>Recommended Rules <span id="recommended-rule-count" class="recommended-rule-count"></span></div>
+                <div>Warning Rules <span id="recommended-rule-count" class="recommended-rule-count"></span></div>
             </div>
             <ul id="recommended-rules-list" class="recommended-rules-list"></ul>
         </div>
 
         <div id="rule-violations" class="rule-violations">
             <div class="rules-violations-header">
-                <div>Rule Violations <span id="rule-violation-count" class="rule-violation-count"></span></div>
+                <div>Enforced Violations <span id="rule-violation-count" class="rule-violation-count"></span></div>
             </div>
             <ul id="rule-violations-list" class="rule-violations-list"></ul>
         </div>
 
         <div id="rule-warnings" class="rule-warnings">
             <div class="rules-warnings-header">
-                <div>Rule Warnings <span id="rule-warning-count" class="rule-warning-count"></span></div>
+                <div>Warning Violations <span id="rule-warning-count" class="rule-warning-count"></span></div>
             </div>
             <ul id="rule-warnings-list" class="rule-warnings-list"></ul>
         </div>
