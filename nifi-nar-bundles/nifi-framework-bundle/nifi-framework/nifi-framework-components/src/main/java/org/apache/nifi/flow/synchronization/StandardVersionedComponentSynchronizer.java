@@ -1438,8 +1438,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                         // Find the same property descriptor in the component's CreatedExtension and replace it with the
                         // instance ID of the service
                         createdExtensions.stream().filter(ce -> ce.extension.equals(componentNode)).forEach(createdExtension -> {
-                            LOG.debug("Replacing CreatedExtension property {} old value {} with new value {}",
-                                    propertyName, createdExtension.propertyValues.get(propertyName) , value);
                             createdExtension.propertyValues.replace(propertyName, value);
                         });
                     } else {
