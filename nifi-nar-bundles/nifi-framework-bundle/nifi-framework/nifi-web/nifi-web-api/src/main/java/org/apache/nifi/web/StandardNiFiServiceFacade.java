@@ -359,6 +359,7 @@ import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -448,7 +449,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private final JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
     private final ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry = new ConnectionAnalyticsMetricsRegistry();
     private final ClusterMetricsRegistry clusterMetricsRegistry = new ClusterMetricsRegistry();
+    private boolean analyticsEnabled;
     private ForkJoinPool parallelProcessingThreadPool;
+
+    @PostConstruct
+    public void postConstruct() {
+        analyticsEnabled = Boolean.parseBoolean(
+                properties.getProperty(NiFiProperties.ANALYTICS_PREDICTION_ENABLED, Boolean.FALSE.toString()));
+
+        if (analyticsEnabled) {
+            parallelProcessingThreadPool = createParallelProcessingThreadPool();
+        }
+    }
 
     // -----------------------------------------
     // Synchronization methods
@@ -6125,12 +6137,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         Set<Connection> connections = controllerFacade.getFlowManager().findAllConnections();
         Collection<Map<String, Long>> predictions = Collections.synchronizedList(new ArrayList<>());
 
-        final boolean analyticsEnabled = Boolean.parseBoolean(properties.getProperty(NiFiProperties.ANALYTICS_PREDICTION_ENABLED, Boolean.FALSE.toString()));
-
         if (analyticsEnabled) {
-            if (parallelProcessingThreadPool == null) {
-                parallelProcessingThreadPool = createParallelProcessingThreadPool();
-            }
             // We need to make processing timeout shorter than the web request timeout as if they overlap Jetty may throw IllegalStateException
             final long parallelProcessingTimeout = Math.round(FormatUtils.getPreciseTimeDuration(
                     properties.getProperty(NiFiProperties.WEB_REQUEST_TIMEOUT, "1 min"), TimeUnit.MILLISECONDS)) - 5000;
