@@ -18,7 +18,7 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as TenantsActions from './tenants.actions';
-import { catchError, combineLatest, filter, from, map, of, switchMap, take, tap, withLatestFrom } from 'rxjs';
+import { catchError, combineLatest, map, of, switchMap } from 'rxjs';
 import { AccessPolicyService } from '../../service/access-policy.service';
 
 @Injectable()

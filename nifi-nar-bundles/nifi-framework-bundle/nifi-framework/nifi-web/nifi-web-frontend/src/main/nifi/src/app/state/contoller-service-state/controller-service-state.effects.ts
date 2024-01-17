@@ -16,21 +16,9 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ControllerServiceActions from './controller-service-state.actions';
-import {
-    asyncScheduler,
-    catchError,
-    filter,
-    from,
-    interval,
-    map,
-    of,
-    switchMap,
-    takeUntil,
-    tap,
-    withLatestFrom
-} from 'rxjs';
+import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap, takeUntil, tap } from 'rxjs';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../index';
 import { selectControllerService, selectControllerServiceSetEnableRequest } from './controller-service-state.selectors';
@@ -53,7 +41,7 @@ export class ControllerServiceStateEffects {
         this.actions$.pipe(
             ofType(ControllerServiceActions.submitEnableRequest),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectControllerService).pipe(isDefinedAndNotNull())),
+            concatLatestFrom(() => this.store.select(selectControllerService).pipe(isDefinedAndNotNull())),
             switchMap(([request, controllerService]) => {
                 if (
                     request.scope === 'SERVICE_AND_REFERENCING_COMPONENTS' &&
@@ -77,7 +65,7 @@ export class ControllerServiceStateEffects {
     submitDisableRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ControllerServiceActions.submitDisableRequest),
-            withLatestFrom(this.store.select(selectControllerService).pipe(isDefinedAndNotNull())),
+            concatLatestFrom(() => this.store.select(selectControllerService).pipe(isDefinedAndNotNull())),
             switchMap(([request, controllerService]) => {
                 if (this.hasUnauthorizedReferences(controllerService.component.referencingComponents)) {
                     return of(
@@ -98,10 +86,10 @@ export class ControllerServiceStateEffects {
     setEnableControllerService$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ControllerServiceActions.setEnableControllerService),
-            withLatestFrom(
+            concatLatestFrom(() => [
                 this.store.select(selectControllerService),
                 this.store.select(selectControllerServiceSetEnableRequest)
-            ),
+            ]),
             switchMap(([request, controllerService, setEnableRequest]) => {
                 if (controllerService) {
                     return from(
@@ -163,10 +151,10 @@ export class ControllerServiceStateEffects {
     pollControllerService$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ControllerServiceActions.pollControllerService),
-            withLatestFrom(
+            concatLatestFrom(() => [
                 this.store.select(selectControllerService).pipe(isDefinedAndNotNull()),
                 this.store.select(selectControllerServiceSetEnableRequest)
-            ),
+            ]),
             switchMap(([action, controllerService, setEnableRequest]) =>
                 from(this.controllerServiceStateService.getControllerService(controllerService.id)).pipe(
                     map((response) =>
@@ -229,10 +217,10 @@ export class ControllerServiceStateEffects {
     updateReferencingServices$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ControllerServiceActions.updateReferencingServices),
-            withLatestFrom(
+            concatLatestFrom(() => [
                 this.store.select(selectControllerService),
                 this.store.select(selectControllerServiceSetEnableRequest)
-            ),
+            ]),
             switchMap(([action, controllerService, setEnableRequest]) => {
                 if (controllerService) {
                     return from(
@@ -275,10 +263,10 @@ export class ControllerServiceStateEffects {
     updateReferencingComponents$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ControllerServiceActions.updateReferencingComponents),
-            withLatestFrom(
+            concatLatestFrom(() => [
                 this.store.select(selectControllerService),
                 this.store.select(selectControllerServiceSetEnableRequest)
-            ),
+            ]),
             switchMap(([action, controllerService, setEnableRequest]) => {
                 if (controllerService) {
                     return from(

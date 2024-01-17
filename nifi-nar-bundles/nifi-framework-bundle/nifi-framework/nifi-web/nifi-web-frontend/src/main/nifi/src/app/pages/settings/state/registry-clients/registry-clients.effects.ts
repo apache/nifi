@@ -16,9 +16,9 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as RegistryClientsActions from './registry-clients.actions';
-import { catchError, from, map, NEVER, Observable, of, switchMap, take, takeUntil, tap, withLatestFrom } from 'rxjs';
+import { catchError, from, map, NEVER, Observable, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
@@ -86,7 +86,7 @@ export class RegistryClientsEffects {
         () =>
             this.actions$.pipe(
                 ofType(RegistryClientsActions.openNewRegistryClientDialog),
-                withLatestFrom(this.store.select(selectRegistryClientTypes)),
+                concatLatestFrom(() => this.store.select(selectRegistryClientTypes)),
                 tap(([action, registryClientTypes]) => {
                     const dialogReference = this.dialog.open(CreateRegistryClient, {
                         data: {

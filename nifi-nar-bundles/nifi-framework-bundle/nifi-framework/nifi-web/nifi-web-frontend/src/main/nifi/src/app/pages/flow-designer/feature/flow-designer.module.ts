@@ -28,6 +28,7 @@ import { canvasFeatureKey, reducers } from '../state';
 import { MatDialogModule } from '@angular/material/dialog';
 import { ControllerServicesEffects } from '../state/controller-services/controller-services.effects';
 import { ParameterEffects } from '../state/parameter/parameter.effects';
+import { QueueEffects } from '../state/queue/queue.effects';
 
 @NgModule({
     declarations: [FlowDesigner, VersionControlTip],
@@ -36,7 +37,13 @@ import { ParameterEffects } from '../state/parameter/parameter.effects';
         CommonModule,
         FlowDesignerRoutingModule,
         StoreModule.forFeature(canvasFeatureKey, reducers),
-        EffectsModule.forFeature(FlowEffects, TransformEffects, ControllerServicesEffects, ParameterEffects),
+        EffectsModule.forFeature(
+            FlowEffects,
+            TransformEffects,
+            ControllerServicesEffects,
+            ParameterEffects,
+            QueueEffects
+        ),
         NgOptimizedImage,
         MatDialogModule
     ]

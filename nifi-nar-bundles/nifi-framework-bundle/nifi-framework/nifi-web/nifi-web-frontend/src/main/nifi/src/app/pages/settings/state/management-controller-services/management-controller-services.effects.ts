@@ -16,9 +16,9 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ManagementControllerServicesActions from './management-controller-services.actions';
-import { catchError, from, map, NEVER, Observable, of, switchMap, take, takeUntil, tap, withLatestFrom } from 'rxjs';
+import { catchError, from, map, NEVER, Observable, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { Store } from '@ngrx/store';
@@ -87,7 +87,7 @@ export class ManagementControllerServicesEffects {
         () =>
             this.actions$.pipe(
                 ofType(ManagementControllerServicesActions.openNewControllerServiceDialog),
-                withLatestFrom(this.store.select(selectControllerServiceTypes)),
+                concatLatestFrom(() => this.store.select(selectControllerServiceTypes)),
                 tap(([action, controllerServiceTypes]) => {
                     const dialogReference = this.dialog.open(CreateControllerService, {
                         data: {

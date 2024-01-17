@@ -16,22 +16,9 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ProvenanceEventListingActions from './provenance-event-listing.actions';
-import {
-    asyncScheduler,
-    catchError,
-    from,
-    interval,
-    map,
-    NEVER,
-    of,
-    switchMap,
-    take,
-    takeUntil,
-    tap,
-    withLatestFrom
-} from 'rxjs';
+import { asyncScheduler, catchError, from, interval, map, NEVER, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
@@ -169,7 +156,7 @@ export class ProvenanceEventListingEffects {
     pollProvenanceQuery$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ProvenanceEventListingActions.pollProvenanceQuery),
-            withLatestFrom(this.store.select(selectProvenanceId), this.store.select(selectClusterNodeId)),
+            concatLatestFrom(() => [this.store.select(selectProvenanceId), this.store.select(selectClusterNodeId)]),
             switchMap(([action, id, clusterNodeId]) => {
                 if (id) {
                     return from(this.provenanceService.getProvenanceQuery(id, clusterNodeId)).pipe(
@@ -222,7 +209,7 @@ export class ProvenanceEventListingEffects {
         () =>
             this.actions$.pipe(
                 ofType(ProvenanceEventListingActions.deleteProvenanceQuery),
-                withLatestFrom(this.store.select(selectProvenanceId), this.store.select(selectClusterNodeId)),
+                concatLatestFrom(() => [this.store.select(selectProvenanceId), this.store.select(selectClusterNodeId)]),
                 tap(([action, id, clusterNodeId]) => {
                     if (id) {
                         this.provenanceService.deleteProvenanceQuery(id, clusterNodeId).subscribe();
@@ -236,12 +223,12 @@ export class ProvenanceEventListingEffects {
         () =>
             this.actions$.pipe(
                 ofType(ProvenanceEventListingActions.openSearchDialog),
-                withLatestFrom(
+                concatLatestFrom(() => [
                     this.store.select(selectTimeOffset),
                     this.store.select(selectProvenanceOptions),
                     this.store.select(selectProvenanceRequest),
                     this.store.select(selectAbout)
-                ),
+                ]),
                 tap(([request, timeOffset, options, currentRequest, about]) => {
                     if (about) {
                         const dialogReference = this.dialog.open(ProvenanceSearchDialog, {
@@ -288,7 +275,7 @@ export class ProvenanceEventListingEffects {
             this.actions$.pipe(
                 ofType(ProvenanceEventListingActions.openProvenanceEventDialog),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectAbout)),
+                concatLatestFrom(() => this.store.select(selectAbout)),
                 tap(([request, about]) => {
                     this.provenanceService.getProvenanceEvent(request.id).subscribe({
                         next: (response) => {

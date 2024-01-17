@@ -16,12 +16,12 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { Router } from '@angular/router';
 import * as BulletinBoardActions from './bulletin-board.actions';
-import { asyncScheduler, from, interval, map, of, switchMap, takeUntil, withLatestFrom } from 'rxjs';
+import { asyncScheduler, from, interval, map, of, switchMap, takeUntil } from 'rxjs';
 import { BulletinBoardService } from '../../service/bulletin-board.service';
 import { selectBulletinBoardFilter, selectLastBulletinId } from './bulletin-board.selectors';
 import { LoadBulletinBoardRequest } from './index';
@@ -77,7 +77,10 @@ export class BulletinBoardEffects {
                     takeUntil(this.actions$.pipe(ofType(BulletinBoardActions.stopBulletinBoardPolling)))
                 )
             ),
-            withLatestFrom(this.store.select(selectBulletinBoardFilter), this.store.select(selectLastBulletinId)),
+            concatLatestFrom(() => [
+                this.store.select(selectBulletinBoardFilter),
+                this.store.select(selectLastBulletinId)
+            ]),
             switchMap(([, filter, lastBulletinId]) => {
                 const request: LoadBulletinBoardRequest = {};
                 if (lastBulletinId > 0) {

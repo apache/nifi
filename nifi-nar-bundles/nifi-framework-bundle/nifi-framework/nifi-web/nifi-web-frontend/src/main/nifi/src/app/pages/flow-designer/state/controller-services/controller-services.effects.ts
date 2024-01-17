@@ -16,7 +16,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ControllerServicesActions from './controller-services.actions';
 import {
     catchError,
@@ -30,8 +30,7 @@ import {
     switchMap,
     take,
     takeUntil,
-    tap,
-    withLatestFrom
+    tap
 } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
@@ -119,10 +118,10 @@ export class ControllerServicesEffects {
         () =>
             this.actions$.pipe(
                 ofType(ControllerServicesActions.openNewControllerServiceDialog),
-                withLatestFrom(
+                concatLatestFrom(() => [
                     this.store.select(selectControllerServiceTypes),
                     this.store.select(selectCurrentProcessGroupId)
-                ),
+                ]),
                 tap(([action, controllerServiceTypes, processGroupId]) => {
                     const dialogReference = this.dialog.open(CreateControllerService, {
                         data: {
@@ -196,7 +195,7 @@ export class ControllerServicesEffects {
             this.actions$.pipe(
                 ofType(ControllerServicesActions.navigateToEditService),
                 map((action) => action.id),
-                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([id, processGroupId]) => {
                     this.router.navigate(['/process-groups', processGroupId, 'controller-services', id, 'edit']);
                 })
@@ -209,10 +208,10 @@ export class ControllerServicesEffects {
             this.actions$.pipe(
                 ofType(ControllerServicesActions.openConfigureControllerServiceDialog),
                 map((action) => action.request),
-                withLatestFrom(
+                concatLatestFrom(() => [
                     this.store.select(selectCurrentParameterContext),
                     this.store.select(selectCurrentProcessGroupId)
-                ),
+                ]),
                 tap(([request, parameterContext, processGroupId]) => {
                     const serviceId: string = request.id;
 
@@ -555,7 +554,7 @@ export class ControllerServicesEffects {
             this.actions$.pipe(
                 ofType(ControllerServicesActions.openEnableControllerServiceDialog),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([request, currentProcessGroupId]) => {
                     const serviceId: string = request.id;
 
@@ -595,7 +594,7 @@ export class ControllerServicesEffects {
             this.actions$.pipe(
                 ofType(ControllerServicesActions.openDisableControllerServiceDialog),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([request, currentProcessGroupId]) => {
                     const serviceId: string = request.id;
 

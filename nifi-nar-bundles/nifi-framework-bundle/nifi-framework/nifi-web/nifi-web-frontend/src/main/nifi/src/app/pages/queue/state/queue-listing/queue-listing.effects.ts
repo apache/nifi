@@ -16,24 +16,11 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as QueueListingActions from './queue-listing.actions';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../flow-designer/state';
-import {
-    asyncScheduler,
-    catchError,
-    filter,
-    from,
-    interval,
-    map,
-    of,
-    switchMap,
-    take,
-    takeUntil,
-    tap,
-    withLatestFrom
-} from 'rxjs';
+import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { selectConnectionIdFromRoute, selectListingRequestEntity } from './queue-listing.selectors';
 import { QueueService } from '../../service/queue.service';
 import { ListingRequest } from './index';
@@ -131,7 +118,7 @@ export class QueueListingEffects {
     resubmitQueueListingRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(QueueListingActions.resubmitQueueListingRequest),
-            withLatestFrom(this.store.select(selectConnectionIdFromRoute)),
+            concatLatestFrom(() => this.store.select(selectConnectionIdFromRoute)),
             switchMap(([action, connectionId]) =>
                 of(QueueListingActions.submitQueueListingRequest({ request: { connectionId } }))
             )
@@ -168,7 +155,7 @@ export class QueueListingEffects {
     pollQueueListingRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(QueueListingActions.pollQueueListingRequest),
-            withLatestFrom(this.store.select(selectListingRequestEntity).pipe(isDefinedAndNotNull())),
+            concatLatestFrom(() => this.store.select(selectListingRequestEntity).pipe(isDefinedAndNotNull())),
             switchMap(([action, requestEntity]) => {
                 return from(this.queueService.pollQueueListingRequest(requestEntity.listingRequest)).pipe(
                     map((response) =>
@@ -210,7 +197,7 @@ export class QueueListingEffects {
         () =>
             this.actions$.pipe(
                 ofType(QueueListingActions.deleteQueueListingRequest),
-                withLatestFrom(this.store.select(selectListingRequestEntity)),
+                concatLatestFrom(() => this.store.select(selectListingRequestEntity)),
                 tap(([action, requestEntity]) => {
                     this.dialog.closeAll();
 
@@ -252,7 +239,7 @@ export class QueueListingEffects {
             this.actions$.pipe(
                 ofType(QueueListingActions.openFlowFileDialog),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectAbout)),
+                concatLatestFrom(() => this.store.select(selectAbout)),
                 filter((about) => about != null),
                 tap(([request, about]) => {
                     const dialogReference = this.dialog.open(FlowFileDialog, {
@@ -303,7 +290,7 @@ export class QueueListingEffects {
             this.actions$.pipe(
                 ofType(QueueListingActions.viewFlowFileContent),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectAbout).pipe(isDefinedAndNotNull())),
+                concatLatestFrom(() => this.store.select(selectAbout).pipe(isDefinedAndNotNull())),
                 tap(([request, about]) => {
                     this.queueService.viewContent(request.flowfileSummary, about.contentViewerUrl);
                 })

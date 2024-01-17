@@ -16,7 +16,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ParameterContextListingActions from './parameter-context-listing.actions';
 import {
     asyncScheduler,
@@ -30,8 +30,7 @@ import {
     switchMap,
     take,
     takeUntil,
-    tap,
-    withLatestFrom
+    tap
 } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
@@ -370,7 +369,7 @@ export class ParameterContextListingEffects {
     pollParameterContextUpdateRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ParameterContextListingActions.pollParameterContextUpdateRequest),
-            withLatestFrom(this.store.select(selectUpdateRequest)),
+            concatLatestFrom(() => this.store.select(selectUpdateRequest)),
             switchMap(([action, updateRequest]) => {
                 if (updateRequest) {
                     return from(this.parameterContextService.pollParameterContextUpdate(updateRequest.request)).pipe(
@@ -422,7 +421,7 @@ export class ParameterContextListingEffects {
         () =>
             this.actions$.pipe(
                 ofType(ParameterContextListingActions.deleteParameterContextUpdateRequest),
-                withLatestFrom(this.store.select(selectUpdateRequest)),
+                concatLatestFrom(() => this.store.select(selectUpdateRequest)),
                 tap(([action, updateRequest]) => {
                     if (updateRequest) {
                         this.parameterContextService.deleteParameterContextUpdate(updateRequest.request).subscribe();

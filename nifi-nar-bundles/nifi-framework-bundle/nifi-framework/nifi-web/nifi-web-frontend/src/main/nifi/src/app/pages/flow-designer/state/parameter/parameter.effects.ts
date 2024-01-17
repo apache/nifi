@@ -16,23 +16,11 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ParameterActions from './parameter.actions';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../index';
-import {
-    asyncScheduler,
-    catchError,
-    from,
-    interval,
-    map,
-    NEVER,
-    of,
-    switchMap,
-    takeUntil,
-    tap,
-    withLatestFrom
-} from 'rxjs';
+import { asyncScheduler, catchError, from, interval, map, NEVER, of, switchMap, takeUntil, tap } from 'rxjs';
 import { ParameterContextUpdateRequest } from '../../../../state/shared';
 import { selectUpdateRequest } from './parameter.selectors';
 import { ParameterService } from '../../service/parameter.service';
@@ -100,7 +88,7 @@ export class ParameterEffects {
     pollParameterContextUpdateRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ParameterActions.pollParameterContextUpdateRequest),
-            withLatestFrom(this.store.select(selectUpdateRequest)),
+            concatLatestFrom(() => this.store.select(selectUpdateRequest)),
             switchMap(([action, updateRequest]) => {
                 if (updateRequest) {
                     return from(this.parameterService.pollParameterContextUpdate(updateRequest.request)).pipe(
@@ -151,7 +139,7 @@ export class ParameterEffects {
     deleteParameterContextUpdateRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ParameterActions.deleteParameterContextUpdateRequest),
-            withLatestFrom(this.store.select(selectUpdateRequest)),
+            concatLatestFrom(() => this.store.select(selectUpdateRequest)),
             tap(([action, updateRequest]) => {
                 if (updateRequest) {
                     this.parameterService.deleteParameterContextUpdate(updateRequest.request).subscribe();
