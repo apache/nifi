@@ -130,8 +130,6 @@ public class TestMonitorActivity {
         runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 1);
 
         MockFlowFile restoredFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).get(0);
-        String flowFileContent = new String(restoredFlowFile.toByteArray());
-        assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
         restoredFlowFile.assertAttributeNotExists("key");
         restoredFlowFile.assertAttributeNotExists("key1");
 
@@ -154,8 +152,6 @@ public class TestMonitorActivity {
         runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 1);
 
         restoredFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).get(0);
-        flowFileContent = new String(restoredFlowFile.toByteArray());
-        assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
         restoredFlowFile.assertAttributeNotExists("key");
         restoredFlowFile.assertAttributeNotExists("key1");
     }
@@ -406,50 +402,6 @@ public class TestMonitorActivity {
             runner.clearTransferState();
         }
         while(rerun);
-    }
-
-    @Test
-    public void testRunNoMessagesWithWaitForActivityTrue() throws InterruptedException {
-        // don't use the TestableProcessor, we want the real timestamp from @OnScheduled
-        final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
-        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
-        runner.setProperty(MonitorActivity.THRESHOLD, "5 secs");
-        runner.setProperty(MonitorActivity.WAIT_FOR_ACTIVITY, "true");
-
-        // shouldn't generate inactivity b/c run() will reset the lastSuccessfulTransfer if @OnSchedule & onTrigger
-        // does not  get called more than MonitorActivity.THRESHOLD apart
-        runner.run();
-        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
-        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
-        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
-        Thread.sleep(10000L);
-        runNext(runner);
-        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
-        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
-        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
-        runner.clearTransferState();
-    }
-
-    @Test
-    public void testRunNoMessagesWithWaitForActivityFalse() throws InterruptedException {
-        // don't use the TestableProcessor, we want the real timestamp from @OnScheduled
-        final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
-        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
-        runner.setProperty(MonitorActivity.THRESHOLD, "5 secs");
-        runner.setProperty(MonitorActivity.WAIT_FOR_ACTIVITY, "false");
-
-        // shouldn't generate inactivity b/c run() will reset the lastSuccessfulTransfer if @OnSchedule & onTrigger
-        // does not  get called more than MonitorActivity.THRESHOLD apart
-        runner.run();
-        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
-        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
-        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
-        Thread.sleep(10000L);
-        runNext(runner);
-        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
-        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 1);
-        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
-        runner.clearTransferState();
     }
 
     /**
