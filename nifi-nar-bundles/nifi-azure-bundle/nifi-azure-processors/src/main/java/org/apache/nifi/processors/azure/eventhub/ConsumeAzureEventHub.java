@@ -101,8 +101,8 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
-import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointConstants.KEY_CLIENT_ID;
-import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointConstants.KEY_IS_CLUSTERED;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointStoreKey.CLIENT_ID;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointStoreKey.CLUSTERED;
 
 @Tags({"azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams"})
 @CapabilityDescription("Receives messages from Microsoft Azure Event Hubs with checkpointing to ensure consistent event processing. "
@@ -408,13 +408,13 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
     public void onScheduled(final ProcessContext context) throws IOException {
         StateManager stateManager = context.getStateManager();
 
-        String clientId = stateManager.getState(Scope.LOCAL).get(KEY_CLIENT_ID);
+        String clientId = stateManager.getState(Scope.LOCAL).get(CLIENT_ID.key());
         if (clientId == null) {
             clientId = UUID.randomUUID().toString();
 
             final Map<String, String> clientState = new HashMap<>();
-            clientState.put(KEY_CLIENT_ID, clientId);
-            clientState.put(KEY_IS_CLUSTERED, Boolean.toString(getNodeTypeProvider().isClustered()));
+            clientState.put(CLIENT_ID.key(), clientId);
+            clientState.put(CLUSTERED.key(), Boolean.toString(getNodeTypeProvider().isClustered()));
 
             stateManager.setState(clientState, Scope.LOCAL);
         }

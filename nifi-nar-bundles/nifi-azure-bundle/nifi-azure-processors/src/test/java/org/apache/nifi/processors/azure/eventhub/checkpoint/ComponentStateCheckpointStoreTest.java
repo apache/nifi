@@ -35,8 +35,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointConstants.KEY_CLIENT_ID;
-import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointConstants.KEY_IS_CLUSTERED;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointStoreKey.CLIENT_ID;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointStoreKey.CLUSTERED;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createCheckpointKey;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createCheckpointValue;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.createOwnershipKey;
@@ -63,8 +63,8 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
     void beforeEach() throws IOException {
         stateManager.setExecutionMode(ExecutionMode.CLUSTERED);
 
-        addToState(KEY_CLIENT_ID, CLIENT_ID_1, Scope.LOCAL);
-        addToState(KEY_IS_CLUSTERED, "true", Scope.LOCAL);
+        addToState(CLIENT_ID.key(), CLIENT_ID_1, Scope.LOCAL);
+        addToState(CLUSTERED.key(), "true", Scope.LOCAL);
     }
 
     @Test
@@ -334,7 +334,7 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
 
     private void setExecutionMode(ExecutionMode executionMode) throws IOException {
         stateManager.setExecutionMode(executionMode);
-        addToState(KEY_IS_CLUSTERED, Boolean.toString(executionMode == ExecutionMode.CLUSTERED), Scope.LOCAL);
+        addToState(CLUSTERED.key(), Boolean.toString(executionMode == ExecutionMode.CLUSTERED), Scope.LOCAL);
     }
 
     private void testListOwnerships(PartitionOwnership... expectedPartitionOwnerships) {
@@ -362,8 +362,8 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
     }
 
     private void assertLocalScope(ExecutionMode executionMode) {
-        stateManager.assertStateEquals(KEY_CLIENT_ID, CLIENT_ID_1, Scope.LOCAL);
-        stateManager.assertStateEquals(KEY_IS_CLUSTERED, Boolean.toString(executionMode == ExecutionMode.CLUSTERED), Scope.LOCAL);
+        stateManager.assertStateEquals(CLIENT_ID.key(), CLIENT_ID_1, Scope.LOCAL);
+        stateManager.assertStateEquals(CLUSTERED.key(), Boolean.toString(executionMode == ExecutionMode.CLUSTERED), Scope.LOCAL);
     }
 
     private void addToState(PartitionOwnership partitionOwnership) throws IOException {

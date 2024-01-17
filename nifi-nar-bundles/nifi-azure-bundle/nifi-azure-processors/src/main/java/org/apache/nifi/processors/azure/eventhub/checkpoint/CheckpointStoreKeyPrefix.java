@@ -13,17 +13,21 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */package org.apache.nifi.processors.azure.eventhub.checkpoint;
+ */
+package org.apache.nifi.processors.azure.eventhub.checkpoint;
 
-public final class CheckpointConstants {
+public enum CheckpointStoreKeyPrefix {
 
-    private CheckpointConstants() {}
+    OWNERSHIP("ownership"),
+    CHECKPOINT("checkpoint");
 
-    // keys stored in local state by ConsumeAzureEventHub
-    public static final String KEY_CLIENT_ID = "_clientId";
-    public static final String KEY_IS_CLUSTERED = "_isClustered";
+    private final String keyPrefix;
 
-    // key prefixes for checkpoint store entries
-    public static final String KEY_PREFIX_OWNERSHIP = "ownership";
-    public static final String KEY_PREFIX_CHECKPOINT = "checkpoint";
+    CheckpointStoreKeyPrefix(String keyPrefix) {
+        this.keyPrefix = keyPrefix;
+    }
+
+    public String keyPrefix() {
+        return keyPrefix;
+    }
 }

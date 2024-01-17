@@ -45,9 +45,9 @@ import java.util.function.BiFunction;
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointConstants.KEY_IS_CLUSTERED;
-import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointConstants.KEY_PREFIX_CHECKPOINT;
-import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointConstants.KEY_PREFIX_OWNERSHIP;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointStoreKey.CLUSTERED;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointStoreKeyPrefix.CHECKPOINT;
+import static org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointStoreKeyPrefix.OWNERSHIP;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.checkpointToString;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.convertOwnership;
 import static org.apache.nifi.processors.azure.eventhub.checkpoint.ComponentStateCheckpointStoreUtils.convertPartitionContext;
@@ -123,7 +123,7 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                     Map<String, String> newMap = oldState.toMap().entrySet().stream()
                             .filter(e -> {
                                 String key = e.getKey();
-                                if (!key.startsWith(KEY_PREFIX_OWNERSHIP) && !key.startsWith(KEY_PREFIX_CHECKPOINT)) {
+                                if (!key.startsWith(OWNERSHIP.keyPrefix()) && !key.startsWith(CHECKPOINT.keyPrefix())) {
                                     return true;
                                 }
                                 PartitionContext context = convertPartitionContext(key);
@@ -270,11 +270,11 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
     }
 
     private Flux<PartitionOwnership> getOwnerships(StateMap state) {
-        return getEntries(state, KEY_PREFIX_OWNERSHIP, ComponentStateCheckpointStoreUtils::convertOwnership);
+        return getEntries(state, OWNERSHIP.keyPrefix(), ComponentStateCheckpointStoreUtils::convertOwnership);
     }
 
     private Flux<Checkpoint> getCheckpoints(StateMap state) {
-        return getEntries(state, KEY_PREFIX_CHECKPOINT, ComponentStateCheckpointStoreUtils::convertCheckpoint);
+        return getEntries(state, CHECKPOINT.keyPrefix(), ComponentStateCheckpointStoreUtils::convertCheckpoint);
     }
 
     private <T> Flux<T> getEntries(StateMap state, String kind, BiFunction<String, String, T> converter) throws ProcessException {
@@ -286,7 +286,7 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
 
     private void checkDisconnectedNode(StateMap state) {
         // if _isClustered key is available in the state (that is the local cache is accessed via cluster scope) and it is true, then it is a disconnected cluster node
-        boolean disconnectedNode = Boolean.parseBoolean(state.get(KEY_IS_CLUSTERED));
+        boolean disconnectedNode = Boolean.parseBoolean(state.get(CLUSTERED.key()));
 
         if (disconnectedNode) {
             throw new ClusterNodeDisconnectedException("The node has been disconnected from the cluster, the checkpoint store is not accessible");
