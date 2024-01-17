@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="rule-menu-more-info-dialog" layout="column" class="hidden large-dialog">
+<div id="rule-menu-more-info-dialog" layout="column" class="hidden medium-dialog">
     <div class="dialog-content">
         <div class="rule-info-head">
             <h1 id="rule-name" class="rule-name">Rule</h1>

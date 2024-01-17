@@ -15,10 +15,10 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="violation-menu-more-info-dialog" layout="column" class="hidden large-dialog">
+<div id="violation-menu-more-info-dialog" layout="column" class="hidden medium-dialog">
     <div class="dialog-content">
         <div class="violation-info-head">
-            <div id="violation-name" class="violation-name">Rule</div>
+            <div id="violation-name" class="violation-name">Violation</div>
             <div id="violation-type-pill" class="violation-type-pill"></div>
         </div>
         <div id="violation-display-name" class="violation-display-name"></div>
