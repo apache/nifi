@@ -111,20 +111,34 @@ public class TestStandardPropertyValue {
     }
 
     @Test
-    public void testGetValueAsDescribedValue() {
-        for (ExamplePropertyEnum enumValue : ExamplePropertyEnum.values()) {
+    public void testGetValueAsAllowableValue() {
+        for (ExampleDescribedValueEnum enumValue : ExampleDescribedValueEnum.values()) {
             final PropertyValue value = new StandardPropertyValue(enumValue.getValue(), lookup, ParameterLookup.EMPTY);
-            assertEquals(enumValue, value.asDescribedValue(ExamplePropertyEnum.class));
+            assertEquals(enumValue, value.asAllowableValue(ExampleDescribedValueEnum.class));
+        }
+
+        final PropertyValue nullDescribedValue = new StandardPropertyValue(null, lookup, ParameterLookup.EMPTY);
+        assertNull(nullDescribedValue.asAllowableValue(ExampleDescribedValueEnum.class));
+
+        IllegalArgumentException describedValueException = assertThrows(IllegalArgumentException.class, () -> {
+            final PropertyValue invalidValue = new StandardPropertyValue("FOO", lookup, ParameterLookup.EMPTY);
+            invalidValue.asAllowableValue(ExampleDescribedValueEnum.class);
+        });
+        assertEquals("ExampleDescribedValueEnum does not have an entry with value FOO", describedValueException.getMessage());
+
+        for (ExampleNonDescribedValueEnum enumValue : ExampleNonDescribedValueEnum.values()) {
+            final PropertyValue value = new StandardPropertyValue(enumValue.name(), lookup, ParameterLookup.EMPTY);
+            assertEquals(enumValue, value.asAllowableValue(ExampleNonDescribedValueEnum.class));
         }
 
         final PropertyValue nullValue = new StandardPropertyValue(null, lookup, ParameterLookup.EMPTY);
-        assertNull(nullValue.asDescribedValue(ExamplePropertyEnum.class));
+        assertNull(nullValue.asAllowableValue(ExampleNonDescribedValueEnum.class));
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             final PropertyValue invalidValue = new StandardPropertyValue("FOO", lookup, ParameterLookup.EMPTY);
-            invalidValue.asDescribedValue(ExamplePropertyEnum.class);
+            invalidValue.asAllowableValue(ExampleNonDescribedValueEnum.class);
         });
-        assertEquals("ExamplePropertyEnum does not have an entry with value FOO", exception.getMessage());
+        assertEquals("ExampleNonDescribedValueEnum does not have an entry with value FOO", exception.getMessage());
     }
 
     @Test
@@ -197,7 +211,7 @@ public class TestStandardPropertyValue {
 
     }
 
-    private enum ExamplePropertyEnum implements DescribedValue {
+    private enum ExampleDescribedValueEnum implements DescribedValue {
         ONE("One Value", "One Display", "One Description"),
         OTHER("Other Value", "Other Display", "Other Description"),
         ANOTHER("Another Value", "Another Display", "Another Description");
@@ -206,7 +220,7 @@ public class TestStandardPropertyValue {
         private final String displayName;
         private final String description;
 
-        ExamplePropertyEnum(final String value, final String displayName, final String description) {
+        ExampleDescribedValueEnum(final String value, final String displayName, final String description) {
             this.value = value;
             this.displayName = displayName;
             this.description = description;
@@ -227,4 +241,6 @@ public class TestStandardPropertyValue {
             return this.description;
         }
     }
+
+    private enum ExampleNonDescribedValueEnum { ONE, TWO, THREE, FOUR }
 }

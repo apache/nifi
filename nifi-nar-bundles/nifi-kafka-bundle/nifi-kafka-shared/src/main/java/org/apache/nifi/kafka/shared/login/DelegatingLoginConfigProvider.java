@@ -44,7 +44,7 @@ public class DelegatingLoginConfigProvider implements LoginConfigProvider {
      */
     @Override
     public String getConfiguration(final PropertyContext context) {
-        final SaslMechanism saslMechanism = context.getProperty(KafkaClientComponent.SASL_MECHANISM).asDescribedValue(SaslMechanism.class);
+        final SaslMechanism saslMechanism = context.getProperty(KafkaClientComponent.SASL_MECHANISM).asAllowableValue(SaslMechanism.class);
         final LoginConfigProvider loginConfigProvider = PROVIDERS.getOrDefault(saslMechanism, SCRAM_PROVIDER);
         return loginConfigProvider.getConfiguration(context);
     }

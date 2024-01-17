@@ -421,7 +421,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         final Long receiveTimeout = context.getProperty(RECEIVE_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         final Duration maxWaitTime = Duration.ofMillis(receiveTimeout);
         final Integer maxBatchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
-        final AmqpTransportType transportType = context.getProperty(TRANSPORT_TYPE).asDescribedValue(AzureEventHubTransportType.class).asAmqpTransportType();
+        final AmqpTransportType transportType = context.getProperty(TRANSPORT_TYPE).asAllowableValue(AzureEventHubTransportType.class).asAmqpTransportType();
 
         final EventProcessorClientBuilder eventProcessorClientBuilder = new EventProcessorClientBuilder()
                 .transportType(transportType)

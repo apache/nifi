@@ -237,13 +237,17 @@ public class StandardPropertyValue implements PropertyValue {
     }
 
     @Override
-    public <E extends Enum<E> & DescribedValue> E asDescribedValue(Class<E> enumType) throws IllegalArgumentException {
+    public <E extends Enum<E>> E asAllowableValue(Class<E> enumType) throws IllegalArgumentException {
         if (rawValue == null) {
             return null;
         }
 
         for (E enumConstant : enumType.getEnumConstants()) {
-            if (enumConstant.getValue().equals(rawValue)) {
+            if (enumConstant instanceof DescribedValue describedValue) {
+                if (describedValue.getValue().equals(rawValue)) {
+                    return enumConstant;
+                }
+            } else if (enumConstant.name().equals(rawValue)) {
                 return enumConstant;
             }
         }

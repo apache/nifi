@@ -580,7 +580,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         binlogResourceInfo.setInTransaction("true".equals(stateMap.get("inTransaction")));
 
         // Build a event writer config object for the event writers to use
-        final FlowFileEventWriteStrategy flowFileEventWriteStrategy = context.getProperty(EVENTS_PER_FLOWFILE_STRATEGY).asDescribedValue(FlowFileEventWriteStrategy.class);
+        final FlowFileEventWriteStrategy flowFileEventWriteStrategy = context.getProperty(EVENTS_PER_FLOWFILE_STRATEGY).asAllowableValue(FlowFileEventWriteStrategy.class);
         eventWriterConfiguration = new EventWriterConfiguration(
                 flowFileEventWriteStrategy,
                 context.getProperty(NUMBER_OF_EVENTS_PER_FLOWFILE).evaluateAttributeExpressions().asInteger()

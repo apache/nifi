@@ -135,16 +135,18 @@ public interface PropertyValue {
     ResourceReferences asResources();
 
     /**
-     * @param <E> the generic type of the enum used as allowable values
-     * @param enumType the class of the enum used as allowable values
-     * @return the DescribedValue enum entry whose value is the raw value of the
-     * <code>this</code>, or <code>null</code> if the value is not set.
-     * Throws an IllegalArgumentException if none of the enum entries correspond to the specified raw value.
+     * Returns the property value as one of the configured allowableValues, see {@link PropertyDescriptor.Builder#allowableValues(Class)}
+     * <p>
+     * The {@link Class#getEnumConstants()} of the provided enum are searched for an entry matching the value of <code>this</code>.
+     * In case an enum value is a {@link DescribedValue}, uses the defined {@link DescribedValue#getValue()} for comparison.
+     * Otherwise, the {@link Enum#name()} is used.
      *
-     * @throws IllegalArgumentException if the value of <code>this</code>
-     * does not point to any of the entries of the specified enum type.
+     * @param <E> the generic type of the enum used as allowableValues
+     * @param enumType the class of the enum used as allowableValues
+     * @return the matching enum entry, or <code>null</code> if the value is not set.
+     * @throws IllegalArgumentException if no enum entry matching the value of <code>this</code> is found.
      */
-    <E extends Enum<E> & DescribedValue> E asDescribedValue(Class<E> enumType) throws IllegalArgumentException;
+    <E extends Enum<E>> E asAllowableValue(Class<E> enumType) throws IllegalArgumentException;
 
     /**
      * @return <code>true</code> if the user has configured a value, or if the

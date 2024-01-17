@@ -86,7 +86,7 @@ public class StandardKafkaPropertyProvider implements KafkaPropertyProvider {
             final String loginConfig = LOGIN_CONFIG_PROVIDER.getConfiguration(context);
             properties.put(SASL_JAAS_CONFIG.getProperty(), loginConfig);
 
-            final SaslMechanism saslMechanism = context.getProperty(SASL_MECHANISM).asDescribedValue(SaslMechanism.class);
+            final SaslMechanism saslMechanism = context.getProperty(SASL_MECHANISM).asAllowableValue(SaslMechanism.class);
             if (saslMechanism == SaslMechanism.GSSAPI && isCustomKerberosLoginFound()) {
                 properties.put(SASL_LOGIN_CLASS.getProperty(), SASL_GSSAPI_CUSTOM_LOGIN_CLASS);
             } else if (saslMechanism == SaslMechanism.AWS_MSK_IAM && isAwsMskIamCallbackHandlerFound()) {
