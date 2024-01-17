@@ -220,7 +220,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
     }
 
     protected String getUrl(final ConfigurationContext context) {
-        final ConnectionUrlFormat connectionUrlFormat = context.getProperty(CONNECTION_URL_FORMAT).asDescribedValue(ConnectionUrlFormat.class);
+        final ConnectionUrlFormat connectionUrlFormat = context.getProperty(CONNECTION_URL_FORMAT).asAllowableValue(ConnectionUrlFormat.class);
         final ConnectionUrlFormatParameters parameters = getConnectionUrlFormatParameters(context);
 
         return connectionUrlFormat.buildConnectionUrl(parameters);

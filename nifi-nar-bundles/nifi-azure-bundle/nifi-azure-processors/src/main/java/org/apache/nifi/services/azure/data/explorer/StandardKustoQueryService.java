@@ -148,7 +148,7 @@ public class StandardKustoQueryService extends AbstractControllerService impleme
     private ConnectionStringBuilder getConnectionStringBuilder(final ConfigurationContext context) {
         final String clusterUrl = context.getProperty(CLUSTER_URI).getValue();
         final String clientId = context.getProperty(APPLICATION_CLIENT_ID).getValue();
-        final KustoAuthenticationStrategy kustoAuthenticationStrategy = context.getProperty(AUTHENTICATION_STRATEGY).asDescribedValue(KustoAuthenticationStrategy.class);
+        final KustoAuthenticationStrategy kustoAuthenticationStrategy = context.getProperty(AUTHENTICATION_STRATEGY).asAllowableValue(KustoAuthenticationStrategy.class);
 
         final ConnectionStringBuilder builder = switch (kustoAuthenticationStrategy) {
             case APPLICATION_CREDENTIALS -> {

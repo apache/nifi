@@ -76,7 +76,7 @@ public interface ClientSideEncryptionSupport {
 
     default Collection<ValidationResult> validateClientSideEncryptionProperties(ValidationContext validationContext) {
         final List<ValidationResult> validationResults = new ArrayList<>();
-        final ClientSideEncryptionMethod cseKeyType = validationContext.getProperty(CSE_KEY_TYPE).asDescribedValue(ClientSideEncryptionMethod.class);
+        final ClientSideEncryptionMethod cseKeyType = validationContext.getProperty(CSE_KEY_TYPE).asAllowableValue(ClientSideEncryptionMethod.class);
         final String cseKeyId = validationContext.getProperty(CSE_KEY_ID).getValue();
         final String cseLocalKey = validationContext.getProperty(CSE_LOCAL_KEY).getValue();
         if (cseKeyType != ClientSideEncryptionMethod.NONE && StringUtils.isBlank(cseKeyId)) {
@@ -114,7 +114,7 @@ public interface ClientSideEncryptionSupport {
     }
 
     default boolean isClientSideEncryptionEnabled(PropertyContext context) {
-        final ClientSideEncryptionMethod cseKeyType = context.getProperty(CSE_KEY_TYPE).asDescribedValue(ClientSideEncryptionMethod.class);
+        final ClientSideEncryptionMethod cseKeyType = context.getProperty(CSE_KEY_TYPE).asAllowableValue(ClientSideEncryptionMethod.class);
         return cseKeyType != ClientSideEncryptionMethod.NONE;
     }
 

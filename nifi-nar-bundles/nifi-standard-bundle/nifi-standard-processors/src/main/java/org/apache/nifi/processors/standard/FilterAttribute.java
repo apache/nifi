@@ -204,13 +204,13 @@ public class FilterAttribute extends AbstractProcessor {
     private static FilterMode getFilterMode(ProcessContext context) {
         return context
                 .getProperty(FILTER_MODE)
-                .asDescribedValue(FilterMode.class);
+                .asAllowableValue(FilterMode.class);
     }
 
     private static MatchingStrategy getMatchingStrategy(ProcessContext context) {
         return context
                 .getProperty(MATCHING_STRATEGY)
-                .asDescribedValue(MatchingStrategy.class);
+                .asAllowableValue(MatchingStrategy.class);
     }
 
     private static String getAttributeSet(ProcessContext context, FlowFile flowFile) {

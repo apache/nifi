@@ -25,7 +25,6 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
-import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.resource.ResourceContext;
@@ -324,9 +323,9 @@ public class MockPropertyValue implements PropertyValue {
     }
 
     @Override
-    public <E extends Enum<E> & DescribedValue> E asDescribedValue(Class<E> enumType) throws IllegalArgumentException {
+    public <E extends Enum<E>> E asAllowableValue(Class<E> enumType) throws IllegalArgumentException {
         ensureExpressionsEvaluated();
-        return stdPropValue.asDescribedValue(enumType);
+        return stdPropValue.asAllowableValue(enumType);
     }
 
     @Override

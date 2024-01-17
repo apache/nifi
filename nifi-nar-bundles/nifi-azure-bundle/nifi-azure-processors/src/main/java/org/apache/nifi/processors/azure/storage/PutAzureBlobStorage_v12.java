@@ -138,7 +138,7 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
         final String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
         final boolean createContainer = context.getProperty(AzureStorageUtils.CREATE_CONTAINER).asBoolean();
         final String blobName = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final AzureStorageConflictResolutionStrategy conflictResolution = context.getProperty(AzureStorageUtils.CONFLICT_RESOLUTION).asDescribedValue(AzureStorageConflictResolutionStrategy.class);
+        final AzureStorageConflictResolutionStrategy conflictResolution = context.getProperty(AzureStorageUtils.CONFLICT_RESOLUTION).asAllowableValue(AzureStorageConflictResolutionStrategy.class);
         final ResourceTransferSource resourceTransferSource = ResourceTransferSource.valueOf(context.getProperty(RESOURCE_TRANSFER_SOURCE).getValue());
 
         long startNanos = System.nanoTime();

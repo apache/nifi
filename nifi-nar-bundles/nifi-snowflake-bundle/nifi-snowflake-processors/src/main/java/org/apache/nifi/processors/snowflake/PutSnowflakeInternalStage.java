@@ -141,7 +141,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
             return;
         }
 
-        final SnowflakeInternalStageType internalStageType = context.getProperty(INTERNAL_STAGE_TYPE).asDescribedValue(SnowflakeInternalStageType.class);
+        final SnowflakeInternalStageType internalStageType = context.getProperty(INTERNAL_STAGE_TYPE).asAllowableValue(SnowflakeInternalStageType.class);
         final SnowflakeInternalStageTypeParameters parameters = getSnowflakeInternalStageTypeParameters(context, flowFile);
         final String internalStageName = internalStageType.getStage(parameters);
         final SnowflakeConnectionProviderService connectionProviderService =

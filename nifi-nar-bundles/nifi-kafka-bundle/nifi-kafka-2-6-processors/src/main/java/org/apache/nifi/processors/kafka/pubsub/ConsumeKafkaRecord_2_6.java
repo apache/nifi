@@ -432,8 +432,8 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
         final String charsetName = context.getProperty(MESSAGE_HEADER_ENCODING).evaluateAttributeExpressions().getValue();
         final Charset charset = Charset.forName(charsetName);
 
-        final OutputStrategy outputStrategy = context.getProperty(OUTPUT_STRATEGY).asDescribedValue(OutputStrategy.class);
-        final KeyFormat keyFormat = context.getProperty(KEY_FORMAT).asDescribedValue(KeyFormat.class);
+        final OutputStrategy outputStrategy = context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class);
+        final KeyFormat keyFormat = context.getProperty(KEY_FORMAT).asAllowableValue(KeyFormat.class);
         final RecordReaderFactory keyReaderFactory = context.getProperty(KEY_RECORD_READER).asControllerService(RecordReaderFactory.class);
 
         final String headerNameRegex = context.getProperty(HEADER_NAME_REGEX).getValue();
@@ -441,7 +441,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
         final Pattern headerNamePattern = isActiveHeaderNamePattern ? Pattern.compile(headerNameRegex) : null;
 
         final boolean separateByKey = context.getProperty(SEPARATE_BY_KEY).asBoolean();
-        final KeyEncoding keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).asDescribedValue(KeyEncoding.class);
+        final KeyEncoding keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).asAllowableValue(KeyEncoding.class);
 
         final int[] partitionsToConsume;
         try {

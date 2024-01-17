@@ -286,7 +286,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             final FileFormat format = getFileFormat(table.properties(), fileFormat);
             final IcebergTaskWriterFactory taskWriterFactory = new IcebergTaskWriterFactory(table, flowFile.getId(), format, maximumFileSize);
             taskWriter = taskWriterFactory.create();
-            final UnmatchedColumnBehavior unmatchedColumnBehavior = context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).asDescribedValue(UnmatchedColumnBehavior.class);
+            final UnmatchedColumnBehavior unmatchedColumnBehavior = context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).asAllowableValue(UnmatchedColumnBehavior.class);
 
             final IcebergRecordConverter recordConverter = new IcebergRecordConverter(table.schema(), reader.getSchema(), format, unmatchedColumnBehavior, getLogger());
 

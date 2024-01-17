@@ -33,7 +33,6 @@ import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.A
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ACCOUNT_NAME;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.CREDENTIALS_TYPE;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.PROXY_CONFIGURATION_SERVICE;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SAS_TOKEN;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET;
@@ -87,7 +86,7 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
     public AzureStorageCredentialsDetails_v12 getCredentialsDetails(Map<String, String> attributes) {
         String accountName = context.getProperty(ACCOUNT_NAME).getValue();
         String endpointSuffix = context.getProperty(ENDPOINT_SUFFIX).getValue();
-        AzureStorageCredentialsType credentialsType = context.getProperty(CREDENTIALS_TYPE).asDescribedValue(AzureStorageCredentialsType.class);
+        AzureStorageCredentialsType credentialsType = context.getProperty(CREDENTIALS_TYPE).asAllowableValue(AzureStorageCredentialsType.class);
         ProxyOptions proxyOptions = AzureStorageUtils.getProxyOptions(context);
 
         switch (credentialsType) {

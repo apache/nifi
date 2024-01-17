@@ -224,7 +224,7 @@ public class DecryptContentAge extends AbstractProcessor implements VerifiablePr
     }
 
     private List<RecipientStanzaReader> getRecipientStanzaReaders(final PropertyContext context) throws IOException {
-        final KeySource keySource = context.getProperty(PRIVATE_KEY_SOURCE).asDescribedValue(KeySource.class);
+        final KeySource keySource = context.getProperty(PRIVATE_KEY_SOURCE).asAllowableValue(KeySource.class);
         final List<ResourceReference> resources = switch (keySource) {
             case PROPERTIES -> List.of(context.getProperty(PRIVATE_KEY_IDENTITIES).asResource());
             case RESOURCES -> context.getProperty(PRIVATE_KEY_IDENTITY_RESOURCES).asResources().asList();

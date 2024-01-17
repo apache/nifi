@@ -177,8 +177,8 @@ public class AzureEventHubRecordSink extends AbstractControllerService implement
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).evaluateAttributeExpressions().getValue();
         final String policyName = context.getProperty(SHARED_ACCESS_POLICY).getValue();
         final String policyKey = context.getProperty(SHARED_ACCESS_POLICY_KEY).getValue();
-        final AzureAuthenticationStrategy azureAuthenticationStrategy = context.getProperty(AUTHENTICATION_STRATEGY).asDescribedValue(AzureAuthenticationStrategy.class);
-        final AmqpTransportType transportType = context.getProperty(TRANSPORT_TYPE).asDescribedValue(AzureEventHubTransportType.class).asAmqpTransportType();
+        final AzureAuthenticationStrategy azureAuthenticationStrategy = context.getProperty(AUTHENTICATION_STRATEGY).asAllowableValue(AzureAuthenticationStrategy.class);
+        final AmqpTransportType transportType = context.getProperty(TRANSPORT_TYPE).asAllowableValue(AzureEventHubTransportType.class).asAmqpTransportType();
         client = createEventHubClient(namespace, serviceBusEndpoint, eventHubName, policyName, policyKey, azureAuthenticationStrategy, transportType);
     }
 
