@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard;
+package org.apache.nifi.processor.util.file.transfer;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -26,9 +26,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processors.standard.util.FileInfo;
-import org.apache.nifi.processors.standard.util.FileTransfer;
-import org.apache.nifi.processors.standard.util.SFTPTransfer;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 
@@ -127,7 +124,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                         @Override
                         public void process(final InputStream in) throws IOException {
                             try (final InputStream bufferedIn = new BufferedInputStream(in)) {
-                                if (workingDirPath != null && context.getProperty(SFTPTransfer.CREATE_DIRECTORY).asBoolean()) {
+                                if (workingDirPath != null && context.getProperty(FileTransfer.CREATE_DIRECTORY).asBoolean()) {
                                     transfer.ensureDirectoryExists(flowFileToTransfer, new File(workingDirPath));
                                 }
 

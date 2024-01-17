@@ -44,7 +44,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
-import org.apache.nifi.processors.standard.util.FileInfo;
+import org.apache.nifi.processor.util.file.transfer.FileInfo;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.Tuple;

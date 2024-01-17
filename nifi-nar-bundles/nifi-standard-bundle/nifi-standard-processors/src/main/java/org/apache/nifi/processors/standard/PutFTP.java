@@ -44,6 +44,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.util.file.transfer.PutFileTransfer;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
 
 @SupportsBatching

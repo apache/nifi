@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.processors.standard;
+package org.apache.nifi.processor.util.file.transfer;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -32,8 +32,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.util.FileTransfer;
-import org.apache.nifi.processors.standard.util.PermissionDeniedException;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
 
@@ -58,19 +56,19 @@ import java.util.concurrent.TimeUnit;
  */
 public abstract class FetchFileTransfer extends AbstractProcessor {
 
-    static final AllowableValue COMPLETION_NONE = new AllowableValue("None", "None", "Leave the file as-is");
-    static final AllowableValue COMPLETION_MOVE = new AllowableValue("Move File", "Move File", "Move the file to the directory specified by the <Move Destination Directory> property");
-    static final AllowableValue COMPLETION_DELETE = new AllowableValue("Delete File", "Delete File", "Deletes the original file from the remote system");
-    static final String FAILURE_REASON_ATTRIBUTE = "fetch.failure.reason";
+    public static final AllowableValue COMPLETION_NONE = new AllowableValue("None", "None", "Leave the file as-is");
+    public static final AllowableValue COMPLETION_MOVE = new AllowableValue("Move File", "Move File", "Move the file to the directory specified by the <Move Destination Directory> property");
+    public static final AllowableValue COMPLETION_DELETE = new AllowableValue("Delete File", "Delete File", "Deletes the original file from the remote system");
+    public static final String FAILURE_REASON_ATTRIBUTE = "fetch.failure.reason";
 
-    static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
         .name("Hostname")
         .description("The fully-qualified hostname or IP address of the host to fetch the data from")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
         .build();
-    static final PropertyDescriptor UNDEFAULTED_PORT = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor UNDEFAULTED_PORT = new PropertyDescriptor.Builder()
         .name("Port")
         .description("The port to connect to on the remote host to fetch the data from")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -91,7 +89,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
-    static final PropertyDescriptor COMPLETION_STRATEGY = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor COMPLETION_STRATEGY = new PropertyDescriptor.Builder()
         .name("Completion Strategy")
         .description("Specifies what to do with the original file on the server once it has been pulled into NiFi. If the Completion Strategy fails, a warning will be "
             + "logged but the data will still be transferred.")
@@ -100,14 +98,14 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         .defaultValue(COMPLETION_NONE.getValue())
         .required(true)
         .build();
-    static final PropertyDescriptor MOVE_CREATE_DIRECTORY = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor MOVE_CREATE_DIRECTORY = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(FileTransfer.CREATE_DIRECTORY).description(String.format("Used when '%s' is '%s'. %s",
                     COMPLETION_STRATEGY.getDisplayName(),
                     COMPLETION_MOVE.getDisplayName(),
                     FileTransfer.CREATE_DIRECTORY.getDescription()))
             .required(false)
             .build();
-    static final PropertyDescriptor MOVE_DESTINATION_DIR = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor MOVE_DESTINATION_DIR = new PropertyDescriptor.Builder()
         .name("Move Destination Directory")
         .description(String.format("The directory on the remote server to move the original file to once it has been ingested into NiFi. "
             + "This property is ignored unless the %s is set to '%s'. The specified directory must already exist on "
@@ -118,7 +116,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         .required(false)
         .build();
 
-    static final PropertyDescriptor FILE_NOT_FOUND_LOG_LEVEL = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor FILE_NOT_FOUND_LOG_LEVEL = new PropertyDescriptor.Builder()
         .displayName("Log level when file not found")
         .name("fetchfiletransfer-notfound-loglevel")
         .description("Log level to use in case the file does not exist when the processor is triggered")
@@ -131,15 +129,15 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         .name("success")
         .description("All FlowFiles that are received are routed to success")
         .build();
-    static final Relationship REL_COMMS_FAILURE = new Relationship.Builder()
+    public static final Relationship REL_COMMS_FAILURE = new Relationship.Builder()
         .name("comms.failure")
         .description("Any FlowFile that could not be fetched from the remote server due to a communications failure will be transferred to this Relationship.")
         .build();
-    static final Relationship REL_NOT_FOUND = new Relationship.Builder()
+    public static final Relationship REL_NOT_FOUND = new Relationship.Builder()
         .name("not.found")
         .description("Any FlowFile for which we receive a 'Not Found' message from the remote server will be transferred to this Relationship.")
         .build();
-    static final Relationship REL_PERMISSION_DENIED = new Relationship.Builder()
+    public static final Relationship REL_PERMISSION_DENIED = new Relationship.Builder()
         .name("permission.denied")
         .description("Any FlowFile that could not be fetched from the remote server due to insufficient permissions will be transferred to this Relationship.")
         .build();
