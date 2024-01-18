@@ -41,6 +41,7 @@ import java.util.regex.Pattern;
 import org.apache.nifi.components.AbstractConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProvider;
@@ -48,7 +49,6 @@ import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.kubernetes.client.ServiceAccountNamespaceProvider;
 import org.apache.nifi.kubernetes.client.StandardKubernetesClientProvider;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.util.StandardValidators;
 
 /**
  * State Provider implementation based on Kubernetes ConfigMaps with Base64 encoded keys to meet Kubernetes constraints
@@ -57,7 +57,7 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
     static final PropertyDescriptor CONFIG_MAP_NAME_PREFIX = new PropertyDescriptor.Builder()
         .name("ConfigMap Name Prefix")
         .description("Optional prefix that the Provider will prepend to Kubernetes ConfigMap names. The resulting ConfigMap name will contain nifi-component and the component identifier.")
-        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .addValidator(Validator.VALID)
         .required(false)
         .build();
 
@@ -126,8 +126,9 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
         this.namespace = new ServiceAccountNamespaceProvider().getNamespace();
 
         final PropertyValue configMapNamePrefixProperty = context.getProperty(CONFIG_MAP_NAME_PREFIX);
-        final String configMapNamePrefix = configMapNamePrefixProperty.isSet() ? configMapNamePrefixProperty.getValue() + PREFIX_SEPARATOR : EMPTY_PREFIX;
+        final String prefixPropertyValue = configMapNamePrefixProperty.getValue();
 
+        final String configMapNamePrefix = prefixPropertyValue == null || prefixPropertyValue.isBlank() ? EMPTY_PREFIX : prefixPropertyValue + PREFIX_SEPARATOR;
         configMapNameFormat = String.format(CONFIG_MAP_NAME_FORMAT, configMapNamePrefix);
         configMapNamePattern = Pattern.compile(String.format(CONFIG_MAP_NAME_PATTERN_FORMAT, configMapNamePrefix));
     }

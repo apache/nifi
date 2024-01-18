@@ -24,11 +24,14 @@ import io.fabric8.kubernetes.client.server.mock.KubernetesMockServer;
 import io.fabric8.kubernetes.client.server.mock.KubernetesMockServerExtension;
 import io.fabric8.mockwebserver.dsl.HttpMethod;
 import okhttp3.mockwebserver.RecordedRequest;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parameter.ParameterLookup;
+import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.MockValidationContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -72,6 +75,8 @@ class KubernetesConfigMapStateProviderTest {
 
     private static final String CONFIG_MAP_NAME_PREFIX_VALUE = "label";
 
+    private static final String EMPTY = "";
+
     @Mock
     StateProviderInitializationContext context;
 
@@ -97,11 +102,18 @@ class KubernetesConfigMapStateProviderTest {
     }
 
     @Test
-    void testInitializeShutdown() {
-        setContext();
-        provider.initialize(context);
+    void testInitializeValidateShutdown() {
+        setContextWithConfigMapNamePrefix(EMPTY);
 
+        provider.initialize(context);
         assertEquals(IDENTIFIER, provider.getIdentifier());
+
+        final MockProcessContext processContext = new MockProcessContext(provider);
+        processContext.setProperty(KubernetesConfigMapStateProvider.CONFIG_MAP_NAME_PREFIX, EMPTY);
+        final MockValidationContext validationContext = new MockValidationContext(processContext, null);
+        final Collection<ValidationResult> results = provider.validate(validationContext);
+
+        assertTrue(results.isEmpty());
 
         provider.shutdown();
     }
@@ -299,7 +311,7 @@ class KubernetesConfigMapStateProviderTest {
 
     @Test
     void testSetStateGetStateWithPrefix() throws IOException {
-        setContextWithProperties();
+        setContextWithConfigMapNamePrefix(CONFIG_MAP_NAME_PREFIX_VALUE);
         provider.initialize(context);
 
         final Map<String, String> state = Collections.singletonMap(STATE_PROPERTY, STATE_VALUE);
@@ -317,7 +329,7 @@ class KubernetesConfigMapStateProviderTest {
 
     @Test
     void testSetStateGetStoredComponentIdsWithPrefix() throws IOException {
-        setContextWithProperties();
+        setContextWithConfigMapNamePrefix(CONFIG_MAP_NAME_PREFIX_VALUE);
         provider.initialize(context);
 
         final Collection<String> initialStoredComponentIds = provider.getStoredComponentIds();
@@ -340,10 +352,10 @@ class KubernetesConfigMapStateProviderTest {
                 .thenReturn(new StandardPropertyValue(null, null, ParameterLookup.EMPTY));
     }
 
-    private void setContextWithProperties() {
+    private void setContextWithConfigMapNamePrefix(final String configMapNamePrefix) {
         setContext();
         when(context.getProperty(KubernetesConfigMapStateProvider.CONFIG_MAP_NAME_PREFIX))
-                .thenReturn(new StandardPropertyValue(CONFIG_MAP_NAME_PREFIX_VALUE, null, ParameterLookup.EMPTY));
+                .thenReturn(new StandardPropertyValue(configMapNamePrefix, null, ParameterLookup.EMPTY));
     }
 
     private void assertStateEquals(final Map<String, String> expected, final StateMap stateMap) {

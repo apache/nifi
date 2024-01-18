@@ -53,6 +53,8 @@ class KubernetesLeaderElectionManagerTest {
 
     private static final String PREFIX = "label";
 
+    private static final String EMPTY_PREFIX = "";
+
     @Mock
     LeaderElectionStateChangeListener changeListener;
 
@@ -68,16 +70,11 @@ class KubernetesLeaderElectionManagerTest {
     ManagedLeaderElectionCommandProvider leaderElectionCommandProvider;
 
     KubernetesLeaderElectionManager manager;
-    KubernetesLeaderElectionManager managerWithProperties;
 
     @BeforeEach
     void setManager() {
         leaderElectionCommandProvider = new ManagedLeaderElectionCommandProvider();
         manager = new MockKubernetesLeaderElectionManager(new NiFiProperties());
-
-        final Properties properties = new Properties();
-        properties.setProperty(NiFiProperties.CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX, PREFIX);
-        managerWithProperties = new MockKubernetesLeaderElectionManager(new NiFiProperties(properties));
     }
 
     @Test
@@ -195,15 +192,37 @@ class KubernetesLeaderElectionManagerTest {
 
     @Test
     void testRoleIdWithPrefix() {
-        managerWithProperties.start();
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX, PREFIX);
+        final MockKubernetesLeaderElectionManager electionManager = new MockKubernetesLeaderElectionManager(new NiFiProperties(properties));
+
+        electionManager.start();
 
         setSubmitStartLeading();
 
-        managerWithProperties.register(ROLE, changeListener, PARTICIPANT_ID);
+        electionManager.register(ROLE, changeListener, PARTICIPANT_ID);
 
         captureRunCommand();
 
-        assertEquals(PREFIX + "-" + LEADER_ELECTION_ROLE.getRoleId(), leaderElectionCommandProvider.name);
+        final String expected = String.format("%s-%s", PREFIX, LEADER_ELECTION_ROLE.getRoleId());
+        assertEquals(expected, leaderElectionCommandProvider.name);
+    }
+
+    @Test
+    void testRoleIdWithEmptyPrefix() {
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX, EMPTY_PREFIX);
+        final MockKubernetesLeaderElectionManager electionManager = new MockKubernetesLeaderElectionManager(new NiFiProperties(properties));
+
+        electionManager.start();
+
+        setSubmitStartLeading();
+
+        electionManager.register(ROLE, changeListener, PARTICIPANT_ID);
+
+        captureRunCommand();
+
+        assertEquals(LEADER_ELECTION_ROLE.getRoleId(), leaderElectionCommandProvider.name);
     }
 
     private void setSubmitStartLeading() {
