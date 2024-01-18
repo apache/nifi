@@ -129,7 +129,6 @@ public class ProtobufReader extends SchemaRegistryService implements RecordReade
         return GENERATE_FROM_PROTO_FILE;
     }
 
-
     @Override
     public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws IOException, SchemaNotFoundException {
         return new ProtobufRecordReader(in, message, protoSchema, getSchema(variables, in, null));

@@ -263,7 +263,7 @@ public class ProtobufDataConverter {
      */
     private Object convertVarintFields(ProtoField protoField, List<Long> values) {
         final ProtoType protoType = protoField.getProtoType();
-        if (protoField.getProtoType().isScalar()) {
+        if (protoType.isScalar()) {
             switch (FieldType.findValue(protoType.getSimpleName())) {
                 case BOOL:
                     return resolveFieldValue(protoField, values, v -> v.equals(1L));
