@@ -967,39 +967,6 @@
                         dataType: 'json'
                     }).done(function (response) {
                     }).fail(nfErrorHandler.handleAjaxError);
-                },
-
-                /**
-                 * Toggle/Slide the flow analysis drawer open/closed.
-                 */
-                toggleflowAnalysisDrawer: function () {
-                    var searchCtrl = this;
-
-                    // hide the context menu if necessary
-                    nfContextMenu.hide();
-
-                    var isVisible = searchCtrl.getInputElement().is(':visible');
-                    var display = 'none';
-                    var class1 = 'search-container-opened';
-                    var class2 = 'search-container-closed';
-                    if (!isVisible) {
-                        searchCtrl.getButtonElement().css('background-color', '#FFFFFF');
-                        display = 'inline-block';
-                        class1 = 'search-container-closed';
-                        class2 = 'search-container-opened';
-                    } else {
-                        searchCtrl.getInputElement().css('display', display);
-                    }
-
-                    this.getSearchContainerElement().switchClass(class1, class2, 500, function () {
-                        searchCtrl.getInputElement().css('display', display);
-                        if (!isVisible) {
-                            searchCtrl.getButtonElement().css('background-color', '#FFFFFF');
-                            searchCtrl.getInputElement().focus();
-                        } else {
-                            searchCtrl.getButtonElement().css('background-color', '#E3E8EB');
-                        }
-                    });
                 }
             }
 
