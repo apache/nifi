@@ -169,6 +169,25 @@ import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_SCALE;
         should be connected to the next Processor in our flow.
         """
 )
+@UseCase(
+    description = "Route record-oriented data for processing based on its contents",
+    keywords = {"record", "route", "conditional processing", "field"},
+    configuration = """
+        "Record Reader" should be set to a Record Reader that is appropriate for your data.
+        "Record Writer" should be set to a Record Writer that writes out data in the desired format.
+
+        For each route that you want to create, add a new property.
+        The name of the property should be a short description of the data that should be selected for the route.
+        Its value is a SQL statement that selects all columns from a table named `FLOW_FILE`. The WHERE clause selects the data that should be included in the route.
+        It is recommended to always quote column names using double-quotes in order to avoid conflicts with SQL keywords.
+
+        A new outbound relationship is created for each property that is added. The name of the relationship is the same as the property name.
+
+        For example, to route data based on whether or not it is a large transaction, we would add two properties:
+        `small transaction` would have a value such as `SELECT * FROM FLOWFILE WHERE transactionTotal < 100`
+        `large transaction` would have a value of `SELECT * FROM FLOWFILE WHERE transactionTotal >= 100`
+        """
+)
 public class QueryRecord extends AbstractProcessor {
 
     public static final String ROUTE_ATTRIBUTE_KEY = "QueryRecord.Route";
