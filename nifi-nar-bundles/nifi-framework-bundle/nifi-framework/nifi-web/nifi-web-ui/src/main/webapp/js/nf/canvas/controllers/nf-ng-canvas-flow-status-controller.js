@@ -685,8 +685,8 @@
                     $('.rule-menu-btn').click(function(event) {
                         // stop event from immediately bubbling up to document and triggering closeRuleWindow
                         event.stopPropagation();
-                        var ruleMenuInitialized = false;
                         var ruleInfo = $(this).data('ruleInfo');
+                        $('#violation-menu').hide();
                         $('#rule-menu').show();
                         $('#rule-menu').position({
                             my: "left top",
@@ -697,15 +697,14 @@
                         // rule menu bindings
                         $('#rule-menu-more-info').on( "click", openRuleMoreInfoDialog);
                         $('#rule-menu-edit-rule').on('click', openRuleDetailsDialog);
-                        $(document).on('click', function closeRuleWindow(e) {
-                            if (ruleMenuInitialized && $(e.target).parents("#rule-menu").length === 0) {
+                        $(document).on('click', closeRuleWindow);
+
+                        function closeRuleWindow(e) {
+                            if ($(e.target).parents("#rule-menu").length === 0) {
                                 $("#rule-menu").hide();
-                                $(document).unbind('click', closeRuleWindow);
-                                unbindRuleMenuHandling()
-                                ruleMenuInitialized = false;
+                                unbindRuleMenuHandling();
                             }
-                            ruleMenuInitialized = true;
-                        });
+                        }
 
                         function openRuleDetailsDialog() {
                             $('#rule-menu').hide();
@@ -739,6 +738,7 @@
                         function unbindRuleMenuHandling() {
                             $('#rule-menu-more-info').unbind('click', openRuleMoreInfoDialog);
                             $('#rule-menu-edit-rule').unbind('click', openRuleDetailsDialog);
+                            $(document).unbind('click', closeRuleWindow);
                         }
 
                     });
@@ -751,8 +751,8 @@
                     $('.violation-menu-btn').click(function(event) {
                         // stop event from immediately bubbling up to document and triggering closeViolationWindow
                         event.stopPropagation();
-                        var violationMenuInitialized = false;
                         var violationInfo = $(this).data('violationInfo');
+                        $('#rule-menu').hide();
                         $('#violation-menu').show();
                         $('#violation-menu').position({
                             my: "left top",
@@ -766,12 +766,9 @@
                         $(document).on('click', closeViolationWindow);
 
                         function closeViolationWindow(e) {
-                            if (violationMenuInitialized && $(e.target).parents("#violation-menu").length === 0) {
+                            if ($(e.target).parents("#violation-menu").length === 0) {
                                 $("#violation-menu").hide();
                                 unbindViolationMenuHandling();
-                                violationMenuInitialized = false;
-                            } else {
-                                violationMenuInitialized = true;
                             }
                         }
 
@@ -808,7 +805,7 @@
                         function unbindViolationMenuHandling() {
                             $('#violation-menu-go-to').unbind('click', goToComponent);
                             $('#violation-menu-more-info').unbind('click', openRuleMoreInfoDialog);
-                            $(document).unbind('click.closeViolationWindow');
+                            $(document).unbind('click', closeViolationWindow);
                         }
                     });
                 },
