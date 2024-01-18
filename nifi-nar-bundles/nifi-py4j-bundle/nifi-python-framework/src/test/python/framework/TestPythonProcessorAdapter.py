@@ -14,13 +14,11 @@
 # limitations under the License.
 
 import unittest
-import sys
 import ProcessorInspection
 
 DUMMY_PROCESSOR_FILE = 'src/test/python/framework/DummyProcessor.py'
 
 class DetectProcessorUseCase(unittest.TestCase):
-    @unittest.skipIf(sys.platform.startswith('win'), "Currently, PYTHONPATH is set in pom.xml in a way that is incompatible for windows. We need to address this in the future.")
     def test_get_processor_details(self):
         class_nodes = ProcessorInspection.get_processor_class_nodes(DUMMY_PROCESSOR_FILE)
         self.assertIsNotNone(class_nodes)
