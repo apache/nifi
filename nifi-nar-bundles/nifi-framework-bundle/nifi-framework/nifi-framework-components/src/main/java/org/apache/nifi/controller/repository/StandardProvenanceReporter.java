@@ -288,11 +288,6 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
-    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final String details) {
-        upload(flowFile, fileResource, transitUri, details, -1L, true);
-    }
-
-    @Override
     public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final long transmissionMillis) {
         upload(flowFile, fileResource, transitUri, transmissionMillis, true);
     }
@@ -300,16 +295,6 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     @Override
     public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final String details, final long transmissionMillis) {
         upload(flowFile, fileResource, transitUri, details, transmissionMillis, true);
-    }
-
-    @Override
-    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final boolean force) {
-        upload(flowFile, fileResource, transitUri, null, -1L, force);
-    }
-
-    @Override
-    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final String details, final boolean force) {
-        upload(flowFile, fileResource, transitUri, details, -1L, force);
     }
 
     @Override
