@@ -41,6 +41,7 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -213,6 +214,11 @@ public class GetSolr extends SolrProcessor {
     public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
         if (propertyNamesForActivatingClearState.contains(descriptor.getName()))
             clearState.set(true);
+    }
+
+    @OnConfigurationRestored
+    public void onConfigurationRestored() {
+        clearState.set(false);
     }
 
     @OnScheduled
