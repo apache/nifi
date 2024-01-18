@@ -366,6 +366,7 @@
         <property name="leaderElectionManager" ref="leaderElectionManager" />
         <property name="flowRegistryDAO" ref="flowRegistryDAO" />
         <property name="parameterContextDAO" ref="parameterContextDAO" />
+        <property name="parallelProcessingService" ref="parallelProcessingService" />
     </bean>
 
     <!-- component ui extension configuration context -->
@@ -785,5 +786,9 @@
 
     <!-- NiFi locking -->
     <bean id="serviceFacadeLock" class="org.apache.nifi.web.NiFiServiceFacadeLock"/>
+
+    <bean id="parallelProcessingService" class="org.apache.nifi.web.util.ThreadPoolParallelProcessingService">
+        <constructor-arg ref="nifiProperties" />
+    </bean>
 
 </beans>
