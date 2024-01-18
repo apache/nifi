@@ -363,6 +363,7 @@
         <property name="flowRegistryDAO" ref="flowRegistryDAO" />
         <property name="parameterContextDAO" ref="parameterContextDAO" />
         <property name="ruleViolationsManager" ref="ruleViolationsManager" />
+        <property name="parallelProcessingService" ref="parallelProcessingService" />
     </bean>
 
     <!-- component ui extension configuration context -->
@@ -776,4 +777,8 @@
 
     <!-- NiFi locking -->
     <bean id="serviceFacadeLock" class="org.apache.nifi.web.NiFiServiceFacadeLock"/>
+
+    <bean id="parallelProcessingService" class="org.apache.nifi.web.util.VirtualThreadParallelProcessingService">
+        <constructor-arg ref="nifiProperties" />
+    </bean>
 </beans>
