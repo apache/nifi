@@ -34,6 +34,8 @@
         <module>nifi-hl7-query-language</module>
         <module>nifi-json-utils</module>
         <module>nifi-jetty-configuration</module>
+        <module>nifi-json-schema-api</module>
+        <module>nifi-json-schema-shared</module>
         <module>nifi-logging-utils</module>
         <module>nifi-metrics</module>
         <module>nifi-parameter</module>
