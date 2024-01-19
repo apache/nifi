@@ -656,7 +656,7 @@
                                 previousRulesResponse = response;
     
                                 // setup rule menu handling
-                                flowAnalysisCtrl.setMenuRuleHandling(response);
+                                flowAnalysisCtrl.setRuleMenuHandling(response);
 
                                 // setup violation menu handling
                                 flowAnalysisCtrl.setViolationMenuHandling(response, groupId);
@@ -668,7 +668,7 @@
                 /**
                  * Set event bindings for rule menus
                  */
-                setMenuRuleHandling: function() {
+                setRuleMenuHandling: function() {
                     $('.rule-menu-btn').click(function(event) {
                         // stop event from immediately bubbling up to document and triggering closeRuleWindow
                         event.stopPropagation();
