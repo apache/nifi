@@ -264,10 +264,7 @@ public class MockProvenanceReporter implements ProvenanceReporter {
                 events.add(record);
             }
         } catch (final Exception e) {
-            logger.error("Failed to generate Provenance Event due to " + e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
+            logger.error("Failed to generate Provenance Event", e);
         }
     }
 

@@ -324,10 +324,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             bytesSent += fileResource.getSize();
             flowFilesSent++;
         } catch (final Exception e) {
-            logger.error("Failed to generate Provenance Event due to " + e);
-            if (logger.isDebugEnabled()) {
-                logger.error("", e);
-            }
+            logger.error("Failed to generate Provenance Event", e);
         }
     }
 
