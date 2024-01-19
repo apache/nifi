@@ -42,7 +42,7 @@ import org.apache.nifi.processor.util.file.transfer.FileTransfer;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"ftp", "get", "retrieve", "files", "fetch", "remote", "ingest", "source", "input"})
 @CapabilityDescription("Fetches the content of a file from a remote FTP server and overwrites the contents of an incoming FlowFile with the content of the remote file.")
-@SeeAlso({GetSFTP.class, PutSFTP.class, GetFTP.class, PutFTP.class})
+@SeeAlso({GetFTP.class, PutFTP.class})
 @WritesAttributes({
     @WritesAttribute(attribute = "ftp.remote.host", description = "The hostname or IP address from which the file was pulled"),
     @WritesAttribute(attribute = "ftp.remote.port", description = "The port that was used to communicate with the remote FTP server"),

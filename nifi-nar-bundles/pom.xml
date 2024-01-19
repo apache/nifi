@@ -115,6 +115,7 @@
         <module>nifi-compress-bundle</module>
         <module>nifi-opentelemetry-bundle</module>
         <module>nifi-apicurio-bundle</module>
+        <module>nifi-sftp-bundle</module>
     </modules>
 
     <build>

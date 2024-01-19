@@ -1,0 +1,234 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.nifi.sftp;
+
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
+import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.util.file.transfer.GetFileTransfer;
+import org.apache.nifi.processor.util.file.transfer.ListFileTransfer;
+import org.apache.nifi.processor.util.list.AbstractListProcessor;
+import org.apache.nifi.processor.util.list.ListedEntityTracker;
+import org.apache.nifi.processor.util.file.transfer.FileInfo;
+import org.apache.nifi.processor.util.file.transfer.FileTransfer;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.sftp.util.SFTPTransfer;
+
+import static org.apache.nifi.processor.util.StandardValidators.TIME_PERIOD_VALIDATOR;
+
+@PrimaryNodeOnly
+@TriggerSerially
+@InputRequirement(Requirement.INPUT_FORBIDDEN)
+@Tags({"list", "sftp", "remote", "ingest", "source", "input", "files"})
+@CapabilityDescription("Performs a listing of the files residing on an SFTP server. For each file that is found on the remote server, a new FlowFile will be created with the filename attribute "
+    + "set to the name of the file on the remote server. This can then be used in conjunction with FetchSFTP in order to fetch those files.")
+@SeeAlso({FetchSFTP.class, GetSFTP.class, PutSFTP.class})
+@WritesAttributes({
+    @WritesAttribute(attribute = "sftp.remote.host", description = "The hostname of the SFTP Server"),
+    @WritesAttribute(attribute = "sftp.remote.port", description = "The port that was connected to on the SFTP Server"),
+    @WritesAttribute(attribute = "sftp.listing.user", description = "The username of the user that performed the SFTP Listing"),
+    @WritesAttribute(attribute = GetFileTransfer.FILE_OWNER_ATTRIBUTE, description = "The numeric owner id of the source file"),
+    @WritesAttribute(attribute = GetFileTransfer.FILE_GROUP_ATTRIBUTE, description = "The numeric group id of the source file"),
+    @WritesAttribute(attribute = GetFileTransfer.FILE_PERMISSIONS_ATTRIBUTE, description = "The read/write/execute permissions of the source file"),
+    @WritesAttribute(attribute = GetFileTransfer.FILE_SIZE_ATTRIBUTE, description = "The number of bytes in the source file"),
+    @WritesAttribute(attribute = GetFileTransfer.FILE_LAST_MODIFY_TIME_ATTRIBUTE, description = "The timestamp of when the file in the filesystem was" +
+                  "last modified as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
+    @WritesAttribute(attribute = "filename", description = "The name of the file on the SFTP Server"),
+    @WritesAttribute(attribute = "path", description = "The fully qualified name of the directory on the SFTP Server from which the file was pulled"),
+    @WritesAttribute(attribute = "mime.type", description = "The MIME Type that is provided by the configured Record Writer"),
+})
+@Stateful(scopes = {Scope.CLUSTER}, description = "After performing a listing of files, the timestamp of the newest file is stored. "
+    + "This allows the Processor to list only files that have been added or modified after "
+    + "this date the next time that the Processor is run. State is stored across the cluster so that this Processor can be run on Primary Node only and if "
+    + "a new Primary Node is selected, the new node will not duplicate the data that was listed by the previous Primary Node.")
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
+public class ListSFTP extends ListFileTransfer {
+
+    public static final PropertyDescriptor MIN_AGE = new PropertyDescriptor.Builder()
+            .name("Minimum File Age")
+            .description("The minimum age that a file must be in order to be pulled; any file younger than this amount of time (according to last modification date) will be ignored")
+            .required(true)
+            .addValidator(TIME_PERIOD_VALIDATOR)
+            .defaultValue("0 sec")
+            .build();
+
+    public static final PropertyDescriptor MAX_AGE = new PropertyDescriptor.Builder()
+            .name("Maximum File Age")
+            .description("The maximum age that a file must be in order to be pulled; any file older than this amount of time (according to last modification date) will be ignored")
+            .required(false)
+            .addValidator(StandardValidators.createTimePeriodValidator(100, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
+            .build();
+
+    public static final PropertyDescriptor MIN_SIZE = new PropertyDescriptor.Builder()
+            .name("Minimum File Size")
+            .description("The minimum size that a file must be in order to be pulled")
+            .required(true)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .defaultValue("0 B")
+            .build();
+
+    public static final PropertyDescriptor MAX_SIZE = new PropertyDescriptor.Builder()
+            .name("Maximum File Size")
+            .description("The maximum size that a file can be in order to be pulled")
+            .required(false)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .build();
+
+    private volatile Predicate<FileInfo> fileFilter;
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(ListFileTransfer.FILE_TRANSFER_LISTING_STRATEGY);
+        properties.add(SFTPTransfer.HOSTNAME);
+        properties.add(SFTPTransfer.PORT);
+        properties.add(SFTPTransfer.USERNAME);
+        properties.add(SFTPTransfer.PASSWORD);
+        properties.add(SFTPTransfer.PRIVATE_KEY_PATH);
+        properties.add(SFTPTransfer.PRIVATE_KEY_PASSPHRASE);
+        properties.add(ListFileTransfer.REMOTE_PATH);
+        properties.add(AbstractListProcessor.RECORD_WRITER);
+        properties.add(AbstractListProcessor.DISTRIBUTED_CACHE_SERVICE);
+        properties.add(SFTPTransfer.RECURSIVE_SEARCH);
+        properties.add(SFTPTransfer.FOLLOW_SYMLINK);
+        properties.add(SFTPTransfer.FILE_FILTER_REGEX);
+        properties.add(SFTPTransfer.PATH_FILTER_REGEX);
+        properties.add(SFTPTransfer.IGNORE_DOTTED_FILES);
+        properties.add(SFTPTransfer.STRICT_HOST_KEY_CHECKING);
+        properties.add(SFTPTransfer.HOST_KEY_FILE);
+        properties.add(SFTPTransfer.CONNECTION_TIMEOUT);
+        properties.add(SFTPTransfer.DATA_TIMEOUT);
+        properties.add(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT);
+        properties.add(AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION);
+        properties.add(SFTPTransfer.USE_COMPRESSION);
+        properties.add(SFTPTransfer.PROXY_CONFIGURATION_SERVICE);
+        properties.add(SFTPTransfer.PROXY_TYPE);
+        properties.add(SFTPTransfer.PROXY_HOST);
+        properties.add(SFTPTransfer.PROXY_PORT);
+        properties.add(SFTPTransfer.HTTP_PROXY_USERNAME);
+        properties.add(SFTPTransfer.HTTP_PROXY_PASSWORD);
+        properties.add(ListedEntityTracker.TRACKING_STATE_CACHE);
+        properties.add(ListedEntityTracker.TRACKING_TIME_WINDOW);
+        properties.add(ListedEntityTracker.INITIAL_LISTING_TARGET);
+        properties.add(MIN_AGE);
+        properties.add(MAX_AGE);
+        properties.add(MIN_SIZE);
+        properties.add(MAX_SIZE);
+        properties.add(SFTPTransfer.CIPHERS_ALLOWED);
+        properties.add(SFTPTransfer.KEY_ALGORITHMS_ALLOWED);
+        properties.add(SFTPTransfer.KEY_EXCHANGE_ALGORITHMS_ALLOWED);
+        properties.add(SFTPTransfer.MESSAGE_AUTHENTICATION_CODES_ALLOWED);
+        return properties;
+    }
+
+    @Override
+    protected FileTransfer getFileTransfer(final ProcessContext context) {
+        return new SFTPTransfer(context, getLogger());
+    }
+
+    @Override
+    protected String getProtocolName() {
+        return "sftp";
+    }
+
+    @Override
+    protected Scope getStateScope(final PropertyContext context) {
+        // Use cluster scope so that component can be run on Primary Node Only and can still
+        // pick up where it left off, even if the Primary Node changes.
+        return Scope.CLUSTER;
+    }
+
+    @Override
+    protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
+        SFTPTransfer.validateProxySpec(validationContext, results);
+    }
+
+    @Override
+    protected List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp, final AbstractListProcessor.ListingMode listingMode,
+                                            final boolean applyFilters) throws IOException {
+        final List<FileInfo> listing = super.performListing(context, minTimestamp, listingMode, applyFilters);
+
+        if (!applyFilters) {
+            return listing;
+        }
+
+        final Predicate<FileInfo> filePredicate = listingMode == AbstractListProcessor.ListingMode.EXECUTION ? this.fileFilter : createFileFilter(context);
+        return listing.stream()
+                .filter(filePredicate)
+                .collect(Collectors.toList());
+    }
+
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        fileFilter = createFileFilter(context);
+    }
+
+    private Predicate<FileInfo> createFileFilter(final ProcessContext context) {
+        final long minSize = context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue();
+        final Double maxSize = context.getProperty(MAX_SIZE).asDataSize(DataUnit.B);
+        final long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final Long maxAge = context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+
+        return (attributes) -> {
+            if(attributes.isDirectory()) {
+                return true;
+            }
+
+            if (minSize > attributes.getSize()) {
+                return false;
+            }
+            if (maxSize != null && maxSize < attributes.getSize()) {
+                return false;
+            }
+            final long fileAge = System.currentTimeMillis() - attributes.getLastModifiedTime();
+            if (minAge > fileAge) {
+                return false;
+            }
+            if (maxAge != null && maxAge < fileAge) {
+                return false;
+            }
+
+            return true;
+        };
+    }
+}

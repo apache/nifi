@@ -42,7 +42,6 @@ org.apache.nifi.processors.standard.ExtractText
 org.apache.nifi.processors.standard.FetchDistributedMapCache
 org.apache.nifi.processors.standard.FetchFile
 org.apache.nifi.processors.standard.FetchFTP
-org.apache.nifi.processors.standard.FetchSFTP
 org.apache.nifi.processors.standard.FilterAttribute
 org.apache.nifi.processors.standard.FlattenJson
 org.apache.nifi.processors.standard.ForkRecord
@@ -52,7 +51,6 @@ org.apache.nifi.processors.standard.GenerateFlowFile
 org.apache.nifi.processors.standard.GenerateTableFetch
 org.apache.nifi.processors.standard.GetFile
 org.apache.nifi.processors.standard.GetFTP
-org.apache.nifi.processors.standard.GetSFTP
 org.apache.nifi.processors.standard.HandleHttpRequest
 org.apache.nifi.processors.standard.HandleHttpResponse
 org.apache.nifi.processors.standard.IdentifyMimeType
@@ -70,7 +68,6 @@ org.apache.nifi.processors.standard.ListenUDP
 org.apache.nifi.processors.standard.ListenUDPRecord
 org.apache.nifi.processors.standard.ListFile
 org.apache.nifi.processors.standard.ListFTP
-org.apache.nifi.processors.standard.ListSFTP
 org.apache.nifi.processors.standard.LogAttribute
 org.apache.nifi.processors.standard.LogMessage
 org.apache.nifi.processors.standard.LookupAttribute
@@ -91,7 +88,6 @@ org.apache.nifi.processors.standard.PutEmail
 org.apache.nifi.processors.standard.PutFile
 org.apache.nifi.processors.standard.PutFTP
 org.apache.nifi.processors.standard.PutRecord
-org.apache.nifi.processors.standard.PutSFTP
 org.apache.nifi.processors.standard.PutSQL
 org.apache.nifi.processors.standard.PutSyslog
 org.apache.nifi.processors.standard.PutTCP

@@ -276,7 +276,7 @@ public class TestPutFile {
         putFileRunner.enqueue(Paths.get(testFile), attributes);
         putFileRunner.run();
 
-        putFileRunner.assertTransferCount(PutSFTP.REL_SUCCESS, 1);
+        putFileRunner.assertTransferCount(PutFile.REL_SUCCESS, 1);
 
         //verify directory exists
         Path newDirectory = Paths.get("target/test/data/out/PutFile/1/2/3/4/5");
