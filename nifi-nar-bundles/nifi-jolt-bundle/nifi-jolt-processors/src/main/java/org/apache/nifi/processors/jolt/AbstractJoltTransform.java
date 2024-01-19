@@ -178,7 +178,6 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
                     }
                 }
             } catch (final Exception e) {
-                getLogger().info("Processor is not valid - ", e);
                 String message = String.format("Specification not valid for the selected transformation: %s", e.getMessage());
                 results.add(new ValidationResult.Builder()
                         .valid(false)

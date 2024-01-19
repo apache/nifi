@@ -129,15 +129,6 @@ public class JoltTransformRecord extends AbstractJoltTransform {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
-        config.renameProperty("jolt-record-transform", JOLT_TRANSFORM.getName());
-        config.renameProperty("jolt-record-spec", JOLT_SPEC.getName());
-        config.renameProperty("jolt-record-custom-class", CUSTOM_CLASS.getName());
-        config.renameProperty("jolt-record-custom-modules", MODULES.getName());
-        config.renameProperty("jolt-record-transform-cache-size", TRANSFORM_CACHE_SIZE.getName());
-    }
-
-    @Override
     public void onTrigger(final ProcessContext context, ProcessSession session) throws ProcessException {
         final FlowFile original = session.get();
         if (original == null) {

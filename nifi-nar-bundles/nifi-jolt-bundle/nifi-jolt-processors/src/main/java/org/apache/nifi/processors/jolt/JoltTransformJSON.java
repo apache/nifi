@@ -63,7 +63,7 @@ import java.util.concurrent.TimeUnit;
 @RequiresInstanceClassLoading
 public class JoltTransformJSON extends AbstractJoltTransform {
     public static final PropertyDescriptor PRETTY_PRINT = new PropertyDescriptor.Builder()
-            .name("pretty_print")
+            .name("Pretty Print")
             .displayName("Pretty Print")
             .description("Apply pretty print formatting to the output of the Jolt transform")
             .required(true)
@@ -90,7 +90,7 @@ public class JoltTransformJSON extends AbstractJoltTransform {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES;
-    private static final Set<Relationship> RELATIONSHIPS;
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);;
     private volatile ClassLoader customClassLoader;
     private volatile JsonUtil jsonUtil;
 
@@ -99,16 +99,6 @@ public class JoltTransformJSON extends AbstractJoltTransform {
         tmp.add(PRETTY_PRINT);
         tmp.add(MAX_STRING_LENGTH);
         PROPERTIES = Collections.unmodifiableList(tmp);
-
-        RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
-    }
-
-    @Override
-    public void migrateProperties(PropertyConfiguration config) {
-        config.renameProperty("jolt-transform", JOLT_TRANSFORM.getName());
-        config.renameProperty("jolt-spec", JOLT_SPEC.getName());
-        config.renameProperty("jolt-custom-class", CUSTOM_CLASS.getName());
-        config.renameProperty("jolt-custom-modules", MODULES.getName());
     }
 
     @Override
