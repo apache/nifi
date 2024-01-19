@@ -155,6 +155,7 @@ public class GetSolr extends SolrProcessor {
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
 
+    private final AtomicBoolean configurationRestored = new AtomicBoolean(false);
     private final AtomicBoolean clearState = new AtomicBoolean(false);
     private final AtomicBoolean dateFieldNotInSpecifiedFieldsList = new AtomicBoolean(false);
     private volatile String id_field = null;
@@ -212,13 +213,13 @@ public class GetSolr extends SolrProcessor {
 
     @Override
     public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-        if (propertyNamesForActivatingClearState.contains(descriptor.getName()))
+        if (configurationRestored.get() && propertyNamesForActivatingClearState.contains(descriptor.getName()))
             clearState.set(true);
     }
 
     @OnConfigurationRestored
     public void onConfigurationRestored() {
-        clearState.set(false);
+        configurationRestored.set(true);
     }
 
     @OnScheduled
