@@ -163,7 +163,7 @@ public class MiNiFiExecCommandProvider {
     private List<String> getJavaAdditionalArgs(BootstrapProperties props) {
         return props.getPropertyKeys()
             .stream()
-            .filter(entry -> entry.startsWith(JAVA_ARG_KEY_PREFIX))
+            .filter(key -> key.startsWith(JAVA_ARG_KEY_PREFIX))
             .map(props::getProperty)
             .toList();
     }

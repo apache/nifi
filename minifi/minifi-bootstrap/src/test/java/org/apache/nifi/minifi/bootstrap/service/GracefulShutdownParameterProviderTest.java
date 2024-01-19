@@ -26,6 +26,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.Optional;
 import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,11 +51,10 @@ class GracefulShutdownParameterProviderTest {
     @ValueSource(strings = {"notAnInteger", "-1"})
     void testGetBootstrapPropertiesShouldReturnDefaultShutdownPropertyValue(String shutdownProperty) throws IOException {
         BootstrapProperties properties = mock(BootstrapProperties.class);
-        if (shutdownProperty != null) {
-            when(properties.getProperty(eq(GRACEFUL_SHUTDOWN_PROP), any())).thenReturn(shutdownProperty);
-        } else {
-            when(properties.getProperty(eq(GRACEFUL_SHUTDOWN_PROP), any())).thenReturn(DEFAULT_GRACEFUL_SHUTDOWN_VALUE);
-        }
+
+        when(properties.getProperty(eq(GRACEFUL_SHUTDOWN_PROP), any()))
+            .thenReturn(Optional.ofNullable(shutdownProperty).orElse(DEFAULT_GRACEFUL_SHUTDOWN_VALUE));
+
         when(bootstrapFileProvider.getBootstrapProperties()).thenReturn(properties);
 
         assertEquals(Integer.parseInt(DEFAULT_GRACEFUL_SHUTDOWN_VALUE), gracefulShutdownParameterProvider.getGracefulShutdownSeconds());

@@ -141,7 +141,6 @@ public class StatusLoggerTest {
         verify(logger, Mockito.atLeastOnce()).error(MOCK_STATUS, (Throwable) null);
     }
 
-    // Exception testing
     @Test
     public void testTraceException() throws IOException {
         BootstrapProperties properties = getProperties(LogLevel.TRACE);
@@ -221,7 +220,6 @@ public class StatusLoggerTest {
         @Override
         public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
             command.run();
-            // Return value is not used
             return null;
         }
     }

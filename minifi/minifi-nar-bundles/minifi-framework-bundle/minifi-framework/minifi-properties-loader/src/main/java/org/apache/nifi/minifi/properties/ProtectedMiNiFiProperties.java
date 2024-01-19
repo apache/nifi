@@ -52,9 +52,7 @@ public class ProtectedMiNiFiProperties extends NiFiProperties implements Protect
         SECURITY_KEY_PASSWD,
         SECURITY_KEYSTORE_PASSWD,
         SECURITY_TRUSTSTORE_PASSWD,
-        SENSITIVE_PROPS_KEY,
-        REPOSITORY_ENCRYPTION_KEY_PROVIDER_KEYSTORE_PASSWORD,
-        SECURITY_USER_OIDC_CLIENT_SECRET
+        SENSITIVE_PROPS_KEY
     ));
 
     private final SensitivePropertyProtector<ProtectedMiNiFiProperties, NiFiProperties> propertyProtectionDelegate;

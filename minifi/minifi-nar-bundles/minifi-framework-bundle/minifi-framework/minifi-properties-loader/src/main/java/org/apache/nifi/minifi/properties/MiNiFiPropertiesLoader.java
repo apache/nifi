@@ -16,20 +16,13 @@
  */
 package org.apache.nifi.minifi.properties;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.Properties;
 import org.apache.nifi.properties.AesGcmSensitivePropertyProvider;
 import org.apache.nifi.util.NiFiBootstrapUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MiNiFiPropertiesLoader {
 
-    private static final Logger logger = LoggerFactory.getLogger(MiNiFiPropertiesLoader.class);
     private static final String DEFAULT_APPLICATION_PROPERTIES_FILE_PATH = NiFiBootstrapUtils.getDefaultApplicationPropertiesFilePath();
 
     private NiFiProperties instance;
@@ -49,33 +42,7 @@ public class MiNiFiPropertiesLoader {
      * @return the ProtectedMiNiFiProperties instance
      */
     ProtectedMiNiFiProperties loadProtectedProperties(File file) {
-        if (file == null || !file.exists() || !file.canRead()) {
-            throw new IllegalArgumentException(String.format("Application Properties [%s] not found", file));
-        }
-
-        logger.info("Loading Application Properties [{}]", file);
-        DuplicateDetectingProperties rawProperties = new DuplicateDetectingProperties();
-
-        try (InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-            rawProperties.load(inputStream);
-        } catch (Exception e) {
-            throw new RuntimeException(String.format("Loading Application Properties [%s] failed", file), e);
-        }
-
-        if (!rawProperties.redundantKeySet().isEmpty()) {
-            logger.warn("Duplicate property keys with the same value were detected in the properties file: {}", String.join(", ", rawProperties.redundantKeySet()));
-        }
-        if (!rawProperties.duplicateKeySet().isEmpty()) {
-            throw new IllegalArgumentException("Duplicate property keys with different values were detected in the properties file: " + String.join(", ", rawProperties.duplicateKeySet()));
-        }
-
-        Properties properties = new Properties();
-        rawProperties.stringPropertyNames()
-            .forEach(key -> {
-                String property = rawProperties.getProperty(key);
-                properties.setProperty(key, property.trim());
-            });
-        return new ProtectedMiNiFiProperties(properties);
+        return new ProtectedMiNiFiProperties(PropertiesLoader.load(file, "Application"));
     }
 
     /**

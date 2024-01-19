@@ -44,7 +44,6 @@ class DuplicateDetectingProperties extends Properties {
         if (existingValue != null) {
             if (existingValue.toString().equals(value.toString())) {
                 redundantKeys.add(key.toString());
-                return existingValue;
             } else {
                 duplicateKeys.add(key.toString());
             }
