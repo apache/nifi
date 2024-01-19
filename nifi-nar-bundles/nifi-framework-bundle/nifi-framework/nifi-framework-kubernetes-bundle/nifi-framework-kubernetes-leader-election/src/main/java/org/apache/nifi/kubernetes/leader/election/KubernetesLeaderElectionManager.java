@@ -80,7 +80,8 @@ public class KubernetesLeaderElectionManager extends TrackedLeaderElectionManage
      * Kubernetes Leader Election Manager constructor with NiFi Properties
      */
     public KubernetesLeaderElectionManager(final NiFiProperties nifiProperties) {
-        this.roleIdPrefix = nifiProperties.getProperty(NiFiProperties.CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX);
+        final String leasePrefix = nifiProperties.getProperty(NiFiProperties.CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX);
+        this.roleIdPrefix = leasePrefix == null || leasePrefix.isBlank() ? null : leasePrefix;
         executorService = createExecutorService();
         leaderElectionCommandProvider = createLeaderElectionCommandProvider();
     }
