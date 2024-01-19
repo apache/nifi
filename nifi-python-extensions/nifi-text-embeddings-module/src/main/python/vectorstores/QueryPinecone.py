@@ -172,7 +172,7 @@ class QueryPinecone(FlowFileTransform):
         index = pinecone.Index(index_name)
 
         text_key = context.getProperty(self.TEXT_KEY).evaluateAttributeExpressions().getValue()
-        filter = context.getProperty(self.FILTER).evaluateAttributeExpressions().getValue()
+        filter = context.getProperty(self.FILTER).evaluateAttributeExpressions(flowfile).getValue()
         vectorstore = Pinecone(index, self.embeddings.embed_query, text_key, namespace=namespace)
         results = vectorstore.similarity_search_with_score(query, num_results, filter=None if filter is None else json.loads(filter))
 
