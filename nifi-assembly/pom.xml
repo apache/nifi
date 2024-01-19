@@ -98,16 +98,6 @@ language governing permissions and limitations under the License. -->
         </plugins>
     </build>
     <dependencies>
-        <dependency> <!-- handling this explicitly  Must be in root lib -->
-            <groupId>jakarta.servlet</groupId>
-            <artifactId>jakarta.servlet-api</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency> <!-- handling this explicitly  Must be in root lib -->
-            <groupId>org.eclipse.jetty.toolchain</groupId>
-            <artifactId>jetty-schemas</artifactId>
-            <scope>compile</scope>
-        </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
