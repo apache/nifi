@@ -144,7 +144,7 @@ public class RetryingClientTest {
 
     private void setUpTestSubject(final int numberOfErrors) {
         testQuestDbClient = new TestClient(numberOfErrors);
-        testSubject = SpringRetryingClient.getInstance(2, (i, e) -> {}, testQuestDbClient, fallbackClient);
+        testSubject = RetryingClient.getInstance(2, (i, e) -> {}, testQuestDbClient, fallbackClient);
     }
 
     private static class TestClient implements Client {

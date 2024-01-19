@@ -28,12 +28,12 @@ import org.springframework.retry.support.RetryTemplate;
 
 import java.util.function.BiConsumer;
 
-final class SpringRetryingClient implements Client {
+final class RetryingClient implements Client {
     private final RetryTemplate retryTemplate;
     private final Client client;
     private final Client fallbackClient;
 
-    private SpringRetryingClient(final RetryTemplate retryTemplate, final Client client, final Client fallbackClient) {
+    private RetryingClient(final RetryTemplate retryTemplate, final Client client, final Client fallbackClient) {
         this.retryTemplate = retryTemplate;
         this.client = client;
         this.fallbackClient = fallbackClient;
@@ -105,7 +105,7 @@ final class SpringRetryingClient implements Client {
         public abstract R executeWithRetry(final RetryContext context) throws DatabaseException;
     }
 
-    static SpringRetryingClient getInstance(final int numberOfRetries, final BiConsumer<Integer, Throwable> errorAction, final Client client, final Client fallbackClient) {
+    static RetryingClient getInstance(final int numberOfRetries, final BiConsumer<Integer, Throwable> errorAction, final Client client, final Client fallbackClient) {
         final RetryListener listener = new RetryListener() {
             @Override
             public <T, E extends Throwable> void onError(final RetryContext context, final RetryCallback<T, E> callback, final Throwable throwable) {
@@ -119,6 +119,6 @@ final class SpringRetryingClient implements Client {
             .withListener(listener)
             .build();
 
-        return new SpringRetryingClient(retryTemplate, client, fallbackClient);
+        return new RetryingClient(retryTemplate, client, fallbackClient);
     }
 }

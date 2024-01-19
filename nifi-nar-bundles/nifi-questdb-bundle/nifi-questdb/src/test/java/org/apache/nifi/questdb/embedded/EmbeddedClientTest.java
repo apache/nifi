@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.questdb.embedded;
 
-import io.questdb.cairo.CairoConfiguration;
-import io.questdb.cairo.CairoEngine;
-import io.questdb.cairo.DefaultCairoConfiguration;
 import org.apache.nifi.questdb.Client;
 import org.apache.nifi.questdb.DatabaseException;
 import org.apache.nifi.questdb.mapping.RequestMapping;
@@ -77,9 +74,7 @@ public class EmbeddedClientTest extends EmbeddedQuestDbTest {
     }
 
     private Client getTestSubject() {
-        final CairoConfiguration configuration = new DefaultCairoConfiguration(testDbPathDirectory.toAbsolutePath().toString());
-        final CairoEngine engine = new CairoEngine(configuration);
-        return new EmbeddedClient(() -> engine);
+        return EmbeddedQuestDbTestUtil.getEmbeddedClient(engine);
     }
 
     private void assertQueryResultMatchesWithInserts(final Iterable<Event> result, final List<Event> testEvents) {

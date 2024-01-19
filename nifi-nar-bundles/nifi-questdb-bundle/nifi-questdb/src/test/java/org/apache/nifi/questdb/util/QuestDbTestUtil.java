@@ -60,7 +60,7 @@ public class QuestDbTestUtil {
             @Override
             public void fillRowData(final InsertRowContext context) {
                 final Event event = eventsToInsert.next();
-                context.initializeRow(event.getCapturedAt())
+                context.initializeRow(event.getCaptured())
                     .addString(1, event.getSubject())
                     .addLong(2, event.getValue());
             }
@@ -79,7 +79,7 @@ public class QuestDbTestUtil {
             @Override
             public void fillRowData(final InsertRowContext context) {
                 final Event event = eventsToInsert.next();
-                context.initializeRow(event.getCapturedAt())
+                context.initializeRow(event.getCaptured())
                         .addString(0, event.getSubject())
                         .addLong(2, event.getValue());
             }
@@ -87,14 +87,14 @@ public class QuestDbTestUtil {
     }
 
     public static final RequestMapping<Event> EVENT_TABLE_REQUEST_MAPPING = RequestMappingBuilder.of(Event::new)
-            .addInstantField(Event::setCapturedAt)
+            .addInstantField(Event::setCaptured)
             .addStringField(Event::setSubject)
             .addLongField(Event::setValue)
             .build();
 
     public static final RequestMapping<Event> EVENT_TABLE_REQUEST_MAPPING_DIFFERENT_ORDER = RequestMappingBuilder.of(Event::new)
             .addStringField(Event::setSubject)
-            .addInstantField(Event::setCapturedAt)
+            .addInstantField(Event::setCaptured)
             .addLongField(Event::setValue)
             .build();
 

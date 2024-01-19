@@ -22,9 +22,12 @@ import io.questdb.cairo.DefaultCairoConfiguration;
 import org.apache.nifi.questdb.Client;
 
 public class EmbeddedQuestDbTestUtil {
-    public static Client getEmbeddedClient(final CharSequence databaseLocation) {
+    public static CairoEngine getEngine(final CharSequence databaseLocation) {
         final CairoConfiguration configuration = new DefaultCairoConfiguration(databaseLocation);
-        final CairoEngine engine = new CairoEngine(configuration);
+        return new CairoEngine(configuration);
+    }
+
+    public static Client getEmbeddedClient(final CairoEngine engine) {
         return new EmbeddedClient(() -> engine);
     }
 }

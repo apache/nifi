@@ -85,6 +85,6 @@ class DeleteOldRolloverStrategyTest extends EmbeddedQuestDbTest {
     }
 
     private Client getTestClient() {
-        return EmbeddedQuestDbTestUtil.getEmbeddedClient(testDbPathDirectory.toFile().toURI().getRawPath());
+        return EmbeddedQuestDbTestUtil.getEmbeddedClient(engine);
     }
 }

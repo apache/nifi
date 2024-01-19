@@ -231,7 +231,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
         final Client fallback = new NoOpClient();
 
         if (state.get() == EmbeddedDatabaseManagerStatus.CORRUPTED) {
-            LOGGER.warn("The database is corrupted. Dummy client is returned");
+            LOGGER.error("The database is corrupted: Status History will not be stored");
             return fallback;
         }
 
@@ -241,7 +241,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
                 new ConditionAwareClient(() -> state.get() == EmbeddedDatabaseManagerStatus.HEALTHY, getUnmanagedClient())
         );
 
-        return SpringRetryingClient.getInstance(context.getNumberOfAttemptedRetries(), this::errorAction, lockedClient, fallback);
+        return RetryingClient.getInstance(context.getNumberOfAttemptedRetries(), this::errorAction, lockedClient, fallback);
     }
 
     private void checkIfManagerIsInitialised() {
@@ -255,7 +255,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
             LOGGER.error("Database manager tries to restore database after the first failed attempt if necessary");
             ensureDatabaseIsReady();
         } else {
-            LOGGER.warn("Error happened at attempt {}: {}", attemptNumber, throwable);
+            LOGGER.warn("Error happened at attempt: {}", attemptNumber, throwable);
         }
     }
 

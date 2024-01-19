@@ -71,8 +71,6 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
     @Test
     public void testHappyPath() throws DatabaseException {
         final List<Event> testData = getTestData();
-        assertDatabaseFolderIsEmpty();
-
         final DatabaseManager testSubject = getTestSubject();
         assertDatabaseFolderIsNotEmpty();
 
@@ -389,9 +387,5 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
 
     private void assertDatabaseFolderIsNotEmpty() {
         assertTrue(testDbPathDirectory.toFile().list().length > 0);
-    }
-
-    private void assertDatabaseFolderIsEmpty() {
-        assertEquals(0, testDbPathDirectory.toFile().list().length);
     }
 }

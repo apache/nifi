@@ -132,7 +132,7 @@ final class EmbeddedClient implements Client {
     public void disconnect() throws DatabaseException {
         checkConnectionState();
         disconnected.set(true);
-        LOGGER.info("Client disconnects");
+        LOGGER.info("Client disconnected");
     }
 
     private void checkConnectionState() throws DatabaseException {

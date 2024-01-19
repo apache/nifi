@@ -55,7 +55,6 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
-            <version>6.1.2</version>
         </dependency>
 
         <dependency>

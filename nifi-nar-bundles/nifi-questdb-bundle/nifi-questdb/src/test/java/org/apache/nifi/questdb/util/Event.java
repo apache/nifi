@@ -23,14 +23,14 @@ import java.util.Objects;
  * This class exists for test purposes
  */
 public class Event {
-    private Instant capturedAt;
+    private Instant captured;
     private String subject;
     private long value;
 
     public Event() {}
 
-    public Event(final Instant capturedAt, final String subject, final long value) {
-        this.capturedAt = capturedAt;
+    public Event(final Instant captured, final String subject, final long value) {
+        this.captured = captured;
         this.subject = subject;
         this.value = value;
     }
@@ -51,12 +51,12 @@ public class Event {
         this.value = value;
     }
 
-    public Instant getCapturedAt() {
-        return capturedAt;
+    public Instant getCaptured() {
+        return captured;
     }
 
-    public void setCapturedAt(final Instant capturedAt) {
-        this.capturedAt = capturedAt;
+    public void setCaptured(final Instant captured) {
+        this.captured = captured;
     }
 
     @Override
@@ -64,18 +64,18 @@ public class Event {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final Event event = (Event) o;
-        return value == event.value && Objects.equals(capturedAt, event.capturedAt) && Objects.equals(subject, event.subject);
+        return value == event.value && Objects.equals(captured, event.captured) && Objects.equals(subject, event.subject);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(capturedAt, subject, value);
+        return Objects.hash(captured, subject, value);
     }
 
     @Override
     public String toString() {
         return "com.github.simonbence.questdb7.Event{" +
-                "capturedAt=" + capturedAt +
+                "capturedAt=" + captured +
                 ", subject='" + subject + '\'' +
                 ", value=" + value +
                 '}';

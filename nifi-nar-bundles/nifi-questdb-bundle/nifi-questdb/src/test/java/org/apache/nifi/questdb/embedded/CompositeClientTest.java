@@ -198,7 +198,7 @@ public class CompositeClientTest extends EmbeddedQuestDbTest {
 
         lockedClientSpy = spy(lockedClient);
 
-        return SpringRetryingClient.getInstance(NUMBER_OF_RETRIES, errorAction, lockedClientSpy, fallback);
+        return RetryingClient.getInstance(NUMBER_OF_RETRIES, errorAction, lockedClientSpy, fallback);
     }
 
     private void assertWrappedClientIsNotCalled() throws DatabaseException {
