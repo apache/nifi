@@ -22,15 +22,6 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -43,13 +34,23 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.transfer.ResourceTransferSource;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.cloud.storage.Storage.PredefinedAcl.ALL_AUTHENTICATED_USERS;
 import static com.google.cloud.storage.Storage.PredefinedAcl.AUTHENTICATED_READ;
@@ -102,6 +103,9 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.UPDATE_TI
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.UPDATE_TIME_DESC;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_DESC;
+import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FILE_RESOURCE_SERVICE;
+import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
+import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileResource;
 
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -291,6 +295,8 @@ public class PutGCSObject extends AbstractGCSProcessor {
         descriptors.add(BUCKET);
         descriptors.add(KEY);
         descriptors.add(CONTENT_TYPE);
+        descriptors.add(RESOURCE_TRANSFER_SOURCE);
+        descriptors.add(FILE_RESOURCE_SERVICE);
         descriptors.add(CRC32C);
         descriptors.add(ACL);
         descriptors.add(ENCRYPTION_KEY);
@@ -322,199 +328,196 @@ public class PutGCSObject extends AbstractGCSProcessor {
             return;
         }
 
-        final long startNanos = System.nanoTime();
-
-        final String bucket = context.getProperty(BUCKET)
-                .evaluateAttributeExpressions(flowFile)
-                .getValue();
-        final String key = context.getProperty(KEY)
-                .evaluateAttributeExpressions(flowFile)
-                .getValue();
-        final boolean overwrite = context.getProperty(OVERWRITE).asBoolean();
-
-        final FlowFile ff = flowFile;
-        final String ffFilename = ff.getAttributes().get(CoreAttributes.FILENAME.key());
-        final Map<String, String> attributes = new HashMap<>();
-
         try {
+            final long startNanos = System.nanoTime();
+
+            final String bucket = context.getProperty(BUCKET)
+                    .evaluateAttributeExpressions(flowFile)
+                    .getValue();
+            final String key = context.getProperty(KEY)
+                    .evaluateAttributeExpressions(flowFile)
+                    .getValue();
+            final boolean overwrite = context.getProperty(OVERWRITE).asBoolean();
+
+            final FlowFile ff = flowFile;
+            final String ffFilename = ff.getAttributes().get(CoreAttributes.FILENAME.key());
+            final Map<String, String> attributes = new HashMap<>();
+            final ResourceTransferSource resourceTransferSource = ResourceTransferSource.valueOf(context.getProperty(RESOURCE_TRANSFER_SOURCE).getValue());
             final Storage storage = getCloudService();
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(InputStream rawIn) throws IOException {
-                    try (final InputStream in = new BufferedInputStream(rawIn)) {
-                        final BlobId id = BlobId.of(bucket, key);
-                        final BlobInfo.Builder blobInfoBuilder = BlobInfo.newBuilder(id);
-                        final List<Storage.BlobWriteOption> blobWriteOptions = new ArrayList<>();
 
-                        if (!overwrite) {
-                            blobWriteOptions.add(Storage.BlobWriteOption.doesNotExist());
-                        }
+            try (final InputStream inputStream = getFileResource(resourceTransferSource, context, flowFile.getAttributes())
+                    .map(FileResource::getInputStream)
+                    .orElseGet(() -> session.read(ff))) {
 
-                        final String contentDispositionType = context.getProperty(CONTENT_DISPOSITION_TYPE).getValue();
-                        if (contentDispositionType != null) {
-                            blobInfoBuilder.setContentDisposition(contentDispositionType + "; filename=" + ffFilename);
-                        }
+                final BlobId id = BlobId.of(bucket, key);
+                final BlobInfo.Builder blobInfoBuilder = BlobInfo.newBuilder(id);
+                final List<Storage.BlobWriteOption> blobWriteOptions = new ArrayList<>();
 
-                        final String contentType = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(ff).getValue();
-                        if (contentType != null) {
-                            blobInfoBuilder.setContentType(contentType);
-                        }
+                if (!overwrite) {
+                    blobWriteOptions.add(Storage.BlobWriteOption.doesNotExist());
+                }
 
-                        final String crc32c = context.getProperty(CRC32C).evaluateAttributeExpressions(ff).getValue();
-                        if (crc32c != null) {
-                            blobInfoBuilder.setCrc32c(crc32c);
-                            blobWriteOptions.add(Storage.BlobWriteOption.crc32cMatch());
-                        }
+                final String contentDispositionType = context.getProperty(CONTENT_DISPOSITION_TYPE).getValue();
+                if (contentDispositionType != null) {
+                    blobInfoBuilder.setContentDisposition(contentDispositionType + "; filename=" + ffFilename);
+                }
 
-                        final String acl = context.getProperty(ACL).getValue();
-                        if (acl != null) {
-                            blobWriteOptions.add(Storage.BlobWriteOption.predefinedAcl(
-                                    Storage.PredefinedAcl.valueOf(acl)
-                            ));
-                        }
+                final String contentType = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(ff).getValue();
+                if (contentType != null) {
+                    blobInfoBuilder.setContentType(contentType);
+                }
 
-                        final String encryptionKey = context.getProperty(ENCRYPTION_KEY)
-                                .evaluateAttributeExpressions(ff).getValue();
-                        if (encryptionKey != null) {
-                            blobWriteOptions.add(Storage.BlobWriteOption.encryptionKey(encryptionKey));
-                        }
+                final String crc32c = context.getProperty(CRC32C).evaluateAttributeExpressions(ff).getValue();
+                if (crc32c != null) {
+                    blobInfoBuilder.setCrc32c(crc32c);
+                    blobWriteOptions.add(Storage.BlobWriteOption.crc32cMatch());
+                }
 
-                        final boolean gzipCompress = context.getProperty(GZIPCONTENT).asBoolean();
-                        if (!gzipCompress){
-                            blobWriteOptions.add(Storage.BlobWriteOption.disableGzipContent());
-                        }
+                final String acl = context.getProperty(ACL).getValue();
+                if (acl != null) {
+                    blobWriteOptions.add(Storage.BlobWriteOption.predefinedAcl(
+                            Storage.PredefinedAcl.valueOf(acl)
+                    ));
+                }
 
-                        final HashMap<String, String> userMetadata = new HashMap<>();
-                        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
-                            if (entry.getKey().isDynamic()) {
-                                final String value = context.getProperty(
-                                        entry.getKey()).evaluateAttributeExpressions(ff).getValue();
-                                userMetadata.put(entry.getKey().getName(), value);
-                            }
-                        }
+                final String encryptionKey = context.getProperty(ENCRYPTION_KEY)
+                        .evaluateAttributeExpressions(ff).getValue();
+                if (encryptionKey != null) {
+                    blobWriteOptions.add(Storage.BlobWriteOption.encryptionKey(encryptionKey));
+                }
 
-                        if (!userMetadata.isEmpty()) {
-                            blobInfoBuilder.setMetadata(userMetadata);
-                        }
+                final boolean gzipCompress = context.getProperty(GZIPCONTENT).asBoolean();
+                if (!gzipCompress) {
+                    blobWriteOptions.add(Storage.BlobWriteOption.disableGzipContent());
+                }
 
-                        try {
-                            final Blob blob = storage.createFrom(blobInfoBuilder.build(),
-                                    in,
-                                    blobWriteOptions.toArray(new Storage.BlobWriteOption[blobWriteOptions.size()])
-                            );
-
-                            // Create attributes
-                            attributes.put(BUCKET_ATTR, blob.getBucket());
-                            attributes.put(KEY_ATTR, blob.getName());
-
-
-                            if (blob.getSize() != null) {
-                                attributes.put(SIZE_ATTR, String.valueOf(blob.getSize()));
-                            }
-
-                            if (blob.getCacheControl() != null) {
-                                attributes.put(CACHE_CONTROL_ATTR, blob.getCacheControl());
-                            }
-
-                            if (blob.getComponentCount() != null) {
-                                attributes.put(COMPONENT_COUNT_ATTR, String.valueOf(blob.getComponentCount()));
-                            }
-
-                            if (blob.getContentDisposition() != null) {
-                                attributes.put(CONTENT_DISPOSITION_ATTR, blob.getContentDisposition());
-                                final Util.ParsedContentDisposition parsed = Util.parseContentDisposition(blob.getContentDisposition());
-
-                                if (parsed != null) {
-                                    attributes.put(CoreAttributes.FILENAME.key(), parsed.getFileName());
-                                }
-                            }
-
-                            if (blob.getContentEncoding() != null) {
-                                attributes.put(CONTENT_ENCODING_ATTR, blob.getContentEncoding());
-                            }
-
-                            if (blob.getContentLanguage() != null) {
-                                attributes.put(CONTENT_LANGUAGE_ATTR, blob.getContentLanguage());
-                            }
-
-                            if (blob.getContentType() != null) {
-                                attributes.put(CoreAttributes.MIME_TYPE.key(), blob.getContentType());
-                            }
-
-                            if (blob.getCrc32c() != null) {
-                                attributes.put(CRC32C_ATTR, blob.getCrc32c());
-                            }
-
-                            if (blob.getCustomerEncryption() != null) {
-                                final BlobInfo.CustomerEncryption encryption = blob.getCustomerEncryption();
-
-                                attributes.put(ENCRYPTION_ALGORITHM_ATTR, encryption.getEncryptionAlgorithm());
-                                attributes.put(ENCRYPTION_SHA256_ATTR, encryption.getKeySha256());
-                            }
-
-                            if (blob.getEtag() != null) {
-                                attributes.put(ETAG_ATTR, blob.getEtag());
-                            }
-
-                            if (blob.getGeneratedId() != null) {
-                                attributes.put(GENERATED_ID_ATTR, blob.getGeneratedId());
-                            }
-
-                            if (blob.getGeneration() != null) {
-                                attributes.put(GENERATION_ATTR, String.valueOf(blob.getGeneration()));
-                            }
-
-                            if (blob.getMd5() != null) {
-                                attributes.put(MD5_ATTR, blob.getMd5());
-                            }
-
-                            if (blob.getMediaLink() != null) {
-                                attributes.put(MEDIA_LINK_ATTR, blob.getMediaLink());
-                            }
-
-                            if (blob.getMetageneration() != null) {
-                                attributes.put(METAGENERATION_ATTR, String.valueOf(blob.getMetageneration()));
-                            }
-
-                            if (blob.getOwner() != null) {
-                                final Acl.Entity entity = blob.getOwner();
-
-                                if (entity instanceof Acl.User) {
-                                    attributes.put(OWNER_ATTR, ((Acl.User) entity).getEmail());
-                                    attributes.put(OWNER_TYPE_ATTR, "user");
-                                } else if (entity instanceof Acl.Group) {
-                                    attributes.put(OWNER_ATTR, ((Acl.Group) entity).getEmail());
-                                    attributes.put(OWNER_TYPE_ATTR, "group");
-                                } else if (entity instanceof Acl.Domain) {
-                                    attributes.put(OWNER_ATTR, ((Acl.Domain) entity).getDomain());
-                                    attributes.put(OWNER_TYPE_ATTR, "domain");
-                                } else if (entity instanceof Acl.Project) {
-                                    attributes.put(OWNER_ATTR, ((Acl.Project) entity).getProjectId());
-                                    attributes.put(OWNER_TYPE_ATTR, "project");
-                                }
-                            }
-
-                            if (blob.getSelfLink() != null) {
-                                attributes.put(URI_ATTR, blob.getSelfLink());
-                            }
-
-                            if (blob.getCreateTimeOffsetDateTime() != null) {
-                                attributes.put(CREATE_TIME_ATTR, String.valueOf(blob.getCreateTimeOffsetDateTime().toInstant().toEpochMilli()));
-                            }
-
-                            if (blob.getUpdateTimeOffsetDateTime() != null) {
-                                attributes.put(UPDATE_TIME_ATTR, String.valueOf(blob.getUpdateTimeOffsetDateTime().toInstant().toEpochMilli()));
-                            }
-                        } catch (StorageException e) {
-                            getLogger().error("Failure completing upload flowfile={} bucket={} key={} reason={}",
-                                    ffFilename, bucket, key, e.getMessage(), e);
-                            throw (e);
-                        }
-
-
+                final HashMap<String, String> userMetadata = new HashMap<>();
+                for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+                    if (entry.getKey().isDynamic()) {
+                        final String value = context.getProperty(
+                                entry.getKey()).evaluateAttributeExpressions(ff).getValue();
+                        userMetadata.put(entry.getKey().getName(), value);
                     }
                 }
-            });
+
+                if (!userMetadata.isEmpty()) {
+                    blobInfoBuilder.setMetadata(userMetadata);
+                }
+
+                try {
+                    final Blob blob = storage.createFrom(blobInfoBuilder.build(),
+                            inputStream,
+                            blobWriteOptions.toArray(new Storage.BlobWriteOption[blobWriteOptions.size()])
+                    );
+
+                    // Create attributes
+                    attributes.put(BUCKET_ATTR, blob.getBucket());
+                    attributes.put(KEY_ATTR, blob.getName());
+
+
+                    if (blob.getSize() != null) {
+                        attributes.put(SIZE_ATTR, String.valueOf(blob.getSize()));
+                    }
+
+                    if (blob.getCacheControl() != null) {
+                        attributes.put(CACHE_CONTROL_ATTR, blob.getCacheControl());
+                    }
+
+                    if (blob.getComponentCount() != null) {
+                        attributes.put(COMPONENT_COUNT_ATTR, String.valueOf(blob.getComponentCount()));
+                    }
+
+                    if (blob.getContentDisposition() != null) {
+                        attributes.put(CONTENT_DISPOSITION_ATTR, blob.getContentDisposition());
+                        final Util.ParsedContentDisposition parsed = Util.parseContentDisposition(blob.getContentDisposition());
+
+                        if (parsed != null) {
+                            attributes.put(CoreAttributes.FILENAME.key(), parsed.getFileName());
+                        }
+                    }
+
+                    if (blob.getContentEncoding() != null) {
+                        attributes.put(CONTENT_ENCODING_ATTR, blob.getContentEncoding());
+                    }
+
+                    if (blob.getContentLanguage() != null) {
+                        attributes.put(CONTENT_LANGUAGE_ATTR, blob.getContentLanguage());
+                    }
+
+                    if (blob.getContentType() != null) {
+                        attributes.put(CoreAttributes.MIME_TYPE.key(), blob.getContentType());
+                    }
+
+                    if (blob.getCrc32c() != null) {
+                        attributes.put(CRC32C_ATTR, blob.getCrc32c());
+                    }
+
+                    if (blob.getCustomerEncryption() != null) {
+                        final BlobInfo.CustomerEncryption encryption = blob.getCustomerEncryption();
+
+                        attributes.put(ENCRYPTION_ALGORITHM_ATTR, encryption.getEncryptionAlgorithm());
+                        attributes.put(ENCRYPTION_SHA256_ATTR, encryption.getKeySha256());
+                    }
+
+                    if (blob.getEtag() != null) {
+                        attributes.put(ETAG_ATTR, blob.getEtag());
+                    }
+
+                    if (blob.getGeneratedId() != null) {
+                        attributes.put(GENERATED_ID_ATTR, blob.getGeneratedId());
+                    }
+
+                    if (blob.getGeneration() != null) {
+                        attributes.put(GENERATION_ATTR, String.valueOf(blob.getGeneration()));
+                    }
+
+                    if (blob.getMd5() != null) {
+                        attributes.put(MD5_ATTR, blob.getMd5());
+                    }
+
+                    if (blob.getMediaLink() != null) {
+                        attributes.put(MEDIA_LINK_ATTR, blob.getMediaLink());
+                    }
+
+                    if (blob.getMetageneration() != null) {
+                        attributes.put(METAGENERATION_ATTR, String.valueOf(blob.getMetageneration()));
+                    }
+
+                    if (blob.getOwner() != null) {
+                        final Acl.Entity entity = blob.getOwner();
+
+                        if (entity instanceof Acl.User) {
+                            attributes.put(OWNER_ATTR, ((Acl.User) entity).getEmail());
+                            attributes.put(OWNER_TYPE_ATTR, "user");
+                        } else if (entity instanceof Acl.Group) {
+                            attributes.put(OWNER_ATTR, ((Acl.Group) entity).getEmail());
+                            attributes.put(OWNER_TYPE_ATTR, "group");
+                        } else if (entity instanceof Acl.Domain) {
+                            attributes.put(OWNER_ATTR, ((Acl.Domain) entity).getDomain());
+                            attributes.put(OWNER_TYPE_ATTR, "domain");
+                        } else if (entity instanceof Acl.Project) {
+                            attributes.put(OWNER_ATTR, ((Acl.Project) entity).getProjectId());
+                            attributes.put(OWNER_TYPE_ATTR, "project");
+                        }
+                    }
+
+                    if (blob.getSelfLink() != null) {
+                        attributes.put(URI_ATTR, blob.getSelfLink());
+                    }
+
+                    if (blob.getCreateTimeOffsetDateTime() != null) {
+                        attributes.put(CREATE_TIME_ATTR, String.valueOf(blob.getCreateTimeOffsetDateTime().toInstant().toEpochMilli()));
+                    }
+
+                    if (blob.getUpdateTimeOffsetDateTime() != null) {
+                        attributes.put(UPDATE_TIME_ATTR, String.valueOf(blob.getUpdateTimeOffsetDateTime().toInstant().toEpochMilli()));
+                    }
+                } catch (StorageException | IOException e) {
+                    getLogger().error("Failure completing upload flowfile={} bucket={} key={} reason={}",
+                            ffFilename, bucket, key, e.getMessage(), e);
+                    throw (e);
+                }
+            }
 
             if (!attributes.isEmpty()) {
                 flowFile = session.putAllAttributes(flowFile, attributes);
@@ -527,7 +530,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
             getLogger().info("Successfully put {} to Google Cloud Storage in {} milliseconds",
                     new Object[]{ff, millis});
 
-        } catch (final ProcessException | StorageException e) {
+        } catch (final ProcessException | StorageException | IOException e) {
             getLogger().error("Failed to put {} to Google Cloud Storage due to {}", flowFile, e.getMessage(), e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);

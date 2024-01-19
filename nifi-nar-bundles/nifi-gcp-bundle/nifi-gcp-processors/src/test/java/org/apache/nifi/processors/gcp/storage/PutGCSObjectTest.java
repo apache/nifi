@@ -31,7 +31,11 @@ import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.nifi.fileresource.service.api.FileResource;
+import org.apache.nifi.fileresource.service.api.FileResourceService;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processors.transfer.ResourceTransferSource;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.Test;
@@ -62,11 +66,15 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.OWNER_TYP
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.SIZE_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.UPDATE_TIME_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_ATTR;
+import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FILE_RESOURCE_SERVICE;
+import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
@@ -172,6 +180,40 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         assertNull(blobInfo.getMd5());
         assertNull(blobInfo.getContentDisposition());
         assertNull(blobInfo.getCrc32c());
+    }
+
+    @Test
+    public void testSuccessfulPutOperationFromLocalFileSource() throws Exception {
+        reset(storageOptions, storage, blob);
+        when(storageOptions.getHost()).thenReturn(STORAGE_API_URL);
+        when(storage.getOptions()).thenReturn(storageOptions);
+        final PutGCSObject processor = getProcessor();
+        final TestRunner runner = buildNewRunner(processor);
+        addRequiredPropertiesToRunner(runner);
+
+        String serviceId = "fileresource";
+        FileResourceService service = mock(FileResourceService.class);
+        InputStream localFileInputStream = mock(InputStream.class);
+        doReturn(serviceId).when(service).getIdentifier();
+        doReturn(new FileResource(localFileInputStream, 10)).when(service).getFileResource(anyMap());
+
+        runner.addControllerService(serviceId, service);
+        runner.enableControllerService(service);
+        runner.setProperty(RESOURCE_TRANSFER_SOURCE, ResourceTransferSource.FILE_RESOURCE_SERVICE.getValue());
+        runner.setProperty(FILE_RESOURCE_SERVICE, serviceId);
+
+        runner.assertValid();
+
+        when(storage.createFrom(blobInfoArgumentCaptor.capture(),
+                inputStreamArgumentCaptor.capture(),
+                blobWriteOptionArgumentCaptor.capture())).thenReturn(blob);
+
+        runner.enqueue("test");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutGCSObject.REL_SUCCESS);
+        runner.assertTransferCount(PutGCSObject.REL_SUCCESS, 1);
+        assertEquals(inputStreamArgumentCaptor.getValue(), localFileInputStream);
     }
 
     @Test
