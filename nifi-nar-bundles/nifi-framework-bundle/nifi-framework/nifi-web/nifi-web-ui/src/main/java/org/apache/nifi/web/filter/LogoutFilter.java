@@ -18,15 +18,15 @@ package org.apache.nifi.web.filter;
 
 import org.apache.nifi.web.util.RequestUriBuilder;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
 
@@ -41,6 +41,10 @@ public class LogoutFilter implements Filter {
 
     private static final String SAML_SINGLE_LOGOUT_URL = "/nifi-api/access/saml/single-logout/request";
 
+    private static final String KNOX_LOGOUT_URL = "/nifi-api/access/knox/logout";
+
+    private static final String LOGOUT_COMPLETE_URL = "/nifi-api/access/logout/complete";
+
     private ServletContext servletContext;
 
     @Override
@@ -49,7 +53,7 @@ public class LogoutFilter implements Filter {
     }
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException {
         final boolean supportsOidc = Boolean.parseBoolean(servletContext.getInitParameter("oidc-supported"));
         final boolean supportsKnoxSso = Boolean.parseBoolean(servletContext.getInitParameter("knox-supported"));
         final boolean supportsSaml = Boolean.parseBoolean(servletContext.getInitParameter("saml-supported"));
@@ -65,14 +69,12 @@ public class LogoutFilter implements Filter {
         if (supportsOidc) {
             sendRedirect(OIDC_LOGOUT_URL, request, response);
         } else if (supportsKnoxSso) {
-            final ServletContext apiContext = servletContext.getContext("/nifi-api");
-            apiContext.getRequestDispatcher("/access/knox/logout").forward(request, response);
+            sendRedirect(KNOX_LOGOUT_URL, request, response);
         } else if (supportsSaml) {
             final String logoutUrl = supportsSamlSingleLogout ? SAML_SINGLE_LOGOUT_URL : SAML_LOCAL_LOGOUT_URL;
             sendRedirect(logoutUrl, request, response);
         } else {
-            final ServletContext apiContext = servletContext.getContext("/nifi-api");
-            apiContext.getRequestDispatcher("/access/logout/complete").forward(request, response);
+            sendRedirect(LOGOUT_COMPLETE_URL, request, response);
         }
     }
 

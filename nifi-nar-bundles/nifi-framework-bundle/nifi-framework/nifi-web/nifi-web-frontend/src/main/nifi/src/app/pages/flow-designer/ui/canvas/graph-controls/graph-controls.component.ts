@@ -26,6 +26,11 @@ import {
 import { NavigationControl } from './navigation-control/navigation-control.component';
 import { OperationControl } from './operation-control/operation-control.component';
 import { AsyncPipe } from '@angular/common';
+import { NiFiState } from '../../../../../state';
+import {
+    selectFlowConfiguration,
+    selectSupportsManagedAuthorizer
+} from '../../../../../state/flow-configuration/flow-configuration.selectors';
 
 @Component({
     selector: 'graph-controls',
@@ -38,6 +43,7 @@ export class GraphControls {
     navigationCollapsed$ = this.store.select(selectNavigationCollapsed);
     operationCollapsed$ = this.store.select(selectOperationCollapsed);
     breadcrumbEntity$ = this.store.select(selectBreadcrumbs);
+    supportsManagedAuthorizer$ = this.store.select(selectSupportsManagedAuthorizer);
 
-    constructor(private store: Store<CanvasState>) {}
+    constructor(private store: Store<NiFiState>) {}
 }

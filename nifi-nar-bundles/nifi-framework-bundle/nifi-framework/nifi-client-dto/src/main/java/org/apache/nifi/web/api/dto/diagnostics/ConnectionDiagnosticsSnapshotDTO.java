@@ -17,9 +17,9 @@
 
 package org.apache.nifi.web.api.dto.diagnostics;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
 
 @XmlType(name = "connectionDiagnosticsSnapshot")
@@ -30,7 +30,7 @@ public class ConnectionDiagnosticsSnapshotDTO {
     private LocalQueuePartitionDTO localQueuePartition;
     private List<RemoteQueuePartitionDTO> remoteQueuePartitions;
 
-    @ApiModelProperty("Total number of FlowFiles owned by the Connection")
+    @Schema(description = "Total number of FlowFiles owned by the Connection")
     public int getTotalFlowFileCount() {
         return totalFlowFileCount;
     }
@@ -39,7 +39,7 @@ public class ConnectionDiagnosticsSnapshotDTO {
         this.totalFlowFileCount = totalFlowFileCount;
     }
 
-    @ApiModelProperty("Total number of bytes that make up the content for the FlowFiles owned by this Connection")
+    @Schema(description = "Total number of bytes that make up the content for the FlowFiles owned by this Connection")
     public long getTotalByteCount() {
         return totalByteCount;
     }
@@ -48,7 +48,7 @@ public class ConnectionDiagnosticsSnapshotDTO {
         this.totalByteCount = totalByteCount;
     }
 
-    @ApiModelProperty("The Node Identifier that this information pertains to")
+    @Schema(description = "The Node Identifier that this information pertains to")
     public String getNodeIdentifier() {
         return nodeIdentifier;
     }
@@ -57,7 +57,7 @@ public class ConnectionDiagnosticsSnapshotDTO {
         this.nodeIdentifier = nodeIdentifier;
     }
 
-    @ApiModelProperty("The local queue partition, from which components can pull FlowFiles on this node.")
+    @Schema(description = "The local queue partition, from which components can pull FlowFiles on this node.")
     public LocalQueuePartitionDTO getLocalQueuePartition() {
         return localQueuePartition;
     }

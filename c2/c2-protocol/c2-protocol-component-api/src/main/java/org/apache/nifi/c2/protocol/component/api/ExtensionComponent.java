@@ -17,8 +17,7 @@
 
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Collections;
 import java.util.List;
@@ -28,7 +27,6 @@ import java.util.Set;
 /**
  * A component provided by an extension bundle
  */
-@ApiModel
 public class ExtensionComponent extends DefinedType {
     private static final long serialVersionUID = 1L;
 
@@ -52,7 +50,7 @@ public class ExtensionComponent extends DefinedType {
 
     private boolean additionalDetails;
 
-    @ApiModelProperty("The build metadata for this component")
+    @Schema(description = "The build metadata for this component")
     public BuildInfo getBuildInfo() {
         return buildInfo;
     }
@@ -61,7 +59,7 @@ public class ExtensionComponent extends DefinedType {
         this.buildInfo = buildInfo;
     }
 
-    @ApiModelProperty("If this type represents a provider for an interface, this lists the APIs it implements")
+    @Schema(description = "If this type represents a provider for an interface, this lists the APIs it implements")
     public List<DefinedType> getProvidedApiImplementations() {
         return (providedApiImplementations != null ? Collections.unmodifiableList(providedApiImplementations) : null);
 
@@ -71,7 +69,7 @@ public class ExtensionComponent extends DefinedType {
         this.providedApiImplementations = providedApiImplementations;
     }
 
-    @ApiModelProperty("The tags associated with this type")
+    @Schema(description = "The tags associated with this type")
     public Set<String> getTags() {
         return (tags != null ? Collections.unmodifiableSet(tags) : null);
     }
@@ -80,7 +78,7 @@ public class ExtensionComponent extends DefinedType {
         this.tags = tags;
     }
 
-    @ApiModelProperty("The names of other component types that may be related")
+    @Schema(description = "The names of other component types that may be related")
     public Set<String> getSeeAlso() {
         return seeAlso;
     }
@@ -89,7 +87,7 @@ public class ExtensionComponent extends DefinedType {
         this.seeAlso = seeAlso;
     }
 
-    @ApiModelProperty("Whether or not the component has been deprecated")
+    @Schema(description = "Whether or not the component has been deprecated")
     public Boolean getDeprecated() {
         return deprecated;
     }
@@ -98,7 +96,7 @@ public class ExtensionComponent extends DefinedType {
         this.deprecated = deprecated;
     }
 
-    @ApiModelProperty("If this component has been deprecated, this optional field can be used to provide an explanation")
+    @Schema(description = "If this component has been deprecated, this optional field can be used to provide an explanation")
     public String getDeprecationReason() {
         return deprecationReason;
     }
@@ -107,7 +105,7 @@ public class ExtensionComponent extends DefinedType {
         this.deprecationReason = deprecationReason;
     }
 
-    @ApiModelProperty("If this component has been deprecated, this optional field provides alternatives to use")
+    @Schema(description = "If this component has been deprecated, this optional field provides alternatives to use")
     public Set<String> getDeprecationAlternatives() {
         return deprecationAlternatives;
     }
@@ -116,7 +114,7 @@ public class ExtensionComponent extends DefinedType {
         this.deprecationAlternatives = deprecationAlternatives;
     }
 
-    @ApiModelProperty("Whether or not the component has a general restriction")
+    @Schema(description = "Whether or not the component has a general restriction")
     public Boolean isRestricted() {
         return restricted;
     }
@@ -129,7 +127,7 @@ public class ExtensionComponent extends DefinedType {
         this.restricted = restricted;
     }
 
-    @ApiModelProperty("An optional description of the general restriction")
+    @Schema(description = "An optional description of the general restriction")
     public String getRestrictedExplanation() {
         return restrictedExplanation;
     }
@@ -138,7 +136,7 @@ public class ExtensionComponent extends DefinedType {
         this.restrictedExplanation = restrictedExplanation;
     }
 
-    @ApiModelProperty("Explicit restrictions that indicate a require permission to use the component")
+    @Schema(description = "Explicit restrictions that indicate a require permission to use the component")
     public Set<Restriction> getExplicitRestrictions() {
         return explicitRestrictions;
     }
@@ -147,7 +145,7 @@ public class ExtensionComponent extends DefinedType {
         this.explicitRestrictions = explicitRestrictions;
     }
 
-    @ApiModelProperty("Indicates if the component stores state")
+    @Schema(description = "Indicates if the component stores state")
     public Stateful getStateful() {
         return stateful;
     }
@@ -156,7 +154,7 @@ public class ExtensionComponent extends DefinedType {
         this.stateful = stateful;
     }
 
-    @ApiModelProperty("The system resource considerations for the given component")
+    @Schema(description = "The system resource considerations for the given component")
     public List<SystemResourceConsideration> getSystemResourceConsiderations() {
         return systemResourceConsiderations;
     }
@@ -165,7 +163,7 @@ public class ExtensionComponent extends DefinedType {
         this.systemResourceConsiderations = systemResourceConsiderations;
     }
 
-    @ApiModelProperty("Indicates if the component has additional details documentation")
+    @Schema(description = "Indicates if the component has additional details documentation")
     public boolean isAdditionalDetails() {
         return additionalDetails;
     }

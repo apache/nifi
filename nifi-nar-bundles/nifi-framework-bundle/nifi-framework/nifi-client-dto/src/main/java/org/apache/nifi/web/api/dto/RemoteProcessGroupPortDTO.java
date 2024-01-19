@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
-import javax.xml.bind.annotation.XmlType;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Details of a port in a remote process group.
@@ -42,8 +42,7 @@ public class RemoteProcessGroupPortDTO {
     /**
      * @return comments as configured in the target port
      */
-    @ApiModelProperty(
-            value = "The comments as configured on the target port."
+    @Schema(description = "The comments as configured on the target port."
     )
     public String getComments() {
         return comments;
@@ -53,7 +52,7 @@ public class RemoteProcessGroupPortDTO {
         this.comments = comments;
     }
 
-    @ApiModelProperty("The ID of the corresponding component that is under version control")
+    @Schema(description = "The ID of the corresponding component that is under version control")
     public String getVersionedComponentId() {
         return versionedComponentId;
     }
@@ -65,8 +64,7 @@ public class RemoteProcessGroupPortDTO {
     /**
      * @return number tasks that may transmit flow files to the target port concurrently
      */
-    @ApiModelProperty(
-            value = "The number of task that may transmit flowfiles to the target port concurrently."
+    @Schema(description = "The number of task that may transmit flowfiles to the target port concurrently."
     )
     public Integer getConcurrentlySchedulableTaskCount() {
         return concurrentlySchedulableTaskCount;
@@ -79,8 +77,7 @@ public class RemoteProcessGroupPortDTO {
     /**
      * @return id of the target port
      */
-    @ApiModelProperty(
-            value = "The id of the port."
+    @Schema(description = "The id of the port."
     )
     public String getId() {
         return id;
@@ -90,7 +87,7 @@ public class RemoteProcessGroupPortDTO {
         this.id = id;
     }
 
-    @ApiModelProperty("The id of the target port.")
+    @Schema(description = "The id of the target port.")
     public String getTargetId() {
         return targetId;
     }
@@ -102,8 +99,7 @@ public class RemoteProcessGroupPortDTO {
     /**
      * @return id of the remote process group that this port resides in
      */
-    @ApiModelProperty(
-            value = "The id of the remote process group that the port resides in."
+    @Schema(description = "The id of the remote process group that the port resides in."
     )
     public String getGroupId() {
         return groupId;
@@ -116,8 +112,7 @@ public class RemoteProcessGroupPortDTO {
     /**
      * @return name of the target port
      */
-    @ApiModelProperty(
-            value = "The name of the target port."
+    @Schema(description = "The name of the target port."
     )
     public String getName() {
         return name;
@@ -130,8 +125,7 @@ public class RemoteProcessGroupPortDTO {
     /**
      * @return whether or not this remote group port is configured for transmission
      */
-    @ApiModelProperty(
-            value = "Whether the remote port is configured for transmission."
+    @Schema(description = "Whether the remote port is configured for transmission."
     )
     public Boolean isTransmitting() {
         return transmitting;
@@ -144,8 +138,7 @@ public class RemoteProcessGroupPortDTO {
     /**
      * @return whether or not flow file are compressed when sent to this target port
      */
-    @ApiModelProperty(
-            value = "Whether the flowfiles are compressed when sent to the target port."
+    @Schema(description = "Whether the flowfiles are compressed when sent to the target port."
     )
     public Boolean getUseCompression() {
         return useCompression;
@@ -158,8 +151,7 @@ public class RemoteProcessGroupPortDTO {
     /**
      * @return whether or not the target port exists
      */
-    @ApiModelProperty(
-            value = "Whether the target port exists."
+    @Schema(description = "Whether the target port exists."
     )
     public Boolean getExists() {
         return exists;
@@ -172,8 +164,7 @@ public class RemoteProcessGroupPortDTO {
     /**
      * @return whether or not the target port is running
      */
-    @ApiModelProperty(
-            value = "Whether the target port is running."
+    @Schema(description = "Whether the target port is running."
     )
     public Boolean isTargetRunning() {
         return targetRunning;
@@ -186,8 +177,7 @@ public class RemoteProcessGroupPortDTO {
     /**
      * @return whether or not this port has either an incoming or outgoing connection
      */
-    @ApiModelProperty(
-            value = "Whether the port has either an incoming or outgoing connection."
+    @Schema(description = "Whether the port has either an incoming or outgoing connection."
     )
     public Boolean isConnected() {
         return connected;
@@ -200,8 +190,7 @@ public class RemoteProcessGroupPortDTO {
     /**
      * @return batch settings for data transmission
      */
-    @ApiModelProperty(
-            value = "The batch settings for data transmission."
+    @Schema(description = "The batch settings for data transmission."
     )
     public BatchSettingsDTO getBatchSettings() {
         return batchSettings;

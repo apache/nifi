@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { filter, switchMap, take, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -31,26 +31,35 @@ import {
     loadControllerServices,
     navigateToEditService,
     openConfigureControllerServiceDialog,
+    openDisableControllerServiceDialog,
+    openEnableControllerServiceDialog,
     openNewControllerServiceDialog,
     promptControllerServiceDeletion,
+    resetControllerServicesState,
     selectControllerService
 } from '../../state/controller-services/controller-services.actions';
 import { initialState } from '../../state/controller-services/controller-services.reducer';
 import { ControllerServiceEntity } from '../../../../state/shared';
 import { BreadcrumbEntity } from '../../state/shared';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
+import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
+import { NiFiState } from '../../../../state';
+import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 
 @Component({
     selector: 'controller-services',
     templateUrl: './controller-services.component.html',
     styleUrls: ['./controller-services.component.scss']
 })
-export class ControllerServices {
+export class ControllerServices implements OnInit, OnDestroy {
     serviceState$ = this.store.select(selectControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
+    currentUser$ = this.store.select(selectCurrentUser);
+    flowConfiguration$ = this.store.select(selectFlowConfiguration);
 
     private currentProcessGroupId!: string;
 
-    constructor(private store: Store<ControllerServicesState>) {
+    constructor(private store: Store<NiFiState>) {
         // load the controller services using the process group id from the route
         this.store
             .select(selectProcessGroupIdFromRoute)
@@ -93,6 +102,10 @@ export class ControllerServices {
                     );
                 }
             });
+    }
+
+    ngOnInit(): void {
+        this.store.dispatch(loadFlowConfiguration());
     }
 
     isInitialLoading(state: ControllerServicesState): boolean {
@@ -154,6 +167,28 @@ export class ControllerServices {
         );
     }
 
+    enableControllerService(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            openEnableControllerServiceDialog({
+                request: {
+                    id: entity.id,
+                    controllerService: entity
+                }
+            })
+        );
+    }
+
+    disableControllerService(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            openDisableControllerServiceDialog({
+                request: {
+                    id: entity.id,
+                    controllerService: entity
+                }
+            })
+        );
+    }
+
     deleteControllerService(entity: ControllerServiceEntity): void {
         this.store.dispatch(
             promptControllerServiceDeletion({
@@ -162,6 +197,28 @@ export class ControllerServices {
                 }
             })
         );
+    }
+
+    canModifyParent(breadcrumb: BreadcrumbEntity): (entity: ControllerServiceEntity) => boolean {
+        const breadcrumbs: BreadcrumbEntity[] = [];
+
+        let currentBreadcrumb: BreadcrumbEntity | undefined = breadcrumb;
+        while (currentBreadcrumb != null) {
+            breadcrumbs.push(currentBreadcrumb);
+            currentBreadcrumb = currentBreadcrumb.parentBreadcrumb;
+        }
+
+        return (entity: ControllerServiceEntity): boolean => {
+            const entityBreadcrumb: BreadcrumbEntity | undefined = breadcrumbs.find(
+                (bc) => bc.id === entity.parentGroupId
+            );
+
+            if (entityBreadcrumb) {
+                return entityBreadcrumb.permissions.canWrite;
+            }
+
+            return false;
+        };
     }
 
     selectControllerService(entity: ControllerServiceEntity): void {
@@ -176,5 +233,9 @@ export class ControllerServices {
                 }
             })
         );
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(resetControllerServicesState());
     }
 }

@@ -22,10 +22,12 @@ import {
     controllerServicesApiError,
     createControllerService,
     createControllerServiceSuccess,
+    deleteControllerService,
     deleteControllerServiceSuccess,
     inlineCreateControllerServiceSuccess,
     loadControllerServices,
-    loadControllerServicesSuccess
+    loadControllerServicesSuccess,
+    resetControllerServicesState
 } from './controller-services.actions';
 import { produce } from 'immer';
 import { ControllerServicesState } from './index';
@@ -53,6 +55,9 @@ export const initialState: ControllerServicesState = {
 
 export const controllerServicesReducer = createReducer(
     initialState,
+    on(resetControllerServicesState, (state) => ({
+        ...initialState
+    })),
     on(loadControllerServices, (state) => ({
         ...state,
         status: 'loading' as const
@@ -72,7 +77,7 @@ export const controllerServicesReducer = createReducer(
         error,
         status: 'error' as const
     })),
-    on(createControllerService, (state, { request }) => ({
+    on(createControllerService, configureControllerService, deleteControllerService, (state, { request }) => ({
         ...state,
         saving: true
     })),
@@ -87,10 +92,6 @@ export const controllerServicesReducer = createReducer(
             draftState.controllerServices.push(response.controllerService);
         });
     }),
-    on(configureControllerService, (state, { request }) => ({
-        ...state,
-        saving: true
-    })),
     on(configureControllerServiceSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             const componentIndex: number = draftState.controllerServices.findIndex((f: any) => response.id === f.id);
@@ -108,6 +109,7 @@ export const controllerServicesReducer = createReducer(
             if (componentIndex > -1) {
                 draftState.controllerServices.splice(componentIndex, 1);
             }
+            draftState.saving = false;
         });
     })
 );

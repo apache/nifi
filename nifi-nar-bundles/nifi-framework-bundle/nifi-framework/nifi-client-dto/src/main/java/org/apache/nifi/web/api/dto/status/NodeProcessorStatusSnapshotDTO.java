@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * DTO for serializing the processor status for a particular node.
@@ -32,7 +32,7 @@ public class NodeProcessorStatusSnapshotDTO implements Cloneable {
 
     private ProcessorStatusSnapshotDTO statusSnapshot;
 
-    @ApiModelProperty("The unique ID that identifies the node")
+    @Schema(description = "The unique ID that identifies the node")
     public String getNodeId() {
         return nodeId;
     }
@@ -41,7 +41,7 @@ public class NodeProcessorStatusSnapshotDTO implements Cloneable {
         this.nodeId = nodeId;
     }
 
-    @ApiModelProperty("The API address of the node")
+    @Schema(description = "The API address of the node")
     public String getAddress() {
         return address;
     }
@@ -50,7 +50,7 @@ public class NodeProcessorStatusSnapshotDTO implements Cloneable {
         this.address = address;
     }
 
-    @ApiModelProperty("The API port used to communicate with the node")
+    @Schema(description = "The API port used to communicate with the node")
     public Integer getApiPort() {
         return apiPort;
     }
@@ -59,7 +59,7 @@ public class NodeProcessorStatusSnapshotDTO implements Cloneable {
         this.apiPort = apiPort;
     }
 
-    @ApiModelProperty("The processor status snapshot from the node.")
+    @Schema(description = "The processor status snapshot from the node.")
     public ProcessorStatusSnapshotDTO getStatusSnapshot() {
         return statusSnapshot;
     }

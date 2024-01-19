@@ -17,13 +17,22 @@
 package org.apache.nifi.lookup;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
-
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.lookup.configuration2.CommonsConfigurationLookupService;
 
 @Tags({"lookup", "cache", "enrich", "join", "properties", "reloadable", "key", "value"})
 @CapabilityDescription("A reloadable properties file-based lookup service")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+                        explanation = "Provides operator the ability to read from any file that NiFi has access to.")
+        }
+)
 public class PropertiesFileLookupService extends CommonsConfigurationLookupService<PropertiesConfiguration> {
 
 }

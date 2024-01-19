@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
@@ -25,7 +25,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -47,8 +47,7 @@ public class FlowDTO {
     /**
      * @return connections in this flow
      */
-    @ApiModelProperty(
-            value = "The connections in this flow."
+    @Schema(description = "The connections in this flow."
     )
     public Set<ConnectionEntity> getConnections() {
         return connections;
@@ -61,8 +60,7 @@ public class FlowDTO {
     /**
      * @return input ports in this flow
      */
-    @ApiModelProperty(
-            value = "The input ports in this flow."
+    @Schema(description = "The input ports in this flow."
     )
     public Set<PortEntity> getInputPorts() {
         return inputPorts;
@@ -75,8 +73,7 @@ public class FlowDTO {
     /**
      * @return labels in this flow
      */
-    @ApiModelProperty(
-            value = "The labels in this flow."
+    @Schema(description = "The labels in this flow."
     )
     public Set<LabelEntity> getLabels() {
         return labels;
@@ -89,8 +86,7 @@ public class FlowDTO {
     /**
      * @return funnels in this flow
      */
-    @ApiModelProperty(
-            value = "The funnels in this flow."
+    @Schema(description = "The funnels in this flow."
     )
     public Set<FunnelEntity> getFunnels() {
         return funnels;
@@ -103,8 +99,7 @@ public class FlowDTO {
     /**
      * @return output ports in this flow
      */
-    @ApiModelProperty(
-            value = "The output ports in this flow."
+    @Schema(description = "The output ports in this flow."
     )
     public Set<PortEntity> getOutputPorts() {
         return outputPorts;
@@ -117,8 +112,7 @@ public class FlowDTO {
     /**
      * @return process groups in this flow
      */
-    @ApiModelProperty(
-            value = "The process groups in this flow."
+    @Schema(description = "The process groups in this flow."
     )
     public Set<ProcessGroupEntity> getProcessGroups() {
         return processGroups;
@@ -131,8 +125,7 @@ public class FlowDTO {
     /**
      * @return processors in this flow
      */
-    @ApiModelProperty(
-            value = "The processors in this flow."
+    @Schema(description = "The processors in this flow."
     )
     public Set<ProcessorEntity> getProcessors() {
         return processors;
@@ -145,8 +138,7 @@ public class FlowDTO {
     /**
      * @return remote process groups in this flow
      */
-    @ApiModelProperty(
-            value = "The remote process groups in this flow."
+    @Schema(description = "The remote process groups in this flow."
     )
     public Set<RemoteProcessGroupEntity> getRemoteProcessGroups() {
         return remoteProcessGroups;

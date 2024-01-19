@@ -34,6 +34,8 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SerializedForm;
+import org.apache.nifi.serialization.record.field.FieldConverter;
+import org.apache.nifi.serialization.record.field.StandardFieldConverterRegistry;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
@@ -43,24 +45,24 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
 
 public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSetWriter, RawRecordWriter {
+    private static final FieldConverter<Object, String> STRING_FIELD_CONVERTER = StandardFieldConverterRegistry.getRegistry().getFieldConverter(String.class);
+
     private final ComponentLog logger;
     private final SchemaAccessWriter schemaAccess;
     private final RecordSchema recordSchema;
     private final JsonGenerator generator;
     private final NullSuppression nullSuppression;
     private final OutputGrouping outputGrouping;
-    private final Supplier<DateFormat> LAZY_DATE_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIME_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
-    private String mimeType = "application/json";
+    private final String dateFormat;
+    private final String timeFormat;
+    private final String timestampFormat;
+    private final String mimeType;
+    private final boolean prettyPrint;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -81,19 +83,15 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         this.outputGrouping = outputGrouping;
         this.mimeType = mimeType;
 
-        // Use DateFormat with default TimeZone to avoid unexpected conversion of year-month-day
-        final DateFormat df = dateFormat == null ? null : new SimpleDateFormat(dateFormat);
-        final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
-        final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
-
-        LAZY_DATE_FORMAT = () -> df;
-        LAZY_TIME_FORMAT = () -> tf;
-        LAZY_TIMESTAMP_FORMAT = () -> tsf;
+        this.dateFormat = dateFormat;
+        this.timeFormat = timeFormat;
+        this.timestampFormat = timestampFormat;
 
         final JsonFactory factory = new JsonFactory();
         factory.setCodec(objectMapper);
 
         this.generator = factory.createGenerator(out);
+        this.prettyPrint = prettyPrint;
         if (prettyPrint) {
             generator.useDefaultPrettyPrinter();
         } else if (OutputGrouping.OUTPUT_ONELINE.equals(outputGrouping)) {
@@ -173,9 +171,12 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             final SerializedForm form = serializedForm.get();
             if (form.getMimeType().equals(getMimeType()) && record.getSchema().equals(writeSchema)) {
                 final Object serialized = form.getSerialized();
-                if (serialized instanceof String) {
-                    generator.writeRawValue((String) serialized);
-                    return;
+                if (serialized instanceof final String serializedString) {
+                    final boolean serializedPretty = serializedString.contains("\n");
+                    if (serializedPretty == this.prettyPrint) {
+                        generator.writeRawValue((String) serialized);
+                        return;
+                    }
                 }
             }
         }
@@ -246,8 +247,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             return;
         }
 
-        if (value instanceof Record) {
-            final Record record = (Record) value;
+        if (value instanceof Record record) {
             writeRecord(record, record.getSchema(), generator, JsonGenerator::writeStartObject, JsonGenerator::writeEndObject, false);
             return;
         }
@@ -267,8 +267,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             return;
         }
 
-        if (value instanceof Object[]) {
-            final Object[] values = (Object[]) value;
+        if (value instanceof Object[] values) {
             generator.writeStartArray();
             for (final Object element : values) {
                 writeRawValue(generator, element, fieldName);
@@ -278,38 +277,22 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         }
 
         if (value instanceof java.sql.Time) {
-            final Object formatted = format((java.sql.Time) value, LAZY_TIME_FORMAT);
+            final Object formatted = STRING_FIELD_CONVERTER.convertField(value, Optional.ofNullable(timeFormat), fieldName);
             generator.writeObject(formatted);
             return;
         }
         if (value instanceof java.sql.Date) {
-            final Object formatted = format((java.sql.Date) value, LAZY_DATE_FORMAT);
+            final Object formatted = STRING_FIELD_CONVERTER.convertField(value, Optional.ofNullable(dateFormat), fieldName);
             generator.writeObject(formatted);
             return;
         }
         if (value instanceof java.util.Date) {
-            final Object formatted = format((java.util.Date) value, LAZY_TIMESTAMP_FORMAT);
+            final Object formatted = STRING_FIELD_CONVERTER.convertField(value, Optional.ofNullable(timestampFormat), fieldName);
             generator.writeObject(formatted);
             return;
         }
 
         generator.writeObject(value);
-    }
-
-    private Object format(final java.util.Date value, final Supplier<DateFormat> formatSupplier) {
-        if (value == null) {
-            return null;
-        }
-
-        if (formatSupplier == null) {
-            return value.getTime();
-        }
-        final DateFormat format = formatSupplier.get();
-        if (format == null) {
-            return value.getTime();
-        }
-
-        return format.format(value);
     }
 
     @SuppressWarnings("unchecked")
@@ -321,12 +304,14 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
 
         final DataType chosenDataType = dataType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(value, (ChoiceDataType) dataType) : dataType;
         if (chosenDataType == null) {
-            logger.debug("Could not find a suitable field type in the CHOICE for field {} and value {}; will use null value", new Object[] {fieldName, value});
+            logger.debug("Could not find a suitable field type in the CHOICE for field {} and value {}; will use null value", fieldName, value);
             generator.writeNull();
             return;
         }
 
-        final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+        final Object coercedValue = DataTypeUtils.convertType(
+                value, chosenDataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName
+        );
         if (coercedValue == null) {
             generator.writeNull();
             return;
@@ -334,7 +319,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
 
         switch (chosenDataType.getFieldType()) {
             case DATE: {
-                final String stringValue = DataTypeUtils.toString(coercedValue, LAZY_DATE_FORMAT);
+                final String stringValue = STRING_FIELD_CONVERTER.convertField(coercedValue, Optional.ofNullable(dateFormat), fieldName);
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
                     generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
                 } else {
@@ -343,7 +328,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                 break;
             }
             case TIME: {
-                final String stringValue = DataTypeUtils.toString(coercedValue, LAZY_TIME_FORMAT);
+                final String stringValue = STRING_FIELD_CONVERTER.convertField(coercedValue, Optional.ofNullable(timeFormat), fieldName);
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
                     generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
                 } else {
@@ -352,7 +337,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                 break;
             }
             case TIMESTAMP: {
-                final String stringValue = DataTypeUtils.toString(coercedValue, LAZY_TIMESTAMP_FORMAT);
+                final String stringValue = STRING_FIELD_CONVERTER.convertField(coercedValue, Optional.ofNullable(timestampFormat), fieldName);
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
                     generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
                 } else {
@@ -384,7 +369,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                 break;
             case BIGINT:
                 if (coercedValue instanceof Long) {
-                    generator.writeNumber(((Long) coercedValue).longValue());
+                    generator.writeNumber((Long) coercedValue);
                 } else {
                     generator.writeNumber((BigInteger) coercedValue);
                 }
@@ -423,8 +408,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             }
             case ARRAY:
             default:
-                if (coercedValue instanceof Object[]) {
-                    final Object[] values = (Object[]) coercedValue;
+                if (coercedValue instanceof Object[] values) {
                     final ArrayDataType arrayDataType = (ArrayDataType) chosenDataType;
                     final DataType elementType = arrayDataType.getElementType();
                     writeArray(values, fieldName, generator, elementType);

@@ -19,6 +19,7 @@ package org.apache.nifi.kubernetes.leader.election;
 import org.apache.nifi.controller.leader.election.LeaderElectionRole;
 import org.apache.nifi.controller.leader.election.LeaderElectionStateChangeListener;
 import org.apache.nifi.kubernetes.leader.election.command.LeaderElectionCommandProvider;
+import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
@@ -49,6 +51,8 @@ class KubernetesLeaderElectionManagerTest {
 
     private static final String PARTICIPANT_ID = "Node-0";
 
+    private static final String PREFIX = "label";
+
     @Mock
     LeaderElectionStateChangeListener changeListener;
 
@@ -64,11 +68,16 @@ class KubernetesLeaderElectionManagerTest {
     ManagedLeaderElectionCommandProvider leaderElectionCommandProvider;
 
     KubernetesLeaderElectionManager manager;
+    KubernetesLeaderElectionManager managerWithProperties;
 
     @BeforeEach
     void setManager() {
         leaderElectionCommandProvider = new ManagedLeaderElectionCommandProvider();
-        manager = new MockKubernetesLeaderElectionManager();
+        manager = new MockKubernetesLeaderElectionManager(new NiFiProperties());
+
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX, PREFIX);
+        managerWithProperties = new MockKubernetesLeaderElectionManager(new NiFiProperties(properties));
     }
 
     @Test
@@ -184,6 +193,19 @@ class KubernetesLeaderElectionManagerTest {
         assertFalse(unregisteredActiveParticipant);
     }
 
+    @Test
+    void testRoleIdWithPrefix() {
+        managerWithProperties.start();
+
+        setSubmitStartLeading();
+
+        managerWithProperties.register(ROLE, changeListener, PARTICIPANT_ID);
+
+        captureRunCommand();
+
+        assertEquals(PREFIX + "-" + LEADER_ELECTION_ROLE.getRoleId(), leaderElectionCommandProvider.name);
+    }
+
     private void setSubmitStartLeading() {
         doReturn(future).when(executorService).submit(isA(Runnable.class));
         leaderElectionCommandProvider.runStartLeading = true;
@@ -223,6 +245,10 @@ class KubernetesLeaderElectionManagerTest {
     }
 
     private class MockKubernetesLeaderElectionManager extends KubernetesLeaderElectionManager {
+        public MockKubernetesLeaderElectionManager(NiFiProperties nifiProperties) {
+            super(nifiProperties);
+        }
+
         @Override
         protected ExecutorService createExecutorService() {
             return executorService;

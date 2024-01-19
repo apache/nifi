@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.io.File;
-import java.io.IOException;
 import java.util.Collections;
 
 import static org.apache.nifi.security.util.SslContextFactory.createSslContext;
@@ -53,21 +52,18 @@ public class StoreScanner extends ContainerLifeCycle implements Scanner.Discrete
         this.sslContextFactory = sslContextFactory;
         this.tlsConfiguration = tlsConfiguration;
         this.resourceName = resource.getName();
-        try {
-            File monitoredFile = resource.getFile();
-            if (monitoredFile == null || !monitoredFile.exists()) {
-                throw new IllegalArgumentException(String.format("%s file does not exist", resourceName));
-            }
-            if (monitoredFile.isDirectory()) {
-                throw new IllegalArgumentException(String.format("expected %s file not directory", resourceName));
-            }
 
-            file = monitoredFile;
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("File monitoring started {} [{}]", resourceName, monitoredFile);
-            }
-        } catch (final IOException e) {
-            throw new IllegalArgumentException(String.format("could not obtain %s file", resourceName), e);
+        File monitoredFile = resource.getPath().toFile();
+        if (!monitoredFile.exists()) {
+            throw new IllegalArgumentException(String.format("%s file does not exist", resourceName));
+        }
+        if (monitoredFile.isDirectory()) {
+            throw new IllegalArgumentException(String.format("expected %s file not directory", resourceName));
+        }
+
+        file = monitoredFile;
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("File monitoring started {} [{}]", resourceName, monitoredFile);
         }
 
         File parentFile = file.getParentFile();
@@ -76,7 +72,7 @@ public class StoreScanner extends ContainerLifeCycle implements Scanner.Discrete
         }
 
         scanner = new Scanner(null, false);
-        scanner.setScanDirs(Collections.singletonList(parentFile));
+        scanner.setScanDirs(Collections.singletonList(parentFile.toPath()));
         scanner.setScanInterval(1);
         scanner.setReportDirs(false);
         scanner.setReportExistingFilesOnStartup(false);

@@ -17,8 +17,8 @@
 package org.apache.nifi.web.server.filter;
 
 import org.apache.nifi.util.NiFiProperties;
-import org.eclipse.jetty.servlet.FilterHolder;
-import org.eclipse.jetty.servlets.DoSFilter;
+import org.eclipse.jetty.ee10.servlet.FilterHolder;
+import org.eclipse.jetty.ee10.servlets.DoSFilter;
 
 import java.util.List;
 

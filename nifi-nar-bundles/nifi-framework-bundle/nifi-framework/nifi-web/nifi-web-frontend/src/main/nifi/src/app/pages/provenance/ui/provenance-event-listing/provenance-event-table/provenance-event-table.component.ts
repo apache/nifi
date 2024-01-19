@@ -27,11 +27,16 @@ import { MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { NgForOf, NgIf } from '@angular/common';
-import { debounceTime } from 'rxjs';
+import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { debounceTime, Observable, tap } from 'rxjs';
 import { ProvenanceEventSummary } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { Lineage, LineageRequest } from '../../../state/lineage';
+import { LineageComponent } from './lineage/lineage.component';
+import { GoToProvenanceEventSourceRequest, ProvenanceEventRequest } from '../../../state/provenance-event-listing';
+import { MatSliderModule } from '@angular/material/slider';
 
 @Component({
     selector: 'provenance-event-table',
@@ -48,7 +53,11 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
         NgForOf,
         NgIf,
         RouterLink,
-        NgxSkeletonLoaderModule
+        NgxSkeletonLoaderModule,
+        AsyncPipe,
+        MatPaginatorModule,
+        LineageComponent,
+        MatSliderModule
     ],
     styleUrls: ['./provenance-event-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
 })
@@ -57,16 +66,14 @@ export class ProvenanceEventTable implements AfterViewInit {
         if (events) {
             this.dataSource.data = this.sortEvents(events, this.sort);
             this.dataSource.filterPredicate = (data: ProvenanceEventSummary, filter: string) => {
-                const filterArray = filter.split('|');
-                const filterTerm = filterArray[0];
-                const filterColumn = filterArray[1];
+                const { filterTerm, filterColumn } = JSON.parse(filter);
 
                 if (filterColumn === this.filterColumnOptions[0]) {
-                    return data.componentName.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0;
+                    return this.nifiCommon.stringContains(data.componentName, filterTerm, true);
                 } else if (filterColumn === this.filterColumnOptions[1]) {
-                    return data.componentType.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0;
+                    return this.nifiCommon.stringContains(data.componentType, filterTerm, true);
                 } else {
-                    return data.eventType.toLowerCase().indexOf(filterTerm.toLowerCase()) >= 0;
+                    return this.nifiCommon.stringContains(data.eventType, filterTerm, true);
                 }
             };
             this.totalCount = events.length;
@@ -77,16 +84,68 @@ export class ProvenanceEventTable implements AfterViewInit {
             if (filterTerm?.length > 0) {
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
                 this.applyFilter(filterTerm, filterColumn);
+            } else {
+                this.resetPaginator();
             }
         }
     }
     @Input() oldestEventAvailable!: string;
+    @Input() timeOffset!: number;
     @Input() resultsMessage!: string;
     @Input() hasRequest!: boolean;
+    @Input() loading!: boolean;
+    @Input() loadedTimestamp!: string;
+    @Input() set lineage$(lineage$: Observable<Lineage | null>) {
+        this.provenanceLineage$ = lineage$.pipe(
+            tap((lineage) => {
+                let minMillis: number = -1;
+                let maxMillis: number = -1;
+
+                lineage?.results.nodes.forEach((node) => {
+                    // ensure this event has an event time
+                    if (minMillis < 0 || minMillis > node.millis) {
+                        minMillis = node.millis;
+                    }
+                    if (maxMillis < 0 || maxMillis < node.millis) {
+                        maxMillis = node.millis;
+                    }
+                });
+
+                if (this.minEventTimestamp < 0 || minMillis < this.minEventTimestamp) {
+                    this.minEventTimestamp = minMillis;
+                }
+                if (this.maxEventTimestamp < 0 || maxMillis > this.maxEventTimestamp) {
+                    this.maxEventTimestamp = maxMillis;
+                }
+
+                // determine the range for the slider
+                let range: number = this.maxEventTimestamp - this.minEventTimestamp;
+
+                const binCount: number = 10;
+                const remainder: number = range % binCount;
+                if (remainder > 0) {
+                    // if the range doesn't fall evenly into binCount, increase the
+                    // range by the difference to ensure it does
+                    this.maxEventTimestamp += binCount - remainder;
+                    range = this.maxEventTimestamp - this.minEventTimestamp;
+                }
+
+                this.eventTimestampStep = range / binCount;
+
+                this.initialEventTimestampThreshold = this.maxEventTimestamp;
+                this.currentEventTimestampThreshold = this.initialEventTimestampThreshold;
+            })
+        );
+    }
 
     @Output() openSearchCriteria: EventEmitter<void> = new EventEmitter<void>();
     @Output() clearRequest: EventEmitter<void> = new EventEmitter<void>();
-    @Output() openEventDialog: EventEmitter<ProvenanceEventSummary> = new EventEmitter<ProvenanceEventSummary>();
+    @Output() openEventDialog: EventEmitter<ProvenanceEventRequest> = new EventEmitter<ProvenanceEventRequest>();
+    @Output() goToProvenanceEventSource: EventEmitter<GoToProvenanceEventSourceRequest> =
+        new EventEmitter<GoToProvenanceEventSourceRequest>();
+    @Output() resubmitProvenanceQuery: EventEmitter<void> = new EventEmitter<void>();
+    @Output() queryLineage: EventEmitter<LineageRequest> = new EventEmitter<LineageRequest>();
+    @Output() resetLineage: EventEmitter<void> = new EventEmitter<void>();
 
     protected readonly TextTip = TextTip;
     protected readonly BulletinsTip = BulletinsTip;
@@ -106,6 +165,8 @@ export class ProvenanceEventTable implements AfterViewInit {
     dataSource: MatTableDataSource<ProvenanceEventSummary> = new MatTableDataSource<ProvenanceEventSummary>();
     selectedEventId: string | null = null;
 
+    @ViewChild(MatPaginator) paginator!: MatPaginator;
+
     sort: Sort = {
         active: 'eventTime',
         direction: 'desc'
@@ -115,17 +176,34 @@ export class ProvenanceEventTable implements AfterViewInit {
     filterColumnOptions: string[] = ['component name', 'component type', 'type'];
     totalCount: number = 0;
     filteredCount: number = 0;
+    filterApplied: boolean = false;
 
-    constructor(private formBuilder: FormBuilder) {
+    showLineage: boolean = false;
+    provenanceLineage$!: Observable<Lineage | null>;
+    eventId: string | null = null;
+
+    minEventTimestamp: number = -1;
+    maxEventTimestamp: number = -1;
+    eventTimestampStep: number = 1;
+    initialEventTimestampThreshold: number = 0;
+    currentEventTimestampThreshold: number = 0;
+
+    constructor(
+        private formBuilder: FormBuilder,
+        private nifiCommon: NiFiCommon
+    ) {
         this.filterForm = this.formBuilder.group({ filterTerm: '', filterColumn: this.filterColumnOptions[0] });
     }
 
     ngAfterViewInit(): void {
+        this.dataSource.paginator = this.paginator;
+
         this.filterForm
             .get('filterTerm')
             ?.valueChanges.pipe(debounceTime(500))
             .subscribe((filterTerm: string) => {
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
+                this.filterApplied = filterTerm.length > 0;
                 this.applyFilter(filterTerm, filterColumn);
             });
 
@@ -145,38 +223,44 @@ export class ProvenanceEventTable implements AfterViewInit {
         return data.sort((a, b) => {
             const isAsc = sort.direction === 'asc';
 
+            let retVal: number = 0;
             switch (sort.active) {
                 case 'eventTime':
                     // event ideas are increasing, so we can use this simple number for sorting purposes
                     // since we don't surface the timestamp as millis
-                    return (a.eventId - b.eventId) * (isAsc ? 1 : -1);
+                    retVal = this.nifiCommon.compareNumber(a.eventId, b.eventId);
+                    break;
                 case 'eventType':
-                    return this.compare(a.eventType, b.eventType, isAsc);
+                    retVal = this.nifiCommon.compareString(a.eventType, b.eventType);
+                    break;
                 case 'flowFileUuid':
-                    return this.compare(a.flowFileUuid, b.flowFileUuid, isAsc);
+                    retVal = this.nifiCommon.compareString(a.flowFileUuid, b.flowFileUuid);
+                    break;
                 case 'fileSize':
-                    return (a.fileSizeBytes - b.fileSizeBytes) * (isAsc ? 1 : -1);
+                    retVal = this.nifiCommon.compareNumber(a.fileSizeBytes, b.fileSizeBytes);
+                    break;
                 case 'componentName':
-                    return this.compare(a.componentName, b.componentName, isAsc);
+                    retVal = this.nifiCommon.compareString(a.componentName, b.componentName);
+                    break;
                 case 'componentType':
-                    return this.compare(a.componentType, b.componentType, isAsc);
-                default:
-                    return 0;
+                    retVal = this.nifiCommon.compareString(a.componentType, b.componentType);
+                    break;
             }
+
+            return retVal * (isAsc ? 1 : -1);
         });
     }
 
-    private compare(a: string, b: string, isAsc: boolean): number {
-        if (a === b) {
-            return 0;
-        }
-
-        return (a < b ? -1 : 1) * (isAsc ? 1 : -1);
+    applyFilter(filterTerm: string, filterColumn: string) {
+        this.dataSource.filter = JSON.stringify({ filterTerm, filterColumn });
+        this.filteredCount = this.dataSource.filteredData.length;
+        this.resetPaginator();
     }
 
-    applyFilter(filterTerm: string, filterColumn: string) {
-        this.dataSource.filter = `${filterTerm}|${filterColumn}`;
-        this.filteredCount = this.dataSource.filteredData.length;
+    resetPaginator(): void {
+        if (this.dataSource.paginator) {
+            this.dataSource.paginator.firstPage();
+        }
     }
 
     clearRequestClicked(): void {
@@ -188,7 +272,14 @@ export class ProvenanceEventTable implements AfterViewInit {
     }
 
     viewDetailsClicked(event: ProvenanceEventSummary) {
-        this.openEventDialog.next(event);
+        this.submitProvenanceEventRequest({
+            id: event.id,
+            clusterNodeId: event.clusterNodeId
+        });
+    }
+
+    submitProvenanceEventRequest(request: ProvenanceEventRequest): void {
+        this.openEventDialog.next(request);
     }
 
     select(event: ProvenanceEventSummary): void {
@@ -214,19 +305,59 @@ export class ProvenanceEventTable implements AfterViewInit {
         return true;
     }
 
-    getComponentLink(event: ProvenanceEventSummary): string[] {
-        let link: string[];
+    goToClicked(event: ProvenanceEventSummary): void {
+        this.goToEventSource({
+            componentId: event.componentId,
+            groupId: event.groupId
+        });
+    }
 
-        if (event.groupId == event.componentId) {
-            link = ['/process-groups', event.componentId];
-        } else if (event.componentId === 'Connection' || event.componentId === 'Load Balanced Connection') {
-            link = ['/process-groups', event.groupId, 'Connection', event.componentId];
-        } else if (event.componentId === 'Output Port') {
-            link = ['/process-groups', event.groupId, 'OutputPort', event.componentId];
-        } else {
-            link = ['/process-groups', event.groupId, 'Processor', event.componentId];
-        }
+    goToEventSource(request: GoToProvenanceEventSourceRequest): void {
+        this.goToProvenanceEventSource.next(request);
+    }
 
-        return link;
+    showLineageGraph(event: ProvenanceEventSummary): void {
+        this.eventId = event.id;
+        this.showLineage = true;
+
+        this.submitLineageQuery({
+            lineageRequestType: 'FLOWFILE',
+            uuid: event.flowFileUuid,
+            clusterNodeId: event.clusterNodeId
+        });
+    }
+
+    submitLineageQuery(request: LineageRequest): void {
+        this.queryLineage.next(request);
+    }
+
+    hideLineageGraph(): void {
+        this.showLineage = false;
+        this.minEventTimestamp = -1;
+        this.maxEventTimestamp = -1;
+        this.eventTimestampStep = 1;
+        this.initialEventTimestampThreshold = 0;
+        this.currentEventTimestampThreshold = 0;
+        this.resetLineage.next();
+    }
+
+    formatLabel(value: number): string {
+        // get the current user time to properly convert the server time
+        const now: Date = new Date();
+
+        // convert the user offset to millis
+        const userTimeOffset: number = now.getTimezoneOffset() * 60 * 1000;
+
+        // create the proper date by adjusting by the offsets
+        const date: Date = new Date(value + userTimeOffset + this.timeOffset);
+        return this.nifiCommon.formatDateTime(date);
+    }
+
+    handleInput(event: any): void {
+        this.currentEventTimestampThreshold = Number(event.target.value);
+    }
+
+    refreshClicked(): void {
+        this.resubmitProvenanceQuery.next();
     }
 }

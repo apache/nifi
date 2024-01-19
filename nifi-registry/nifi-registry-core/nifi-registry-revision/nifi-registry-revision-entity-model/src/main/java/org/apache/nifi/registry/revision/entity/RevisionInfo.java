@@ -16,10 +16,9 @@
  */
 package org.apache.nifi.registry.revision.entity;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel(description = "The revision information for an entity managed through the REST API.")
+@Schema(description = "The revision information for an entity managed through the REST API.")
 public class RevisionInfo {
 
     private String clientId;
@@ -39,8 +38,8 @@ public class RevisionInfo {
         this.lastModifier = lastModifier;
     }
 
-    @ApiModelProperty(
-            value = "A client identifier used to make a request. By including a client identifier, the API can allow multiple requests " +
+    @Schema(
+            description = "A client identifier used to make a request. By including a client identifier, the API can allow multiple requests " +
                     "without needing the current revision. Due to the asynchronous nature of requests/responses this was implemented to " +
                     "allow the client to make numerous requests without having to wait for the previous response to come back."
     )
@@ -52,8 +51,8 @@ public class RevisionInfo {
         this.clientId = clientId;
     }
 
-    @ApiModelProperty(
-            value = "NiFi Registry employs an optimistic locking strategy where the client must include a revision in their request " +
+    @Schema(
+            description = "NiFi Registry employs an optimistic locking strategy where the client must include a revision in their request " +
                     "when performing an update. In a response to a mutable flow request, this field represents the updated base version."
     )
     public Long getVersion() {
@@ -64,9 +63,9 @@ public class RevisionInfo {
         this.version = version;
     }
 
-    @ApiModelProperty(
-        value = "The user that last modified the entity.",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(
+        description = "The user that last modified the entity.",
+        accessMode = Schema.AccessMode.READ_ONLY
     )
     public String getLastModifier() {
         return lastModifier;

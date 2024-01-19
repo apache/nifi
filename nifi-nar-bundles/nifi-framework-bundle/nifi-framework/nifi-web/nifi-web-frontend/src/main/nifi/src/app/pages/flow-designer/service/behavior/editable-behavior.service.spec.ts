@@ -28,6 +28,14 @@ import * as fromTransform from '../../state/transform/transform.reducer';
 import { selectTransform } from '../../state/transform/transform.selectors';
 import { controllerServicesFeatureKey } from '../../state/controller-services';
 import * as fromControllerServices from '../../state/controller-services/controller-services.reducer';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
+import * as fromUser from '../../../../state/current-user/current-user.reducer';
+import { parameterFeatureKey } from '../../state/parameter';
+import * as fromParameter from '../../state/parameter/parameter.reducer';
+import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
+import * as fromFlowConfiguration from '../../../../state/flow-configuration/flow-configuration.reducer';
+import { queueFeatureKey } from '../../../queue/state';
+import * as fromQueue from '../../state/queue/queue.reducer';
 
 describe('EditableBehaviorService', () => {
     let service: EditableBehavior;
@@ -35,7 +43,9 @@ describe('EditableBehaviorService', () => {
     const initialState: CanvasState = {
         [flowFeatureKey]: fromFlow.initialState,
         [transformFeatureKey]: fromTransform.initialState,
-        [controllerServicesFeatureKey]: fromControllerServices.initialState
+        [controllerServicesFeatureKey]: fromControllerServices.initialState,
+        [parameterFeatureKey]: fromParameter.initialState,
+        [queueFeatureKey]: fromQueue.initialState
     };
 
     beforeEach(() => {
@@ -51,6 +61,14 @@ describe('EditableBehaviorService', () => {
                         {
                             selector: selectTransform,
                             value: initialState[transformFeatureKey]
+                        },
+                        {
+                            selector: selectCurrentUser,
+                            value: fromUser.initialState.user
+                        },
+                        {
+                            selector: selectFlowConfiguration,
+                            value: fromFlowConfiguration.initialState.flowConfiguration
                         }
                     ]
                 })

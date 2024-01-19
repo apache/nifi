@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Details of batch settings of a remote process group port.
@@ -33,8 +33,7 @@ public class BatchSettingsDTO {
     /**
      * @return preferred number of flow files to include in a transaction
      */
-    @ApiModelProperty(
-            value = "Preferred number of flow files to include in a transaction."
+    @Schema(description = "Preferred number of flow files to include in a transaction."
     )
     public Integer getCount() {
         return count;
@@ -47,8 +46,7 @@ public class BatchSettingsDTO {
     /**
      * @return preferred number of bytes to include in a transaction
      */
-    @ApiModelProperty(
-            value = "Preferred number of bytes to include in a transaction."
+    @Schema(description = "Preferred number of bytes to include in a transaction."
     )
     public String getSize() {
         return size;
@@ -61,8 +59,7 @@ public class BatchSettingsDTO {
     /**
      * @return preferred amount of time that a transaction should span
      */
-    @ApiModelProperty(
-            value = "Preferred amount of time that a transaction should span."
+    @Schema(description = "Preferred amount of time that a transaction should span."
     )
     public String getDuration() {
         return duration;

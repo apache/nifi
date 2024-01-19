@@ -47,16 +47,15 @@ import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.TimeZone;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -204,18 +203,18 @@ public abstract class TestWriteAvroResult {
     }
 
     @Test
-    public void testLogicalTypes() throws IOException, ParseException {
+    public void testLogicalTypes() throws IOException {
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/logical-types.avsc"));
         testLogicalTypes(schema);
     }
 
     @Test
-    public void testNullableLogicalTypes() throws IOException, ParseException {
+    public void testNullableLogicalTypes() throws IOException {
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/logical-types-nullable.avsc"));
         testLogicalTypes(schema);
     }
 
-    private void testLogicalTypes(Schema schema) throws ParseException, IOException {
+    private void testLogicalTypes(Schema schema) throws IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         final List<RecordField> fields = new ArrayList<>();
@@ -228,9 +227,8 @@ public abstract class TestWriteAvroResult {
         final RecordSchema recordSchema = new SimpleRecordSchema(fields);
 
         final String expectedTime = "2017-04-04 14:20:33.789";
-        final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        df.setTimeZone(TimeZone.getTimeZone("gmt"));
-        final long timeLong = df.parse(expectedTime).getTime();
+        final DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.systemDefault());
+        final long timeLong = Instant.from(df.parse(expectedTime)).toEpochMilli();
 
         final Map<String, Object> values = new HashMap<>();
         values.put("timeMillis", new Time(timeLong));

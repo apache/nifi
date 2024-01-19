@@ -17,7 +17,7 @@
 
 import { createSelector } from '@ngrx/store';
 import { selectSettingsState, SettingsState } from '../index';
-import { reportingTasksFeatureKey, ReportingTasksState } from './index';
+import { ReportingTaskEntity, reportingTasksFeatureKey, ReportingTasksState } from './index';
 import { selectCurrentRoute } from '../../../../state/router/router.selectors';
 
 export const selectReportingTasksState = createSelector(
@@ -34,3 +34,18 @@ export const selectReportingTaskIdFromRoute = createSelector(selectCurrentRoute,
     }
     return null;
 });
+
+export const selectSingleEditedReportingTask = createSelector(selectCurrentRoute, (route) => {
+    if (route?.routeConfig?.path == 'edit') {
+        return route.params.id;
+    }
+    return null;
+});
+
+export const selectReportingTasks = createSelector(
+    selectReportingTasksState,
+    (state: ReportingTasksState) => state.reportingTasks
+);
+
+export const selectTask = (id: string) =>
+    createSelector(selectReportingTasks, (tasks: ReportingTaskEntity[]) => tasks.find((task) => id == task.id));

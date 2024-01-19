@@ -54,14 +54,14 @@ import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
 import org.apache.nifi.stream.io.StreamThrottler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import javax.net.ssl.SSLContext;
-import javax.servlet.Servlet;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.Path;
+import jakarta.servlet.Servlet;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.ws.rs.Path;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -77,7 +77,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"ingest", "http", "https", "rest", "listen"})
@@ -197,7 +196,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .description("HTTP Protocols supported for Application Layer Protocol Negotiation with TLS")
         .required(true)
         .allowableValues(HttpProtocolStrategy.class)
-        .defaultValue(HttpProtocolStrategy.HTTP_1_1.getValue())
+        .defaultValue(HttpProtocolStrategy.HTTP_1_1)
         .dependsOn(SSL_CONTEXT_SERVICE)
         .build();
     public static final PropertyDescriptor HEADERS_AS_ATTRIBUTES_REGEX = new PropertyDescriptor.Builder()
@@ -238,7 +237,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             .required(false)
             .allowableValues(Arrays.stream(ClientAuthentication.values())
                     .map(ClientAuthentication::getAllowableValue)
-                    .collect(Collectors.toList())
+                    .toList()
                     .toArray(new AllowableValue[]{}))
             .defaultValue(ClientAuthentication.AUTO.name())
             .dependsOn(SSL_CONTEXT_SERVICE)
@@ -414,7 +413,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
         // get the configured port
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-        final HttpProtocolStrategy httpProtocolStrategy = HttpProtocolStrategy.valueOf(context.getProperty(HTTP_PROTOCOL_STRATEGY).getValue());
+        final HttpProtocolStrategy httpProtocolStrategy = context.getProperty(HTTP_PROTOCOL_STRATEGY).asAllowableValue(HttpProtocolStrategy.class);
         final ServerConnector connector = createServerConnector(server,
                 port,
                 sslContextService,
@@ -436,19 +435,16 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         }
 
         final boolean securityEnabled = sslContextService != null;
-        final ServletContextHandler contextHandler = new ServletContextHandler(server, "/", true, securityEnabled);
-        final List<Servlet> servlets = new ArrayList<>();
+        final ServletContextHandler contextHandler = new ServletContextHandler("/", true, securityEnabled);
         for (final Class<? extends Servlet> cls : getServerClasses()) {
             final Path path = cls.getAnnotation(Path.class);
             // Note: servlets must have a path annotation - this will NPE otherwise
             // also, servlets other than ListenHttpServlet must have a path starting with /
             if (basePath.isEmpty() && !path.value().isEmpty()) {
                 // Note: this is to handle the condition of an empty uri, otherwise pathSpec would start with //
-                final ServletHolder holder = contextHandler.addServlet(cls, path.value());
-                servlets.add(holder.getServlet());
+                contextHandler.addServlet(cls, path.value());
             } else {
-                final ServletHolder holder = contextHandler.addServlet(cls, "/" + basePath + path.value());
-                servlets.add(holder.getServlet());
+                contextHandler.addServlet(cls, "/" + basePath + path.value());
             }
         }
 
@@ -471,6 +467,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             contextHandler.setAttribute(CONTEXT_ATTRIBUTE_HEADER_PATTERN, Pattern.compile(context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).getValue()));
         }
 
+        server.setHandler(contextHandler);
         try {
             server.start();
         } catch (Exception e) {

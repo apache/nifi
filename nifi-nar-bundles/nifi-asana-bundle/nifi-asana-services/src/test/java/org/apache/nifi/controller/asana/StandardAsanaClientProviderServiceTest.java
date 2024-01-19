@@ -16,18 +16,7 @@
  */
 package org.apache.nifi.controller.asana;
 
-import static java.util.stream.Collectors.toMap;
-import static org.apache.nifi.controller.asana.StandardAsanaClientProviderService.PROP_ASANA_API_BASE_URL;
-import static org.apache.nifi.controller.asana.StandardAsanaClientProviderService.PROP_ASANA_PERSONAL_ACCESS_TOKEN;
-import static org.apache.nifi.controller.asana.StandardAsanaClientProviderService.PROP_ASANA_WORKSPACE_NAME;
-import static org.apache.nifi.util.TestRunners.newTestRunner;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import com.asana.models.Project;
-import java.io.IOException;
-import java.util.Map;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.apache.nifi.reporting.InitializationException;
@@ -38,46 +27,60 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.util.Map;
+
+import static java.util.stream.Collectors.toMap;
+import static org.apache.nifi.controller.asana.StandardAsanaClientProviderService.PROP_ASANA_API_BASE_URL;
+import static org.apache.nifi.controller.asana.StandardAsanaClientProviderService.PROP_ASANA_PERSONAL_ACCESS_TOKEN;
+import static org.apache.nifi.controller.asana.StandardAsanaClientProviderService.PROP_ASANA_WORKSPACE_NAME;
+import static org.apache.nifi.util.TestRunners.newTestRunner;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class StandardAsanaClientProviderServiceTest {
 
     private static final String LOCALHOST = "localhost";
 
-    private static final String WORKSPACES = "{\n" +
-            "  \"data\": [\n" +
-            "    {\n" +
-            "      \"gid\": \"1202898619267352\",\n" +
-            "      \"name\": \"My Workspace\",\n" +
-            "      \"resource_type\": \"workspace\"\n" +
-            "    },\n" +
-            "    {\n" +
-            "      \"gid\": \"1202939205399549\",\n" +
-            "      \"name\": \"Company or Team Name\",\n" +
-            "      \"resource_type\": \"workspace\"\n" +
-            "    },\n" +
-            "    {\n" +
-            "      \"gid\": \"1202946450806837\",\n" +
-            "      \"name\": \"Company or Team Name\",\n" +
-            "      \"resource_type\": \"workspace\"\n" +
-            "    }\n" +
-            "  ],\n" +
-            "  \"next_page\": null\n" +
-            "}";
+    private static final String WORKSPACES = """
+            {
+              "data": [
+                {
+                  "gid": "1202898619267352",
+                  "name": "My Workspace",
+                  "resource_type": "workspace"
+                },
+                {
+                  "gid": "1202939205399549",
+                  "name": "Company or Team Name",
+                  "resource_type": "workspace"
+                },
+                {
+                  "gid": "1202946450806837",
+                  "name": "Company or Team Name",
+                  "resource_type": "workspace"
+                }
+              ],
+              "next_page": null
+            }""";
 
-    private static final String PROJECTS = "{\n" +
-            "  \"data\": [\n" +
-            "    {\n" +
-            "      \"gid\": \"1202898619637000\",\n" +
-            "      \"name\": \"Our First Project\",\n" +
-            "      \"resource_type\": \"project\"\n" +
-            "    },\n" +
-            "    {\n" +
-            "      \"gid\": \"1202986168388325\",\n" +
-            "      \"name\": \"Another Project Again\",\n" +
-            "      \"resource_type\": \"project\"\n" +
-            "    }\n" +
-            "  ],\n" +
-            "  \"next_page\": null\n" +
-            "}";
+    private static final String PROJECTS = """
+            {
+              "data": [
+                {
+                  "gid": "1202898619637000",
+                  "name": "Our First Project",
+                  "resource_type": "project"
+                },
+                {
+                  "gid": "1202986168388325",
+                  "name": "Another Project Again",
+                  "resource_type": "project"
+                }
+              ],
+              "next_page": null
+            }""";
 
     private TestRunner runner;
     private StandardAsanaClientProviderService service;

@@ -22,6 +22,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.nifi.kafka.shared.property.KeyEncoding;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -71,13 +72,12 @@ public class ConsumerPoolTest {
         mockReporter = mock(ProvenanceReporter.class);
         when(mockSession.getProvenanceReporter()).thenReturn(mockReporter);
         testPool = new ConsumerPool(
-                1,
                 null,
                 false,
                 Collections.emptyMap(),
                 Collections.singletonList("nifi"),
                 100L,
-                "utf-8",
+                KeyEncoding.UTF8,
                 "ssl",
                 "localhost",
                 logger,
@@ -92,13 +92,12 @@ public class ConsumerPoolTest {
             }
         };
         testDemarcatedPool = new ConsumerPool(
-                1,
                 "--demarcator--".getBytes(StandardCharsets.UTF_8),
                 false,
                 Collections.emptyMap(),
                 Collections.singletonList("nifi"),
                 100L,
-                "utf-8",
+                KeyEncoding.UTF8,
                 "ssl",
                 "localhost",
                 logger,
@@ -183,13 +182,12 @@ public class ConsumerPoolTest {
     @Test
     public void testConsumerNotCreatedOnDemandWhenUsingStaticAssignment() {
         final ConsumerPool staticAssignmentPool = new ConsumerPool(
-            1,
-            null,
+                null,
             false,
             Collections.emptyMap(),
             Collections.singletonList("nifi"),
             100L,
-            "utf-8",
+            KeyEncoding.UTF8,
             "ssl",
             "localhost",
             logger,
@@ -212,13 +210,13 @@ public class ConsumerPoolTest {
                 partition2Lease = staticAssignmentPool.obtainConsumer(mockSession, mockContext);
                 assertNotSame(lease, partition2Lease);
                 assertEquals(1, partition2Lease.getAssignedPartitions().size());
-                assertEquals(2, partition2Lease.getAssignedPartitions().get(0).partition());
+                assertEquals(2, partition2Lease.getAssignedPartitions().getFirst().partition());
 
                 partition3Lease = staticAssignmentPool.obtainConsumer(mockSession, mockContext);
                 assertNotSame(lease, partition3Lease);
                 assertNotSame(partition2Lease, partition3Lease);
                 assertEquals(1, partition3Lease.getAssignedPartitions().size());
-                assertEquals(3, partition3Lease.getAssignedPartitions().get(0).partition());
+                assertEquals(3, partition3Lease.getAssignedPartitions().getFirst().partition());
 
                 final ConsumerLease nullLease = staticAssignmentPool.obtainConsumer(mockSession, mockContext);
                 assertNull(nullLease);
@@ -230,7 +228,7 @@ public class ConsumerPoolTest {
                 assertNotNull(partition2Lease);
 
                 assertEquals(1, partition2Lease.getAssignedPartitions().size());
-                assertEquals(2, partition2Lease.getAssignedPartitions().get(0).partition());
+                assertEquals(2, partition2Lease.getAssignedPartitions().getFirst().partition());
 
                 assertNull(staticAssignmentPool.obtainConsumer(mockSession, mockContext));
             } finally {

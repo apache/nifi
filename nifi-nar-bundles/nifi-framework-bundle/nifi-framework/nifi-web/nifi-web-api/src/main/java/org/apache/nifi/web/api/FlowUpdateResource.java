@@ -63,10 +63,11 @@ import org.apache.nifi.web.util.LifecycleManagementException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
+import jakarta.ws.rs.HttpMethod;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -85,8 +86,8 @@ import java.util.stream.Collectors;
 /**
  * Parameterized abstract resource for use in updating flows.
  *
- * @param <T>   Entity to use for describing a process group for update purposes
- * @param <U>   Entity to capture the status and result of an update request
+ * @param <T> Entity to use for describing a process group for update purposes
+ * @param <U> Entity to capture the status and result of an update request
  */
 public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity, U extends FlowUpdateRequestEntity> extends ApplicationResource {
     private static final String DISABLED_COMPONENT_STATE = "DISABLED";
@@ -128,15 +129,15 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
 
     /**
      * Initiate a flow update. Return a response containing an entity that reflects the status of the async request.
-     *
+     * <p>
      * This is used by both import-based flow updates and registry-based flow updates.
      *
-     * @param groupId                      the id of the process group to update
-     * @param requestEntity                the entity containing the request, either versioning info or the flow contents
-     * @param allowDirtyFlowUpdate         allow updating a flow with versioned changes present
-     * @param requestType                  the type of request ("replace-requests" or "update-requests")
-     * @param replicateUriPath             the uri path to use for replicating the request (differs from initial request uri)
-     * @param flowSnapshotContainerSupplier         provides access to the flow snapshot to be used for replacement
+     * @param groupId the id of the process group to update
+     * @param requestEntity the entity containing the request, either versioning info or the flow contents
+     * @param allowDirtyFlowUpdate allow updating a flow with versioned changes present
+     * @param requestType the type of request ("replace-requests" or "update-requests")
+     * @param replicateUriPath the uri path to use for replicating the request (differs from initial request uri)
+     * @param flowSnapshotContainerSupplier provides access to the flow snapshot to be used for replacement
      * @return response containing status of the async request
      */
     protected Response initiateFlowUpdate(final String groupId, final T requestEntity, final boolean allowDirtyFlowUpdate,
@@ -201,7 +202,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         // build a request wrapper
         final InitiateUpdateFlowRequestWrapper requestWrapper =
                 new InitiateUpdateFlowRequestWrapper(requestEntity, componentLifecycle, requestType, getAbsolutePath(), replicateUriPath,
-                                                     affectedComponents, replicateRequest, flowSnapshot);
+                        affectedComponents, replicateRequest, flowSnapshot);
 
         final Revision requestRevision = getRevision(revisionDto, groupId);
         return withWriteLock(
@@ -220,10 +221,11 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
 
     /**
      * Authorize read/write permissions for the given user on every component of the given flow in support of flow update.
-     *  @param lookup        A lookup instance to use for retrieving components for authorization purposes
-     * @param user          the user to authorize
-     * @param groupId       the id of the process group being evaluated
-     * @param flowSnapshot  the new flow contents to examine for restricted components
+     *
+     * @param lookup A lookup instance to use for retrieving components for authorization purposes
+     * @param user the user to authorize
+     * @param groupId the id of the process group being evaluated
+     * @param flowSnapshot the new flow contents to examine for restricted components
      */
     protected void authorizeFlowUpdate(final AuthorizableLookup lookup, final NiFiUser user, final String groupId,
                                        final RegisteredFlowSnapshot flowSnapshot) {
@@ -251,14 +253,14 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
 
     /**
      * Create and submit the flow update request. Return response containing an entity reflecting the status of the async request.
-     *
+     * <p>
      * This is used by import-based flow replacements, registry-based flow updates and registry-based flow reverts
      *
-     * @param user                        the user that submitted the update request
-     * @param groupId                     the id of the process group to update
-     * @param revision                    a revision object representing a unique request to update a specific process group
-     * @param wrapper                     wrapper object containing many variables needed for performing the flow update
-     * @param allowDirtyFlowUpdate        allow updating a flow with versioned changes present
+     * @param user the user that submitted the update request
+     * @param groupId the id of the process group to update
+     * @param revision a revision object representing a unique request to update a specific process group
+     * @param wrapper wrapper object containing many variables needed for performing the flow update
+     * @param allowDirtyFlowUpdate allow updating a flow with versioned changes present
      * @return response containing status of the update flow request
      */
     protected Response submitFlowUpdateRequest(final NiFiUser user, final String groupId, final Revision revision,
@@ -351,19 +353,19 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         // Steps 7-8. Disable enabled controller services that are affected.
         // We don't want to disable services that are already disabling. But we need to wait for their state to transition from Disabling to Disabled.
         final Set<AffectedComponentEntity> servicesToWaitFor = affectedComponents.stream()
-            .filter(dto -> AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getComponent().getReferenceType()))
-            .filter(dto -> {
-                final String state = dto.getComponent().getState();
-                return "Enabled".equalsIgnoreCase(state) || "Enabling".equalsIgnoreCase(state) || "Disabling".equalsIgnoreCase(state);
-            })
-            .collect(Collectors.toSet());
+                .filter(dto -> AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getComponent().getReferenceType()))
+                .filter(dto -> {
+                    final String state = dto.getComponent().getState();
+                    return "Enabled".equalsIgnoreCase(state) || "Enabling".equalsIgnoreCase(state) || "Disabling".equalsIgnoreCase(state);
+                })
+                .collect(Collectors.toSet());
 
         final Set<AffectedComponentEntity> enabledServices = servicesToWaitFor.stream()
-            .filter(dto -> {
-                final String state = dto.getComponent().getState();
-                return "Enabling".equalsIgnoreCase(state) || "Enabled".equalsIgnoreCase(state);
-            })
-            .collect(Collectors.toSet());
+                .filter(dto -> {
+                    final String state = dto.getComponent().getState();
+                    return "Enabling".equalsIgnoreCase(state) || "Enabled".equalsIgnoreCase(state);
+                })
+                .collect(Collectors.toSet());
 
         logger.info("Disabling {} Controller Services", enabledServices.size());
         final CancellableTimedPause disableServicesPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
@@ -462,7 +464,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
 
                 try {
                     componentLifecycle.activateControllerServices(requestUri, groupId, servicesToEnable, servicesToEnable,
-                        ControllerServiceState.ENABLED, enableServicesPause, InvalidComponentAction.SKIP);
+                            ControllerServiceState.ENABLED, enableServicesPause, InvalidComponentAction.SKIP);
                 } catch (final IllegalStateException ise) {
                     // Component Lifecycle will re-enable the Controller Services only if they are valid. If IllegalStateException gets thrown, we need to provide
                     // a more intelligent error message as to exactly what happened, rather than indicate that the flow could not be updated.
@@ -552,7 +554,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
     private URI buildUri(final URI requestUri, final String path, final String query) {
         try {
             return new URI(requestUri.getScheme(), requestUri.getUserInfo(), requestUri.getHost(), requestUri.getPort(),
-                path, query, requestUri.getFragment());
+                    path, query, requestUri.getFragment());
         } catch (final URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -563,13 +565,13 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         if (updateFlowStatus != Status.OK.getStatusCode()) {
             final String explanation = getResponseEntity(response, String.class);
             logger.error("Failed to {} flow update across cluster when replicating PUT request to {} for user {}. Received {} response with explanation: {}",
-                actionDescription, uri, user, updateFlowStatus, explanation);
+                    actionDescription, uri, user, updateFlowStatus, explanation);
             throw new LifecycleManagementException("Failed to " + actionDescription + " flow on all nodes in cluster due to " + explanation);
         }
     }
 
     private NodeResponse replicateFlowUpdateRequest(final URI replicateUri, final NiFiUser user, final T requestEntity, final Revision revision, final RegisteredFlowSnapshot flowSnapshot)
-                throws LifecycleManagementException {
+            throws LifecycleManagementException {
 
         final Map<String, String> headers = new HashMap<>();
         headers.put("content-type", MediaType.APPLICATION_JSON);
@@ -585,7 +587,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 clusterResponse = getRequestReplicator().replicate(user, HttpMethod.PUT, replicateUri, replicateEntity, headers).awaitMergedResponse();
             } else {
                 clusterResponse = getRequestReplicator().forwardToCoordinator(
-                    getClusterCoordinatorNode(), user, HttpMethod.PUT, replicateUri, replicateEntity, headers).awaitMergedResponse();
+                        getClusterCoordinatorNode(), user, HttpMethod.PUT, replicateUri, replicateEntity, headers).awaitMergedResponse();
             }
         } catch (final InterruptedException ie) {
             logger.warn("Interrupted while replicating PUT request to {} for user {}", replicateUri, user);
@@ -648,11 +650,11 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
 
     /**
      * Process a request to retrieve an existing flow update request.
-     *
+     * <p>
      * This is used by import-based flow replacements, registry-based flow updates and registry-based flow reverts
      *
-     * @param requestType                  the type of request ("replace-requests", "update-requests" or "revert-requests")
-     * @param requestId                    the unique identifier for the update request
+     * @param requestType the type of request ("replace-requests", "update-requests" or "revert-requests")
+     * @param requestId the unique identifier for the update request
      * @return response containing the requested flow update request
      */
     protected Response retrieveFlowUpdateRequest(final String requestType, final String requestId) {
@@ -670,11 +672,11 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
 
     /**
      * Process a request to cancel/delete an existing flow update request.
-     *
+     * <p>
      * This is used by import-based flow replacements, registry-based flow updates and registry-based flow reverts
      *
-     * @param requestType                  the type of request ("replace-requests", "update-requests" or "revert-requests")
-     * @param requestId                    the unique identifier for the update request
+     * @param requestType the type of request ("replace-requests", "update-requests" or "revert-requests")
+     * @param requestId the unique identifier for the update request
      * @param disconnectedNodeAcknowledged acknowledges that this node is disconnected to allow for mutable requests to proceed
      * @return response containing the deleted flow update request
      */
@@ -703,14 +705,14 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
     /**
      * Create response containing entity that reflects the status of the update request
      *
-     * @param requestType               the type of request ("replace-requests", "update-requests" or "revert-requests")
-     * @param requestId                 the unique identifier for the update request
-     * @param asyncRequest              async request object
-     * @param finalizeCompletedRequest  if true, perform additional custom operations to finalize the update request
+     * @param requestType the type of request ("replace-requests", "update-requests" or "revert-requests")
+     * @param requestId the unique identifier for the update request
+     * @param asyncRequest async request object
+     * @param finalizeCompletedRequest if true, perform additional custom operations to finalize the update request
      * @return response containing entity that reflects the status of the update request
      */
     protected Response createUpdateRequestResponse(final String requestType, final String requestId,
-                                                   final AsynchronousWebRequest<T,T> asyncRequest,
+                                                   final AsynchronousWebRequest<T, T> asyncRequest,
                                                    final boolean finalizeCompletedRequest) {
         final String groupId = asyncRequest.getComponentId();
 
@@ -738,7 +740,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
 
     /**
      * Access the current request URI's first path segment (i.e., "versions" or "process-groups").
-     *
+     * <p>
      * This avoids having to hardcode the value as an argument to an update flow request.
      */
     protected String getRequestPathFirstSegment() {

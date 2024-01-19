@@ -17,14 +17,12 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import io.swagger.annotations.ApiModel;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.io.Serializable;
 import java.util.Objects;
 
-@ApiModel(
-        value = "FlowUri",
-        description = "Uniform Resource Identifier for flows, used to uniquely identify a flow version ")
+@Schema(description = "Uniform Resource Identifier for flows, used to uniquely identify a flow version")
 public class FlowUri implements Serializable {
     private static final long serialVersionUID = 1L;
 

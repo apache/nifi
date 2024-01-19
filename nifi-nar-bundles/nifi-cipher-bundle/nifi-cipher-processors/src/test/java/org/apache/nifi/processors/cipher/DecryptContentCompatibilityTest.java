@@ -32,7 +32,6 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.PBEParameterSpec;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -76,8 +75,8 @@ class DecryptContentCompatibilityTest {
     @EnumSource(CompatibilityModeEncryptionScheme.class)
     void testRunKeyDerivationOpenSslUnsalted(final CompatibilityModeEncryptionScheme encryptionScheme) throws Exception {
         final CompatibilityModeKeyDerivationStrategy keyDerivationStrategy = CompatibilityModeKeyDerivationStrategy.OPENSSL_EVP_BYTES_TO_KEY;
-        runner.setProperty(DecryptContentCompatibility.KEY_DERIVATION_STRATEGY, keyDerivationStrategy.getValue());
-        runner.setProperty(DecryptContentCompatibility.ENCRYPTION_SCHEME, encryptionScheme.getValue());
+        runner.setProperty(DecryptContentCompatibility.KEY_DERIVATION_STRATEGY, keyDerivationStrategy);
+        runner.setProperty(DecryptContentCompatibility.ENCRYPTION_SCHEME, encryptionScheme);
         runner.setProperty(DecryptContentCompatibility.PASSWORD, PASSWORD);
 
         final Cipher cipher = getCipher(encryptionScheme);
@@ -89,7 +88,7 @@ class DecryptContentCompatibilityTest {
     @EnumSource(CompatibilityModeEncryptionScheme.class)
     void testRunKeyDerivationOpenSslSalted(final CompatibilityModeEncryptionScheme encryptionScheme) throws Exception {
         final CompatibilityModeKeyDerivationStrategy keyDerivationStrategy = CompatibilityModeKeyDerivationStrategy.OPENSSL_EVP_BYTES_TO_KEY;
-        runner.setProperty(DecryptContentCompatibility.KEY_DERIVATION_STRATEGY, keyDerivationStrategy.getValue());
+        runner.setProperty(DecryptContentCompatibility.KEY_DERIVATION_STRATEGY, keyDerivationStrategy);
         runner.setProperty(DecryptContentCompatibility.ENCRYPTION_SCHEME, encryptionScheme.getValue());
         runner.setProperty(DecryptContentCompatibility.PASSWORD, PASSWORD);
 
@@ -101,8 +100,8 @@ class DecryptContentCompatibilityTest {
     @Test
     void testRunKeyDerivationOpenSslSaltedStream() throws Exception {
         final CompatibilityModeKeyDerivationStrategy keyDerivationStrategy = CompatibilityModeKeyDerivationStrategy.OPENSSL_EVP_BYTES_TO_KEY;
-        runner.setProperty(DecryptContentCompatibility.KEY_DERIVATION_STRATEGY, keyDerivationStrategy.getValue());
-        runner.setProperty(DecryptContentCompatibility.ENCRYPTION_SCHEME, SIMPLE_ENCRYPTION_SCHEME.getValue());
+        runner.setProperty(DecryptContentCompatibility.KEY_DERIVATION_STRATEGY, keyDerivationStrategy);
+        runner.setProperty(DecryptContentCompatibility.ENCRYPTION_SCHEME, SIMPLE_ENCRYPTION_SCHEME);
         runner.setProperty(DecryptContentCompatibility.PASSWORD, PASSWORD);
 
         final Cipher cipher = getCipher(SIMPLE_ENCRYPTION_SCHEME);
@@ -116,8 +115,8 @@ class DecryptContentCompatibilityTest {
     @EnumSource(CompatibilityModeEncryptionScheme.class)
     void testRunKeyDerivationJasyptStandard(final CompatibilityModeEncryptionScheme encryptionScheme) throws Exception {
         final CompatibilityModeKeyDerivationStrategy keyDerivationStrategy = CompatibilityModeKeyDerivationStrategy.JASYPT_STANDARD;
-        runner.setProperty(DecryptContentCompatibility.KEY_DERIVATION_STRATEGY, keyDerivationStrategy.getValue());
-        runner.setProperty(DecryptContentCompatibility.ENCRYPTION_SCHEME, encryptionScheme.getValue());
+        runner.setProperty(DecryptContentCompatibility.KEY_DERIVATION_STRATEGY, keyDerivationStrategy);
+        runner.setProperty(DecryptContentCompatibility.ENCRYPTION_SCHEME, encryptionScheme);
         runner.setProperty(DecryptContentCompatibility.PASSWORD, PASSWORD);
 
         final Cipher cipher = getCipher(encryptionScheme);
@@ -166,8 +165,8 @@ class DecryptContentCompatibilityTest {
     }
 
     private void setSimpleEncryptionScheme() {
-        runner.setProperty(DecryptContentCompatibility.KEY_DERIVATION_STRATEGY, CompatibilityModeKeyDerivationStrategy.JASYPT_STANDARD.getValue());
-        runner.setProperty(DecryptContentCompatibility.ENCRYPTION_SCHEME, SIMPLE_ENCRYPTION_SCHEME.getValue());
+        runner.setProperty(DecryptContentCompatibility.KEY_DERIVATION_STRATEGY, CompatibilityModeKeyDerivationStrategy.JASYPT_STANDARD);
+        runner.setProperty(DecryptContentCompatibility.ENCRYPTION_SCHEME, SIMPLE_ENCRYPTION_SCHEME);
         runner.setProperty(DecryptContentCompatibility.PASSWORD, PASSWORD);
     }
 

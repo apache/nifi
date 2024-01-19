@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.provenance.lineage;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
 import java.util.Set;
 
@@ -36,8 +36,7 @@ public class LineageResultsDTO {
     /**
      * @return any error messages
      */
-    @ApiModelProperty(
-            value = "Any errors that occurred while generating the lineage."
+    @Schema(description = "Any errors that occurred while generating the lineage."
     )
     public Set<String> getErrors() {
         return errors;
@@ -50,8 +49,7 @@ public class LineageResultsDTO {
     /**
      * @return the nodes
      */
-    @ApiModelProperty(
-            value = "The nodes in the lineage."
+    @Schema(description = "The nodes in the lineage."
     )
     public List<ProvenanceNodeDTO> getNodes() {
         return nodes;
@@ -64,8 +62,7 @@ public class LineageResultsDTO {
     /**
      * @return the links
      */
-    @ApiModelProperty(
-            value = "The links between the nodes in the lineage."
+    @Schema(description = "The links between the nodes in the lineage."
     )
     public List<ProvenanceLinkDTO> getLinks() {
         return links;

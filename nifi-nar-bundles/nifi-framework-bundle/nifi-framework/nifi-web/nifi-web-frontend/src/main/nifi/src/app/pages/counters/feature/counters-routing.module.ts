@@ -18,11 +18,14 @@
 import { RouterModule, Routes } from '@angular/router';
 import { NgModule } from '@angular/core';
 import { Counters } from './counters.component';
+import { authorizationGuard } from '../../../service/guard/authorization.guard';
+import { CurrentUser } from '../../../state/current-user';
 
 const routes: Routes = [
     {
         path: '',
-        component: Counters
+        component: Counters,
+        canMatch: [authorizationGuard((user: CurrentUser) => user.countersPermissions.canRead)]
     }
 ];
 

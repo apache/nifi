@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.DimensionsDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a LabelDTO.
@@ -61,8 +61,7 @@ public class LabelEntity extends ComponentEntity implements Permissible<LabelDTO
     /**
      * @return z index for this label
      */
-    @ApiModelProperty(
-            value = "The z index of the label."
+    @Schema(description = "The z index of the label."
     )
     public Long getzIndex() {
         return zIndex;

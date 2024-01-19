@@ -17,7 +17,6 @@
 package org.apache.nifi.cef;
 
 import com.fluenda.parcefone.parser.CEFParser;
-import org.apache.bval.jsr.ApacheValidationProvider;
 import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -30,7 +29,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import javax.validation.Validation;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -46,8 +44,8 @@ import java.util.Map;
 import java.util.Set;
 
 public class TestCEFRecordReader {
-    private final javax.validation.Validator validator = Validation.byProvider(ApacheValidationProvider.class).configure().buildValidatorFactory().getValidator();
-    private final CEFParser parser = new CEFParser(validator);
+
+    private final CEFParser parser = new CEFParser();
 
     private RecordSchema schema;
     private InputStream inputStream;

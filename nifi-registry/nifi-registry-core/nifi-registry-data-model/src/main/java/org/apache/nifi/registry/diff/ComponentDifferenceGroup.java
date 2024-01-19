@@ -17,7 +17,7 @@
 
 package org.apache.nifi.registry.diff;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.HashSet;
 import java.util.Objects;
@@ -33,7 +33,7 @@ public class ComponentDifferenceGroup {
     private String processGroupId;
     private Set<ComponentDifference> differences = new HashSet<>();
 
-    @ApiModelProperty("The id of the component whose changes are grouped together.")
+    @Schema(description = "The id of the component whose changes are grouped together.")
     public String getComponentId() {
         return componentId;
     }
@@ -42,7 +42,7 @@ public class ComponentDifferenceGroup {
         this.componentId = componentId;
     }
 
-    @ApiModelProperty("The name of the component whose changes are grouped together.")
+    @Schema(description = "The name of the component whose changes are grouped together.")
     public String getComponentName() {
         return componentName;
     }
@@ -51,7 +51,7 @@ public class ComponentDifferenceGroup {
         this.componentName = componentName;
     }
 
-    @ApiModelProperty("The type of component these changes relate to.")
+    @Schema(description = "The type of component these changes relate to.")
     public String getComponentType() {
         return componentType;
     }
@@ -60,7 +60,7 @@ public class ComponentDifferenceGroup {
         this.componentType = componentType;
     }
 
-    @ApiModelProperty("The process group id for this component.")
+    @Schema(description = "The process group id for this component.")
     public String getProcessGroupId() {
         return processGroupId;
     }
@@ -69,7 +69,7 @@ public class ComponentDifferenceGroup {
         this.processGroupId = processGroupId;
     }
 
-    @ApiModelProperty("The list of changes related to this component between the 2 versions.")
+    @Schema(description = "The list of changes related to this component between the 2 versions.")
     public Set<ComponentDifference> getDifferences() {
         return differences;
     }

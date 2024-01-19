@@ -17,10 +17,6 @@
 package org.apache.nifi.processors.azure.storage.utils;
 
 import com.azure.core.http.ProxyOptions;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.util.Collection;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -31,7 +27,13 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.proxy.SocksVersion;
 import org.apache.nifi.services.azure.storage.AzureStorageConflictResolutionStrategy;
+import org.apache.nifi.services.azure.storage.AzureStorageCredentialsType;
 import reactor.netty.http.client.HttpClient;
+
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.util.Collection;
+import java.util.EnumSet;
 
 public final class AzureStorageUtils {
     public static final String STORAGE_ACCOUNT_NAME_PROPERTY_DESCRIPTOR_NAME = "storage-account-name";
@@ -39,65 +41,68 @@ public final class AzureStorageUtils {
     public static final String STORAGE_SAS_TOKEN_PROPERTY_DESCRIPTOR_NAME = "storage-sas-token";
     public static final String STORAGE_ENDPOINT_SUFFIX_PROPERTY_DESCRIPTOR_NAME = "storage-endpoint-suffix";
 
+    public static final PropertyDescriptor CREDENTIALS_TYPE = new PropertyDescriptor.Builder()
+            .name("credentials-type")
+            .displayName("Credentials Type")
+            .description("Credentials type to be used for authenticating to Azure")
+            .required(true)
+            .allowableValues(EnumSet.of(
+                    AzureStorageCredentialsType.ACCOUNT_KEY,
+                    AzureStorageCredentialsType.SAS_TOKEN,
+                    AzureStorageCredentialsType.MANAGED_IDENTITY,
+                    AzureStorageCredentialsType.SERVICE_PRINCIPAL))
+            .defaultValue(AzureStorageCredentialsType.SAS_TOKEN)
+            .build();
+
     public static final String ACCOUNT_KEY_BASE_DESCRIPTION =
             "The storage account key. This is an admin-like password providing access to every container in this account. It is recommended " +
-            "one uses Shared Access Signature (SAS) token instead for fine-grained control with policies.";
+            "one uses Shared Access Signature (SAS) token, Managed Identity or Service Principal instead for fine-grained control with policies.";
 
     public static final String ACCOUNT_KEY_SECURITY_DESCRIPTION =
-            " There are certain risks in allowing the account key to be stored as a flowfile " +
+            " There are certain risks in allowing the account key to be stored as a FlowFile " +
             "attribute. While it does provide for a more flexible flow by allowing the account key to " +
-            "be fetched dynamically from a flowfile attribute, care must be taken to restrict access to " +
+            "be fetched dynamically from a FlowFile attribute, care must be taken to restrict access to " +
             "the event provenance data (e.g., by strictly controlling the policies governing provenance for this processor). " +
             "In addition, the provenance repositories may be put on encrypted disk partitions.";
 
     public static final PropertyDescriptor ACCOUNT_KEY = new PropertyDescriptor.Builder()
             .name(STORAGE_ACCOUNT_KEY_PROPERTY_DESCRIPTOR_NAME)
-            .displayName("Storage Account Key")
-            .description(ACCOUNT_KEY_BASE_DESCRIPTION + ACCOUNT_KEY_SECURITY_DESCRIPTION)
+            .displayName("Account Key")
+            .description(ACCOUNT_KEY_BASE_DESCRIPTION)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(true)
             .sensitive(true)
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.ACCOUNT_KEY)
             .build();
 
     public static final String ACCOUNT_NAME_BASE_DESCRIPTION = "The storage account name.";
 
     public static final String ACCOUNT_NAME_SECURITY_DESCRIPTION =
-            " There are certain risks in allowing the account name to be stored as a flowfile " +
+            " There are certain risks in allowing the account name to be stored as a FlowFile " +
             "attribute. While it does provide for a more flexible flow by allowing the account name to " +
-            "be fetched dynamically from a flowfile attribute, care must be taken to restrict access to " +
+            "be fetched dynamically from a FlowFile attribute, care must be taken to restrict access to " +
             "the event provenance data (e.g., by strictly controlling the policies governing provenance for this processor). " +
             "In addition, the provenance repositories may be put on encrypted disk partitions.";
-
-    public static final String ACCOUNT_NAME_CREDENTIAL_SERVICE_DESCRIPTION =
-            " Instead of defining the Storage Account Name, Storage Account Key and SAS Token properties directly on the processor, " +
-            "the preferred way is to configure them through a controller service specified in the Storage Credentials property. " +
-            "The controller service can provide a common/shared configuration for multiple/all Azure processors. Furthermore, the credentials " +
-            "can also be looked up dynamically with the 'Lookup' version of the service.";
 
     public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder()
             .name(STORAGE_ACCOUNT_NAME_PROPERTY_DESCRIPTOR_NAME)
             .displayName("Storage Account Name")
-            .description(ACCOUNT_NAME_BASE_DESCRIPTION + ACCOUNT_NAME_SECURITY_DESCRIPTION + ACCOUNT_NAME_CREDENTIAL_SERVICE_DESCRIPTION)
+            .description(ACCOUNT_NAME_BASE_DESCRIPTION)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(true)
             .sensitive(true)
             .build();
 
     public static final PropertyDescriptor ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
             .name(STORAGE_ENDPOINT_SUFFIX_PROPERTY_DESCRIPTOR_NAME)
-            .displayName("Common Storage Account Endpoint Suffix")
-            .description(
-                    "Storage accounts in public Azure always use a common FQDN suffix. " +
-                    "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions). " +
-                    "The preferred way is to configure them through a controller service specified in the Storage Credentials property. " +
-                    "The controller service can provide a common/shared configuration for multiple/all Azure processors. Furthermore, the credentials " +
-                    "can also be looked up dynamically with the 'Lookup' version of the service.")
+            .displayName("Endpoint Suffix")
+            .description("Storage accounts in public Azure always use a common FQDN suffix. " +
+                    "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions).")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(false)
-            .sensitive(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(true)
             .build();
 
     public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder()
@@ -128,27 +133,28 @@ public final class AzureStorageUtils {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .allowableValues(AzureStorageConflictResolutionStrategy.class)
-            .defaultValue(AzureStorageConflictResolutionStrategy.FAIL_RESOLUTION.getValue())
+            .defaultValue(AzureStorageConflictResolutionStrategy.FAIL_RESOLUTION)
             .description("Specifies whether an existing blob will have its contents replaced upon conflict.")
             .build();
 
-    public static final String SAS_TOKEN_BASE_DESCRIPTION = "Shared Access Signature token, including the leading '?'. Specify either SAS token (recommended) or Account Key.";
+    public static final String SAS_TOKEN_BASE_DESCRIPTION = "Shared Access Signature token (the leading '?' may be included)";
 
     public static final String SAS_TOKEN_SECURITY_DESCRIPTION =
-            " There are certain risks in allowing the SAS token to be stored as a flowfile " +
+            " There are certain risks in allowing the SAS token to be stored as a FlowFile " +
             "attribute. While it does provide for a more flexible flow by allowing the SAS token to " +
-            "be fetched dynamically from a flowfile attribute, care must be taken to restrict access to " +
+            "be fetched dynamically from a FlowFile attribute, care must be taken to restrict access to " +
             "the event provenance data (e.g., by strictly controlling the policies governing provenance for this processor). " +
             "In addition, the provenance repositories may be put on encrypted disk partitions.";
 
-    public static final PropertyDescriptor PROP_SAS_TOKEN = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor SAS_TOKEN = new PropertyDescriptor.Builder()
             .name(STORAGE_SAS_TOKEN_PROPERTY_DESCRIPTOR_NAME)
             .displayName("SAS Token")
-            .description(SAS_TOKEN_BASE_DESCRIPTION + SAS_TOKEN_SECURITY_DESCRIPTION)
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .description(SAS_TOKEN_BASE_DESCRIPTION)
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SAS_TOKEN)
             .build();
 
     public static final PropertyDescriptor MANAGED_IDENTITY_CLIENT_ID = new PropertyDescriptor.Builder()
@@ -160,36 +166,40 @@ public final class AzureStorageUtils {
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.MANAGED_IDENTITY)
             .build();
 
     public static final PropertyDescriptor SERVICE_PRINCIPAL_TENANT_ID = new PropertyDescriptor.Builder()
             .name("service-principal-tenant-id")
             .displayName("Service Principal Tenant ID")
-            .description("Tenant ID of the Azure Active Directory hosting the Service Principal. The property is required when Service Principal authentication is used.")
+            .description("Tenant ID of the Azure Active Directory hosting the Service Principal.")
             .sensitive(true)
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL)
             .build();
 
     public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_ID = new PropertyDescriptor.Builder()
             .name("service-principal-client-id")
             .displayName("Service Principal Client ID")
-            .description("Client ID (or Application ID) of the Client/Application having the Service Principal. The property is required when Service Principal authentication is used.")
+            .description("Client ID (or Application ID) of the Client/Application having the Service Principal.")
             .sensitive(true)
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL)
             .build();
 
     public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_SECRET = new PropertyDescriptor.Builder()
             .name("service-principal-client-secret")
             .displayName("Service Principal Client Secret")
-            .description("Password of the Client/Application. The property is required when Service Principal authentication is used.")
+            .description("Password of the Client/Application.")
             .sensitive(true)
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL)
             .build();
 
     private AzureStorageUtils() {
@@ -197,8 +207,9 @@ public final class AzureStorageUtils {
     }
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.SOCKS};
-    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
-            = ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS);
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS))
+            .build();
 
     public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results) {
         ProxyConfiguration.validateProxySpec(context, results, PROXY_SPECS);
@@ -215,7 +226,6 @@ public final class AzureStorageUtils {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(propertyContext);
 
         if (proxyConfiguration != ProxyConfiguration.DIRECT_CONFIGURATION) {
-
             final ProxyOptions proxyOptions = new ProxyOptions(
                     getProxyType(proxyConfiguration),
                     new InetSocketAddress(proxyConfiguration.getProxyServerHost(), proxyConfiguration.getProxyServerPort()));

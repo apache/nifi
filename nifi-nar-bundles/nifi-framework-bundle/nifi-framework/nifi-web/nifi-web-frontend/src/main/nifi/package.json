@@ -4,9 +4,10 @@
     "scripts": {
         "ng": "ng",
         "start": "ng serve",
-        "build": "ng build",
+        "build": "ng build --verbose",
         "watch": "ng build --watch --configuration development",
         "test": "ng test --karma-config=karma.conf.js --watch=false",
+        "test:dev": "ng test --karma-config=karma.conf.js --watch=true --browsers=Chrome",
         "prettier": "prettier --config .prettierrc . --check",
         "prettier-format": "prettier --config .prettierrc . --write",
         "ci": "npm ci --ignore-scripts"

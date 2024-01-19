@@ -201,24 +201,21 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) hk2-utils (org.glassfish.hk2:hk2-utils:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
     (CDDL 1.1) (GPL2 w/ CPE) hk2-locator (org.glassfish.hk2:hk2-locator:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
     (CDDL 1.1) (GPL2 w/ CPE) aopalliance-repackaged (org.glassfish.hk2.external:aopalliance-repackaged:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
-    (CDDL 1.1) (GPL2 w/ CPE) javax.inject:1 as OSGi bundle (org.glassfish.hk2.external:javax.inject:jar:2.5.0-b42 - https://hk2.java.net/external/javax.inject)
-
-    (CDDL 1.1) (GPL2 w/ CPE) JavaMail API (compat) (javax.mail:mail:jar:1.4.7 - https://kenai.com/projects/javamail/mail)
-    (CDDL 1.1) (GPL2 w/ CPE) JSP Implementation (org.glassfish.web:javax.servlet.jsp:jar:2.3.2 - https://jsp.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages (TM) TagLib Implementation (org.glassfish.web:javax.servlet.jsp.jstl:jar:1.2.2 - https://jstl.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 (org.glassfish:javax.el:jar:3.0.0 - https://el-spec.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages(TM) API (javax.servlet.jsp:javax.servlet.jsp-api:jar:2.3.1 - https://jsp.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 API  (javax.el:javax.el-api:jar:3.0.0 - https://uel-spec.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages(TM) Standard Tag Library API  (javax.servlet.jsp.jstl:javax.servlet.jsp.jstl-api:jar:1.2.1 - https://jcp.org/en/jsr/detail?id=52)
-    (CDDL 1.1) (GPL2 w/ CPE) Java Servlet API  (javax.servlet:javax.servlet-api:jar:3.1.0 - https://servlet-spec.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) Javax JMS Api (javax.jms:javax.jms-api:jar:2.0.1 - https://java.net/projects/jms-spec/pages/Home)
-    (CDDL 1.1) (GPL2 w/ CPE) JSON Processing API (javax.json:javax.json-api:jar:1.0 - https://json-processing-spec.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) JSON Processing Default Provider (org.glassfish:javax.json:jar:1.0.4 - https://jsonp.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) OSGi resource locator bundle (org.glassfish.hk2:osgi-resource-locator:jar:1.0.1 - https://glassfish.org/osgi-resource-locator)
-    (CDDL 1.1) (GPL2 w/ CPE) javax.annotation API (javax.annotation:javax.annotation-api:jar:1.2 - https://jcp.org/en/jsr/detail?id=250)
-    (CDDL 1.1) (GPL2 w/ CPE) javax.inject:1 as OSGi bundle (org.glassfish.hk2.external:javax.inject:jar:2.4.0-b25 - https://hk2.java.net/external/javax.inject)
-    (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1 - https://jax-rs-spec.java.net)
-
+    (CDDL 1.1) (GPL2 w/ CPE) JavaMail API
+    (CDDL 1.1) (GPL2 w/ CPE) JSP Implementation
+    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages (TM) TagLib Implementation
+    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0
+    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages(TM) API
+    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 API
+    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages(TM) Standard Tag Library API
+    (CDDL 1.1) (GPL2 w/ CPE) Jakarta Servlet API
+    (CDDL 1.1) (GPL2 w/ CPE) JMS API
+    (CDDL 1.1) (GPL2 w/ CPE) Jakarta JSON Processing API
+    (CDDL 1.1) (GPL2 w/ CPE) Jakarta JSON Processing Default Provider
+    (CDDL 1.1) (GPL2 w/ CPE) OSGi resource locator bundle
+    (CDDL 1.1) (GPL2 w/ CPE) Jakarta Annotation API
+    (CDDL 1.1) (GPL2 w/ CPE) Jakarta Inject API as OSGi bundle
+    (CDDL 1.1) (GPL2 w/ CPE) Jakarta WS REST Services API
 
 ************************
 Common Development and Distribution License 1.0

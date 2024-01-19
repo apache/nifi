@@ -28,11 +28,13 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -67,6 +69,8 @@ class KubernetesConfigMapStateProviderTest {
     private static final String STATE_PROPERTY_ENCODED = "c3RhcnRlZA";
 
     private static final String STATE_VALUE = "now";
+
+    private static final String CONFIG_MAP_NAME_PREFIX_VALUE = "label";
 
     @Mock
     StateProviderInitializationContext context;
@@ -293,9 +297,53 @@ class KubernetesConfigMapStateProviderTest {
         assertFalse(replaced2);
     }
 
+    @Test
+    void testSetStateGetStateWithPrefix() throws IOException {
+        setContextWithProperties();
+        provider.initialize(context);
+
+        final Map<String, String> state = Collections.singletonMap(STATE_PROPERTY, STATE_VALUE);
+
+        provider.setState(state, COMPONENT_ID);
+
+        final StateMap stateMap = provider.getState(COMPONENT_ID);
+
+        assertNotNull(stateMap);
+        final Map<String, String> stateRetrieved = stateMap.toMap();
+        assertEquals(state, stateRetrieved);
+
+        assertConfigMapFound();
+    }
+
+    @Test
+    void testSetStateGetStoredComponentIdsWithPrefix() throws IOException {
+        setContextWithProperties();
+        provider.initialize(context);
+
+        final Collection<String> initialStoredComponentIds = provider.getStoredComponentIds();
+        assertTrue(initialStoredComponentIds.isEmpty());
+
+        final Map<String, String> state = Collections.singletonMap(STATE_PROPERTY, STATE_VALUE);
+        provider.setState(state, COMPONENT_ID);
+
+        final Collection<String> storedComponentIds = provider.getStoredComponentIds();
+        final Iterator<String> componentIds = storedComponentIds.iterator();
+
+        assertTrue(componentIds.hasNext());
+        assertEquals(COMPONENT_ID, componentIds.next());
+    }
+
     private void setContext() {
         when(context.getIdentifier()).thenReturn(IDENTIFIER);
         when(context.getLogger()).thenReturn(logger);
+        when(context.getProperty(KubernetesConfigMapStateProvider.CONFIG_MAP_NAME_PREFIX))
+                .thenReturn(new StandardPropertyValue(null, null, ParameterLookup.EMPTY));
+    }
+
+    private void setContextWithProperties() {
+        setContext();
+        when(context.getProperty(KubernetesConfigMapStateProvider.CONFIG_MAP_NAME_PREFIX))
+                .thenReturn(new StandardPropertyValue(CONFIG_MAP_NAME_PREFIX_VALUE, null, ParameterLookup.EMPTY));
     }
 
     private void assertStateEquals(final Map<String, String> expected, final StateMap stateMap) {

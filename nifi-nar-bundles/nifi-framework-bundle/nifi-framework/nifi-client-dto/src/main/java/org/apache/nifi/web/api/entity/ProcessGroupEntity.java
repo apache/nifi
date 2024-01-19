@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.util.NumberUtil;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ProcessGroupDTO.
@@ -76,8 +76,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     /**
      * @return the process group status
      */
-    @ApiModelProperty(
-        value = "The status of the process group."
+    @Schema(description = "The status of the process group."
     )
     public ProcessGroupStatusDTO getStatus() {
         return status;
@@ -90,9 +89,8 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     /**
      * @return number of input ports contained in this process group
      */
-    @ApiModelProperty(
-        value = "The number of input ports in the process group.",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The number of input ports in the process group.",
+        accessMode = Schema.AccessMode.READ_ONLY
     )
     public Integer getInputPortCount() {
         return NumberUtil.sumNullableIntegers(localInputPortCount, publicInputPortCount);
@@ -105,8 +103,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     /**
      * @return number of local input ports contained in this process group
      */
-    @ApiModelProperty(
-        value = "The number of local input ports in the process group."
+    @Schema(description = "The number of local input ports in the process group."
     )
     public Integer getLocalInputPortCount() {
         return localInputPortCount;
@@ -119,8 +116,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     /**
      * @return number of public input ports contained in this process group
      */
-    @ApiModelProperty(
-        value = "The number of public input ports in the process group."
+    @Schema(description = "The number of public input ports in the process group."
     )
     public Integer getPublicInputPortCount() {
         return publicInputPortCount;
@@ -133,8 +129,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     /**
      * @return number of invalid components in this process group
      */
-    @ApiModelProperty(
-        value = "The number of invalid components in the process group."
+    @Schema(description = "The number of invalid components in the process group."
     )
     public Integer getInvalidCount() {
         return invalidCount;
@@ -147,9 +142,8 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     /**
      * @return number of output ports in this process group
      */
-    @ApiModelProperty(
-        value = "The number of output ports in the process group.",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The number of output ports in the process group.",
+        accessMode = Schema.AccessMode.READ_ONLY
     )
     public Integer getOutputPortCount() {
         return NumberUtil.sumNullableIntegers(localOutputPortCount, publicOutputPortCount);
@@ -162,8 +156,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     /**
      * @return number of local output ports in this process group
      */
-    @ApiModelProperty(
-        value = "The number of local output ports in the process group."
+    @Schema(description = "The number of local output ports in the process group."
     )
     public Integer getLocalOutputPortCount() {
         return localOutputPortCount;
@@ -176,8 +169,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     /**
      * @return number of public output ports in this process group
      */
-    @ApiModelProperty(
-        value = "The number of public output ports in the process group."
+    @Schema(description = "The number of public output ports in the process group."
     )
     public Integer getPublicOutputPortCount() {
         return publicOutputPortCount;
@@ -190,8 +182,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     /**
      * @return number of running component in this process group
      */
-    @ApiModelProperty(
-        value = "The number of running components in this process group."
+    @Schema(description = "The number of running components in this process group."
     )
     public Integer getRunningCount() {
         return runningCount;
@@ -204,8 +195,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     /**
      * @return number of stopped components in this process group
      */
-    @ApiModelProperty(
-        value = "The number of stopped components in the process group."
+    @Schema(description = "The number of stopped components in the process group."
     )
     public Integer getStoppedCount() {
         return stoppedCount;
@@ -218,8 +208,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     /**
      * @return number of disabled components in this process group
      */
-    @ApiModelProperty(
-        value = "The number of disabled components in the process group."
+    @Schema(description = "The number of disabled components in the process group."
     )
     public Integer getDisabledCount() {
         return disabledCount;
@@ -232,8 +221,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     /**
      * @return number of active remote ports in this process group
      */
-    @ApiModelProperty(
-        value = "The number of active remote ports in the process group."
+    @Schema(description = "The number of active remote ports in the process group."
     )
     public Integer getActiveRemotePortCount() {
         return activeRemotePortCount;
@@ -246,8 +234,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     /**
      * @return number of inactive remote ports in this process group
      */
-    @ApiModelProperty(
-        value = "The number of inactive remote ports in the process group."
+    @Schema(description = "The number of inactive remote ports in the process group."
     )
     public Integer getInactiveRemotePortCount() {
         return inactiveRemotePortCount;
@@ -257,7 +244,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         this.inactiveRemotePortCount = inactiveRemotePortCount;
     }
 
-    @ApiModelProperty(value = "Returns the Versioned Flow that describes the contents of the Versioned Flow to be imported", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "Returns the Versioned Flow that describes the contents of the Versioned Flow to be imported", accessMode = Schema.AccessMode.READ_ONLY)
     public RegisteredFlowSnapshot getVersionedFlowSnapshot() {
         return versionedFlowSnapshot;
     }
@@ -266,9 +253,11 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         this.versionedFlowSnapshot = versionedFlowSnapshot;
     }
 
-    @ApiModelProperty(accessMode = ApiModelProperty.AccessMode.READ_ONLY,
-            value = "The current state of the Process Group, as it relates to the Versioned Flow",
-            allowableValues = "LOCALLY_MODIFIED, STALE, LOCALLY_MODIFIED_AND_STALE, UP_TO_DATE, SYNC_FAILURE")
+    @Schema(
+            description = "The current state of the Process Group, as it relates to the Versioned Flow",
+            allowableValues = "LOCALLY_MODIFIED, STALE, LOCALLY_MODIFIED_AND_STALE, UP_TO_DATE, SYNC_FAILURE",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
     public String getVersionedFlowState() {
         return versionedFlowState;
     }
@@ -277,7 +266,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         this.versionedFlowState = versionedFlowState;
     }
 
-    @ApiModelProperty("The number of up to date versioned process groups in the process group.")
+    @Schema(description = "The number of up to date versioned process groups in the process group.")
     public Integer getUpToDateCount() {
         return upToDateCount;
     }
@@ -286,7 +275,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         this.upToDateCount = upToDateCount;
     }
 
-    @ApiModelProperty("The number of locally modified versioned process groups in the process group.")
+    @Schema(description = "The number of locally modified versioned process groups in the process group.")
     public Integer getLocallyModifiedCount() {
         return locallyModifiedCount;
     }
@@ -295,7 +284,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         this.locallyModifiedCount = locallyModifiedCount;
     }
 
-    @ApiModelProperty("The number of stale versioned process groups in the process group.")
+    @Schema(description = "The number of stale versioned process groups in the process group.")
     public Integer getStaleCount() {
         return staleCount;
     }
@@ -304,7 +293,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         this.staleCount = staleCount;
     }
 
-    @ApiModelProperty("The number of locally modified and stale versioned process groups in the process group.")
+    @Schema(description = "The number of locally modified and stale versioned process groups in the process group.")
     public Integer getLocallyModifiedAndStaleCount() {
         return locallyModifiedAndStaleCount;
     }
@@ -313,7 +302,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         this.locallyModifiedAndStaleCount = locallyModifiedAndStaleCount;
     }
 
-    @ApiModelProperty("The number of versioned process groups in the process group that are unable to sync to a registry.")
+    @Schema(description = "The number of versioned process groups in the process group that are unable to sync to a registry.")
     public Integer getSyncFailureCount() {
         return syncFailureCount;
     }
@@ -322,7 +311,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         this.syncFailureCount = syncFailureCount;
     }
 
-    @ApiModelProperty("The Parameter Context, or null if no Parameter Context has been bound to the Process Group")
+    @Schema(description = "The Parameter Context, or null if no Parameter Context has been bound to the Process Group")
     public ParameterContextReferenceEntity getParameterContext() {
         return parameterContext;
     }
@@ -331,8 +320,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         this.parameterContext = parameterContext;
     }
 
-    @ApiModelProperty(
-            value = "Determines the process group update strategy",
+    @Schema(description = "Determines the process group update strategy",
             allowableValues = "CURRENT_GROUP, CURRENT_GROUP_WITH_CHILDREN"
     )
     public String getProcessGroupUpdateStrategy() {

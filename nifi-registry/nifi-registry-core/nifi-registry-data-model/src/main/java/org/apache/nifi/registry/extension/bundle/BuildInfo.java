@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.registry.extension.bundle;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel
 public class BuildInfo {
 
     private String buildTool;
@@ -36,7 +34,7 @@ public class BuildInfo {
 
     private String builtBy;
 
-    @ApiModelProperty(value = "The tool used to build the version of the bundle")
+    @Schema(description = "The tool used to build the version of the bundle")
     public String getBuildTool() {
         return buildTool;
     }
@@ -45,7 +43,7 @@ public class BuildInfo {
         this.buildTool = buildTool;
     }
 
-    @ApiModelProperty(value = "The flags used to build the version of the bundle")
+    @Schema(description = "The flags used to build the version of the bundle")
     public String getBuildFlags() {
         return buildFlags;
     }
@@ -54,7 +52,7 @@ public class BuildInfo {
         this.buildFlags = buildFlags;
     }
 
-    @ApiModelProperty(value = "The branch used to build the version of the bundle")
+    @Schema(description = "The branch used to build the version of the bundle")
     public String getBuildBranch() {
         return buildBranch;
     }
@@ -63,7 +61,7 @@ public class BuildInfo {
         this.buildBranch = buildBranch;
     }
 
-    @ApiModelProperty(value = "The tag used to build the version of the bundle")
+    @Schema(description = "The tag used to build the version of the bundle")
     public String getBuildTag() {
         return buildTag;
     }
@@ -72,7 +70,7 @@ public class BuildInfo {
         this.buildTag = buildTag;
     }
 
-    @ApiModelProperty(value = "The revision used to build the version of the bundle")
+    @Schema(description = "The revision used to build the version of the bundle")
     public String getBuildRevision() {
         return buildRevision;
     }
@@ -81,7 +79,7 @@ public class BuildInfo {
         this.buildRevision = buildRevision;
     }
 
-    @ApiModelProperty(value = "The timestamp the version of the bundle was built")
+    @Schema(description = "The timestamp the version of the bundle was built")
     public long getBuilt() {
         return built;
     }
@@ -90,7 +88,7 @@ public class BuildInfo {
         this.built = built;
     }
 
-    @ApiModelProperty(value = "The identity of the user that performed the build")
+    @Schema(description = "The identity of the user that performed the build")
     public String getBuiltBy() {
         return builtBy;
     }

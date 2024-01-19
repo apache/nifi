@@ -591,6 +591,35 @@ public class TestMergeContent {
     }
 
     @Test
+    void testSimpleBinaryConcatNoDelimiters() {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
+        runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DELIMITER_STRATEGY_NONE);
+        // set dependent values to ensure they're not used; see NIFI-12561
+        runner.setProperty(MergeContent.HEADER, "aHeader");
+        runner.setProperty(MergeContent.DEMARCATOR, "; ");
+        runner.setProperty(MergeContent.FOOTER, "aFooter");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
+
+        runner.enqueue("First", attributes);
+        runner.enqueue("Second", attributes);
+        runner.enqueue("Third", attributes);
+        runner.run(2);
+
+        runner.assertQueueEmpty();
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 3);
+
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).getFirst();
+        bundle.assertContentEquals("FirstSecondThird");
+        bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
+    }
+
+    @Test
     public void testTextDelimitersValidation() {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");

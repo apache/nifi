@@ -24,9 +24,6 @@ const routes: Routes = [
         path: '',
         component: Provenance,
         children: [
-            // {
-            //     path: 'lineage'
-            // },
             {
                 path: '',
                 loadChildren: () =>

@@ -23,12 +23,11 @@ import java.io.InputStream;
 import java.net.Proxy;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -50,6 +49,9 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.util.file.transfer.FileInfo;
+import org.apache.nifi.processor.util.file.transfer.FileTransfer;
+import org.apache.nifi.processor.util.file.transfer.PermissionDeniedException;
 import org.apache.nifi.processors.standard.ftp.FTPClientProvider;
 import org.apache.nifi.processors.standard.ftp.StandardFTPClientProvider;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -444,9 +446,9 @@ public class FTPTransfer implements FileTransfer {
         final String lastModifiedTime = ctx.getProperty(LAST_MODIFIED_TIME).evaluateAttributeExpressions(flowFile).getValue();
         if (lastModifiedTime != null && !lastModifiedTime.trim().isEmpty()) {
             try {
-                final DateFormat informat = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-                final Date fileModifyTime = informat.parse(lastModifiedTime);
-                final DateFormat outformat = new SimpleDateFormat(FTP_TIMEVAL_FORMAT, Locale.US);
+                final DateTimeFormatter informat = DateTimeFormatter.ofPattern(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
+                final OffsetDateTime fileModifyTime = OffsetDateTime.parse(lastModifiedTime, informat);
+                final DateTimeFormatter outformat = DateTimeFormatter.ofPattern(FTP_TIMEVAL_FORMAT, Locale.US);
                 final String time = outformat.format(fileModifyTime);
                 if (!client.setModificationTime(tempFilename, time)) {
                     // FTP server probably doesn't support MFMT command

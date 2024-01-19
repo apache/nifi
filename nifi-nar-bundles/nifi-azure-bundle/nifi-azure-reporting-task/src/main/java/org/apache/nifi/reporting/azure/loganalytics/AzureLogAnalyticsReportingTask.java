@@ -16,13 +16,8 @@
  */
 package org.apache.nifi.reporting.azure.loganalytics;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-
 import org.apache.http.client.methods.HttpPost;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -38,6 +33,10 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.azure.loganalytics.api.AzureLogAnalyticsMetricsFactory;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * ReportingTask to send metrics from Apache NiFi and JVM to Azure Monitor.
@@ -59,37 +58,36 @@ public class AzureLogAnalyticsReportingTask extends AbstractAzureLogAnalyticsRep
             .defaultValue("nifimetrics").addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT).build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            SEND_JVM_METRICS,
+            LOG_ANALYTICS_WORKSPACE_ID,
+            LOG_ANALYTICS_CUSTOM_LOG_NAME,
+            LOG_ANALYTICS_WORKSPACE_KEY,
+            APPLICATION_ID,
+            INSTANCE_ID,
+            PROCESS_GROUP_IDS,
+            JOB_NAME,
+            LOG_ANALYTICS_URL_ENDPOINT_FORMAT
+    );
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(SEND_JVM_METRICS);
-        properties.add(LOG_ANALYTICS_WORKSPACE_ID);
-        properties.add(LOG_ANALYTICS_CUSTOM_LOG_NAME);
-        properties.add(LOG_ANALYTICS_WORKSPACE_KEY);
-        properties.add(APPLICATION_ID);
-        properties.add(INSTANCE_ID);
-        properties.add(PROCESS_GROUP_IDS);
-        properties.add(JOB_NAME);
-        properties.add(LOG_ANALYTICS_URL_ENDPOINT_FORMAT);
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public void onTrigger(final ReportingContext context) {
-        final String workspaceId = context.getProperty(LOG_ANALYTICS_WORKSPACE_ID).evaluateAttributeExpressions()
-                .getValue();
-        final String linuxPrimaryKey = context.getProperty(LOG_ANALYTICS_WORKSPACE_KEY).evaluateAttributeExpressions()
-                .getValue();
+        final String workspaceId = context.getProperty(LOG_ANALYTICS_WORKSPACE_ID).evaluateAttributeExpressions().getValue();
+        final String linuxPrimaryKey = context.getProperty(LOG_ANALYTICS_WORKSPACE_KEY).evaluateAttributeExpressions().getValue();
         final boolean jvmMetricsCollected = context.getProperty(SEND_JVM_METRICS).asBoolean();
-        final String logName = context.getProperty(LOG_ANALYTICS_CUSTOM_LOG_NAME).evaluateAttributeExpressions()
-                .getValue();
+        final String logName = context.getProperty(LOG_ANALYTICS_CUSTOM_LOG_NAME).evaluateAttributeExpressions().getValue();
         final String instanceId = context.getProperty(INSTANCE_ID).evaluateAttributeExpressions().getValue();
         final String groupIds = context.getProperty(PROCESS_GROUP_IDS).evaluateAttributeExpressions().getValue();
         final String urlEndpointFormat = context.getProperty(LOG_ANALYTICS_URL_ENDPOINT_FORMAT)
                 .evaluateAttributeExpressions().getValue();
 
         try {
-            List<Metric> allMetrics = null;
+            final List<Metric> allMetrics;
             if (groupIds == null || groupIds.isEmpty()) {
                 ProcessGroupStatus status = context.getEventAccess().getControllerStatus();
                 String processGroupName = status.getName();

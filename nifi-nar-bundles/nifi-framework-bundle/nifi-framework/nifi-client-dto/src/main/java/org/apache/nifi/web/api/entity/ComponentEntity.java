@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 import java.util.Objects;
 
@@ -42,8 +42,7 @@ public class ComponentEntity extends Entity {
     /**
      * @return revision for this request/response
      */
-    @ApiModelProperty(
-            value = "The revision for this request/response. The revision is required for any mutable flow requests and is included in all responses."
+    @Schema(description = "The revision for this request/response. The revision is required for any mutable flow requests and is included in all responses."
     )
     public RevisionDTO getRevision() {
         return revision;
@@ -58,8 +57,7 @@ public class ComponentEntity extends Entity {
      *
      * @return The id
      */
-    @ApiModelProperty(
-        value = "The id of the component."
+    @Schema(description = "The id of the component."
     )
     public String getId() {
         return this.id;
@@ -74,8 +72,7 @@ public class ComponentEntity extends Entity {
      *
      * @return The uri
      */
-    @ApiModelProperty(
-            value = "The URI for futures requests to the component."
+    @Schema(description = "The URI for futures requests to the component."
     )
     public String getUri() {
         return uri;
@@ -90,8 +87,7 @@ public class ComponentEntity extends Entity {
      *
      * @return The position
      */
-    @ApiModelProperty(
-        value = "The position of this component in the UI if applicable."
+    @Schema(description = "The position of this component in the UI if applicable."
     )
     public PositionDTO getPosition() {
         return position;
@@ -106,8 +102,7 @@ public class ComponentEntity extends Entity {
      *
      * @return The permissions
      */
-    @ApiModelProperty(
-        value = "The permissions for this component."
+    @Schema(description = "The permissions for this component."
     )
     public PermissionsDTO getPermissions() {
         return permissions;
@@ -122,8 +117,7 @@ public class ComponentEntity extends Entity {
      *
      * @return The bulletins
      */
-    @ApiModelProperty(
-            value = "The bulletins for this component."
+    @Schema(description = "The bulletins for this component."
     )
     public List<BulletinEntity> getBulletins() {
         return bulletins;
@@ -133,8 +127,7 @@ public class ComponentEntity extends Entity {
         this.bulletins = bulletins;
     }
 
-    @ApiModelProperty(
-            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    @Schema(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
     )
     public Boolean isDisconnectedNodeAcknowledged() {
         return disconnectedNodeAcknowledged;

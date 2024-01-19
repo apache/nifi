@@ -16,39 +16,40 @@
  */
 package org.apache.nifi.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
-import javax.ws.rs.core.UriInfo;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.StreamingOutput;
+import jakarta.ws.rs.core.UriInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizableLookup;
@@ -96,13 +97,7 @@ import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERT
  * RESTful endpoint for managing a SiteToSite connection.
  */
 @Path("/data-transfer")
-@Api(
-    value = "/data-transfer",
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Supports data transfers with this NiFi using HTTP based site to site.")
-})
+@Tag(name = "DataTransfer")
 public class DataTransferResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(DataTransferResource.class);
@@ -120,7 +115,7 @@ public class DataTransferResource extends ApplicationResource {
     private final HttpRemoteSiteListener transactionManager;
     private final NiFiProperties nifiProperties;
 
-    public DataTransferResource(final NiFiProperties nifiProperties){
+    public DataTransferResource(final NiFiProperties nifiProperties) {
         this.nifiProperties = nifiProperties;
         transactionManager = HttpRemoteSiteListener.getInstance(nifiProperties);
     }
@@ -156,28 +151,27 @@ public class DataTransferResource extends ApplicationResource {
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{portType}/{portId}/transactions")
-    @ApiOperation(
-            value = "Create a transaction to the specified output port or input port",
-            response = TransactionResultEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /data-transfer/{component-type}/{uuid}")
+    @Operation(
+            summary = "Create a transaction to the specified output port or input port",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = TransactionResultEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /data-transfer/{component-type}/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful."),
-                    @ApiResponse(code = 503, message = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it."),
+                    @ApiResponse(responseCode = "503", description = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
             }
     )
     public Response createPortTransaction(
-            @ApiParam(
-                    value = "The port type.",
-                    required = true,
-                    allowableValues = "input-ports, output-ports"
+            @Parameter(
+                    description = "The port type.",
+                    required = true
             )
             @PathParam("portType") String portType,
             @PathParam("portId") String portId,
@@ -230,26 +224,26 @@ public class DataTransferResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.TEXT_PLAIN)
     @Path("input-ports/{portId}/transactions/{transactionId}/flow-files")
-    @ApiOperation(
-            value = "Transfer flow files to the input port",
-            response = String.class,
-            authorizations = {
-                    @Authorization(value = "Write - /data-transfer/input-ports/{uuid}")
+    @Operation(
+            summary = "Transfer flow files to the input port",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = String.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /data-transfer/input-ports/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful."),
-                    @ApiResponse(code = 503, message = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it."),
+                    @ApiResponse(responseCode = "503", description = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
             }
     )
     public Response receiveFlowFiles(
-            @ApiParam(
-                    value = "The input port id.",
+            @Parameter(
+                    description = "The input port id.",
                     required = true
             )
             @PathParam("portId") String portId,
@@ -306,7 +300,7 @@ public class DataTransferResource extends ApplicationResource {
         VersionNegotiator versionNegotiator = new StandardVersionNegotiator(negotiatedTransportProtocolVersion.getTransactionProtocolVersion());
 
         final String dataTransferUrl = req.getRequestURL().toString();
-        ((HttpCommunicationsSession)peer.getCommunicationsSession()).setDataTransferUrl(dataTransferUrl);
+        ((HttpCommunicationsSession) peer.getCommunicationsSession()).setDataTransferUrl(dataTransferUrl);
 
         HttpFlowFileServerProtocol serverProtocol = getHttpFlowFileServerProtocol(versionNegotiator);
         HttpRemoteSiteListener.getInstance(nifiProperties).setupServerProtocol(serverProtocol);
@@ -380,41 +374,41 @@ public class DataTransferResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("output-ports/{portId}/transactions/{transactionId}")
-    @ApiOperation(
-            value = "Commit or cancel the specified transaction",
-            response = TransactionResultEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /data-transfer/output-ports/{uuid}")
+    @Operation(
+            summary = "Commit or cancel the specified transaction",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = TransactionResultEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /data-transfer/output-ports/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful."),
-                    @ApiResponse(code = 503, message = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it."),
+                    @ApiResponse(responseCode = "503", description = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
             }
     )
     public Response commitOutputPortTransaction(
-            @ApiParam(
-                    value = "The response code. Available values are CONFIRM_TRANSACTION(12) or CANCEL_TRANSACTION(15).",
+            @Parameter(
+                    description = "The response code. Available values are CONFIRM_TRANSACTION(12) or CANCEL_TRANSACTION(15).",
                     required = true
             )
             @QueryParam(RESPONSE_CODE) Integer responseCode,
-            @ApiParam(
-                    value = "A checksum calculated at client side using CRC32 to check flow file content integrity. It must match with the value calculated at server side.",
+            @Parameter(
+                    description = "A checksum calculated at client side using CRC32 to check flow file content integrity. It must match with the value calculated at server side.",
                     required = true
             )
             @QueryParam(CHECK_SUM) @DefaultValue(StringUtils.EMPTY) String checksum,
-            @ApiParam(
-                    value = "The output port id.",
+            @Parameter(
+                    description = "The output port id.",
                     required = true
             )
             @PathParam("portId") String portId,
-            @ApiParam(
-                    value = "The transaction id.",
+            @Parameter(
+                    description = "The transaction id.",
                     required = true
             )
             @PathParam("transactionId") String transactionId,
@@ -489,36 +483,36 @@ public class DataTransferResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("input-ports/{portId}/transactions/{transactionId}")
-    @ApiOperation(
-            value = "Commit or cancel the specified transaction",
-            response = TransactionResultEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /data-transfer/input-ports/{uuid}")
+    @Operation(
+            summary = "Commit or cancel the specified transaction",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = TransactionResultEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /data-transfer/input-ports/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful."),
-                    @ApiResponse(code = 503, message = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it."),
+                    @ApiResponse(responseCode = "503", description = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
             }
     )
     public Response commitInputPortTransaction(
-            @ApiParam(
-                    value = "The response code. Available values are BAD_CHECKSUM(19), CONFIRM_TRANSACTION(12) or CANCEL_TRANSACTION(15).",
+            @Parameter(
+                    description = "The response code. Available values are BAD_CHECKSUM(19), CONFIRM_TRANSACTION(12) or CANCEL_TRANSACTION(15).",
                     required = true
             )
             @QueryParam(RESPONSE_CODE) Integer responseCode,
-            @ApiParam(
-                    value = "The input port id.",
+            @Parameter(
+                    description = "The input port id.",
                     required = true
             )
             @PathParam("portId") String portId,
-            @ApiParam(
-                    value = "The transaction id.",
+            @Parameter(
+                    description = "The transaction id.",
                     required = true
             )
             @PathParam("transactionId") String transactionId,
@@ -609,27 +603,27 @@ public class DataTransferResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
     @Path("output-ports/{portId}/transactions/{transactionId}/flow-files")
-    @ApiOperation(
-            value = "Transfer flow files from the output port",
-            response = StreamingOutput.class,
-            authorizations = {
-                    @Authorization(value = "Write - /data-transfer/output-ports/{uuid}")
+    @Operation(
+            summary = "Transfer flow files from the output port",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = StreamingOutput.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /data-transfer/output-ports/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 200, message = "There is no flow file to return."),
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful."),
-                    @ApiResponse(code = 503, message = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
+                    @ApiResponse(responseCode = "200", description = "There is no flow file to return."),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it."),
+                    @ApiResponse(responseCode = "503", description = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
             }
     )
     public Response transferFlowFiles(
-            @ApiParam(
-                    value = "The output port id.",
+            @Parameter(
+                    description = "The output port id.",
                     required = true
             )
             @PathParam("portId") String portId,
@@ -695,20 +689,20 @@ public class DataTransferResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("input-ports/{portId}/transactions/{transactionId}")
-    @ApiOperation(
-            value = "Extend transaction TTL",
-            response = TransactionResultEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /data-transfer/input-ports/{uuid}")
+    @Operation(
+            summary = "Extend transaction TTL",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = TransactionResultEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /data-transfer/input-ports/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response extendInputPortTransactionTTL(
@@ -732,21 +726,21 @@ public class DataTransferResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("output-ports/{portId}/transactions/{transactionId}")
-    @ApiOperation(
-            value = "Extend transaction TTL",
-            response = TransactionResultEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /data-transfer/output-ports/{uuid}")
+    @Operation(
+            summary = "Extend transaction TTL",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = TransactionResultEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /data-transfer/output-ports/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful."),
-                    @ApiResponse(code = 503, message = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it."),
+                    @ApiResponse(responseCode = "503", description = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
             }
     )
     public Response extendOutputPortTransactionTTL(
@@ -841,9 +835,6 @@ public class DataTransferResource extends ApplicationResource {
 
         return result;
     }
-
-
-    // setters
 
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;

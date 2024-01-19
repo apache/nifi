@@ -16,15 +16,86 @@
  */
 
 import { Injectable } from '@angular/core';
+import { SelectOption } from '../state/shared';
 
 @Injectable({
     providedIn: 'root'
 })
 export class NiFiCommon {
-    private static readonly MILLIS_PER_DAY: number = 86400000;
-    private static readonly MILLIS_PER_HOUR: number = 3600000;
-    private static readonly MILLIS_PER_MINUTE: number = 60000;
-    private static readonly MILLIS_PER_SECOND: number = 1000;
+    /**
+     * Constants for time duration formatting.
+     */
+    public static readonly MILLIS_PER_DAY: number = 86400000;
+    public static readonly MILLIS_PER_HOUR: number = 3600000;
+    public static readonly MILLIS_PER_MINUTE: number = 60000;
+    public static readonly MILLIS_PER_SECOND: number = 1000;
+
+    /**
+     * Constants for formatting data size.
+     */
+    public static readonly BYTES_IN_KILOBYTE: number = 1024;
+    public static readonly BYTES_IN_MEGABYTE: number = 1048576;
+    public static readonly BYTES_IN_GIGABYTE: number = 1073741824;
+    public static readonly BYTES_IN_TERABYTE: number = 1099511627776;
+
+    private policyTypeListing: SelectOption[] = [
+        {
+            text: 'view the user interface',
+            value: 'flow',
+            description: 'Allows users to view the user interface'
+        },
+        {
+            text: 'access the controller',
+            value: 'controller',
+            description:
+                'Allows users to view/modify the controller including Management Controller Services, Reporting Tasks, Registry Clients, Parameter Providers and nodes in the cluster'
+        },
+        {
+            text: 'access parameter contexts',
+            value: 'parameter-contexts',
+            description: 'Allows users to view/modify Parameter Contexts'
+        },
+        {
+            text: 'query provenance',
+            value: 'provenance',
+            description: 'Allows users to submit a Provenance Search and request Event Lineage'
+        },
+        {
+            text: 'access restricted components',
+            value: 'restricted-components',
+            description: 'Allows users to create/modify restricted components assuming other permissions are sufficient'
+        },
+        {
+            text: 'access all policies',
+            value: 'policies',
+            description: 'Allows users to view/modify the policies for all components'
+        },
+        {
+            text: 'access users/user groups',
+            value: 'tenants',
+            description: 'Allows users to view/modify the users and user groups'
+        },
+        {
+            text: 'retrieve site-to-site details',
+            value: 'site-to-site',
+            description: 'Allows other NiFi instances to retrieve Site-To-Site details of this NiFi'
+        },
+        {
+            text: 'view system diagnostics',
+            value: 'system',
+            description: 'Allows users to view System Diagnostics'
+        },
+        {
+            text: 'proxy user requests',
+            value: 'proxy',
+            description: 'Allows proxy machines to send requests on the behalf of others'
+        },
+        {
+            text: 'access counters',
+            value: 'counters',
+            description: 'Allows users to view/modify Counters'
+        }
+    ];
 
     constructor() {}
 
@@ -126,6 +197,32 @@ export class NiFiCommon {
     }
 
     /**
+     * Determines if a string contains another, optionally looking case insensitively.
+     *
+     * @param stringToSearch
+     * @param stringToFind
+     * @param caseInsensitive
+     */
+    public stringContains(
+        stringToSearch: string | null | undefined,
+        stringToFind: string | null | undefined,
+        caseInsensitive: boolean = false
+    ): boolean {
+        if (this.isBlank(stringToSearch)) {
+            return false;
+        }
+        if (this.isBlank(stringToFind)) {
+            return true;
+        }
+        if (caseInsensitive) {
+            // @ts-ignore
+            return stringToSearch.toLowerCase().indexOf(stringToFind.toLowerCase()) >= 0;
+        }
+        // @ts-ignore
+        return stringToSearch.indexOf(stringToFind) >= 0;
+    }
+
+    /**
      * Formats the class name of this component.
      *
      * @param dataContext component datum
@@ -158,6 +255,30 @@ export class NiFiCommon {
             groupString = bundle.group + ' - ';
         }
         return groupString + bundle.artifact;
+    }
+
+    /**
+     * Compares two strings.
+     *
+     * @param a
+     * @param b
+     */
+    public compareString(a: string, b: string): number {
+        if (a === b) {
+            return 0;
+        }
+
+        return a < b ? -1 : 1;
+    }
+
+    /**
+     * Compares two numbers.
+     *
+     * @param a
+     * @param b
+     */
+    public compareNumber(a: number, b: number): number {
+        return a - b;
     }
 
     /**
@@ -315,5 +436,79 @@ export class NiFiCommon {
         } else {
             return time;
         }
+    }
+
+    /**
+     * Formats the specified number of bytes into a human readable string.
+     *
+     * @param {number} dataSize
+     * @returns {string}
+     */
+    public formatDataSize(dataSize: number): string {
+        let dataSizeToFormat: number = parseFloat(`${dataSize / NiFiCommon.BYTES_IN_TERABYTE}`);
+        if (dataSizeToFormat > 1) {
+            return dataSizeToFormat.toFixed(2) + ' TB';
+        }
+
+        // check gigabytes
+        dataSizeToFormat = parseFloat(`${dataSize / NiFiCommon.BYTES_IN_GIGABYTE}`);
+        if (dataSizeToFormat > 1) {
+            return dataSizeToFormat.toFixed(2) + ' GB';
+        }
+
+        // check megabytes
+        dataSizeToFormat = parseFloat(`${dataSize / NiFiCommon.BYTES_IN_MEGABYTE}`);
+        if (dataSizeToFormat > 1) {
+            return dataSizeToFormat.toFixed(2) + ' MB';
+        }
+
+        // check kilobytes
+        dataSizeToFormat = parseFloat(`${dataSize / NiFiCommon.BYTES_IN_KILOBYTE}`);
+        if (dataSizeToFormat > 1) {
+            return dataSizeToFormat.toFixed(2) + ' KB';
+        }
+
+        // default to bytes
+        return parseFloat(`${dataSize}`).toFixed(2) + ' bytes';
+    }
+
+    /**
+     * Formats the specified integer as a string (adding commas). At this
+     * point this does not take into account any locales.
+     *
+     * @param {integer} integer
+     */
+    public formatInteger(integer: number): string {
+        const locale: string = (navigator && navigator.language) || 'en';
+        return integer.toLocaleString(locale, { maximumFractionDigits: 0 });
+    }
+
+    /**
+     * Formats the specified float using two decimal places.
+     *
+     * @param {float} f
+     */
+    public formatFloat(f: number): string {
+        if (!f) {
+            return '0.0';
+        }
+        const locale: string = (navigator && navigator.language) || 'en';
+        return f.toLocaleString(locale, { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+    }
+
+    /**
+     * Gets the policy type for the specified resource.
+     *
+     * @param value
+     */
+    public getPolicyTypeListing(value: string): SelectOption | undefined {
+        return this.policyTypeListing.find((policy: SelectOption) => value === policy.value);
+    }
+
+    /**
+     * Gets all policy types for every global resource.
+     */
+    public getAllPolicyTypeListing(): SelectOption[] {
+        return this.policyTypeListing;
     }
 }

@@ -31,7 +31,7 @@ import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
 
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;

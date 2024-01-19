@@ -21,9 +21,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @XmlType(name = "jvmSystemDiagnosticsSnapshot")
 public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
@@ -45,7 +45,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
     private Long maxOpenFileDescriptors;
 
 
-    @ApiModelProperty("Information about the FlowFile Repository's usage")
+    @Schema(description = "Information about the FlowFile Repository's usage")
     public RepositoryUsageDTO getFlowFileRepositoryStorageUsage() {
         return flowFileRepositoryStorageUsage;
     }
@@ -54,7 +54,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         this.flowFileRepositoryStorageUsage = flowFileRepositoryStorageUsage;
     }
 
-    @ApiModelProperty("Information about the Content Repository's usage")
+    @Schema(description = "Information about the Content Repository's usage")
     public Set<RepositoryUsageDTO> getContentRepositoryStorageUsage() {
         return contentRepositoryStorageUsage;
     }
@@ -63,7 +63,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         this.contentRepositoryStorageUsage = contentRepositoryStorageUsage;
     }
 
-    @ApiModelProperty("Information about the Provenance Repository's usage")
+    @Schema(description = "Information about the Provenance Repository's usage")
     public Set<RepositoryUsageDTO> getProvenanceRepositoryStorageUsage() {
         return provenanceRepositoryStorageUsage;
     }
@@ -72,7 +72,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         this.provenanceRepositoryStorageUsage = provenanceRepositoryStorageUsage;
     }
 
-    @ApiModelProperty("The maximum number of bytes that the JVM heap is configured to use for heap")
+    @Schema(description = "The maximum number of bytes that the JVM heap is configured to use for heap")
     public Long getMaxHeapBytes() {
         return maxHeapBytes;
     }
@@ -81,7 +81,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         this.maxHeapBytes = heapBytes;
     }
 
-    @ApiModelProperty("The maximum number of bytes that the JVM heap is configured to use, as a human-readable value")
+    @Schema(description = "The maximum number of bytes that the JVM heap is configured to use, as a human-readable value")
     public String getMaxHeap() {
         return maxHeap;
     }
@@ -90,7 +90,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         this.maxHeap = maxHeap;
     }
 
-    @ApiModelProperty("The number of CPU Cores available on the system")
+    @Schema(description = "The number of CPU Cores available on the system")
     public Integer getCpuCores() {
         return cpuCores;
     }
@@ -99,7 +99,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         this.cpuCores = cpuCores;
     }
 
-    @ApiModelProperty("The 1-minute CPU Load Average")
+    @Schema(description = "The 1-minute CPU Load Average")
     public Double getCpuLoadAverage() {
         return cpuLoadAverage;
     }
@@ -108,7 +108,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         this.cpuLoadAverage = cpuLoadAverage;
     }
 
-    @ApiModelProperty("The number of bytes of RAM available on the system")
+    @Schema(description = "The number of bytes of RAM available on the system")
     public Long getPhysicalMemoryBytes() {
         return physicalMemoryBytes;
     }
@@ -117,7 +117,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         this.physicalMemoryBytes = memoryBytes;
     }
 
-    @ApiModelProperty("The number of bytes of RAM available on the system as a human-readable value")
+    @Schema(description = "The number of bytes of RAM available on the system as a human-readable value")
     public String getPhysicalMemory() {
         return physicalMemory;
     }
@@ -126,7 +126,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         this.physicalMemory = memory;
     }
 
-    @ApiModelProperty("The number of files that are open by the NiFi process")
+    @Schema(description = "The number of files that are open by the NiFi process")
     public Long getOpenFileDescriptors() {
         return openFileDescriptors;
     }
@@ -135,7 +135,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         this.openFileDescriptors = openFileDescriptors;
     }
 
-    @ApiModelProperty("The maximum number of open file descriptors that are available to each process")
+    @Schema(description = "The maximum number of open file descriptors that are available to each process")
     public Long getMaxOpenFileDescriptors() {
         return maxOpenFileDescriptors;
     }
@@ -144,7 +144,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         this.maxOpenFileDescriptors = maxOpenFileDescriptors;
     }
 
-    @ApiModelProperty("Diagnostic information about the JVM's garbage collections")
+    @Schema(description = "Diagnostic information about the JVM's garbage collections")
     public List<GarbageCollectionDiagnosticsDTO> getGarbageCollectionDiagnostics() {
         return garbageCollectionDiagnostics;
     }

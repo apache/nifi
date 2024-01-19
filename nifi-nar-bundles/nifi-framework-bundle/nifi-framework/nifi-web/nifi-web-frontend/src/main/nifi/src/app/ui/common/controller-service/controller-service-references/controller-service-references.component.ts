@@ -53,6 +53,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 })
 export class ControllerServiceReferences {
     @Input() serviceReferences!: ControllerServiceReferencingComponentEntity[];
+    @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
 
     protected readonly ValidationErrorsTip = ValidationErrorsTip;
     protected readonly BulletinsTip = BulletinsTip;
@@ -102,24 +103,9 @@ export class ControllerServiceReferences {
         }
     }
 
-    getRouteForReference(reference: ControllerServiceReferencingComponent): string[] {
-        if (reference.referenceType == 'ControllerService') {
-            if (reference.groupId == null) {
-                return ['/settings', 'management-controller-services', reference.id];
-            } else {
-                return ['/process-groups', reference.groupId, 'controller-services', reference.id];
-            }
-        } else if (reference.referenceType == 'ReportingTask') {
-            return ['/settings', 'reporting-tasks', reference.id];
-        } else if (reference.referenceType == 'Processor') {
-            return ['/process-groups', reference.groupId, 'processors', reference.id];
-        } else if (reference.referenceType == 'FlowAnalysisRule') {
-            return ['/settings', 'flow-analysis-rules', reference.id];
-        } else if (reference.referenceType == 'ParameterProvider') {
-            return ['/settings', 'parameter-providers', reference.id];
-        } else {
-            return ['/settings', 'registry-clients', reference.id];
-        }
+    goToReferencingComponentClicked(event: MouseEvent, component: ControllerServiceReferencingComponent) {
+        event.stopPropagation();
+        this.goToReferencingComponent(component);
     }
 
     hasBulletins(entity: ControllerServiceReferencingComponentEntity): boolean {

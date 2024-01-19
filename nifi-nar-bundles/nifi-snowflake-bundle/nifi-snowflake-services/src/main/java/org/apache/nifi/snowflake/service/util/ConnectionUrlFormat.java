@@ -17,10 +17,10 @@
 
 package org.apache.nifi.snowflake.service.util;
 
+import org.apache.nifi.components.DescribedValue;
+
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Stream;
-import org.apache.nifi.components.DescribedValue;
 
 public enum ConnectionUrlFormat implements DescribedValue {
     FULL_URL("full-url", "Full URL", "Provide connection URL in a single property") {
@@ -90,10 +90,4 @@ public enum ConnectionUrlFormat implements DescribedValue {
 
     public abstract String buildConnectionUrl(final ConnectionUrlFormatParameters parameters);
 
-    public static ConnectionUrlFormat forName(String provideMethod) {
-        return Stream.of(values()).filter(provider -> provider.getValue().equalsIgnoreCase(provideMethod))
-                .findFirst()
-                .orElseThrow(
-                        () -> new IllegalArgumentException("Invalid ConnectionUrlFormat: " + provideMethod));
-    }
 }

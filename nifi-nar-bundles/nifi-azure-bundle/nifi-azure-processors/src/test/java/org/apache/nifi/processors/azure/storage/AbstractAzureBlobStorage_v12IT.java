@@ -80,15 +80,14 @@ public abstract class AbstractAzureBlobStorage_v12IT extends AbstractAzureStorag
 
     @Override
     protected void setUpCredentials() throws Exception {
-        String serviceId = "credentials-service";
         AzureStorageCredentialsService_v12 service = new AzureStorageCredentialsControllerService_v12();
         runner.addControllerService(SERVICE_ID, service);
-        runner.setProperty(service, AzureStorageCredentialsControllerService_v12.ACCOUNT_NAME, getAccountName());
+        runner.setProperty(service, AzureStorageUtils.ACCOUNT_NAME, getAccountName());
         if (getEndpointSuffix() != null) {
-            runner.setProperty(service, AzureStorageCredentialsControllerService_v12.ENDPOINT_SUFFIX, getEndpointSuffix());
+            runner.setProperty(service, AzureStorageUtils.ENDPOINT_SUFFIX, getEndpointSuffix());
         }
-        runner.setProperty(service, AzureStorageCredentialsControllerService_v12.CREDENTIALS_TYPE, AzureStorageCredentialsType.ACCOUNT_KEY.getAllowableValue());
-        runner.setProperty(service, AzureStorageCredentialsControllerService_v12.ACCOUNT_KEY, getAccountKey());
+        runner.setProperty(service, AzureStorageUtils.CREDENTIALS_TYPE, AzureStorageCredentialsType.ACCOUNT_KEY);
+        runner.setProperty(service, AzureStorageUtils.ACCOUNT_KEY, getAccountKey());
         runner.enableControllerService(service);
 
         runner.setProperty(AbstractAzureBlobProcessor_v12.STORAGE_CREDENTIALS_SERVICE, SERVICE_ID);
@@ -179,7 +178,7 @@ public abstract class AbstractAzureBlobStorage_v12IT extends AbstractAzureStorag
         flowFile.assertAttributeEquals(BlobAttributes.ATTR_NAME_PRIMARY_URI,
                 String.format("https://%s.blob.core.windows.net/%s/%s", getAccountName(), containerName, URLEncoder.encode(
                         blobName,
-                        StandardCharsets.US_ASCII.name()
+                        StandardCharsets.US_ASCII
                 ).replace("+", "%20").replace("%2F", "/"))
         );
     }

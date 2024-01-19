@@ -47,9 +47,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -66,6 +63,7 @@ public class TestQueryRecord {
 
     private static final String REL_NAME = "success";
 
+    private static final String ISO_DATE_FORMAT = "yyyy-MM-dd";
     private static final String ISO_DATE = "2018-02-04";
     private static final String INSTANT_FORMATTED = String.format("%sT10:20:55Z", ISO_DATE);
     private static final Instant INSTANT = Instant.parse(INSTANT_FORMATTED);
@@ -111,7 +109,7 @@ public class TestQueryRecord {
             " RPATH(person, '//name') AS names," +
             " RPATH_DATE(person, '/dob') AS dob," +
             " RPATH_LONG(person, '/dobTimestamp') AS dobTimestamp," +
-            " RPATH_DATE(person, 'toDate(/joinTimestamp, \"yyyy-MM-dd\")') AS joinTime, " +
+            " RPATH_DATE(person, 'toDate(/joinDate, \"yyyy-MM-dd\")') AS joinTime, " +
             " RPATH_DOUBLE(person, '/weight') AS weight" +
             " FROM FLOWFILE");
 
@@ -137,10 +135,7 @@ public class TestQueryRecord {
         assertArrayEquals(new String[] { "red", "green"}, (Object[]) output.getValue("colors"));
         assertArrayEquals(new String[] { "John Doe", "Jane Doe"}, (Object[]) output.getValue("names"));
 
-        final LocalDate localDate = LocalDate.parse(ISO_DATE);
-        final ZonedDateTime zonedDateTime = ZonedDateTime.of(localDate.atStartOfDay(), ZoneOffset.systemDefault());
-        final long epochMillis = zonedDateTime.toInstant().toEpochMilli();
-        assertEquals(Long.toString(epochMillis), output.getAsString("joinTime"));
+        assertEquals(java.sql.Date.valueOf(ISO_DATE), output.getAsDate("joinTime", ISO_DATE_FORMAT));
         assertEquals(Double.valueOf(180.8D), output.getAsDouble("weight"));
     }
 
@@ -680,7 +675,7 @@ public class TestQueryRecord {
      *        "favoriteColors": [ "red", "green" ],
      *        "dob": 598741575825,
      *        "dobTimestamp": 598741575825,
-     *        "joinTimestamp": "2018-02-04 10:20:55.802",
+     *        "joinDate": "2018-02-04",
      *        "weight": 180.8,
      *        "mother": {
      *          "name": "Jane Doe"
@@ -708,7 +703,7 @@ public class TestQueryRecord {
         personFields.add(new RecordField("favoriteColors", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())));
         personFields.add(new RecordField("dob", RecordFieldType.DATE.getDataType()));
         personFields.add(new RecordField("dobTimestamp", RecordFieldType.LONG.getDataType()));
-        personFields.add(new RecordField("joinTimestamp", RecordFieldType.STRING.getDataType()));
+        personFields.add(new RecordField("joinDate", RecordFieldType.STRING.getDataType()));
         personFields.add(new RecordField("weight", RecordFieldType.DOUBLE.getDataType()));
         personFields.add(new RecordField("height", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.LONG.getDataType(), RecordFieldType.INT.getDataType())));
         personFields.add(new RecordField("mother", RecordFieldType.RECORD.getRecordDataType(namedPersonSchema)));
@@ -734,7 +729,7 @@ public class TestQueryRecord {
         map.put("favoriteColors", new String[] { "red", "green" });
         map.put("dob", INSTANT_DATE);
         map.put("dobTimestamp", INSTANT_EPOCH_MILLIS);
-        map.put("joinTimestamp", INSTANT_FORMATTED);
+        map.put("joinDate", ISO_DATE);
         map.put("weight", 180.8D);
         map.put("height", 60.5);
         map.put("mother", mother);

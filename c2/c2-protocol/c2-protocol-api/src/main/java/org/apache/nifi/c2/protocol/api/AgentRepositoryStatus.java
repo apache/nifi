@@ -17,12 +17,10 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.io.Serializable;
 
-@ApiModel
 public class AgentRepositoryStatus implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -31,7 +29,7 @@ public class AgentRepositoryStatus implements Serializable {
     private Long dataSize;
     private Long dataSizeMax;
 
-    @ApiModelProperty(value = "The number of items in the repository", allowableValues = "range[0, 9223372036854775807]")
+    @Schema(description = "The number of items in the repository", allowableValues = "range[0, 9223372036854775807]")
     public Long getSize() {
         return size;
     }
@@ -40,7 +38,7 @@ public class AgentRepositoryStatus implements Serializable {
         this.size = size;
     }
 
-    @ApiModelProperty(value = "The maximum number of items the repository is capable of storing", allowableValues = "range[0, 9223372036854775807]")
+    @Schema(description = "The maximum number of items the repository is capable of storing", allowableValues = "range[0, 9223372036854775807]")
     public Long getSizeMax() {
         return sizeMax;
     }
@@ -49,7 +47,7 @@ public class AgentRepositoryStatus implements Serializable {
         this.sizeMax = sizeMax;
     }
 
-    @ApiModelProperty(value = "The data size (in Bytes) of all items in the repository", allowableValues = "range[0, 9223372036854775807]")
+    @Schema(description = "The data size (in Bytes) of all items in the repository", allowableValues = "range[0, 9223372036854775807]")
     public Long getDataSize() {
         return dataSize;
     }
@@ -58,7 +56,7 @@ public class AgentRepositoryStatus implements Serializable {
         this.dataSize = dataSize;
     }
 
-    @ApiModelProperty(value = "The maximum data size (in Bytes) that the repository is capable of storing", allowableValues = "range[0, 9223372036854775807]")
+    @Schema(description = "The maximum data size (in Bytes) that the repository is capable of storing", allowableValues = "range[0, 9223372036854775807]")
     public Long getDataSizeMax() {
         return dataSizeMax;
     }
@@ -75,7 +73,7 @@ public class AgentRepositoryStatus implements Serializable {
      *
      * @return a decimal between [0, 1] representing the sizeMax utilization percentage
      */
-    @ApiModelProperty(hidden = true)
+    @Schema(hidden = true)
     public Double getSizeUtilization() {
         return size != null && sizeMax != null && sizeMax > 0 ? (double) size / (double) sizeMax : null;
     }
@@ -86,7 +84,7 @@ public class AgentRepositoryStatus implements Serializable {
      *
      * @return a decimal between [0, 1] representing the dataSizeMax utilization percentage
      */
-    @ApiModelProperty(hidden = true)
+    @Schema(hidden = true)
     public Double getDataSizeUtilization() {
         return dataSize != null && dataSizeMax != null && dataSizeMax > 0 ? (double) dataSize / (double) dataSizeMax : null;
     }

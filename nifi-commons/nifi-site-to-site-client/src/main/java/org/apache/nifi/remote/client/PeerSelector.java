@@ -35,7 +35,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import javax.validation.constraints.NotNull;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
@@ -339,7 +338,6 @@ public class PeerSelector {
      * @param direction    whether sending flowfiles to these peers or receiving them
      * @return the map of weighted peers
      */
-    @NotNull
     private Map<PeerStatus, Double> createDestinationMap(Set<PeerStatus> peerStatuses, TransferDirection direction) {
         final Map<PeerStatus, Double> peerWorkloads = new HashMap<>();
 
@@ -469,7 +467,6 @@ public class PeerSelector {
      *
      * @return the set of queryable peers (empty set if the cache is {@code null})
      */
-    @NotNull
     private Set<PeerStatus> getLastFetchedQueryablePeers() {
         return peerStatusCache != null ? peerStatusCache.getStatuses() : Collections.emptySet();
     }
@@ -479,7 +476,6 @@ public class PeerSelector {
      *
      * @return the most recent peer statuses (empty set if the cache is {@code null})
      */
-    @NotNull
     private Set<PeerStatus> getPeerStatuses() {
         if (isPeerRefreshNeeded()) {
             refreshPeerStatusCache();

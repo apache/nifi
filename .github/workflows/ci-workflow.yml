@@ -170,6 +170,7 @@ jobs:
           ${{ env.MAVEN_VERIFY_COMMAND }}
           ${{ env.MAVEN_BUILD_PROFILES }}
           -P report-code-coverage
+          -P python-unit-tests
           ${{ env.MAVEN_PROJECTS }}
       - name: Codecov
         uses: codecov/codecov-action@v3
@@ -238,6 +239,7 @@ jobs:
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_VERIFY_COMMAND }}
           ${{ env.MAVEN_BUILD_PROFILES }}
+          -P python-unit-tests
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Test Reports
         uses: actions/upload-artifact@v3

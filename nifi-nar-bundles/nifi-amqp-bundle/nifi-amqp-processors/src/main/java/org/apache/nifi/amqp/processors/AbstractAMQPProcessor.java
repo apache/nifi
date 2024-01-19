@@ -38,12 +38,12 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 
 
@@ -125,14 +125,6 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .allowableValues("true", "false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
-    public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
-            .name("ssl-client-auth")
-            .displayName("Client Auth")
-            .description("The property has no effect and therefore deprecated.")
-            .required(false)
-            .allowableValues(ClientAuth.values())
-            .defaultValue("NONE")
-            .build();
 
     private static final List<PropertyDescriptor> propertyDescriptors;
 
@@ -147,7 +139,6 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         properties.add(AMQP_VERSION);
         properties.add(SSL_CONTEXT_SERVICE);
         properties.add(USE_CERT_AUTHENTICATION);
-        properties.add(CLIENT_AUTH);
         propertyDescriptors = Collections.unmodifiableList(properties);
     }
 
@@ -156,6 +147,11 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
     }
 
     private BlockingQueue<AMQPResource<T>> resourceQueue;
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        config.removeProperty("ssl-client-auth");
+    }
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {

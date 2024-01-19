@@ -24,6 +24,7 @@ import { MatTableModule } from '@angular/material/table';
 import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { ParameterContextTable } from './parameter-context-table/parameter-context-table.component';
 import { MatDialogModule } from '@angular/material/dialog';
+import { RouterLink } from '@angular/router';
 
 @NgModule({
     declarations: [ParameterContextListing, ParameterContextTable],
@@ -34,7 +35,8 @@ import { MatDialogModule } from '@angular/material/dialog';
         MatSortModule,
         MatTableModule,
         MatDialogModule,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        RouterLink
     ]
 })
 export class ParameterContextListingModule {}

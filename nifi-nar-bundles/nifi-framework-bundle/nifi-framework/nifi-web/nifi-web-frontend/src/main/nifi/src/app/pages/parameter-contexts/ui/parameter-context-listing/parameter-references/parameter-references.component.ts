@@ -129,7 +129,7 @@ export class ParameterReferences {
     }
 
     getRouteForReference(reference: AffectedComponent): string[] {
-        if (reference.referenceType == 'ControllerService') {
+        if (reference.referenceType === 'CONTROLLER_SERVICE') {
             if (reference.processGroupId == null) {
                 return ['/settings', 'management-controller-services', reference.id];
             } else {

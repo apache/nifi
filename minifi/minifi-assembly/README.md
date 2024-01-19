@@ -39,7 +39,7 @@ Specific goals for MiNiFi are comprised of:
 Perspectives of the role of MiNiFi should be from the perspective of the agent acting immediately at, or directly adjacent to, source sensors, systems, or servers.
 
 ## Requirements
-* JRE 21
+* Java 21
 
 ## Getting Started
 

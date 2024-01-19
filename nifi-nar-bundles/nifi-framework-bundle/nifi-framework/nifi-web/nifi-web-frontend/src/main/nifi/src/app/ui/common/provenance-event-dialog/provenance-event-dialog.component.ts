@@ -17,7 +17,7 @@
 
 import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
@@ -25,14 +25,13 @@ import { AsyncPipe, NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { MatTabsModule } from '@angular/material/tabs';
-import { Attribute, ProvenanceEvent, ProvenanceEventDialogRequest } from '../../../state/shared';
+import { Attribute, ProvenanceEventDialogRequest } from '../../../state/shared';
 
 @Component({
     selector: 'provenance-event-dialog',
     standalone: true,
     templateUrl: './provenance-event-dialog.component.html',
     imports: [
-        ReactiveFormsModule,
         MatDialogModule,
         MatInputModule,
         MatCheckboxModule,

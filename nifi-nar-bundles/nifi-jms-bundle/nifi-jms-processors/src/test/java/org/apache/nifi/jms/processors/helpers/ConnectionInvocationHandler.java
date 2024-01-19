@@ -24,9 +24,8 @@ import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.concurrent.ThreadSafe;
-import javax.jms.Connection;
-import javax.jms.Session;
+import jakarta.jms.Connection;
+import jakarta.jms.Session;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +33,6 @@ import org.slf4j.LoggerFactory;
 /**
  * Simple {@link Connection} proxy utility to detect opened and unclosed resources.
  */
-@ThreadSafe
 final class ConnectionInvocationHandler implements InvocationHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionInvocationHandler.class);
     private final AtomicInteger closeCalled = new AtomicInteger();

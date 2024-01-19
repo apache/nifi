@@ -2498,6 +2498,7 @@ public class TestQuery {
     void testIsJson() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("jsonObj", "{\"name\":\"John\", \"age\":30, \"car\":null}");
+        attributes.put("jsonObjWithLeadingAndTrailingingSpaces", "\n{\"name\":\"John\", \"age\":30, \"car\":null}\n");
         attributes.put("jsonObjMissingStartingBrace", "\"name\":\"John\", \"age\":30, \"car\":null}");
         attributes.put("jsonObjMissingEndingBrace", "{\"name\":\"John\", \"age\":30, \"car\":null");
         attributes.put("jsonArray", "[\"Ford\", \"BMW\", \"Fiat\"]");
@@ -2512,6 +2513,7 @@ public class TestQuery {
         attributes.put("nullAttr", "null");
 
         verifyEquals("${jsonObj:isJson()}", attributes, true);
+        verifyEquals("${jsonObjWithLeadingAndTrailingingSpaces:isJson()}", attributes, true);
         verifyEquals("${jsonObjMissingStartingBrace:isJson()}", attributes, false);
         verifyEquals("${jsonObjMissingEndingBrace:isJson()}", attributes, false);
         verifyEquals("${jsonArray:isJson()}", attributes, true);

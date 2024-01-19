@@ -17,33 +17,46 @@
 
 <div class="relative h-full border">
     <div class="reporting-task-table listing-table absolute inset-0 overflow-y-auto">
-        <table mat-table [dataSource]="dataSource" matSort matSortDisableClear>
+        <table
+            mat-table
+            [dataSource]="dataSource"
+            matSort
+            matSortDisableClear
+            (matSortChange)="sortData($event)"
+            [matSortActive]="initialSortColumn"
+            [matSortDirection]="initialSortDirection">
             <!-- More Details Column -->
             <ng-container matColumnDef="moreDetails">
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let item">
                     <ng-container *ngIf="canRead(item)">
-                        <div class="flex items-center">
-                            <div class="mr-3 pointer fa fa-book" title="Usage"></div>
+                        <div class="flex items-center gap-x-3">
+                            <div class="pointer fa fa-book" title="Usage"></div>
                             <!-- TODO - handle read only in configure component? -->
-                            <div
-                                class="mr-3 pointer fa fa-comment"
-                                *ngIf="hasComments(item)"
-                                nifiTooltip
-                                [tooltipComponentType]="TextTip"
-                                [tooltipInputData]="getCommentsTipData(item)"></div>
-                            <div
-                                class="mr-3 pointer fa fa-warning has-errors"
-                                *ngIf="hasErrors(item)"
-                                nifiTooltip
-                                [tooltipComponentType]="ValidationErrorsTip"
-                                [tooltipInputData]="getValidationErrorsTipData(item)"></div>
-                            <div
-                                class="mr-3 pointer fa fa-sticky-note-o"
-                                *ngIf="hasBulletins(item)"
-                                nifiTooltip
-                                [tooltipComponentType]="BulletinsTip"
-                                [tooltipInputData]="getBulletinsTipData(item)"></div>
+                            <div *ngIf="hasComments(item)">
+                                <div
+                                    class="pointer fa fa-comment"
+                                    [delayClose]="false"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    [tooltipInputData]="getCommentsTipData(item)"></div>
+                            </div>
+                            <div *ngIf="hasErrors(item)">
+                                <div
+                                    class="pointer fa fa-warning has-errors"
+                                    [delayClose]="false"
+                                    nifiTooltip
+                                    [tooltipComponentType]="ValidationErrorsTip"
+                                    [tooltipInputData]="getValidationErrorsTipData(item)"></div>
+                            </div>
+                            <div *ngIf="hasBulletins(item)">
+                                <div
+                                    class="pointer fa fa-sticky-note-o"
+                                    [delayClose]="false"
+                                    nifiTooltip
+                                    [tooltipComponentType]="BulletinsTip"
+                                    [tooltipInputData]="getBulletinsTipData(item)"></div>
+                            </div>
                         </div>
                     </ng-container>
                 </td>
@@ -53,12 +66,7 @@
             <ng-container matColumnDef="name">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
                 <td mat-cell *matCellDef="let item">
-                    <ng-container *ngIf="canRead(item); else nameNoPermissions">
-                        {{ item.component.name }}
-                    </ng-container>
-                    <ng-template #nameNoPermissions>
-                        <div class="unset">{{ item.id }}</div>
-                    </ng-template>
+                    <div [ngClass]="{ unset: !canRead(item) }">{{ formatName(item) }}</div>
                 </td>
             </ng-container>
 
@@ -66,9 +74,7 @@
             <ng-container matColumnDef="type">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
                 <td mat-cell *matCellDef="let item">
-                    <ng-container *ngIf="canRead(item)">
-                        {{ formatType(item) }}
-                    </ng-container>
+                    {{ formatType(item) }}
                 </td>
             </ng-container>
 
@@ -76,9 +82,7 @@
             <ng-container matColumnDef="bundle">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Bundle</th>
                 <td mat-cell *matCellDef="let item">
-                    <ng-container *ngIf="canRead(item)">
-                        {{ formatBundle(item) }}
-                    </ng-container>
+                    {{ formatBundle(item) }}
                 </td>
             </ng-container>
 
@@ -104,7 +108,11 @@
                             *ngIf="canStop(item)"
                             (click)="stopClicked(item)"
                             title="Stop"></div>
-                        <div class="pointer fa fa-pencil" *ngIf="canEdit(item)" title="Edit"></div>
+                        <div
+                            class="pointer fa fa-pencil"
+                            *ngIf="canEdit(item)"
+                            (click)="configureClicked(item, $event)"
+                            title="Edit"></div>
                         <div
                             class="pointer fa fa-play"
                             *ngIf="canStart(item)"
@@ -117,8 +125,13 @@
                             (click)="deleteClicked(item)"
                             title="Delete"></div>
                         <div class="pointer fa fa-tasks" *ngIf="canViewState(item)" title="View State"></div>
+                        <div
+                            class="pointer fa fa-key"
+                            *ngIf="canManageAccessPolicies()"
+                            (click)="$event.stopPropagation()"
+                            [routerLink]="getPolicyLink(item)"
+                            title="Access Policies"></div>
                     </div>
-                    <div class="pointer fa fa-key" *ngIf="canManageAccessPolicies()" title="Access Policies"></div>
                 </td>
             </ng-container>
 

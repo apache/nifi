@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public class NodeProcessGroupStatusSnapshotDTO implements Cloneable {
 
@@ -26,7 +26,7 @@ public class NodeProcessGroupStatusSnapshotDTO implements Cloneable {
 
     private ProcessGroupStatusSnapshotDTO statusSnapshot;
 
-    @ApiModelProperty("The unique ID that identifies the node")
+    @Schema(description = "The unique ID that identifies the node")
     public String getNodeId() {
         return nodeId;
     }
@@ -35,7 +35,7 @@ public class NodeProcessGroupStatusSnapshotDTO implements Cloneable {
         this.nodeId = nodeId;
     }
 
-    @ApiModelProperty("The API address of the node")
+    @Schema(description = "The API address of the node")
     public String getAddress() {
         return address;
     }
@@ -44,7 +44,7 @@ public class NodeProcessGroupStatusSnapshotDTO implements Cloneable {
         this.address = address;
     }
 
-    @ApiModelProperty("The API port used to communicate with the node")
+    @Schema(description = "The API port used to communicate with the node")
     public Integer getApiPort() {
         return apiPort;
     }
@@ -53,7 +53,7 @@ public class NodeProcessGroupStatusSnapshotDTO implements Cloneable {
         this.apiPort = apiPort;
     }
 
-    @ApiModelProperty("The process group status snapshot from the node.")
+    @Schema(description = "The process group status snapshot from the node.")
     public ProcessGroupStatusSnapshotDTO getStatusSnapshot() {
         return statusSnapshot;
     }

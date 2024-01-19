@@ -16,7 +16,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ParameterContextListingActions from './parameter-context-listing.actions';
 import {
     asyncScheduler,
@@ -30,8 +30,7 @@ import {
     switchMap,
     take,
     takeUntil,
-    tap,
-    withLatestFrom
+    tap
 } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
@@ -41,9 +40,13 @@ import { ParameterContextService } from '../../service/parameter-contexts.servic
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { EditParameterContext } from '../../ui/parameter-context-listing/edit-parameter-context/edit-parameter-context.component';
 import { selectParameterContexts, selectSaving, selectUpdateRequest } from './parameter-context-listing.selectors';
-import { EditParameterRequest, EditParameterResponse, Parameter } from '../../../../state/shared';
+import {
+    EditParameterRequest,
+    EditParameterResponse,
+    Parameter,
+    ParameterContextUpdateRequest
+} from '../../../../state/shared';
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
-import { ParameterContextUpdateRequest } from './index';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 
 @Injectable()
@@ -104,7 +107,7 @@ export class ParameterContextListingEffects {
                             panelClass: 'medium-dialog'
                         });
 
-                        newParameterDialogReference.componentInstance.saving = false;
+                        newParameterDialogReference.componentInstance.saving$ = of(false);
 
                         return newParameterDialogReference.componentInstance.editParameter.pipe(
                             take(1),
@@ -236,7 +239,7 @@ export class ParameterContextListingEffects {
                             panelClass: 'medium-dialog'
                         });
 
-                        newParameterDialogReference.componentInstance.saving = false;
+                        newParameterDialogReference.componentInstance.saving$ = of(false);
 
                         return newParameterDialogReference.componentInstance.editParameter.pipe(
                             take(1),
@@ -263,7 +266,7 @@ export class ParameterContextListingEffects {
                             panelClass: 'medium-dialog'
                         });
 
-                        editParameterDialogReference.componentInstance.saving = false;
+                        editParameterDialogReference.componentInstance.saving$ = of(false);
 
                         return editParameterDialogReference.componentInstance.editParameter.pipe(
                             take(1),
@@ -336,7 +339,14 @@ export class ParameterContextListingEffects {
         this.actions$.pipe(
             ofType(ParameterContextListingActions.submitParameterContextUpdateRequestSuccess),
             map((action) => action.response),
-            switchMap((response) => of(ParameterContextListingActions.startPollingParameterContextUpdateRequest()))
+            switchMap((response) => {
+                const updateRequest: ParameterContextUpdateRequest = response.requestEntity.request;
+                if (updateRequest.complete) {
+                    return of(ParameterContextListingActions.deleteParameterContextUpdateRequest());
+                } else {
+                    return of(ParameterContextListingActions.startPollingParameterContextUpdateRequest());
+                }
+            })
         )
     );
 
@@ -359,7 +369,7 @@ export class ParameterContextListingEffects {
     pollParameterContextUpdateRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ParameterContextListingActions.pollParameterContextUpdateRequest),
-            withLatestFrom(this.store.select(selectUpdateRequest)),
+            concatLatestFrom(() => this.store.select(selectUpdateRequest)),
             switchMap(([action, updateRequest]) => {
                 if (updateRequest) {
                     return from(this.parameterContextService.pollParameterContextUpdate(updateRequest.request)).pipe(
@@ -411,7 +421,7 @@ export class ParameterContextListingEffects {
         () =>
             this.actions$.pipe(
                 ofType(ParameterContextListingActions.deleteParameterContextUpdateRequest),
-                withLatestFrom(this.store.select(selectUpdateRequest)),
+                concatLatestFrom(() => this.store.select(selectUpdateRequest)),
                 tap(([action, updateRequest]) => {
                     if (updateRequest) {
                         this.parameterContextService.deleteParameterContextUpdate(updateRequest.request).subscribe();

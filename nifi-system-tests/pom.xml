@@ -24,11 +24,6 @@
     <artifactId>nifi-system-tests</artifactId>
     <packaging>pom</packaging>
 
-    <properties>
-        <jakarta.rs.api.version>3.1.0</jakarta.rs.api.version>
-        <jersey.bom.version>3.1.3</jersey.bom.version>
-    </properties>
-
     <modules>
         <module>nifi-system-test-extensions-bundle</module>
         <module>nifi-system-test-extensions2-bundle</module>

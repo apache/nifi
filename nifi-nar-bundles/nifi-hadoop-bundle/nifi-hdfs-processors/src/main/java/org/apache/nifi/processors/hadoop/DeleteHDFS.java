@@ -25,7 +25,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
-import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -52,7 +51,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@TriggerWhenEmpty
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @Tags({"hadoop", "HCFS", "HDFS", "delete", "remove", "filesystem"})
 @CapabilityDescription("Deletes one or more files or directories from HDFS. The path can be provided as an attribute from an incoming FlowFile, "
@@ -63,9 +61,9 @@ import java.util.regex.Pattern;
         + " flowfile then provided there are no detected failures it will be transferred to success otherwise it will be sent to false. If"
         + " knowledge of globbed files deleted is necessary use ListHDFS first to produce a specific list of files to delete. ")
 @Restricted(restrictions = {
-    @Restriction(
-        requiredPermission = RequiredPermission.WRITE_DISTRIBUTED_FILESYSTEM,
-        explanation = "Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
+        @Restriction(
+                requiredPermission = RequiredPermission.WRITE_DISTRIBUTED_FILESYSTEM,
+                explanation = "Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
 })
 @WritesAttributes({
         @WritesAttribute(attribute="hdfs.filename", description="HDFS file to be deleted. "

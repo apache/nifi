@@ -23,14 +23,11 @@ import org.apache.nifi.components.DescribedValue;
  */
 public enum FailureStrategy implements DescribedValue {
     ROUTE_TO_FAILURE("Route to Failure", "Route to Failure", "When unable to publish records to Kafka, the FlowFile will be routed to the failure relationship."),
-
     ROLLBACK("Rollback", "Rollback", "When unable to publish records to Kafka, the FlowFile will be placed back on the queue so that it will be retried. " +
             "For flows where FlowFile ordering is important, this strategy can be used along with ensuring that the each processor uses only a single Concurrent Task.");
 
     private final String value;
-
     private final String displayName;
-
     private final String description;
 
     FailureStrategy(final String value, final String displayName, final String description) {

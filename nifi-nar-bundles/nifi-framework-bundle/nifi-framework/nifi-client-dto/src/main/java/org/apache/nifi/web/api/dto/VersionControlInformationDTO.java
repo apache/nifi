@@ -17,9 +17,9 @@
 
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 @XmlType(name = "versionControlInformation")
 public class VersionControlInformationDTO {
@@ -43,7 +43,7 @@ public class VersionControlInformationDTO {
     private String state;
     private String stateExplanation;
 
-    @ApiModelProperty("The ID of the Process Group that is under version control")
+    @Schema(description = "The ID of the Process Group that is under version control")
     public String getGroupId() {
         return groupId;
     }
@@ -52,7 +52,7 @@ public class VersionControlInformationDTO {
         this.groupId = groupId;
     }
 
-    @ApiModelProperty("The ID of the registry that the flow is stored in")
+    @Schema(description = "The ID of the registry that the flow is stored in")
     public String getRegistryId() {
         return registryId;
     }
@@ -61,7 +61,7 @@ public class VersionControlInformationDTO {
         this.registryId = registryId;
     }
 
-    @ApiModelProperty(value = "The name of the registry that the flow is stored in", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The name of the registry that the flow is stored in", accessMode = Schema.AccessMode.READ_ONLY)
     public String getRegistryName() {
         return registryName;
     }
@@ -70,7 +70,7 @@ public class VersionControlInformationDTO {
         this.registryName = registryName;
     }
 
-    @ApiModelProperty("The ID of the bucket that the flow is stored in")
+    @Schema(description = "The ID of the bucket that the flow is stored in")
     public String getBucketId() {
         return bucketId;
     }
@@ -79,7 +79,7 @@ public class VersionControlInformationDTO {
         this.bucketId = bucketId;
     }
 
-    @ApiModelProperty(value = "The name of the bucket that the flow is stored in", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The name of the bucket that the flow is stored in", accessMode = Schema.AccessMode.READ_ONLY)
     public String getBucketName() {
         return bucketName;
     }
@@ -88,7 +88,7 @@ public class VersionControlInformationDTO {
         this.bucketName = bucketName;
     }
 
-    @ApiModelProperty("The ID of the flow")
+    @Schema(description = "The ID of the flow")
     public String getFlowId() {
         return flowId;
     }
@@ -97,7 +97,7 @@ public class VersionControlInformationDTO {
         this.flowId = flowId;
     }
 
-    @ApiModelProperty("The name of the flow")
+    @Schema(description = "The name of the flow")
     public String getFlowName() {
         return flowName;
     }
@@ -106,7 +106,7 @@ public class VersionControlInformationDTO {
         this.flowName = flowName;
     }
 
-    @ApiModelProperty("The description of the flow")
+    @Schema(description = "The description of the flow")
     public String getFlowDescription() {
         return flowDescription;
     }
@@ -115,7 +115,7 @@ public class VersionControlInformationDTO {
         this.flowDescription = flowDescription;
     }
 
-    @ApiModelProperty("The version of the flow")
+    @Schema(description = "The version of the flow")
     public Integer getVersion() {
         return version;
     }
@@ -124,7 +124,7 @@ public class VersionControlInformationDTO {
         this.version = version;
     }
 
-    @ApiModelProperty("The storage location")
+    @Schema(description = "The storage location")
     public String getStorageLocation() {
         return storageLocation;
     }
@@ -133,8 +133,8 @@ public class VersionControlInformationDTO {
         this.storageLocation = storageLocation;
     }
 
-    @ApiModelProperty(accessMode = ApiModelProperty.AccessMode.READ_ONLY,
-        value = "The current state of the Process Group, as it relates to the Versioned Flow",
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY,
+        description = "The current state of the Process Group, as it relates to the Versioned Flow",
         allowableValues = LOCALLY_MODIFIED + ", " + STALE + ", " + LOCALLY_MODIFIED_AND_STALE + ", " + UP_TO_DATE + ", " + SYNC_FAILURE)
     public String getState() {
         return state;
@@ -144,7 +144,7 @@ public class VersionControlInformationDTO {
         this.state = state;
     }
 
-    @ApiModelProperty(accessMode = ApiModelProperty.AccessMode.READ_ONLY, value = "Explanation of why the group is in the specified state")
+    @Schema(description = "Explanation of why the group is in the specified state", accessMode = Schema.AccessMode.READ_ONLY)
     public String getStateExplanation() {
         return stateExplanation;
     }

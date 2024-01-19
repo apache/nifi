@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateEntity;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
 import java.util.Set;
 
@@ -30,8 +30,8 @@ public class ParameterProviderApplyParametersRequestDTO extends AsynchronousRequ
     private List<ParameterContextUpdateEntity> parameterContextUpdates;
     private Set<AffectedComponentEntity> referencingComponents;
 
-    @ApiModelProperty(value = "The Parameter Contexts updated by this Parameter Provider. This may not be populated until the request has successfully completed.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The Parameter Contexts updated by this Parameter Provider. This may not be populated until the request has successfully completed.",
+            accessMode = Schema.AccessMode.READ_ONLY)
     public List<ParameterContextUpdateEntity> getParameterContextUpdates() {
         return parameterContextUpdates;
     }
@@ -40,8 +40,8 @@ public class ParameterProviderApplyParametersRequestDTO extends AsynchronousRequ
         this.parameterContextUpdates = parameterContextUpdates;
     }
 
-    @ApiModelProperty(value = "The Parameter Provider that is being operated on. This may not be populated until the request has successfully completed.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The Parameter Provider that is being operated on. This may not be populated until the request has successfully completed.",
+            accessMode = Schema.AccessMode.READ_ONLY)
     public ParameterProviderDTO getParameterProvider() {
         return parameterProvider;
     }
@@ -50,7 +50,7 @@ public class ParameterProviderApplyParametersRequestDTO extends AsynchronousRequ
         this.parameterProvider = parameterProvider;
     }
 
-    @ApiModelProperty(value = "The components that are referenced by the update.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The components that are referenced by the update.", accessMode = Schema.AccessMode.READ_ONLY)
     public Set<AffectedComponentEntity> getReferencingComponents() {
         return referencingComponents;
     }

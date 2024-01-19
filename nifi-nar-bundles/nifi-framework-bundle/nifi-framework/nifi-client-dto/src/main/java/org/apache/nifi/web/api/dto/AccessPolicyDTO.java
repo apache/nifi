@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.entity.TenantEntity;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Set;
 
 /**
@@ -34,7 +34,7 @@ public class AccessPolicyDTO  extends AccessPolicySummaryDTO {
     /**
      * @return The set of user IDs associated with this access policy.
      */
-    @ApiModelProperty(value = "The set of user IDs associated with this access policy.")
+    @Schema(description = "The set of user IDs associated with this access policy.")
     public Set<TenantEntity> getUsers() {
         return users;
     }
@@ -46,7 +46,7 @@ public class AccessPolicyDTO  extends AccessPolicySummaryDTO {
     /**
      * @return The set of user group IDs associated with this access policy.
      */
-    @ApiModelProperty(value = "The set of user group IDs associated with this access policy.")
+    @Schema(description = "The set of user group IDs associated with this access policy.")
     public Set<TenantEntity> getUserGroups() {
         return userGroups;
     }

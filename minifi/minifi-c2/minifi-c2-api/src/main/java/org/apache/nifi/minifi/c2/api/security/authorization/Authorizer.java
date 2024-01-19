@@ -19,7 +19,7 @@ package org.apache.nifi.minifi.c2.api.security.authorization;
 
 import org.springframework.security.core.Authentication;
 
-import javax.ws.rs.core.UriInfo;
+import jakarta.ws.rs.core.UriInfo;
 
 /**
  * Interface responsible for authorizing a given authentication to access a given uri

@@ -125,7 +125,7 @@ public class AgeKeyValidator implements Validator {
                         .filter(Predicate.not(Matcher::matches))
                         .count();
 
-                if (prefixedLines.size() == 0) {
+                if (prefixedLines.isEmpty()) {
                     builder.explanation(NOT_FOUND_EXPLANATION).valid(false);
                 } else if (invalid == 0) {
                     builder.explanation(VALID_EXPLANATION).valid(true);

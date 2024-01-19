@@ -20,6 +20,7 @@ import { Observable, throwError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { ProvenanceRequest } from '../state/provenance-event-listing';
+import { LineageRequest } from '../state/lineage';
 
 @Injectable({ providedIn: 'root' })
 export class ProvenanceService {
@@ -126,5 +127,19 @@ export class ProvenanceService {
         // TODO - add cluster node id in payload
 
         return this.httpClient.post(`${ProvenanceService.API}/provenance-events/replays`, payload);
+    }
+
+    submitLineageQuery(request: LineageRequest): Observable<any> {
+        return this.httpClient.post(`${ProvenanceService.API}/provenance/lineage`, { lineage: { request } });
+    }
+
+    getLineageQuery(id: string, clusterNodeId?: string): Observable<any> {
+        // TODO - cluster node id
+        return this.httpClient.get(`${ProvenanceService.API}/provenance/lineage/${encodeURIComponent(id)}`);
+    }
+
+    deleteLineageQuery(id: string, clusterNodeId?: string): Observable<any> {
+        // TODO - cluster node id
+        return this.httpClient.delete(`${ProvenanceService.API}/provenance/lineage/${encodeURIComponent(id)}`);
     }
 }

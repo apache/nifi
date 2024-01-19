@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Details for the access configuration.
@@ -32,9 +32,8 @@ public class PermissionsDTO implements ReadablePermission, WritablePermission {
     /**
      * @return Indicates whether the user can read a given resource.
      */
-    @ApiModelProperty(
-            value = "Indicates whether the user can read a given resource.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "Indicates whether the user can read a given resource.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     @Override
     public Boolean getCanRead() {
@@ -49,9 +48,8 @@ public class PermissionsDTO implements ReadablePermission, WritablePermission {
     /**
      * @return Indicates whether the user can write a given resource.
      */
-    @ApiModelProperty(
-            value = "Indicates whether the user can write a given resource.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "Indicates whether the user can write a given resource.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     @Override
     public Boolean getCanWrite() {

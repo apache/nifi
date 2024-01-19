@@ -25,12 +25,13 @@ import NfStorage from 'services/nf-storage.service';
  */
 function NfRegistryTokenInterceptor(nfStorage) {
     this.nfStorage = nfStorage;
+    this.requestTokenPattern = /Request-Token=([^;]+)/;
 }
 NfRegistryTokenInterceptor.prototype = {
     constructor: NfRegistryTokenInterceptor,
 
     /**
-     * Injects the authorization token into the request headers.
+     * Injects the authorization token and request token cookie value into the request headers.
      *
      * @param request       angular HttpRequest.
      * @param next          angular HttpHandler.
@@ -40,6 +41,11 @@ NfRegistryTokenInterceptor.prototype = {
         var token = this.nfStorage.getItem('jwt');
         if (token) {
             request = request.clone({headers: request.headers.set('Authorization', 'Bearer ' + token)});
+        }
+        var requestTokenMatcher = this.requestTokenPattern.exec(document.cookie);
+        if (requestTokenMatcher) {
+            var requestToken = requestTokenMatcher[1];
+            request = request.clone({headers: request.headers.set('Request-Token', requestToken)});
         }
         return next.handle(request);
     }

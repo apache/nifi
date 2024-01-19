@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Run status for a given FlowAnalysisRule.
@@ -37,8 +37,7 @@ public class FlowAnalysisRuleRunStatusEntity extends ComponentRunStatusEntity {
      * State of this FlowAnalysisRule.
      * @return The state
      */
-    @ApiModelProperty(
-            value = "The state of the FlowAnalysisRule.",
+    @Schema(description = "The state of the FlowAnalysisRule.",
             allowableValues = "ENABLED, DISABLED"
     )
     public String getState() {

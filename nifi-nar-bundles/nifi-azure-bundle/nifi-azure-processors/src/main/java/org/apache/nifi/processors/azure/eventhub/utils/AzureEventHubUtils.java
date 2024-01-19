@@ -57,7 +57,7 @@ public final class AzureEventHubUtils {
             .name("use-managed-identity")
             .displayName("Use Azure Managed Identity")
             .description("Choose whether or not to use the managed identity of Azure VM/VMSS")
-            .required(false).defaultValue("false").allowableValues("true", "false")
+            .required(true).defaultValue("false").allowableValues("true", "false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
 
     public static final PropertyDescriptor SERVICE_BUS_ENDPOINT = new PropertyDescriptor.Builder()
@@ -67,14 +67,14 @@ public final class AzureEventHubUtils {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(AzureEventHubUtils.AZURE_ENDPOINT, AzureEventHubUtils.AZURE_CHINA_ENDPOINT,
                     AzureEventHubUtils.AZURE_GERMANY_ENDPOINT, AzureEventHubUtils.AZURE_US_GOV_ENDPOINT)
-            .defaultValue(AzureEventHubUtils.AZURE_ENDPOINT.getValue())
+            .defaultValue(AzureEventHubUtils.AZURE_ENDPOINT)
             .required(true)
             .build();
 
     public static List<ValidationResult> customValidate(PropertyDescriptor accessPolicyDescriptor,
                                                         PropertyDescriptor policyKeyDescriptor,
                                                         ValidationContext context) {
-        List<ValidationResult> retVal = new ArrayList<>();
+        List<ValidationResult> validationResults = new ArrayList<>();
 
         boolean accessPolicyIsSet = context.getProperty(accessPolicyDescriptor).isSet();
         boolean policyKeyIsSet = context.getProperty(policyKeyDescriptor).isSet();
@@ -87,7 +87,7 @@ public final class AzureEventHubUtils {
                     accessPolicyDescriptor.getDisplayName(),
                     POLICY_PRIMARY_KEY.getDisplayName()
             );
-            retVal.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
+            validationResults.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
         } else if (!useManagedIdentity && (!accessPolicyIsSet || !policyKeyIsSet)) {
             final String msg = String.format(
                     "either('%s') or (%s with '%s') must be set",
@@ -95,10 +95,10 @@ public final class AzureEventHubUtils {
                     accessPolicyDescriptor.getDisplayName(),
                     POLICY_PRIMARY_KEY.getDisplayName()
             );
-            retVal.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
+            validationResults.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
         }
-        ProxyConfiguration.validateProxySpec(context, retVal, AzureEventHubComponent.PROXY_SPECS);
-        return retVal;
+        ProxyConfiguration.validateProxySpec(context, validationResults, AzureEventHubComponent.PROXY_SPECS);
+        return validationResults;
     }
 
     public static Map<String, String> getApplicationProperties(final Map<String, Object> eventProperties) {

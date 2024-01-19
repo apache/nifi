@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -72,7 +72,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
     private VersionInfoDTO versionInfo;
 
 
-    @ApiModelProperty("Number of available processors if supported by the underlying system.")
+    @Schema(description = "Number of available processors if supported by the underlying system.")
     public Integer getAvailableProcessors() {
         return availableProcessors;
     }
@@ -81,7 +81,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.availableProcessors = availableProcessors;
     }
 
-    @ApiModelProperty("Number of daemon threads.")
+    @Schema(description = "Number of daemon threads.")
     public Integer getDaemonThreads() {
         return daemonThreads;
     }
@@ -90,7 +90,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.daemonThreads = daemonThreads;
     }
 
-    @ApiModelProperty("Amount of free heap.")
+    @Schema(description = "Amount of free heap.")
     public String getFreeHeap() {
         return freeHeap;
     }
@@ -99,7 +99,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.freeHeap = freeHeap;
     }
 
-    @ApiModelProperty("Amount of free non heap.")
+    @Schema(description = "Amount of free non heap.")
     public String getFreeNonHeap() {
         return freeNonHeap;
     }
@@ -108,7 +108,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.freeNonHeap = freeNonHeap;
     }
 
-    @ApiModelProperty("Maximum size of heap.")
+    @Schema(description = "Maximum size of heap.")
     public String getMaxHeap() {
         return maxHeap;
     }
@@ -117,7 +117,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.maxHeap = maxHeap;
     }
 
-    @ApiModelProperty("Maximum size of non heap.")
+    @Schema(description = "Maximum size of non heap.")
     public String getMaxNonHeap() {
         return maxNonHeap;
     }
@@ -126,7 +126,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.maxNonHeap = maxNonHeap;
     }
 
-    @ApiModelProperty("The processor load average if supported by the underlying system.")
+    @Schema(description = "The processor load average if supported by the underlying system.")
     public Double getProcessorLoadAverage() {
         return processorLoadAverage;
     }
@@ -135,7 +135,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.processorLoadAverage = processorLoadAverage;
     }
 
-    @ApiModelProperty("Total size of heap.")
+    @Schema(description = "Total size of heap.")
     public String getTotalHeap() {
         return totalHeap;
     }
@@ -144,7 +144,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.totalHeap = totalHeap;
     }
 
-    @ApiModelProperty("Total size of non heap.")
+    @Schema(description = "Total size of non heap.")
     public String getTotalNonHeap() {
         return totalNonHeap;
     }
@@ -153,7 +153,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.totalNonHeap = totalNonHeap;
     }
 
-    @ApiModelProperty("Total number of threads.")
+    @Schema(description = "Total number of threads.")
     public Integer getTotalThreads() {
         return totalThreads;
     }
@@ -162,7 +162,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.totalThreads = totalThreads;
     }
 
-    @ApiModelProperty("Amount of used heap.")
+    @Schema(description = "Amount of used heap.")
     public String getUsedHeap() {
         return usedHeap;
     }
@@ -171,7 +171,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.usedHeap = usedHeap;
     }
 
-    @ApiModelProperty("Amount of use non heap.")
+    @Schema(description = "Amount of use non heap.")
     public String getUsedNonHeap() {
         return usedNonHeap;
     }
@@ -180,7 +180,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.usedNonHeap = usedNonHeap;
     }
 
-    @ApiModelProperty("Utilization of heap.")
+    @Schema(description = "Utilization of heap.")
     public String getHeapUtilization() {
         return heapUtilization;
     }
@@ -189,7 +189,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.heapUtilization = heapUtilization;
     }
 
-    @ApiModelProperty("Utilization of non heap.")
+    @Schema(description = "Utilization of non heap.")
     public String getNonHeapUtilization() {
         return nonHeapUtilization;
     }
@@ -198,7 +198,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.nonHeapUtilization = nonHeapUsage;
     }
 
-    @ApiModelProperty("The content repository storage usage.")
+    @Schema(description = "The content repository storage usage.")
     public Set<StorageUsageDTO> getContentRepositoryStorageUsage() {
         return contentRepositoryStorageUsage;
     }
@@ -207,7 +207,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.contentRepositoryStorageUsage = contentRepositoryStorageUsage;
     }
 
-    @ApiModelProperty("The provenance repository storage usage.")
+    @Schema(description = "The provenance repository storage usage.")
     public Set<StorageUsageDTO> getProvenanceRepositoryStorageUsage() {
         return provenanceRepositoryStorageUsage;
     }
@@ -216,7 +216,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.provenanceRepositoryStorageUsage = provenanceRepositoryStorageUsage;
     }
 
-    @ApiModelProperty("The flowfile repository storage usage.")
+    @Schema(description = "The flowfile repository storage usage.")
     public StorageUsageDTO getFlowFileRepositoryStorageUsage() {
         return flowFileRepositoryStorageUsage;
     }
@@ -225,7 +225,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.flowFileRepositoryStorageUsage = flowFileRepositoryStorageUsage;
     }
 
-    @ApiModelProperty("The garbage collection details.")
+    @Schema(description = "The garbage collection details.")
     public Set<GarbageCollectionDTO> getGarbageCollection() {
         return garbageCollection;
     }
@@ -243,9 +243,8 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
     }
 
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-            value = "When the diagnostics were generated.",
-            dataType = "string"
+    @Schema(description = "When the diagnostics were generated.",
+            type = "string"
     )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;
@@ -256,7 +255,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
     }
 
 
-    @ApiModelProperty("Total number of bytes allocated to the JVM not used for heap")
+    @Schema(description = "Total number of bytes allocated to the JVM not used for heap")
     public Long getTotalNonHeapBytes() {
         return totalNonHeapBytes;
     }
@@ -265,7 +264,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.totalNonHeapBytes = totalNonHeapBytes;
     }
 
-    @ApiModelProperty("Total number of bytes used by the JVM not in the heap space")
+    @Schema(description = "Total number of bytes used by the JVM not in the heap space")
     public Long getUsedNonHeapBytes() {
         return usedNonHeapBytes;
     }
@@ -274,7 +273,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.usedNonHeapBytes = usedNonHeapBytes;
     }
 
-    @ApiModelProperty("Total number of free non-heap bytes available to the JVM")
+    @Schema(description = "Total number of free non-heap bytes available to the JVM")
     public Long getFreeNonHeapBytes() {
         return freeNonHeapBytes;
     }
@@ -283,7 +282,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.freeNonHeapBytes = freeNonHeapBytes;
     }
 
-    @ApiModelProperty("The maximum number of bytes that the JVM can use for non-heap purposes")
+    @Schema(description = "The maximum number of bytes that the JVM can use for non-heap purposes")
     public Long getMaxNonHeapBytes() {
         return maxNonHeapBytes;
     }
@@ -292,7 +291,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.maxNonHeapBytes = maxNonHeapBytes;
     }
 
-    @ApiModelProperty("The total number of bytes that are available for the JVM heap to use")
+    @Schema(description = "The total number of bytes that are available for the JVM heap to use")
     public Long getTotalHeapBytes() {
         return totalHeapBytes;
     }
@@ -301,7 +300,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.totalHeapBytes = totalHeapBytes;
     }
 
-    @ApiModelProperty("The number of bytes of JVM heap that are currently being used")
+    @Schema(description = "The number of bytes of JVM heap that are currently being used")
     public Long getUsedHeapBytes() {
         return usedHeapBytes;
     }
@@ -310,7 +309,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.usedHeapBytes = usedHeapBytes;
     }
 
-    @ApiModelProperty("The number of bytes that are allocated to the JVM heap but not currently being used")
+    @Schema(description = "The number of bytes that are allocated to the JVM heap but not currently being used")
     public Long getFreeHeapBytes() {
         return freeHeapBytes;
     }
@@ -319,7 +318,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.freeHeapBytes = freeHeapBytes;
     }
 
-    @ApiModelProperty("The maximum number of bytes that can be used by the JVM")
+    @Schema(description = "The maximum number of bytes that can be used by the JVM")
     public Long getMaxHeapBytes() {
         return maxHeapBytes;
     }
@@ -328,7 +327,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.maxHeapBytes = maxHeapBytes;
     }
 
-    @ApiModelProperty("The nifi, os, java, and build version information")
+    @Schema(description = "The nifi, os, java, and build version information")
     public VersionInfoDTO getVersionInfo() {
         return versionInfo;
     }
@@ -337,7 +336,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.versionInfo = versionInfo;
     }
 
-    @ApiModelProperty("The uptime of the Java virtual machine")
+    @Schema(description = "The uptime of the Java virtual machine")
     public String getUptime() {
         return uptime;
     }
@@ -420,17 +419,15 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         private Long freeSpaceBytes;
         private Long totalSpaceBytes;
         private Long usedSpaceBytes;
-        private String utilization;
-
         /**
          * @return identifier for this storage location
          */
-        @ApiModelProperty(
-                value = "The identifier of this storage location. The identifier will correspond to the identifier keyed in the storage configuration."
-        )
+        @Schema(description = "The identifier of this storage location. The identifier will correspond to the identifier keyed in the storage configuration.")
         public String getIdentifier() {
             return identifier;
         }
+
+        private String utilization;
 
         public void setIdentifier(String identifier) {
             this.identifier = identifier;
@@ -439,9 +436,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         /**
          * @return amount of free space
          */
-        @ApiModelProperty(
-                value = "Amount of free space."
-        )
+        @Schema(description = "Amount of free space.")
         public String getFreeSpace() {
             return freeSpace;
         }
@@ -453,9 +448,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         /**
          * @return freeSpace amount of total space
          */
-        @ApiModelProperty(
-                value = "Amount of total space."
-        )
+        @Schema(description = "Amount of total space.")
         public String getTotalSpace() {
             return totalSpace;
         }
@@ -467,9 +460,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         /**
          * @return amount of used space
          */
-        @ApiModelProperty(
-                value = "Amount of used space."
-        )
+        @Schema(description = "Amount of used space.")
         public String getUsedSpace() {
             return usedSpace;
         }
@@ -481,9 +472,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         /**
          * @return utilization of this storage location
          */
-        @ApiModelProperty(
-                value = "Utilization of this storage location."
-        )
+        @Schema(description = "Utilization of this storage location.")
         public String getUtilization() {
             return utilization;
         }
@@ -495,9 +484,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         /**
          * @return number of bytes of free space
          */
-        @ApiModelProperty(
-                value = "The number of bytes of free space."
-        )
+        @Schema(description = "The number of bytes of free space.")
         public Long getFreeSpaceBytes() {
             return freeSpaceBytes;
         }
@@ -509,9 +496,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         /**
          * @return number of bytes of total space
          */
-        @ApiModelProperty(
-                value = "The number of bytes of total space."
-        )
+        @Schema(description = "The number of bytes of total space.")
         public Long getTotalSpaceBytes() {
             return totalSpaceBytes;
         }
@@ -523,9 +508,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         /**
          * @return number of bytes of used space
          */
-        @ApiModelProperty(
-                value = "The number of bytes of used space."
-        )
+        @Schema(description = "The number of bytes of used space.")
         public Long getUsedSpaceBytes() {
             return usedSpaceBytes;
         }
@@ -560,7 +543,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         private Integer claimantCount;
 
 
-        @ApiModelProperty("The container of the Content Repository in which the Resource Claim exists")
+        @Schema(description = "The container of the Content Repository in which the Resource Claim exists")
         public String getContainer() {
             return container;
         }
@@ -569,7 +552,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.container = container;
         }
 
-        @ApiModelProperty("The section of the Content Repository in which the Resource Claim exists")
+        @Schema(description = "The section of the Content Repository in which the Resource Claim exists")
         public String getSection() {
             return section;
         }
@@ -578,7 +561,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.section = section;
         }
 
-        @ApiModelProperty("The identifier of the Resource Claim")
+        @Schema(description = "The identifier of the Resource Claim")
         public String getIdentifier() {
             return identifier;
         }
@@ -587,7 +570,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.identifier = identifier;
         }
 
-        @ApiModelProperty("Whether or not the Resource Claim is in use")
+        @Schema(description = "Whether or not the Resource Claim is in use")
         public Boolean getInUse() {
             return inUse;
         }
@@ -596,7 +579,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.inUse = inUse;
         }
 
-        @ApiModelProperty("Whether or not the Resource Claim is awaiting destruction")
+        @Schema(description = "Whether or not the Resource Claim is awaiting destruction")
         public Boolean getAwaitingDestruction() {
             return awaitingDestruction;
         }
@@ -605,7 +588,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.awaitingDestruction = awaitingDestruction;
         }
 
-        @ApiModelProperty("The number of FlowFiles that have a claim to the Resource")
+        @Schema(description = "The number of FlowFiles that have a claim to the Resource")
         public Integer getClaimantCount() {
             return claimantCount;
         }
@@ -614,7 +597,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.claimantCount = claimantCount;
         }
 
-        @ApiModelProperty("Whether or not the Resource Claim can still have more data written to it")
+        @Schema(description = "Whether or not the Resource Claim can still have more data written to it")
         public Boolean getWritable() {
             return writable;
         }
@@ -647,7 +630,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         private String collectionTime;
         private Long collectionMillis;
 
-        @ApiModelProperty("The name of the garbage collector.")
+        @Schema(description = "The name of the garbage collector.")
         public String getName() {
             return name;
         }
@@ -656,7 +639,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.name = name;
         }
 
-        @ApiModelProperty("The number of times garbage collection has run.")
+        @Schema(description = "The number of times garbage collection has run.")
         public long getCollectionCount() {
             return collectionCount;
         }
@@ -665,7 +648,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.collectionCount = collectionCount;
         }
 
-        @ApiModelProperty("The total amount of time spent garbage collecting.")
+        @Schema(description = "The total amount of time spent garbage collecting.")
         public String getCollectionTime() {
             return collectionTime;
         }
@@ -674,7 +657,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.collectionTime = collectionTime;
         }
 
-        @ApiModelProperty("The total number of milliseconds spent garbage collecting.")
+        @Schema(description = "The total number of milliseconds spent garbage collecting.")
         public Long getCollectionMillis() {
             return collectionMillis;
         }
@@ -711,7 +694,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         private String buildBranch;
         private Date buildTimestamp;
 
-        @ApiModelProperty("The version of this NiFi.")
+        @Schema(description = "The version of this NiFi.")
         public String getNiFiVersion() {
             return niFiVersion;
         }
@@ -720,7 +703,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.niFiVersion = niFiVersion;
         }
 
-        @ApiModelProperty("Java JVM vendor")
+        @Schema(description = "Java JVM vendor")
         public String getJavaVendor() {
             return javaVendor;
         }
@@ -729,7 +712,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.javaVendor = javaVendor;
         }
 
-        @ApiModelProperty("Java version")
+        @Schema(description = "Java version")
         public String getJavaVersion() {
             return javaVersion;
         }
@@ -738,7 +721,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.javaVersion = javaVersion;
         }
 
-        @ApiModelProperty("Host operating system name")
+        @Schema(description = "Host operating system name")
         public String getOsName() {
             return osName;
         }
@@ -747,7 +730,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.osName = osName;
         }
 
-        @ApiModelProperty("Host operating system version")
+        @Schema(description = "Host operating system version")
         public String getOsVersion() {
             return osVersion;
         }
@@ -756,7 +739,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.osVersion = osVersion;
         }
 
-        @ApiModelProperty("Host operating system architecture")
+        @Schema(description = "Host operating system architecture")
         public String getOsArchitecture() {
             return osArchitecture;
         }
@@ -765,7 +748,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.osArchitecture = osArchitecture;
         }
 
-        @ApiModelProperty("Build tag")
+        @Schema(description = "Build tag")
         public String getBuildTag() {
             return buildTag;
         }
@@ -774,7 +757,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.buildTag = buildTag;
         }
 
-        @ApiModelProperty("Build revision or commit hash")
+        @Schema(description = "Build revision or commit hash")
         public String getBuildRevision() {
             return buildRevision;
         }
@@ -783,7 +766,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.buildRevision = buildRevision;
         }
 
-        @ApiModelProperty("Build branch")
+        @Schema(description = "Build branch")
         public String getBuildBranch() {
             return buildBranch;
         }
@@ -793,7 +776,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         }
 
         @XmlJavaTypeAdapter(DateTimeAdapter.class)
-        @ApiModelProperty("Build timestamp")
+        @Schema(description = "Build timestamp")
         public Date getBuildTimestamp() {
             return buildTimestamp;
         }

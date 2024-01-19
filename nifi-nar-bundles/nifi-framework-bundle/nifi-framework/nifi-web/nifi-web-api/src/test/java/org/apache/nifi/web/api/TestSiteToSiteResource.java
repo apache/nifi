@@ -31,8 +31,8 @@ import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.Response;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.Response;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;

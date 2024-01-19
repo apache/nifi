@@ -18,7 +18,7 @@ package org.apache.nifi.web.api.entity;
 
 import org.apache.nifi.web.api.dto.remote.PeerDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.Collection;
 
 /**

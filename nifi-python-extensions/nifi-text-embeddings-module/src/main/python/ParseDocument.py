@@ -51,8 +51,8 @@ class ParseDocument(FlowFileTransform):
             Note that use of this Processor may require significant storage space and RAM utilization due to third-party dependencies necessary for processing PDF and image files.
             Also note that in order to process PDF or Images, Tesseract and Poppler must be installed on the system."""
         tags = ["text", "embeddings", "vector", "machine learning", "ML", "artificial intelligence", "ai", "document", "langchain", "pdf", "html", "markdown", "word", "excel", "powerpoint"]
-        dependencies = ['langchain', 'unstructured', 'unstructured-inference', 'unstructured_pytesseract', 'numpy',
-                        'opencv-python', 'pdf2image', 'pdfminer.six[image]', 'python-docx', 'openpyxl', 'python-pptx']
+        dependencies = ['pikepdf', 'pypdf', 'langchain', 'unstructured', 'unstructured-inference', 'unstructured_pytesseract', 'numpy',
+                        'opencv-python', 'pdf2image', 'pdfminer.six', 'python-docx', 'openpyxl', 'python-pptx']
 
 
     INPUT_FORMAT = PropertyDescriptor(
@@ -177,7 +177,7 @@ class ParseDocument(FlowFileTransform):
 
         input_format = context.getProperty(self.INPUT_FORMAT).evaluateAttributeExpressions(flowFile).getValue()
         if input_format == PLAIN_TEXT:
-            return [Document(page_content=str(flowFile.getContentsAsBytes()), metadata=metadata)]
+            return [Document(page_content=flowFile.getContentsAsBytes().decode('utf-8'), metadata=metadata)]
 
         element_strategy = context.getProperty(self.ELEMENT_STRATEGY).getValue()
         if element_strategy == SINGLE_DOCUMENT:

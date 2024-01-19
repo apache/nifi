@@ -25,7 +25,7 @@ Registry—a subproject of Apache NiFi—is a complementary application that pro
 
 ## Requirements
 
-* Java 1.8 (above 1.8.0_45)
+* Java 21
 
 ## Getting Started
 

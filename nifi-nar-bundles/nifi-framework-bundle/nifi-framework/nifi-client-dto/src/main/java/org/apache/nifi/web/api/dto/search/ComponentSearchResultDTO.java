@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.search;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
 
 /**
@@ -37,8 +37,7 @@ public class ComponentSearchResultDTO {
     /**
      * @return id of the component that matched
      */
-    @ApiModelProperty(
-            value = "The id of the component that matched the search."
+    @Schema(description = "The id of the component that matched the search."
     )
     public String getId() {
         return id;
@@ -51,8 +50,7 @@ public class ComponentSearchResultDTO {
     /**
      * @return group id of the component that matched
      */
-    @ApiModelProperty(
-            value = "The group id of the component that matched the search."
+    @Schema(description = "The group id of the component that matched the search."
     )
     public String getGroupId() {
         return groupId;
@@ -65,8 +63,7 @@ public class ComponentSearchResultDTO {
     /**
      * @return parent group of the component that matched
      */
-    @ApiModelProperty(
-            value = "The parent group of the component that matched the search."
+    @Schema(description = "The parent group of the component that matched the search."
     )
     public SearchResultGroupDTO getParentGroup() {
         return parentGroup;
@@ -79,8 +76,7 @@ public class ComponentSearchResultDTO {
     /**
      * @return the nearest versioned ancestor group of the component that matched
      */
-    @ApiModelProperty(
-            value = "The nearest versioned ancestor group of the component that matched the search."
+    @Schema(description = "The nearest versioned ancestor group of the component that matched the search."
     )
     public SearchResultGroupDTO getVersionedGroup() {
         return versionedGroup;
@@ -93,8 +89,7 @@ public class ComponentSearchResultDTO {
     /**
      * @return name of the component that matched
      */
-    @ApiModelProperty(
-            value = "The name of the component that matched the search."
+    @Schema(description = "The name of the component that matched the search."
     )
     public String getName() {
         return name;
@@ -107,8 +102,7 @@ public class ComponentSearchResultDTO {
     /**
      * @return What matched the search string for this component
      */
-    @ApiModelProperty(
-            value = "What matched the search from the component."
+    @Schema(description = "What matched the search from the component."
     )
     public List<String> getMatches() {
         return matches;

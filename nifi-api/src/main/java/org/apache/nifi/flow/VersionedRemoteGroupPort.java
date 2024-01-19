@@ -17,7 +17,7 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Objects;
 
@@ -30,7 +30,7 @@ public class VersionedRemoteGroupPort extends VersionedComponent {
     private String targetId;
     private ScheduledState scheduledState;
 
-    @ApiModelProperty("The number of task that may transmit flowfiles to the target port concurrently.")
+    @Schema(description = "The number of task that may transmit flowfiles to the target port concurrently.")
     public Integer getConcurrentlySchedulableTaskCount() {
         return concurrentlySchedulableTaskCount;
     }
@@ -39,7 +39,7 @@ public class VersionedRemoteGroupPort extends VersionedComponent {
         this.concurrentlySchedulableTaskCount = concurrentlySchedulableTaskCount;
     }
 
-    @ApiModelProperty("The id of the remote process group that the port resides in.")
+    @Schema(description = "The id of the remote process group that the port resides in.")
     public String getRemoteGroupId() {
         return remoteGroupId;
     }
@@ -49,7 +49,7 @@ public class VersionedRemoteGroupPort extends VersionedComponent {
     }
 
 
-    @ApiModelProperty("Whether the flowfiles are compressed when sent to the target port.")
+    @Schema(description = "Whether the flowfiles are compressed when sent to the target port.")
     public Boolean isUseCompression() {
         return useCompression;
     }
@@ -58,7 +58,7 @@ public class VersionedRemoteGroupPort extends VersionedComponent {
         this.useCompression = useCompression;
     }
 
-    @ApiModelProperty("The batch settings for data transmission.")
+    @Schema(description = "The batch settings for data transmission.")
     public BatchSize getBatchSize() {
         return batchSize;
     }
@@ -67,7 +67,7 @@ public class VersionedRemoteGroupPort extends VersionedComponent {
         this.batchSize = batchSize;
     }
 
-    @ApiModelProperty("The ID of the port on the target NiFi instance")
+    @Schema(description = "The ID of the port on the target NiFi instance")
     public String getTargetId() {
         return targetId;
     }
@@ -76,7 +76,7 @@ public class VersionedRemoteGroupPort extends VersionedComponent {
         this.targetId = targetId;
     }
 
-    @ApiModelProperty("The scheduled state of the component")
+    @Schema(description = "The scheduled state of the component")
     public ScheduledState getScheduledState() {
         return scheduledState;
     }

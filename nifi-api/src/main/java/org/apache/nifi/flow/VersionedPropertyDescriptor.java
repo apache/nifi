@@ -17,7 +17,7 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public class VersionedPropertyDescriptor {
     private String name;
@@ -27,7 +27,7 @@ public class VersionedPropertyDescriptor {
     private boolean dynamic;
     private VersionedResourceDefinition resourceDefinition;
 
-    @ApiModelProperty("The name of the property")
+    @Schema(description = "The name of the property")
     public String getName() {
         return name;
     }
@@ -36,7 +36,7 @@ public class VersionedPropertyDescriptor {
         this.name = name;
     }
 
-    @ApiModelProperty("The display name of the property")
+    @Schema(description = "The display name of the property")
     public String getDisplayName() {
         return displayName;
     }
@@ -45,7 +45,7 @@ public class VersionedPropertyDescriptor {
         this.displayName = displayName;
     }
 
-    @ApiModelProperty("Whether or not the property provides the identifier of a Controller Service")
+    @Schema(description = "Whether or not the property provides the identifier of a Controller Service")
     public boolean getIdentifiesControllerService() {
         return identifiesControllerService;
     }
@@ -54,7 +54,7 @@ public class VersionedPropertyDescriptor {
         this.identifiesControllerService = identifiesControllerService;
     }
 
-    @ApiModelProperty("Whether or not the property is considered sensitive")
+    @Schema(description = "Whether or not the property is considered sensitive")
     public boolean isSensitive() {
         return sensitive;
     }
@@ -63,7 +63,7 @@ public class VersionedPropertyDescriptor {
         this.sensitive = sensitive;
     }
 
-    @ApiModelProperty("Whether or not the property is user-defined")
+    @Schema(description = "Whether or not the property is user-defined")
     public boolean isDynamic() {
         return dynamic;
     }
@@ -72,7 +72,7 @@ public class VersionedPropertyDescriptor {
         this.dynamic = dynamic;
     }
 
-    @ApiModelProperty("Returns the Resource Definition that defines which type(s) of resource(s) this property references, if any")
+    @Schema(description = "Returns the Resource Definition that defines which type(s) of resource(s) this property references, if any")
     public VersionedResourceDefinition getResourceDefinition() {
         return resourceDefinition;
     }

@@ -36,30 +36,33 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.websocket.WebSocketConfigurationException;
 import org.apache.nifi.websocket.WebSocketMessageRouter;
 import org.apache.nifi.websocket.WebSocketServerService;
-import org.eclipse.jetty.security.ConstraintMapping;
-import org.eclipse.jetty.security.ConstraintSecurityHandler;
+import org.eclipse.jetty.ee10.servlet.security.ConstraintMapping;
+import org.eclipse.jetty.ee10.servlet.security.ConstraintSecurityHandler;
+import org.eclipse.jetty.ee10.websocket.server.JettyServerUpgradeRequest;
+import org.eclipse.jetty.ee10.websocket.server.JettyServerUpgradeResponse;
+import org.eclipse.jetty.ee10.websocket.server.JettyWebSocketCreator;
+import org.eclipse.jetty.ee10.websocket.server.JettyWebSocketServlet;
+import org.eclipse.jetty.ee10.websocket.server.JettyWebSocketServletFactory;
+import org.eclipse.jetty.ee10.websocket.server.config.JettyWebSocketServletContainerInitializer;
 import org.eclipse.jetty.security.DefaultAuthenticatorFactory;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
 import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.util.security.Constraint;
-import org.eclipse.jetty.websocket.server.JettyServerUpgradeRequest;
-import org.eclipse.jetty.websocket.server.JettyServerUpgradeResponse;
-import org.eclipse.jetty.websocket.server.JettyWebSocketCreator;
-import org.eclipse.jetty.websocket.server.JettyWebSocketServlet;
-import org.eclipse.jetty.websocket.server.JettyWebSocketServletFactory;
-import org.eclipse.jetty.websocket.server.config.JettyWebSocketServletContainerInitializer;
+import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee10.servlet.ServletHandler;
+import org.eclipse.jetty.ee10.servlet.ServletHolder;
+import org.eclipse.jetty.security.Constraint;
+import org.eclipse.jetty.util.resource.PathResourceFactory;
+import org.eclipse.jetty.util.resource.Resource;
 
 import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -265,12 +268,9 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
             final ConstraintSecurityHandler securityHandler = new ConstraintSecurityHandler();
             contextHandler.insertHandler(securityHandler);
 
-            final Constraint constraint = new Constraint();
-            constraint.setName("auth");
-            constraint.setAuthenticate(true);
             // Accessible from any role and any auth once authentication succeeds.
             final String roles = context.getProperty(AUTH_ROLES).evaluateAttributeExpressions().getValue();
-            constraint.setRoles(roles.split(","));
+            final Constraint constraint = Constraint.from(roles.split(","));
 
             final ConstraintMapping constraintMapping = new ConstraintMapping();
             constraintMapping.setPathSpec(context.getProperty(AUTH_PATH_SPEC).evaluateAttributeExpressions().getValue());
@@ -278,7 +278,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
 
             final DefaultAuthenticatorFactory authenticatorFactory = new DefaultAuthenticatorFactory();
             securityHandler.setAuthenticatorFactory(authenticatorFactory);
-            securityHandler.setAuthMethod(Constraint.__BASIC_AUTH);
+            securityHandler.setAuthenticationType("BASIC");
             securityHandler.setRealmName(getClass().getSimpleName());
             securityHandler.setConstraintMappings(Collections.singletonList(constraintMapping));
 
@@ -286,7 +286,10 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
             final String loginServiceValue = context.getProperty(LOGIN_SERVICE).getValue();
             if (LOGIN_SERVICE_HASH.getValue().equals(loginServiceValue)) {
                 final String usersFilePath = context.getProperty(USERS_PROPERTIES_FILE).evaluateAttributeExpressions().getValue();
-                loginService = new HashLoginService("HashLoginService", usersFilePath);
+                final Path resourcePath = Paths.get(usersFilePath);
+                final PathResourceFactory pathResourceFactory = new PathResourceFactory();
+                final Resource pathResource = pathResourceFactory.newResource(resourcePath);
+                loginService = new HashLoginService("HashLoginService", pathResource);
             } else {
                 throw new IllegalArgumentException("Unsupported Login Service: " + loginServiceValue);
             }
@@ -299,7 +302,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
         JettyWebSocketServletContainerInitializer.configure(contextHandler, null);
         contextHandler.insertHandler(servletHandler);
 
-        handlerCollection.setHandlers(new Handler[]{contextHandler});
+        handlerCollection.setHandlers(contextHandler);
 
         server.setHandler(handlerCollection);
 

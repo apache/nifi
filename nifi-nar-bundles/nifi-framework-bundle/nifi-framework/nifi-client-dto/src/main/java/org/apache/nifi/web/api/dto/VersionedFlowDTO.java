@@ -17,9 +17,9 @@
 
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 @XmlType(name = "versionedFlow")
 public class VersionedFlowDTO {
@@ -34,7 +34,7 @@ public class VersionedFlowDTO {
     private String comments;
     private String action;
 
-    @ApiModelProperty("The ID of the registry that the flow is tracked to")
+    @Schema(description = "The ID of the registry that the flow is tracked to")
     public String getRegistryId() {
         return registryId;
     }
@@ -43,7 +43,7 @@ public class VersionedFlowDTO {
         this.registryId = registryId;
     }
 
-    @ApiModelProperty("The ID of the bucket where the flow is stored")
+    @Schema(description = "The ID of the bucket where the flow is stored")
     public String getBucketId() {
         return bucketId;
     }
@@ -52,7 +52,7 @@ public class VersionedFlowDTO {
         this.bucketId = bucketId;
     }
 
-    @ApiModelProperty(value = "The ID of the flow")
+    @Schema(description = "The ID of the flow")
     public String getFlowId() {
         return flowId;
     }
@@ -61,7 +61,7 @@ public class VersionedFlowDTO {
         this.flowId = flowId;
     }
 
-    @ApiModelProperty("The name of the flow")
+    @Schema(description = "The name of the flow")
     public String getFlowName() {
         return flowName;
     }
@@ -70,7 +70,7 @@ public class VersionedFlowDTO {
         this.flowName = flowName;
     }
 
-    @ApiModelProperty("A description of the flow")
+    @Schema(description = "A description of the flow")
     public String getDescription() {
         return description;
     }
@@ -79,7 +79,7 @@ public class VersionedFlowDTO {
         this.description = description;
     }
 
-    @ApiModelProperty("Comments for the changeset")
+    @Schema(description = "Comments for the changeset")
     public String getComments() {
         return comments;
     }
@@ -88,7 +88,7 @@ public class VersionedFlowDTO {
         this.comments = comments;
     }
 
-    @ApiModelProperty(value = "The action being performed", allowableValues = COMMIT_ACTION + ", " + FORCE_COMMIT_ACTION)
+    @Schema(description = "The action being performed", allowableValues = COMMIT_ACTION + ", " + FORCE_COMMIT_ACTION)
     public String getAction() {
         return action;
     }

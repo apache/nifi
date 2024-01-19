@@ -19,17 +19,17 @@ package org.apache.nifi.web.api.entity;
 
 import java.util.Set;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import org.apache.nifi.web.api.dto.ComponentDifferenceDTO;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @XmlRootElement(name = "flowComparisonEntity")
 public class FlowComparisonEntity extends Entity {
     private Set<ComponentDifferenceDTO> componentDifferences;
 
-    @ApiModelProperty("The list of differences for each component in the flow that is not the same between the two flows")
+    @Schema(description = "The list of differences for each component in the flow that is not the same between the two flows")
     public Set<ComponentDifferenceDTO> getComponentDifferences() {
         return componentDifferences;
     }

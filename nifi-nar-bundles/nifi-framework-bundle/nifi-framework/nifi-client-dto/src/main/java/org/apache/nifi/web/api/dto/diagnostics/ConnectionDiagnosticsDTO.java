@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web.api.dto.diagnostics;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
 
 @XmlType(name="connectionDiagnostics")
@@ -28,7 +28,7 @@ public class ConnectionDiagnosticsDTO {
     private ConnectionDiagnosticsSnapshotDTO aggregateSnapshot;
     private List<ConnectionDiagnosticsSnapshotDTO> nodeSnapshots;
 
-    @ApiModelProperty(value = "Details about the connection", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "Details about the connection", accessMode = Schema.AccessMode.READ_ONLY)
     public ConnectionDTO getConnection() {
         return connection;
     }
@@ -37,8 +37,8 @@ public class ConnectionDiagnosticsDTO {
         this.connection = connection;
     }
 
-    @ApiModelProperty(value = "Aggregate values for all nodes in the cluster, or for this instance if not clustered",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "Aggregate values for all nodes in the cluster, or for this instance if not clustered",
+            accessMode = Schema.AccessMode.READ_ONLY)
     public ConnectionDiagnosticsSnapshotDTO getAggregateSnapshot() {
         return aggregateSnapshot;
     }
@@ -47,7 +47,7 @@ public class ConnectionDiagnosticsDTO {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    @ApiModelProperty(value = "A list of values for each node in the cluster, if clustered.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "A list of values for each node in the cluster, if clustered.", accessMode = Schema.AccessMode.READ_ONLY)
     public List<ConnectionDiagnosticsSnapshotDTO> getNodeSnapshots() {
         return nodeSnapshots;
     }

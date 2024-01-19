@@ -17,15 +17,15 @@
 
 package org.apache.nifi.processors.kafka.pubsub;
 
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
+
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
 
 public class InFlightMessageTracker {
     private final ConcurrentMap<FlowFile, Counts> messageCountsByFlowFile = new ConcurrentHashMap<>();
@@ -124,7 +124,7 @@ public class InFlightMessageTracker {
 
     private boolean isComplete() {
         return messageCountsByFlowFile.keySet().stream()
-            .allMatch(flowFile -> isComplete(flowFile));
+            .allMatch(this::isComplete);
     }
 
     void awaitCompletion(final long millis) throws InterruptedException, TimeoutException {

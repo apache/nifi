@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.jms.processors;
 
-import javax.jms.ConnectionFactory;
-import javax.jms.Session;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.Session;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.springframework.jms.connection.CachingConnectionFactory;

@@ -135,12 +135,7 @@ public abstract class AbstractByQueryElasticsearchTest {
         runner.setProperty(ElasticsearchRestProcessor.QUERY, "not-json");
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        final String expected = String.format("Processor has 1 validation failures:\n" +
-                        "'%s' validated against 'not-json' is invalid because %s is not a valid JSON representation due to Unrecognized token 'not': was expecting" +
-                        " (JSON String, Number, Array, Object or token 'null', 'true' or 'false')\n" +
-                        " at [Source: (String)\"not-json\"; line: 1, column: 4]\n",
-                ElasticsearchRestProcessor.QUERY.getName(), ElasticsearchRestProcessor.QUERY.getName());
-        assertEquals(expected, assertionError.getMessage());
+        assertTrue(assertionError.getMessage().contains("not-json"));
     }
 
     @Test
@@ -151,24 +146,7 @@ public abstract class AbstractByQueryElasticsearchTest {
         runner.setProperty(ElasticsearchRestProcessor.SCRIPT, "not-json-script");
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        String expected;
-        if (getTestProcessor() instanceof DeleteByQueryElasticsearch) {
-            // no SCRIPT in Query Builder
-            expected = "Processor has 1 validation failures:\n";
-        } else {
-            expected = "Processor has 2 validation failures:\n";
-        }
-        expected += String.format("'%s' validated against 'not-json' is invalid because %s is not a valid JSON representation due to Unrecognized token 'not': was expecting" +
-                        " (JSON String, Number, Array, Object or token 'null', 'true' or 'false')\n" +
-                        " at [Source: (String)\"not-json\"; line: 1, column: 4]\n",
-                ElasticsearchRestProcessor.QUERY_CLAUSE.getName(), ElasticsearchRestProcessor.QUERY_CLAUSE.getName());
-        if (getTestProcessor() instanceof UpdateByQueryElasticsearch) {
-            expected += String.format("'%s' validated against 'not-json-script' is invalid because %s is not a valid JSON representation due to Unrecognized token 'not': was expecting " +
-                            "(JSON String, Number, Array, Object or token 'null', 'true' or 'false')\n" +
-                            " at [Source: (String)\"not-json-script\"; line: 1, column: 4]\n",
-                    ElasticsearchRestProcessor.SCRIPT.getName(), ElasticsearchRestProcessor.SCRIPT.getName());
-        }
-        assertEquals(expected, assertionError.getMessage());
+        assertTrue(assertionError.getMessage().contains("not-json"));
     }
 
     @Test

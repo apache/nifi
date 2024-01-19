@@ -16,18 +16,19 @@
  */
 package org.apache.nifi.registry.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.Extension;
-import io.swagger.annotations.ExtensionProperty;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
 import java.util.List;
 import java.util.SortedSet;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.extensions.Extension;
+import io.swagger.v3.oas.annotations.extensions.ExtensionProperty;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -55,14 +56,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Path("/extension-repository")
-@Api(
-    value = "extension repository",
-    authorizations = {@Authorization("Authorization")},
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Interact with extension bundles via the hierarchy of bucket/group/artifact/version.")
-})
+@Tag(name = "ExtensionRepository")
 public class ExtensionRepoResource extends ApplicationResource {
 
     public static final String CONTENT_DISPOSITION_HEADER = "content-disposition";
@@ -75,18 +69,20 @@ public class ExtensionRepoResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get extension repo buckets",
-            notes = "Gets the names of the buckets the current user is authorized for in order to browse the repo by bucket. " + NON_GUARANTEED_ENDPOINT,
-            response = ExtensionRepoBucket.class,
-            responseContainer = "List"
+    @Operation(
+            summary = "Get extension repo buckets",
+            description = "Gets the names of the buckets the current user is authorized for in order to browse the repo by bucket. " + NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = ExtensionRepoBucket.class))))
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getExtensionRepoBuckets() {
         final SortedSet<ExtensionRepoBucket> repoBuckets = serviceFacade.getExtensionRepoBuckets(getBaseUri());
         return Response.status(Response.Status.OK).entity(repoBuckets).build();
@@ -96,27 +92,29 @@ public class ExtensionRepoResource extends ApplicationResource {
     @Path("{bucketName}")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get extension repo groups",
-            notes = "Gets the groups in the extension repository in the given bucket. " + NON_GUARANTEED_ENDPOINT,
-            response = ExtensionRepoGroup.class,
-            responseContainer = "List",
+    @Operation(
+            summary = "Get extension repo groups",
+            description = "Gets the groups in the extension repository in the given bucket. " + NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = ExtensionRepoGroup.class)))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)}
+    )
     public Response getExtensionRepoGroups(
             @PathParam("bucketName")
-            @ApiParam("The bucket name")
-                final String bucketName
+            @Parameter(description = "The bucket name") final String bucketName
     ) {
         final SortedSet<ExtensionRepoGroup> repoGroups = serviceFacade.getExtensionRepoGroups(getBaseUri(), bucketName);
         return Response.status(Response.Status.OK).entity(repoGroups).build();
@@ -126,30 +124,32 @@ public class ExtensionRepoResource extends ApplicationResource {
     @Path("{bucketName}/{groupId}")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get extension repo artifacts",
-            notes = "Gets the artifacts in the extension repository in the given bucket and group. " + NON_GUARANTEED_ENDPOINT,
-            response = ExtensionRepoArtifact.class,
-            responseContainer = "List",
+    @Operation(
+            summary = "Get extension repo artifacts",
+            description = "Gets the artifacts in the extension repository in the given bucket and group. " + NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = ExtensionRepoArtifact.class)))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getExtensionRepoArtifacts(
             @PathParam("bucketName")
-            @ApiParam("The bucket name")
-                final String bucketName,
+            @Parameter(description = "The bucket name") final String bucketName,
             @PathParam("groupId")
-            @ApiParam("The group id")
-                final String groupId
+            @Parameter(description = "The group id") final String groupId
     ) {
         final SortedSet<ExtensionRepoArtifact> repoArtifacts = serviceFacade.getExtensionRepoArtifacts(getBaseUri(), bucketName, groupId);
         return Response.status(Response.Status.OK).entity(repoArtifacts).build();
@@ -159,33 +159,33 @@ public class ExtensionRepoResource extends ApplicationResource {
     @Path("{bucketName}/{groupId}/{artifactId}")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get extension repo versions",
-            notes = "Gets the versions in the extension repository for the given bucket, group, and artifact. " + NON_GUARANTEED_ENDPOINT,
-            response = ExtensionRepoVersionSummary.class,
-            responseContainer = "List",
+    @Operation(
+            summary = "Get extension repo versions",
+            description = "Gets the versions in the extension repository for the given bucket, group, and artifact. " + NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = ExtensionRepoVersionSummary.class)))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)}
+    )
     public Response getExtensionRepoVersions(
             @PathParam("bucketName")
-            @ApiParam("The bucket name")
-                final String bucketName,
+            @Parameter(description = "The bucket name") final String bucketName,
             @PathParam("groupId")
-            @ApiParam("The group identifier")
-                final String groupId,
+            @Parameter(description = "The group identifier") final String groupId,
             @PathParam("artifactId")
-            @ApiParam("The artifact identifier")
-                final String artifactId
+            @Parameter(description = "The artifact identifier") final String artifactId
     ) {
         final SortedSet<ExtensionRepoVersionSummary> repoVersions = serviceFacade.getExtensionRepoVersions(
                 getBaseUri(), bucketName, groupId, artifactId);
@@ -196,35 +196,36 @@ public class ExtensionRepoResource extends ApplicationResource {
     @Path("{bucketName}/{groupId}/{artifactId}/{version}")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get extension repo version",
-            notes = "Gets information about the version in the given bucket, group, and artifact. " + NON_GUARANTEED_ENDPOINT,
-            response = ExtensionRepoVersion.class,
+    @Operation(
+            summary = "Get extension repo version",
+            description = "Gets information about the version in the given bucket, group, and artifact. " + NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ExtensionRepoVersion.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getExtensionRepoVersion(
             @PathParam("bucketName")
-            @ApiParam("The bucket name")
-                final String bucketName,
+            @Parameter(description = "The bucket name") final String bucketName,
             @PathParam("groupId")
-            @ApiParam("The group identifier")
-                final String groupId,
+            @Parameter(description = "The group identifier") final String groupId,
             @PathParam("artifactId")
-            @ApiParam("The artifact identifier")
-                final String artifactId,
+            @Parameter(description = "The artifact identifier") final String artifactId,
             @PathParam("version")
-            @ApiParam("The version")
-                final String version
+            @Parameter(description = "The version") final String version
     ) {
         final ExtensionRepoVersion repoVersion = serviceFacade.getExtensionRepoVersion(
                 getBaseUri(), bucketName, groupId, artifactId, version);
@@ -235,36 +236,36 @@ public class ExtensionRepoResource extends ApplicationResource {
     @Path("{bucketName}/{groupId}/{artifactId}/{version}/extensions")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get extension repo extensions",
-            notes = "Gets information about the extensions in the given bucket, group, artifact, and version. " + NON_GUARANTEED_ENDPOINT,
-            response = ExtensionMetadata.class,
-            responseContainer = "List",
+    @Operation(
+            summary = "Get extension repo extensions",
+            description = "Gets information about the extensions in the given bucket, group, artifact, and version. " + NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = ExtensionMetadata.class)))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getExtensionRepoVersionExtensions(
             @PathParam("bucketName")
-            @ApiParam("The bucket name")
-                final String bucketName,
+            @Parameter(description = "The bucket name") final String bucketName,
             @PathParam("groupId")
-            @ApiParam("The group identifier")
-                final String groupId,
+            @Parameter(description = "The group identifier") final String groupId,
             @PathParam("artifactId")
-            @ApiParam("The artifact identifier")
-                final String artifactId,
+            @Parameter(description = "The artifact identifier") final String artifactId,
             @PathParam("version")
-            @ApiParam("The version")
-                final String version
+            @Parameter(description = "The version") final String version
     ) {
 
         final List<ExtensionRepoExtensionMetadata> extensionRepoExtensions =
@@ -278,39 +279,39 @@ public class ExtensionRepoResource extends ApplicationResource {
     @Path("{bucketName}/{groupId}/{artifactId}/{version}/extensions/{name}")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get extension repo extension",
-            notes = "Gets information about the extension with the given name in " +
+    @Operation(
+            summary = "Get extension repo extension",
+            description = "Gets information about the extension with the given name in " +
                     "the given bucket, group, artifact, and version. " + NON_GUARANTEED_ENDPOINT,
-            response = org.apache.nifi.extension.manifest.Extension.class,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = org.apache.nifi.extension.manifest.Extension.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getExtensionRepoVersionExtension(
             @PathParam("bucketName")
-            @ApiParam("The bucket name")
-                final String bucketName,
+            @Parameter(description = "The bucket name") final String bucketName,
             @PathParam("groupId")
-            @ApiParam("The group identifier")
-                final String groupId,
+            @Parameter(description = "The group identifier") final String groupId,
             @PathParam("artifactId")
-            @ApiParam("The artifact identifier")
-                final String artifactId,
+            @Parameter(description = "The artifact identifier") final String artifactId,
             @PathParam("version")
-            @ApiParam("The version")
-                final String version,
+            @Parameter(description = "The version") final String version,
             @PathParam("name")
-            @ApiParam("The fully qualified name of the extension")
-                final String name
+            @Parameter(description = "The fully qualified name of the extension") final String name
     ) {
         final org.apache.nifi.extension.manifest.Extension extension =
                 serviceFacade.getExtensionRepoExtension(
@@ -322,39 +323,38 @@ public class ExtensionRepoResource extends ApplicationResource {
     @Path("{bucketName}/{groupId}/{artifactId}/{version}/extensions/{name}/docs")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.TEXT_HTML)
-    @ApiOperation(
-            value = "Get extension repo extension docs",
-            notes = "Gets the documentation for the extension with the given name in " +
+    @Operation(
+            summary = "Get extension repo extension docs",
+            description = "Gets the documentation for the extension with the given name in " +
                     "the given bucket, group, artifact, and version. " + NON_GUARANTEED_ENDPOINT,
-            response = String.class,
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getExtensionRepoVersionExtensionDocs(
             @PathParam("bucketName")
-            @ApiParam("The bucket name")
-                final String bucketName,
+            @Parameter(description = "The bucket name") final String bucketName,
             @PathParam("groupId")
-            @ApiParam("The group identifier")
-                final String groupId,
+            @Parameter(description = "The group identifier") final String groupId,
             @PathParam("artifactId")
-            @ApiParam("The artifact identifier")
-                final String artifactId,
+            @Parameter(description = "The artifact identifier") final String artifactId,
             @PathParam("version")
-            @ApiParam("The version")
-                final String version,
+            @Parameter(description = "The version") final String version,
             @PathParam("name")
-            @ApiParam("The fully qualified name of the extension")
-                final String name
+            @Parameter(description = "The fully qualified name of the extension") final String name
     ) {
         final StreamingOutput streamingOutput = serviceFacade.getExtensionRepoExtensionDocs(
                 getBaseUri(), bucketName, groupId, artifactId, version, name);
@@ -365,39 +365,38 @@ public class ExtensionRepoResource extends ApplicationResource {
     @Path("{bucketName}/{groupId}/{artifactId}/{version}/extensions/{name}/docs/additional-details")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.TEXT_HTML)
-    @ApiOperation(
-            value = "Get extension repo extension details",
-            notes = "Gets the additional details documentation for the extension with the given name in " +
+    @Operation(
+            summary = "Get extension repo extension details",
+            description = "Gets the additional details documentation for the extension with the given name in " +
                     "the given bucket, group, artifact, and version. " + NON_GUARANTEED_ENDPOINT,
-            response = String.class,
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getExtensionRepoVersionExtensionAdditionalDetailsDocs(
             @PathParam("bucketName")
-            @ApiParam("The bucket name")
-                final String bucketName,
+            @Parameter(description = "The bucket name") final String bucketName,
             @PathParam("groupId")
-            @ApiParam("The group identifier")
-                final String groupId,
+            @Parameter(description = "The group identifier") final String groupId,
             @PathParam("artifactId")
-            @ApiParam("The artifact identifier")
-                final String artifactId,
+            @Parameter(description = "The artifact identifier") final String artifactId,
             @PathParam("version")
-            @ApiParam("The version")
-                final String version,
+            @Parameter(description = "The version") final String version,
             @PathParam("name")
-            @ApiParam("The fully qualified name of the extension")
-                final String name
+            @Parameter(description = "The fully qualified name of the extension") final String name
     ) {
         final StreamingOutput streamingOutput = serviceFacade.getExtensionRepoExtensionAdditionalDocs(
                 getBaseUri(), bucketName, groupId, artifactId, version, name);
@@ -408,44 +407,45 @@ public class ExtensionRepoResource extends ApplicationResource {
     @Path("{bucketName}/{groupId}/{artifactId}/{version}/content")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    @ApiOperation(
-            value = "Get extension repo version content",
-            notes = "Gets the binary content of the bundle with the given bucket, group, artifact, and version. " + NON_GUARANTEED_ENDPOINT,
-            response = byte[].class,
+    @Operation(
+            summary = "Get extension repo version content",
+            description = "Gets the binary content of the bundle with the given bucket, group, artifact, and version. " + NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = byte[].class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getExtensionRepoVersionContent(
             @PathParam("bucketName")
-            @ApiParam("The bucket name")
-                final String bucketName,
+            @Parameter(description = "The bucket name") final String bucketName,
             @PathParam("groupId")
-            @ApiParam("The group identifier")
-                final String groupId,
+            @Parameter(description = "The group identifier") final String groupId,
             @PathParam("artifactId")
-            @ApiParam("The artifact identifier")
-                final String artifactId,
+            @Parameter(description = "The artifact identifier") final String artifactId,
             @PathParam("version")
-            @ApiParam("The version")
-                final String version
+            @Parameter(description = "The version") final String version
     ) {
         final StreamingContent streamingContent = serviceFacade.getExtensionRepoVersionContent(
-            bucketName, groupId, artifactId, version);
+                bucketName, groupId, artifactId, version);
 
         final String filename = streamingContent.getFilename();
         final StreamingOutput streamingOutput = streamingContent.getOutput();
 
         return Response.ok(streamingOutput)
-                .header(CONTENT_DISPOSITION_HEADER,"attachment; filename = " + filename)
+                .header(CONTENT_DISPOSITION_HEADER, "attachment; filename = " + filename)
                 .build();
     }
 
@@ -453,36 +453,36 @@ public class ExtensionRepoResource extends ApplicationResource {
     @Path("{bucketName}/{groupId}/{artifactId}/{version}/sha256")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.TEXT_PLAIN)
-    @ApiOperation(
-            value = "Get extension repo version checksum",
-            notes = "Gets the hex representation of the SHA-256 digest for the binary content of the bundle " +
+    @Operation(
+            summary = "Get extension repo version checksum",
+            description = "Gets the hex representation of the SHA-256 digest for the binary content of the bundle " +
                     "with the given bucket, group, artifact, and version." + NON_GUARANTEED_ENDPOINT,
-            response = String.class,
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getExtensionRepoVersionSha256(
             @PathParam("bucketName")
-            @ApiParam("The bucket name")
-                final String bucketName,
+            @Parameter(description = "The bucket name") final String bucketName,
             @PathParam("groupId")
-            @ApiParam("The group identifier")
-                final String groupId,
+            @Parameter(description = "The group identifier") final String groupId,
             @PathParam("artifactId")
-            @ApiParam("The artifact identifier")
-                final String artifactId,
+            @Parameter(description = "The artifact identifier") final String artifactId,
             @PathParam("version")
-            @ApiParam("The version")
-                final String version
+            @Parameter(description = "The version") final String version
     ) {
         final String sha256Hex = serviceFacade.getExtensionRepoVersionSha256(bucketName, groupId, artifactId, version);
         return Response.ok(sha256Hex, MediaType.TEXT_PLAIN).build();
@@ -492,29 +492,28 @@ public class ExtensionRepoResource extends ApplicationResource {
     @Path("{groupId}/{artifactId}/{version}/sha256")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.TEXT_PLAIN)
-    @ApiOperation(
-            value = "Get global extension repo version checksum",
-            notes = "Gets the hex representation of the SHA-256 digest for the binary content with the given bucket, group, artifact, and version. " +
+    @Operation(
+            summary = "Get global extension repo version checksum",
+            description = "Gets the hex representation of the SHA-256 digest for the binary content with the given bucket, group, artifact, and version. " +
                     "Since the same group-artifact-version can exist in multiple buckets, this will return the checksum of the first one returned. " +
-                    "This will be consistent since the checksum must be the same when existing in multiple buckets. " + NON_GUARANTEED_ENDPOINT,
-            response = String.class
+                    "This will be consistent since the checksum must be the same when existing in multiple buckets. " + NON_GUARANTEED_ENDPOINT
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getGlobalExtensionRepoVersionSha256(
             @PathParam("groupId")
-            @ApiParam("The group identifier")
-                final String groupId,
+            @Parameter(description = "The group identifier") final String groupId,
             @PathParam("artifactId")
-            @ApiParam("The artifact identifier")
-                final String artifactId,
+            @Parameter(description = "The artifact identifier") final String artifactId,
             @PathParam("version")
-            @ApiParam("The version")
-                final String version
+            @Parameter(description = "The version") final String version
     ) {
         // Since we are using the filter params which are optional in the service layer, we need to validate these path params here
 

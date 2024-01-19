@@ -17,8 +17,8 @@
 
 package org.apache.nifi.minifi.c2.service;
 
-import static javax.ws.rs.core.HttpHeaders.CONTENT_LENGTH;
-import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
+import static jakarta.ws.rs.core.HttpHeaders.CONTENT_LENGTH;
+import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Suppliers;
@@ -26,11 +26,12 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,18 +49,18 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriInfo;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
 import org.apache.nifi.c2.protocol.api.C2HeartbeatResponse;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
@@ -77,10 +78,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 @Configuration
 @Path("/config")
-@ApiModel(
-        value = "/config",
-        description = "Provides configuration and heartbeat/acknowledge capabilities for MiNiFi instances"
-)
 public class ConfigService {
 
     public static final String MESSAGE_400 = "MiNiFi C2 server was unable to complete the request because it was invalid. The request should not be retried without modification.";
@@ -177,15 +174,23 @@ public class ConfigService {
     @Path("/heartbeat")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "An endpoint for a MiNiFi Agent to send a heartbeat to the C2 server",
-            response = C2HeartbeatResponse.class
+    @Operation(
+            description = "An endpoint for a MiNiFi Agent to send a heartbeat to the C2 server"
     )
     @ApiResponses({
-            @ApiResponse(code = 400, message = MESSAGE_400)})
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Success",
+                    content = @Content(schema = @Schema(implementation = C2HeartbeatResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = MESSAGE_400
+            )
+    })
     public Response heartbeat(
             @Context HttpServletRequest request, @Context HttpHeaders httpHeaders, @Context UriInfo uriInfo,
-            @ApiParam(required = true) final C2Heartbeat heartbeat) {
+            @Parameter(required = true) final C2Heartbeat heartbeat) {
 
         try {
             authorizer.authorize(SecurityContextHolder.getContext().getAuthentication(), uriInfo);
@@ -275,13 +280,17 @@ public class ConfigService {
     @Path("/acknowledge")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "An endpoint for a MiNiFi Agent to send an operation acknowledgement to the C2 server"
+    @Operation(
+            description = "An endpoint for a MiNiFi Agent to send an operation acknowledgement to the C2 server"
     )
     @ApiResponses({
-            @ApiResponse(code = 400, message = MESSAGE_400)})
+            @ApiResponse(
+                    responseCode = "400",
+                    description = MESSAGE_400
+            )
+    })
     public Response acknowledge(
-            @ApiParam(required = true) final C2OperationAck operationAck) {
+            @Parameter(required = true) final C2OperationAck operationAck) {
 
         final C2ProtocolContext ackContext = C2ProtocolContext.builder()
                 .baseUri(getBaseUri())

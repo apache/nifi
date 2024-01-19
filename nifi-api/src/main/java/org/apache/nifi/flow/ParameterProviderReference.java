@@ -16,10 +16,9 @@
  */
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel
+@Schema
 public class ParameterProviderReference {
 
     private String identifier;
@@ -27,7 +26,7 @@ public class ParameterProviderReference {
     private String type;
     private Bundle bundle;
 
-    @ApiModelProperty("The fully qualified name of the parameter provider class.")
+    @Schema(description = "The fully qualified name of the parameter provider class.")
     public String getType() {
         return type;
     }
@@ -36,7 +35,7 @@ public class ParameterProviderReference {
         this.type = type;
     }
 
-    @ApiModelProperty("The details of the artifact that bundled this parameter provider.")
+    @Schema(description = "The details of the artifact that bundled this parameter provider.")
     public Bundle getBundle() {
         return bundle;
     }
@@ -45,7 +44,7 @@ public class ParameterProviderReference {
         this.bundle = bundle;
     }
 
-    @ApiModelProperty("The identifier of the parameter provider")
+    @Schema(description = "The identifier of the parameter provider")
     public String getIdentifier() {
         return identifier;
     }
@@ -54,7 +53,7 @@ public class ParameterProviderReference {
         this.identifier = identifier;
     }
 
-    @ApiModelProperty("The name of the parameter provider")
+    @Schema(description = "The name of the parameter provider")
     public String getName() {
         return name;
     }

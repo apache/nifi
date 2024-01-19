@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.action.details;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Configuration details for an Action.
@@ -33,8 +33,7 @@ public class ConfigureDetailsDTO extends ActionDetailsDTO {
     /**
      * @return name of the property that was modified
      */
-    @ApiModelProperty(
-            value = "The name of the property that was modified."
+    @Schema(description = "The name of the property that was modified."
     )
     public String getName() {
         return name;
@@ -47,8 +46,7 @@ public class ConfigureDetailsDTO extends ActionDetailsDTO {
     /**
      * @return previous value
      */
-    @ApiModelProperty(
-            value = "The previous value."
+    @Schema(description = "The previous value."
     )
     public String getPreviousValue() {
         return previousValue;
@@ -61,8 +59,7 @@ public class ConfigureDetailsDTO extends ActionDetailsDTO {
     /**
      * @return new value
      */
-    @ApiModelProperty(
-            value = "The new value."
+    @Schema(description = "The new value."
     )
     public String getValue() {
         return value;

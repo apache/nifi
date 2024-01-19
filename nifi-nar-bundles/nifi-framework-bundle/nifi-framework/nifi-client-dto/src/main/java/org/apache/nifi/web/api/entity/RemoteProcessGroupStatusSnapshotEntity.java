@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
 
@@ -32,7 +32,7 @@ public class RemoteProcessGroupStatusSnapshotEntity extends Entity implements Re
     /**
      * @return The remote process group id
      */
-    @ApiModelProperty("The id of the remote process group.")
+    @Schema(description = "The id of the remote process group.")
     public String getId() {
         return id;
     }

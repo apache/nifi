@@ -17,14 +17,7 @@
 package org.apache.nifi.web.api;
 
 import com.google.common.base.Functions;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -41,22 +34,30 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.ServletContext;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HttpMethod;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
@@ -129,13 +130,7 @@ import org.slf4j.LoggerFactory;
  * RESTful endpoint for managing a Parameter Provider.
  */
 @Path("/parameter-providers")
-@Api(
-    value = "/parameter-providers",
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Endpoint for managing a Parameter Provider.")
-})
+@Tag(name = "ParameterProviders")
 public class ParameterProviderResource extends AbstractParameterResource {
     private static final Logger logger = LoggerFactory.getLogger(ParameterProviderResource.class);
 
@@ -234,25 +229,25 @@ public class ParameterProviderResource extends AbstractParameterResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    @ApiOperation(
-            value = "Gets a parameter provider",
-            response = ParameterProviderEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /parameter-providers/{uuid}")
+    @Operation(
+            summary = "Gets a parameter provider",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ParameterProviderEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /parameter-providers/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getParameterProvider(
-            @ApiParam(
-                    value = "The parameter provider id.",
+            @Parameter(
+                    description = "The parameter provider id.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -284,25 +279,25 @@ public class ParameterProviderResource extends AbstractParameterResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/references")
-    @ApiOperation(
-            value = "Gets all references to a parameter provider",
-            response = ParameterProviderReferencingComponentsEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /parameter-providers/{uuid}")
+    @Operation(
+            summary = "Gets all references to a parameter provider",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ParameterProviderReferencingComponentsEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /parameter-providers/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getParameterProviderReferences(
-            @ApiParam(
-                    value = "The parameter provider id.",
+            @Parameter(
+                    description = "The parameter provider id.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -326,7 +321,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
     /**
      * Returns the descriptor for the specified property.
      *
-     * @param id           The id of the parameter provider.
+     * @param id The id of the parameter provider.
      * @param propertyName The property
      * @return a propertyDescriptorEntity
      */
@@ -334,30 +329,30 @@ public class ParameterProviderResource extends AbstractParameterResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/descriptors")
-    @ApiOperation(
-            value = "Gets a parameter provider property descriptor",
-            response = PropertyDescriptorEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /parameter-providers/{uuid}")
+    @Operation(
+            summary = "Gets a parameter provider property descriptor",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = PropertyDescriptorEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /parameter-providers/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getPropertyDescriptor(
-            @ApiParam(
-                    value = "The parameter provider id.",
+            @Parameter(
+                    description = "The parameter provider id.",
                     required = true
             )
             @PathParam("id") final String id,
-            @ApiParam(
-                    value = "The property name.",
+            @Parameter(
+                    description = "The property name.",
                     required = true
             )
             @QueryParam("propertyName") final String propertyName) {
@@ -398,25 +393,25 @@ public class ParameterProviderResource extends AbstractParameterResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/state")
-    @ApiOperation(
-            value = "Gets the state for a parameter provider",
-            response = ComponentStateEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /parameter-providers/{uuid}")
+    @Operation(
+            summary = "Gets the state for a parameter provider",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ComponentStateEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /parameter-providers/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getState(
-            @ApiParam(
-                    value = "The parameter provider id.",
+            @Parameter(
+                    description = "The parameter provider id.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -445,34 +440,32 @@ public class ParameterProviderResource extends AbstractParameterResource {
     /**
      * Clears the state for a parameter provider.
      *
-     * @param httpServletRequest servlet request
-     * @param id                 The id of the parameter provider
+     * @param id The id of the parameter provider
      * @return a componentStateEntity
      */
     @POST
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/state/clear-requests")
-    @ApiOperation(
-            value = "Clears the state for a parameter provider",
-            response = ComponentStateEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /parameter-providers/{uuid}")
+    @Operation(
+            summary = "Clears the state for a parameter provider",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ComponentStateEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /parameter-providers/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response clearState(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The parameter provider id.",
+            @Parameter(
+                    description = "The parameter provider id.",
                     required = true
             )
             @PathParam("id") final String id) {
@@ -508,8 +501,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
     /**
      * Updates the specified a Parameter Provider.
      *
-     * @param httpServletRequest  request
-     * @param id                  The id of the parameter provider to update.
+     * @param id The id of the parameter provider to update.
      * @param requestParameterProviderEntity A parameterProviderEntity.
      * @return A parameterProviderEntity.
      */
@@ -517,32 +509,31 @@ public class ParameterProviderResource extends AbstractParameterResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    @ApiOperation(
-            value = "Updates a parameter provider",
-            response = ParameterProviderEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /parameter-providers/{uuid}"),
-                    @Authorization(value = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}")
+    @Operation(
+            summary = "Updates a parameter provider",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ParameterProviderEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /parameter-providers/{uuid}"),
+                    @SecurityRequirement(name = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response updateParameterProvider(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The parameter provider id.",
+            @Parameter(
+                    description = "The parameter provider id.",
                     required = true
             )
             @PathParam("id") final String id,
-            @ApiParam(
-                    value = "The parameter provider configuration details.",
+            @Parameter(
+                    description = "The parameter provider configuration details.",
                     required = true
             ) final ParameterProviderEntity requestParameterProviderEntity) {
 
@@ -597,56 +588,51 @@ public class ParameterProviderResource extends AbstractParameterResource {
     /**
      * Removes the specified parameter provider.
      *
-     * @param httpServletRequest request
-     * @param version            The revision is used to verify the client is working with
-     *                           the latest version of the flow.
-     * @param clientId           Optional client id. If the client id is not specified, a
-     *                           new one will be generated. This value (whether specified or generated) is
-     *                           included in the response.
-     * @param id                 The id of the parameter provider to remove.
+     * @param version The revision is used to verify the client is working with
+     * the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @param id The id of the parameter provider to remove.
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    @ApiOperation(
-            value = "Deletes a parameter provider",
-            response = ParameterProviderEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /parameter-providers/{uuid}"),
-                    @Authorization(value = "Write - /controller"),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}")
+    @Operation(
+            summary = "Deletes a parameter provider",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ParameterProviderEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /parameter-providers/{uuid}"),
+                    @SecurityRequirement(name = "Write - /controller"),
+                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response removeParameterProvider(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The revision is used to verify the client is working with the latest version of the flow.",
-                    required = false
+            @Parameter(
+                    description = "The revision is used to verify the client is working with the latest version of the flow."
             )
             @QueryParam(VERSION) LongParameter version,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
+            @Parameter(
+                    description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response."
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
-                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
-                    required = false
+            @Parameter(
+                    description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
             )
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
-            @ApiParam(
-                    value = "The parameter provider id.",
+            @Parameter(
+                    description = "The parameter provider id.",
                     required = true
             )
             @PathParam("id") String id) {
@@ -691,7 +677,6 @@ public class ParameterProviderResource extends AbstractParameterResource {
      * Tells the Parameter Provider to fetch its parameters.  This will temporarily cache the fetched parameters,
      * but the changes will not be applied to the flow until an "apply-parameters-requests" request is created.
      *
-     * @param httpServletRequest  request
      * @param parameterProviderId The id of the parameter provider.
      * @return A parameterProviderEntity.
      */
@@ -699,31 +684,30 @@ public class ParameterProviderResource extends AbstractParameterResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/parameters/fetch-requests")
-    @ApiOperation(
-            value = "Fetches and temporarily caches the parameters for a provider",
-            response = ParameterProviderEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /parameter-providers/{uuid} or  or /operation/parameter-providers/{uuid}")
+    @Operation(
+            summary = "Fetches and temporarily caches the parameters for a provider",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ParameterProviderEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /parameter-providers/{uuid} or  or /operation/parameter-providers/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response fetchParameters(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The parameter provider id.",
+            @Parameter(
+                    description = "The parameter provider id.",
                     required = true
             )
             @PathParam("id") final String parameterProviderId,
-            @ApiParam(
-                    value = "The parameter fetch request.",
+            @Parameter(
+                    description = "The parameter fetch request.",
                     required = true
             ) final ParameterProviderParameterFetchEntity fetchParametersEntity) {
 
@@ -837,30 +821,33 @@ public class ParameterProviderResource extends AbstractParameterResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{providerId}/apply-parameters-requests")
-    @ApiOperation(
-            value = "Initiate a request to apply the fetched parameters of a Parameter Provider",
-            response = ParameterProviderApplyParametersRequestEntity.class,
-            notes = "This will initiate the process of applying fetched parameters to all referencing Parameter Contexts. Changing the value of a Parameter may require that one or more " +
+    @Operation(
+            summary = "Initiate a request to apply the fetched parameters of a Parameter Provider",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ParameterProviderApplyParametersRequestEntity.class))),
+            description = "This will initiate the process of applying fetched parameters to all referencing Parameter Contexts. Changing the value of a Parameter may require that one or more " +
                     "components be stopped and restarted, so this action may take significantly more time than many other REST API actions. As a result, this endpoint will immediately return a " +
                     "ParameterProviderApplyParametersRequestEntity, and the process of updating the necessary components will occur asynchronously in the background. The client may then " +
                     "periodically poll the status of the request by issuing a GET request to /parameter-providers/apply-parameters-requests/{requestId}. Once the request is completed, the client " +
                     "is expected to issue a DELETE request to /parameter-providers/apply-parameters-requests/{requestId}.",
-            authorizations = {
-                    @Authorization(value = "Read - /parameter-providers/{parameterProviderId}"),
-                    @Authorization(value = "Write - /parameter-providers/{parameterProviderId}"),
-                    @Authorization(value = "Read - for every component that is affected by the update"),
-                    @Authorization(value = "Write - for every component that is affected by the update")
-            })
-    @ApiResponses(value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-    })
+            security = {
+                    @SecurityRequirement(name = "Read - /parameter-providers/{parameterProviderId}"),
+                    @SecurityRequirement(name = "Write - /parameter-providers/{parameterProviderId}"),
+                    @SecurityRequirement(name = "Read - for every component that is affected by the update"),
+                    @SecurityRequirement(name = "Write - for every component that is affected by the update")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
     public Response submitApplyParameters(
             @PathParam("providerId") final String parameterProviderId,
-            @ApiParam(value = "The apply parameters request.", required = true) final ParameterProviderParameterApplicationEntity requestEntity) {
+            @Parameter(description = "The apply parameters request.", required = true) final ParameterProviderParameterApplicationEntity requestEntity) {
 
         if (requestEntity == null) {
             throw new IllegalArgumentException("Apply Parameters Request must be specified.");
@@ -903,13 +890,13 @@ public class ParameterProviderResource extends AbstractParameterResource {
         parameterGroupConfigurations.stream()
                 .filter(parameterGroupConfiguration -> requiresNewParameterContext(parameterGroupConfiguration, user))
                 .forEach(parameterGroupConfiguration -> {
-            final ParameterContextEntity newParameterContext = getNewParameterContextEntity(parameterProviderId, parameterGroupConfiguration);
-            try {
-                performParameterContextCreate(user, getAbsolutePath(), replicateRequest, newParameterContext);
-            } catch (final LifecycleManagementException e) {
-                throw new RuntimeException("Failed to create Parameter Context " + parameterGroupConfiguration.getGroupName(), e);
-            }
-        });
+                    final ParameterContextEntity newParameterContext = getNewParameterContextEntity(parameterProviderId, parameterGroupConfiguration);
+                    try {
+                        performParameterContextCreate(user, getAbsolutePath(), replicateRequest, newParameterContext);
+                    } catch (final LifecycleManagementException e) {
+                        throw new RuntimeException("Failed to create Parameter Context " + parameterGroupConfiguration.getGroupName(), e);
+                    }
+                });
 
         // Get a list of parameter context entities representing changes needed in order to apply the fetched parameters
         final List<ParameterContextEntity> parameterContextUpdates = serviceFacade.getParameterContextUpdatesForAppliedParameters(parameterProviderId, parameterGroupConfigurations);
@@ -1027,25 +1014,28 @@ public class ParameterProviderResource extends AbstractParameterResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{providerId}/apply-parameters-requests/{requestId}")
-    @ApiOperation(
-            value = "Returns the Apply Parameters Request with the given ID",
-            response = ParameterProviderApplyParametersRequestEntity.class,
-            notes = "Returns the Apply Parameters Request with the given ID. Once an Apply Parameters Request has been created by performing a POST to /nifi-api/parameter-providers, "
+    @Operation(
+            summary = "Returns the Apply Parameters Request with the given ID",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ParameterProviderApplyParametersRequestEntity.class))),
+            description = "Returns the Apply Parameters Request with the given ID. Once an Apply Parameters Request has been created by performing a POST to /nifi-api/parameter-providers, "
                     + "that request can subsequently be retrieved via this endpoint, and the request that is fetched will contain the state, such as percent complete, the "
                     + "current state of the request, and any failures. ",
-            authorizations = {
-                    @Authorization(value = "Only the user that submitted the request can get it")
-            })
-    @ApiResponses(value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-    })
+            security = {
+                    @SecurityRequirement(name = "Only the user that submitted the request can get it")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
     public Response getParameterProviderApplyParametersRequest(
-            @ApiParam("The ID of the Parameter Provider") @PathParam("providerId") final String parameterProviderId,
-            @ApiParam("The ID of the Apply Parameters Request") @PathParam("requestId") final String applyParametersRequestId) {
+            @Parameter(description = "The ID of the Parameter Provider") @PathParam("providerId") final String parameterProviderId,
+            @Parameter(description = "The ID of the Apply Parameters Request") @PathParam("requestId") final String applyParametersRequestId) {
 
         authorizeReadParameterProvider(parameterProviderId);
 
@@ -1056,30 +1046,32 @@ public class ParameterProviderResource extends AbstractParameterResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{providerId}/apply-parameters-requests/{requestId}")
-    @ApiOperation(
-            value = "Deletes the Apply Parameters Request with the given ID",
-            response = ParameterProviderApplyParametersRequestEntity.class,
-            notes = "Deletes the Apply Parameters Request with the given ID. After a request is created via a POST to /nifi-api/parameter-providers/apply-parameters-requests, it is expected "
+    @Operation(
+            summary = "Deletes the Apply Parameters Request with the given ID",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ParameterProviderApplyParametersRequestEntity.class))),
+            description = "Deletes the Apply Parameters Request with the given ID. After a request is created via a POST to /nifi-api/parameter-providers/apply-parameters-requests, it is expected "
                     + "that the client will properly clean up the request by DELETE'ing it, once the Apply process has completed. If the request is deleted before the request "
                     + "completes, then the Apply Parameters Request will finish the step that it is currently performing and then will cancel any subsequent steps.",
-            authorizations = {
-                    @Authorization(value = "Only the user that submitted the request can remove it")
-            })
-    @ApiResponses(value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-    })
+            security = {
+                    @SecurityRequirement(name = "Only the user that submitted the request can remove it")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
     public Response deleteApplyParametersRequest(
-            @ApiParam(
-                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
-                    required = false
+            @Parameter(
+                    description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
             )
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
-            @ApiParam("The ID of the Parameter Provider") @PathParam("providerId") final String parameterProviderId,
-            @ApiParam("The ID of the Apply Parameters Request") @PathParam("requestId") final String applyParametersRequestId) {
+            @Parameter(description = "The ID of the Parameter Provider") @PathParam("providerId") final String parameterProviderId,
+            @Parameter(description = "The ID of the Apply Parameters Request") @PathParam("requestId") final String applyParametersRequestId) {
 
         authorizeReadParameterProvider(parameterProviderId);
         return deleteApplyParametersRequest("apply-parameters-requests", parameterProviderId, applyParametersRequestId, disconnectedNodeAcknowledged.booleanValue());
@@ -1089,25 +1081,25 @@ public class ParameterProviderResource extends AbstractParameterResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}/config/analysis")
-    @ApiOperation(
-            value = "Performs analysis of the component's configuration, providing information about which attributes are referenced.",
-            response = ConfigurationAnalysisEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /parameter-providers/{uuid}")
+    @Operation(
+            summary = "Performs analysis of the component's configuration, providing information about which attributes are referenced.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ConfigurationAnalysisEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /parameter-providers/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response analyzeConfiguration(
-            @ApiParam(value = "The parameter provider id.", required = true) @PathParam("id") final String parameterProviderId,
-            @ApiParam(value = "The configuration analysis request.", required = true) final ConfigurationAnalysisEntity configurationAnalysis) {
+            @Parameter(description = "The parameter provider id.", required = true) @PathParam("id") final String parameterProviderId,
+            @Parameter(description = "The configuration analysis request.", required = true) final ConfigurationAnalysisEntity configurationAnalysis) {
 
         if (configurationAnalysis == null || configurationAnalysis.getConfigurationAnalysis() == null) {
             throw new IllegalArgumentException("Parameter Provider's configuration must be specified");
@@ -1137,7 +1129,8 @@ public class ParameterProviderResource extends AbstractParameterResource {
                     final ComponentAuthorizable parameterProvider = lookup.getParameterProvider(parameterProviderId);
                     parameterProvider.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
                 },
-                () -> { },
+                () -> {
+                },
                 entity -> {
                     final ConfigurationAnalysisDTO analysis = entity.getConfigurationAnalysis();
                     final ConfigurationAnalysisEntity resultsEntity = serviceFacade.analyzeParameterProviderConfiguration(analysis.getComponentId(), analysis.getProperties());
@@ -1150,30 +1143,31 @@ public class ParameterProviderResource extends AbstractParameterResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}/config/verification-requests")
-    @ApiOperation(
-            value = "Performs verification of the Parameter Provider's configuration",
-            response = VerifyConfigRequestEntity.class,
-            notes = "This will initiate the process of verifying a given Parameter Provider configuration. This may be a long-running task. As a result, this endpoint will immediately return a " +
+    @Operation(
+            summary = "Performs verification of the Parameter Provider's configuration",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = VerifyConfigRequestEntity.class))),
+            description = "This will initiate the process of verifying a given Parameter Provider configuration. This may be a long-running task. As a result, this endpoint will immediately return " +
+                    "a " +
                     "ParameterProviderConfigVerificationRequestEntity, and the process of performing the verification will occur asynchronously in the background. " +
                     "The client may then periodically poll the status of the request by " +
                     "issuing a GET request to /parameter-providers/{serviceId}/verification-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to " +
                     "/parameter-providers/{providerId}/verification-requests/{requestId}.",
-            authorizations = {
-                    @Authorization(value = "Read - /parameter-providers/{uuid}")
+            security = {
+                    @SecurityRequirement(name = "Read - /parameter-providers/{uuid}")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response submitConfigVerificationRequest(
-            @ApiParam(value = "The parameter provider id.", required = true) @PathParam("id") final String parameterProviderId,
-            @ApiParam(value = "The parameter provider configuration verification request.", required = true) final VerifyConfigRequestEntity parameterProviderConfigRequest) {
+            @Parameter(description = "The parameter provider id.", required = true) @PathParam("id") final String parameterProviderId,
+            @Parameter(description = "The parameter provider configuration verification request.", required = true) final VerifyConfigRequestEntity parameterProviderConfigRequest) {
 
         if (parameterProviderConfigRequest == null) {
             throw new IllegalArgumentException("Parameter Provider's configuration must be specified");
@@ -1216,25 +1210,28 @@ public class ParameterProviderResource extends AbstractParameterResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/config/verification-requests/{requestId}")
-    @ApiOperation(
-            value = "Returns the Verification Request with the given ID",
-            response = VerifyConfigRequestEntity.class,
-            notes = "Returns the Verification Request with the given ID. Once an Verification Request has been created, "
+    @Operation(
+            summary = "Returns the Verification Request with the given ID",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = VerifyConfigRequestEntity.class))),
+            description = "Returns the Verification Request with the given ID. Once an Verification Request has been created, "
                     + "that request can subsequently be retrieved via this endpoint, and the request that is fetched will contain the updated state, such as percent complete, the "
                     + "current state of the request, and any failures. ",
-            authorizations = {
-                    @Authorization(value = "Only the user that submitted the request can get it")
-            })
-    @ApiResponses(value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-    })
+            security = {
+                    @SecurityRequirement(name = "Only the user that submitted the request can get it")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
     public Response getVerificationRequest(
-            @ApiParam("The ID of the Parameter Provider") @PathParam("id") final String parameterProviderId,
-            @ApiParam("The ID of the Verification Request") @PathParam("requestId") final String requestId) {
+            @Parameter(description = "The ID of the Parameter Provider") @PathParam("id") final String parameterProviderId,
+            @Parameter(description = "The ID of the Verification Request") @PathParam("requestId") final String requestId) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -1254,25 +1251,28 @@ public class ParameterProviderResource extends AbstractParameterResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/config/verification-requests/{requestId}")
-    @ApiOperation(
-            value = "Deletes the Verification Request with the given ID",
-            response = VerifyConfigRequestEntity.class,
-            notes = "Deletes the Verification Request with the given ID. After a request is created, it is expected "
+    @Operation(
+            summary = "Deletes the Verification Request with the given ID",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = VerifyConfigRequestEntity.class))),
+            description = "Deletes the Verification Request with the given ID. After a request is created, it is expected "
                     + "that the client will properly clean up the request by DELETE'ing it, once the Verification process has completed. If the request is deleted before the request "
                     + "completes, then the Verification request will finish the step that it is currently performing and then will cancel any subsequent steps.",
-            authorizations = {
-                    @Authorization(value = "Only the user that submitted the request can remove it")
-            })
-    @ApiResponses(value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-    })
+            security = {
+                    @SecurityRequirement(name = "Only the user that submitted the request can remove it")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
     public Response deleteVerificationRequest(
-            @ApiParam("The ID of the Parameter Provider") @PathParam("id") final String parameterProviderId,
-            @ApiParam("The ID of the Verification Request") @PathParam("requestId") final String requestId) {
+            @Parameter(description = "The ID of the Parameter Provider") @PathParam("id") final String parameterProviderId,
+            @Parameter(description = "The ID of the Verification Request") @PathParam("requestId") final String requestId) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
@@ -1432,7 +1432,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
         final List<ParameterContextUpdateEntity> parameterContextUpdates = new ArrayList<>();
         applyParametersRequestDTO.setParameterContextUpdates(parameterContextUpdates);
         final List<ParameterContextEntity> initialRequestList = asyncRequest.getRequest();
-        for(final ParameterContextEntity parameterContextEntity : initialRequestList) {
+        for (final ParameterContextEntity parameterContextEntity : initialRequestList) {
             // The AffectedComponentEntity itself does not evaluate equality based on component information. As a result, we want to de-dupe the entities based on their identifiers.
             final Map<String, AffectedComponentEntity> affectedComponents = new HashMap<>();
             for (final ParameterEntity entity : parameterContextEntity.getComponent().getParameters()) {
@@ -1696,6 +1696,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
     public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
+
     public ComponentLifecycle getClusterComponentLifecycle() {
         return clusterComponentLifecycle;
     }

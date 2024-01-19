@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request to the API.
@@ -31,8 +31,7 @@ public class CopySnippetRequestEntity extends Entity {
     private Double originY;
     private Boolean disconnectedNodeAcknowledged;
 
-    @ApiModelProperty(
-        value = "The identifier of the snippet."
+    @Schema(description = "The identifier of the snippet."
     )
     public String getSnippetId() {
         return snippetId;
@@ -42,8 +41,7 @@ public class CopySnippetRequestEntity extends Entity {
         this.snippetId = snippetId;
     }
 
-    @ApiModelProperty(
-        value = "The x coordinate of the origin of the bounding box where the new components will be placed."
+    @Schema(description = "The x coordinate of the origin of the bounding box where the new components will be placed."
     )
     public Double getOriginX() {
         return originX;
@@ -53,8 +51,7 @@ public class CopySnippetRequestEntity extends Entity {
         this.originX = originX;
     }
 
-    @ApiModelProperty(
-        value = "The y coordinate of the origin of the bounding box where the new components will be placed."
+    @Schema(description = "The y coordinate of the origin of the bounding box where the new components will be placed."
     )
     public Double getOriginY() {
         return originY;
@@ -64,8 +61,7 @@ public class CopySnippetRequestEntity extends Entity {
         this.originY = originY;
     }
 
-    @ApiModelProperty(
-            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    @Schema(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
     )
     public Boolean isDisconnectedNodeAcknowledged() {
         return disconnectedNodeAcknowledged;

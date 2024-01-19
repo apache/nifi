@@ -26,52 +26,51 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportResource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+
+import static org.springframework.security.web.util.matcher.AntPathRequestMatcher.antMatcher;
 
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity
 @ImportResource({"classpath:minifi-c2-web-security-context.xml"})
-public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
+public class SecurityConfiguration {
     private AuthenticationProvider authenticationProvider;
     private X509AuthenticationFilter x509AuthenticationFilter;
     private C2AnonymousAuthenticationFilter c2AnonymousAuthenticationFilter;
 
-    public SecurityConfiguration() {
-        super(true);
+    @Bean
+    public AuthenticationManager authenticationManager() {
+        return new ProviderManager(authenticationProvider);
     }
 
     @Bean
-    @Override
-    public AuthenticationManager authenticationManagerBean() throws Exception {
-        // override xxxBean method so the authentication manager is available in app context (necessary for the method level security)
-        return super.authenticationManagerBean();
-    }
-
-    @Override
-    public void configure(WebSecurity web) throws Exception {
-        web.ignoring().antMatchers("/access", "/access/config", "/access/token", "/access/kerberos");
-    }
-
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        http
-                .rememberMe().disable().authorizeRequests().anyRequest().fullyAuthenticated().and()
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-        http.addFilterBefore(x509AuthenticationFilter, AnonymousAuthenticationFilter.class);
-        http.anonymous().authenticationFilter(c2AnonymousAuthenticationFilter);
-    }
-
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.authenticationProvider(authenticationProvider);
+    public SecurityFilterChain securityFilterChain(
+            final HttpSecurity http
+    ) throws Exception {
+        return http
+                .rememberMe(AbstractHttpConfigurer::disable)
+                .sessionManagement(sessionManagement -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeRequests(authorize -> authorize
+                        .requestMatchers(
+                                antMatcher("/access"),
+                                antMatcher("/access/config"),
+                                antMatcher("/access/token"),
+                                antMatcher("/access/kerberos")
+                        )
+                        .permitAll()
+                        .anyRequest().fullyAuthenticated()
+                )
+                .addFilterBefore(x509AuthenticationFilter, AnonymousAuthenticationFilter.class)
+                .anonymous(anonymous -> anonymous.authenticationFilter(c2AnonymousAuthenticationFilter))
+                .build();
     }
 
     @Autowired

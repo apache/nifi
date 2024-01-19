@@ -66,19 +66,20 @@ public class TestInFlightMessageTracker {
         tracker.incrementSentCount(flowFile);
         verifyNotComplete(tracker);
 
-        final ExecutorService exec = Executors.newFixedThreadPool(1);
-        final Future<?> future = exec.submit(() -> {
-            try {
-                tracker.awaitCompletion(10000L);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
+        try (ExecutorService exec = Executors.newFixedThreadPool(1)) {
+            final Future<?> future  = exec.submit(() -> {
+                try {
+                    tracker.awaitCompletion(10000L);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
 
-        tracker.incrementAcknowledgedCount(flowFile);
-        tracker.incrementAcknowledgedCount(flowFile);
+            tracker.incrementAcknowledgedCount(flowFile);
+            tracker.incrementAcknowledgedCount(flowFile);
 
-        future.get();
+            future.get();
+        }
     }
 
     private void verifyNotComplete(final InFlightMessageTracker tracker) {

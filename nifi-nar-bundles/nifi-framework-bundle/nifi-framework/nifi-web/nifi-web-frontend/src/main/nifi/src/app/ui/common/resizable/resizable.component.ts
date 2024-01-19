@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, ElementRef, EventEmitter, Output } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, Output } from '@angular/core';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { CdkDrag, CdkDragEnd, CdkDragMove } from '@angular/cdk/drag-drop';
@@ -31,6 +31,8 @@ import { AsyncPipe, NgIf } from '@angular/common';
 })
 export class Resizable {
     @Output() resized = new EventEmitter<DOMRect>();
+    @Input() minHeight: number = 0;
+    @Input() minWidth: number = 0;
 
     private startSize$ = new Subject<DOMRect>();
     private dragMove$ = new Subject<CdkDragMove>();
@@ -38,9 +40,18 @@ export class Resizable {
         withLatestFrom(this.startSize$),
         auditTime(25),
         tap(([{ distance }, rect]) => {
-            this.el.nativeElement.style.width = `${rect.width + distance.x}px`;
-            this.el.nativeElement.style.height = `${rect.height + distance.y}px`;
-            this.resized.emit(this.el.nativeElement.getBoundingClientRect());
+            let resized: boolean = false;
+            if (rect.width + distance.x >= this.minWidth) {
+                this.el.nativeElement.style.width = `${rect.width + distance.x}px`;
+                resized = true;
+            }
+            if (rect.height + distance.y >= this.minHeight) {
+                this.el.nativeElement.style.height = `${rect.height + distance.y}px`;
+                resized = true;
+            }
+            if (resized) {
+                this.resized.emit(this.el.nativeElement.getBoundingClientRect());
+            }
         })
     );
 

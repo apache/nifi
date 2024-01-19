@@ -278,8 +278,8 @@ public class ExtractHL7Attributes extends AbstractProcessor {
         final Map<String, Type> fields = new TreeMap<>();
         final String[] segmentNames = segment.getNames();
         for (int i = 1; i <= segment.numFields(); i++) {
-            final Type field = segment.getField(i, 0);
-            if (!isEmpty(field)) {
+            final Type[] fieldValues = segment.getField(i);
+            if (fieldValues != null && fieldValues.length != 0) {
                 final String fieldName;
                 //Some user defined segments (e.g. Z segments) will not have corresponding names returned
                 //from segment.getNames() above. If we encounter one of these, do the next best thing
@@ -292,7 +292,16 @@ public class ExtractHL7Attributes extends AbstractProcessor {
                 }
 
                 final String fieldKey = "%s.%s".formatted(segmentKey, fieldName);
-                fields.put(fieldKey, field);
+
+                //Checks if the field is repeatable, if the max cardinality value is 0 or more than 1 then the field is repeatable
+                if (segment.getMaxCardinality(i) == 1) {
+                    fields.put(fieldKey, fieldValues[0]);
+                } else {
+                    for (int j = 0; j < fieldValues.length; j++) {
+                        final String repeatableFieldKey = "%s_%s".formatted(fieldKey, j + 1);
+                        fields.put(repeatableFieldKey, fieldValues[j]);
+                    }
+                }
             }
         }
         return fields;

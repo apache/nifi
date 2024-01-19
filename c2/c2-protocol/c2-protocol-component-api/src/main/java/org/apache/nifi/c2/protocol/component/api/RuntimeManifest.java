@@ -17,15 +17,13 @@
 
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-@ApiModel
 public class RuntimeManifest implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -36,7 +34,7 @@ public class RuntimeManifest implements Serializable {
     private List<Bundle> bundles;
     private SchedulingDefaults schedulingDefaults;
 
-    @ApiModelProperty("A unique identifier for the manifest")
+    @Schema(description = "A unique identifier for the manifest")
     public String getIdentifier() {
         return identifier;
     }
@@ -45,9 +43,7 @@ public class RuntimeManifest implements Serializable {
         this.identifier = identifier;
     }
 
-    @ApiModelProperty(
-        value = "The type of the runtime binary, e.g., 'minifi-java' or 'minifi-cpp'",
-        notes = "Usually set when the runtime is built.")
+    @Schema(description = "The type of the runtime binary, e.g., 'minifi-java' or 'minifi-cpp'")
     public String getAgentType() {
         return agentType;
     }
@@ -56,9 +52,7 @@ public class RuntimeManifest implements Serializable {
         this.agentType = agentType;
     }
 
-    @ApiModelProperty(
-        value = "The version of the runtime binary, e.g., '1.0.1'",
-        notes = "Usually set when the runtime is built.")
+    @Schema(description = "The version of the runtime binary, e.g., '1.0.1'")
     public String getVersion() {
         return version;
     }
@@ -67,7 +61,7 @@ public class RuntimeManifest implements Serializable {
         this.version = version;
     }
 
-    @ApiModelProperty("Build summary for this runtime binary")
+    @Schema(description = "Build summary for this runtime binary")
     public BuildInfo getBuildInfo() {
         return buildInfo;
     }
@@ -76,7 +70,7 @@ public class RuntimeManifest implements Serializable {
         this.buildInfo = buildInfo;
     }
 
-    @ApiModelProperty("All extension bundles included with this runtime")
+    @Schema(description = "All extension bundles included with this runtime")
     public List<Bundle> getBundles() {
         return (bundles != null ? Collections.unmodifiableList(bundles) : null);
     }
@@ -85,7 +79,7 @@ public class RuntimeManifest implements Serializable {
         this.bundles = bundles;
     }
 
-    @ApiModelProperty("Scheduling defaults for components defined in this manifest")
+    @Schema(description = "Scheduling defaults for components defined in this manifest")
     public SchedulingDefaults getSchedulingDefaults() {
         return schedulingDefaults;
     }

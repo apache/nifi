@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -63,8 +63,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return controller service name
      */
-    @ApiModelProperty(
-            value = "The name of the controller service."
+    @Schema(description = "The name of the controller service."
     )
     public String getName() {
         return name;
@@ -77,8 +76,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return the controller service type
      */
-    @ApiModelProperty(
-            value = "The type of the controller service."
+    @Schema(description = "The type of the controller service."
     )
     public String getType() {
         return type;
@@ -93,8 +91,7 @@ public class ControllerServiceDTO extends ComponentDTO {
      *
      * @return The bundle details
      */
-    @ApiModelProperty(
-            value = "The details of the artifact that bundled this processor type."
+    @Schema(description = "The details of the artifact that bundled this processor type."
     )
     public BundleDTO getBundle() {
         return bundle;
@@ -109,8 +106,7 @@ public class ControllerServiceDTO extends ComponentDTO {
      *
      * @return The listing of implemented APIs
      */
-    @ApiModelProperty(
-            value = "Lists the APIs this Controller Service implements."
+    @Schema(description = "Lists the APIs this Controller Service implements."
     )
     public List<ControllerServiceApiDTO> getControllerServiceApis() {
         return controllerServiceApis;
@@ -123,8 +119,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return the comment for the Controller Service
      */
-    @ApiModelProperty(
-            value = "The comments for the controller service."
+    @Schema(description = "The comments for the controller service."
     )
     public String getComments() {
         return comments;
@@ -137,8 +132,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return the level at which this controller service will report bulletins
      */
-    @ApiModelProperty(
-            value = "The level at which the controller service will report bulletins."
+    @Schema(description = "The level at which the controller service will report bulletins."
     )
     public String getBulletinLevel() {
         return bulletinLevel;
@@ -151,8 +145,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return whether this controller service persists state
      */
-    @ApiModelProperty(
-        value = "Whether the controller service persists state."
+    @Schema(description = "Whether the controller service persists state."
     )
     public Boolean getPersistsState() {
         return persistsState;
@@ -165,8 +158,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return whether this controller service requires elevated privileges
      */
-    @ApiModelProperty(
-            value = "Whether the controller service requires elevated privileges."
+    @Schema(description = "Whether the controller service requires elevated privileges."
     )
     public Boolean getRestricted() {
         return restricted;
@@ -179,8 +171,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return Whether the controller service has been deprecated.
      */
-    @ApiModelProperty(
-            value = "Whether the ontroller service has been deprecated."
+    @Schema(description = "Whether the ontroller service has been deprecated."
     )
     public Boolean getDeprecated() {
         return deprecated;
@@ -193,8 +184,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return whether the underlying extension is missing
      */
-    @ApiModelProperty(
-            value = "Whether the underlying extension is missing."
+    @Schema(description = "Whether the underlying extension is missing."
     )
     public Boolean getExtensionMissing() {
         return isExtensionMissing;
@@ -207,8 +197,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return whether this controller service has multiple versions available
      */
-    @ApiModelProperty(
-            value = "Whether the controller service has multiple versions available."
+    @Schema(description = "Whether the controller service has multiple versions available."
     )
     public Boolean getMultipleVersionsAvailable() {
         return multipleVersionsAvailable;
@@ -221,8 +210,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return whether this controller service supports sensitive dynamic properties
      */
-    @ApiModelProperty(
-            value = "Whether the controller service supports sensitive dynamic properties."
+    @Schema(description = "Whether the controller service supports sensitive dynamic properties."
     )
     public Boolean getSupportsSensitiveDynamicProperties() {
         return supportsSensitiveDynamicProperties;
@@ -235,8 +223,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return The state of this controller service. Possible values are ENABLED, ENABLING, DISABLED, DISABLING
      */
-    @ApiModelProperty(
-            value = "The state of the controller service.",
+    @Schema(description = "The state of the controller service.",
             allowableValues = "ENABLED, ENABLING, DISABLED, DISABLING"
     )
     public String getState() {
@@ -250,8 +237,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return controller service properties
      */
-    @ApiModelProperty(
-            value = "The properties of the controller service."
+    @Schema(description = "The properties of the controller service."
     )
     public Map<String, String> getProperties() {
         return properties;
@@ -264,8 +250,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return descriptors for the controller service properties
      */
-    @ApiModelProperty(
-            value = "The descriptors for the controller service properties."
+    @Schema(description = "The descriptors for the controller service properties."
     )
     public Map<String, PropertyDescriptorDTO> getDescriptors() {
         return descriptors;
@@ -278,8 +263,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return Set of sensitive dynamic property names
      */
-    @ApiModelProperty(
-            value = "Set of sensitive dynamic property names"
+    @Schema(description = "Set of sensitive dynamic property names"
     )
     public Set<String> getSensitiveDynamicPropertyNames() {
         return sensitiveDynamicPropertyNames;
@@ -292,8 +276,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return the URL for this controller services custom configuration UI if applicable. Null otherwise
      */
-    @ApiModelProperty(
-            value = "The URL for the controller services custom configuration UI if applicable."
+    @Schema(description = "The URL for the controller services custom configuration UI if applicable."
     )
     public String getCustomUiUrl() {
         return customUiUrl;
@@ -306,8 +289,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return annotation data for this controller service
      */
-    @ApiModelProperty(
-            value = "The annotation for the controller service. This is how the custom UI relays configuration to the controller service."
+    @Schema(description = "The annotation for the controller service. This is how the custom UI relays configuration to the controller service."
     )
     public String getAnnotationData() {
         return annotationData;
@@ -320,8 +302,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     /**
      * @return all components referencing this controller service
      */
-    @ApiModelProperty(
-            value = "All components referencing this controller service."
+    @Schema(description = "All components referencing this controller service."
     )
     public Set<ControllerServiceReferencingComponentEntity> getReferencingComponents() {
         return referencingComponents;
@@ -336,8 +317,10 @@ public class ControllerServiceDTO extends ComponentDTO {
      *
      * @return The validation errors
      */
-    @ApiModelProperty(
-            value = "The validation errors from the controller service. These validation errors represent the problems with the controller service that must be resolved before it can be enabled."
+    @Schema(description = """
+                          The validation errors from the controller service.
+                          These validation errors represent the problems with the controller service that must be resolved before it can be enabled.
+                          """
     )
     public Collection<String> getValidationErrors() {
         return validationErrors;
@@ -347,8 +330,8 @@ public class ControllerServiceDTO extends ComponentDTO {
         this.validationErrors = validationErrors;
     }
 
-    @ApiModelProperty(value = "Indicates whether the ControllerService is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the ControllerService is valid)",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY,
+    @Schema(description = "Indicates whether the ControllerService is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the ControllerService is valid)",
+        accessMode = Schema.AccessMode.READ_ONLY,
         allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
     public String getValidationStatus() {
         return validationStatus;

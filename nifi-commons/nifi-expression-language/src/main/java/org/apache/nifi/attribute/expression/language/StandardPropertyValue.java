@@ -19,6 +19,8 @@ package org.apache.nifi.attribute.expression.language;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.resource.ResourceContext;
@@ -232,6 +234,25 @@ public class StandardPropertyValue implements PropertyValue {
         }
 
         return resourceContext.getResourceReferenceFactory().createResourceReferences(rawValue, propertyDescriptor.getResourceDefinition());
+    }
+
+    @Override
+    public <E extends Enum<E>> E asAllowableValue(Class<E> enumType) throws IllegalArgumentException {
+        if (rawValue == null) {
+            return null;
+        }
+
+        for (E enumConstant : enumType.getEnumConstants()) {
+            if (enumConstant instanceof DescribedValue describedValue) {
+                if (describedValue.getValue().equals(rawValue)) {
+                    return enumConstant;
+                }
+            } else if (enumConstant.name().equals(rawValue)) {
+                return enumConstant;
+            }
+        }
+
+        throw new IllegalArgumentException(String.format("%s does not have an entry with value %s", enumType.getSimpleName(), rawValue));
     }
 
     @Override

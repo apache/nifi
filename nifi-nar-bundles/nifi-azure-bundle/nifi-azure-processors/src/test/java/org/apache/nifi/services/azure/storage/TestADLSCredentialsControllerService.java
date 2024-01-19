@@ -58,154 +58,15 @@ public class TestADLSCredentialsControllerService {
 
     @Test
     public void testNotValidBecauseAccountNameMissing() {
+        configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
         configureAccountKey();
-
-        runner.assertNotValid(credentialsService);
-    }
-
-    @Test
-    public void testNotValidBecauseNoCredentialsIsSet() {
-        configureAccountName();
-
-        runner.assertNotValid(credentialsService);
-    }
-
-    @Test
-    public void testNotValidBecauseBothAccountKeyAndSasTokenSpecified() {
-        configureAccountName();
-
-        configureAccountKey();
-        configureSasToken();
-
-        runner.assertNotValid(credentialsService);
-    }
-
-    @Test
-    public void testNotValidBecauseBothAccountKeyAndUseManagedIdentitySpecified() {
-        configureAccountName();
-
-        configureAccountKey();
-        configureUseManagedIdentity();
-
-        runner.assertNotValid(credentialsService);
-    }
-
-    @Test
-    public void testNotValidBecauseBothAccountKeyAndServicePrincipalTenantIdSpecified() {
-        configureAccountName();
-
-        configureAccountKey();
-        configureServicePrincipalTenantId();
-
-        runner.assertNotValid(credentialsService);
-    }
-
-    @Test
-    public void testNotValidBecauseBothAccountKeyAndServicePrincipalClientIdSpecified() {
-        configureAccountName();
-
-        configureAccountKey();
-        configureServicePrincipalClientId();
-
-        runner.assertNotValid(credentialsService);
-    }
-
-    @Test
-    public void testNotValidBecauseBothAccountKeyAndServicePrincipalClientSecretSpecified() {
-        configureAccountName();
-
-        configureAccountKey();
-        configureServicePrincipalClientSecret();
-
-        runner.assertNotValid(credentialsService);
-    }
-
-    @Test
-    public void testNotValidBecauseBothSasTokenAndUseManagedIdentitySpecified() {
-        configureAccountName();
-
-        configureSasToken();
-        configureUseManagedIdentity();
-
-        runner.assertNotValid(credentialsService);
-    }
-
-    @Test
-    public void testNotValidBecauseBothSasTokenAndServicePrincipalTenantIdSpecified() {
-        configureAccountName();
-
-        configureSasToken();
-        configureServicePrincipalTenantId();
-
-        runner.assertNotValid(credentialsService);
-    }
-
-    @Test
-    public void testNotValidBecauseBothSasTokenAndServicePrincipalClientIdSpecified() {
-        configureAccountName();
-
-        configureSasToken();
-        configureServicePrincipalClientId();
-
-        runner.assertNotValid(credentialsService);
-    }
-
-    @Test
-    public void testNotValidBecauseBothSasTokenAndServicePrincipalClientSecretSpecified() {
-        configureAccountName();
-
-        configureSasToken();
-        configureServicePrincipalClientSecret();
-
-        runner.assertNotValid(credentialsService);
-    }
-
-    @Test
-    public void testNotValidBecauseBothUseManagedIdentityAndServicePrincipalTenantIdSpecified() {
-        configureAccountName();
-
-        configureUseManagedIdentity();
-        configureServicePrincipalTenantId();
-
-        runner.assertNotValid(credentialsService);
-    }
-
-    @Test
-    public void testNotValidBecauseBothUseManagedIdentityAndServicePrincipalClientIdSpecified() {
-        configureAccountName();
-
-        configureUseManagedIdentity();
-        configureServicePrincipalClientId();
-
-        runner.assertNotValid(credentialsService);
-    }
-
-    @Test
-    public void testNotValidBecauseBothUseManagedIdentityAndServicePrincipalClientSecretSpecified() {
-        configureAccountName();
-
-        configureUseManagedIdentity();
-        configureServicePrincipalClientSecret();
-
-        runner.assertNotValid(credentialsService);
-    }
-
-    @Test
-    public void testNotValidBecauseAllCredentialsSpecified() throws Exception {
-        configureAccountName();
-
-        configureAccountKey();
-        configureSasToken();
-        configureUseManagedIdentity();
-        configureServicePrincipalTenantId();
-        configureServicePrincipalClientId();
-        configureServicePrincipalClientSecret();
 
         runner.assertNotValid(credentialsService);
     }
 
     @Test
     public void testNotValidWithEmptyEndpointSuffix() {
+        configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
         configureAccountName();
         configureAccountKey();
 
@@ -214,6 +75,7 @@ public class TestADLSCredentialsControllerService {
     }
     @Test
     public void testNotValidWithWhitespaceEndpointSuffix() {
+        configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
         configureAccountName();
         configureAccountKey();
 
@@ -223,6 +85,7 @@ public class TestADLSCredentialsControllerService {
 
     @Test
     public void testValidWithAccountNameAndAccountKey() {
+        configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
         configureAccountName();
         configureAccountKey();
 
@@ -231,6 +94,7 @@ public class TestADLSCredentialsControllerService {
 
     @Test
     public void testValidWithAccountNameAndSasToken() {
+        configureCredentialsType(AzureStorageCredentialsType.SAS_TOKEN);
         configureAccountName();
         configureSasToken();
 
@@ -239,14 +103,15 @@ public class TestADLSCredentialsControllerService {
 
     @Test
     public void testValidWithAccountNameAndUseManagedIdentity() {
+        configureCredentialsType(AzureStorageCredentialsType.MANAGED_IDENTITY);
         configureAccountName();
-        configureUseManagedIdentity();
 
         runner.assertValid(credentialsService);
     }
 
     @Test
     public void testValidWithAccountNameAndServicePrincipalWithClientSecret() {
+        configureCredentialsType(AzureStorageCredentialsType.SERVICE_PRINCIPAL);
         configureAccountName();
         configureServicePrincipalTenantId();
         configureServicePrincipalClientId();
@@ -256,17 +121,8 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
-    public void testNotValidBecauseManagedIdentityClientIdSpecifiedButUseManagedIdentityIsFalse() {
-        configureAccountName();
-        configureAccountKey();
-
-        configureManagedIdentityClientId();
-
-        runner.assertNotValid(credentialsService);
-    }
-
-    @Test
     public void testNotValidBecauseNoTenantIdSpecifiedForServicePrincipal() {
+        configureCredentialsType(AzureStorageCredentialsType.SERVICE_PRINCIPAL);
         configureAccountName();
 
         configureServicePrincipalClientId();
@@ -277,6 +133,7 @@ public class TestADLSCredentialsControllerService {
 
     @Test
     public void testNotValidBecauseNoClientIdSpecifiedForServicePrincipal() {
+        configureCredentialsType(AzureStorageCredentialsType.SERVICE_PRINCIPAL);
         configureAccountName();
 
         configureServicePrincipalTenantId();
@@ -287,6 +144,7 @@ public class TestADLSCredentialsControllerService {
 
     @Test
     public void testNotValidBecauseNoClientSecretSpecifiedForServicePrincipal() {
+        configureCredentialsType(AzureStorageCredentialsType.SERVICE_PRINCIPAL);
         configureAccountName();
 
         configureServicePrincipalTenantId();
@@ -298,6 +156,7 @@ public class TestADLSCredentialsControllerService {
     @Test
     public void testGetCredentialsDetailsWithAccountKey() throws Exception {
         // GIVEN
+        configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
         configureAccountName();
         configureAccountKey();
 
@@ -321,6 +180,7 @@ public class TestADLSCredentialsControllerService {
     @Test
     public void testGetCredentialsDetailsWithAccountKeyUsingEL() throws Exception {
         // GIVEN
+        configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
         configureAccountNameUsingEL();
         configureAccountKeyUsingEL();
 
@@ -344,6 +204,7 @@ public class TestADLSCredentialsControllerService {
     @Test
     public void testGetCredentialsDetailsWithSasToken() throws Exception {
         // GIVEN
+        configureCredentialsType(AzureStorageCredentialsType.SAS_TOKEN);
         configureAccountName();
         configureSasToken();
 
@@ -366,6 +227,7 @@ public class TestADLSCredentialsControllerService {
 
     @Test
     public void testGetCredentialsDetailsWithSasTokenUsingEL() throws Exception {
+        configureCredentialsType(AzureStorageCredentialsType.SAS_TOKEN);
         configureAccountName();
         configureSasTokenUsingEL();
 
@@ -386,8 +248,8 @@ public class TestADLSCredentialsControllerService {
     @Test
     public void testGetCredentialsDetailsWithSystemAssignedManagedIdentity() throws Exception {
         // GIVEN
+        configureCredentialsType(AzureStorageCredentialsType.MANAGED_IDENTITY);
         configureAccountName();
-        configureUseManagedIdentity();
 
         runner.enableControllerService(credentialsService);
 
@@ -409,8 +271,8 @@ public class TestADLSCredentialsControllerService {
     @Test
     public void testGetCredentialsDetailsWithUserAssignedManagedIdentity() throws Exception {
         // GIVEN
+        configureCredentialsType(AzureStorageCredentialsType.MANAGED_IDENTITY);
         configureAccountName();
-        configureUseManagedIdentity();
         configureManagedIdentityClientId();
 
         runner.enableControllerService(credentialsService);
@@ -433,6 +295,7 @@ public class TestADLSCredentialsControllerService {
     @Test
     public void testGetCredentialsDetailsWithServicePrincipalWithClientSecret() throws Exception {
         // GIVEN
+        configureCredentialsType(AzureStorageCredentialsType.SERVICE_PRINCIPAL);
         configureAccountName();
         configureServicePrincipalTenantId();
         configureServicePrincipalClientId();
@@ -458,6 +321,7 @@ public class TestADLSCredentialsControllerService {
     @Test
     public void testGetCredentialsDetailsWithSetEndpointSuffix() throws Exception {
         // GIVEN
+        configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
         configureAccountName();
         configureAccountKey();
         configureEndpointSuffix();
@@ -474,6 +338,7 @@ public class TestADLSCredentialsControllerService {
     @Test
     public void testGetCredentialsDetailsWithSetEndpointSuffixUsingEL() throws Exception {
         // GIVEN
+        configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
         configureAccountName();
         configureAccountKey();
         configureEndpointSuffixUsingEL();
@@ -486,13 +351,16 @@ public class TestADLSCredentialsControllerService {
         // THEN
         assertEquals(END_POINT_SUFFIX_VALUE, actual.getEndpointSuffix());
     }
+    private void configureCredentialsType(AzureStorageCredentialsType credentialsType) {
+        runner.setProperty(credentialsService, AzureStorageUtils.CREDENTIALS_TYPE, credentialsType);
+    }
 
     private void configureAccountName() {
-        runner.setProperty(credentialsService, ADLSCredentialsControllerService.ACCOUNT_NAME, ACCOUNT_NAME_VALUE);
+        runner.setProperty(credentialsService, AzureStorageUtils.ACCOUNT_NAME, ACCOUNT_NAME_VALUE);
     }
 
     private void configureAccountNameUsingEL() {
-        configurePropertyUsingEL(ADLSCredentialsControllerService.ACCOUNT_NAME, "account.name", ACCOUNT_NAME_VALUE);
+        configurePropertyUsingEL(AzureStorageUtils.ACCOUNT_NAME, "account.name", ACCOUNT_NAME_VALUE);
     }
 
     private void configureAccountKey() {
@@ -504,41 +372,37 @@ public class TestADLSCredentialsControllerService {
     }
 
     private void configureSasToken() {
-        runner.setProperty(credentialsService, AzureStorageUtils.PROP_SAS_TOKEN, SAS_TOKEN_VALUE);
+        runner.setProperty(credentialsService, AzureStorageUtils.SAS_TOKEN, SAS_TOKEN_VALUE);
     }
 
     private void configureSasTokenUsingEL() {
         String variableName = "sas.token";
-        configurePropertyUsingEL(AzureStorageUtils.PROP_SAS_TOKEN, variableName, SAS_TOKEN_VALUE);
-    }
-
-    private void configureUseManagedIdentity() {
-        runner.setProperty(credentialsService, ADLSCredentialsControllerService.USE_MANAGED_IDENTITY, "true");
+        configurePropertyUsingEL(AzureStorageUtils.SAS_TOKEN, variableName, SAS_TOKEN_VALUE);
     }
 
     private void configureManagedIdentityClientId() {
-        runner.setProperty(credentialsService, ADLSCredentialsControllerService.MANAGED_IDENTITY_CLIENT_ID, MANAGED_IDENTITY_CLIENT_ID_VALUE);
+        runner.setProperty(credentialsService, AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID, MANAGED_IDENTITY_CLIENT_ID_VALUE);
     }
 
     private void configureEndpointSuffix() {
-        runner.setProperty(credentialsService, ADLSCredentialsControllerService.ENDPOINT_SUFFIX, END_POINT_SUFFIX_VALUE);
+        runner.setProperty(credentialsService, AzureStorageUtils.ENDPOINT_SUFFIX, END_POINT_SUFFIX_VALUE);
     }
 
     private void configureEndpointSuffixUsingEL() {
         String variableName = "endpoint.suffix";
-        configurePropertyUsingEL(ADLSCredentialsControllerService.ENDPOINT_SUFFIX, variableName, END_POINT_SUFFIX_VALUE);
+        configurePropertyUsingEL(AzureStorageUtils.ENDPOINT_SUFFIX, variableName, END_POINT_SUFFIX_VALUE);
     }
 
     private void configureServicePrincipalTenantId() {
-        runner.setProperty(credentialsService, ADLSCredentialsControllerService.SERVICE_PRINCIPAL_TENANT_ID, SERVICE_PRINCIPAL_TENANT_ID_VALUE);
+        runner.setProperty(credentialsService, AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID, SERVICE_PRINCIPAL_TENANT_ID_VALUE);
     }
 
     private void configureServicePrincipalClientId() {
-        runner.setProperty(credentialsService, ADLSCredentialsControllerService.SERVICE_PRINCIPAL_CLIENT_ID, SERVICE_PRINCIPAL_CLIENT_ID_VALUE);
+        runner.setProperty(credentialsService, AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID, SERVICE_PRINCIPAL_CLIENT_ID_VALUE);
     }
 
     private void configureServicePrincipalClientSecret() {
-        runner.setProperty(credentialsService, ADLSCredentialsControllerService.SERVICE_PRINCIPAL_CLIENT_SECRET, SERVICE_PRINCIPAL_CLIENT_SECRET_VALUE);
+        runner.setProperty(credentialsService, AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET, SERVICE_PRINCIPAL_CLIENT_SECRET_VALUE);
     }
 
     private void configurePropertyUsingEL(PropertyDescriptor propertyDescriptor, String variableName, String variableValue) {

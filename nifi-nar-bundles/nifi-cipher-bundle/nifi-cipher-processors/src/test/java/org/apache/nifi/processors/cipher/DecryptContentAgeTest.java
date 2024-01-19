@@ -95,7 +95,7 @@ class DecryptContentAgeTest {
     @Test
     void testVerifySuccessful() {
         runner.setProperty(DecryptContentAge.PRIVATE_KEY_IDENTITIES, PRIVATE_KEY_ENCODED);
-        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.PROPERTIES.getValue());
+        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.PROPERTIES);
 
         assertVerificationResultOutcomeEquals(ConfigVerificationResult.Outcome.SUCCESSFUL);
     }
@@ -103,14 +103,14 @@ class DecryptContentAgeTest {
     @Test
     void testVerifyFailedChecksumInvalid() {
         runner.setProperty(DecryptContentAge.PRIVATE_KEY_IDENTITIES, PRIVATE_KEY_CHECKSUM_INVALID);
-        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.PROPERTIES.getValue());
+        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.PROPERTIES);
 
         assertVerificationResultOutcomeEquals(ConfigVerificationResult.Outcome.FAILED);
     }
 
     @Test
     void testVerifyFailedResourcesNotConfigured() {
-        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.RESOURCES.getValue());
+        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.RESOURCES);
 
         assertVerificationResultOutcomeEquals(ConfigVerificationResult.Outcome.FAILED);
     }
@@ -118,7 +118,7 @@ class DecryptContentAgeTest {
     @Test
     void testRunSuccessAscii() throws GeneralSecurityException, IOException {
         runner.setProperty(DecryptContentAge.PRIVATE_KEY_IDENTITIES, PRIVATE_KEY_ENCODED);
-        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.PROPERTIES.getValue());
+        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.PROPERTIES);
 
         assertSuccess(FileEncoding.ASCII);
     }
@@ -126,7 +126,7 @@ class DecryptContentAgeTest {
     @Test
     void testRunSuccessBinary() throws GeneralSecurityException, IOException {
         runner.setProperty(DecryptContentAge.PRIVATE_KEY_IDENTITIES, PRIVATE_KEY_ENCODED);
-        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.PROPERTIES.getValue());
+        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.PROPERTIES);
 
         assertSuccess(FileEncoding.BINARY);
     }
@@ -135,7 +135,7 @@ class DecryptContentAgeTest {
     void testRunSuccessBinaryMultiplePrivateKeys() throws GeneralSecurityException, IOException {
         final String multiplePrivateKeys = String.format("%s%n%s", PRIVATE_KEY_ENCODED, PRIVATE_KEY_SECOND);
         runner.setProperty(DecryptContentAge.PRIVATE_KEY_IDENTITIES, multiplePrivateKeys);
-        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.PROPERTIES.getValue());
+        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.PROPERTIES);
 
         assertSuccess(FileEncoding.BINARY);
     }
@@ -146,7 +146,7 @@ class DecryptContentAgeTest {
         Files.writeString(tempFile, PRIVATE_KEY_ENCODED);
 
         runner.setProperty(DecryptContentAge.PRIVATE_KEY_IDENTITY_RESOURCES, tempFile.toString());
-        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.RESOURCES.getValue());
+        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.RESOURCES);
 
         assertSuccess(FileEncoding.BINARY);
     }
@@ -156,7 +156,7 @@ class DecryptContentAgeTest {
         final Path tempFile = createTempFile(tempDir);
 
         runner.setProperty(DecryptContentAge.PRIVATE_KEY_IDENTITY_RESOURCES, tempFile.toString());
-        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.RESOURCES.getValue());
+        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.RESOURCES);
 
         final byte[] encrypted = getEncrypted(FileEncoding.BINARY);
         runner.enqueue(encrypted);
@@ -167,7 +167,7 @@ class DecryptContentAgeTest {
     @Test
     void testRunFailure() {
         runner.setProperty(DecryptContentAge.PRIVATE_KEY_IDENTITIES, PRIVATE_KEY_ENCODED);
-        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.PROPERTIES.getValue());
+        runner.setProperty(DecryptContentAge.PRIVATE_KEY_SOURCE, KeySource.PROPERTIES);
 
         runner.enqueue(WORD);
         runner.run();
@@ -217,13 +217,11 @@ class DecryptContentAgeTest {
 
     private EncryptingChannelFactory getEncryptingChannelFactory(final FileEncoding fileEncoding) {
         final Provider provider = AgeProviderResolver.getCipherProvider();
-        final EncryptingChannelFactory encryptingChannelFactory;
-        if (FileEncoding.ASCII == fileEncoding) {
-            encryptingChannelFactory = new ArmoredEncryptingChannelFactory(provider);
-        } else {
-            encryptingChannelFactory = new StandardEncryptingChannelFactory(provider);
-        }
-        return encryptingChannelFactory;
+
+        return switch (fileEncoding) {
+            case ASCII -> new ArmoredEncryptingChannelFactory(provider);
+            case BINARY -> new StandardEncryptingChannelFactory(provider);
+        };
     }
 
     private Path createTempFile(final Path tempDir) throws IOException {

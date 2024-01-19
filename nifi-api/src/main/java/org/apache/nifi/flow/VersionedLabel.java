@@ -19,7 +19,7 @@ package org.apache.nifi.flow;
 
 import java.util.Map;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public class VersionedLabel extends VersionedComponent {
     private String label;
@@ -31,7 +31,7 @@ public class VersionedLabel extends VersionedComponent {
     private Map<String, String> style;
 
 
-    @ApiModelProperty("The text that appears in the label.")
+    @Schema(description = "The text that appears in the label.")
     public String getLabel() {
         return label;
     }
@@ -40,7 +40,7 @@ public class VersionedLabel extends VersionedComponent {
         this.label = label;
     }
 
-    @ApiModelProperty("The styles for this label (font-size : 12px, background-color : #eee, etc).")
+    @Schema(description = "The styles for this label (font-size : 12px, background-color : #eee, etc).")
     public Map<String, String> getStyle() {
         return style;
     }
@@ -49,7 +49,7 @@ public class VersionedLabel extends VersionedComponent {
         this.style = style;
     }
 
-    @ApiModelProperty("The height of the label in pixels when at a 1:1 scale.")
+    @Schema(description = "The height of the label in pixels when at a 1:1 scale.")
     public Double getHeight() {
         return height;
     }
@@ -58,7 +58,7 @@ public class VersionedLabel extends VersionedComponent {
         this.height = height;
     }
 
-    @ApiModelProperty("The width of the label in pixels when at a 1:1 scale.")
+    @Schema(description = "The width of the label in pixels when at a 1:1 scale.")
     public Double getWidth() {
         return width;
     }
@@ -67,8 +67,8 @@ public class VersionedLabel extends VersionedComponent {
         this.width = width;
     }
 
-    @ApiModelProperty(
-            value = "The z index of the connection.",
+    @Schema(
+            description = "The z index of the connection.",
             name = "zIndex")  // Jackson maps this method name to JSON key "zIndex", but Swagger does not by default
     public Long getzIndex() {
         return zIndex;

@@ -29,7 +29,8 @@
     <properties>
         <ant.version>1.10.14</ant.version>
         <calcite.avatica.version>1.6.0</calcite.avatica.version>
-        <avatica.version>1.23.0</avatica.version>
+        <avatica.version>1.24.0</avatica.version>
+        <org.apache.sshd.version>2.12.0</org.apache.sshd.version>
     </properties>
 
     <!-- Managed Dependency Versions for referenced modules required based on different parent bundle project -->
@@ -107,6 +108,22 @@
                 <groupId>com.couchbase.client</groupId>
                 <artifactId>core-io</artifactId>
                 <version>1.7.24</version>
+            </dependency>
+            <!-- SSHD from Registry and other modules -->
+            <dependency>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-core</artifactId>
+                <version>${org.apache.sshd.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-sftp</artifactId>
+                <version>${org.apache.sshd.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-osgi</artifactId>
+                <version>${org.apache.sshd.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -1000,6 +1017,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-event-transport</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-file-transfer</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>

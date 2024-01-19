@@ -16,22 +16,26 @@
  */
 
 /*
-  Parameter Contexts
+  Provenance
  */
 
 import { Action, combineReducers, createFeatureSelector } from '@ngrx/store';
 import { provenanceEventListingFeatureKey, ProvenanceEventListingState } from './provenance-event-listing';
 import { provenanceEventListingReducer } from './provenance-event-listing/provenance-event-listing.reducer';
+import { lineageFeatureKey, LineageState } from './lineage';
+import { lineageReducer } from './lineage/lineage.reducer';
 
 export const provenanceFeatureKey = 'provenance';
 
 export interface ProvenanceState {
     [provenanceEventListingFeatureKey]: ProvenanceEventListingState;
+    [lineageFeatureKey]: LineageState;
 }
 
 export function reducers(state: ProvenanceState | undefined, action: Action) {
     return combineReducers({
-        [provenanceEventListingFeatureKey]: provenanceEventListingReducer
+        [provenanceEventListingFeatureKey]: provenanceEventListingReducer,
+        [lineageFeatureKey]: lineageReducer
     })(state, action);
 }
 

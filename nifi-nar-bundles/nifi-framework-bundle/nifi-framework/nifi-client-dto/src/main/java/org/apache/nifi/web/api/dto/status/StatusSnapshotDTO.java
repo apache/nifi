@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Date;
 import java.util.Map;
 
@@ -34,8 +34,7 @@ public class StatusSnapshotDTO {
     /**
      * @return timestamp of this snapshot
      */
-    @ApiModelProperty(
-            value = "The timestamp of the snapshot."
+    @Schema(description = "The timestamp of the snapshot."
     )
     public Date getTimestamp() {
         return timestamp;
@@ -48,8 +47,7 @@ public class StatusSnapshotDTO {
     /**
      * @return status metrics
      */
-    @ApiModelProperty(
-            value = "The status metrics."
+    @Schema(description = "The status metrics."
     )
     public Map<String, Long> getStatusMetrics() {
         return statusMetrics;
