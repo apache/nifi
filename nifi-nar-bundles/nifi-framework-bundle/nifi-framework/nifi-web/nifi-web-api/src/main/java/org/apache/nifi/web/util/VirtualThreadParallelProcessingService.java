@@ -25,6 +25,8 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.controller.ControllerFacade;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,7 +37,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class VirtualThreadParallelProcessingService implements PredictionBasedParallelProcessingService {
+public class VirtualThreadParallelProcessingService implements PredictionBasedParallelProcessingService, Closeable {
     private boolean analyticsEnabled;
     private ExecutorService parallelProcessingExecutorService;
     private long parallelProcessingTimeout;
@@ -99,5 +101,12 @@ public class VirtualThreadParallelProcessingService implements PredictionBasedPa
             }
         }
         return predictions;
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (parallelProcessingExecutorService != null) {
+            parallelProcessingExecutorService.close();
+        }
     }
 }
