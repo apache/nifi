@@ -25,6 +25,8 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.controller.ControllerFacade;
 
 import javax.ws.rs.WebApplicationException;
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,7 +38,7 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.TimeUnit;
 
-public class ThreadPoolParallelProcessingService implements PredictionBasedParallelProcessingService {
+public class ThreadPoolParallelProcessingService implements PredictionBasedParallelProcessingService, Closeable {
     private static final int PARALLEL_PROCESSING_THREADS = 6;
     private boolean analyticsEnabled;
     private ForkJoinPool parallelProcessingThreadPool;
@@ -110,5 +112,12 @@ public class ThreadPoolParallelProcessingService implements PredictionBasedParal
             return worker;
         };
         return new ForkJoinPool(PARALLEL_PROCESSING_THREADS, factory, null, false);
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (parallelProcessingThreadPool != null) {
+            parallelProcessingThreadPool.shutdown();
+        }
     }
 }
