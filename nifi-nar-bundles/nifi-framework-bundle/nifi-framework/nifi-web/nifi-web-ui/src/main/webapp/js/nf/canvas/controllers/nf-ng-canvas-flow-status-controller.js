@@ -411,19 +411,6 @@
              */
 
             this.flowAnalysis = {
-                /**
-                 * Get the drawer trigger button element.
-                 */
-                getDrawerButton: function () {
-                    return $('#flow-analysis');
-                },
-
-                /**
-                 * Get the drawer container
-                 */
-                getDrawerContainer: function () {
-                    return $('#flow-analysis-drawer');
-                },
 
                 /**
                  * Create the list of rule violations
@@ -520,7 +507,7 @@
                     var requiredRulesListEl = $('#required-rules-list');
                     var recommendedRulesListEl = $('#recommended-rules-list');
                     var rule = $('<li class="rules-list-item"></li>').append($(rec.requirement).append(rec.requirementInfoButton))
-                    var violationsList = '';
+                    var violationsListEl = '';
                     var violationCountEl = '';
                     
                     var violations = violationsMap.get(rec.id);
@@ -530,7 +517,7 @@
                         } else {
                             violationCountEl = '<div class="rule-' + ruleType + 's-count">' + violations.length + ' ' + ruleType + 's</div>';
                         }
-                        violationsList = $('<ul class="rule-' + ruleType + 's-list"></ul>');
+                        violationsListEl = $('<ul class="rule-' + ruleType + 's-list"></ul>');
                         violations.forEach(function(violation) {
                             // create DOM elements
                             var violationListItemEl = $('<li class="' + ruleType + '-list-item"></li>');
@@ -547,9 +534,9 @@
                             violationListItemEl.append(violationWrapperEl);
                             violationWrapperEl.append(violationNameEl).append(violationIdEl)
                             violationInfoButtonEl.data('violationInfo', violation);
-                            (violationsList).append(violationListItemEl.append(violationInfoButtonEl));
+                            (violationsListEl).append(violationListItemEl.append(violationInfoButtonEl));
                         });
-                        rule.append(violationCountEl).append(violationsList);
+                        rule.append(violationCountEl).append(violationsListEl);
                     }
                     ruleType === 'violation' ? requiredRulesListEl.append(rule) : recommendedRulesListEl.append(rule);
                 },
@@ -815,13 +802,13 @@
                  */
                 init: function () {
                     var flowAnalysisCtrl = this;
-                    var drawer = this.getDrawerContainer();
+                    var drawer = $('#flow-analysis-drawer');
                     var requiredRulesEl = $('#required-rules');
                     var recommendedRulesEl = $('#recommended-rules');
                     var newFlowAnalsysisBtnEl = $('#flow-analysis-check-now-btn');
                     var flowAnalysisRefreshIntervalSeconds = 5;
 
-                    this.getDrawerButton().click(function () {
+                    $('#flow-analysis').click(function () {
                         drawer.toggleClass('opened');
                     });
                     requiredRulesEl.accordion({
