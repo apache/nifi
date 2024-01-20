@@ -27,7 +27,7 @@ class QueryChroma(FlowFileTransform):
         implements = ['org.apache.nifi.python.processor.FlowFileTransform']
 
     class ProcessorDetails:
-        version = '2.0.0-SNAPSHOT'
+        version = '2.0.0-M2'
         description = "Queries a Chroma Vector Database in order to gather a specified number of documents that are most closely related to the given query."
         tags = ["chroma", "vector", "vectordb", "embeddings", "enrich", "enrichment", "ai", "artificial intelligence", "ml", "machine learning", "text", "LLM"]
 
