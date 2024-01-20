@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry-core</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>2.0.0-M2</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>nifi-registry-framework</artifactId>
@@ -146,7 +146,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-data-model</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>2.0.0-M2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -165,7 +165,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>2.0.0-M2</version>
             <scope>provided</scope> <!-- will be in lib dir -->
         </dependency>
         <dependency>
@@ -181,27 +181,27 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-security-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>2.0.0-M2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-bundle-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>2.0.0-M2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-flow-diff</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>2.0.0-M2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-ssl</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>2.0.0-M2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-xml-processing</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>2.0.0-M2</version>
         </dependency>
         <dependency>
             <groupId>jakarta.servlet</groupId>
@@ -375,7 +375,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-test</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>2.0.0-M2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -411,7 +411,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-protection-api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>2.0.0-M2</version>
         </dependency>
         <dependency>
             <groupId>jakarta.xml.bind</groupId>

@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-dbcp-service-bundle</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>2.0.0-M2</version>
     </parent>
     <artifactId>nifi-hikari-dbcp-service</artifactId>
     <packaging>jar</packaging>
@@ -25,7 +25,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>2.0.0-M2</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -39,12 +39,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-service-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>2.0.0-M2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-kerberos</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>2.0.0-M2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -58,7 +58,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>2.0.0-M2</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
