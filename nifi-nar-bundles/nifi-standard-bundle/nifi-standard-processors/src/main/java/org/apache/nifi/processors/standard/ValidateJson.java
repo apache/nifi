@@ -61,6 +61,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
@@ -169,7 +170,7 @@ public class ValidateJson extends AbstractProcessor {
             .dependsOn(SCHEMA_ACCESS_STRATEGY, JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTIES = Arrays.asList(
             SCHEMA_ACCESS_STRATEGY,
             SCHEMA_NAME,
             SCHEMA_REGISTRY,
@@ -192,11 +193,11 @@ public class ValidateJson extends AbstractProcessor {
             .description("FlowFiles that cannot be read as JSON are routed to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+    private static final Set<Relationship> RELATIONSHIPS = new HashSet<>(Arrays.asList(
             REL_VALID,
             REL_INVALID,
             REL_FAILURE
-    );
+    ));
 
     private static final ObjectMapper MAPPER = new ObjectMapper().configure(JsonParser.Feature.ALLOW_COMMENTS, true);
 
