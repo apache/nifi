@@ -80,6 +80,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 
@@ -487,15 +488,19 @@ public class LookupRecord extends AbstractProcessor {
                 final RecordPath recordPath = entry.getValue();
 
                 final RecordPathResult pathResult = recordPath.evaluate(record);
-                final List<FieldValue> allFieldValues = pathResult.getSelectedFields().toList();
-                if (allFieldValues.isEmpty()) {
-                    // An empty JSON array was found which counts as a match.
-                    // Since array is empty, no further processing is needed, so continue.
+                AtomicLong selectedFieldsCount = new AtomicLong(0);
+                final List<FieldValue> lookupFieldValues = pathResult.getSelectedFields()
+                        .filter(fieldVal -> {
+                            selectedFieldsCount.incrementAndGet();
+                            return fieldVal.getValue() != null;
+                        })
+                        .collect(Collectors.toList());
+
+                if (selectedFieldsCount.get() == 0) {
+                    // When selectedFieldsCount == 0; then an empty array was found which counts as a match.
+                    // Since the array is empty, no further processing is needed, so continue to next recordPath.
                     continue;
                 }
-                final List<FieldValue> lookupFieldValues = allFieldValues.stream()
-                    .filter(fieldVal -> fieldVal.getValue() != null)
-                    .collect(Collectors.toList());
 
                 if (lookupFieldValues.isEmpty()) {
                     final Set<Relationship> rels = routeToMatchedUnmatched ? UNMATCHED_COLLECTION : SUCCESS_COLLECTION;
