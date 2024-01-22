@@ -127,6 +127,7 @@
         <org.bouncycastle.version>1.77</org.bouncycastle.version>
         <testcontainers.version>1.19.3</testcontainers.version>
         <org.slf4j.version>2.0.11</org.slf4j.version>
+        <com.jayway.jsonpath.version>2.9.0</com.jayway.jsonpath.version>
         <derby.version>10.17.1.0</derby.version>
         <ranger.version>2.4.0</ranger.version>
         <jetty.version>12.0.5</jetty.version>
@@ -136,7 +137,7 @@
         <javax.annotation-api.version>1.3.2</javax.annotation-api.version>
         <jakarta.xml.bind-api.version>4.0.1</jakarta.xml.bind-api.version>
         <jakarta.ws.rs-api.version>3.1.0</jakarta.ws.rs-api.version>
-        <json.smart.version>2.4.11</json.smart.version>
+        <json.smart.version>2.5.0</json.smart.version>
         <nifi.groovy.version>4.0.16</nifi.groovy.version>
         <surefire.version>3.1.2</surefire.version>
         <hadoop.version>3.3.6</hadoop.version>
@@ -588,6 +589,11 @@
                 <groupId>org.yaml</groupId>
                 <artifactId>snakeyaml</artifactId>
                 <version>${snakeyaml.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.jayway.jsonpath</groupId>
+                <artifactId>json-path</artifactId>
+                <version>${com.jayway.jsonpath.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.amazonaws</groupId>
