@@ -100,6 +100,11 @@ public class KeySchema implements RecordSchema {
     }
 
     @Override
+    public Optional<RecordField> caseInsensitiveGetField(String fieldName) {
+        throw new NotImplementedException("Case-insensitive field retrieval from Accumulo KeySchema is not implemented.");
+    }
+
+    @Override
     public SchemaIdentifier getIdentifier() {
         return SchemaIdentifier.builder().name("AccumuloKeySchema").version(1).branch("nifi-accumulo").build();
     }

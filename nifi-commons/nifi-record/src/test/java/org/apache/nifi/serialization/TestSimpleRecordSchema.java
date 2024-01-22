@@ -27,11 +27,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestSimpleRecordSchema {
 
@@ -185,6 +187,40 @@ class TestSimpleRecordSchema {
 
         assertThrows(StackOverflowError.class, () -> schema1.equals(schema2));
         assertThrows(StackOverflowError.class, () -> schema2.equals(schema1));
+    }
+
+    @Test
+    void testCaseInsensitiveGetFieldWithSameLowerCaseFieldName() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("hello", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("Hello", RecordFieldType.STRING.getDataType()));
+
+        SimpleRecordSchema recordSchema = new SimpleRecordSchema(fields);
+
+        assertThrows(IllegalArgumentException.class, () -> recordSchema.caseInsensitiveGetField("HELLO"));
+    }
+
+    @Test
+    void testCaseInsensitiveGetFieldWithSameLowerCaseAlias() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("hello", RecordFieldType.STRING.getDataType(), null, set("foo", "BAR")));
+        fields.add(new RecordField("goodbye", RecordFieldType.STRING.getDataType(), null, set("baz", "Bar")));
+
+        SimpleRecordSchema recordSchema = new SimpleRecordSchema(fields);
+
+        assertThrows(IllegalArgumentException.class, () -> recordSchema.caseInsensitiveGetField("GoodBye"));
+    }
+
+    @Test
+    void testCaseInsensitiveGetField() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("hello", RecordFieldType.STRING.getDataType()));
+
+        SimpleRecordSchema recordSchema = new SimpleRecordSchema(fields);
+
+        Optional<RecordField> field = recordSchema.caseInsensitiveGetField("HELLO");
+        assertTrue(field.isPresent());
+        assertEquals("hello", field.get().getFieldName());
     }
 
     private SimpleRecordSchema createSchemaWithTwoFields(String nameOfField1, String nameOfField2,

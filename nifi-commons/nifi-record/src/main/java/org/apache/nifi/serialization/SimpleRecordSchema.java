@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -34,6 +35,7 @@ import org.apache.nifi.serialization.record.SchemaIdentifier;
 public class SimpleRecordSchema implements RecordSchema {
     private List<RecordField> fields = null;
     private Map<String, RecordField> fieldMap = null;
+    private Map<String, RecordField> lowerCaseFieldMap = null;
     private boolean textAvailable;
     private final AtomicReference<String> text = new AtomicReference<>();
     private String schemaFormat;
@@ -153,6 +155,31 @@ public class SimpleRecordSchema implements RecordSchema {
         return Optional.ofNullable(fieldMap.get(fieldName));
     }
 
+    @Override
+    public Optional<RecordField> caseInsensitiveGetField(final String fieldName) {
+        return Optional.ofNullable(getLowerCaseFieldMap().get(fieldName.toLowerCase(Locale.ROOT)));
+    }
+
+    private Map<String, RecordField> getLowerCaseFieldMap() {
+        if (lowerCaseFieldMap == null) {
+            Map<String, RecordField> lowerCaseFields = new HashMap<>();
+            for (final RecordField field: fields) {
+                RecordField previousValue = lowerCaseFields.put(field.getFieldName().toLowerCase(Locale.ROOT), field);
+                if (previousValue != null) {
+                    throw new IllegalArgumentException("Can't create case-insensitive map since multiple fields have the same lowercase name (or alias): '" + field.getFieldName() + "'");
+                }
+
+                for (final String alias : field.getAliases()) {
+                    previousValue = lowerCaseFields.put(alias.toLowerCase(Locale.ROOT), field);
+                    if (previousValue != null) {
+                        throw new IllegalArgumentException("Can't create case-insensitive map since multiple fields have the same lowercase name (or alias): '" + field.getFieldName() + "'");
+                    }
+                }
+            }
+            lowerCaseFieldMap = Collections.unmodifiableMap(lowerCaseFields);
+        }
+        return lowerCaseFieldMap;
+    }
 
     @Override
     public boolean equals(final Object obj) {
@@ -315,6 +342,7 @@ public class SimpleRecordSchema implements RecordSchema {
 
     private void resetFields(final List<RecordField> updatedFields) {
         this.fields = null;
+        this.lowerCaseFieldMap = null;
         setFields(updatedFields);
         textAvailable = false;
         text.set(null);

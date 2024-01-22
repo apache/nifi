@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 public class MapRecord implements Record {
     private static final Logger logger = LoggerFactory.getLogger(MapRecord.class);
@@ -137,7 +138,16 @@ public class MapRecord implements Record {
 
     @Override
     public Object getValue(final String fieldName) {
-        final Optional<RecordField> fieldOption = schema.getField(fieldName);
+        return getValue(fieldName, (f) -> schema.getField(f));
+    }
+
+    @Override
+    public Object caseInsensitiveGetValue(final String fieldName) {
+        return getValue(fieldName, (f) -> schema.caseInsensitiveGetField(f));
+    }
+
+    private Object getValue(final String fieldName, Function<String, Optional<RecordField>> getField) {
+        final Optional<RecordField> fieldOption = getField.apply(fieldName);
         if (fieldOption.isPresent()) {
             return getValue(fieldOption.get());
         }

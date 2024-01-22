@@ -73,6 +73,12 @@ public interface RecordSchema {
     Optional<RecordField> getField(String fieldName);
 
     /**
+     * @param fieldName the name of the field
+     * @return an Optional RecordField for the field with the given name as case-insensitive
+     */
+    Optional<RecordField> caseInsensitiveGetField(String fieldName);
+
+    /**
      * @return the SchemaIdentifier, which provides various attributes for identifying a schema
      */
     SchemaIdentifier getIdentifier();

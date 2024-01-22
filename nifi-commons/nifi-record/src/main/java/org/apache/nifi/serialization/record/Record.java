@@ -87,6 +87,8 @@ public interface Record {
 
     Object getValue(String fieldName);
 
+    Object caseInsensitiveGetValue(String fieldName);
+
     Object getValue(RecordField field);
 
     String getAsString(String fieldName);

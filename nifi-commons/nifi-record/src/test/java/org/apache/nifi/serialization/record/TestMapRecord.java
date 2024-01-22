@@ -234,4 +234,20 @@ public class TestMapRecord {
         }
     }
 
+    @Test
+    public void testCaseInsensitiveGetValue() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("foo", RecordFieldType.STRING.getDataType(), "hello", set("bar", "baz")));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+        final Map<String, Object> values = new LinkedHashMap<>();
+        values.put("baz", 1);
+        values.put("bar", 33);
+
+        final Record record = new MapRecord(schema, values);
+        assertEquals(33, record.caseInsensitiveGetValue("FOO"));
+        assertEquals(33, record.caseInsensitiveGetValue("bAR"));
+        assertEquals(33, record.caseInsensitiveGetValue("BaZ"));
+    }
+
 }
