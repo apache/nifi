@@ -63,6 +63,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executor;
@@ -76,6 +77,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
@@ -267,16 +269,16 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         }
     }
 
-    protected void flushKuduSession(final KuduSession kuduSession, boolean close, final List<RowError> rowErrors) throws KuduException {
-        final List<OperationResponse> responses = close ? kuduSession.close() : kuduSession.flush();
-
+    /**
+     * Get the pending errors from the active {@link KuduSession}. This will only be applicable if the flushMode is
+     * {@code SessionConfiguration.FlushMode.AUTO_FLUSH_BACKGROUND}.
+     * @return  a {@link List} of pending {@link RowError}s
+     */
+    protected List<RowError> getPendingRowErrorsFromKuduSession(final KuduSession kuduSession) {
         if (kuduSession.getFlushMode() == SessionConfiguration.FlushMode.AUTO_FLUSH_BACKGROUND) {
-            rowErrors.addAll(Arrays.asList(kuduSession.getPendingErrors().getRowErrors()));
+            return Arrays.asList(kuduSession.getPendingErrors().getRowErrors());
         } else {
-            responses.stream()
-                    .filter(OperationResponse::hasRowError)
-                    .map(OperationResponse::getRowError)
-                    .forEach(rowErrors::add);
+            return Collections.EMPTY_LIST;
         }
     }
 
@@ -359,6 +361,21 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         }
 
         return results;
+    }
+
+    protected List<RowError> flushKuduSession(final KuduSession kuduSession) throws KuduException {
+        final List<OperationResponse> responses = kuduSession.flush();
+        // RowErrors will only be present in the OperationResponses in this case if the flush mode
+        // selected is MANUAL_FLUSH. It will be empty otherwise.
+        return getRowErrors(responses);
+    }
+
+    protected List<RowError> closeKuduSession(final KuduSession kuduSession) throws KuduException {
+        final List<OperationResponse> responses = kuduSession.close();
+        // RowErrors will only be present in the OperationResponses in this case if the flush mode
+        // selected is MANUAL_FLUSH, since the underlying implementation of kuduSession.close() returns
+        // the OperationResponses from a flush() call.
+        return getRowErrors(responses);
     }
 
     @OnStopped
@@ -580,5 +597,12 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         private String getName() {
             return String.format("PutKudu[%s]-client-%d", identifier, threadCount.getAndIncrement());
         }
+    }
+
+    private List<RowError> getRowErrors(final List<OperationResponse> responses) {
+        return responses.stream()
+                .filter(OperationResponse::hasRowError)
+                .map(OperationResponse::getRowError)
+                .collect(Collectors.toList());
     }
 }
