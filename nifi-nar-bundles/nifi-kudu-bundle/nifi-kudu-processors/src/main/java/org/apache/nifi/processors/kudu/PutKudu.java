@@ -68,10 +68,8 @@ import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -362,53 +360,52 @@ public class PutKudu extends AbstractKuduProcessor {
     }
 
     private void processFlowFiles(final ProcessContext context, final ProcessSession session, final List<FlowFile> flowFiles, final KuduClient kuduClient) {
-        final Map<FlowFile, Integer> processedRecords = new HashMap<>();
-        final Map<FlowFile, Object> flowFileFailures = new HashMap<>();
-        final Map<Operation, FlowFile> operationFlowFileMap = new HashMap<>();
-        final List<RowError> pendingRowErrors = new ArrayList<>();
-
         final KuduSession kuduSession = createKuduSession(kuduClient);
+        final PutKuduResult putKuduResult = flushMode == SessionConfiguration.FlushMode.AUTO_FLUSH_SYNC
+                ? new AutoFlushSyncPutKuduResult() : new StandardPutKuduResult();
         try {
             processRecords(flowFiles,
-                    processedRecords,
-                    flowFileFailures,
-                    operationFlowFileMap,
-                    pendingRowErrors,
                     session,
                     context,
                     kuduClient,
-                    kuduSession);
+                    kuduSession,
+                    putKuduResult);
         } finally {
             try {
-                flushKuduSession(kuduSession, true, pendingRowErrors);
+                final List<RowError> rowErrors = closeKuduSession(kuduSession);
+                if (flushMode == SessionConfiguration.FlushMode.AUTO_FLUSH_BACKGROUND) {
+                    putKuduResult.addErrors(getPendingRowErrorsFromKuduSession(kuduSession));
+                } else {
+                    putKuduResult.addErrors(rowErrors);
+                }
             } catch (final KuduException|RuntimeException e) {
                 getLogger().error("KuduSession.close() Failed", e);
             }
         }
 
-        if (isRollbackOnFailure() && (!pendingRowErrors.isEmpty() || !flowFileFailures.isEmpty())) {
-            logFailures(pendingRowErrors, operationFlowFileMap);
+        putKuduResult.resolveFlowFileToRowErrorAssociations();
+
+        if (isRollbackOnFailure() && putKuduResult.hasRowErrorsOrFailures()) {
+            logFailures(putKuduResult);
             session.rollback();
             context.yield();
         } else {
-            transferFlowFiles(flowFiles, processedRecords, flowFileFailures, operationFlowFileMap, pendingRowErrors, session);
+            transferFlowFiles(flowFiles, session, putKuduResult);
         }
     }
 
     private void processRecords(final List<FlowFile> flowFiles,
-                                 final Map<FlowFile, Integer> processedRecords,
-                                 final Map<FlowFile, Object> flowFileFailures,
-                                 final Map<Operation, FlowFile> operationFlowFileMap,
-                                 final List<RowError> pendingRowErrors,
-                                 final ProcessSession session,
-                                 final ProcessContext context,
-                                 final KuduClient kuduClient,
-                                 final KuduSession kuduSession) {
+                                final ProcessSession session,
+                                final ProcessContext context,
+                                final KuduClient kuduClient,
+                                final KuduSession kuduSession,
+                                final PutKuduResult putKuduResult) {
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
         int bufferedRecords = 0;
         OperationType prevOperationType = OperationType.INSERT;
         for (FlowFile flowFile : flowFiles) {
+            putKuduResult.setFlowFile(flowFile);
             try (final InputStream in = session.read(flowFile);
                  final RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, in, getLogger())) {
 
@@ -477,7 +474,12 @@ public class PutKudu extends AbstractKuduProcessor {
                         // ignore operations.
                         if (!supportsInsertIgnoreOp && prevOperationType != operationType
                                 && (prevOperationType == OperationType.INSERT_IGNORE || operationType == OperationType.INSERT_IGNORE)) {
-                            flushKuduSession(kuduSession, false, pendingRowErrors);
+                            final List<RowError> rowErrors = flushKuduSession(kuduSession);
+                            if (flushMode == SessionConfiguration.FlushMode.AUTO_FLUSH_BACKGROUND) {
+                                putKuduResult.addErrors(getPendingRowErrorsFromKuduSession(kuduSession));
+                            } else {
+                                putKuduResult.addErrors(rowErrors);
+                            }
                             kuduSession.setIgnoreAllDuplicateRows(operationType == OperationType.INSERT_IGNORE);
                         }
                         prevOperationType = operationType;
@@ -486,34 +488,35 @@ public class PutKudu extends AbstractKuduProcessor {
                         Operation operation = createKuduOperation(operationType, dataRecord, fieldNames, ignoreNull, lowercaseFields, kuduTable);
                         // We keep track of mappings between Operations and their origins,
                         // so that we know which FlowFiles should be marked failure after buffered flush.
-                        operationFlowFileMap.put(operation, flowFile);
+                        putKuduResult.recordOperation(operation);
 
                         // Flush mutation buffer of KuduSession to avoid "MANUAL_FLUSH is enabled
                         // but the buffer is too big" error. This can happen when flush mode is
                         // MANUAL_FLUSH and a FlowFile has more than one records.
                         if (bufferedRecords == batchSize && flushMode == SessionConfiguration.FlushMode.MANUAL_FLUSH) {
                             bufferedRecords = 0;
-                            flushKuduSession(kuduSession, false, pendingRowErrors);
+                            final List<RowError> rowErrors = flushKuduSession(kuduSession);
+                            putKuduResult.addErrors(rowErrors);
                         }
 
                         // OperationResponse is returned only when flush mode is set to AUTO_FLUSH_SYNC
-                        OperationResponse response = kuduSession.apply(operation);
+                        final OperationResponse response = kuduSession.apply(operation);
                         if (response != null && response.hasRowError()) {
                             // Stop processing the records on the first error.
                             // Note that Kudu does not support rolling back of previous operations.
-                            flowFileFailures.put(flowFile, response.getRowError());
+                            putKuduResult.addFailure(response.getRowError());
                             break recordReaderLoop;
                         }
 
                         bufferedRecords++;
-                        processedRecords.merge(flowFile, 1, Integer::sum);
+                        putKuduResult.incrementProcessedRecordsForFlowFile();
                     }
 
                     record = recordSet.next();
                 }
             } catch (Exception ex) {
                 getLogger().error("Failed to push {} to Kudu", flowFile, ex);
-                flowFileFailures.put(flowFile, ex);
+                putKuduResult.addFailure(ex);
             }
         }
     }
@@ -580,38 +583,28 @@ public class PutKudu extends AbstractKuduProcessor {
     }
 
     private void transferFlowFiles(final List<FlowFile> flowFiles,
-                                   final Map<FlowFile, Integer> processedRecords,
-                                   final Map<FlowFile, Object> flowFileFailures,
-                                   final Map<Operation, FlowFile> operationFlowFileMap,
-                                   final List<RowError> pendingRowErrors,
-                                   final ProcessSession session) {
-        // Find RowErrors for each FlowFile
-        final Map<FlowFile, List<RowError>> flowFileRowErrors = pendingRowErrors.stream()
-                .filter(e -> operationFlowFileMap.get(e.getOperation()) != null)
-                .collect(
-                    Collectors.groupingBy(e -> operationFlowFileMap.get(e.getOperation()))
-                );
-
+                                   final ProcessSession session,
+                                   final PutKuduResult putKuduResult) {
         long totalCount = 0L;
         for (FlowFile flowFile : flowFiles) {
-            final int count = processedRecords.getOrDefault(flowFile, 0);
+            final int count = putKuduResult.getProcessedRecordsForFlowFile(flowFile);
             totalCount += count;
-            final List<RowError> rowErrors = flowFileRowErrors.get(flowFile);
+            final List<RowError> rowErrors = putKuduResult.getRowErrorsForFlowFile(flowFile);
 
-            if (rowErrors != null) {
+            if (rowErrors != null && !rowErrors.isEmpty()) {
                 rowErrors.forEach(rowError -> getLogger().error("Failed to write due to {}", rowError.toString()));
                 flowFile = session.putAttribute(flowFile, RECORD_COUNT_ATTR, Integer.toString(count - rowErrors.size()));
-                totalCount -= rowErrors.size(); // Don't include error rows in the the counter.
+                totalCount -= rowErrors.size(); // Don't include error rows in the counter.
                 session.transfer(flowFile, REL_FAILURE);
             } else {
                 flowFile = session.putAttribute(flowFile, RECORD_COUNT_ATTR, String.valueOf(count));
 
-                if (flowFileFailures.containsKey(flowFile)) {
-                    getLogger().error("Failed to write due to {}", flowFileFailures.get(flowFile));
-                    session.transfer(flowFile, REL_FAILURE);
-                } else {
+                if (putKuduResult.isFlowFileProcessedSuccessfully(flowFile)) {
                     session.transfer(flowFile, REL_SUCCESS);
                     session.getProvenanceReporter().send(flowFile, "Successfully added FlowFile to Kudu");
+                } else {
+                    getLogger().error("Failed to write due to {}", putKuduResult.getFailureForFlowFile(flowFile));
+                    session.transfer(flowFile, REL_FAILURE);
                 }
             }
         }
@@ -619,15 +612,14 @@ public class PutKudu extends AbstractKuduProcessor {
         session.adjustCounter("Records Inserted", totalCount, false);
     }
 
-    private void logFailures(final List<RowError> pendingRowErrors, final Map<Operation, FlowFile> operationFlowFileMap) {
-        final Map<FlowFile, List<RowError>> flowFileRowErrors = pendingRowErrors.stream().collect(
-            Collectors.groupingBy(e -> operationFlowFileMap.get(e.getOperation())));
+    private void logFailures(final PutKuduResult putKuduResult) {
+        final Set<FlowFile> processedFlowFiles = putKuduResult.getProcessedFlowFiles();
+        for (final FlowFile flowFile : processedFlowFiles) {
+            final List<RowError> errors = putKuduResult.getRowErrorsForFlowFile(flowFile);
+            if (!errors.isEmpty()) {
+                getLogger().error("Could not write {} to Kudu due to: {}", flowFile, errors);
+            }
 
-        for (final Map.Entry<FlowFile, List<RowError>> entry : flowFileRowErrors.entrySet()) {
-            final FlowFile flowFile = entry.getKey();
-            final List<RowError> errors = entry.getValue();
-
-            getLogger().error("Could not write {} to Kudu due to: {}", flowFile, errors);
         }
     }
 
