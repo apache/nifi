@@ -122,7 +122,7 @@
         <org.apache.httpcomponents.httpcore.version>4.4.16</org.apache.httpcomponents.httpcore.version>
         <org.bouncycastle.version>1.77</org.bouncycastle.version>
         <testcontainers.version>1.19.3</testcontainers.version>
-        <org.slf4j.version>2.0.9</org.slf4j.version>
+        <org.slf4j.version>2.0.11</org.slf4j.version>
         <ranger.version>2.4.0</ranger.version>
         <jetty.version>9.4.53.v20231009</jetty.version>
         <jackson.bom.version>2.16.1</jackson.bom.version>
