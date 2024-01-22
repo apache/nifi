@@ -183,9 +183,9 @@ public class GetSNMP extends AbstractSNMPProcessor {
                 processSession.transfer(flowFile, response.isError() ? REL_FAILURE : REL_SUCCESS);
             } else {
                 getLogger().warn("No SNMP specific attributes found in flowfile.");
-                processSession.getProvenanceReporter().receive(flowFile, "/walk");
                 processSession.transfer(flowFile, REL_FAILURE);
             }
+            processSession.getProvenanceReporter().receive(flowFile, "/walk");
         } catch (SNMPWalkException e) {
             getLogger().error(e.getMessage());
             context.yield();
