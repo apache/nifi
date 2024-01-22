@@ -83,7 +83,7 @@ public final class EmbeddedDatabaseManagerBuilder {
         }
 
         if (context.getBackupLocation() == null) {
-            context.setBackupLocation(new File(context.getPersistLocationAsFile().getParentFile(), "questDbBackup").getAbsolutePath());
+            context.setBackupLocation(new File(context.getPersistLocationAsPath().toFile().getParentFile(), "questDbBackup").getAbsolutePath());
         }
 
         final DatabaseManager result = new EmbeddedDatabaseManager(context);

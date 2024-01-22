@@ -37,10 +37,10 @@ import static org.apache.nifi.questdb.util.QuestDbTestUtil.SELECT_QUERY_2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class EmbeddedClientTest extends EmbeddedQuestDbTest {
+public class EmbeddedClientTest extends ManagedQuestDbTest {
 
     @Test
-    public void testInsertAndQuery() throws DatabaseException {
+    public void testInsertAndQuery() throws DatabaseException, InterruptedException {
         final List<Event> testEvents = QuestDbTestUtil.getTestData();
         final Client client = getTestSubject();
         client.execute(CREATE_EVENT_TABLE);

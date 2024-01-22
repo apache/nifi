@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.questdb.embedded;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -40,11 +39,6 @@ final class SimpleEmbeddedDatabaseManagerContext implements EmbeddedDatabaseMana
     @Override
     public Path getPersistLocationAsPath() {
         return Paths.get(getPersistLocation());
-    }
-
-    @Override
-    public File getPersistLocationAsFile() {
-        return getPersistLocationAsPath().toFile();
     }
 
     @Override

@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.questdb.embedded;
 
-import io.questdb.cairo.CairoEngine;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
@@ -25,15 +23,4 @@ import java.nio.file.Path;
 public abstract class EmbeddedQuestDbTest {
     @TempDir
     protected Path testDbPathDirectory;
-
-    protected CairoEngine engine;
-
-    @BeforeEach
-    public void setUp() {
-        engine = EmbeddedQuestDbTestUtil.getEngine(testDbPathDirectory.toAbsolutePath().toString());
-    }
-
-    public void tearDown() {
-        engine.close();
-    }
 }

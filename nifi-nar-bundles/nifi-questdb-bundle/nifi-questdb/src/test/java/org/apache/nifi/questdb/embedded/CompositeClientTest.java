@@ -50,7 +50,7 @@ import static org.mockito.Mockito.when;
 // but the coverage of the individual behaviour of the individual methods is provided by different tests.
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-public class CompositeClientTest extends EmbeddedQuestDbTest {
+public class CompositeClientTest {
     private static final int NUMBER_OF_RETRIES = 3;
     private static final int NUMBER_OF_ATTEMPTS = NUMBER_OF_RETRIES + 1;
     private static final Duration LOCK_ATTEMPT_DURATION = Duration.of(20, TimeUnit.MILLISECONDS.toChronoUnit());
@@ -76,7 +76,6 @@ public class CompositeClientTest extends EmbeddedQuestDbTest {
     @BeforeEach
     public void setUp() {
         databaseStructureLock = new ReentrantReadWriteLock();
-
         testSubject = getTestSubject();
 
         when(condition.check()).thenReturn(true);

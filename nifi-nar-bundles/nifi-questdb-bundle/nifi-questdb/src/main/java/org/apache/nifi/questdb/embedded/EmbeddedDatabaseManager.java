@@ -99,7 +99,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
 
                 if (!couldMoveOldToBackup) {
                     try {
-                        FileUtils.deleteFile(context.getPersistLocationAsFile(), true);
+                        FileUtils.deleteFile(context.getPersistLocationAsPath().toFile(), true);
                         couldMoveOldToBackup = true;
                     } catch (IOException ex) {
                         LOGGER.error("Could not clean up corrupted database", ex);
@@ -142,7 +142,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
             engine.getAndSet(null).close();
         }
 
-        final String absolutePath = context.getPersistLocationAsFile().getAbsolutePath();
+        final String absolutePath = context.getPersistLocationAsPath().toFile().getAbsolutePath();
         final CairoConfiguration configuration = new DefaultCairoConfiguration(absolutePath);
 
         try {
@@ -155,8 +155,8 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
     }
 
     private void ensureTablesAreInPlaceAndHealthy() throws CorruptedDatabaseException {
-        final Map<String, File> databaseFiles = Arrays.stream(context.getPersistLocationAsFile().listFiles())
-                .collect(Collectors.toMap(f -> f.getAbsolutePath().substring(context.getPersistLocationAsFile().getAbsolutePath().length() + 1), f -> f));
+        final Map<String, File> databaseFiles = Arrays.stream(context.getPersistLocationAsPath().toFile().listFiles())
+                .collect(Collectors.toMap(f -> f.getAbsolutePath().substring(context.getPersistLocationAsPath().toFile().getAbsolutePath().length() + 1), f -> f));
         final Client client = getUnmanagedClient();
 
         try {

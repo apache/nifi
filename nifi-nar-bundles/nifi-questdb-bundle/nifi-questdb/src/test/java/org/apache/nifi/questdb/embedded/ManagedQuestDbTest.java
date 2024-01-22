@@ -16,21 +16,20 @@
  */
 package org.apache.nifi.questdb.embedded;
 
-import java.nio.file.Path;
-import java.time.Duration;
-import java.util.Set;
+import io.questdb.cairo.CairoEngine;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
-interface EmbeddedDatabaseManagerContext {
-    String getPersistLocation();
-    Path getPersistLocationAsPath();
+public abstract class ManagedQuestDbTest extends EmbeddedQuestDbTest {
+    protected CairoEngine engine;
 
-    String getBackupLocation();
-    Path getBackupLocationAsPath();
+    @BeforeEach
+    public void setUp() {
+        engine = EmbeddedQuestDbTestUtil.getEngine(testDbPathDirectory.toAbsolutePath().toString());
+    }
 
-    int getNumberOfAttemptedRetries();
-
-    Duration getLockAttemptTime();
-    Duration getRolloverFrequency();
-
-    Set<ManagedTableDefinition> getTableDefinitions();
+    @AfterEach
+    public void tearDown() {
+        engine.close();
+    }
 }

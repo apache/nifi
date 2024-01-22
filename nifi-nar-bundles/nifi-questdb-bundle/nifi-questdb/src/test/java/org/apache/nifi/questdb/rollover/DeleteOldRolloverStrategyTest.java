@@ -18,8 +18,8 @@ package org.apache.nifi.questdb.rollover;
 
 import org.apache.nifi.questdb.Client;
 import org.apache.nifi.questdb.DatabaseException;
-import org.apache.nifi.questdb.embedded.EmbeddedQuestDbTest;
 import org.apache.nifi.questdb.embedded.EmbeddedQuestDbTestUtil;
+import org.apache.nifi.questdb.embedded.ManagedQuestDbTest;
 import org.apache.nifi.questdb.mapping.RequestMapping;
 import org.apache.nifi.questdb.util.Event;
 import org.apache.nifi.questdb.util.QuestDbTestUtil;
@@ -37,7 +37,7 @@ import static org.apache.nifi.questdb.util.QuestDbTestUtil.EVENT_TABLE_NAME;
 import static org.apache.nifi.questdb.util.QuestDbTestUtil.SELECT_QUERY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class DeleteOldRolloverStrategyTest extends EmbeddedQuestDbTest {
+class DeleteOldRolloverStrategyTest extends ManagedQuestDbTest {
 
     @Test
     public void testCleaningUpOldData() throws DatabaseException {

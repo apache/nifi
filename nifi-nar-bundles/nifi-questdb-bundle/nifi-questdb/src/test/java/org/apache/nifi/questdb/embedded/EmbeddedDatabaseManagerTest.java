@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.questdb.embedded;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.questdb.Client;
 import org.apache.nifi.questdb.DatabaseException;
 import org.apache.nifi.questdb.DatabaseManager;
@@ -27,6 +28,8 @@ import org.apache.nifi.util.file.FileUtils;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,6 +64,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(EmbeddedDatabaseManagerTest.class);
     private static final int DAYS_TO_KEEP_EVENT = 1;
+    private static final String NON_EXISTING_PLACE = SystemUtils.IS_OS_WINDOWS ? "T:/nonExistingPlace" : "/nonExistingPlace";
 
     @Test
     public void testAcquiringWithoutInitialization() {
@@ -177,6 +181,8 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
         final DatabaseManager testSubject2 = getTestSubject();
         final Client client2 = testSubject2.acquireClient();
         final List<Event> result2 = client2.query(SELECT_QUERY, RequestMapping.getResultProcessor(QuestDbTestUtil.EVENT_TABLE_REQUEST_MAPPING));
+        client2.disconnect();
+        testSubject2.close();
 
         assertIterableEquals(result1, result2);
     }
@@ -222,6 +228,8 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
+    // This testcase cannot be reproduced under Windows using Junit
     public void testDatabaseRestorationAfterCorruptedFiles() throws DatabaseException, IOException {
         final DatabaseManager testSubject1 = getTestSubject();
         final Client client1 = testSubject1.acquireClient();
@@ -265,8 +273,10 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
+    // This testcase cannot be reproduced under Windows using Junit
     public void testWhenBackupIsUnsuccessfulManagerRemovesItAndContinuesWork() throws DatabaseException, IOException {
-        final DatabaseManager testSubject1 = getTestSubjectBuilder().backupLocation("/nonExistingPlace").build();
+        final DatabaseManager testSubject1 = getTestSubjectBuilder().backupLocation(NON_EXISTING_PLACE).build();
         final Client client1 = testSubject1.acquireClient();
 
         for (int i = 1; i <= 10; i++) {
@@ -281,7 +291,7 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
         client1.disconnect();
         testSubject1.close();
 
-        final DatabaseManager testSubject2 = getTestSubjectBuilder().backupLocation("/nonExistingPlace").build();
+        final DatabaseManager testSubject2 = getTestSubjectBuilder().backupLocation(NON_EXISTING_PLACE).build();
         final Client client2 = testSubject2.acquireClient();
 
         client2.insert(EVENT_TABLE_NAME, QuestDbTestUtil.getEventTableDataSource(getTestData()));
@@ -291,8 +301,10 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
+    // This testcase cannot be reproduced under Windows using Junit
     public void testWhenRestorationIsUnsuccessfulManagerFallsBackToDummyAnswers() throws DatabaseException, IOException {
-        final DatabaseManager testSubject1 = getTestSubjectBuilder().backupLocation("/nonExistingPlace").build();
+        final DatabaseManager testSubject1 = getTestSubjectBuilder().backupLocation(NON_EXISTING_PLACE).build();
         final Client client1 = testSubject1.acquireClient();
 
         for (int i = 1; i <= 10; i++) {
@@ -320,7 +332,7 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
 
     @Test
     public void testFallsBackToDummyWhenCannotEnsureDatabaseHealth() throws DatabaseException, IOException {
-        final DatabaseManager testSubject = getTestSubjectBuilder("/nonExistingPlace").build();
+        final DatabaseManager testSubject = getTestSubjectBuilder(NON_EXISTING_PLACE).build();
         final Client client = testSubject.acquireClient();
 
         client.insert(EVENT_TABLE_NAME, QuestDbTestUtil.getEventTableDataSource(getTestData()));
