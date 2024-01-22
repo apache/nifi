@@ -454,4 +454,9 @@
         <packageUrl regex="true">^pkg:maven/software\.amazon\.ion/ion\-java@.*$</packageUrl>
         <cpe>cpe:/a:amazon:ion</cpe>
     </suppress>
+    <suppress>
+        <notes>JSON Path 2.9.0 resolves CVE-2023-51074</notes>
+        <packageUrl regex="true">^pkg:maven/com\.jayway\.jsonpath/json\-path@2.9.0$</packageUrl>
+        <vulnerabilityName>CVE-2023-51074</vulnerabilityName>
+    </suppress>
 </suppressions>
