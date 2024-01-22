@@ -24,13 +24,17 @@ import com.amazonaws.services.s3.model.MultipartUpload;
 import com.amazonaws.services.s3.model.MultipartUploadListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PartETag;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.services.s3.model.Tag;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.nifi.fileresource.service.StandardFileResourceService;
+import org.apache.nifi.fileresource.service.api.FileResourceService;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.s3.encryption.StandardS3EncryptionService;
+import org.apache.nifi.processors.transfer.ResourceTransferSource;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
@@ -53,6 +57,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FILE_RESOURCE_SERVICE;
+import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -88,6 +98,61 @@ public class ITPutS3Object extends AbstractS3IT {
         kmsKeyId = getKMSKey();
     }
 
+    @Test
+    public void testPutFromLocalFile() throws Exception {
+        TestRunner runner = initTestRunner();
+        String attributeName = "file.path";
+        Path resourcePath = getResourcePath(SAMPLE_FILE_RESOURCE_NAME);
+
+        String serviceId = FileResourceService.class.getSimpleName();
+        FileResourceService service = new StandardFileResourceService();
+        runner.addControllerService(serviceId, service);
+        runner.setProperty(service, StandardFileResourceService.FILE_PATH, String.format("${%s}", attributeName));
+        runner.enableControllerService(service);
+
+        runner.setProperty(RESOURCE_TRANSFER_SOURCE, ResourceTransferSource.FILE_RESOURCE_SERVICE.getValue());
+        runner.setProperty(FILE_RESOURCE_SERVICE, serviceId);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(attributeName, resourcePath.toString());
+        runner.enqueue(resourcePath, attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS).getFirst();
+        flowFile.assertContentEquals(getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
+
+        List<S3ObjectSummary> objectSummaries = getClient().listObjects(BUCKET_NAME).getObjectSummaries();
+        assertThat(objectSummaries, hasSize(1));
+        assertEquals(objectSummaries.getFirst().getKey(), resourcePath.getFileName().toString());
+        assertThat(objectSummaries.getFirst().getSize(), greaterThan(0L));
+    }
+
+    @Test
+    public void testPutFromNonExistentLocalFile() throws Exception {
+        TestRunner runner = initTestRunner();
+        String attributeName = "file.path";
+
+        String serviceId = FileResourceService.class.getSimpleName();
+        FileResourceService service = new StandardFileResourceService();
+        runner.addControllerService(serviceId, service);
+        runner.setProperty(service, StandardFileResourceService.FILE_PATH, String.format("${%s}", attributeName));
+        runner.enableControllerService(service);
+
+        runner.setProperty(RESOURCE_TRANSFER_SOURCE, ResourceTransferSource.FILE_RESOURCE_SERVICE);
+        runner.setProperty(FILE_RESOURCE_SERVICE, serviceId);
+
+        String filePath = "nonexistent.txt";
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(attributeName, filePath);
+
+        runner.enqueue("", attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_FAILURE, 1);
+        assertThat(getClient().listObjects(BUCKET_NAME).getObjectSummaries(), empty());
+    }
 
     @Test
     public void testSimplePut() throws IOException {
