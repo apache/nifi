@@ -36,7 +36,6 @@ limitations under the License.
         <module>minifi-assembly</module>
         <module>minifi-toolkit</module>
         <module>minifi-docker</module>
-        <module>minifi-c2</module>
         <module>minifi-integration-tests</module>
     </modules>
     <properties>
