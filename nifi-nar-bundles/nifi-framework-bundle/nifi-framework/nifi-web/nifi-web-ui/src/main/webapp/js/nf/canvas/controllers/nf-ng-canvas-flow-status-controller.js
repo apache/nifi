@@ -748,7 +748,7 @@
                         });
 
                         // violation menu bindings
-                        $('#violation-menu-more-info').on( "click", openRuleMoreInfoDialog);
+                        $('#violation-menu-more-info').on( "click", openRuleViolationMoreInfoDialog);
                         $('#violation-menu-go-to').on('click', goToComponent);
                         $(document).on('click', closeViolationWindow);
 
@@ -759,7 +759,7 @@
                             }
                         }
 
-                        function openRuleMoreInfoDialog() {
+                        function openRuleViolationMoreInfoDialog() {
                             var rule = response.rules.find(function(rule){ 
                                 return rule.id === violationInfo.ruleId;
                             })
@@ -791,7 +791,7 @@
 
                         function unbindViolationMenuHandling() {
                             $('#violation-menu-go-to').unbind('click', goToComponent);
-                            $('#violation-menu-more-info').unbind('click', openRuleMoreInfoDialog);
+                            $('#violation-menu-more-info').unbind('click', openRuleViolationMoreInfoDialog);
                             $(document).unbind('click', closeViolationWindow);
                         }
                     });
