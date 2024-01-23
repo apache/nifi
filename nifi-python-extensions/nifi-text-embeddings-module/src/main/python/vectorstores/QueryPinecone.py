@@ -132,6 +132,7 @@ class QueryPinecone(FlowFileTransform):
                   PINECONE_ENV,
                   INDEX_NAME,
                   QUERY,
+                  FILTER,
                   NUMBER_OF_RESULTS,
                   NAMESPACE,
                   TEXT_KEY,
