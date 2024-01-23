@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from langchain.vectorstores import Pinecone
+import langchain.vectorstores
 from nifiapi.flowfiletransform import FlowFileTransform, FlowFileTransformResult
 from nifiapi.properties import PropertyDescriptor, StandardValidators, ExpressionLanguageScope, PropertyDependency
 import QueryUtils
-import pinecone
+from pinecone import Pinecone
 import json
 from EmbeddingUtils import OPENAI, HUGGING_FACE, EMBEDDING_MODEL, create_embedding_service
 
@@ -143,6 +143,7 @@ class QueryPinecone(FlowFileTransform):
 
     embeddings = None
     query_utils = None
+    pc = None
 
     def __init__(self, **kwargs):
         pass
@@ -151,17 +152,14 @@ class QueryPinecone(FlowFileTransform):
         return self.properties
 
     def onScheduled(self, context):
-        api_key = context.getProperty(self.PINECONE_API_KEY).getValue()
-        pinecone_env = context.getProperty(self.PINECONE_ENV).getValue()
-
         # initialize pinecone
-        pinecone.init(
-            api_key=api_key,
-            environment=pinecone_env,
+        self.pc = Pinecone(
+            api_key=context.getProperty(self.PINECONE_API_KEY).getValue(),
+            environment=context.getProperty(self.PINECONE_ENV).getValue()
         )
-        self.embeddings =  create_embedding_service(context)
+        # initialize embedding service
+        self.embeddings = create_embedding_service(context)
         self.query_utils = QueryUtils.QueryUtils(context)
-
 
     def transform(self, context, flowfile):
         # First, check if our index already exists. If it doesn't, we create it
@@ -170,11 +168,11 @@ class QueryPinecone(FlowFileTransform):
         namespace = context.getProperty(self.NAMESPACE).evaluateAttributeExpressions(flowfile).getValue()
         num_results = context.getProperty(self.NUMBER_OF_RESULTS).evaluateAttributeExpressions(flowfile).asInteger()
 
-        index = pinecone.Index(index_name)
+        index = self.pc.Index(index_name)
 
         text_key = context.getProperty(self.TEXT_KEY).evaluateAttributeExpressions().getValue()
         filter = context.getProperty(self.FILTER).evaluateAttributeExpressions(flowfile).getValue()
-        vectorstore = Pinecone(index, self.embeddings.embed_query, text_key, namespace=namespace)
+        vectorstore = langchain.vectorstores.Pinecone(index, self.embeddings.embed_query, text_key, namespace=namespace)
         results = vectorstore.similarity_search_with_score(query, num_results, filter=None if filter is None else json.loads(filter))
 
         documents = []

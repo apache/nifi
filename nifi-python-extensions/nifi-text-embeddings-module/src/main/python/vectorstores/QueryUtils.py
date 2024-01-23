@@ -14,7 +14,7 @@
 # limitations under the License.
 from typing import Tuple
 
-from nifiapi.properties import PropertyDescriptor, StandardValidators, ExpressionLanguageScope, PropertyDependency
+from nifiapi.properties import PropertyDescriptor, StandardValidators, PropertyDependency
 import json
 
 ROW_ORIENTED = "Row-Oriented"
