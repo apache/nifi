@@ -155,18 +155,25 @@ public class GetSNMP extends AbstractSNMPProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession processSession) {
         final SNMPStrategy snmpStrategy = SNMPStrategy.valueOf(context.getProperty(SNMP_STRATEGY).getValue());
         final String oid = context.getProperty(OID).getValue();
-        final FlowFile flowfile = Optional.ofNullable(processSession.get()).orElseGet(processSession::create);
+        final boolean isNewFlowFileCreated;
+        FlowFile flowfile = processSession.get();
+        if (flowfile == null) {
+            isNewFlowFileCreated = true;
+            flowfile = processSession.create();
+        } else {
+            isNewFlowFileCreated = false;
+        }
 
         final Target target = factory.createTargetInstance(getTargetConfiguration(context, flowfile));
         if (SNMPStrategy.GET == snmpStrategy) {
-            performSnmpGet(context, processSession, oid, target, flowfile);
+            performSnmpGet(context, processSession, oid, target, flowfile, isNewFlowFileCreated);
         } else if (SNMPStrategy.WALK == snmpStrategy) {
-            performSnmpWalk(context, processSession, oid, target, flowfile);
+            performSnmpWalk(context, processSession, oid, target, flowfile, isNewFlowFileCreated);
         }
     }
 
     void performSnmpWalk(final ProcessContext context, final ProcessSession processSession, final String oid,
-                         final Target target, FlowFile flowFile) {
+                         final Target target, FlowFile flowFile, final boolean isNewFlowFileCreated) {
 
         if (oid != null) {
             String prefixedOid = SNMPUtils.SNMP_PROP_PREFIX + oid;
@@ -180,12 +187,16 @@ public class GetSNMP extends AbstractSNMPProcessor {
                 response.logErrors(getLogger());
                 flowFile = processSession.putAllAttributes(flowFile, response.getAttributes());
                 processSession.getProvenanceReporter().modifyAttributes(flowFile, response.getTargetAddress() + "/walk");
+                if (isNewFlowFileCreated) {
+                    processSession.getProvenanceReporter().fetch(flowFile, "/walk");
+                } else {
+                    processSession.getProvenanceReporter().receive(flowFile, "/walk");
+                }
                 processSession.transfer(flowFile, response.isError() ? REL_FAILURE : REL_SUCCESS);
             } else {
                 getLogger().warn("No SNMP specific attributes found in flowfile.");
                 processSession.transfer(flowFile, REL_FAILURE);
             }
-            processSession.getProvenanceReporter().receive(flowFile, "/walk");
         } catch (SNMPWalkException e) {
             getLogger().error(e.getMessage());
             context.yield();
@@ -193,7 +204,7 @@ public class GetSNMP extends AbstractSNMPProcessor {
     }
 
     void performSnmpGet(final ProcessContext context, final ProcessSession processSession, final String oid,
-                        final Target target, FlowFile flowFile) {
+                        final Target target, FlowFile flowFile, final boolean isNewFlowFileCreated) {
         final String textualOidKey = SNMPUtils.SNMP_PROP_PREFIX + "textualOid";
         final Map<String, String> textualOidMap = Collections.singletonMap(textualOidKey, context.getProperty(TEXTUAL_OID).getValue());
 
@@ -207,7 +218,7 @@ public class GetSNMP extends AbstractSNMPProcessor {
             if (optionalResponse.isPresent()) {
                 final SNMPSingleResponse response = optionalResponse.get();
                 flowFile = processSession.putAllAttributes(flowFile, textualOidMap);
-                handleResponse(context, processSession, flowFile, response, REL_SUCCESS, REL_FAILURE, "/get");
+                handleResponse(context, processSession, flowFile, response, REL_SUCCESS, REL_FAILURE, "/get", isNewFlowFileCreated);
             } else {
                 getLogger().warn("No SNMP specific attributes found in flowfile.");
                 processSession.transfer(flowFile, REL_FAILURE);
