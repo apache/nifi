@@ -47,6 +47,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -124,14 +125,7 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession processSession) {
-        final boolean isFlowFileReceived;
-        FlowFile flowFile = processSession.get();
-        if (flowFile == null) {
-            isFlowFileReceived = false;
-            flowFile = processSession.create();
-        } else {
-            isFlowFileReceived = true;
-        }
+        FlowFile flowFile = Optional.ofNullable(processSession.get()).orElseGet(processSession::create);
         final Map<String, String> attributes = new HashMap<>(flowFile.getAttributes());
 
         try {
@@ -167,9 +161,6 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
             }
             flowFile = processSession.putAllAttributes(flowFile, attributes);
             processSession.transfer(flowFile, REL_SUCCESS);
-            if (isFlowFileReceived) {
-                processSession.getProvenanceReporter().receive(flowFile, "/sendTrap");
-            }
         } catch (IOException e) {
             getLogger().error("Failed to send request to the agent. Check if the agent supports the used version.", e);
             processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);

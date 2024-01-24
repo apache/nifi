@@ -125,7 +125,6 @@ public class SetSNMP extends AbstractSNMPProcessor {
             } catch (IOException e) {
                 getLogger().error("Failed to send request to the agent. Check if the agent supports the used version.");
                 processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
-                processSession.getProvenanceReporter().receive(flowFile, "/set");
                 context.yield();
             }
         }

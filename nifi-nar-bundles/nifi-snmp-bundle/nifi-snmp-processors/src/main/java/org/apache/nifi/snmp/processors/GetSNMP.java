@@ -186,11 +186,10 @@ public class GetSNMP extends AbstractSNMPProcessor {
                 final SNMPTreeResponse response = optionalResponse.get();
                 response.logErrors(getLogger());
                 flowFile = processSession.putAllAttributes(flowFile, response.getAttributes());
-                processSession.getProvenanceReporter().modifyAttributes(flowFile, response.getTargetAddress() + "/walk");
                 if (isNewFlowFileCreated) {
-                    processSession.getProvenanceReporter().fetch(flowFile, "/walk");
-                } else {
                     processSession.getProvenanceReporter().receive(flowFile, "/walk");
+                } else {
+                    processSession.getProvenanceReporter().fetch(flowFile, "/walk");
                 }
                 processSession.transfer(flowFile, response.isError() ? REL_FAILURE : REL_SUCCESS);
             } else {

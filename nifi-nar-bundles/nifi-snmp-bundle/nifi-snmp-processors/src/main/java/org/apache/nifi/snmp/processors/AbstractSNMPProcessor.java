@@ -154,11 +154,10 @@ public abstract class AbstractSNMPProcessor extends AbstractProcessor {
             processSession.transfer(flowFile, failure);
             context.yield();
         } else {
-            processSession.getProvenanceReporter().modifyAttributes(flowFile, response.getTargetAddress() + provenanceAddress);
             if (isNewFlowFileCreated) {
-                processSession.getProvenanceReporter().fetch(flowFile, response.getTargetAddress() + provenanceAddress);
-            } else {
                 processSession.getProvenanceReporter().receive(flowFile, response.getTargetAddress() + provenanceAddress);
+            } else {
+                processSession.getProvenanceReporter().fetch(flowFile, response.getTargetAddress() + provenanceAddress);
             }
             processSession.transfer(flowFile, success);
         }
