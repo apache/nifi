@@ -59,7 +59,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(EmbeddedDatabaseManagerTest.class);
@@ -241,10 +240,10 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
         final List<Event> result1 = client1.query(SELECT_QUERY, RequestMapping.getResultProcessor(QuestDbTestUtil.EVENT_TABLE_REQUEST_MAPPING));
         assertEquals(30, result1.size());
 
-        corruptDatabaseFile();
-
         client1.disconnect();
         testSubject1.close();
+
+        corruptDatabaseFile();
 
         // Corrupting the persisted files will not directly affect the database immediately. In order to enforce reading
         // information from the files, we need to have a new manager. In real cases this behaviour might be triggered
@@ -263,13 +262,8 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
         final List<File> backup = Arrays.asList(new File(testDbPathDirectory.toFile().getParentFile(), "questDbBackup").listFiles(file -> file.isDirectory() && file.getName().startsWith("backup_")));
         assertFalse(backup.isEmpty());
 
-        backup.forEach(f -> {
-            try {
-                FileUtils.deleteFile(f, true);
-            } catch (final IOException e) {
-                fail();
-            }
-        });
+        client2.disconnect();
+        testSubject2.close();
     }
 
     @Test

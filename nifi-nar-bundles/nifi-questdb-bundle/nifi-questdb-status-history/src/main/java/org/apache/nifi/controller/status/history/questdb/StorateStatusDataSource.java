@@ -43,7 +43,7 @@ final class StorateStatusDataSource implements InsertRowDataSource {
     public void fillRowData(final InsertRowContext context) {
         final StorageStatusStatistic status = statuses.next();
 
-        context.initializeRow(status.getCapturedAt());
+        context.initializeRow(status.getCaptured());
         context.addString(1, status.getStatus().getName());
         context.addShort(2, status.getType().getId());
         context.addLong(3, status.getStatus().getFreeSpace());
@@ -53,9 +53,9 @@ final class StorateStatusDataSource implements InsertRowDataSource {
     static InsertRowDataSource getInstance(final Collection<CapturedStatus<NodeStatus>> nodeStatuses) {
         final List<StorageStatusStatistic> statuses = new ArrayList<>();
         for (final CapturedStatus<NodeStatus> nodeStatus : nodeStatuses) {
-            final Instant capturedAt = nodeStatus.getCaptured();
-            nodeStatus.getStatus().getContentRepositories().forEach(storageStatus -> statuses.add(new StorageStatusStatistic(storageStatus, StorageStatusType.CONTENT, capturedAt)));
-            nodeStatus.getStatus().getProvenanceRepositories().forEach(storageStatus -> statuses.add(new StorageStatusStatistic(storageStatus, StorageStatusType.PROVENANCE, capturedAt)));
+            final Instant captured = nodeStatus.getCaptured();
+            nodeStatus.getStatus().getContentRepositories().forEach(storageStatus -> statuses.add(new StorageStatusStatistic(storageStatus, StorageStatusType.CONTENT, captured)));
+            nodeStatus.getStatus().getProvenanceRepositories().forEach(storageStatus -> statuses.add(new StorageStatusStatistic(storageStatus, StorageStatusType.PROVENANCE, captured)));
         }
 
         return new StorateStatusDataSource(statuses.iterator());
@@ -64,12 +64,12 @@ final class StorateStatusDataSource implements InsertRowDataSource {
     private static class StorageStatusStatistic {
         private final StorageStatus status;
         private final StorageStatusType type;
-        private final Instant capturedAt;
+        private final Instant captured;
 
-        private StorageStatusStatistic(final StorageStatus status, final StorageStatusType type, final Instant capturedAt) {
+        private StorageStatusStatistic(final StorageStatus status, final StorageStatusType type, final Instant captured) {
             this.status = status;
             this.type = type;
-            this.capturedAt = capturedAt;
+            this.captured = captured;
         }
 
         public StorageStatus getStatus() {
@@ -80,8 +80,8 @@ final class StorateStatusDataSource implements InsertRowDataSource {
             return type;
         }
 
-        public Instant getCapturedAt() {
-            return capturedAt;
+        public Instant getCaptured() {
+            return captured;
         }
     }
 }

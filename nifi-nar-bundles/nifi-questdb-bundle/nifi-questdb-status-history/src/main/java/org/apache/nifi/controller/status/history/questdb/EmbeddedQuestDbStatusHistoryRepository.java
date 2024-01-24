@@ -119,49 +119,49 @@ public class EmbeddedQuestDbStatusHistoryRepository implements StatusHistoryRepo
 
     @Override
     public void capture(final NodeStatus nodeStatus, final ProcessGroupStatus rootGroupStatus, final List<GarbageCollectionStatus> garbageCollectionStatus, final Date timestamp) {
-        final Instant capturedAt = timestamp.toInstant();
-        captureNodeStatus(nodeStatus, capturedAt);
-        captureGarbageCollectionStatus(garbageCollectionStatus, capturedAt);
-        captureComponentStatus(rootGroupStatus, capturedAt);
+        final Instant captured = timestamp.toInstant();
+        captureNodeStatus(nodeStatus, captured);
+        captureGarbageCollectionStatus(garbageCollectionStatus, captured);
+        captureComponentStatus(rootGroupStatus, captured);
         updateComponentDetails(rootGroupStatus);
     }
 
-    private void captureNodeStatus(final NodeStatus nodeStatus, final Instant capturedAt) {
-        storage.storeNodeStatuses(Collections.singleton(new CapturedStatus<>(nodeStatus, capturedAt)));
+    private void captureNodeStatus(final NodeStatus nodeStatus, final Instant captured) {
+        storage.storeNodeStatuses(Collections.singleton(new CapturedStatus<>(nodeStatus, captured)));
     }
 
-    private void captureGarbageCollectionStatus(final List<GarbageCollectionStatus> statuses, final Instant capturedAt) {
+    private void captureGarbageCollectionStatus(final List<GarbageCollectionStatus> statuses, final Instant captured) {
         final Set<CapturedStatus<GarbageCollectionStatus>> capturedStatuses = new HashSet<>(statuses.size());
-        statuses.forEach(status -> capturedStatuses.add(new CapturedStatus<>(status, capturedAt)));
+        statuses.forEach(status -> capturedStatuses.add(new CapturedStatus<>(status, captured)));
         storage.storeGarbageCollectionStatuses(capturedStatuses);
     }
 
-    private void captureComponentStatus(final ProcessGroupStatus groupStatus, final Instant capturedAt) {
-        storage.storeProcessGroupStatuses(Collections.singleton(new CapturedStatus<>(groupStatus, capturedAt)));
-        storage.storeConnectionStatuses(wrapConnectionStatuses(groupStatus, capturedAt));
-        storage.storeRemoteProcessorGroupStatuses(wrapRemoteProcessGroupStatuses(groupStatus, capturedAt));
-        storage.storeProcessorStatuses(wrapProcessorStatuses(groupStatus, capturedAt));
-        groupStatus.getProcessGroupStatus().forEach(child -> captureComponentStatus(child, capturedAt));
+    private void captureComponentStatus(final ProcessGroupStatus groupStatus, final Instant captured) {
+        storage.storeProcessGroupStatuses(Collections.singleton(new CapturedStatus<>(groupStatus, captured)));
+        storage.storeConnectionStatuses(wrapConnectionStatuses(groupStatus, captured));
+        storage.storeRemoteProcessorGroupStatuses(wrapRemoteProcessGroupStatuses(groupStatus, captured));
+        storage.storeProcessorStatuses(wrapProcessorStatuses(groupStatus, captured));
+        groupStatus.getProcessGroupStatus().forEach(child -> captureComponentStatus(child, captured));
     }
 
-    private Collection<CapturedStatus<ConnectionStatus>> wrapConnectionStatuses(final ProcessGroupStatus groupStatus, final Instant capturedAt) {
+    private Collection<CapturedStatus<ConnectionStatus>> wrapConnectionStatuses(final ProcessGroupStatus groupStatus, final Instant captured) {
         final Collection<ConnectionStatus> statuses = groupStatus.getConnectionStatus();
         final Set<CapturedStatus<ConnectionStatus>> result = new HashSet<>(statuses.size());
-        statuses.forEach(status ->  result.add(new CapturedStatus<>(status, capturedAt)));
+        statuses.forEach(status ->  result.add(new CapturedStatus<>(status, captured)));
         return result;
     }
 
-    private Collection<CapturedStatus<RemoteProcessGroupStatus>> wrapRemoteProcessGroupStatuses(final ProcessGroupStatus groupStatus, final Instant capturedAt) {
+    private Collection<CapturedStatus<RemoteProcessGroupStatus>> wrapRemoteProcessGroupStatuses(final ProcessGroupStatus groupStatus, final Instant captured) {
         final Collection<RemoteProcessGroupStatus> statuses = groupStatus.getRemoteProcessGroupStatus();
         final Set<CapturedStatus<RemoteProcessGroupStatus>> result = new HashSet<>(statuses.size());
-        statuses.forEach(status ->  result.add(new CapturedStatus<>(status, capturedAt)));
+        statuses.forEach(status ->  result.add(new CapturedStatus<>(status, captured)));
         return result;
     }
 
-    private Collection<CapturedStatus<ProcessorStatus>> wrapProcessorStatuses(final ProcessGroupStatus groupStatus, final Instant capturedAt) {
+    private Collection<CapturedStatus<ProcessorStatus>> wrapProcessorStatuses(final ProcessGroupStatus groupStatus, final Instant captured) {
         final Collection<ProcessorStatus> statuses = groupStatus.getProcessorStatus();
         final Set<CapturedStatus<ProcessorStatus>> result = new HashSet<>(statuses.size());
-        statuses.forEach(status ->  result.add(new CapturedStatus<>(status, capturedAt)));
+        statuses.forEach(status ->  result.add(new CapturedStatus<>(status, captured)));
         return result;
     }
 

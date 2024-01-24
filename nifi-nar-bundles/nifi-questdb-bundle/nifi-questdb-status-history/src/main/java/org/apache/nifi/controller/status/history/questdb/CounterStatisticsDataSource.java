@@ -43,7 +43,7 @@ final class CounterStatisticsDataSource implements InsertRowDataSource {
     public void fillRowData(final InsertRowContext context) {
         final CounterStatistic counterStatistic = counterStatistics.next();
 
-        context.initializeRow(counterStatistic.getCapturedAt())
+        context.initializeRow(counterStatistic.getCaptured())
             .addString(1, counterStatistic.getComponentId())
             .addString(2, counterStatistic.getName())
             .addLong(3, counterStatistic.getValue());
@@ -69,20 +69,20 @@ final class CounterStatisticsDataSource implements InsertRowDataSource {
     }
 
     private static class CounterStatistic {
-        private final Instant capturedAt;
+        private final Instant captured;
         private final String componentId;
         private final String name;
         private final long value;
 
-        CounterStatistic(final Instant capturedAt, final String componentId, final String name, final long value) {
-            this.capturedAt = capturedAt;
+        CounterStatistic(final Instant captured, final String componentId, final String name, final long value) {
+            this.captured = captured;
             this.componentId = componentId;
             this.name = name;
             this.value = value;
         }
 
-        public Instant getCapturedAt() {
-            return capturedAt;
+        public Instant getCaptured() {
+            return captured;
         }
 
         public String getComponentId() {

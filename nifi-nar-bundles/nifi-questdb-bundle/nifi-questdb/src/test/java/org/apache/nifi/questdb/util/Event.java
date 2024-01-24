@@ -74,10 +74,12 @@ public class Event {
 
     @Override
     public String toString() {
-        return "com.github.simonbence.questdb7.Event{" +
-                "capturedAt=" + captured +
+        return "org.apache.nifi.questdb.util.Event{" +
+                "captured=" + captured +
                 ", subject='" + subject + '\'' +
                 ", value=" + value +
                 '}';
     }
+
+
 }

@@ -35,7 +35,7 @@ final class DeleteOldRolloverStrategy implements RolloverStrategy {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneOffset.UTC);
     private static final String DELETION_QUERY = "ALTER TABLE %s DROP PARTITION LIST '%s'";
     // Distinct keyword is not recognized if the date mapping is not within an inner query
-    private static final String PARTITION_SELECTION_QUERY = "SELECT DISTINCT * FROM (SELECT (to_str(capturedAt, 'yyyy-MM-dd')) AS partitionName FROM %s)";
+    private static final String PARTITION_SELECTION_QUERY = "SELECT DISTINCT * FROM (SELECT (to_str(captured, 'yyyy-MM-dd')) AS partitionName FROM %s)";
 
     private final Supplier<ZonedDateTime> timeSource;
     private final int daysToKeep;

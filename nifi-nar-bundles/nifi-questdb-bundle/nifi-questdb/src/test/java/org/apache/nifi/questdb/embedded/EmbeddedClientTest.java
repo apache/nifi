@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class EmbeddedClientTest extends ManagedQuestDbTest {
 
     @Test
-    public void testInsertAndQuery() throws DatabaseException, InterruptedException {
+    public void testInsertAndQuery() throws DatabaseException {
         final List<Event> testEvents = QuestDbTestUtil.getTestData();
         final Client client = getTestSubject();
         client.execute(CREATE_EVENT_TABLE);

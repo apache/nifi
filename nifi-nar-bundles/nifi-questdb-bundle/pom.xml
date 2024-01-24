@@ -24,7 +24,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>nifi-questdb-status-history</module>
-        <module>nifi-questdb-nar</module>
+        <module>nifi-questdb-status-history-nar</module>
         <module>nifi-questdb</module>
     </modules>
 </project>

@@ -61,9 +61,9 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
     static final String COMPONENT_STATUS_QUERY =
         "SELECT * FROM %s " +
         "WHERE componentId = '%s' " +
-        "AND capturedAt > to_timestamp('%s', '" + CAPTURE_DATE_FORMAT + "') " +
-        "AND capturedAt < to_timestamp('%s', '" + CAPTURE_DATE_FORMAT + "') " +
-        "ORDER BY capturedAt ASC";
+        "AND captured > to_timestamp('%s', '" + CAPTURE_DATE_FORMAT + "') " +
+        "AND captured < to_timestamp('%s', '" + CAPTURE_DATE_FORMAT + "') " +
+        "ORDER BY captured ASC";
 
     // Connection
 
@@ -71,7 +71,7 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
 
     static final String CREATE_CONNECTION_STATUS =
         "CREATE TABLE " + TABLE_NAME_CONNECTION_STATUS + " (" +
-        "capturedAt TIMESTAMP," +
+        "captured TIMESTAMP," +
         "componentId SYMBOL capacity 2000 nocache index capacity 1500," +
         "inputBytes LONG," +
         "inputCount LONG," +
@@ -82,7 +82,7 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
         "totalQueuedDuration LONG," +
         "maxQueuedDuration LONG," +
         "averageQueuedDuration LONG" +
-        ") TIMESTAMP(capturedAt) PARTITION BY DAY";
+        ") TIMESTAMP(captured) PARTITION BY DAY";
 
     private static final Map<Integer, MetricDescriptor<ConnectionStatus>> CONNECTION_METRICS = new HashMap<>();
 
@@ -110,7 +110,7 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
 
     static final String CREATE_PROCESSOR_STATUS =
         "CREATE TABLE " + TABLE_NAME_PROCESSOR_STATUS + " (" +
-        "capturedAt TIMESTAMP," +
+        "captured TIMESTAMP," +
         "componentId SYMBOL capacity 2000 nocache index capacity 1500," +
         "bytesRead LONG," +
         "bytesWritten LONG," +
@@ -125,7 +125,7 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
         "flowFilesRemoved LONG," +
         "averageLineageDuration LONG," +
         "averageTaskNanos LONG" +
-        ") TIMESTAMP(capturedAt) PARTITION BY DAY";
+        ") TIMESTAMP(captured) PARTITION BY DAY";
 
     private static final Map<Integer, MetricDescriptor<ProcessorStatus>> PROCESSOR_METRICS = new HashMap<>();
 
@@ -161,7 +161,7 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
 
     static final String CREATE_PROCESS_GROUP_STATUS =
         "CREATE TABLE " + TABLE_NAME_PROCESS_GROUP_STATUS + " (" +
-        "capturedAt TIMESTAMP," +
+        "captured TIMESTAMP," +
         "componentId SYMBOL capacity 2000 nocache index capacity 1500," +
         "bytesRead LONG," +
         "bytesWritten LONG," +
@@ -173,7 +173,7 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
         "queuedBytes LONG," +
         "queuedCount LONG," +
         "taskMillis LONG" +
-        ") TIMESTAMP(capturedAt) PARTITION BY DAY";
+        ") TIMESTAMP(captured) PARTITION BY DAY";
 
     private static final Map<Integer, MetricDescriptor<ProcessGroupStatus>> PROCESS_GROUP_METRICS = new HashMap<>();
 
@@ -202,7 +202,7 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
 
     static final String CREATE_REMOTE_PROCESS_GROUP_STATUS =
         "CREATE TABLE " + TABLE_NAME_REMOTE_PROCESS_GROUP_STATUS + " (" +
-        "capturedAt TIMESTAMP," +
+        "captured TIMESTAMP," +
         "componentId SYMBOL capacity 2000 nocache index capacity 1500," +
         "sentBytes LONG," +
         "sentCount LONG," +
@@ -212,7 +212,7 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
         "sentBytesPerSecond LONG," +
         "totalBytesPerSecond LONG," +
         "averageLineageDuration LONG" +
-        ") TIMESTAMP(capturedAt) PARTITION BY DAY";
+        ") TIMESTAMP(captured) PARTITION BY DAY";
 
     private static final Map<Integer, MetricDescriptor<RemoteProcessGroupStatus>> REMOTE_PROCESS_GROUP_METRICS = new HashMap<>();
 
@@ -239,17 +239,17 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
 
     static final String CREATE_GARBAGE_COLLECTION_STATUS =
         "CREATE TABLE " + TABLE_NAME_GARBAGE_COLLECTION_STATUS + " (" +
-        "capturedAt TIMESTAMP," +
+        "captured TIMESTAMP," +
         "memoryManagerName SYMBOL capacity 4 nocache," +
         "collectionCount LONG," +
         "collectionMinis LONG" +
-        ") TIMESTAMP(capturedAt) PARTITION BY DAY";
+        ") TIMESTAMP(captured) PARTITION BY DAY";
 
     static final String STATUS_QUERY_GARBAGE_COLLECTION =
         "SELECT * FROM garbageCollectionStatus " +
-        "WHERE capturedAt > to_timestamp('%s', '" + CAPTURE_DATE_FORMAT + "') " +
-        "AND capturedAt < to_timestamp('%s', '" + CAPTURE_DATE_FORMAT +  "') " +
-        "ORDER BY capturedAt ASC";
+        "WHERE captured > to_timestamp('%s', '" + CAPTURE_DATE_FORMAT + "') " +
+        "AND captured < to_timestamp('%s', '" + CAPTURE_DATE_FORMAT +  "') " +
+        "ORDER BY captured ASC";
 
     static InsertRowDataSource getGarbageCollectionStatusDataSource(final Collection<CapturedStatus<GarbageCollectionStatus>> statuses) {
         return new GarbageCollectionStatusDataSource(statuses.iterator());
@@ -261,11 +261,11 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
 
     static final String CREATE_COMPONENT_COUNTER =
         "CREATE TABLE " + TABLE_NAME_COMPONENT_COUNTER + " (" +
-        "capturedAt TIMESTAMP," +
+        "captured TIMESTAMP," +
         "componentId SYMBOL capacity 2000 nocache index capacity 1500," +
         "name SYMBOL capacity 256 nocache," +
         "value LONG" +
-        ") TIMESTAMP(capturedAt) PARTITION BY DAY";
+        ") TIMESTAMP(captured) PARTITION BY DAY";
 
     // Storage status
 
@@ -273,18 +273,18 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
 
     static final String CREATE_STORAGE_STATUS =
         "CREATE TABLE " + TABLE_NAME_STORAGE_STATUS + " (" +
-        "capturedAt TIMESTAMP," +
+        "captured TIMESTAMP," +
         "name SYMBOL capacity 256 nocache," +
         "storageType SHORT," +
         "freeSpace LONG," +
         "usedSpace LONG" +
-        ") TIMESTAMP(capturedAt) PARTITION BY DAY";
+        ") TIMESTAMP(captured) PARTITION BY DAY";
 
     static final String STORAGE_STATUS_QUERY =
         "SELECT * FROM storageStatus " +
-        "WHERE capturedAt > to_timestamp('%s', '" + CAPTURE_DATE_FORMAT + "') " +
-        "AND capturedAt < to_timestamp('%s', '" + CAPTURE_DATE_FORMAT + "') " +
-        "ORDER BY capturedAt ASC";
+        "WHERE captured > to_timestamp('%s', '" + CAPTURE_DATE_FORMAT + "') " +
+        "AND captured < to_timestamp('%s', '" + CAPTURE_DATE_FORMAT + "') " +
+        "ORDER BY captured ASC";
 
     static QueryResultProcessor<Map<Long, Map<StandardMetricDescriptor<NodeStatus>, Long>>> getStorageStatusResultProcessor() {
         return new StorageStatusResultProcessor(NODE_STATUS_METRICS);
@@ -296,7 +296,7 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
 
     static final String CREATE_NODE_STATUS =
         "CREATE TABLE " + TABLE_NAME_NODE_STATUS + " (" +
-        "capturedAt TIMESTAMP," +
+        "captured TIMESTAMP," +
         "freeHeap LONG," +
         "usedHeap LONG," +
         "heapUtilization LONG," +
@@ -306,13 +306,13 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
         "processorLoadAverage DOUBLE," +
         "totalThreads LONG," +
         "timerDrivenThreads LONG" +
-        ") TIMESTAMP(capturedAt) PARTITION BY DAY";
+        ") TIMESTAMP(captured) PARTITION BY DAY";
 
     static final String NODE_STATUS_QUERY =
         "SELECT * FROM nodeStatus " +
-        "WHERE capturedAt > to_timestamp('%s', '" + CAPTURE_DATE_FORMAT + "') " +
-        "AND capturedAt < to_timestamp('%s', '" + CAPTURE_DATE_FORMAT + "') " +
-        "ORDER BY capturedAt ASC";
+        "WHERE captured > to_timestamp('%s', '" + CAPTURE_DATE_FORMAT + "') " +
+        "AND captured < to_timestamp('%s', '" + CAPTURE_DATE_FORMAT + "') " +
+        "ORDER BY captured ASC";
 
     private static final Map<Integer, MetricDescriptor<NodeStatus>> NODE_STATUS_METRICS = new HashMap<>();
 

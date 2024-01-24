@@ -34,17 +34,17 @@ public class QuestDbTestUtil {
     public static final String EVENT2_TABLE_NAME = "event2";
     public static final String CREATE_EVENT_TABLE =
             "CREATE TABLE event (" +
-                    "capturedAt TIMESTAMP," +
+                    "captured TIMESTAMP," +
                     "subject SYMBOL capacity 256 nocache," +
                     "value LONG" +
-                    ") TIMESTAMP(capturedAt) PARTITION BY DAY";
+                    ") TIMESTAMP(captured) PARTITION BY DAY";
     // Deliberately similar to the Event table but different column order
     public static final String CREATE_EVENT2_TABLE =
             "CREATE TABLE event2 (" +
                     "subject SYMBOL capacity 256 nocache," +
-                    "capturedAt TIMESTAMP," +
+                    "captured TIMESTAMP," +
                     "value LONG" +
-                    ") TIMESTAMP(capturedAt) PARTITION BY DAY";
+                    ") TIMESTAMP(captured) PARTITION BY DAY";
     public static final String SELECT_QUERY = "SELECT * FROM event";
     public static final String SELECT_QUERY_2 = "SELECT * FROM event2";
 

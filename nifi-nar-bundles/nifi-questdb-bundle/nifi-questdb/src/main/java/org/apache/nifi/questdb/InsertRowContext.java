@@ -23,7 +23,7 @@ import java.time.Instant;
  * fields is mandatory. Every call initializes a new row thus it is not possible to effect the row data prior to the call.
  */
 public interface InsertRowContext {
-    InsertRowContext initializeRow(Instant capturedAt);
+    InsertRowContext initializeRow(Instant captured);
 
     InsertRowContext addLong(int position, long value);
     InsertRowContext addInt(int position, int value);

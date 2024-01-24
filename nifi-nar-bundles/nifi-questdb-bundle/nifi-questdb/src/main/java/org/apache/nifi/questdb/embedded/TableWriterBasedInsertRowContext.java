@@ -47,8 +47,8 @@ final class TableWriterBasedInsertRowContext implements InsertRowContext {
     }
 
     @Override
-    public InsertRowContext initializeRow(final Instant capturedAt) {
-        actualRow = tableWriter.newRow(instantToMicros(capturedAt));
+    public InsertRowContext initializeRow(final Instant captured) {
+        actualRow = tableWriter.newRow(instantToMicros(captured));
         return this;
     }
 
