@@ -30,6 +30,7 @@ import org.apache.nifi.snmp.testagents.TestAgent;
 import org.apache.nifi.snmp.testagents.TestSNMPV1Agent;
 import org.apache.nifi.snmp.testagents.TestSNMPV2cAgent;
 import org.apache.nifi.snmp.testagents.TestSNMPV3Agent;
+import org.apache.nifi.util.EqualsWrapper;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -46,10 +47,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -250,15 +253,31 @@ class SNMPRequestIT {
             final Optional<SNMPSingleResponse> optionalResponse = getSNMPHandler.get(getFlowFileAttributesForSnmpGet(INVALID_OID, READ_ONLY_OID_2), target);
             if (optionalResponse.isPresent()) {
                 final SNMPSingleResponse response = optionalResponse.get();
+                final List<SNMPValue> actualVariableBindings = response.getVariableBindings();
+                final List<SNMPValue> expectedVariableBindings;
+
+                final List<Function<SNMPValue, Object>> equalsProperties = Arrays.asList(
+                        SNMPValue::getOid,
+                        SNMPValue::getVariable
+                );
+
                 if (version == SnmpConstants.version1) {
-                    assertEquals("Null", response.getVariableBindings().get(1).getVariable());
-                    assertEquals(READ_ONLY_OID_VALUE_2, response.getVariableBindings().get(0).getVariable());
+                    expectedVariableBindings = Arrays.asList(
+                            new SNMPValue(INVALID_OID, "Null"),
+                            new SNMPValue(READ_ONLY_OID_2, READ_ONLY_OID_VALUE_2)
+                    );
                     assertEquals(NO_SUCH_NAME, response.getErrorStatusText());
                 } else {
-                    assertEquals(NO_SUCH_OBJECT, response.getVariableBindings().get(1).getVariable());
-                    assertEquals(READ_ONLY_OID_VALUE_2, response.getVariableBindings().get(0).getVariable());
+                    expectedVariableBindings = Arrays.asList(
+                            new SNMPValue(INVALID_OID, NO_SUCH_OBJECT),
+                            new SNMPValue(READ_ONLY_OID_2, READ_ONLY_OID_VALUE_2)
+                    );
                     assertEquals(SUCCESS, response.getErrorStatusText());
                 }
+                assertEquals(
+                        new HashSet<>(EqualsWrapper.wrapList(actualVariableBindings, equalsProperties)),
+                        new HashSet<>(EqualsWrapper.wrapList(expectedVariableBindings, equalsProperties))
+                );
             } else {
                 fail("Response is not present.");
             }
