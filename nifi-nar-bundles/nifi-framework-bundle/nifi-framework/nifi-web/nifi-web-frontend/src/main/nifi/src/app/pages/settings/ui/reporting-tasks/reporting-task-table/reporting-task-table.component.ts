@@ -51,6 +51,7 @@ export class ReportingTaskTable {
     @Output() deleteReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() startReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() configureReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
+    @Output() viewStateReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() stopReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
 
     protected readonly TextTip = TextTip;
@@ -231,6 +232,10 @@ export class ReportingTaskTable {
 
     canViewState(entity: ReportingTaskEntity): boolean {
         return this.canRead(entity) && this.canWrite(entity) && entity.component.persistsState === true;
+    }
+
+    viewStateClicked(entity: ReportingTaskEntity): void {
+        this.viewStateReportingTask.next(entity);
     }
 
     canManageAccessPolicies(): boolean {

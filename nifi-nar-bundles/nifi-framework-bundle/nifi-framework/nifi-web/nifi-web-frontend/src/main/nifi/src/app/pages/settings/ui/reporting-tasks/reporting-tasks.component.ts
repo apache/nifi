@@ -42,6 +42,7 @@ import { selectCurrentUser } from '../../../../state/current-user/current-user.s
 import { NiFiState } from '../../../../state';
 import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
+import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 
 @Component({
     selector: 'reporting-tasks',
@@ -123,6 +124,19 @@ export class ReportingTasks implements OnInit, OnDestroy {
         this.store.dispatch(
             navigateToEditReportingTask({
                 id: entity.id
+            })
+        );
+    }
+
+    viewStateReportingTask(entity: ReportingTaskEntity): void {
+        const canClear: boolean = entity.status.runStatus === 'STOPPED' && entity.status.activeThreadCount === 0;
+        this.store.dispatch(
+            getComponentStateAndOpenDialog({
+                request: {
+                    componentUri: entity.uri,
+                    componentName: entity.component.name,
+                    canClear
+                }
             })
         );
     }

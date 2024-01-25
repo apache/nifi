@@ -80,6 +80,8 @@ export class ControllerServiceTable {
         new EventEmitter<ControllerServiceEntity>();
     @Output() disableControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
+    @Output() viewStateControllerService: EventEmitter<ControllerServiceEntity> =
+        new EventEmitter<ControllerServiceEntity>();
 
     protected readonly TextTip = TextTip;
     protected readonly BulletinsTip = BulletinsTip;
@@ -249,6 +251,10 @@ export class ControllerServiceTable {
 
     canViewState(entity: ControllerServiceEntity): boolean {
         return this.canRead(entity) && this.canWrite(entity) && entity.component.persistsState === true;
+    }
+
+    viewStateClicked(entity: ControllerServiceEntity): void {
+        this.viewStateControllerService.next(entity);
     }
 
     canManageAccessPolicies(): boolean {

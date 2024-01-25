@@ -33,6 +33,7 @@
                     [currentUser]="currentUser"
                     [flowConfiguration]="(flowConfiguration$ | async)!"
                     (configureReportingTask)="configureReportingTask($event)"
+                    (viewStateReportingTask)="viewStateReportingTask($event)"
                     (selectReportingTask)="selectReportingTask($event)"
                     (deleteReportingTask)="deleteReportingTask($event)"
                     (stopReportingTask)="stopReportingTask($event)"

@@ -15,52 +15,46 @@
  *  limitations under the License.
  */
 
-import { StatusHistoryEntity, StatusHistoryState } from './index';
+import { ComponentStateState } from './index';
 import { createReducer, on } from '@ngrx/store';
 import {
-    clearStatusHistory,
-    reloadStatusHistory,
-    loadStatusHistorySuccess,
-    statusHistoryApiError,
-    viewStatusHistoryComplete,
-    reloadStatusHistorySuccess,
-    getStatusHistoryAndOpenDialog
-} from './status-history.actions';
+    resetComponentState,
+    loadComponentStateSuccess,
+    componentStateApiError,
+    getComponentStateAndOpenDialog,
+    reloadComponentStateSuccess
+} from './component-state.actions';
 
-export const initialState: StatusHistoryState = {
-    statusHistory: {} as StatusHistoryEntity,
+export const initialState: ComponentStateState = {
+    componentName: null,
+    componentUri: null,
+    componentState: null,
+    canClear: null,
     status: 'pending',
-    error: null,
-    loadedTimestamp: ''
+    error: null
 };
 
-export const statusHistoryReducer = createReducer(
+export const componentStateReducer = createReducer(
     initialState,
-
-    on(reloadStatusHistory, getStatusHistoryAndOpenDialog, (state) => ({
+    on(getComponentStateAndOpenDialog, (state, { request }) => ({
         ...state,
+        componentName: request.componentName,
+        componentUri: request.componentUri,
+        canClear: request.canClear,
         status: 'loading' as const
     })),
-
-    on(loadStatusHistorySuccess, reloadStatusHistorySuccess, (state, { response }) => ({
+    on(loadComponentStateSuccess, reloadComponentStateSuccess, (state, { response }) => ({
         ...state,
         error: null,
         status: 'success' as const,
-        loadedTimestamp: response.statusHistory.statusHistory.generated,
-        statusHistory: response.statusHistory
+        componentState: response.componentState
     })),
-
-    on(statusHistoryApiError, (state, { error }) => ({
+    on(componentStateApiError, (state, { error }) => ({
         ...state,
         error,
         status: 'error' as const
     })),
-
-    on(clearStatusHistory, (state) => ({
-        ...initialState
-    })),
-
-    on(viewStatusHistoryComplete, (state) => ({
+    on(resetComponentState, (state) => ({
         ...initialState
     }))
 );

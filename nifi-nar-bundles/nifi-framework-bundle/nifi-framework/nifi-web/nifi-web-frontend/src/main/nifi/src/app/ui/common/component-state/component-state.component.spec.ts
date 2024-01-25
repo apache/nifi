@@ -17,34 +17,21 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ControllerServices } from './controller-services.component';
+import { ComponentStateDialog } from './component-state.component';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/controller-services/controller-services.reducer';
-import { RouterTestingModule } from '@angular/router/testing';
-import { Component } from '@angular/core';
+import { initialState } from '../../../state/component-state/component-state.reducer';
 
-describe('ControllerServices', () => {
-    let component: ControllerServices;
-    let fixture: ComponentFixture<ControllerServices>;
-
-    @Component({
-        selector: 'navigation',
-        standalone: true,
-        template: ''
-    })
-    class MockNavigation {}
+describe('ComponentStateDialog', () => {
+    let component: ComponentStateDialog;
+    let fixture: ComponentFixture<ComponentStateDialog>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ControllerServices],
-            imports: [RouterTestingModule, MockNavigation],
-            providers: [
-                provideMockStore({
-                    initialState
-                })
-            ]
+            imports: [ComponentStateDialog, BrowserAnimationsModule],
+            providers: [provideMockStore({ initialState })]
         });
-        fixture = TestBed.createComponent(ControllerServices);
+        fixture = TestBed.createComponent(ComponentStateDialog);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

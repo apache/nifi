@@ -41,6 +41,7 @@ import { selectCurrentUser } from '../../../../state/current-user/current-user.s
 import { NiFiState } from '../../../../state';
 import { FlowAnalysisRuleEntity, FlowAnalysisRulesState } from '../../state/flow-analysis-rules';
 import { CurrentUser } from '../../../../state/current-user';
+import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 
 @Component({
     selector: 'flow-analysis-rules',
@@ -123,6 +124,19 @@ export class FlowAnalysisRules implements OnInit, OnDestroy {
                 request: {
                     id: entity.id,
                     flowAnalysisRule: entity
+                }
+            })
+        );
+    }
+
+    viewStateFlowAnalysisRule(entity: FlowAnalysisRuleEntity): void {
+        const canClear: boolean = entity.status.runStatus === 'DISABLED';
+        this.store.dispatch(
+            getComponentStateAndOpenDialog({
+                request: {
+                    componentUri: entity.uri,
+                    componentName: entity.component.name,
+                    canClear
                 }
             })
         );
