@@ -294,9 +294,9 @@ public class PutGCSObject extends AbstractGCSProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
         descriptors.add(BUCKET);
         descriptors.add(KEY);
-        descriptors.add(CONTENT_TYPE);
         descriptors.add(RESOURCE_TRANSFER_SOURCE);
         descriptors.add(FILE_RESOURCE_SERVICE);
+        descriptors.add(CONTENT_TYPE);
         descriptors.add(CRC32C);
         descriptors.add(ACL);
         descriptors.add(ENCRYPTION_KEY);
