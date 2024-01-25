@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry</artifactId>
-        <version>1.25.0</version>
+        <version>1.26.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-registry-toolkit</artifactId>
     <packaging>pom</packaging>
