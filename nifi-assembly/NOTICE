@@ -43,7 +43,7 @@ This includes derived works from the Apache Hive (ASLv2 licensed) project (https
 This includes derived works from the Apache Software License V2 library Jolt (https://github.com/bazaarvoice/jolt)
   Copyright 2013-2014 Bazaarvoice, Inc
   The derived work is adapted from com.bazaarvoice.jolt.chainr.ChainrBuilder.java, com.bazaarvoice.jolt.chainr.spec.ChainrSpec.java,
-  com.bazaarvoice.jolt.chainr.spec.ChainrEntry.java and can be found in the org.apache.nifi.processors.standard.util.jolt.TransformFactory.java class.
+  com.bazaarvoice.jolt.chainr.spec.ChainrEntry.java and can be found in the org.apache.nifi.processors.jolt.TransformFactory.java class.
 
 This includes derived works from Elastic Logstash (https://github.com/elastic/logstash/tree/v1.4.0/) and modified by Anthony Corbacho, and contributors
   available under an Apache Software License V2.
@@ -852,9 +852,6 @@ The following binary components are provided under the Apache Software License v
 
       Morfologic includes data from BSD-licensed dictionary of Polish (SGJP)
       (http://sgjp.pl/morfeusz/)
-
-      Servlet-api.jar and javax.servlet-*.jar are under the CDDL license, the original
-      source code for this can be found at http://www.eclipse.org/jetty/downloads.php
 
       ===========================================================================
       Kuromoji Japanese Morphological Analyzer - Apache Lucene Integration
@@ -2434,28 +2431,23 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) jersey-server (com.sun.jersey:jersey-server:jar:1.9 - https://jersey.java.net/)
     (CDDL 1.1) (GPL2 w/ CPE) jersey-guice (com.sun.jersey.contribs:jersey-guice:jar:1.9 - https://jersey.java.net/)
 
-
-    (CDDL 1.1) (GPL2 w/ CPE) Old JAXB Runtime (com.sun.xml.bind:jaxb-impl:jar:2.2.3-1 - http://jaxb.java.net/)
-    (CDDL 1.1) (GPL2 w/ CPE) Java Architecture For XML Binding (javax.xml.bind:jaxb-api:jar:2.2.2 - https://jaxb.dev.java.net/)
+    (CDDL 1.1) (GPL2 w/ CPE) JavaMail API
+    (CDDL 1.1) (GPL2 w/ CPE) JSP Implementation
+    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages (TM) TagLib Implementation
+    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0
+    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages(TM) API
+    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 API
+    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages(TM) Standard Tag Library API
+    (CDDL 1.1) (GPL2 w/ CPE) Jakarta Servlet API
+    (CDDL 1.1) (GPL2 w/ CPE) JMS API
+    (CDDL 1.1) (GPL2 w/ CPE) Jakarta JSON Processing API
+    (CDDL 1.1) (GPL2 w/ CPE) Jakarta JSON Processing Default Provider
+    (CDDL 1.1) (GPL2 w/ CPE) OSGi resource locator bundle
+    (CDDL 1.1) (GPL2 w/ CPE) Jakarta Annotation API
+    (CDDL 1.1) (GPL2 w/ CPE) Jakarta Inject API as OSGi bundle
+    (CDDL 1.1) (GPL2 w/ CPE) Jakarta WS REST Services API
+    (CDDL 1.1) JSR 356: Java API for WebSocket
     (CDDL 1.1) (GPL2 w/ CPE) MIME Streaming Extension (org.jvnet.mimepull:mimepull:jar:1.9.3 - http://mimepull.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) JavaMail API (compat) (javax.mail:mail:jar:1.4.7 - http://kenai.com/projects/javamail/mail)
-    (CDDL 1.1) (GPL2 w/ CPE) JSP Implementation (org.glassfish.web:javax.servlet.jsp:jar:2.3.2 - http://jsp.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages (TM) TagLib Implementation (org.glassfish.web:javax.servlet.jsp.jstl:jar:1.2.2 - http://jstl.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 (org.glassfish:javax.el:jar:3.0.0 - http://el-spec.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages(TM) API (javax.servlet.jsp:javax.servlet.jsp-api:jar:2.3.1 - http://jsp.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 API  (javax.el:javax.el-api:jar:3.0.0 - http://uel-spec.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages(TM) Standard Tag Library API  (javax.servlet.jsp.jstl:javax.servlet.jsp.jstl-api:jar:1.2.1 - http://jcp.org/en/jsr/detail?id=52)
-    (CDDL 1.1) (GPL2 w/ CPE) Java Servlet API  (javax.servlet:javax.servlet-api:jar:3.1.0 - http://servlet-spec.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) Javax JMS Api (javax.jms:javax.jms-api:jar:2.0.1 - http://java.net/projects/jms-spec/pages/Home)
-    (CDDL 1.1) (GPL2 w/ CPE) JSON Processing API (javax.json:javax.json-api:jar:1.0 - http://json-processing-spec.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) JSON Processing Default Provider (org.glassfish:javax.json:jar:1.0.4 - https://jsonp.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) OSGi resource locator bundle (org.glassfish.hk2:osgi-resource-locator:jar:1.0.1 - http://glassfish.org/osgi-resource-locator)
-    (CDDL 1.1) (GPL2 w/ CPE) javax.annotation API (javax.annotation:javax.annotation-api:jar:1.2 - http://jcp.org/en/jsr/detail?id=250)
-    (CDDL 1.1) (GPL2 w/ CPE) javax.inject:1 as OSGi bundle (org.glassfish.hk2.external:javax.inject:jar:2.4.0-b25 - https://hk2.java.net/external/javax.inject)
-    (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.0.1 - http://jax-rs-spec.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1 - http://jax-rs-spec.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) JavaMail API (com.sun.mail:javax.mail:jar:1.6.1)
-    (CDDL 1.1) JSR 356: Java API for WebSocket (javax.websocket:javax.websocket-api:1.1)
 
 ************************
 Common Development and Distribution License 1.0
@@ -2463,7 +2455,6 @@ Common Development and Distribution License 1.0
 
 The following binary components are provided under the Common Development and Distribution License 1.0.  See project link for details.
 
-    (CDDL 1.0) JavaServlet(TM) Specification (javax.servlet:servlet-api:jar:2.5 - no url available)
     (CDDL 1.0) (GPL3) Streaming API For XML (javax.xml.stream:stax-api:jar:1.0-2 - no url provided)
     (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
     (CDDL 1.0) JHighlight (org.codelibs:jhighlight:1.0.2 - https://github.com/codelibs/jhighlight)

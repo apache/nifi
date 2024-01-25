@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.update.attributes;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  *

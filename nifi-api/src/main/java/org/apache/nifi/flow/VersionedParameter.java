@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Objects;
 
@@ -28,7 +28,7 @@ public class VersionedParameter {
     private boolean provided;
     private String value;
 
-    @ApiModelProperty("The name of the parameter")
+    @Schema(description = "The name of the parameter")
     public String getName() {
         return name;
     }
@@ -37,7 +37,7 @@ public class VersionedParameter {
         this.name = name;
     }
 
-    @ApiModelProperty("The description of the param")
+    @Schema(description = "The description of the param")
     public String getDescription() {
         return description;
     }
@@ -46,7 +46,7 @@ public class VersionedParameter {
         this.description = description;
     }
 
-    @ApiModelProperty("Whether or not the parameter value is sensitive")
+    @Schema(description = "Whether or not the parameter value is sensitive")
     public boolean isSensitive() {
         return sensitive;
     }
@@ -55,7 +55,7 @@ public class VersionedParameter {
         this.sensitive = sensitive;
     }
 
-    @ApiModelProperty("Whether or not the parameter value is provided by a ParameterProvider")
+    @Schema(description = "Whether or not the parameter value is provided by a ParameterProvider")
     public boolean isProvided() {
         return provided;
     }
@@ -64,7 +64,7 @@ public class VersionedParameter {
         this.provided = provided;
     }
 
-    @ApiModelProperty("The value of the parameter")
+    @Schema(description = "The value of the parameter")
     public String getValue() {
         return value;
     }

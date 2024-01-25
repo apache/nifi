@@ -27,7 +27,7 @@ import { environment } from './environments/environment';
 import { HTTP_INTERCEPTORS, HttpClientModule, HttpClientXsrfModule } from '@angular/common/http';
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { rootReducers } from './state';
-import { UserEffects } from './state/user/user.effects';
+import { CurrentUserEffects } from './state/current-user/current-user.effects';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LoadingInterceptor } from './service/interceptors/loading.interceptor';
 import { AuthInterceptor } from './service/interceptors/auth.interceptor';
@@ -36,8 +36,12 @@ import { PollingInterceptor } from './service/interceptors/polling.interceptor';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { MatNativeDateModule } from '@angular/material/core';
 import { AboutEffects } from './state/about/about.effects';
+import { StatusHistoryEffects } from './state/status-history/status-history.effects';
+import { MatDialogModule } from '@angular/material/dialog';
+import { ControllerServiceStateEffects } from './state/contoller-service-state/controller-service-state.effects';
+import { SystemDiagnosticsEffects } from './state/system-diagnostics/system-diagnostics.effects';
+import { FlowConfigurationEffects } from './state/flow-configuration/flow-configuration.effects';
 
-// @ts-ignore
 @NgModule({
     declarations: [AppComponent],
     imports: [
@@ -54,14 +58,23 @@ import { AboutEffects } from './state/about/about.effects';
             routerState: RouterState.Minimal,
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
-        EffectsModule.forRoot(UserEffects, ExtensionTypesEffects, AboutEffects),
+        EffectsModule.forRoot(
+            CurrentUserEffects,
+            ExtensionTypesEffects,
+            AboutEffects,
+            FlowConfigurationEffects,
+            StatusHistoryEffects,
+            ControllerServiceStateEffects,
+            SystemDiagnosticsEffects
+        ),
         StoreDevtoolsModule.instrument({
             maxAge: 25,
             logOnly: environment.production,
             autoPause: true
         }),
         MatProgressSpinnerModule,
-        MatNativeDateModule
+        MatNativeDateModule,
+        MatDialogModule
     ],
     providers: [
         {

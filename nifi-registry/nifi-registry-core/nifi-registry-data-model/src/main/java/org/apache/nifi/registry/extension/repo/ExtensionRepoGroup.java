@@ -16,22 +16,20 @@
  */
 package org.apache.nifi.registry.extension.repo;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.registry.link.LinkableEntity;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.Comparator;
 import java.util.Objects;
 
-@ApiModel
 @XmlRootElement
 public class ExtensionRepoGroup extends LinkableEntity implements Comparable<ExtensionRepoGroup> {
 
     private String bucketName;
     private String groupId;
 
-    @ApiModelProperty(value = "The bucket name")
+    @Schema(description = "The bucket name")
     public String getBucketName() {
         return bucketName;
     }
@@ -40,7 +38,7 @@ public class ExtensionRepoGroup extends LinkableEntity implements Comparable<Ext
         this.bucketName = bucketName;
     }
 
-    @ApiModelProperty(value = "The group id")
+    @Schema(description = "The group id")
     public String getGroupId() {
         return groupId;
     }

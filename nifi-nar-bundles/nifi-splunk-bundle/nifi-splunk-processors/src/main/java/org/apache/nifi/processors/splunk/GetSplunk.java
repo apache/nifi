@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.splunk;
 
-
 import com.splunk.JobExportArgs;
 import com.splunk.SSLSecurityProtocol;
 import com.splunk.Service;
@@ -59,12 +58,12 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -355,7 +354,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
                 || descriptor.equals(HOSTNAME))
                 ) {
             getLogger().debug("A property that require resetting state was modified - {} oldValue {} newValue {}",
-                    new Object[] {descriptor.getDisplayName(), oldValue, newValue});
+                    descriptor.getDisplayName(), oldValue, newValue);
             resetState = true;
         }
     }
@@ -399,7 +398,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        final long currentTime = System.currentTimeMillis();
+        final OffsetDateTime currentTime = OffsetDateTime.now();
 
         synchronized (isInitialized) {
             if (!isInitialized.get()) {
@@ -429,17 +428,17 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
             try {
                 // not provided so we need to check the previous state
                 final TimeRange previousRange = loadState(session);
-                final SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT);
-                dateFormat.setTimeZone(TimeZone.getTimeZone(timeZone));
+                final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT)
+                        .withZone(TimeZone.getTimeZone(timeZone).toZoneId());
 
                 if (previousRange == null) {
                     // no previous state so set the earliest time based on the strategy
                     if (MANAGED_CURRENT_VALUE.getValue().equals(timeRangeStrategy)) {
-                        earliestTime = dateFormat.format(new Date(currentTime));
+                        earliestTime = dateTimeFormatter.format(currentTime);
                     }
 
                     // no previous state so set the latest time to the current time
-                    latestTime = dateFormat.format(new Date(currentTime));
+                    latestTime = dateTimeFormatter.format(currentTime);
 
                     // if its the first time through don't actually run, just save the state to get the
                     // initial time saved and next execution will be the first real execution
@@ -452,11 +451,11 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
                     // we have previous state so set earliestTime to (latestTime + 1) of last range
                     try {
                         final String previousLastTime = previousRange.getLatestTime();
-                        final Date previousLastDate = dateFormat.parse(previousLastTime);
+                        final OffsetDateTime previousLastDate = OffsetDateTime.parse(previousLastTime, dateTimeFormatter);
 
-                        earliestTime = dateFormat.format(new Date(previousLastDate.getTime() + 1));
-                        latestTime = dateFormat.format(new Date(currentTime));
-                    } catch (ParseException e) {
+                        earliestTime = dateTimeFormatter.format(previousLastDate.plusSeconds(1));
+                        latestTime = dateTimeFormatter.format(currentTime);
+                    } catch (DateTimeParseException e) {
                        throw new ProcessException(e);
                     }
                 }
@@ -485,9 +484,9 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         }
 
         if (EVENT_TIME_VALUE.getValue().equalsIgnoreCase(timeFieldStrategy)) {
-            getLogger().debug("Using earliest_time of {} and latest_time of {}", new Object[]{earliestTime, latestTime});
+            getLogger().debug("Using earliest_time of {} and latest_time of {}", earliestTime, latestTime);
         } else {
-            getLogger().debug("Using index_earliest of {} and index_latest of {}", new Object[]{earliestTime, latestTime});
+            getLogger().debug("Using index_earliest of {} and index_latest of {}", earliestTime, latestTime);
         }
 
         InputStream export;
@@ -521,7 +520,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
 
         session.getProvenanceReporter().receive(flowFile, transitUri);
         session.transfer(flowFile, REL_SUCCESS);
-        getLogger().debug("Received {} from Splunk", new Object[] {flowFile});
+        getLogger().debug("Received {} from Splunk", flowFile);
 
         // save the time range for the next execution to pick up where we left off
         // if saving fails then roll back the session so we can try again next execution
@@ -601,7 +600,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         state.put(EARLIEST_TIME_KEY, earliest);
         state.put(LATEST_TIME_KEY, latest);
 
-        getLogger().debug("Saving state with earliestTime of {} and latestTime of {}", new Object[] {earliest, latest});
+        getLogger().debug("Saving state with earliestTime of {} and latestTime of {}", earliest, latest);
         session.setState(state, Scope.CLUSTER);
     }
 
@@ -615,7 +614,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
 
         final String earliest = stateMap.get(EARLIEST_TIME_KEY);
         final String latest = stateMap.get(LATEST_TIME_KEY);
-        getLogger().debug("Loaded state with earliestTime of {} and latestTime of {}", new Object[] {earliest, latest});
+        getLogger().debug("Loaded state with earliestTime of {} and latestTime of {}", earliest, latest);
 
         if (StringUtils.isBlank(earliest) && StringUtils.isBlank(latest)) {
             return null;

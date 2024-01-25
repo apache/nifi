@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * State for a given component.
@@ -34,8 +34,7 @@ public class ComponentStateDTO {
     /**
      * @return The component identifier
      */
-    @ApiModelProperty(
-        value = "The component identifier."
+    @Schema(description = "The component identifier."
     )
     public String getComponentId() {
         return componentId;
@@ -48,8 +47,7 @@ public class ComponentStateDTO {
     /**
      * @return Description of the state this component persists.
      */
-    @ApiModelProperty(
-        value = "Description of the state this component persists."
+    @Schema(description = "Description of the state this component persists."
     )
     public String getStateDescription() {
         return stateDescription;
@@ -62,8 +60,7 @@ public class ComponentStateDTO {
     /**
      * @return The cluster state for this component, or null if this NiFi is a standalone instance
      */
-    @ApiModelProperty(
-        value = "The cluster state for this component, or null if this NiFi is a standalone instance."
+    @Schema(description = "The cluster state for this component, or null if this NiFi is a standalone instance."
     )
     public StateMapDTO getClusterState() {
         return clusterState;
@@ -76,8 +73,7 @@ public class ComponentStateDTO {
     /**
      * @return The local state for this component
      */
-    @ApiModelProperty(
-        value = "The local state for this component."
+    @Schema(description = "The local state for this component."
     )
     public StateMapDTO getLocalState() {
         return localState;

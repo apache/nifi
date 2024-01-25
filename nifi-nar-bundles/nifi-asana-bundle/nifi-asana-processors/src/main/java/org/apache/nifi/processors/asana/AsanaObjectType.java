@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.processors.asana;
 
-import java.util.Arrays;
 import org.apache.nifi.components.DescribedValue;
 
 public enum AsanaObjectType implements DescribedValue {
     AV_COLLECT_TASKS(
             "asana-collect-tasks",
-            "Tasks", ""
-            + "Collect tasks matching to the specified conditions."
+            "Tasks",
+            "Collect tasks matching to the specified conditions."
     ),
     AV_COLLECT_TASK_ATTACHMENTS(
             "asana-collect-task-attachments",
@@ -104,12 +103,5 @@ public enum AsanaObjectType implements DescribedValue {
     @Override
     public String getDescription() {
         return description;
-    }
-
-    public static AsanaObjectType fromValue(String value) {
-        return Arrays.stream(AsanaObjectType.values())
-                .filter(asanaObjectType -> asanaObjectType.getValue().equals(value))
-                .findFirst()
-                .orElse(null);
     }
 }

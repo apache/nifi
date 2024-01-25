@@ -55,13 +55,14 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.SimpleDateFormatValidator;
+import org.apache.nifi.serialization.DateTimeFormatValidator;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.PushBackRecordSet;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.field.StandardFieldConverterRegistry;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StopWatch;
@@ -307,7 +308,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 + "If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy for a two-digit month, followed by "
                 + "a two-digit day, followed by a four-digit year, all separated by '/' characters, as in 01/25/2017).")
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-        .addValidator(new SimpleDateFormatValidator())
+        .addValidator(new DateTimeFormatValidator())
         .required(false)
         .build();
 
@@ -319,7 +320,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 + "If specified, the value must match the Java Simple Date Format (for example, HH:mm:ss for a two-digit hour in 24-hour format, followed by "
                 + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 18:04:15).")
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-        .addValidator(new SimpleDateFormatValidator())
+        .addValidator(new DateTimeFormatValidator())
         .required(false)
         .build();
 
@@ -332,7 +333,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 + "a two-digit day, followed by a four-digit year, all separated by '/' characters; and then followed by a two-digit hour in 24-hour format, followed by "
                 + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 01/25/2017 18:04:15).")
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-        .addValidator(new SimpleDateFormatValidator())
+        .addValidator(new DateTimeFormatValidator())
         .required(false)
         .build();
 
@@ -622,7 +623,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 if (format != null) {
                     final Object formattedValue = coerceStringToLong(
                             recordField.getFieldName(),
-                            DataTypeUtils.toString(value, () -> DataTypeUtils.getDateFormat(format))
+                            StandardFieldConverterRegistry.getRegistry().getFieldConverter(String.class).convertField(value, Optional.of(format), recordField.getFieldName())
                     );
                     contentMap.put(recordField.getFieldName(), formattedValue);
                 }
@@ -717,7 +718,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                     final String format = determineDateFormat(chosenDataType.getFieldType());
                     returnValue = coerceStringToLong(
                             fieldName,
-                            DataTypeUtils.toString(coercedValue, () -> DataTypeUtils.getDateFormat(format))
+                            StandardFieldConverterRegistry.getRegistry().getFieldConverter(String.class).convertField(coercedValue, Optional.ofNullable(format), path.getPath())
                     );
                     break;
                 case LONG:

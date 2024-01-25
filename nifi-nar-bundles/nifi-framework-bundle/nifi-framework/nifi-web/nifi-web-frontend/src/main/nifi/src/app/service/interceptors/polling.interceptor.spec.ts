@@ -19,7 +19,7 @@ import { TestBed } from '@angular/core/testing';
 
 import { PollingInterceptor } from './polling.interceptor';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/user/user.reducer';
+import { initialState } from '../../state/current-user/current-user.reducer';
 
 describe('PollingInterceptor', () => {
     let service: PollingInterceptor;

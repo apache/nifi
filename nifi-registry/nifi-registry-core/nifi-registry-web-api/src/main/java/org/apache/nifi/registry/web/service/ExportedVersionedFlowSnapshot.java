@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.registry.web.service;
 
-import io.swagger.annotations.ApiModel;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
@@ -31,7 +30,6 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
  *
  * @see VersionedFlowSnapshot
  */
-@ApiModel
 public class ExportedVersionedFlowSnapshot {
 
     @Valid

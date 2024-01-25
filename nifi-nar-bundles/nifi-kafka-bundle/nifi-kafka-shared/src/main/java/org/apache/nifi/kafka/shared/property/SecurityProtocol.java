@@ -21,10 +21,7 @@ package org.apache.nifi.kafka.shared.property;
  */
 public enum SecurityProtocol {
     PLAINTEXT,
-
     SSL,
-
     SASL_PLAINTEXT,
-
     SASL_SSL
 }

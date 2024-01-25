@@ -128,3 +128,10 @@ This includes derived works from Apache Kafka available under Apache Software Li
       https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/security/kerberos/KerberosLogin.java
     and can be found in
       nifi-nar-bundles/nifi-kafka-bundle/nifi-kafka-2-6-processors/src/main/java/org/apache/nifi/processors/kafka/pubsub/CustomKerberosLogin.java
+
+This includes derived works from Spring Framework available under Apache Software License V2
+    Copyright 2002-2023 the original author or authors.
+    The derived work is adapted from
+      https://github.com/spring-projects/spring-framework/blob/main/spring-web/src/main/java/org/springframework/web/util/UriComponentsBuilder.java
+    and can be found in
+      nifi-commons/nifi-utils/src/main/java/org/apache/nifi/util/UriUtils.java

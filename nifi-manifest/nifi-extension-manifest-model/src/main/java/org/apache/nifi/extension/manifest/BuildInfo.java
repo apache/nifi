@@ -16,13 +16,11 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
 
-@ApiModel
 @XmlAccessorType(XmlAccessType.FIELD)
 public class BuildInfo {
 
@@ -33,7 +31,7 @@ public class BuildInfo {
     private String builtBy;
     private String timestamp;
 
-    @ApiModelProperty(value = "The tag the NAR was built from")
+    @Schema(description = "The tag the NAR was built from")
     public String getTag() {
         return tag;
     }
@@ -42,7 +40,7 @@ public class BuildInfo {
         this.tag = tag;
     }
 
-    @ApiModelProperty(value = "The branch the NAR was built from")
+    @Schema(description = "The branch the NAR was built from")
     public String getBranch() {
         return branch;
     }
@@ -51,7 +49,7 @@ public class BuildInfo {
         this.branch = branch;
     }
 
-    @ApiModelProperty(value = "The revision the NAR was built from")
+    @Schema(description = "The revision the NAR was built from")
     public String getRevision() {
         return revision;
     }
@@ -60,7 +58,7 @@ public class BuildInfo {
         this.revision = revision;
     }
 
-    @ApiModelProperty(value = "The JDK the NAR was built with")
+    @Schema(description = "The JDK the NAR was built with")
     public String getJdk() {
         return jdk;
     }
@@ -69,7 +67,7 @@ public class BuildInfo {
         this.jdk = jdk;
     }
 
-    @ApiModelProperty(value = "The OS user that performed the build")
+    @Schema(description = "The OS user that performed the build")
     public String getBuiltBy() {
         return builtBy;
     }
@@ -78,7 +76,7 @@ public class BuildInfo {
         this.builtBy = builtBy;
     }
 
-    @ApiModelProperty(value = "The timestamp of the build")
+    @Schema(description = "The timestamp of the build")
     public String getTimestamp() {
         return timestamp;
     }

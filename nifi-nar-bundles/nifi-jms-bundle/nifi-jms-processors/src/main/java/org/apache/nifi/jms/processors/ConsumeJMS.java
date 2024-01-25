@@ -52,7 +52,7 @@ import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.support.JmsHeaders;
 
-import javax.jms.Session;
+import jakarta.jms.Session;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -239,7 +239,6 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         _propertyDescriptors.add(USER);
         _propertyDescriptors.add(PASSWORD);
         _propertyDescriptors.add(CLIENT_ID);
-        _propertyDescriptors.add(SESSION_CACHE_SIZE);
 
         // change the validator on CHARSET property
         PropertyDescriptor charsetWithELValidatorProperty = new PropertyDescriptor.Builder()

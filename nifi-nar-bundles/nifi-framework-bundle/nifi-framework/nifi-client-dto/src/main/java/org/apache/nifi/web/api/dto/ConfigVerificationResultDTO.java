@@ -17,14 +17,14 @@
 
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public class ConfigVerificationResultDTO {
     private String outcome;
     private String verificationStepName;
     private String explanation;
 
-    @ApiModelProperty(value = "The outcome of the verification", allowableValues = "SUCCESSFUL, FAILED, SKIPPED")
+    @Schema(description = "The outcome of the verification", allowableValues = "SUCCESSFUL, FAILED, SKIPPED")
     public String getOutcome() {
         return outcome;
     }
@@ -33,7 +33,7 @@ public class ConfigVerificationResultDTO {
         this.outcome = outcome;
     }
 
-    @ApiModelProperty("The name of the verification step")
+    @Schema(description = "The name of the verification step")
     public String getVerificationStepName() {
         return verificationStepName;
     }
@@ -42,7 +42,7 @@ public class ConfigVerificationResultDTO {
         this.verificationStepName = verificationStepName;
     }
 
-    @ApiModelProperty("An explanation of why the step was or was not successful")
+    @Schema(description = "An explanation of why the step was or was not successful")
     public String getExplanation() {
         return explanation;
     }

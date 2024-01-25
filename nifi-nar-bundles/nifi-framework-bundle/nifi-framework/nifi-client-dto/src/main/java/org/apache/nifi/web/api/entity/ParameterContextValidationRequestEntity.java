@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ParameterContextValidationRequestDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "parameterContextValidationRequestEntity")
 public class ParameterContextValidationRequestEntity extends Entity {
     private ParameterContextValidationRequestDTO request;
     private Boolean disconnectedNodeAcknowledged;
 
-    @ApiModelProperty("The Update Request")
+    @Schema(description = "The Update Request")
     public ParameterContextValidationRequestDTO getRequest() {
         return request;
     }
@@ -35,7 +35,7 @@ public class ParameterContextValidationRequestEntity extends Entity {
         this.request = request;
     }
 
-    @ApiModelProperty("Acknowledges that this node is disconnected to allow for mutable requests to proceed.")
+    @Schema(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.")
     public Boolean isDisconnectedNodeAcknowledged() {
         return disconnectedNodeAcknowledged;
     }

@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.flow.FlowBreadcrumbDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a FlowBreadcrumbDTO.
@@ -39,8 +39,7 @@ public class FlowBreadcrumbEntity extends Entity {
      *
      * @return The id
      */
-    @ApiModelProperty(
-        value = "The id of this ancestor ProcessGroup."
+    @Schema(description = "The id of this ancestor ProcessGroup."
     )
     public String getId() {
         return id;
@@ -55,8 +54,7 @@ public class FlowBreadcrumbEntity extends Entity {
      *
      * @return The permissions
      */
-    @ApiModelProperty(
-        value = "The permissions for this ancestor ProcessGroup."
+    @Schema(description = "The permissions for this ancestor ProcessGroup."
     )
     public PermissionsDTO getPermissions() {
         return permissions;
@@ -71,8 +69,7 @@ public class FlowBreadcrumbEntity extends Entity {
      *
      * @return The FlowBreadcrumbDTO object
      */
-    @ApiModelProperty(
-        value = "This breadcrumb."
+    @Schema(description = "This breadcrumb."
     )
     public FlowBreadcrumbDTO getBreadcrumb() {
         return breadcrumb;
@@ -87,8 +84,7 @@ public class FlowBreadcrumbEntity extends Entity {
      *
      * @return The parent breadcrumb for this breadcrumb
      */
-    @ApiModelProperty(
-        value = "The parent breadcrumb for this breadcrumb."
+    @Schema(description = "The parent breadcrumb for this breadcrumb."
     )
     public FlowBreadcrumbEntity getParentBreadcrumb() {
         return parentBreadcrumb;
@@ -98,9 +94,11 @@ public class FlowBreadcrumbEntity extends Entity {
         this.parentBreadcrumb = parentBreadcrumb;
     }
 
-    @ApiModelProperty(accessMode = ApiModelProperty.AccessMode.READ_ONLY,
-            value = "The current state of the Process Group, as it relates to the Versioned Flow",
-            allowableValues = "LOCALLY_MODIFIED, STALE, LOCALLY_MODIFIED_AND_STALE, UP_TO_DATE, SYNC_FAILURE")
+    @Schema(
+            description = "The current state of the Process Group, as it relates to the Versioned Flow",
+            allowableValues = "LOCALLY_MODIFIED, STALE, LOCALLY_MODIFIED_AND_STALE, UP_TO_DATE, SYNC_FAILURE",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
     public String getVersionedFlowState() {
         return versionedFlowState;
     }

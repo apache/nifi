@@ -17,7 +17,7 @@
 
 package org.apache.nifi.cluster.coordination.node;
 
-import javax.xml.bind.annotation.XmlEnum;
+import jakarta.xml.bind.annotation.XmlEnum;
 
 @XmlEnum(String.class)
 public enum NodeConnectionState {

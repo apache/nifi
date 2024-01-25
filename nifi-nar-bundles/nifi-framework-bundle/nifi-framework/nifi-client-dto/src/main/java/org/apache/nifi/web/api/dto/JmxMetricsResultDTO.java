@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 @XmlType(name = "jmxMetricsResults")
 public class JmxMetricsResultDTO {
@@ -32,17 +32,17 @@ public class JmxMetricsResultDTO {
         this.attributeValue = attributeValue;
     }
 
-    @ApiModelProperty("The bean name of the metrics bean.")
+    @Schema(description = "The bean name of the metrics bean.")
     public String getBeanName() {
         return beanName;
     }
 
-    @ApiModelProperty("The attribute name of the metrics bean's attribute.")
+    @Schema(description = "The attribute name of the metrics bean's attribute.")
     public String getAttributeName() {
         return attributeName;
     }
 
-    @ApiModelProperty("The attribute value of the the metrics bean's attribute")
+    @Schema(description = "The attribute value of the the metrics bean's attribute")
     public Object getAttributeValue() {
         return attributeValue;
     }

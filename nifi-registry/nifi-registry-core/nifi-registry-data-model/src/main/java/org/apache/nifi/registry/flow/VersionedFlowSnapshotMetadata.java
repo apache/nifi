@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.registry.flow;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Objects;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -27,7 +27,7 @@ import org.apache.nifi.registry.link.LinkableEntity;
  * The metadata information about a VersionedFlowSnapshot. This class implements Comparable in order
  * to sort based on the snapshot version in ascending order.
  */
-@ApiModel
+
 public class VersionedFlowSnapshotMetadata extends LinkableEntity implements Comparable<VersionedFlowSnapshotMetadata> {
 
     @NotBlank
@@ -48,7 +48,7 @@ public class VersionedFlowSnapshotMetadata extends LinkableEntity implements Com
     private String comments;
 
 
-    @ApiModelProperty(value = "The identifier of the bucket this snapshot belongs to.", required = true)
+    @Schema(description = "The identifier of the bucket this snapshot belongs to.")
     public String getBucketIdentifier() {
         return bucketIdentifier;
     }
@@ -57,7 +57,7 @@ public class VersionedFlowSnapshotMetadata extends LinkableEntity implements Com
         this.bucketIdentifier = bucketIdentifier;
     }
 
-    @ApiModelProperty(value = "The identifier of the flow this snapshot belongs to.", required = true)
+    @Schema(description = "The identifier of the flow this snapshot belongs to.")
     public String getFlowIdentifier() {
         return flowIdentifier;
     }
@@ -66,7 +66,7 @@ public class VersionedFlowSnapshotMetadata extends LinkableEntity implements Com
         this.flowIdentifier = flowIdentifier;
     }
 
-    @ApiModelProperty(value = "The version of this snapshot of the flow.", required = true)
+    @Schema(description = "The version of this snapshot of the flow.")
     public int getVersion() {
         return version;
     }
@@ -75,7 +75,7 @@ public class VersionedFlowSnapshotMetadata extends LinkableEntity implements Com
         this.version = version;
     }
 
-    @ApiModelProperty(value = "The timestamp when the flow was saved, as milliseconds since epoch.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The timestamp when the flow was saved, as milliseconds since epoch.", accessMode = Schema.AccessMode.READ_ONLY)
     public long getTimestamp() {
         return timestamp;
     }
@@ -84,7 +84,7 @@ public class VersionedFlowSnapshotMetadata extends LinkableEntity implements Com
         this.timestamp = timestamp;
     }
 
-    @ApiModelProperty(value = "The user that created this snapshot of the flow.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The user that created this snapshot of the flow.", accessMode = Schema.AccessMode.READ_ONLY)
     public String getAuthor() {
         return author;
     }
@@ -93,7 +93,7 @@ public class VersionedFlowSnapshotMetadata extends LinkableEntity implements Com
         this.author = author;
     }
 
-    @ApiModelProperty("The comments provided by the user when creating the snapshot.")
+    @Schema(description = "The comments provided by the user when creating the snapshot.")
     public String getComments() {
         return comments;
     }

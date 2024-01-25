@@ -17,11 +17,11 @@
 
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ParameterProviderReferencingComponentDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a response to the API.
@@ -47,8 +47,7 @@ public class ParameterProviderReferencingComponentEntity extends ComponentEntity
     /**
      * @return The permissions for this component
      */
-    @ApiModelProperty(
-            value = "The permissions for this component."
+    @Schema(description = "The permissions for this component."
     )
     @Override
     public PermissionsDTO getPermissions() {

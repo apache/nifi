@@ -27,7 +27,6 @@ import com.fluenda.parcefone.event.CEFHandlingException;
 import com.fluenda.parcefone.event.CommonEvent;
 import com.fluenda.parcefone.event.MacAddress;
 import com.fluenda.parcefone.parser.CEFParser;
-import org.apache.bval.jsr.ApacheValidationProvider;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -44,6 +43,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -54,7 +54,6 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 
-import javax.validation.Validation;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -98,7 +97,7 @@ public class ParseCEF extends AbstractProcessor {
     private final static DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
     // for some reason Jackson doesnt seem to be able to use DateTieFormater
-    // so we use a SimpleDateFormat to format within flowfile-content
+    // so we use a DateFormat to format within flowfile-content
     private final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
 
@@ -155,18 +154,6 @@ public class ParseCEF extends AbstractProcessor {
             .allowableValues("true", "false")
             .build();
 
-    public static final PropertyDescriptor VALIDATE_DATA = new PropertyDescriptor.Builder()
-            .name("VALIDATE_DATA")
-            .displayName("Validate the CEF event")
-            .description("If set to true, the event will be validated against the CEF standard (revision 23). If the event is invalid, the "
-                    + "FlowFile will be routed to the failure relationship. If this property is set to false, the event will be processed "
-                    + "without validating the data.")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .required(true)
-            .defaultValue("true")
-            .allowableValues("true", "false")
-            .build();
-
     public static final String UTC = "UTC";
     public static final String LOCAL_TZ = "Local Timezone (system Default)";
     public static final PropertyDescriptor TIME_REPRESENTATION = new PropertyDescriptor.Builder()
@@ -199,8 +186,11 @@ public class ParseCEF extends AbstractProcessor {
         .description("Any FlowFile that is successfully parsed as a CEF message will be transferred to this Relationship.")
         .build();
 
-    // Create a Bean validator to be shared by the parser instances.
-    final javax.validation.Validator validator = Validation.byProvider(ApacheValidationProvider.class).configure().buildValidatorFactory().getValidator();
+    @Override
+    public void migrateProperties(final PropertyConfiguration propertyConfiguration) {
+        // Data Validation disabled due to ParCEFone dependency on javax.validation incompatibility with current Jakarta libraries
+        propertyConfiguration.removeProperty("VALIDATE_DATA");
+    }
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -209,7 +199,6 @@ public class ParseCEF extends AbstractProcessor {
         properties.add(APPEND_RAW_MESSAGE_TO_JSON);
         properties.add(INCLUDE_CUSTOM_EXTENSIONS);
         properties.add(ACCEPT_EMPTY_EXTENSIONS);
-        properties.add(VALIDATE_DATA);
         properties.add(TIME_REPRESENTATION);
         properties.add(DATETIME_REPRESENTATION);
         return properties;
@@ -254,7 +243,7 @@ public class ParseCEF extends AbstractProcessor {
             return;
         }
 
-        final CEFParser parser = new CEFParser(validator);
+        final CEFParser parser = new CEFParser();
 
         final byte[] buffer = new byte[(int) flowFile.getSize()];
         session.read(flowFile, new InputStreamCallback() {
@@ -270,9 +259,8 @@ public class ParseCEF extends AbstractProcessor {
             // parcefoneLocale defaults to en_US, so this should not fail. But we force failure in case the custom
             // validator failed to identify an invalid Locale
             final Locale parcefoneLocale = Locale.forLanguageTag(context.getProperty(DATETIME_REPRESENTATION).getValue());
-            final boolean validateData = context.getProperty(VALIDATE_DATA).asBoolean();
             final boolean acceptEmptyExtensions = context.getProperty(ACCEPT_EMPTY_EXTENSIONS).asBoolean();
-            event = parser.parse(buffer, validateData, acceptEmptyExtensions, parcefoneLocale);
+            event = parser.parse(buffer, false, acceptEmptyExtensions, parcefoneLocale);
 
         } catch (Exception e) {
             // This should never trigger but adding in here as a fencing mechanism to

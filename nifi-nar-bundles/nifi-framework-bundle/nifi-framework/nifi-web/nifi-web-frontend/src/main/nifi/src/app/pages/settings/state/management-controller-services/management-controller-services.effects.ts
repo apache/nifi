@@ -16,9 +16,9 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ManagementControllerServicesActions from './management-controller-services.actions';
-import { catchError, from, map, NEVER, Observable, of, switchMap, take, tap, withLatestFrom } from 'rxjs';
+import { catchError, from, map, NEVER, Observable, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { Store } from '@ngrx/store';
@@ -29,17 +29,22 @@ import { Client } from '../../../../service/client.service';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { EditControllerService } from '../../../../ui/common/controller-service/edit-controller-service/edit-controller-service.component';
 import {
+    ComponentType,
+    ControllerServiceReferencingComponent,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     NewPropertyDialogRequest,
     NewPropertyDialogResponse,
     Property,
-    PropertyDescriptor
+    PropertyDescriptor,
+    UpdateControllerServiceRequest
 } from '../../../../state/shared';
 import { NewPropertyDialog } from '../../../../ui/common/new-property-dialog/new-property-dialog.component';
 import { Router } from '@angular/router';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { selectSaving } from './management-controller-services.selectors';
+import { EnableControllerService } from '../../../../ui/common/controller-service/enable-controller-service/enable-controller-service.component';
+import { DisableControllerService } from '../../../../ui/common/controller-service/disable-controller-service/disable-controller-service.component';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
@@ -53,7 +58,7 @@ export class ManagementControllerServicesEffects {
         private router: Router
     ) {}
 
-    loadControllerConfig$ = createEffect(() =>
+    loadManagementControllerServices$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ManagementControllerServicesActions.loadManagementControllerServices),
             switchMap(() =>
@@ -82,7 +87,7 @@ export class ManagementControllerServicesEffects {
         () =>
             this.actions$.pipe(
                 ofType(ManagementControllerServicesActions.openNewControllerServiceDialog),
-                withLatestFrom(this.store.select(selectControllerServiceTypes)),
+                concatLatestFrom(() => this.store.select(selectControllerServiceTypes)),
                 tap(([action, controllerServiceTypes]) => {
                     const dialogReference = this.dialog.open(CreateControllerService, {
                         data: {
@@ -139,15 +144,23 @@ export class ManagementControllerServicesEffects {
         )
     );
 
-    createControllerServiceSuccess$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(ManagementControllerServicesActions.createControllerServiceSuccess),
-                tap(() => {
-                    this.dialog.closeAll();
-                })
-            ),
-        { dispatch: false }
+    createControllerServiceSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ManagementControllerServicesActions.createControllerServiceSuccess),
+            map((action) => action.response),
+            tap(() => {
+                this.dialog.closeAll();
+            }),
+            switchMap((response) =>
+                of(
+                    ManagementControllerServicesActions.selectControllerService({
+                        request: {
+                            id: response.controllerService.id
+                        }
+                    })
+                )
+            )
+        )
     );
 
     navigateToEditService$ = createEffect(
@@ -174,6 +187,7 @@ export class ManagementControllerServicesEffects {
                         data: {
                             controllerService: request.controllerService
                         },
+                        id: serviceId,
                         panelClass: 'large-dialog'
                     });
 
@@ -210,8 +224,40 @@ export class ManagementControllerServicesEffects {
                         );
                     };
 
-                    editDialogReference.componentInstance.getServiceLink = (serviceId: string) => {
-                        return of(['/settings', 'management-controller-services', serviceId]);
+                    const goTo = (commands: string[], destination: string): void => {
+                        if (editDialogReference.componentInstance.editControllerServiceForm.dirty) {
+                            const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
+                                data: {
+                                    title: 'Controller Service Configuration',
+                                    message: `Save changes before going to this ${destination}?`
+                                },
+                                panelClass: 'small-dialog'
+                            });
+
+                            saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
+                                editDialogReference.componentInstance.submitForm(commands);
+                            });
+
+                            saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
+                                editDialogReference.close('ROUTED');
+                                this.router.navigate(commands);
+                            });
+                        } else {
+                            editDialogReference.close('ROUTED');
+                            this.router.navigate(commands);
+                        }
+                    };
+
+                    editDialogReference.componentInstance.goToService = (serviceId: string) => {
+                        const commands: string[] = ['/settings', 'management-controller-services', serviceId];
+                        goTo(commands, 'Controller Service');
+                    };
+
+                    editDialogReference.componentInstance.goToReferencingComponent = (
+                        component: ControllerServiceReferencingComponent
+                    ) => {
+                        const route: string[] = this.getRouteForReference(component);
+                        goTo(route, component.referenceType);
                     };
 
                     editDialogReference.componentInstance.createNewService = (
@@ -254,13 +300,13 @@ export class ManagementControllerServicesEffects {
                                                 })
                                                 .pipe(
                                                     take(1),
-                                                    switchMap((createReponse) => {
+                                                    switchMap((createResponse) => {
                                                         // dispatch an inline create service success action so the new service is in the state
                                                         this.store.dispatch(
                                                             ManagementControllerServicesActions.inlineCreateControllerServiceSuccess(
                                                                 {
                                                                     response: {
-                                                                        controllerService: createReponse
+                                                                        controllerService: createResponse
                                                                     }
                                                                 }
                                                             )
@@ -275,7 +321,7 @@ export class ManagementControllerServicesEffects {
                                                                     createServiceDialogReference.close();
 
                                                                     return {
-                                                                        value: createReponse.id,
+                                                                        value: createResponse.id,
                                                                         descriptor:
                                                                             descriptorResponse.propertyDescriptor
                                                                     };
@@ -294,14 +340,15 @@ export class ManagementControllerServicesEffects {
                     };
 
                     editDialogReference.componentInstance.editControllerService
-                        .pipe(take(1))
-                        .subscribe((payload: any) => {
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((updateControllerServiceRequest: UpdateControllerServiceRequest) => {
                             this.store.dispatch(
                                 ManagementControllerServicesActions.configureControllerService({
                                     request: {
                                         id: request.controllerService.id,
                                         uri: request.controllerService.uri,
-                                        payload
+                                        payload: updateControllerServiceRequest.payload,
+                                        postUpdateNavigation: updateControllerServiceRequest.postUpdateNavigation
                                     }
                                 })
                             );
@@ -333,7 +380,8 @@ export class ManagementControllerServicesEffects {
                         ManagementControllerServicesActions.configureControllerServiceSuccess({
                             response: {
                                 id: request.id,
-                                controllerService: response
+                                controllerService: response,
+                                postUpdateNavigation: request.postUpdateNavigation
                             }
                         })
                     ),
@@ -353,8 +401,76 @@ export class ManagementControllerServicesEffects {
         () =>
             this.actions$.pipe(
                 ofType(ManagementControllerServicesActions.configureControllerServiceSuccess),
-                tap(() => {
-                    this.dialog.closeAll();
+                map((action) => action.response),
+                tap((response) => {
+                    if (response.postUpdateNavigation) {
+                        this.router.navigate(response.postUpdateNavigation);
+                        this.dialog.getDialogById(response.id)?.close('ROUTED');
+                    } else {
+                        this.dialog.closeAll();
+                    }
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openEnableControllerServiceDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ManagementControllerServicesActions.openEnableControllerServiceDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const serviceId: string = request.id;
+
+                    const enableDialogReference = this.dialog.open(EnableControllerService, {
+                        data: request,
+                        id: serviceId,
+                        panelClass: 'large-dialog'
+                    });
+
+                    enableDialogReference.componentInstance.goToReferencingComponent = (
+                        component: ControllerServiceReferencingComponent
+                    ) => {
+                        const route: string[] = this.getRouteForReference(component);
+                        this.router.navigate(route);
+                    };
+
+                    enableDialogReference.afterClosed().subscribe((response) => {
+                        if (response != 'ROUTED') {
+                            this.store.dispatch(ManagementControllerServicesActions.loadManagementControllerServices());
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openDisableControllerServiceDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ManagementControllerServicesActions.openDisableControllerServiceDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const serviceId: string = request.id;
+
+                    const enableDialogReference = this.dialog.open(DisableControllerService, {
+                        data: request,
+                        id: serviceId,
+                        panelClass: 'large-dialog'
+                    });
+
+                    enableDialogReference.componentInstance.goToReferencingComponent = (
+                        component: ControllerServiceReferencingComponent
+                    ) => {
+                        const route: string[] = this.getRouteForReference(component);
+                        this.router.navigate(route);
+                    };
+
+                    enableDialogReference.afterClosed().subscribe((response) => {
+                        if (response != 'ROUTED') {
+                            this.store.dispatch(ManagementControllerServicesActions.loadManagementControllerServices());
+                        }
+                    });
                 })
             ),
         { dispatch: false }
@@ -422,4 +538,24 @@ export class ManagementControllerServicesEffects {
             ),
         { dispatch: false }
     );
+
+    private getRouteForReference(reference: ControllerServiceReferencingComponent): string[] {
+        if (reference.referenceType == 'ControllerService') {
+            if (reference.groupId == null) {
+                return ['/settings', 'management-controller-services', reference.id];
+            } else {
+                return ['/process-groups', reference.groupId, 'controller-services', reference.id];
+            }
+        } else if (reference.referenceType == 'ReportingTask') {
+            return ['/settings', 'reporting-tasks', reference.id];
+        } else if (reference.referenceType == 'Processor') {
+            return ['/process-groups', reference.groupId, ComponentType.Processor, reference.id];
+        } else if (reference.referenceType == 'FlowAnalysisRule') {
+            return ['/settings', 'flow-analysis-rules', reference.id];
+        } else if (reference.referenceType == 'ParameterProvider') {
+            return ['/settings', 'parameter-providers', reference.id];
+        } else {
+            return ['/settings', 'registry-clients', reference.id];
+        }
+    }
 }

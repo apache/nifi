@@ -85,6 +85,7 @@ import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.UriUtils;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
@@ -596,7 +597,20 @@ public class InvokeHTTP extends AbstractProcessor {
 
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
-        config.renameProperty("Connection Timeout", SOCKET_CONNECT_TIMEOUT.getName());
+        if (config.isPropertySet("Proxy Host")) {
+            final Map<String, String> serviceProperties = new HashMap<>();
+            serviceProperties.put("proxy-type", config.getRawPropertyValue("Proxy Type").map(String::toUpperCase).orElse(null));
+            serviceProperties.put("proxy-server-host", config.getRawPropertyValue("Proxy Host").orElse(null));
+            serviceProperties.put("proxy-server-port", config.getRawPropertyValue("Proxy Port").orElse(null));
+            serviceProperties.put("proxy-user-name", config.getRawPropertyValue("invokehttp-proxy-user").orElse(null));
+            serviceProperties.put("proxy-user-password", config.getRawPropertyValue("invokehttp-proxy-password").orElse(null));
+
+            final String serviceId = config.createControllerService("org.apache.nifi.proxy.StandardProxyConfigurationService", serviceProperties);
+            config.setProperty(PROXY_CONFIGURATION_SERVICE, serviceId);
+        } else {
+            config.removeProperty("Proxy Type");
+        }
+
         config.renameProperty("Read Timeout", SOCKET_READ_TIMEOUT.getName());
         config.renameProperty("Remote URL", HTTP_URL.getName());
         config.renameProperty("disable-http2", HTTP2_DISABLED.getName());
@@ -839,7 +853,8 @@ public class InvokeHTTP extends AbstractProcessor {
         FlowFile responseFlowFile = null;
         try {
             final String urlProperty = trimToEmpty(context.getProperty(HTTP_URL).evaluateAttributeExpressions(requestFlowFile).getValue());
-            final URL url = URI.create(urlProperty).toURL();
+            final URI uri = UriUtils.create(urlProperty);
+            final URL url = uri.toURL();
 
             Request httpRequest = configureRequest(context, session, requestFlowFile, url);
             logRequest(logger, httpRequest);

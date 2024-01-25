@@ -26,13 +26,7 @@ import com.nimbusds.openid.connect.sdk.AuthenticationErrorResponse;
 import com.nimbusds.openid.connect.sdk.AuthenticationResponseParser;
 import com.nimbusds.openid.connect.sdk.AuthenticationSuccessResponse;
 import io.jsonwebtoken.JwtException;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
+
 import java.io.IOException;
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
@@ -43,7 +37,13 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.net.ssl.SSLContext;
-import jakarta.servlet.ServletContext;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -96,19 +96,12 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Path("/access")
-@Api(
-    value = "access",
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Endpoints for obtaining an access token or checking access status.")
-})
+@Tag(name = "Access")
 public class AccessResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(AccessResource.class);
 
     private static final String OIDC_REQUEST_IDENTIFIER = "oidc-request-identifier";
-    private static final String OIDC_ERROR_TITLE = "Unable to continue login sequence";
     private static final String REVOKE_ACCESS_TOKEN_LOGOUT = "oidc_access_token_logout";
     private static final String ID_TOKEN_LOGOUT = "oidc_id_token_logout";
     private static final String STANDARD_LOGOUT = "oidc_standard_logout";
@@ -151,14 +144,15 @@ public class AccessResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get access status",
-            notes = "Returns the current client's authenticated identity and permissions to top-level resources",
-            response = CurrentUser.class,
-            authorizations = {@Authorization(value = "Authorization")}
+    @Operation(
+            summary = "Get access status",
+            description = "Returns the current client's authenticated identity and permissions to top-level resources",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = CurrentUser.class)))
     )
-    @ApiResponses({
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409 + " The NiFi Registry might be running unsecured.") })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409 + " The NiFi Registry might be running unsecured.")}
+    )
     public Response getAccessStatus(@Context HttpServletRequest httpServletRequest) {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -184,19 +178,20 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/token")
-    @ApiOperation(
-            value = "Create token trying all providers",
-            notes = "Creates a token for accessing the REST API via auto-detected method of verifying client identity claim credentials. " +
+    @Operation(
+            summary = "Create token trying all providers",
+            description = "Creates a token for accessing the REST API via auto-detected method of verifying client identity claim credentials. " +
                     "The token returned is formatted as a JSON Web Token (JWT). The token is base64 encoded and comprised of three parts. The header, " +
                     "the body, and the signature. The expiration of the token is a contained within the body. The token can be used in the Authorization header " +
-                    "in the format 'Authorization: Bearer <token>'.",
-            response = String.class
+                    "in the format 'Authorization: Bearer <token>'."
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409 + " The NiFi Registry may not be configured to support login with username/password."),
-            @ApiResponse(code = 500, message = HttpStatusMessages.MESSAGE_500) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409 + " The NiFi Registry may not be configured to support login with username/password."),
+                    @ApiResponse(responseCode = "500", description = HttpStatusMessages.MESSAGE_500)}
+    )
     public Response createAccessTokenByTryingAllProviders(@Context HttpServletRequest httpServletRequest) {
 
         // only support access tokens when communicating over HTTPS
@@ -216,7 +211,7 @@ public class AccessResource extends ApplicationResource {
             try {
                 token = createAccessToken(provider, authenticationRequest);
                 break;
-            } catch (final InvalidCredentialsException ice){
+            } catch (final InvalidCredentialsException ice) {
                 logger.debug("{}: the supplied client credentials are invalid.", provider.getClass().getSimpleName());
                 logger.debug("", ice);
             }
@@ -250,21 +245,21 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/token/login")
-    @ApiOperation(
-            value = "Create token using basic auth",
-            notes = "Creates a token for accessing the REST API via username/password. The user credentials must be passed in standard HTTP Basic Auth format. " +
+    @Operation(
+            summary = "Create token using basic auth",
+            description = "Creates a token for accessing the REST API via username/password. The user credentials must be passed in standard HTTP Basic Auth format. " +
                     "That is: 'Authorization: Basic <credentials>', where <credentials> is the base64 encoded value of '<username>:<password>'. " +
                     "The token returned is formatted as a JSON Web Token (JWT). The token is base64 encoded and comprised of three parts. The header, " +
                     "the body, and the signature. The expiration of the token is a contained within the body. The token can be used in the Authorization header " +
-                    "in the format 'Authorization: Bearer <token>'.",
-            response = String.class,
-            authorizations = { @Authorization("BasicAuth") }
+                    "in the format 'Authorization: Bearer <token>'."
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409 + " The NiFi Registry may not be configured to support login with username/password."),
-            @ApiResponse(code = 500, message = HttpStatusMessages.MESSAGE_500) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409 + " The NiFi Registry may not be configured to support login with username/password."),
+                    @ApiResponse(responseCode = "500", description = HttpStatusMessages.MESSAGE_500)}
+    )
     public Response createAccessTokenUsingBasicAuthCredentials(@Context HttpServletRequest httpServletRequest) {
 
         // only support access tokens when communicating over HTTPS
@@ -293,8 +288,8 @@ public class AccessResource extends ApplicationResource {
 
         final String token;
         try {
-             token = createAccessToken(identityProvider, authenticationRequest);
-        } catch (final InvalidCredentialsException ice){
+            token = createAccessToken(identityProvider, authenticationRequest);
+        } catch (final InvalidCredentialsException ice) {
             throw new UnauthorizedException("The supplied client credentials are not valid.", ice)
                     .withAuthenticateChallenge(IdentityProviderUsage.AuthType.OTHER);
         }
@@ -308,15 +303,15 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("/logout")
-    @ApiOperation(
-            value = "Performs a logout for other providers that have been issued a JWT.",
-            notes = NON_GUARANTEED_ENDPOINT
+    @Operation(
+            summary = "Performs a logout for other providers that have been issued a JWT.",
+            description = NON_GUARANTEED_ENDPOINT
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 200, message = "User was logged out successfully."),
-                    @ApiResponse(code = 401, message = "Authentication token provided was empty or not in the correct JWT format."),
-                    @ApiResponse(code = 500, message = "Client failed to log out."),
+                    @ApiResponse(responseCode = "200", description = "User was logged out successfully."),
+                    @ApiResponse(responseCode = "401", description = "Authentication token provided was empty or not in the correct JWT format."),
+                    @ApiResponse(responseCode = "500", description = "Client failed to log out."),
             }
     )
     public Response logout(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
@@ -326,7 +321,7 @@ public class AccessResource extends ApplicationResource {
 
         final String userIdentity = NiFiUserUtils.getNiFiUserIdentity();
 
-        if(userIdentity != null && !userIdentity.isEmpty()) {
+        if (userIdentity != null && !userIdentity.isEmpty()) {
             try {
                 logger.info("Logging out user " + userIdentity);
                 jwtService.deleteKey(userIdentity);
@@ -344,15 +339,15 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("/logout/complete")
-    @ApiOperation(
-            value = "Completes the logout sequence.",
-            notes = NON_GUARANTEED_ENDPOINT
+    @Operation(
+            summary = "Completes the logout sequence.",
+            description = NON_GUARANTEED_ENDPOINT
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 200, message = "User was logged out successfully."),
-                    @ApiResponse(code = 401, message = "Authentication token provided was empty or not in the correct JWT format."),
-                    @ApiResponse(code = 500, message = "Client failed to log out."),
+                    @ApiResponse(responseCode = "200", description = "User was logged out successfully."),
+                    @ApiResponse(responseCode = "401", description = "Authentication token provided was empty or not in the correct JWT format."),
+                    @ApiResponse(responseCode = "500", description = "Client failed to log out."),
             }
     )
     public void logoutComplete(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws IOException {
@@ -368,19 +363,20 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/token/kerberos")
-    @ApiOperation(
-            value = "Create token using kerberos",
-            notes = "Creates a token for accessing the REST API via Kerberos Service Tickets or SPNEGO Tokens (which includes Kerberos Service Tickets). " +
+    @Operation(
+            summary = "Create token using kerberos",
+            description = "Creates a token for accessing the REST API via Kerberos Service Tickets or SPNEGO Tokens (which includes Kerberos Service Tickets). " +
                     "The token returned is formatted as a JSON Web Token (JWT). The token is base64 encoded and comprised of three parts. The header, " +
                     "the body, and the signature. The expiration of the token is a contained within the body. The token can be used in the Authorization header " +
-                    "in the format 'Authorization: Bearer <token>'.",
-            response = String.class
+                    "in the format 'Authorization: Bearer <token>'."
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409 + " The NiFi Registry may not be configured to support login Kerberos credentials."),
-            @ApiResponse(code = 500, message = HttpStatusMessages.MESSAGE_500) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409 + " The NiFi Registry may not be configured to support login Kerberos credentials."),
+                    @ApiResponse(responseCode = "500", description = HttpStatusMessages.MESSAGE_500)}
+    )
     public Response createAccessTokenUsingKerberosTicket(@Context HttpServletRequest httpServletRequest) {
 
         // only support access tokens when communicating over HTTPS
@@ -403,7 +399,7 @@ public class AccessResource extends ApplicationResource {
         final String token;
         try {
             token = createAccessToken(kerberosSpnegoIdentityProvider, authenticationRequest);
-        } catch (final InvalidCredentialsException ice){
+        } catch (final InvalidCredentialsException ice) {
             throw new UnauthorizedException("The supplied client credentials are not valid.", ice)
                     .withAuthenticateChallenge(kerberosSpnegoIdentityProvider.getUsageInstructions().getAuthType());
         }
@@ -424,21 +420,22 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/token/identity-provider")
-    @ApiOperation(
-            value = "Create token using identity provider",
-            notes = "Creates a token for accessing the REST API via a custom identity provider. " +
+    @Operation(
+            summary = "Create token using identity provider",
+            description = "Creates a token for accessing the REST API via a custom identity provider. " +
                     "The user credentials must be passed in a format understood by the custom identity provider, e.g., a third-party auth token in an HTTP header. " +
                     "The exact format of the user credentials expected by the custom identity provider can be discovered by 'GET /access/token/identity-provider/usage'. " +
                     "The token returned is formatted as a JSON Web Token (JWT). The token is base64 encoded and comprised of three parts. The header, " +
                     "the body, and the signature. The expiration of the token is a contained within the body. The token can be used in the Authorization header " +
-                    "in the format 'Authorization: Bearer <token>'.",
-            response = String.class
+                    "in the format 'Authorization: Bearer <token>'."
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409 + " The NiFi Registry may not be configured to support login with customized credentials."),
-            @ApiResponse(code = 500, message = HttpStatusMessages.MESSAGE_500) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409 + " The NiFi Registry may not be configured to support login with customized credentials."),
+                    @ApiResponse(responseCode = "500", description = HttpStatusMessages.MESSAGE_500)}
+    )
     public Response createAccessTokenUsingIdentityProviderCredentials(@Context HttpServletRequest httpServletRequest) {
 
         // only support access tokens when communicating over HTTPS
@@ -482,15 +479,16 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/token/identity-provider/usage")
-    @ApiOperation(
-            value = "Get identity provider usage",
-            notes = "Provides a description of how the currently configured identity provider expects credentials to be passed to POST /access/token/identity-provider",
-            response = String.class
+    @Operation(
+            summary = "Get identity provider usage",
+            description = "Provides a description of how the currently configured identity provider expects credentials to be passed to POST /access/token/identity-provider"
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409 + " The NiFi Registry may not be configured to support login with customized credentials."),
-            @ApiResponse(code = 500, message = HttpStatusMessages.MESSAGE_500) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409 + " The NiFi Registry may not be configured to support login with customized credentials."),
+                    @ApiResponse(responseCode = "500", description = HttpStatusMessages.MESSAGE_500)}
+    )
     public Response getIdentityProviderUsageInstructions(@Context HttpServletRequest httpServletRequest) {
 
         // if not configuration for login, don't consider credentials
@@ -525,17 +523,18 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/token/identity-provider/test")
-    @ApiOperation(
-            value = "Test identity provider",
-            notes = "Tests the format of the credentials against this identity provider without preforming authentication on the credentials to validate them. " +
-                    "The user credentials should be passed in a format understood by the custom identity provider as defined by 'GET /access/token/identity-provider/usage'.",
-            response = String.class
+    @Operation(
+            summary = "Test identity provider",
+            description = "Tests the format of the credentials against this identity provider without preforming authentication on the credentials to validate them. " +
+                    "The user credentials should be passed in a format understood by the custom identity provider as defined by 'GET /access/token/identity-provider/usage'."
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = "The format of the credentials were not recognized by the currently configured identity provider."),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409 + " The NiFi Registry may not be configured to support login with customized credentials."),
-            @ApiResponse(code = 500, message = HttpStatusMessages.MESSAGE_500) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = "The format of the credentials were not recognized by the currently configured identity provider."),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409 + " The NiFi Registry may not be configured to support login with customized credentials."),
+                    @ApiResponse(responseCode = "500", description = HttpStatusMessages.MESSAGE_500)}
+    )
     public Response testIdentityProviderRecognizesCredentialsFormat(@Context HttpServletRequest httpServletRequest) {
 
         // only support access tokens when communicating over HTTPS
@@ -570,9 +569,9 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("/oidc/request")
-    @ApiOperation(
-            value = "Initiates a request to authenticate through the configured OpenId Connect provider.",
-            notes = NON_GUARANTEED_ENDPOINT
+    @Operation(
+            summary = "Initiates a request to authenticate through the configured OpenId Connect provider.",
+            description = NON_GUARANTEED_ENDPOINT
     )
     public void oidcRequest(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         // only consider user specific access over https
@@ -597,9 +596,9 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("/oidc/callback")
-    @ApiOperation(
-            value = "Redirect/callback URI for processing the result of the OpenId Connect login sequence.",
-            notes = NON_GUARANTEED_ENDPOINT
+    @Operation(
+            summary = "Redirect/callback URI for processing the result of the OpenId Connect login sequence.",
+            description = NON_GUARANTEED_ENDPOINT
     )
     public void oidcCallback(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         // only consider user specific access over https
@@ -659,10 +658,9 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/oidc/exchange")
-    @ApiOperation(
-            value = "Retrieves a JWT following a successful login sequence using the configured OpenId Connect provider.",
-            response = String.class,
-            notes = NON_GUARANTEED_ENDPOINT
+    @Operation(
+            summary = "Retrieves a JWT following a successful login sequence using the configured OpenId Connect provider.",
+            description = NON_GUARANTEED_ENDPOINT
     )
     public Response oidcExchange(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         // only consider user specific access over https
@@ -697,9 +695,9 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("/oidc/logout")
-    @ApiOperation(
-            value = "Performs a logout in the OpenId Provider.",
-            notes = NON_GUARANTEED_ENDPOINT
+    @Operation(
+            summary = "Performs a logout in the OpenId Provider.",
+            description = NON_GUARANTEED_ENDPOINT
     )
     public void oidcLogout(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         if (!httpServletRequest.isSecure()) {
@@ -744,9 +742,9 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("/oidc/logout/callback")
-    @ApiOperation(
-            value = "Redirect/callback URI for processing the result of the OpenId Connect logout sequence.",
-            notes = NON_GUARANTEED_ENDPOINT
+    @Operation(
+            summary = "Redirect/callback URI for processing the result of the OpenId Connect logout sequence.",
+            description = NON_GUARANTEED_ENDPOINT
     )
     public void oidcLogoutCallback(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         if (!httpServletRequest.isSecure()) {
@@ -776,7 +774,7 @@ public class AccessResource extends ApplicationResource {
                 final AuthorizationGrant authorizationGrant = new AuthorizationCodeGrant(authorizationCode, URI.create(getOidcLogoutCallback()));
 
                 final String logoutMethod = determineLogoutMethod();
-                switch(logoutMethod) {
+                switch (logoutMethod) {
                     case REVOKE_ACCESS_TOKEN_LOGOUT:
                         final String accessToken;
                         try {
@@ -841,7 +839,7 @@ public class AccessResource extends ApplicationResource {
      * Gets the value of a cookie matching the specified name. If no cookie with that name exists, null is returned.
      *
      * @param cookies the cookies
-     * @param name    the name of the cookie
+     * @param name the name of the cookie
      * @return the value of the corresponding cookie, or null if the cookie does not exist
      */
     private String getCookieValue(final Cookie[] cookies, final String name) {
@@ -881,14 +879,6 @@ public class AccessResource extends ApplicationResource {
         return uriInfo.getRequestUri();
     }
 
-    private void forwardToMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse, final String message) throws Exception {
-        httpServletRequest.setAttribute("title", OIDC_ERROR_TITLE);
-        httpServletRequest.setAttribute("messages", message);
-
-        final ServletContext uiContext = httpServletRequest.getServletContext().getContext("/nifi-registry");
-        uiContext.getRequestDispatcher("/WEB-INF/pages/message-page.jsp").forward(httpServletRequest, httpServletResponse);
-    }
-
     private String createAccessToken(IdentityProvider identityProvider, AuthenticationRequest authenticationRequest)
             throws InvalidCredentialsException, AdministrationException {
 
@@ -907,13 +897,13 @@ public class AccessResource extends ApplicationResource {
     /**
      * A helper function that generates a prioritized list of IdentityProviders to use to
      * attempt client authentication.
-     *
+     * <p>
      * Note: This is currently a hard-coded list order consisting of:
-     *
+     * <p>
      * - X509IdentityProvider (if available)
      * - KerberosProvider (if available)
      * - User-defined IdentityProvider (if available)
-     *
+     * <p>
      * However, in the future it could be entirely user-configurable
      *
      * @return a list of providers to use in order to authenticate the client.

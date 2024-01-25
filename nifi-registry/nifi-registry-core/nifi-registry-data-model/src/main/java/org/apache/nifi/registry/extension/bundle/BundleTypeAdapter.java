@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.registry.extension.bundle;
 
-import javax.xml.bind.annotation.adapters.XmlAdapter;
+import jakarta.xml.bind.annotation.adapters.XmlAdapter;
 
 public class BundleTypeAdapter extends XmlAdapter<String, BundleType> {
 

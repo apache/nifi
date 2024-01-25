@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.registry.authorization;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel
 public class Permissions {
 
     private boolean canRead = false;
@@ -42,9 +40,9 @@ public class Permissions {
     /**
      * @return Indicates whether the user can read a given resource.
      */
-    @ApiModelProperty(
-        value = "Indicates whether the user can read a given resource.",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(
+        description = "Indicates whether the user can read a given resource.",
+        accessMode = Schema.AccessMode.READ_ONLY
     )
     public boolean getCanRead() {
         return canRead;
@@ -62,9 +60,9 @@ public class Permissions {
     /**
      * @return Indicates whether the user can write a given resource.
      */
-    @ApiModelProperty(
-        value = "Indicates whether the user can write a given resource.",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(
+        description = "Indicates whether the user can write a given resource.",
+        accessMode = Schema.AccessMode.READ_ONLY
     )
     public boolean getCanWrite() {
         return canWrite;
@@ -82,9 +80,9 @@ public class Permissions {
     /**
      * @return Indicates whether the user can delete a given resource.
      */
-    @ApiModelProperty(
-        value = "Indicates whether the user can delete a given resource.",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(
+        description = "Indicates whether the user can delete a given resource.",
+        accessMode = Schema.AccessMode.READ_ONLY
     )
     public boolean getCanDelete() {
         return canDelete;

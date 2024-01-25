@@ -382,7 +382,7 @@ This is an example of a simple query to get the health of all the processors and
 ```
 User:minifi-0.0.1-SNAPSHOT user ./bin/minifi.sh flowStatus processor:all:health
 
-Java home: /Library/Java/JavaVirtualMachines/jdk1.8.0_74.jdk/Contents/Home
+Java home: /Library/Java/JavaVirtualMachines/jdk/Contents/Home
 MiNiFi home: /Users/user/projects/nifi-minifi/minifi-assembly/target/minifi-0.0.1-SNAPSHOT-bin/minifi-0.0.1-SNAPSHOT
 
 Bootstrap Config File: /Users/user/projects/nifi-minifi/minifi-assembly/target/minifi-0.0.1-SNAPSHOT-bin/minifi-0.0.1-SNAPSHOT/conf/bootstrap.conf

@@ -59,7 +59,7 @@ public class StandardKustoQueryServiceTest {
         runner.addControllerService(SERVICE_ID, service);
 
         runner.setProperty(service, StandardKustoQueryService.CLUSTER_URI, CLUSTER_URI);
-        runner.setProperty(service, StandardKustoQueryService.AUTHENTICATION_STRATEGY, KustoAuthenticationStrategy.MANAGED_IDENTITY.getValue());
+        runner.setProperty(service, StandardKustoQueryService.AUTHENTICATION_STRATEGY, KustoAuthenticationStrategy.MANAGED_IDENTITY);
         runner.setProperty(service, StandardKustoQueryService.APPLICATION_CLIENT_ID, APPLICATION_CLIENT_ID);
 
         runner.assertValid(service);
@@ -72,7 +72,7 @@ public class StandardKustoQueryServiceTest {
         runner.addControllerService(SERVICE_ID, service);
 
         runner.setProperty(service, StandardKustoQueryService.CLUSTER_URI, CLUSTER_URI);
-        runner.setProperty(service, StandardKustoQueryService.AUTHENTICATION_STRATEGY, KustoAuthenticationStrategy.APPLICATION_CREDENTIALS.getValue());
+        runner.setProperty(service, StandardKustoQueryService.AUTHENTICATION_STRATEGY, KustoAuthenticationStrategy.APPLICATION_CREDENTIALS);
         runner.setProperty(service, StandardKustoQueryService.APPLICATION_CLIENT_ID, APPLICATION_CLIENT_ID);
         runner.setProperty(service, StandardKustoQueryService.APPLICATION_KEY, UUID.randomUUID().toString());
         runner.setProperty(service, StandardKustoQueryService.APPLICATION_TENANT_ID, UUID.randomUUID().toString());

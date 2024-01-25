@@ -36,7 +36,7 @@ export class AboutEffects {
                     this.aboutService.getAbout().pipe(
                         map((response) =>
                             AboutActions.loadAboutSuccess({
-                                response: response
+                                response
                             })
                         ),
                         catchError((error) => of(AboutActions.aboutApiError({ error: error.error })))

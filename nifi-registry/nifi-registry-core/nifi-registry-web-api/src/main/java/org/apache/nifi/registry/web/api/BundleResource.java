@@ -16,18 +16,19 @@
  */
 package org.apache.nifi.registry.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.Extension;
-import io.swagger.annotations.ExtensionProperty;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
 import java.util.List;
 import java.util.SortedSet;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.extensions.Extension;
+import io.swagger.v3.oas.annotations.extensions.ExtensionProperty;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -53,14 +54,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Path("/bundles")
-@Api(
-    value = "bundles",
-    authorizations = {@Authorization("Authorization")},
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Gets metadata about extension bundles and their versions.")
-})
+@Tag(name = "Bundles")
 public class BundleResource extends ApplicationResource {
 
     public static final String CONTENT_DISPOSITION_HEADER = "content-disposition";
@@ -75,28 +69,30 @@ public class BundleResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get all bundles",
-            notes = "Gets the metadata for all bundles across all authorized buckets with optional filters applied. " +
+    @Operation(
+            summary = "Get all bundles",
+            description = "Gets the metadata for all bundles across all authorized buckets with optional filters applied. " +
                     "The returned results will include only items from buckets for which the user is authorized. " +
                     "If the user is not authorized to any buckets, an empty list will be returned. " + NON_GUARANTEED_ENDPOINT,
-            response = Bundle.class,
-            responseContainer = "List"
+            responses = @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = Bundle.class))))
     )
-    @ApiResponses({ @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401) })
+    @ApiResponses({@ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401)})
     public Response getBundles(
             @QueryParam("bucketName")
-            @ApiParam("Optional bucket name to filter results. The value may be an exact match, or a wildcard, " +
-                    "such as 'My Bucket%' to select all bundles where the bucket name starts with 'My Bucket'.")
-                final String bucketName,
+            @Parameter(
+                    description = "Optional bucket name to filter results. The value may be an exact match, or a wildcard, " +
+                            "such as 'My Bucket%' to select all bundles where the bucket name starts with 'My Bucket'."
+            ) final String bucketName,
             @QueryParam("groupId")
-            @ApiParam("Optional groupId to filter results. The value may be an exact match, or a wildcard, " +
-                    "such as 'com.%' to select all bundles where the groupId starts with 'com.'.")
-                final String groupId,
+            @Parameter(
+                    description = "Optional groupId to filter results. The value may be an exact match, or a wildcard, " +
+                            "such as 'com.%' to select all bundles where the groupId starts with 'com.'."
+            ) final String groupId,
             @QueryParam("artifactId")
-            @ApiParam("Optional artifactId to filter results. The value may be an exact match, or a wildcard, " +
-                    "such as 'nifi-%' to select all bundles where the artifactId starts with 'nifi-'.")
-                final String artifactId) {
+            @Parameter(
+                    description = "Optional artifactId to filter results. The value may be an exact match, or a wildcard, " +
+                            "such as 'nifi-%' to select all bundles where the artifactId starts with 'nifi-'."
+            ) final String artifactId) {
 
         final BundleFilterParams filterParams = BundleFilterParams.of(bucketName, groupId, artifactId);
 
@@ -109,27 +105,30 @@ public class BundleResource extends ApplicationResource {
     @Path("{bundleId}")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get bundle",
-            notes = "Gets the metadata about an extension bundle. " + NON_GUARANTEED_ENDPOINT,
-            nickname = "globalGetExtensionBundle",
-            response = Bundle.class,
+    @Operation(
+            summary = "Get bundle",
+            description = "Gets the metadata about an extension bundle. " + NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = Bundle.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getBundle(
             @PathParam("bundleId")
-            @ApiParam("The extension bundle identifier")
-                final String bundleId) {
+            @Parameter(description = "The extension bundle identifier") final String bundleId) {
 
         final Bundle bundle = serviceFacade.getBundle(bundleId);
         return Response.status(Response.Status.OK).entity(bundle).build();
@@ -139,27 +138,30 @@ public class BundleResource extends ApplicationResource {
     @Path("{bundleId}")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Delete bundle",
-            notes = "Deletes the given extension bundle and all of it's versions. " + NON_GUARANTEED_ENDPOINT,
-            nickname = "globalDeleteExtensionBundle",
-            response = Bundle.class,
+    @Operation(
+            summary = "Delete bundle",
+            description = "Deletes the given extension bundle and all of it's versions. " + NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = Bundle.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "write"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response deleteBundle(
             @PathParam("bundleId")
-            @ApiParam("The extension bundle identifier")
-                final String bundleId) {
+            @Parameter(description = "The extension bundle identifier") final String bundleId) {
 
         final Bundle deletedBundle = serviceFacade.deleteBundle(bundleId);
         publish(EventFactory.extensionBundleDeleted(deletedBundle));
@@ -172,28 +174,30 @@ public class BundleResource extends ApplicationResource {
     @Path("versions")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get all bundle versions",
-            notes = "Gets the metadata about extension bundle versions across all authorized buckets with optional filters applied. " +
+    @Operation(
+            summary = "Get all bundle versions",
+            description = "Gets the metadata about extension bundle versions across all authorized buckets with optional filters applied. " +
                     "If the user is not authorized to any buckets, an empty list will be returned. " + NON_GUARANTEED_ENDPOINT,
-            response = BundleVersionMetadata.class,
-            responseContainer = "List"
+            responses = @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = BundleVersionMetadata.class))))
     )
-    @ApiResponses({ @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401) })
+    @ApiResponses({@ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401)})
     public Response getBundleVersions(
             @QueryParam("groupId")
-            @ApiParam("Optional groupId to filter results. The value may be an exact match, or a wildcard, " +
-                    "such as 'com.%' to select all bundle versions where the groupId starts with 'com.'.")
-                final String groupId,
+            @Parameter(
+                    description = "Optional groupId to filter results. The value may be an exact match, or a wildcard, " +
+                            "such as 'com.%' to select all bundle versions where the groupId starts with 'com.'."
+            ) final String groupId,
             @QueryParam("artifactId")
-            @ApiParam("Optional artifactId to filter results. The value may be an exact match, or a wildcard, " +
-                    "such as 'nifi-%' to select all bundle versions where the artifactId starts with 'nifi-'.")
-                final String artifactId,
+            @Parameter(
+                    description = "Optional artifactId to filter results. The value may be an exact match, or a wildcard, " +
+                            "such as 'nifi-%' to select all bundle versions where the artifactId starts with 'nifi-'."
+            ) final String artifactId,
             @QueryParam("version")
-            @ApiParam("Optional version to filter results. The value maye be an exact match, or a wildcard, " +
-                    "such as '1.0.%' to select all bundle versions where the version starts with '1.0.'.")
-                final String version
-            ) {
+            @Parameter(
+                    description = "Optional version to filter results. The value maye be an exact match, or a wildcard, " +
+                            "such as '1.0.%' to select all bundle versions where the version starts with '1.0.'."
+            ) final String version
+    ) {
 
         final BundleVersionFilterParams filterParams = BundleVersionFilterParams.of(groupId, artifactId, version);
         final SortedSet<BundleVersionMetadata> bundleVersions = serviceFacade.getBundleVersions(filterParams);
@@ -204,28 +208,30 @@ public class BundleResource extends ApplicationResource {
     @Path("{bundleId}/versions")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get bundle versions",
-            notes = "Gets the metadata for the versions of the given extension bundle. " + NON_GUARANTEED_ENDPOINT,
-            nickname = "globalGetBundleVersions",
-            response = BundleVersionMetadata.class,
-            responseContainer = "List",
+    @Operation(
+            summary = "Get bundle versions",
+            description = "Gets the metadata for the versions of the given extension bundle. " + NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = BundleVersionMetadata.class)))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getBundleVersions(
             @PathParam("bundleId")
-            @ApiParam("The extension bundle identifier")
-                final String bundleId) {
+            @Parameter(description = "The extension bundle identifier") final String bundleId) {
 
         final SortedSet<BundleVersionMetadata> bundleVersions = serviceFacade.getBundleVersions(bundleId);
         return Response.status(Response.Status.OK).entity(bundleVersions).build();
@@ -235,30 +241,32 @@ public class BundleResource extends ApplicationResource {
     @Path("{bundleId}/versions/{version}")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get bundle version",
-            notes = "Gets the descriptor for the given version of the given extension bundle. " + NON_GUARANTEED_ENDPOINT,
-            nickname = "globalGetBundleVersion",
-            response = BundleVersion.class,
+    @Operation(
+            summary = "Get bundle version",
+            description = "Gets the descriptor for the given version of the given extension bundle. " + NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = BundleVersion.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getBundleVersion(
             @PathParam("bundleId")
-            @ApiParam("The extension bundle identifier")
-                final String bundleId,
+            @Parameter(description = "The extension bundle identifier") final String bundleId,
             @PathParam("version")
-            @ApiParam("The version of the bundle")
-                final String version) {
+            @Parameter(description = "The version of the bundle") final String version) {
 
         final BundleVersion bundleVersion = serviceFacade.getBundleVersion(bundleId, version);
         return Response.ok(bundleVersion).build();
@@ -268,30 +276,32 @@ public class BundleResource extends ApplicationResource {
     @Path("{bundleId}/versions/{version}/content")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    @ApiOperation(
-            value = "Get bundle version content",
-            notes = "Gets the binary content for the given version of the given extension bundle. " + NON_GUARANTEED_ENDPOINT,
-            nickname = "globalGetBundleVersionContent",
-            response = byte[].class,
+    @Operation(
+            summary = "Get bundle version content",
+            description = "Gets the binary content for the given version of the given extension bundle. " + NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = byte[].class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getBundleVersionContent(
             @PathParam("bundleId")
-            @ApiParam("The extension bundle identifier")
-                final String bundleId,
+            @Parameter(description = "The extension bundle identifier") final String bundleId,
             @PathParam("version")
-            @ApiParam("The version of the bundle")
-                final String version) {
+            @Parameter(description = "The version of the bundle") final String version) {
 
         final StreamingContent streamingContent = serviceFacade.getBundleVersionContent(bundleId, version);
 
@@ -299,7 +309,7 @@ public class BundleResource extends ApplicationResource {
         final StreamingOutput output = streamingContent.getOutput();
 
         return Response.ok(output)
-                .header(CONTENT_DISPOSITION_HEADER,"attachment; filename = " + filename)
+                .header(CONTENT_DISPOSITION_HEADER, "attachment; filename = " + filename)
                 .build();
     }
 
@@ -307,30 +317,31 @@ public class BundleResource extends ApplicationResource {
     @Path("{bundleId}/versions/{version}")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Delete bundle version",
-            notes = "Deletes the given extension bundle version and it's associated binary content. " + NON_GUARANTEED_ENDPOINT,
-            nickname = "globalDeleteBundleVersion",
-            response = BundleVersion.class,
+    @Operation(
+            summary = "Delete bundle version",
+            description = "Deletes the given extension bundle version and it's associated binary content. " + NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = BundleVersion.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "write"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)}
+    )
     public Response deleteBundleVersion(
             @PathParam("bundleId")
-            @ApiParam("The extension bundle identifier")
-                final String bundleId,
+            @Parameter(description = "The extension bundle identifier") final String bundleId,
             @PathParam("version")
-            @ApiParam("The version of the bundle")
-                final String version) {
+            @Parameter(description = "The version of the bundle") final String version) {
 
         final BundleVersion deletedBundleVersion = serviceFacade.deleteBundleVersion(bundleId, version);
         publish(EventFactory.extensionBundleVersionDeleted(deletedBundleVersion));
@@ -341,31 +352,31 @@ public class BundleResource extends ApplicationResource {
     @Path("{bundleId}/versions/{version}/extensions")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get bundle version extensions",
-            notes = "Gets the metadata about the extensions in the given extension bundle version. " + NON_GUARANTEED_ENDPOINT,
-            nickname = "globalGetBundleVersionExtensions",
-            response = ExtensionMetadata.class,
-            responseContainer = "List",
+    @Operation(
+            summary = "Get bundle version extensions",
+            description = "Gets the metadata about the extensions in the given extension bundle version. " + NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = ExtensionMetadata.class)))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)}
+    )
     public Response getBundleVersionExtensions(
             @PathParam("bundleId")
-            @ApiParam("The extension bundle identifier")
-                final String bundleId,
+            @Parameter(description = "The extension bundle identifier") final String bundleId,
             @PathParam("version")
-            @ApiParam("The version of the bundle")
-                final String version) {
+            @Parameter(description = "The version of the bundle") final String version) {
 
         final SortedSet<ExtensionMetadata> extensions = serviceFacade.getExtensionMetadata(bundleId, version);
         return Response.ok(extensions).build();
@@ -375,35 +386,35 @@ public class BundleResource extends ApplicationResource {
     @Path("{bundleId}/versions/{version}/extensions/{name}")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get bundle version extension",
-            notes = "Gets the metadata about the extension with the given name in the given extension bundle version. " + NON_GUARANTEED_ENDPOINT,
-            nickname = "globalGetBundleVersionExtension",
-            response = org.apache.nifi.extension.manifest.Extension.class,
-            responseContainer = "List",
+    @Operation(
+            summary = "Get bundle version extension",
+            description = "Gets the metadata about the extension with the given name in the given extension bundle version. " + NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = org.apache.nifi.extension.manifest.Extension.class)))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getBundleVersionExtension(
             @PathParam("bundleId")
-            @ApiParam("The extension bundle identifier")
-                final String bundleId,
+            @Parameter(description = "The extension bundle identifier") final String bundleId,
             @PathParam("version")
-            @ApiParam("The version of the bundle")
-                final String version,
+            @Parameter(description = "The version of the bundle") final String version,
             @PathParam("name")
-            @ApiParam("The fully qualified name of the extension")
-                final String name
-            ) {
+            @Parameter(description = "The fully qualified name of the extension") final String name
+    ) {
 
         final org.apache.nifi.extension.manifest.Extension extension =
                 serviceFacade.getExtension(bundleId, version, name);
@@ -414,32 +425,33 @@ public class BundleResource extends ApplicationResource {
     @Path("{bundleId}/versions/{version}/extensions/{name}/docs")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.TEXT_HTML)
-    @ApiOperation(
-            value = "Get bundle version extension docs",
-            notes = "Gets the documentation for the given extension in the given extension bundle version. " + NON_GUARANTEED_ENDPOINT,
-            response = String.class,
+    @Operation(
+            summary = "Get bundle version extension docs",
+            description = "Gets the documentation for the given extension in the given extension bundle version. " + NON_GUARANTEED_ENDPOINT,
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getBundleVersionExtensionDocs(
             @PathParam("bundleId")
-            @ApiParam("The extension bundle identifier")
-                final String bundleId,
+            @Parameter(description = "The extension bundle identifier") final String bundleId,
             @PathParam("version")
-            @ApiParam("The version of the bundle")
-                final String version,
+            @Parameter(description = "The version of the bundle") final String version,
             @PathParam("name")
-            @ApiParam("The fully qualified name of the extension")
-                final String name
+            @Parameter(description = "The fully qualified name of the extension") final String name
     ) {
         final StreamingOutput streamingOutput = serviceFacade.getExtensionDocs(bundleId, version, name);
         return Response.ok(streamingOutput).build();
@@ -449,32 +461,33 @@ public class BundleResource extends ApplicationResource {
     @Path("{bundleId}/versions/{version}/extensions/{name}/docs/additional-details")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.TEXT_HTML)
-    @ApiOperation(
-            value = "Get bundle version extension docs details",
-            notes = "Gets the additional details documentation for the given extension in the given extension bundle version. " + NON_GUARANTEED_ENDPOINT,
-            response = String.class,
+    @Operation(
+            summary = "Get bundle version extension docs details",
+            description = "Gets the additional details documentation for the given extension in the given extension bundle version. " + NON_GUARANTEED_ENDPOINT,
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getBundleVersionExtensionAdditionalDetailsDocs(
             @PathParam("bundleId")
-            @ApiParam("The extension bundle identifier")
-                final String bundleId,
+            @Parameter(description = "The extension bundle identifier") final String bundleId,
             @PathParam("version")
-            @ApiParam("The version of the bundle")
-                final String version,
+            @Parameter(description = "The version of the bundle") final String version,
             @PathParam("name")
-            @ApiParam("The fully qualified name of the extension")
-                final String name
+            @Parameter(description = "The fully qualified name of the extension") final String name
     ) {
         final StreamingOutput streamingOutput = serviceFacade.getAdditionalDetailsDocs(bundleId, version, name);
         return Response.ok(streamingOutput).build();

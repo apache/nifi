@@ -15,4 +15,37 @@
   ~ limitations under the License.
   -->
 
-<p>flow-analysis-rules works!</p>
+<ng-container *ngIf="flowAnalysisRuleState$ | async; let flowAnalysisRuleState">
+    <div *ngIf="isInitialLoading(flowAnalysisRuleState); else loaded">
+        <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+    </div>
+    <ng-template #loaded>
+        <div class="flex flex-col h-full gap-y-2" *ngIf="currentUser$ | async; let currentUser">
+            <div class="flex justify-end" *ngIf="currentUser.controllerPermissions.canWrite">
+                <button class="nifi-button" (click)="openNewFlowAnalysisRuleDialog()">
+                    <i class="fa fa-plus"></i>
+                </button>
+            </div>
+            <div class="flex-1">
+                <flow-analysis-rule-table
+                    [currentUser]="currentUser"
+                    [selectedFlowAnalysisRuleId]="selectedFlowAnalysisRuleId$ | async"
+                    [flowAnalysisRules]="flowAnalysisRuleState.flowAnalysisRules"
+                    (configureFlowAnalysisRule)="configureFlowAnalysisRule($event)"
+                    (selectFlowAnalysisRule)="selectFlowAnalysisRule($event)"
+                    (enableFlowAnalysisRule)="enableFlowAnalysisRule($event)"
+                    (disableFlowAnalysisRule)="disableFlowAnalysisRule($event)"
+                    (deleteFlowAnalysisRule)="deleteFlowAnalysisRule($event)"></flow-analysis-rule-table>
+            </div>
+            <div class="flex justify-between">
+                <div class="refresh-container flex items-center gap-x-2">
+                    <button class="nifi-button" (click)="refreshFlowAnalysisRuleListing()">
+                        <i class="fa fa-refresh" [class.fa-spin]="flowAnalysisRuleState.status === 'loading'"></i>
+                    </button>
+                    <div>Last updated:</div>
+                    <div class="refresh-timestamp">{{ flowAnalysisRuleState.loadedTimestamp }}</div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+</ng-container>

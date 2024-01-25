@@ -89,7 +89,7 @@ class TestFilterAttribute {
 
             @BeforeEach
             void setUp() {
-                runner.setProperty(FilterAttribute.FILTER_MODE, FilterAttribute.FILTER_MODE_VALUE_REMOVE);
+                runner.setProperty(FilterAttribute.FILTER_MODE, FilterAttribute.FilterMode.REMOVE.getValue());
             }
 
             @Test
@@ -198,8 +198,8 @@ class TestFilterAttribute {
         }
 
         private void runTestWith(Map<String, String> attributes, String attributeSet, Set<String> expectedAttributes) {
-            runner.setProperty(FilterAttribute.MATCHING_STRATEGY, FilterAttribute.MATCHING_STRATEGY_VALUE_ENUMERATION);
-            runner.setProperty(FilterAttribute.ATTRIBUTE_SET, attributeSet);
+            runner.setProperty(FilterAttribute.MATCHING_STRATEGY, FilterAttribute.MatchingStrategy.ENUMERATION.getValue());
+            runner.setProperty(FilterAttribute.ATTRIBUTE_ENUMERATION, attributeSet);
 
             final MockFlowFile input = runner.enqueue(exampleContent, attributes);
             final Map<String, String> inputAttributes = input.getAttributes();
@@ -267,7 +267,7 @@ class TestFilterAttribute {
 
             @BeforeEach
             void setUp() {
-                runner.setProperty(FilterAttribute.FILTER_MODE, FilterAttribute.FILTER_MODE_VALUE_REMOVE);
+                runner.setProperty(FilterAttribute.FILTER_MODE, FilterAttribute.FilterMode.REMOVE.getValue());
             }
 
             @Test
@@ -320,8 +320,8 @@ class TestFilterAttribute {
         }
 
         private void runTestWith(Map<String, String> attributes, String regexPattern, Set<String> expectedAttributes) {
-            runner.setProperty(FilterAttribute.MATCHING_STRATEGY, FilterAttribute.MATCHING_STRATEGY_VALUE_REGEX);
-            runner.setProperty(FilterAttribute.ATTRIBUTE_REGEX, regexPattern);
+            runner.setProperty(FilterAttribute.MATCHING_STRATEGY, FilterAttribute.MatchingStrategy.PATTERN.getValue());
+            runner.setProperty(FilterAttribute.ATTRIBUTE_PATTERN, regexPattern);
 
             final MockFlowFile input = runner.enqueue(exampleContent, attributes);
             final Map<String, String> inputAttributes = input.getAttributes();
@@ -356,7 +356,7 @@ class TestFilterAttribute {
                     "bar", "" + i
             ));
         }
-        runner.setProperty(FilterAttribute.ATTRIBUTE_SET, "foo");
+        runner.setProperty(FilterAttribute.ATTRIBUTE_ENUMERATION, "foo");
 
         runner.run(flowFileCount);
         runner.assertAllFlowFilesTransferred(FilterAttribute.REL_SUCCESS, flowFileCount);

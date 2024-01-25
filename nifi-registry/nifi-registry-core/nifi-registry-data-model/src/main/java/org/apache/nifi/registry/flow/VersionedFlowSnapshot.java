@@ -17,14 +17,13 @@
 
 package org.apache.nifi.registry.flow;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Map;
 import java.util.Objects;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlTransient;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedParameterContext;
@@ -44,7 +43,6 @@ import org.apache.nifi.registry.bucket.Bucket;
  * flow contents without any versioning or snapshot metadata.
  * </p>
  */
-@ApiModel
 @XmlRootElement
 public class VersionedFlowSnapshot {
 
@@ -74,7 +72,7 @@ public class VersionedFlowSnapshot {
     // read-only, only populated from retrieval of a snapshot
     private Bucket bucket;
 
-    @ApiModelProperty(value = "The metadata for this snapshot", required = true)
+    @Schema(description = "The metadata for this snapshot")
     public VersionedFlowSnapshotMetadata getSnapshotMetadata() {
         return snapshotMetadata;
     }
@@ -83,7 +81,7 @@ public class VersionedFlowSnapshot {
         this.snapshotMetadata = snapshotMetadata;
     }
 
-    @ApiModelProperty(value = "The contents of the versioned flow", required = true)
+    @Schema(description = "The contents of the versioned flow")
     public VersionedProcessGroup getFlowContents() {
         return flowContents;
     }
@@ -92,7 +90,7 @@ public class VersionedFlowSnapshot {
         this.flowContents = flowContents;
     }
 
-    @ApiModelProperty("The information about controller services that exist outside this versioned flow, but are referenced by components within the versioned flow.")
+    @Schema(description = "The information about controller services that exist outside this versioned flow, but are referenced by components within the versioned flow.")
     public Map<String, ExternalControllerServiceReference> getExternalControllerServices() {
         return externalControllerServices;
     }
@@ -101,7 +99,7 @@ public class VersionedFlowSnapshot {
         this.externalControllerServices = externalControllerServices;
     }
 
-    @ApiModelProperty("Contains basic information about parameter providers referenced in the versioned flow.")
+    @Schema(description = "Contains basic information about parameter providers referenced in the versioned flow.")
     public Map<String, ParameterProviderReference> getParameterProviders() {
         return parameterProviders;
     }
@@ -110,7 +108,7 @@ public class VersionedFlowSnapshot {
         this.parameterProviders = parameterProviders;
     }
 
-    @ApiModelProperty(value = "The flow this snapshot is for", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The flow this snapshot is for", accessMode = Schema.AccessMode.READ_ONLY)
     public VersionedFlow getFlow() {
         return flow;
     }
@@ -119,7 +117,7 @@ public class VersionedFlowSnapshot {
         this.flow = flow;
     }
 
-    @ApiModelProperty(value = "The bucket where the flow is located", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The bucket where the flow is located", accessMode = Schema.AccessMode.READ_ONLY)
     public Bucket getBucket() {
         return bucket;
     }
@@ -128,7 +126,7 @@ public class VersionedFlowSnapshot {
         this.bucket = bucket;
     }
 
-    @ApiModelProperty(value = "The parameter contexts referenced by process groups in the flow contents. " +
+    @Schema(description = "The parameter contexts referenced by process groups in the flow contents. " +
             "The mapping is from the name of the context to the context instance, and it is expected that any " +
             "context in this map is referenced by at least one process group in this flow.")
     public Map<String, VersionedParameterContext> getParameterContexts() {
@@ -139,7 +137,7 @@ public class VersionedFlowSnapshot {
         this.parameterContexts = parameterContexts;
     }
 
-    @ApiModelProperty(value = "The optional encoding version of the flow contents.")
+    @Schema(description = "The optional encoding version of the flow contents.")
     public String getFlowEncodingVersion() {
         return flowEncodingVersion;
     }

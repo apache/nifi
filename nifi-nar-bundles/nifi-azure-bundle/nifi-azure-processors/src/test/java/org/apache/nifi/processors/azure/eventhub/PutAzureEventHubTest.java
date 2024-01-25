@@ -79,7 +79,7 @@ public class PutAzureEventHubTest {
         testRunner.assertNotValid();
         testRunner.setProperty(PutAzureEventHub.POLICY_PRIMARY_KEY, POLICY_KEY);
         testRunner.assertValid();
-        testRunner.setProperty(PutAzureEventHub.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS.getValue());
+        testRunner.setProperty(PutAzureEventHub.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS);
         testRunner.assertValid();
         configureProxyControllerService();
         testRunner.assertValid();

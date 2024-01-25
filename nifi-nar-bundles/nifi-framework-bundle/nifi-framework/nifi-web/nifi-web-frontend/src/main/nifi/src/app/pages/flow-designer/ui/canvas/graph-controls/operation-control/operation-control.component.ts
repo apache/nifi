@@ -20,16 +20,28 @@ import {
     deleteComponents,
     getParameterContextsAndOpenGroupComponentsDialog,
     navigateToEditComponent,
-    setOperationCollapsed
+    navigateToEditCurrentProcessGroup,
+    navigateToManageComponentPolicies,
+    setOperationCollapsed,
+    startComponents,
+    startCurrentProcessGroup,
+    stopComponents,
+    stopCurrentProcessGroup
 } from '../../../../state/flow/flow.actions';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../state';
 import { CanvasUtils } from '../../../../service/canvas-utils.service';
 import { initialState } from '../../../../state/flow/flow.reducer';
 import { Storage } from '../../../../../../service/storage.service';
-import { DeleteComponentRequest, MoveComponentRequest } from '../../../../state/flow';
+import {
+    DeleteComponentRequest,
+    MoveComponentRequest,
+    StartComponentRequest,
+    StopComponentRequest
+} from '../../../../state/flow';
 import { NgIf } from '@angular/common';
 import { BreadcrumbEntity } from '../../../../state/shared';
+import { ComponentType } from '../../../../../../state/shared';
 
 @Component({
     selector: 'operation-control',
@@ -174,24 +186,74 @@ export class OperationControl {
     }
 
     configure(selection: any): void {
-        const selectionData = selection.datum();
-        this.store.dispatch(
-            navigateToEditComponent({
-                request: {
-                    type: selectionData.type,
-                    id: selectionData.id
-                }
-            })
-        );
+        if (selection.empty()) {
+            this.store.dispatch(navigateToEditCurrentProcessGroup());
+        } else {
+            const selectionData = selection.datum();
+            this.store.dispatch(
+                navigateToEditComponent({
+                    request: {
+                        type: selectionData.type,
+                        id: selectionData.id
+                    }
+                })
+            );
+        }
+    }
+
+    supportsManagedAuthorizer(): boolean {
+        return this.canvasUtils.supportsManagedAuthorizer();
     }
 
     canManageAccess(selection: any): boolean {
-        // TODO
-        return false;
+        return this.canvasUtils.canManagePolicies(selection);
     }
 
     manageAccess(selection: any): void {
-        // TODO
+        if (selection.empty()) {
+            this.store.dispatch(
+                navigateToManageComponentPolicies({
+                    request: {
+                        resource: 'process-groups',
+                        id: this.breadcrumbEntity.id
+                    }
+                })
+            );
+        } else {
+            const selectionData = selection.datum();
+            const componentType: ComponentType = selectionData.type;
+
+            let resource: string = 'process-groups';
+            switch (componentType) {
+                case ComponentType.Processor:
+                    resource = 'processors';
+                    break;
+                case ComponentType.InputPort:
+                    resource = 'input-ports';
+                    break;
+                case ComponentType.OutputPort:
+                    resource = 'output-ports';
+                    break;
+                case ComponentType.Funnel:
+                    resource = 'funnels';
+                    break;
+                case ComponentType.Label:
+                    resource = 'labels';
+                    break;
+                case ComponentType.RemoteProcessGroup:
+                    resource = 'remote-process-groups';
+                    break;
+            }
+
+            this.store.dispatch(
+                navigateToManageComponentPolicies({
+                    request: {
+                        resource,
+                        id: selectionData.id
+                    }
+                })
+            );
+        }
     }
 
     canEnable(selection: any): boolean {
@@ -213,21 +275,61 @@ export class OperationControl {
     }
 
     canStart(selection: any): boolean {
-        // TODO - isRunnable
-        return false;
+        return this.canvasUtils.areAnyRunnable(selection);
     }
 
     start(selection: any): void {
-        // TODO - start
+        if (selection.empty()) {
+            // attempting to start the current process group
+            this.store.dispatch(startCurrentProcessGroup());
+        } else {
+            const components: StartComponentRequest[] = [];
+            const startable = this.canvasUtils.getStartable(selection);
+            startable.each((d: any) => {
+                components.push({
+                    id: d.id,
+                    uri: d.uri,
+                    type: d.type,
+                    revision: d.revision
+                });
+            });
+            this.store.dispatch(
+                startComponents({
+                    request: {
+                        components
+                    }
+                })
+            );
+        }
     }
 
     canStop(selection: any): boolean {
-        // TODO - isStoppable
-        return false;
+        return this.canvasUtils.areAnyStoppable(selection);
     }
 
     stop(selection: any): void {
-        // TODO - stop
+        if (selection.empty()) {
+            // attempting to start the current process group
+            this.store.dispatch(stopCurrentProcessGroup());
+        } else {
+            const components: StopComponentRequest[] = [];
+            const stoppable = this.canvasUtils.getStoppable(selection);
+            stoppable.each((d: any) => {
+                components.push({
+                    id: d.id,
+                    uri: d.uri,
+                    type: d.type,
+                    revision: d.revision
+                });
+            });
+            this.store.dispatch(
+                stopComponents({
+                    request: {
+                        components
+                    }
+                })
+            );
+        }
     }
 
     canCopy(selection: any): boolean {

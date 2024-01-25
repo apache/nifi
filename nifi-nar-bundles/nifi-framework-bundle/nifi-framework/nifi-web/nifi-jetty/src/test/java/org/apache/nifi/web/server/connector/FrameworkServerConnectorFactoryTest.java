@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.server.connector;
 
-import org.apache.nifi.jetty.configuration.connector.alpn.ALPNServerConnectionFactory;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.server.util.StoreScanner;
+import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.http2.server.HTTP2ServerConnectionFactory;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;

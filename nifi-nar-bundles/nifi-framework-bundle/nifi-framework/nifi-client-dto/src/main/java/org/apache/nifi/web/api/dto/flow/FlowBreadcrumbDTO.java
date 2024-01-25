@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web.api.dto.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Breadcrumb for the flow.
@@ -36,8 +36,7 @@ public class FlowBreadcrumbDTO {
      *
      * @return The id
      */
-    @ApiModelProperty(
-        value = "The id of the group."
+    @Schema(description = "The id of the group."
     )
     public String getId() {
         return this.id;
@@ -52,8 +51,7 @@ public class FlowBreadcrumbDTO {
      *
      * @return The name
      */
-    @ApiModelProperty(
-        value = "The id of the group."
+    @Schema(description = "The id of the group."
     )
     public String getName() {
         return this.name;
@@ -66,8 +64,7 @@ public class FlowBreadcrumbDTO {
     /**
      * @return the process group version control information or null if not version controlled
      */
-    @ApiModelProperty(
-            value = "The process group version control information or null if not version controlled."
+    @Schema(description = "The process group version control information or null if not version controlled."
     )
     public VersionControlInformationDTO getVersionControlInformation() {
         return versionControlInformation;

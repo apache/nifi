@@ -29,3 +29,5 @@ edit_property() {
 
 edit_property 'Connect String'     "${NIFI_ZK_CONNECT_STRING}"
 edit_property "Root Node"                   "${NIFI_ZK_ROOT_NODE}"
+
+edit_property 'ConfigMap Name Prefix'     "${NIFI_KUBERNETES_CONFIGMAP_NAME_PREFIX}"

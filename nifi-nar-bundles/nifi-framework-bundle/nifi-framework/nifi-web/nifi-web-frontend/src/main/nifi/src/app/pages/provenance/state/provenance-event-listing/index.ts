@@ -32,6 +32,17 @@ export interface ProvenanceQueryResponse {
     provenance: Provenance;
 }
 
+export interface ProvenanceEventRequest {
+    id: string;
+    clusterNodeId?: string;
+}
+
+export interface GoToProvenanceEventSourceRequest {
+    eventId?: string;
+    componentId?: string;
+    groupId?: string;
+}
+
 export interface SearchableField {
     field: string;
     id: string;
@@ -93,7 +104,6 @@ export interface ProvenanceEventListingState {
     options: ProvenanceOptions | null;
     request: ProvenanceRequest | null;
     provenance: Provenance | null;
-    saving: boolean;
     loadedTimestamp: string;
     error: string | null;
     status: 'pending' | 'loading' | 'error' | 'success';

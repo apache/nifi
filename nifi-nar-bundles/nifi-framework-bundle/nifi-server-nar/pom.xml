@@ -100,10 +100,10 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-        <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-web-optimistic-locking</artifactId>
-        <scope>provided</scope>
-    </dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-web-optimistic-locking</artifactId>
+            <scope>provided</scope>
+        </dependency>
         <!-- Spring dependencies provided by nifi-framework-nar -->
         <dependency>
             <groupId>org.springframework</groupId>

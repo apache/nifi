@@ -70,9 +70,8 @@
                         <div>Referencing Components</div>
                         <div>
                             <controller-service-references
-                                [serviceReferences]="
-                                    request.controllerService.component.referencingComponents
-                                "></controller-service-references>
+                                [serviceReferences]="request.controllerService.component.referencingComponents"
+                                [goToReferencingComponent]="goToReferencingComponent"></controller-service-references>
                         </div>
                     </div>
                 </div>
@@ -84,7 +83,10 @@
                         [createNewProperty]="createNewProperty"
                         [createNewService]="createNewService"
                         [getParameters]="getParameters"
-                        [getServiceLink]="getServiceLink"
+                        [parameterContext]="parameterContext"
+                        [goToParameter]="goToParameter"
+                        [convertToParameter]="convertToParameter"
+                        [goToService]="goToService"
                         [supportsSensitiveDynamicProperties]="
                             request.controllerService.component.supportsSensitiveDynamicProperties
                         "></property-table>

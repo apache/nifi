@@ -17,7 +17,7 @@
 
 package org.apache.nifi.cluster.protocol.message;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "nodeConnectionStatusRequestMessage")
 public class NodeConnectionStatusRequestMessage extends ProtocolMessage {

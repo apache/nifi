@@ -220,6 +220,12 @@ and then press Ctrl+Space, we are provided a pop-up that lists six different fun
 which functions are shown, or we can select one of the functions from the list by double-clicking
 it with the mouse or using the arrow keys to highlight the desired function and pressing Enter.
 
+[[system-properties]]
+=== Framework System Properties
+
+The following system properties are set by the NiFi application, and are available to the Expression Language:
+
+- *nifi.framework.version*: The build version for the NiFi framework. Usage: ${'nifi.framework.version'}
 
 
 [[functions]]
@@ -1072,13 +1078,13 @@ Expressions will provide the following results:
 
 
 
-.PadLeft Examples
+.PadRight Examples
 |=======================================================================================
 | Expression | Value
 | `${greetings:padRight(10)}` | `hello\_____`
 | `${greetings:padRight(10, '@')}` | `hello@@@@@`
 | `${greetings:padRight(10, 'xy')}` | `helloxyxyx`
-| `${greetings:padLeft(10, 'aVeryLongPaddingString')}` | `helloaVery`
+| `${greetings:padRight(10, 'aVeryLongPaddingString')}` | `helloaVery`
 |=======================================================================================
 
 
@@ -2196,7 +2202,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 [.function]
 === math
 
-*Description*: [.description]#ADVANCED FEATURE. This expression is designed to be used by advanced users only. It utilizes Java Reflection to run arbitrary java.lang.Math static methods. The exact API will depend on the version of Java you are running. The Java 17 API can be found here: link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/Math.html[https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/Math.html^]
+*Description*: [.description]#ADVANCED FEATURE. This expression is designed to be used by advanced users only. It utilizes Java Reflection to run arbitrary java.lang.Math static methods. The exact API will depend on the version of Java you are running. The Java API can be found here: link:https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Math.html[https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Math.html^]
  +
 In order to run the correct method, the parameter types must be correct. The Expression Language "Number" (whole number) type is interpreted as a Java "long". The "Decimal" type is interpreted as a Java "double". Running the desired method may require calling "toNumber()" or "toDecimal()" in order to "cast" the value to the desired type. This also is important to remember when cascading "math()" calls since the return type depends on the method that was run.#
 
@@ -2615,7 +2621,7 @@ names begin with the letter `a`.
 
 *Description*: [.description]#Returns a URI compliant with RFC 2396. This includes encoding non-US-ASCII characters and
 quoting illegal characters with octets. This expression utilizes the
-link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/net/URI.html[java.net.URI^] class to build a URI.
+link:https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/net/URI.html[java.net.URI^] class to build a URI.
 As described in the API, a hierarchical URI consists of seven components represented with the following types:#
 |============================================================================
 | Component   | Type

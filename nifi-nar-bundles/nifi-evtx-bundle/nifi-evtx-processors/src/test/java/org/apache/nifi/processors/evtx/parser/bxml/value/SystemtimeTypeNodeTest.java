@@ -21,6 +21,9 @@ import org.apache.nifi.processors.evtx.parser.bxml.BxmlNodeTestBase;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Calendar;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,8 +31,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class SystemtimeTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testSystemtimeTypeNode() throws IOException {
-        Calendar calendar = Calendar.getInstance();
-        assertEquals(SystemtimeTypeNode.getFormat().format(calendar.getTime()),
+        final LocalDateTime localDateTime = LocalDateTime.now();
+        final Instant instant = localDateTime.atZone(ZoneId.systemDefault()).toInstant();
+        final Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(instant.toEpochMilli());
+        assertEquals(SystemtimeTypeNode.FORMATTER.format(localDateTime),
                 new SystemtimeTypeNode(testBinaryReaderBuilder.putSystemtime(calendar).build(), chunkHeader, parent, -1).getValue());
     }
 }

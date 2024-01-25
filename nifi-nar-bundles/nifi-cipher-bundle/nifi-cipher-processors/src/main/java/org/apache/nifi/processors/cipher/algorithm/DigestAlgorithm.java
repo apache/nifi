@@ -23,14 +23,11 @@ import org.apache.nifi.components.DescribedValue;
  */
 public enum DigestAlgorithm implements DescribedValue {
     MD5("MD5", "Message Digest Algorithm 5"),
-
     SHA1("SHA-1", "Secure Hash Algorithm 1"),
-
     SHA256("SHA-256", "Secure Hash Algorithm 2 with 256 bits");
 
-    private String name;
-
-    private String description;
+    private final String name;
+    private final String description;
 
     DigestAlgorithm(final String name, final String description) {
         this.name = name;
@@ -49,6 +46,6 @@ public enum DigestAlgorithm implements DescribedValue {
 
     @Override
     public String getDescription() {
-        return name;
+        return description;
     }
 }

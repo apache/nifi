@@ -1,0 +1,264 @@
+<!--
+  ~  Licensed to the Apache Software Foundation (ASF) under one or more
+  ~  contributor license agreements.  See the NOTICE file distributed with
+  ~  this work for additional information regarding copyright ownership.
+  ~  The ASF licenses this file to You under the Apache License, Version 2.0
+  ~  (the "License"); you may not use this file except in compliance with
+  ~  the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  -->
+
+<ng-container *ngIf="(systemDiagnostics$ | async)?.aggregateSnapshot; let systemDiagnostics">
+    <h2 mat-dialog-title>System Diagnostics</h2>
+    <div class="system-diagnostics">
+        <mat-dialog-content>
+            <div class="dialog-content">
+                <mat-tab-group>
+                    <mat-tab label="JVM">
+                        <div class="tab-content py-4 h-full w-full">
+                            <div class="inset-0 flex gap-y-4">
+                                <div class="flex flex-col flex-1 gap-y-4">
+                                    <section>
+                                        <div class="section-header">Heap ({{ systemDiagnostics.heapUtilization }})</div>
+
+                                        <div class="flex flex-col gap-y-3">
+                                            <div class="flex flex-col">
+                                                <div>Max</div>
+                                                <div class="value">{{ systemDiagnostics.maxHeap }}</div>
+                                            </div>
+
+                                            <div class="flex flex-col">
+                                                <div>Total</div>
+                                                <div class="value">{{ systemDiagnostics.totalHeap }}</div>
+                                            </div>
+
+                                            <div class="flex flex-col">
+                                                <div>Used</div>
+                                                <div class="value">{{ systemDiagnostics.usedHeap }}</div>
+                                            </div>
+
+                                            <div class="flex flex-col">
+                                                <div>Free</div>
+                                                <div class="value">{{ systemDiagnostics.freeHeap }}</div>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <section>
+                                        <div class="section-header">Garbage Collection</div>
+
+                                        <div class="flex flex-col gap-y-3" *ngIf="sortedGarbageCollections">
+                                            <div class="flex flex-col" *ngFor="let gc of sortedGarbageCollections">
+                                                <div>{{ gc.name }}</div>
+                                                <div class="value">
+                                                    {{ gc.collectionCount }} times ({{ gc.collectionTime }})
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+                                </div>
+
+                                <div class="flex flex-col flex-1 gap-y-4">
+                                    <section>
+                                        <div class="section-header">Non Heap</div>
+
+                                        <div class="flex flex-col gap-y-3">
+                                            <div class="flex flex-col">
+                                                <div>Max</div>
+                                                <div class="value">{{ systemDiagnostics.maxNonHeap }}</div>
+                                            </div>
+
+                                            <div class="flex flex-col">
+                                                <div>Total</div>
+                                                <div class="value">{{ systemDiagnostics.totalNonHeap }}</div>
+                                            </div>
+
+                                            <div class="flex flex-col">
+                                                <div>Used</div>
+                                                <div class="value">{{ systemDiagnostics.usedNonHeap }}</div>
+                                            </div>
+
+                                            <div class="flex flex-col">
+                                                <div>Free</div>
+                                                <div class="value">{{ systemDiagnostics.freeNonHeap }}</div>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <section>
+                                        <div class="section-header">Runtime</div>
+
+                                        <div class="flex flex-col gap-y-3">
+                                            <div class="flex flex-col">
+                                                <div>Uptime</div>
+                                                <div class="value">{{ systemDiagnostics.uptime }}</div>
+                                            </div>
+                                        </div>
+                                    </section>
+                                </div>
+                            </div>
+                        </div>
+                    </mat-tab>
+                    <mat-tab label="System">
+                        <div class="tab-content py-4 gap-y-6 h-full w-full flex flex-col">
+                            <div class="flex">
+                                <div class="flex flex-col flex-1 gap-y-4">
+                                    <div class="flex flex-col gap-y-3">
+                                        <div class="flex flex-col">
+                                            <div>Available Cores</div>
+                                            <div class="value">{{ systemDiagnostics.availableProcessors }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col flex-1 gap-y-4">
+                                    <div class="flex flex-col gap-y-3">
+                                        <div class="flex flex-col">
+                                            <div class="flex gap-x-3 items-center">
+                                                <div>Core Load Average</div>
+                                                <div
+                                                    class="fa fa-question-circle"
+                                                    nifiTooltip
+                                                    [tooltipComponentType]="TextTip"
+                                                    [tooltipInputData]="getCoreLoadTooltip()"></div>
+                                            </div>
+                                            <div class="value">
+                                                {{ formatFloat(systemDiagnostics.processorLoadAverage) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <section class="flex flex-col pr-4">
+                                <div class="section-header">FlowFile Repository Usage</div>
+                                <div>
+                                    <div class="capitalize">Usage:</div>
+                                    <mat-progress-bar
+                                        mode="determinate"
+                                        [value]="
+                                            getRepositoryStorageUsagePercent(
+                                                systemDiagnostics.flowFileRepositoryStorageUsage
+                                            )
+                                        ">
+                                    </mat-progress-bar>
+                                    <div class="value">
+                                        {{ systemDiagnostics.flowFileRepositoryStorageUsage.utilization }}
+                                        ({{ systemDiagnostics.flowFileRepositoryStorageUsage.usedSpace }}
+                                        of
+                                        {{ systemDiagnostics.flowFileRepositoryStorageUsage.totalSpace }})
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="flex flex-col pr-4">
+                                <div class="section-header">Content Repository Usage</div>
+                                <div class="repository-storage-container flex flex-col gap-y-2">
+                                    <div *ngFor="let repo of systemDiagnostics.contentRepositoryStorageUsage">
+                                        <div class="capitalize">Usage for {{ repo.identifier }}:</div>
+                                        <mat-progress-bar
+                                            mode="determinate"
+                                            [value]="getRepositoryStorageUsagePercent(repo)">
+                                        </mat-progress-bar>
+                                        <div class="value">
+                                            {{ repo.utilization }} ({{ repo.usedSpace }} of {{ repo.totalSpace }})
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="flex flex-col pr-4">
+                                <div class="section-header">Provenance Repository Usage</div>
+                                <div class="repository-storage-container flex flex-col gap-y-2">
+                                    <div *ngFor="let repo of systemDiagnostics.provenanceRepositoryStorageUsage">
+                                        <div class="capitalize">Usage for {{ repo.identifier }}:</div>
+                                        <mat-progress-bar
+                                            mode="determinate"
+                                            [value]="getRepositoryStorageUsagePercent(repo)">
+                                        </mat-progress-bar>
+                                        <div class="value">
+                                            {{ repo.utilization }} ({{ repo.usedSpace }} of {{ repo.totalSpace }})
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    </mat-tab>
+                    <mat-tab label="Version">
+                        <div class="tab-content py-4 h-full w-full">
+                            <div class="inset-0 flex flex-col gap-y-4">
+                                <section>
+                                    <div class="section-header">NiFi</div>
+
+                                    <dl class="setting-attributes-list">
+                                        <dt>NiFi Version</dt>
+                                        <dd>{{ systemDiagnostics.versionInfo.niFiVersion }}</dd>
+
+                                        <dt>Tag</dt>
+                                        <dd>{{ systemDiagnostics.versionInfo.buildTag }}</dd>
+
+                                        <dt>Build Date/Time</dt>
+                                        <dd>{{ systemDiagnostics.versionInfo.buildTimestamp }}</dd>
+
+                                        <dt>Branch</dt>
+                                        <dd>{{ systemDiagnostics.versionInfo.buildBranch }}</dd>
+
+                                        <dt>Revision</dt>
+                                        <dd>{{ systemDiagnostics.versionInfo.buildRevision }}</dd>
+                                    </dl>
+                                </section>
+
+                                <section>
+                                    <div class="section-header">Java</div>
+
+                                    <dl class="setting-attributes-list">
+                                        <dt>Version</dt>
+                                        <dd>{{ systemDiagnostics.versionInfo.javaVersion }}</dd>
+
+                                        <dt>Vendor</dt>
+                                        <dd>{{ systemDiagnostics.versionInfo.javaVendor }}</dd>
+                                    </dl>
+                                </section>
+
+                                <section>
+                                    <div class="section-header">Operating System</div>
+
+                                    <dl class="setting-attributes-list">
+                                        <dt>Name</dt>
+                                        <dd>{{ systemDiagnostics.versionInfo.osName }}</dd>
+
+                                        <dt>Version</dt>
+                                        <dd>{{ systemDiagnostics.versionInfo.osVersion }}</dd>
+
+                                        <dt>Architecture</dt>
+                                        <dd>{{ systemDiagnostics.versionInfo.osArchitecture }}</dd>
+                                    </dl>
+                                </section>
+                            </div>
+                        </div>
+                    </mat-tab>
+                </mat-tab-group>
+            </div>
+        </mat-dialog-content>
+        <mat-dialog-actions>
+            <div class="flex flex-1 justify-between">
+                <div class="refresh-container flex items-center gap-x-2">
+                    <button class="nifi-button" (click)="refreshSystemDiagnostics()">
+                        <i class="fa fa-refresh" [class.fa-spin]="(status$ | async) === 'loading'"></i>
+                    </button>
+                    <div>Last updated:</div>
+                    <div class="refresh-timestamp">{{ loadedTimestamp$ | async }}</div>
+                </div>
+                <div>
+                    <button color="primary" mat-raised-button mat-dialog-close>Close</button>
+                </div>
+            </div>
+        </mat-dialog-actions>
+    </div>
+</ng-container>

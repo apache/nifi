@@ -17,10 +17,10 @@
 package org.apache.nifi.websocket.jetty;
 
 import org.apache.nifi.websocket.AbstractWebSocketSession;
+import org.eclipse.jetty.websocket.api.Callback;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.StatusCode;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
@@ -40,28 +40,28 @@ public class JettyWebSocketSession extends AbstractWebSocketSession {
     }
 
     @Override
-    public void sendString(final String message) throws IOException {
-        session.getRemote().sendString(message);
+    public void sendString(final String message) {
+        session.sendText(message, new Callback.Completable());
     }
 
     @Override
-    public void sendBinary(final ByteBuffer data) throws IOException {
-        session.getRemote().sendBytes(data);
+    public void sendBinary(final ByteBuffer data) {
+        session.sendBinary(data, new Callback.Completable());
     }
 
     @Override
     public void close(final String reason) {
-        session.close(StatusCode.NORMAL, reason);
+        session.close(StatusCode.NORMAL, reason, new Callback.Completable());
     }
 
     @Override
     public InetSocketAddress getRemoteAddress() {
-        return (InetSocketAddress) session.getRemoteAddress();
+        return (InetSocketAddress) session.getRemoteSocketAddress();
     }
 
     @Override
     public InetSocketAddress getLocalAddress() {
-        return (InetSocketAddress) session.getLocalAddress();
+        return (InetSocketAddress) session.getLocalSocketAddress();
     }
 
     @Override

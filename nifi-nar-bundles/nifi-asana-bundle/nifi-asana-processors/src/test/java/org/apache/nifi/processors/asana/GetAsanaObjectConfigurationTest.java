@@ -16,6 +16,26 @@
  */
 package org.apache.nifi.processors.asana;
 
+import com.asana.models.Project;
+import com.asana.models.ProjectStatus;
+import com.asana.models.Tag;
+import com.asana.models.Task;
+import com.asana.models.Team;
+import com.asana.models.User;
+import com.google.api.client.util.DateTime;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.controller.asana.AsanaClientProviderService;
+import org.apache.nifi.controller.asana.AsanaEventsCollection;
+import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
+import org.apache.nifi.processors.asana.mocks.MockAsanaClientProviderService;
+import org.apache.nifi.processors.asana.mocks.MockDistributedMapCacheClient;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.TestRunner;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.stream.Stream;
+
 import static java.util.Collections.emptyList;
 import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECTS;
 import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECT_EVENTS;
@@ -43,25 +63,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.asana.models.Project;
-import com.asana.models.ProjectStatus;
-import com.asana.models.Tag;
-import com.asana.models.Task;
-import com.asana.models.Team;
-import com.asana.models.User;
-import com.google.api.client.util.DateTime;
-import java.util.stream.Stream;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.controller.asana.AsanaClientProviderService;
-import org.apache.nifi.controller.asana.AsanaEventsCollection;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
-import org.apache.nifi.processors.asana.mocks.MockAsanaClientProviderService;
-import org.apache.nifi.processors.asana.mocks.MockDistributedMapCacheClient;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.TestRunner;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 public class GetAsanaObjectConfigurationTest {
 
     private TestRunner runner;
@@ -77,14 +78,14 @@ public class GetAsanaObjectConfigurationTest {
 
     @Test
     public void testNotValidWithoutControllerService() {
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS);
         runner.assertNotValid();
     }
 
     @Test
     public void testNotValidWithoutDistributedMapCacheClient() throws InitializationException {
         withMockAsanaClientService();
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS);
         runner.assertNotValid();
     }
 
@@ -92,7 +93,7 @@ public class GetAsanaObjectConfigurationTest {
     public void testBatchSizeMustBePositiveInteger() throws InitializationException {
         withMockAsanaClientService();
         withMockDistributedMapCacheClient();
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS);
 
         runner.setProperty(PROP_ASANA_OUTPUT_BATCH_SIZE, StringUtils.EMPTY);
         runner.assertNotValid();
@@ -114,14 +115,14 @@ public class GetAsanaObjectConfigurationTest {
     public void testValidConfigurations() throws InitializationException {
         withMockAsanaClientService();
         withMockDistributedMapCacheClient();
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS);
         runner.assertValid();
 
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TASKS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TASKS);
         runner.setProperty(PROP_ASANA_PROJECT, "My Project");
         runner.assertValid();
 
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TEAM_MEMBERS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TEAM_MEMBERS);
         runner.setProperty(PROP_ASANA_TEAM_NAME, "A team");
         runner.assertValid();
     }
@@ -130,25 +131,25 @@ public class GetAsanaObjectConfigurationTest {
     public void testConfigurationInvalidWithoutProjectName() throws InitializationException {
         withMockAsanaClientService();
         withMockDistributedMapCacheClient();
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TASKS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TASKS);
         runner.assertNotValid();
 
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_MEMBERS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_MEMBERS);
         runner.assertNotValid();
 
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_STORIES.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_STORIES);
         runner.assertNotValid();
 
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_EVENTS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_EVENTS);
         runner.assertNotValid();
 
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_STATUS_ATTACHMENTS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_STATUS_ATTACHMENTS);
         runner.assertNotValid();
 
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_STATUS_UPDATES.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_STATUS_UPDATES);
         runner.assertNotValid();
 
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TASK_ATTACHMENTS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TASK_ATTACHMENTS);
         runner.assertNotValid();
     }
 
@@ -156,14 +157,14 @@ public class GetAsanaObjectConfigurationTest {
     public void testConfigurationInvalidWithoutTeamName() throws InitializationException {
         withMockAsanaClientService();
         withMockDistributedMapCacheClient();
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TEAM_MEMBERS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TEAM_MEMBERS);
     }
 
     @Test
     public void testCollectProjects() throws InitializationException {
         withMockAsanaClientService();
         withMockDistributedMapCacheClient();
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS);
 
         final Project project = new Project();
         project.gid = "12345";
@@ -182,7 +183,7 @@ public class GetAsanaObjectConfigurationTest {
     public void testCollectTeams() throws InitializationException {
         withMockAsanaClientService();
         withMockDistributedMapCacheClient();
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TEAMS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TEAMS);
 
         final Team team = new Team();
         team.gid = "12345";
@@ -200,7 +201,7 @@ public class GetAsanaObjectConfigurationTest {
     public void testCollectTeamMembers() throws InitializationException {
         withMockAsanaClientService();
         withMockDistributedMapCacheClient();
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TEAM_MEMBERS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TEAM_MEMBERS);
         runner.setProperty(PROP_ASANA_TEAM_NAME, "A team");
 
         final Team team = new Team();
@@ -221,7 +222,7 @@ public class GetAsanaObjectConfigurationTest {
     public void testCollectUsers() throws InitializationException {
         withMockAsanaClientService();
         withMockDistributedMapCacheClient();
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_USERS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_USERS);
 
         final User user = new User();
         user.gid = "12345";
@@ -239,7 +240,7 @@ public class GetAsanaObjectConfigurationTest {
     public void testCollectTags() throws InitializationException {
         withMockAsanaClientService();
         withMockDistributedMapCacheClient();
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TAGS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TAGS);
 
         final Tag tag = new Tag();
         tag.gid = "12345";
@@ -257,7 +258,7 @@ public class GetAsanaObjectConfigurationTest {
     public void testCollectProjectEvents() throws InitializationException {
         withMockAsanaClientService();
         withMockDistributedMapCacheClient();
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_EVENTS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_EVENTS);
         runner.setProperty(PROP_ASANA_PROJECT, "My Project");
 
         final Project project = new Project();
@@ -281,7 +282,7 @@ public class GetAsanaObjectConfigurationTest {
     public void testCollectProjectMembers() throws InitializationException {
         withMockAsanaClientService();
         withMockDistributedMapCacheClient();
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_MEMBERS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_MEMBERS);
         runner.setProperty(PROP_ASANA_PROJECT, "My Project");
 
         final Project project = new Project();
@@ -303,7 +304,7 @@ public class GetAsanaObjectConfigurationTest {
     public void testCollectProjectStatusUpdates() throws InitializationException {
         withMockAsanaClientService();
         withMockDistributedMapCacheClient();
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_STATUS_UPDATES.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_STATUS_UPDATES);
         runner.setProperty(PROP_ASANA_PROJECT, "My Project");
 
         final Project project = new Project();
@@ -325,7 +326,7 @@ public class GetAsanaObjectConfigurationTest {
     public void testCollectProjectStatusAttachments() throws InitializationException {
         withMockAsanaClientService();
         withMockDistributedMapCacheClient();
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_STATUS_ATTACHMENTS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECT_STATUS_ATTACHMENTS);
         runner.setProperty(PROP_ASANA_PROJECT, "My Project");
 
         final Project project = new Project();
@@ -352,7 +353,7 @@ public class GetAsanaObjectConfigurationTest {
     public void testCollectTasks() throws InitializationException {
         withMockAsanaClientService();
         withMockDistributedMapCacheClient();
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TASKS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TASKS);
         runner.setProperty(PROP_ASANA_PROJECT, "My Project");
 
         final Project project = new Project();
@@ -378,7 +379,7 @@ public class GetAsanaObjectConfigurationTest {
     public void testCollectTaskAttachments() throws InitializationException {
         withMockAsanaClientService();
         withMockDistributedMapCacheClient();
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TASK_ATTACHMENTS.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_TASK_ATTACHMENTS);
         runner.setProperty(PROP_ASANA_PROJECT, "My Project");
 
         final Project project = new Project();
@@ -406,7 +407,7 @@ public class GetAsanaObjectConfigurationTest {
     public void testCollectStories() throws InitializationException {
         withMockAsanaClientService();
         withMockDistributedMapCacheClient();
-        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_STORIES.getValue());
+        runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_STORIES);
         runner.setProperty(PROP_ASANA_PROJECT, "My Project");
 
         final Project project = new Project();

@@ -22,7 +22,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
+import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.encrypt.PropertyEncryptor;
@@ -38,7 +38,7 @@ public class VersionedFlowSerializer implements FlowSerializer<VersionedDataflow
     static {
         JSON_CODEC.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         JSON_CODEC.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
-        JSON_CODEC.setAnnotationIntrospector(new JaxbAnnotationIntrospector(JSON_CODEC.getTypeFactory()));
+        JSON_CODEC.setAnnotationIntrospector(new JakartaXmlBindAnnotationIntrospector(JSON_CODEC.getTypeFactory()));
         JSON_CODEC.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 

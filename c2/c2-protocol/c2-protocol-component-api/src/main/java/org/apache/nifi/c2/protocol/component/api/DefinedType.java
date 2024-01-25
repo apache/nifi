@@ -17,8 +17,7 @@
 
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -26,7 +25,6 @@ import java.util.Objects;
 /**
  * A reference to a defined type identified by bundle and fully qualified class type identifiers
  */
-@ApiModel
 public class DefinedType implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -36,7 +34,7 @@ public class DefinedType implements Serializable {
     private String type;
     private String typeDescription;
 
-    @ApiModelProperty("The group name of the bundle that provides the referenced type.")
+    @Schema(description = "The group name of the bundle that provides the referenced type.")
     public String getGroup() {
         return group;
     }
@@ -45,7 +43,7 @@ public class DefinedType implements Serializable {
         this.group = group;
     }
 
-    @ApiModelProperty("The artifact name of the bundle that provides the referenced type.")
+    @Schema(description = "The artifact name of the bundle that provides the referenced type.")
     public String getArtifact() {
         return artifact;
     }
@@ -54,7 +52,7 @@ public class DefinedType implements Serializable {
         this.artifact = artifact;
     }
 
-    @ApiModelProperty("The version of the bundle that provides the referenced type.")
+    @Schema(description = "The version of the bundle that provides the referenced type.")
     public String getVersion() {
         return version;
     }
@@ -63,10 +61,7 @@ public class DefinedType implements Serializable {
         this.version = version;
     }
 
-    @ApiModelProperty(
-        value = "The fully-qualified class type",
-        required = true,
-        notes = "For example, 'org.apache.nifi.GetFile' or 'org::apache:nifi::minifi::GetFile'")
+    @Schema(description = "The fully-qualified class type")
     public String getType() {
         return type;
     }
@@ -75,7 +70,7 @@ public class DefinedType implements Serializable {
         this.type = type;
     }
 
-    @ApiModelProperty("The description of the type.")
+    @Schema(description = "The description of the type.")
     public String getTypeDescription() {
         return typeDescription;
     }

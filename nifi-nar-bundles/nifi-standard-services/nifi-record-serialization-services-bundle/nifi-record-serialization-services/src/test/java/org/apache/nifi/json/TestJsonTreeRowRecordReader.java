@@ -305,8 +305,8 @@ class TestJsonTreeRowRecordReader {
     void testReadJSONStringTooLong() {
         final StreamConstraintsException mre = assertThrows(StreamConstraintsException.class, () ->
                 testReadAccountJson("src/test/resources/json/bank-account-multiline.json", false, StreamReadConstraints.builder().maxStringLength(2).build()));
-        assertTrue(mre.getMessage().contains("maximum length"));
-        assertTrue(mre.getMessage().contains("(2)"));
+        assertTrue(mre.getMessage().contains("maximum"));
+        assertTrue(mre.getMessage().contains("2"));
     }
 
     @Test
@@ -450,14 +450,17 @@ class TestJsonTreeRowRecordReader {
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        final String expectedMap = "{id=1, name=John Doe, address=123 My Street, city=My City, state=MS, zipCode=11111, country=USA, account=MapRecord[{id=42, balance=4750.89}]}";
-        final String expectedRecord = String.format("MapRecord[%s]", expectedMap);
+        final String expectedRecordToString = """
+            {"id":1,"name":"John Doe","address":"123 My Street","city":"My City","state":"MS","zipCode":"11111","country":"USA","account":{"id":42,"balance":4750.89}}""";
+
+        final String expectedMap = "{id=1, name=John Doe, address=123 My Street, city=My City, state=MS, zipCode=11111, country=USA, account={\"id\":42,\"balance\":4750.89}}";
+
         try (final InputStream in = new FileInputStream("src/test/resources/json/single-element-nested.json");
              final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final Record rawRecord = reader.nextRecord(false, false);
 
-            assertEquals(expectedRecord, rawRecord.toString());
+            assertEquals(expectedRecordToString, rawRecord.toString());
 
             final Map<String, Object> map = rawRecord.toMap();
             assertEquals(expectedMap, map.toString());

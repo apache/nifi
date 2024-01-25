@@ -18,7 +18,7 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Canvas } from './canvas.component';
-import { ContextMenu } from './context-menu/context-menu.component';
+import { ContextMenu } from '../../../../ui/common/context-menu/context-menu.component';
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
 import { GraphControls } from './graph-controls/graph-controls.component';
 import { CanvasRoutingModule } from './canvas-routing.module';

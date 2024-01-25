@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.registry.extension.bundle;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel
 public class BundleInfo {
 
     private String bucketId;
@@ -34,7 +32,7 @@ public class BundleInfo {
 
     private String systemApiVersion;
 
-    @ApiModelProperty(value = "The id of the bucket where the bundle is located")
+    @Schema(description = "The id of the bucket where the bundle is located")
     public String getBucketId() {
         return bucketId;
     }
@@ -43,7 +41,7 @@ public class BundleInfo {
         this.bucketId = bucketId;
     }
 
-    @ApiModelProperty(value = "The name of the bucket where the bundle is located")
+    @Schema(description = "The name of the bucket where the bundle is located")
     public String getBucketName() {
         return bucketName;
     }
@@ -52,7 +50,7 @@ public class BundleInfo {
         this.bucketName = bucketName;
     }
 
-    @ApiModelProperty(value = "The id of the bundle")
+    @Schema(description = "The id of the bundle")
     public String getBundleId() {
         return bundleId;
     }
@@ -61,7 +59,7 @@ public class BundleInfo {
         this.bundleId = bundleId;
     }
 
-    @ApiModelProperty("The type of bundle (i.e. a NiFi NAR vs MiNiFi CPP)")
+    @Schema(description = "The type of bundle (i.e. a NiFi NAR vs MiNiFi CPP)")
     public BundleType getBundleType() {
         return bundleType;
     }
@@ -70,7 +68,7 @@ public class BundleInfo {
         this.bundleType = bundleType;
     }
 
-    @ApiModelProperty(value = "The group id of the bundle")
+    @Schema(description = "The group id of the bundle")
     public String getGroupId() {
         return groupId;
     }
@@ -79,7 +77,7 @@ public class BundleInfo {
         this.groupId = groupId;
     }
 
-    @ApiModelProperty(value = "The artifact id of the bundle")
+    @Schema(description = "The artifact id of the bundle")
     public String getArtifactId() {
         return artifactId;
     }
@@ -88,7 +86,7 @@ public class BundleInfo {
         this.artifactId = artifactId;
     }
 
-    @ApiModelProperty(value = "The version of the bundle")
+    @Schema(description = "The version of the bundle")
     public String getVersion() {
         return version;
     }
@@ -97,7 +95,7 @@ public class BundleInfo {
         this.version = version;
     }
 
-    @ApiModelProperty(value = "The version of the system API the bundle was built against")
+    @Schema(description = "The version of the system API the bundle was built against")
     public String getSystemApiVersion() {
         return systemApiVersion;
     }

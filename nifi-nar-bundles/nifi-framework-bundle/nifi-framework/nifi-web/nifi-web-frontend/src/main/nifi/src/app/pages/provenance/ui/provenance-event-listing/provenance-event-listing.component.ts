@@ -15,11 +15,13 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import {
+    GoToProvenanceEventSourceRequest,
     Provenance,
     ProvenanceEventListingState,
+    ProvenanceEventRequest,
     ProvenanceRequest,
     ProvenanceResults
 } from '../../state/provenance-event-listing';
@@ -34,25 +36,32 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter, map, take, tap } from 'rxjs';
 import {
     clearProvenanceRequest,
+    goToProvenanceEventSource,
     openProvenanceEventDialog,
     openSearchDialog,
+    resetProvenanceState,
     resubmitProvenanceQuery,
     saveProvenanceRequest
 } from '../../state/provenance-event-listing/provenance-event-listing.actions';
 import { ProvenanceSearchDialog } from './provenance-search-dialog/provenance-search-dialog.component';
 import { ProvenanceEventSummary } from '../../../../state/shared';
+import { resetLineage, submitLineageQuery } from '../../state/lineage/lineage.actions';
+import { LineageRequest } from '../../state/lineage';
+import { selectLineage } from '../../state/lineage/lineage.selectors';
 
 @Component({
     selector: 'provenance-event-listing',
     templateUrl: './provenance-event-listing.component.html',
     styleUrls: ['./provenance-event-listing.component.scss']
 })
-export class ProvenanceEventListing {
+export class ProvenanceEventListing implements OnDestroy {
     status$ = this.store.select(selectStatus);
     loadedTimestamp$ = this.store.select(selectLoadedTimestamp);
     provenance$ = this.store.select(selectProvenance);
+    lineage$ = this.store.select(selectLineage);
 
     request!: ProvenanceRequest;
+    stateReset: boolean = false;
 
     constructor(private store: Store<ProvenanceEventListingState>) {
         this.store
@@ -115,6 +124,7 @@ export class ProvenanceEventListing {
 
                     return initialRequest;
                 }),
+                filter(() => !this.stateReset),
                 tap((request) => (this.request = request)),
                 takeUntilDestroyed()
             )
@@ -159,19 +169,45 @@ export class ProvenanceEventListing {
         this.store.dispatch(openSearchDialog());
     }
 
-    openEventDialog(event: ProvenanceEventSummary): void {
+    openEventDialog(request: ProvenanceEventRequest): void {
         this.store.dispatch(
             openProvenanceEventDialog({
-                id: event.id
+                request
             })
         );
     }
 
-    refreshParameterContextListing(): void {
+    goToEventSource(request: GoToProvenanceEventSourceRequest): void {
+        this.store.dispatch(
+            goToProvenanceEventSource({
+                request
+            })
+        );
+    }
+
+    resubmitProvenanceQuery(): void {
         this.store.dispatch(
             resubmitProvenanceQuery({
                 request: this.request
             })
         );
+    }
+
+    queryLineage(request: LineageRequest): void {
+        this.store.dispatch(
+            submitLineageQuery({
+                request
+            })
+        );
+    }
+
+    resetLineage(): void {
+        this.store.dispatch(resetLineage());
+    }
+
+    ngOnDestroy(): void {
+        this.stateReset = true;
+        this.store.dispatch(resetProvenanceState());
+        this.store.dispatch(resetLineage());
     }
 }

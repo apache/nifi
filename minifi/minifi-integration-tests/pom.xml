@@ -27,7 +27,6 @@ limitations under the License.
 
     <properties>
         <minifi.version>${project.version}</minifi.version>
-        <minifi.c2.version>${project.version}</minifi.c2.version>
     </properties>
 
     <dependencies>
@@ -41,13 +40,6 @@ limitations under the License.
             <groupId>com.palantir.docker.compose</groupId>
             <artifactId>docker-compose-junit-jupiter</artifactId>
             <version>2.0.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi.minifi</groupId>
-            <artifactId>minifi-c2-integration-tests</artifactId>
-            <version>${project.version}</version>
-            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>

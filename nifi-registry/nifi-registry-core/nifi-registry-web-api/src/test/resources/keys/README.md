@@ -60,7 +60,7 @@ Requirements:
 - keytool (included with Java)
 - openssl (included/available on most platforms)
 
-If you do not have docker, you can substitute the nifi-toolkit binary, which is available for download from https://nifi.apache.org and should run on any platform with Java 1.8. 
+If you do not have docker, you can substitute the nifi-toolkit binary, which is available for download from https://nifi.apache.org and should run on any platform with Java. 
 
 ### New Service Keys
 
@@ -164,7 +164,7 @@ Requirements:
 - keytool (included with Java)
 - openssl (included/available on most platforms)
 
-If you do not have docker, you can substitute the nifi-toolkit binary, which is available for download from https://nifi.apache.org and should run on any platform with Java 1.8. 
+If you do not have docker, you can substitute the nifi-toolkit binary, which is available for download from https://nifi.apache.org and should run on any platform with Java. 
 
 The steps for regenerating these test keys are:
 

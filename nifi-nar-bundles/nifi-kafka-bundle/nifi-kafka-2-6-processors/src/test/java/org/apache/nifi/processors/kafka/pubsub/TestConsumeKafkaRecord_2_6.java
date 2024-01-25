@@ -208,7 +208,7 @@ public class TestConsumeKafkaRecord_2_6 {
         runner.setProperty(ConsumeKafkaRecord_2_6.SECURITY_PROTOCOL, SecurityProtocol.SASL_PLAINTEXT.name());
         runner.assertNotValid();
 
-        runner.setProperty(ConsumeKafkaRecord_2_6.SASL_MECHANISM, SaslMechanism.PLAIN.getValue());
+        runner.setProperty(ConsumeKafkaRecord_2_6.SASL_MECHANISM, SaslMechanism.PLAIN);
         runner.assertNotValid();
 
         runner.setProperty(ConsumeKafkaRecord_2_6.SASL_USERNAME, "user1");
@@ -230,7 +230,7 @@ public class TestConsumeKafkaRecord_2_6 {
         runner.setProperty(ConsumeKafkaRecord_2_6.SECURITY_PROTOCOL, SecurityProtocol.SASL_PLAINTEXT.name());
         runner.assertNotValid();
 
-        runner.setProperty(ConsumeKafkaRecord_2_6.SASL_MECHANISM, SaslMechanism.SCRAM_SHA_256.getValue());
+        runner.setProperty(ConsumeKafkaRecord_2_6.SASL_MECHANISM, SaslMechanism.SCRAM_SHA_256);
         runner.assertNotValid();
 
         runner.setProperty(ConsumeKafkaRecord_2_6.SASL_USERNAME, "user1");
@@ -252,7 +252,7 @@ public class TestConsumeKafkaRecord_2_6 {
         runner.setProperty(ConsumeKafkaRecord_2_6.SECURITY_PROTOCOL, SecurityProtocol.SASL_PLAINTEXT.name());
         runner.assertNotValid();
 
-        runner.setProperty(ConsumeKafkaRecord_2_6.SASL_MECHANISM, SaslMechanism.SCRAM_SHA_512.getValue());
+        runner.setProperty(ConsumeKafkaRecord_2_6.SASL_MECHANISM, SaslMechanism.SCRAM_SHA_512);
         runner.assertNotValid();
 
         runner.setProperty(ConsumeKafkaRecord_2_6.SASL_USERNAME, "user1");

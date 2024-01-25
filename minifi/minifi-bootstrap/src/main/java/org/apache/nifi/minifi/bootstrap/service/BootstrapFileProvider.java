@@ -22,7 +22,6 @@ import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.BOOTSTRAP_UPDAT
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -35,6 +34,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
+import org.apache.nifi.minifi.properties.BootstrapPropertiesLoader;
 import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +60,10 @@ public class BootstrapFileProvider {
             throw new IllegalArgumentException("The specified bootstrap file doesn't exists: " + bootstrapConfigFile);
         }
         this.bootstrapConfigFile = bootstrapConfigFile;
+    }
+
+    public String getBootstrapFilePath() {
+        return bootstrapConfigFile.getAbsolutePath();
     }
 
     public static File getBootstrapConfFile() {
@@ -110,19 +115,12 @@ public class BootstrapFileProvider {
         return newFile;
     }
 
-    public Properties getBootstrapProperties() throws IOException {
-        if (!bootstrapConfigFile.exists()) {
-            throw new FileNotFoundException(bootstrapConfigFile.getAbsolutePath());
-        }
+    public BootstrapProperties getBootstrapProperties() {
+        return BootstrapPropertiesLoader.load(bootstrapConfigFile);
+    }
 
-        Properties bootstrapProperties = BootstrapProperties.getInstance();
-        try (FileInputStream fis = new FileInputStream(bootstrapConfigFile)) {
-            bootstrapProperties.load(fis);
-        }
-
-        logProperties("Bootstrap", bootstrapProperties);
-
-        return bootstrapProperties;
+    public BootstrapProperties getProtectedBootstrapProperties() {
+        return BootstrapPropertiesLoader.loadProtectedProperties(bootstrapConfigFile).getApplicationProperties();
     }
 
     public Properties getStatusProperties() {

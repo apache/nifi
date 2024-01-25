@@ -248,7 +248,7 @@ import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
 
-import javax.ws.rs.WebApplicationException;
+import jakarta.ws.rs.WebApplicationException;
 import java.text.Collator;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -3417,6 +3417,7 @@ public final class DtoFactory {
        dto.setCategory(bulletin.getCategory());
        dto.setLevel(bulletin.getLevel());
        dto.setMessage(bulletin.getMessage());
+       dto.setSourceType(bulletin.getSourceType().name());
        return dto;
    }
 
@@ -4469,6 +4470,7 @@ public final class DtoFactory {
        copy.setLevel(original.getLevel());
        copy.setMessage(original.getMessage());
        copy.setNodeAddress(original.getNodeAddress());
+       copy.setSourceType(original.getSourceType());
        return copy;
    }
 

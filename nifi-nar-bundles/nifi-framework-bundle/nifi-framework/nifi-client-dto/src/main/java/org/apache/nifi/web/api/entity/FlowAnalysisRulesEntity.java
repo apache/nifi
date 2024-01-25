@@ -16,7 +16,12 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
+
+import java.util.Date;
 import java.util.Set;
 
 /**
@@ -25,6 +30,7 @@ import java.util.Set;
 @XmlRootElement(name = "flowAnalysisRulesEntity")
 public class FlowAnalysisRulesEntity extends Entity {
 
+    private Date currentTime;
     private Set<FlowAnalysisRuleEntity> flowAnalysisRules;
 
     /**
@@ -36,6 +42,22 @@ public class FlowAnalysisRulesEntity extends Entity {
 
     public void setFlowAnalysisRules(Set<FlowAnalysisRuleEntity> flowAnalysisRules) {
         this.flowAnalysisRules = flowAnalysisRules;
+    }
+
+    /**
+     * @return current time on the server
+     */
+    @XmlJavaTypeAdapter(TimeAdapter.class)
+    @Schema(
+            description = "The current time on the system.",
+            type = "string"
+    )
+    public Date getCurrentTime() {
+        return currentTime;
+    }
+
+    public void setCurrentTime(Date currentTime) {
+        this.currentTime = currentTime;
     }
 
 }

@@ -41,7 +41,6 @@ import java.io.UncheckedIOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -242,7 +241,7 @@ public class StandardAsanaClient implements AsanaClient {
         try {
             results = collectionRequestToStream(client.workspaces.getWorkspaces(null, null, getSerializedFieldNames(Workspace.class), false))
                     .filter(w -> w.name.equals(workspaceName))
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -252,7 +251,7 @@ public class StandardAsanaClient implements AsanaClient {
         } else if (results.size() > 1) {
             throw new AsanaClientException("Multiple workspaces match: " + workspaceName);
         }
-        return results.get(0);
+        return results.getFirst();
     }
 
     @Override

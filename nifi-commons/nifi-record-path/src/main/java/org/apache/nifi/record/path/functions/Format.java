@@ -21,10 +21,14 @@ import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 import org.apache.nifi.record.path.util.RecordPathUtils;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StringUtils;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import java.util.TimeZone;
 import java.util.stream.Stream;
 
 public class Format extends RecordPathSegment {
@@ -52,22 +56,37 @@ public class Format extends RecordPathSegment {
         final Stream<FieldValue> fieldValues = recordPath.evaluate(context);
         return fieldValues.filter(fv -> fv.getValue() != null)
                 .map(fv -> {
-                    final java.text.DateFormat dateFormat = getDateFormat(this.dateFormat, this.timeZoneID, context);
-                    if (dateFormat == null) {
+                    final DateTimeFormatter dateTimeFormatter = getDateTimeFormatter(this.dateFormat, this.timeZoneID, context);
+                    if (dateTimeFormatter == null) {
                         return fv;
                     }
 
-                    if (!(fv.getValue() instanceof Date) && !(fv.getValue() instanceof Number)) {
+                    final Object fieldValue = fv.getValue();
+
+                    final Instant instant;
+                    if (fieldValue instanceof Date dateField) {
+                        instant = Instant.ofEpochMilli(dateField.getTime());
+                    } else if (fieldValue instanceof Number numberField) {
+                        instant = Instant.ofEpochMilli(numberField.longValue());
+                    } else {
                         return fv;
                     }
 
-                    final Date dateValue = DataTypeUtils.toDate(fv.getValue(), null, fv.getField().getFieldName());
-                    final String formatted = dateFormat.format(dateValue);
+                    final ZoneId zoneId;
+                    if (timeZoneID == null) {
+                        zoneId = ZoneId.systemDefault();
+                    } else {
+                        final String timeZoneId = RecordPathUtils.getFirstStringValue(timeZoneID, context);
+                        zoneId = TimeZone.getTimeZone(timeZoneId).toZoneId();
+                    }
+
+                    final ZonedDateTime dateTime = instant.atZone(zoneId);
+                    final String formatted = dateTimeFormatter.format(dateTime);
                     return new StandardFieldValue(formatted, fv.getField(), fv.getParent().orElse(null));
                 });
     }
 
-    private java.text.DateFormat getDateFormat(final RecordPathSegment dateFormatSegment, final RecordPathSegment timeZoneID, final RecordPathEvaluationContext context) {
+    private DateTimeFormatter getDateTimeFormatter(final RecordPathSegment dateFormatSegment, final RecordPathSegment timeZoneID, final RecordPathEvaluationContext context) {
         final String dateFormatString = RecordPathUtils.getFirstStringValue(dateFormatSegment, context);
         if (StringUtils.isEmpty(dateFormatString)) {
             return null;
@@ -75,13 +94,14 @@ public class Format extends RecordPathSegment {
 
         try {
             if (timeZoneID == null) {
-                return DataTypeUtils.getDateFormat(dateFormatString);
+                return DateTimeFormatter.ofPattern(dateFormatString);
             } else {
                 final String timeZoneStr = RecordPathUtils.getFirstStringValue(timeZoneID, context);
                 if (StringUtils.isEmpty(timeZoneStr)) {
                     return null;
                 }
-                return DataTypeUtils.getDateFormat(dateFormatString, timeZoneStr);
+                final ZoneId zoneId = TimeZone.getTimeZone(timeZoneStr).toZoneId();
+                return DateTimeFormatter.ofPattern(dateFormatString).withZone(zoneId);
             }
         } catch (final Exception e) {
             return null;

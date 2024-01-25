@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DelegatingLoginConfigProviderTest {
 
     private static final String PLAIN_LOGIN_MODULE = "PlainLoginModule";
-
     private static final String SCRAM_LOGIN_MODULE = "ScramLoginModule";
 
     DelegatingLoginConfigProvider provider;
@@ -47,7 +46,7 @@ class DelegatingLoginConfigProviderTest {
 
     @Test
     void testGetConfigurationPlain() {
-        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.PLAIN.getValue());
+        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.PLAIN);
         final PropertyContext propertyContext = runner.getProcessContext();
 
         final String configuration = provider.getConfiguration(propertyContext);
@@ -58,7 +57,7 @@ class DelegatingLoginConfigProviderTest {
 
     @Test
     void testGetConfigurationScram() {
-        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.SCRAM_SHA_512.getValue());
+        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.SCRAM_SHA_512);
         final PropertyContext propertyContext = runner.getProcessContext();
 
         final String configuration = provider.getConfiguration(propertyContext);

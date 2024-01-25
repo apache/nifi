@@ -27,12 +27,6 @@ import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.models.CosmosContainerProperties;
 import com.azure.cosmos.models.CosmosContainerResponse;
 import com.azure.cosmos.models.CosmosDatabaseResponse;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -45,6 +39,10 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.services.azure.cosmos.AzureCosmosDBConnectionService;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -55,11 +53,6 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
     static final Relationship REL_FAILURE = new Relationship.Builder()
         .name("failure")
         .description("All FlowFiles that cannot be written to Cosmos DB are routed to this relationship")
-        .build();
-
-    static final Relationship REL_ORIGINAL = new Relationship.Builder()
-        .name("original")
-        .description("All input FlowFiles that are part of a successful are routed to this relationship")
         .build();
 
     static final PropertyDescriptor CONNECTION_SERVICE = new PropertyDescriptor.Builder()
@@ -94,28 +87,15 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
 
-    static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
-        .name("charactor-set")
-        .displayName("Charactor Set")
-        .description("The Character Set in which the data is encoded")
-        .required(false)
-        .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-        .defaultValue("UTF-8")
-        .build();
-
-    static final List<PropertyDescriptor> descriptors;
-
-    static {
-        List<PropertyDescriptor> _temp = new ArrayList<>();
-        _temp.add(CONNECTION_SERVICE);
-        _temp.add(AzureCosmosDBUtils.URI);
-        _temp.add(AzureCosmosDBUtils.DB_ACCESS_KEY);
-        _temp.add(AzureCosmosDBUtils.CONSISTENCY);
-        _temp.add(DATABASE_NAME);
-        _temp.add(CONTAINER_ID);
-        _temp.add(PARTITION_KEY);
-        descriptors = Collections.unmodifiableList(_temp);
-    }
+    static final List<PropertyDescriptor> descriptors = List.of(
+            CONNECTION_SERVICE,
+            AzureCosmosDBUtils.URI,
+            AzureCosmosDBUtils.DB_ACCESS_KEY,
+            AzureCosmosDBUtils.CONSISTENCY,
+            DATABASE_NAME,
+            CONTAINER_ID,
+            PARTITION_KEY
+    );
 
     private CosmosClient cosmosClient;
     private CosmosContainer container;
@@ -132,43 +112,24 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
             final String uri = context.getProperty(AzureCosmosDBUtils.URI).getValue();
             final String accessKey = context.getProperty(AzureCosmosDBUtils.DB_ACCESS_KEY).getValue();
             final String selectedConsistency = context.getProperty(AzureCosmosDBUtils.CONSISTENCY).getValue();
-            final ConsistencyLevel clevel;
-            switch (selectedConsistency) {
-                case AzureCosmosDBUtils.CONSISTENCY_STRONG:
-                    clevel =  ConsistencyLevel.STRONG;
-                    break;
-                case AzureCosmosDBUtils.CONSISTENCY_CONSISTENT_PREFIX:
-                    clevel = ConsistencyLevel.CONSISTENT_PREFIX;
-                    break;
-                case AzureCosmosDBUtils.CONSISTENCY_SESSION:
-                    clevel = ConsistencyLevel.SESSION;
-                    break;
-                case AzureCosmosDBUtils.CONSISTENCY_BOUNDED_STALENESS:
-                    clevel = ConsistencyLevel.BOUNDED_STALENESS;
-                    break;
-                case AzureCosmosDBUtils.CONSISTENCY_EVENTUAL:
-                    clevel = ConsistencyLevel.EVENTUAL;
-                    break;
-                default:
-                    clevel = ConsistencyLevel.SESSION;
-            }
+            final ConsistencyLevel consistencyLevel = AzureCosmosDBUtils.determineConsistencyLevel(selectedConsistency);
             if (cosmosClient != null) {
                 onStopped();
             }
             if (logger.isDebugEnabled()) {
                 logger.debug("Creating CosmosClient");
             }
-            createCosmosClient(uri, accessKey, clevel);
+            createCosmosClient(uri, accessKey, consistencyLevel);
         }
         getCosmosDocumentContainer(context);
         doPostActionOnSchedule(context);
     }
 
-    protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel) {
+    protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel consistencyLevel) {
         this.cosmosClient = new CosmosClientBuilder()
                                 .endpoint(uri)
                                 .key(accessKey)
-                                .consistencyLevel(clevel)
+                                .consistencyLevel(consistencyLevel)
                                 .buildClient();
     }
 
@@ -194,7 +155,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
     public final void onStopped() {
         final ComponentLog logger = getLogger();
         if (connectionService == null && cosmosClient != null) {
-            // close client only when cosmoclient is created in Processor.
+            // close client only when cosmoClient is created in Processor.
             if(logger.isDebugEnabled()) {
                 logger.debug("Closing CosmosClient");
             }
@@ -235,7 +196,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext context) {
-        List<ValidationResult> retVal = new ArrayList<>();
+        List<ValidationResult> validationResults = new ArrayList<>();
 
         boolean connectionServiceIsSet = context.getProperty(CONNECTION_SERVICE).isSet();
         boolean uriIsSet = context.getProperty(AzureCosmosDBUtils.URI).isSet();
@@ -252,7 +213,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
                 AzureCosmosDBUtils.URI.getDisplayName(),
                 AzureCosmosDBUtils.DB_ACCESS_KEY.getDisplayName()
             );
-            retVal.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
+            validationResults.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
         } else if (!connectionServiceIsSet && (!uriIsSet || !accessKeyIsSet)) {
             // If connection Service is not set, Both of the Processor variable URI and accessKey
             // should be set.
@@ -261,21 +222,21 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
                 AzureCosmosDBUtils.URI.getDisplayName(),
                 AzureCosmosDBUtils.DB_ACCESS_KEY.getDisplayName()
             );
-            retVal.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
+            validationResults.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
         }
         if (!databaseIsSet) {
             final String msg = AbstractAzureCosmosDBProcessor.DATABASE_NAME.getDisplayName() + " must be set.";
-            retVal.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
+            validationResults.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
         }
         if (!collectionIsSet) {
             final String msg = AbstractAzureCosmosDBProcessor.CONTAINER_ID.getDisplayName() + " must be set.";
-            retVal.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
+            validationResults.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
         }
         if (!partitionIsSet) {
             final String msg = AbstractAzureCosmosDBProcessor.PARTITION_KEY.getDisplayName() + " must be set.";
-            retVal.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
+            validationResults.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
         }
-        return retVal;
+        return validationResults;
     }
 
     protected CosmosClient getCosmosClient() {

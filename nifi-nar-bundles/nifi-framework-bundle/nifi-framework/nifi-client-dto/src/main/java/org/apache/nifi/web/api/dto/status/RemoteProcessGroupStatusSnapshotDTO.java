@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * The status of a remote process group in this NiFi.
@@ -44,7 +44,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
     /**
      * @return The id for the remote process group
      */
-    @ApiModelProperty("The id of the remote process group.")
+    @Schema(description = "The id of the remote process group.")
     public String getId() {
         return id;
     }
@@ -56,7 +56,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
     /**
      * @return id of the group this remote process group is in
      */
-    @ApiModelProperty("The id of the parent process group the remote process group resides in.")
+    @Schema(description = "The id of the parent process group the remote process group resides in.")
     public String getGroupId() {
         return groupId;
     }
@@ -68,7 +68,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
     /**
      * @return URI of the target system
      */
-    @ApiModelProperty("The URI of the target system.")
+    @Schema(description = "The URI of the target system.")
     public String getTargetUri() {
         return targetUri;
     }
@@ -80,7 +80,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
     /**
      * @return name of this remote process group
      */
-    @ApiModelProperty("The name of the remote process group.")
+    @Schema(description = "The name of the remote process group.")
     public String getName() {
         return name;
     }
@@ -92,7 +92,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
     /**
      * @return transmission status of this remote process group
      */
-    @ApiModelProperty("The transmission status of the remote process group.")
+    @Schema(description = "The transmission status of the remote process group.")
     public String getTransmissionStatus() {
         return transmissionStatus;
     }
@@ -104,7 +104,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
     /**
      * @return number of active threads
      */
-    @ApiModelProperty("The number of active threads for the remote process group.")
+    @Schema(description = "The number of active threads for the remote process group.")
     public Integer getActiveThreadCount() {
         return activeThreadCount;
     }
@@ -116,7 +116,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
     /**
      * @return Formatted description of the amount of data sent to this remote process group
      */
-    @ApiModelProperty("The count/size of the flowfiles sent to the remote process group in the last 5 minutes.")
+    @Schema(description = "The count/size of the flowfiles sent to the remote process group in the last 5 minutes.")
     public String getSent() {
         return sent;
     }
@@ -129,7 +129,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
     /**
      * @return Formatted description of the amount of data received from this remote process group
      */
-    @ApiModelProperty("The count/size of the flowfiles received from the remote process group in the last 5 minutes.")
+    @Schema(description = "The count/size of the flowfiles received from the remote process group in the last 5 minutes.")
     public String getReceived() {
         return received;
     }
@@ -138,7 +138,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         this.received = received;
     }
 
-    @ApiModelProperty("The number of FlowFiles sent to the remote process group in the last 5 minutes.")
+    @Schema(description = "The number of FlowFiles sent to the remote process group in the last 5 minutes.")
     public Integer getFlowFilesSent() {
         return flowFilesSent;
     }
@@ -147,7 +147,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         this.flowFilesSent = flowFilesSent;
     }
 
-    @ApiModelProperty("The size of the FlowFiles sent to the remote process group in the last 5 minutes.")
+    @Schema(description = "The size of the FlowFiles sent to the remote process group in the last 5 minutes.")
     public Long getBytesSent() {
         return bytesSent;
     }
@@ -156,7 +156,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         this.bytesSent = bytesSent;
     }
 
-    @ApiModelProperty("The number of FlowFiles received from the remote process group in the last 5 minutes.")
+    @Schema(description = "The number of FlowFiles received from the remote process group in the last 5 minutes.")
     public Integer getFlowFilesReceived() {
         return flowFilesReceived;
     }
@@ -165,7 +165,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         this.flowFilesReceived = flowFilesReceived;
     }
 
-    @ApiModelProperty("The size of the FlowFiles received from the remote process group in the last 5 minutes.")
+    @Schema(description = "The size of the FlowFiles received from the remote process group in the last 5 minutes.")
     public Long getBytesReceived() {
         return bytesReceived;
     }

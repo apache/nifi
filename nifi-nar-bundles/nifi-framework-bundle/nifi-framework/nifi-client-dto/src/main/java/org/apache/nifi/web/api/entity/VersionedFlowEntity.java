@@ -17,16 +17,16 @@
 
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "versionedFlowEntity")
 public class VersionedFlowEntity extends Entity {
     private VersionedFlowDTO versionedFlow;
 
-    @ApiModelProperty("The versioned flow")
+    @Schema(description = "The versioned flow")
     public VersionedFlowDTO getVersionedFlow() {
         return versionedFlow;
     }

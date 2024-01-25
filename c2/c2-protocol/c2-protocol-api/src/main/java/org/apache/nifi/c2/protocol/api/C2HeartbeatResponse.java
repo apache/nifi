@@ -17,18 +17,14 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
 import java.util.List;
 
-@ApiModel
 public class C2HeartbeatResponse implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private List<C2Operation> requestedOperations;
 
-    @ApiModelProperty
     public List<C2Operation> getRequestedOperations() {
         return requestedOperations;
     }

@@ -113,12 +113,25 @@ export const selectSingleEditedComponent = createSelector(selectCurrentRoute, (r
 
 export const selectEditedCurrentProcessGroup = createSelector(selectCurrentRoute, (route) => {
     if (route?.routeConfig?.path == 'edit') {
-        if (route.params.ids == null && route.params.type == null) {
+        if (route.params.ids == null && route.params.id == null && route.params.type == null) {
             return route.params.processGroupId;
         }
     }
 
     return null;
+});
+
+export const selectViewStatusHistoryComponent = createSelector(selectCurrentRoute, (route) => {
+    let selectedComponent: SelectedComponent | null = null;
+    if (route?.routeConfig?.path == 'history') {
+        if (route.params.id && route.params.type) {
+            selectedComponent = {
+                id: route.params.id,
+                componentType: route.params.type
+            };
+        }
+    }
+    return selectedComponent;
 });
 
 export const selectTransitionRequired = createSelector(selectFlowState, (state: FlowState) => state.transitionRequired);

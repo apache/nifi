@@ -22,7 +22,7 @@ import org.apache.nifi.security.cert.StandardCertificateAttributeReader;
 import org.apache.nifi.security.cert.StandardPrincipalFormatter;
 import org.apache.nifi.security.cert.SubjectAlternativeName;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -34,7 +34,7 @@ import java.util.Objects;
  * Certificate Attributes Provider for HandleHttpRequest reads the first X.509 Certificate presented
  */
 public class HandleHttpRequestCertificateAttributesProvider implements CertificateAttributesProvider {
-    protected static final String REQUEST_CERTIFICATES_ATTRIBUTE_NAME = "javax.servlet.request.X509Certificate";
+    protected static final String REQUEST_CERTIFICATES_ATTRIBUTE_NAME = "jakarta.servlet.request.X509Certificate";
 
     private static final String SAN_NAME_TYPE_FORMAT = "%s.%d.nameType";
 

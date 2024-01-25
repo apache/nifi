@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 @XmlType(name = "parameterStatus")
 public class ParameterStatusDTO {
     private ParameterEntity parameter;
     private ParameterStatus status;
 
-    @ApiModelProperty("The name of the Parameter")
+    @Schema(description = "The name of the Parameter")
     public ParameterEntity getParameter() {
         return parameter;
     }
@@ -35,7 +35,7 @@ public class ParameterStatusDTO {
         this.parameter = parameter;
     }
 
-    @ApiModelProperty("Indicates the status of the parameter, compared to the existing parameter context")
+    @Schema(description = "Indicates the status of the parameter, compared to the existing parameter context")
     public ParameterStatus getStatus() {
         return status;
     }

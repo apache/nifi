@@ -37,9 +37,7 @@ env:
     --no-snapshot-updates
     --no-transfer-progress
     --fail-fast
-    -pl -:minifi-c2-integration-tests
     -pl -:minifi-integration-tests
-    -pl -:minifi-c2-assembly
     -pl -:minifi-assembly
     -pl -:nifi-assembly
     -pl -:nifi-kafka-connector-assembly
@@ -69,7 +67,6 @@ env:
     -P include-new-ui
   MAVEN_PROJECTS: >-
     -pl -minifi/minifi-assembly
-    -pl -minifi/minifi-c2/minifi-c2-assembly
     -pl -minifi/minifi-toolkit/minifi-toolkit-assembly
     -pl -nifi-registry/nifi-registry-assembly
     -pl -nifi-registry/nifi-registry-toolkit/nifi-registry-toolkit-assembly
@@ -170,6 +167,7 @@ jobs:
           ${{ env.MAVEN_VERIFY_COMMAND }}
           ${{ env.MAVEN_BUILD_PROFILES }}
           -P report-code-coverage
+          -P python-unit-tests
           ${{ env.MAVEN_PROJECTS }}
       - name: Codecov
         uses: codecov/codecov-action@v3
@@ -238,6 +236,7 @@ jobs:
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_VERIFY_COMMAND }}
           ${{ env.MAVEN_BUILD_PROFILES }}
+          -P python-unit-tests
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Test Reports
         uses: actions/upload-artifact@v3

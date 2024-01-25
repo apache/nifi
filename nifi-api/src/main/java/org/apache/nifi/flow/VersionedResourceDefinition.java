@@ -17,7 +17,7 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Set;
 
@@ -25,7 +25,7 @@ public class VersionedResourceDefinition {
     private VersionedResourceCardinality cardinality;
     private Set<VersionedResourceType> resourceTypes;
 
-    @ApiModelProperty("The cardinality of the resource")
+    @Schema(description = "The cardinality of the resource")
     public VersionedResourceCardinality getCardinality() {
         return cardinality;
     }
@@ -34,7 +34,7 @@ public class VersionedResourceDefinition {
         this.cardinality = cardinality;
     }
 
-    @ApiModelProperty("The types of resource that the Property Descriptor is allowed to reference")
+    @Schema(description = "The types of resource that the Property Descriptor is allowed to reference")
     public Set<VersionedResourceType> getResourceTypes() {
         return resourceTypes;
     }

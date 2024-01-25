@@ -44,18 +44,18 @@ import java.util.stream.Stream;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonMap;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.REL_SUCCESS_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_SUBDOMAIN_NAME;
-import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_USER_NAME;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_SUBDOMAIN;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_USER;
 import static org.apache.nifi.components.state.Scope.CLUSTER;
 import static org.apache.nifi.processors.zendesk.GetZendesk.HTTP_TOO_MANY_REQUESTS;
 import static org.apache.nifi.processors.zendesk.GetZendesk.RECORD_COUNT_ATTRIBUTE_NAME;
-import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_EXPORT_METHOD_NAME;
-import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_QUERY_START_TIMESTAMP_NAME;
-import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_RESOURCE_NAME;
+import static org.apache.nifi.processors.zendesk.GetZendesk.REL_SUCCESS;
+import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_EXPORT_METHOD;
+import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_QUERY_START_TIMESTAMP;
+import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_RESOURCE;
 import static org.apache.nifi.processors.zendesk.ZendeskExportMethod.CURSOR;
 import static org.apache.nifi.processors.zendesk.ZendeskResource.TICKETS;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
@@ -108,12 +108,12 @@ public class GetZendeskTest {
         testRunner.addControllerService(standardWebClientServiceProviderId, standardWebClientServiceProvider);
         testRunner.enableControllerService(standardWebClientServiceProvider);
 
-        testRunner.setProperty(WEB_CLIENT_SERVICE_PROVIDER_NAME, standardWebClientServiceProviderId);
-        testRunner.setProperty(ZENDESK_SUBDOMAIN_NAME, "default-zendesk-subdomain");
-        testRunner.setProperty(ZENDESK_USER_NAME, "default-zendesk-user-name");
-        testRunner.setProperty(ZENDESK_AUTHENTICATION_TYPE_NAME, ZendeskAuthenticationType.PASSWORD.getValue());
-        testRunner.setProperty(ZENDESK_AUTHENTICATION_CREDENTIAL_NAME, "default-zendesk-password");
-        testRunner.setProperty(ZENDESK_QUERY_START_TIMESTAMP_NAME, DEFAULT_QUERY_START_TIMESTAMP);
+        testRunner.setProperty(WEB_CLIENT_SERVICE_PROVIDER, standardWebClientServiceProviderId);
+        testRunner.setProperty(ZENDESK_SUBDOMAIN, "default-zendesk-subdomain");
+        testRunner.setProperty(ZENDESK_USER, "default-zendesk-user-name");
+        testRunner.setProperty(ZENDESK_AUTHENTICATION_TYPE, ZendeskAuthenticationType.PASSWORD);
+        testRunner.setProperty(ZENDESK_AUTHENTICATION_CREDENTIAL, "default-zendesk-password");
+        testRunner.setProperty(ZENDESK_QUERY_START_TIMESTAMP, DEFAULT_QUERY_START_TIMESTAMP);
     }
 
     @AfterEach
@@ -126,8 +126,8 @@ public class GetZendeskTest {
     public void testQueryStartTimestampIsUsedWhenNoStateIsAvailable(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) throws InterruptedException {
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
-        testRunner.setProperty(ZENDESK_RESOURCE_NAME, zendeskResource.getValue());
-        testRunner.setProperty(ZENDESK_EXPORT_METHOD_NAME, exportMethod.getValue());
+        testRunner.setProperty(ZENDESK_RESOURCE, zendeskResource);
+        testRunner.setProperty(ZENDESK_EXPORT_METHOD, exportMethod);
 
         // when
         testRunner.run(1);
@@ -144,8 +144,8 @@ public class GetZendeskTest {
     public void testCursorFromStateIsUsedWhenStateIsAvailable(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) throws InterruptedException, IOException {
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(EMPTY_RESPONSE));
-        testRunner.setProperty(ZENDESK_RESOURCE_NAME, zendeskResource.getValue());
-        testRunner.setProperty(ZENDESK_EXPORT_METHOD_NAME, exportMethod.getValue());
+        testRunner.setProperty(ZENDESK_RESOURCE, zendeskResource);
+        testRunner.setProperty(ZENDESK_EXPORT_METHOD, exportMethod);
         testRunner.getStateManager().setState(singletonMap(zendeskResource.getValue() + exportMethod.getValue(), DEFAULT_CURSOR_VALUE), CLUSTER);
 
         // when
@@ -164,8 +164,8 @@ public class GetZendeskTest {
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_OK)
             .setBody(format(RESPONSE_WITH_CURSOR_FIELD_TEMPLATE, exportMethod.getCursorJsonFieldName())));
-        testRunner.setProperty(ZENDESK_RESOURCE_NAME, zendeskResource.getValue());
-        testRunner.setProperty(ZENDESK_EXPORT_METHOD_NAME, exportMethod.getValue());
+        testRunner.setProperty(ZENDESK_RESOURCE, zendeskResource);
+        testRunner.setProperty(ZENDESK_EXPORT_METHOD, exportMethod);
         String stateKey = zendeskResource.getValue() + exportMethod.getValue();
         assertNull(testRunner.getStateManager().getState(CLUSTER).get(stateKey));
 
@@ -182,16 +182,16 @@ public class GetZendeskTest {
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_OK)
             .setBody(format(RESPONSE_WITH_THREE_RECORDS_TEMPLATE, zendeskResource.getResponseFieldName())));
-        testRunner.setProperty(ZENDESK_RESOURCE_NAME, zendeskResource.getValue());
-        testRunner.setProperty(ZENDESK_EXPORT_METHOD_NAME, exportMethod.getValue());
+        testRunner.setProperty(ZENDESK_RESOURCE, zendeskResource);
+        testRunner.setProperty(ZENDESK_EXPORT_METHOD, exportMethod);
 
         // when
         testRunner.run(1);
 
         // then
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS_NAME);
+        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
         assertEquals(1, flowFiles.size());
-        MockFlowFile resultFlowFile = flowFiles.get(0);
+        MockFlowFile resultFlowFile = flowFiles.getFirst();
         assertEquals("3", resultFlowFile.getAttribute(RECORD_COUNT_ATTRIBUTE_NAME));
         assertEquals(THREE_RECORDS, resultFlowFile.getContent());
     }
@@ -202,14 +202,14 @@ public class GetZendeskTest {
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_OK)
             .setBody(format(RESPONSE_WITH_ZERO_RECORDS_TEMPLATE, zendeskResource.getResponseFieldName())));
-        testRunner.setProperty(ZENDESK_RESOURCE_NAME, zendeskResource.getValue());
-        testRunner.setProperty(ZENDESK_EXPORT_METHOD_NAME, exportMethod.getValue());
+        testRunner.setProperty(ZENDESK_RESOURCE, zendeskResource);
+        testRunner.setProperty(ZENDESK_EXPORT_METHOD, exportMethod);
 
         // when
         testRunner.run(1);
 
         // then
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS_NAME);
+        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
         assertEquals(0, flowFiles.size());
     }
 
@@ -217,14 +217,14 @@ public class GetZendeskTest {
     public void testNoFlowFileIsEmittedWhenTooManyRequestResponseCodeReceived() {
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_TOO_MANY_REQUESTS));
-        testRunner.setProperty(ZENDESK_RESOURCE_NAME, TICKETS.getValue());
-        testRunner.setProperty(ZENDESK_EXPORT_METHOD_NAME, CURSOR.getValue());
+        testRunner.setProperty(ZENDESK_RESOURCE, TICKETS);
+        testRunner.setProperty(ZENDESK_EXPORT_METHOD, CURSOR);
 
         // when
         testRunner.run(1);
 
         // then
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS_NAME);
+        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
         assertEquals(0, flowFiles.size());
     }
 
@@ -233,14 +233,14 @@ public class GetZendeskTest {
         // given
         server.enqueue(new MockResponse().setResponseCode(HTTP_BAD_REQUEST)
             .setBody(format(RESPONSE_WITH_ZERO_RECORDS_TEMPLATE, TICKETS.getResponseFieldName())));
-        testRunner.setProperty(ZENDESK_RESOURCE_NAME, TICKETS.getValue());
-        testRunner.setProperty(ZENDESK_EXPORT_METHOD_NAME, CURSOR.getValue());
+        testRunner.setProperty(ZENDESK_RESOURCE, TICKETS);
+        testRunner.setProperty(ZENDESK_EXPORT_METHOD, CURSOR);
 
         // when
         testRunner.run(1);
 
         // then
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS_NAME);
+        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
         assertEquals(0, flowFiles.size());
     }
 
@@ -248,8 +248,8 @@ public class GetZendeskTest {
     @MethodSource("unsupportedZendeskResourcesExportMethodCombinations")
     public void testUnsupportedZendeskResourceAndExportMethodsPairsShouldFailOnValidation(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) {
         // given
-        testRunner.setProperty(ZENDESK_RESOURCE_NAME, zendeskResource.getValue());
-        testRunner.setProperty(ZENDESK_EXPORT_METHOD_NAME, exportMethod.getValue());
+        testRunner.setProperty(ZENDESK_RESOURCE, zendeskResource);
+        testRunner.setProperty(ZENDESK_EXPORT_METHOD, exportMethod);
 
         // when + then
         assertThrows(AssertionFailedError.class, () -> testRunner.run(1));

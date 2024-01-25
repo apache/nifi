@@ -35,10 +35,9 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.net.URI;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -114,29 +113,23 @@ public class OidcAuthenticationSuccessHandler extends SimpleUrlAuthenticationSuc
         final Set<String> groups = getGroups(oidcUser);
 
         final OAuth2AccessToken accessToken = getAccessToken(authenticationToken);
-        final String bearerToken = getBearerToken(identity, oidcUser, accessToken, groups);
+        final String bearerToken = getBearerToken(identity, accessToken, groups);
         applicationCookieService.addSessionCookie(resourceUri, response, ApplicationCookieName.AUTHORIZATION_BEARER, bearerToken);
     }
 
-    private String getBearerToken(final String identity, final OidcUser oidcUser, final OAuth2AccessToken accessToken, final Set<String> groups) {
-        final long sessionExpiration = getSessionExpiration(accessToken);
-        final String issuer = oidcUser.getIssuer().toString();
+    private String getBearerToken(final String identity, final OAuth2AccessToken accessToken, final Set<String> groups) {
+        final Instant sessionExpiration = getSessionExpiration(accessToken);
         final Set<? extends GrantedAuthority> authorities = groups.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toSet());
-        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(identity, identity, sessionExpiration, issuer, authorities);
+        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(identity, sessionExpiration, authorities);
         return bearerTokenProvider.getBearerToken(loginAuthenticationToken);
     }
 
-    private long getSessionExpiration(final OAuth2Token token) {
+    private Instant getSessionExpiration(final OAuth2Token token) {
         final Instant tokenExpiration = token.getExpiresAt();
         if (tokenExpiration == null) {
             throw new IllegalArgumentException("Token expiration claim not found");
         }
-        final Instant tokenIssued = token.getIssuedAt();
-        if (tokenIssued == null) {
-            throw new IllegalArgumentException("Token issued claim not found");
-        }
-        final Duration expiration = Duration.between(tokenIssued, tokenExpiration);
-        return expiration.toMillis();
+        return tokenExpiration;
     }
 
     private OAuth2AuthenticationToken getAuthenticationToken(final Authentication authentication) {

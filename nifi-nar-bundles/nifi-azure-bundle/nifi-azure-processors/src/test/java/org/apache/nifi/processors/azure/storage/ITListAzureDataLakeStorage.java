@@ -378,7 +378,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListAzureDataLakeStorage.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListAzureDataLakeStorage.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListAzureDataLakeStorage.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "3");
     }
 
@@ -396,7 +396,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListAzureDataLakeStorage.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListAzureDataLakeStorage.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListAzureDataLakeStorage.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "5");
     }
 

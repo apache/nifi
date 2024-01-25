@@ -22,8 +22,7 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,7 +30,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -189,7 +187,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
     }
 
     @OnScheduled
-    public void onScheduled(final ConfigurationContext context) throws IOException {
+    public void onScheduled(final ConfigurationContext context) {
         consumer = new ProvenanceEventConsumer();
         consumer.setStartPositionValue(context.getProperty(START_POSITION).getValue());
         consumer.setBatchSize(context.getProperty(SiteToSiteUtils.BATCH_SIZE).asInteger());
@@ -289,9 +287,6 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         final JsonBuilderFactory factory = Json.createBuilderFactory(config);
         final JsonObjectBuilder builder = factory.createObjectBuilder();
 
-        final DateFormat df = new SimpleDateFormat(TIMESTAMP_FORMAT);
-        df.setTimeZone(TimeZone.getTimeZone("Z"));
-
         consumer.consumeEvents(context, (mapHolder, events) -> {
             final long start = System.nanoTime();
             // Create a JSON array of all the events in the current batch
@@ -300,7 +295,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                 final String componentName = mapHolder.getComponentName(event.getComponentId());
                 final String processGroupId = mapHolder.getProcessGroupId(event.getComponentId(), event.getComponentType());
                 final String processGroupName = mapHolder.getComponentName(processGroupId);
-                arrayBuilder.add(serialize(factory, builder, event, df, componentName, processGroupId, processGroupName, hostname, url, rootGroupName, platform, nodeId, allowNullValues));
+                arrayBuilder.add(serialize(factory, builder, event, componentName, processGroupId, processGroupName, hostname, url, rootGroupName, platform, nodeId, allowNullValues));
             }
             final JsonArray jsonArray = arrayBuilder.build();
 
@@ -346,14 +341,14 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
     }
 
 
-    private JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final ProvenanceEventRecord event, final DateFormat df,
+    private JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final ProvenanceEventRecord event,
             final String componentName, final String processGroupId, final String processGroupName, final String hostname, final URL nifiUrl, final String applicationName,
             final String platform, final String nodeIdentifier, Boolean allowNullValues) {
         addField(builder, "eventId", UUID.randomUUID().toString(), allowNullValues);
         addField(builder, "eventOrdinal", event.getEventId(), allowNullValues);
         addField(builder, "eventType", event.getEventType().name(), allowNullValues);
         addField(builder, "timestampMillis", event.getEventTime(), allowNullValues);
-        addField(builder, "timestamp", df.format(event.getEventTime()), allowNullValues);
+        addField(builder, "timestamp", DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(event.getEventTime())), allowNullValues);
         addField(builder, "durationMillis", event.getEventDuration(), allowNullValues);
         addField(builder, "lineageStart", event.getLineageStartDate(), allowNullValues);
         addField(builder, "details", event.getDetails(), allowNullValues);

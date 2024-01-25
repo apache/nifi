@@ -17,15 +17,13 @@
 
 package org.apache.nifi.registry.authorization;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.registry.revision.entity.RevisableEntity;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
 
 /**
  * Access policy summary of which actions ("read', "write", "delete") are allowable for a specified web resource.
  */
-@ApiModel
 public class AccessPolicySummary implements RevisableEntity {
 
     private String identifier;
@@ -34,7 +32,7 @@ public class AccessPolicySummary implements RevisableEntity {
     private Boolean configurable;
     private RevisionInfo revision;
 
-    @ApiModelProperty(value = "The id of the policy. Set by server at creation time.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The id of the policy. Set by server at creation time.", accessMode = Schema.AccessMode.READ_ONLY)
     @Override
     public String getIdentifier() {
         return identifier;
@@ -45,8 +43,7 @@ public class AccessPolicySummary implements RevisableEntity {
         this.identifier = identifier;
     }
 
-    @ApiModelProperty(value = "The resource for this access policy.", required = true
-    )
+    @Schema(description = "The resource for this access policy.")
     public String getResource() {
         return resource;
     }
@@ -55,10 +52,9 @@ public class AccessPolicySummary implements RevisableEntity {
         this.resource = resource;
     }
 
-    @ApiModelProperty(
-            value = "The action associated with this access policy.",
-            allowableValues = "read, write, delete",
-            required = true
+    @Schema(
+            description = "The action associated with this access policy.",
+            allowableValues = "read, write, delete"
     )
     public String getAction() {
         return action;
@@ -68,7 +64,7 @@ public class AccessPolicySummary implements RevisableEntity {
         this.action = action;
     }
 
-    @ApiModelProperty(value = "Indicates if this access policy is configurable, based on which Authorizer has been configured to manage it.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "Indicates if this access policy is configurable, based on which Authorizer has been configured to manage it.", accessMode = Schema.AccessMode.READ_ONLY)
     public Boolean getConfigurable() {
         return configurable;
     }
@@ -77,9 +73,9 @@ public class AccessPolicySummary implements RevisableEntity {
         this.configurable = configurable;
     }
 
-    @ApiModelProperty(
-        value = "The revision of this entity used for optimistic-locking during updates.",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(
+        description = "The revision of this entity used for optimistic-locking during updates.",
+        accessMode = Schema.AccessMode.READ_ONLY
     )
     @Override
     public RevisionInfo getRevision() {

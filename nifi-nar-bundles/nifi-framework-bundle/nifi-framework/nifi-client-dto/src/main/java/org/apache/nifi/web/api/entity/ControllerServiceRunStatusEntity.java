@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Run status for a given ControllerService.
@@ -38,17 +38,18 @@ public class ControllerServiceRunStatusEntity extends ComponentRunStatusEntity {
      * Run status for this ControllerService.
      * @return The run status
      */
-    @ApiModelProperty(
-            value = "The run status of the ControllerService.",
+    @Schema(description = "The run status of the ControllerService.",
             allowableValues = "ENABLED, DISABLED"
     )
     public String getState() {
         return super.getState();
     }
 
-    @ApiModelProperty(
-        value = "Indicates whether or not responses should only include fields necessary for rendering the NiFi User Interface. As such, when this value is set to true, some fields may be " +
-            "returned as null values, and the selected fields may change at any time without notice. As a result, this value should not be set to true by any client other than the UI."
+    @Schema(description = """
+            Indicates whether or not responses should only include fields necessary for rendering the NiFi User Interface.
+            As such, when this value is set to true, some fields may be returned as null values, and the selected fields may change at any time without notice.
+            As a result, this value should not be set to true by any client other than the UI.
+            """
     )
     public Boolean getUiOnly() {
         return uiOnly;

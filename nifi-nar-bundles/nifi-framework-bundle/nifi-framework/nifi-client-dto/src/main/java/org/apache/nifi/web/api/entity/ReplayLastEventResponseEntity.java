@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
 @XmlRootElement(name = "replayLastEventResponseEntity")
@@ -29,7 +29,7 @@ public class ReplayLastEventResponseEntity extends Entity {
     private ReplayLastEventSnapshotDTO aggregateSnapshot;
     private List<NodeReplayLastEventSnapshotDTO> nodeSnapshots;
 
-    @ApiModelProperty("The UUID of the component whose last event should be replayed.")
+    @Schema(description = "The UUID of the component whose last event should be replayed.")
     public String getComponentId() {
         return componentId;
     }
@@ -38,8 +38,7 @@ public class ReplayLastEventResponseEntity extends Entity {
         this.componentId = componentId;
     }
 
-    @ApiModelProperty(
-        value = "Which nodes were requested to replay their last provenance event.",
+    @Schema(description = "Which nodes were requested to replay their last provenance event.",
         allowableValues = "ALL, PRIMARY"
     )
     public String getNodes() {
@@ -50,7 +49,7 @@ public class ReplayLastEventResponseEntity extends Entity {
         this.nodes = nodes;
     }
 
-    @ApiModelProperty("The aggregate result of all nodes' responses")
+    @Schema(description = "The aggregate result of all nodes' responses")
     public ReplayLastEventSnapshotDTO getAggregateSnapshot() {
         return aggregateSnapshot;
     }
@@ -59,7 +58,7 @@ public class ReplayLastEventResponseEntity extends Entity {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    @ApiModelProperty("The node-wise results")
+    @Schema(description = "The node-wise results")
     public List<NodeReplayLastEventSnapshotDTO> getNodeSnapshots() {
         return nodeSnapshots;
     }

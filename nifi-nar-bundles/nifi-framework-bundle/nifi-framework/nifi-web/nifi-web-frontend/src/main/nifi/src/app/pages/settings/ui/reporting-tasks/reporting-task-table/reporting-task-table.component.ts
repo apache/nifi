@@ -15,43 +15,42 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
-import { MatSort } from '@angular/material/sort';
+import { Sort } from '@angular/material/sort';
 import { ReportingTaskEntity } from '../../../state/reporting-tasks';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { BulletinsTipInput, TextTipInput, ValidationErrorsTipInput } from '../../../../../state/shared';
+import { FlowConfiguration } from '../../../../../state/flow-configuration';
+import { CurrentUser } from '../../../../../state/current-user';
 
 @Component({
     selector: 'reporting-task-table',
     templateUrl: './reporting-task-table.component.html',
     styleUrls: ['./reporting-task-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
 })
-export class ReportingTaskTable implements AfterViewInit {
+export class ReportingTaskTable {
+    @Input() initialSortColumn: 'name' | 'type' | 'bundle' | 'state' = 'name';
+    @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
+
     @Input() set reportingTasks(reportingTaskEntities: ReportingTaskEntity[]) {
-        this.dataSource = new MatTableDataSource<ReportingTaskEntity>(reportingTaskEntities);
-        this.dataSource.sort = this.sort;
-        this.dataSource.sortingDataAccessor = (data: ReportingTaskEntity, displayColumn: string) => {
-            if (displayColumn === 'name') {
-                return this.formatType(data);
-            } else if (displayColumn === 'type') {
-                return this.formatType(data);
-            } else if (displayColumn === 'bundle') {
-                return this.formatBundle(data);
-            } else if (displayColumn === 'state') {
-                return this.formatState(data);
-            }
-            return '';
-        };
+        this.dataSource.data = this.sortEntities(reportingTaskEntities, {
+            active: this.initialSortColumn,
+            direction: this.initialSortDirection
+        });
     }
+
     @Input() selectedReportingTaskId!: string;
+    @Input() flowConfiguration!: FlowConfiguration;
+    @Input() currentUser!: CurrentUser;
 
     @Output() selectReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() deleteReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() startReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
+    @Output() configureReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() stopReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
 
     protected readonly TextTip = TextTip;
@@ -61,13 +60,7 @@ export class ReportingTaskTable implements AfterViewInit {
     displayedColumns: string[] = ['moreDetails', 'name', 'type', 'bundle', 'state', 'actions'];
     dataSource: MatTableDataSource<ReportingTaskEntity> = new MatTableDataSource<ReportingTaskEntity>();
 
-    @ViewChild(MatSort) sort!: MatSort;
-
     constructor(private nifiCommon: NiFiCommon) {}
-
-    ngAfterViewInit(): void {
-        this.dataSource.sort = this.sort;
-    }
 
     canRead(entity: ReportingTaskEntity): boolean {
         return entity.permissions.canRead;
@@ -151,12 +144,16 @@ export class ReportingTaskTable implements AfterViewInit {
         return entity.status?.activeThreadCount > 0;
     }
 
+    formatName(entity: ReportingTaskEntity): string {
+        return this.canRead(entity) ? entity.component.name : entity.id;
+    }
+
     formatType(entity: ReportingTaskEntity): string {
-        return this.nifiCommon.formatType(entity.component);
+        return this.canRead(entity) ? this.nifiCommon.formatType(entity.component) : '';
     }
 
     formatBundle(entity: ReportingTaskEntity): string {
-        return this.nifiCommon.formatBundle(entity.component.bundle);
+        return this.canRead(entity) ? this.nifiCommon.formatBundle(entity.component.bundle) : '';
     }
 
     isDisabled(entity: ReportingTaskEntity): boolean {
@@ -213,7 +210,8 @@ export class ReportingTaskTable implements AfterViewInit {
     }
 
     canDelete(entity: ReportingTaskEntity): boolean {
-        const canWriteParent: boolean = true; // TODO canModifyController()
+        const canWriteParent: boolean =
+            this.currentUser.controllerPermissions.canRead && this.currentUser.controllerPermissions.canWrite;
         return (
             (this.isDisabled(entity) || this.isStopped(entity)) &&
             this.canRead(entity) &&
@@ -226,13 +224,21 @@ export class ReportingTaskTable implements AfterViewInit {
         this.deleteReportingTask.next(entity);
     }
 
+    configureClicked(entity: ReportingTaskEntity, event: MouseEvent): void {
+        event.stopPropagation();
+        this.configureReportingTask.next(entity);
+    }
+
     canViewState(entity: ReportingTaskEntity): boolean {
         return this.canRead(entity) && this.canWrite(entity) && entity.component.persistsState === true;
     }
 
     canManageAccessPolicies(): boolean {
-        // TODO
-        return false;
+        return this.flowConfiguration.supportsManagedAuthorizer && this.currentUser.tenantsPermissions.canRead;
+    }
+
+    getPolicyLink(entity: ReportingTaskEntity): string[] {
+        return ['/access-policies', 'read', 'component', 'reporting-tasks', entity.id];
     }
 
     select(entity: ReportingTaskEntity): void {
@@ -244,5 +250,37 @@ export class ReportingTaskTable implements AfterViewInit {
             return entity.id == this.selectedReportingTaskId;
         }
         return false;
+    }
+
+    sortData(sort: Sort) {
+        this.dataSource.data = this.sortEntities(this.dataSource.data, sort);
+    }
+
+    private sortEntities(data: ReportingTaskEntity[], sort: Sort): ReportingTaskEntity[] {
+        if (!data) {
+            return [];
+        }
+        return data.slice().sort((a, b) => {
+            const isAsc = sort.direction === 'asc';
+            let retVal = 0;
+
+            switch (sort.active) {
+                case 'name':
+                    retVal = this.nifiCommon.compareString(this.formatName(a), this.formatName(b));
+                    break;
+                case 'type':
+                    retVal = this.nifiCommon.compareString(this.formatType(a), this.formatType(b));
+                    break;
+                case 'bundle':
+                    retVal = this.nifiCommon.compareString(this.formatBundle(a), this.formatBundle(b));
+                    break;
+                case 'state':
+                    retVal = this.nifiCommon.compareString(this.formatState(a), this.formatState(b));
+                    break;
+                default:
+                    return 0;
+            }
+            return retVal * (isAsc ? 1 : -1);
+        });
     }
 }

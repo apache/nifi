@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * A request to analyze (a part) of the flow.
@@ -35,7 +35,7 @@ public class AnalyzeFlowRequestDTO extends AsynchronousRequestDTO<AnalyzeFlowReq
      *
      * @return The id
      */
-    @ApiModelProperty("The id of the process group representing (a part of) the flow to be analyzed.")
+    @Schema(description = "The id of the process group representing (a part of) the flow to be analyzed.")
     public String getProcessGroupId() {
         return this.processGroupId;
     }

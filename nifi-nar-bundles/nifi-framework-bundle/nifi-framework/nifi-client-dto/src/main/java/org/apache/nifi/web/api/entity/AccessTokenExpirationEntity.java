@@ -18,7 +18,7 @@ package org.apache.nifi.web.api.entity;
 
 import org.apache.nifi.web.api.dto.AccessTokenExpirationDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "accessTokenExpirationEntity")
 public class AccessTokenExpirationEntity extends Entity {

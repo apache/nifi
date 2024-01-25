@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processor;
 
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyValue;
@@ -32,6 +33,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
@@ -109,6 +111,37 @@ public class TestStandardPropertyValue {
     }
 
     @Test
+    public void testGetValueAsAllowableValue() {
+        for (ExampleDescribedValueEnum enumValue : ExampleDescribedValueEnum.values()) {
+            final PropertyValue value = new StandardPropertyValue(enumValue.getValue(), lookup, ParameterLookup.EMPTY);
+            assertEquals(enumValue, value.asAllowableValue(ExampleDescribedValueEnum.class));
+        }
+
+        final PropertyValue nullDescribedValue = new StandardPropertyValue(null, lookup, ParameterLookup.EMPTY);
+        assertNull(nullDescribedValue.asAllowableValue(ExampleDescribedValueEnum.class));
+
+        IllegalArgumentException describedValueException = assertThrows(IllegalArgumentException.class, () -> {
+            final PropertyValue invalidValue = new StandardPropertyValue("FOO", lookup, ParameterLookup.EMPTY);
+            invalidValue.asAllowableValue(ExampleDescribedValueEnum.class);
+        });
+        assertEquals("ExampleDescribedValueEnum does not have an entry with value FOO", describedValueException.getMessage());
+
+        for (ExampleNonDescribedValueEnum enumValue : ExampleNonDescribedValueEnum.values()) {
+            final PropertyValue value = new StandardPropertyValue(enumValue.name(), lookup, ParameterLookup.EMPTY);
+            assertEquals(enumValue, value.asAllowableValue(ExampleNonDescribedValueEnum.class));
+        }
+
+        final PropertyValue nullValue = new StandardPropertyValue(null, lookup, ParameterLookup.EMPTY);
+        assertNull(nullValue.asAllowableValue(ExampleNonDescribedValueEnum.class));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            final PropertyValue invalidValue = new StandardPropertyValue("FOO", lookup, ParameterLookup.EMPTY);
+            invalidValue.asAllowableValue(ExampleNonDescribedValueEnum.class);
+        });
+        assertEquals("ExampleNonDescribedValueEnum does not have an entry with value FOO", exception.getMessage());
+    }
+
+    @Test
     public void testFileSize() {
         final PropertyValue value = new StandardPropertyValue("${fileSize}", lookup, ParameterLookup.EMPTY);
         final FlowFile flowFile = new StandardFlowFileRecord.Builder().size(1024 * 1024L).build();
@@ -177,4 +210,37 @@ public class TestStandardPropertyValue {
         }
 
     }
+
+    private enum ExampleDescribedValueEnum implements DescribedValue {
+        ONE("One Value", "One Display", "One Description"),
+        OTHER("Other Value", "Other Display", "Other Description"),
+        ANOTHER("Another Value", "Another Display", "Another Description");
+
+        private final String value;
+        private final String displayName;
+        private final String description;
+
+        ExampleDescribedValueEnum(final String value, final String displayName, final String description) {
+            this.value = value;
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return this.value;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return this.displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return this.description;
+        }
+    }
+
+    private enum ExampleNonDescribedValueEnum { ONE, TWO, THREE, FOUR }
 }

@@ -20,18 +20,19 @@ package org.apache.nifi.processors.solr;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -151,14 +152,11 @@ public class GetSolr extends SolrProcessor {
             .description("The results of querying Solr")
             .build();
 
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+
     private final AtomicBoolean clearState = new AtomicBoolean(false);
     private final AtomicBoolean dateFieldNotInSpecifiedFieldsList = new AtomicBoolean(false);
     private volatile String id_field = null;
-
-    private static final SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-    static {
-        df.setTimeZone(TimeZone.getTimeZone("GMT"));
-    }
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> descriptors;
@@ -167,29 +165,27 @@ public class GetSolr extends SolrProcessor {
     protected void init(final ProcessorInitializationContext context) {
         super.init(context);
 
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(SOLR_TYPE);
-        descriptors.add(SOLR_LOCATION);
-        descriptors.add(COLLECTION);
-        descriptors.add(RETURN_TYPE);
-        descriptors.add(RECORD_WRITER);
-        descriptors.add(SOLR_QUERY);
-        descriptors.add(DATE_FIELD);
-        descriptors.add(DATE_FILTER);
-        descriptors.add(RETURN_FIELDS);
-        descriptors.add(BATCH_SIZE);
-        descriptors.add(KERBEROS_USER_SERVICE);
-        descriptors.add(BASIC_USERNAME);
-        descriptors.add(BASIC_PASSWORD);
-        descriptors.add(SSL_CONTEXT_SERVICE);
-        descriptors.add(SOLR_SOCKET_TIMEOUT);
-        descriptors.add(SOLR_CONNECTION_TIMEOUT);
-        descriptors.add(SOLR_MAX_CONNECTIONS_PER_HOST);
-        this.descriptors = Collections.unmodifiableList(descriptors);
+        this.descriptors = List.of(
+                SOLR_TYPE,
+                SOLR_LOCATION,
+                COLLECTION,
+                RETURN_TYPE,
+                RECORD_WRITER,
+                SOLR_QUERY,
+                DATE_FIELD,
+                DATE_FILTER,
+                RETURN_FIELDS,
+                BATCH_SIZE,
+                KERBEROS_USER_SERVICE,
+                BASIC_USERNAME,
+                BASIC_PASSWORD,
+                SSL_CONTEXT_SERVICE,
+                SOLR_SOCKET_TIMEOUT,
+                SOLR_CONNECTION_TIMEOUT,
+                SOLR_MAX_CONNECTIONS_PER_HOST
+        );
 
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        this.relationships = Collections.unmodifiableSet(relationships);
+        this.relationships = Set.of(REL_SUCCESS);
     }
 
     @Override
@@ -202,7 +198,7 @@ public class GetSolr extends SolrProcessor {
         return this.descriptors;
     }
 
-    final static Set<String> propertyNamesForActivatingClearState = new HashSet<String>();
+    final static Set<String> propertyNamesForActivatingClearState = new HashSet<>();
     static {
         propertyNamesForActivatingClearState.add(SOLR_TYPE.getName());
         propertyNamesForActivatingClearState.add(SOLR_LOCATION.getName());
@@ -336,7 +332,8 @@ public class GetSolr extends SolrProcessor {
 
                 if (response.getResults().size() > 0) {
                     final SolrDocument lastSolrDocument = documentList.get(response.getResults().size()-1);
-                    final String latestDateValue = df.format(lastSolrDocument.get(dateField));
+                    final Object dateObject = lastSolrDocument.get(dateField);
+                    final String latestDateValue = getDateFormatted(dateObject);
                     final String newCursorMark = response.getNextCursorMark();
 
                     solrQuery.setParam(CursorMarkParams.CURSOR_MARK_PARAM, newCursorMark);
@@ -407,6 +404,18 @@ public class GetSolr extends SolrProcessor {
         }
     }
 
+    private String getDateFormatted(final Object dateObject) {
+        final String formatted;
 
+        if (dateObject instanceof Date date) {
+            final OffsetDateTime dateTime = date.toInstant().atOffset(ZoneOffset.UTC);
+            formatted = DATE_TIME_FORMATTER.format(dateTime);
+        } else if (dateObject == null) {
+            formatted = null;
+        } else {
+            throw new IllegalArgumentException("Date Object Type [%s] not supported".formatted(dateObject.getClass()));
+        }
 
+        return formatted;
+    }
 }

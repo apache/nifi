@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public interface ReadablePermission {
-    @ApiModelProperty(
-            value = "Indicates whether the user can read a given resource.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "Indicates whether the user can read a given resource.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     Boolean getCanRead();
 

@@ -32,6 +32,9 @@ import { RegistryClientsModule } from '../ui/registry-clients/registry-clients.m
 import { ReportingTasksModule } from '../ui/reporting-tasks/reporting-tasks.module';
 import { MatTabsModule } from '@angular/material/tabs';
 import { ReportingTasksEffects } from '../state/reporting-tasks/reporting-tasks.effects';
+import { RegistryClientsEffects } from '../state/registry-clients/registry-clients.effects';
+import { FlowAnalysisRulesEffects } from '../state/flow-analysis-rules/flow-analysis-rules.effects';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
 
 @NgModule({
     declarations: [Settings],
@@ -46,8 +49,15 @@ import { ReportingTasksEffects } from '../state/reporting-tasks/reporting-tasks.
         ReportingTasksModule,
         SettingsRoutingModule,
         StoreModule.forFeature(settingsFeatureKey, reducers),
-        EffectsModule.forFeature(GeneralEffects, ManagementControllerServicesEffects, ReportingTasksEffects),
-        MatTabsModule
+        EffectsModule.forFeature(
+            GeneralEffects,
+            ManagementControllerServicesEffects,
+            ReportingTasksEffects,
+            FlowAnalysisRulesEffects,
+            RegistryClientsEffects
+        ),
+        MatTabsModule,
+        Navigation
     ]
 })
 export class SettingsModule {}

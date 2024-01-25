@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.provenance;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Represents a processor's attribute for a provenance event.
@@ -33,8 +33,7 @@ public class AttributeDTO {
     /**
      * @return attribute name
      */
-    @ApiModelProperty(
-            value = "The attribute name."
+    @Schema(description = "The attribute name."
     )
     public String getName() {
         return name;
@@ -47,8 +46,7 @@ public class AttributeDTO {
     /**
      * @return attribute value
      */
-    @ApiModelProperty(
-            value = "The attribute value."
+    @Schema(description = "The attribute value."
     )
     public String getValue() {
         return value;
@@ -61,8 +59,7 @@ public class AttributeDTO {
     /**
      * @return value of this attribute before the event took place
      */
-    @ApiModelProperty(
-            value = "The value of the attribute before the event took place."
+    @Schema(description = "The value of the attribute before the event took place."
     )
     public String getPreviousValue() {
         return previousValue;

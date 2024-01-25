@@ -23,15 +23,11 @@ import org.apache.nifi.components.DescribedValue;
  */
 public enum KeyFormat implements DescribedValue {
     STRING("string", "String", "Format the Kafka ConsumerRecord key as a UTF-8 string."),
-
     BYTE_ARRAY("byte-array", "Byte Array", "Format the Kafka ConsumerRecord key as a byte array."),
-
     RECORD("record", "Record", "Format the Kafka ConsumerRecord key as a record.");
 
     private final String value;
-
     private final String displayName;
-
     private final String description;
 
     KeyFormat(final String value, final String displayName, final String description) {

@@ -27,14 +27,15 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.util.NiFiProperties;
 
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.HttpMethod;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -113,11 +114,11 @@ public class StandardNiFiContentAccess implements ContentAccess {
             }
 
             // get the file name
-            final String contentDisposition = responseHeaders.getFirst("Content-Disposition");
+            final String contentDisposition = getHeader(responseHeaders, "content-disposition");
             final String filename = StringUtils.substringBetween(contentDisposition, "filename=\"", "\"");
 
             // get the content type
-            final String contentType = responseHeaders.getFirst("Content-Type");
+            final String contentType = getHeader(responseHeaders, "content-type");
 
             // create the downloadable content
             return new DownloadableContent(filename, contentType, nodeResponse.getInputStream());
@@ -157,6 +158,37 @@ public class StandardNiFiContentAccess implements ContentAccess {
             // invalid uri
             throw new IllegalArgumentException("The specified data reference URI is not valid.");
         }
+    }
+
+    /**
+     * Returns the value of the first header in the given header map whose name matches the given header name.
+     * In HTTP 2.0, all header names should be lower-case. Before that, they were not necessarily. The spec, however,
+     * indicates that header names are case-insensitive. That said, the code has them stored in a Map, and the keys in Maps
+     * are not case-insensitive. This method allows us to access the value of the first header with the given name,
+     * ignoring case.
+     *
+     * @param headers the map containing all headers
+     * @param headerName the case-insensitive name of the header to retrieve
+     * @return the value of the first header with the given name, or <code>null</code> if the header is not found
+     */
+    private String getHeader(final MultivaluedMap<String, String> headers, final String headerName) {
+        if (headers == null || headers.isEmpty() || headerName == null || headerName.isBlank()) {
+            return null;
+        }
+
+        final String exactMatch = headers.getFirst(headerName);
+        if (exactMatch != null) {
+            return exactMatch;
+        }
+
+        for (final Map.Entry<String, List<String>> entry : headers.entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(headerName)) {
+                final List<String> values = entry.getValue();
+                return values == null || values.isEmpty() ? null : values.get(0);
+            }
+        }
+
+        return null;
     }
 
     private DownloadableContent getFlowFileContent(final String connectionId, final String flowfileId, final String dataUri) {

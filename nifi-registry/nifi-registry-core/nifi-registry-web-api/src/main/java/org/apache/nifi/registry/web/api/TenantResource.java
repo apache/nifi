@@ -16,18 +16,19 @@
  */
 package org.apache.nifi.registry.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.Extension;
-import io.swagger.annotations.ExtensionProperty;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
 import java.net.URI;
 import java.util.List;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.extensions.Extension;
+import io.swagger.v3.oas.annotations.extensions.ExtensionProperty;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -59,14 +60,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Path("tenants")
-@Api(
-    value = "tenants",
-    authorizations = {@Authorization("Authorization")},
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Endpoint for managing users and user groups.")
-})
+@Tag(name = "Tenants")
 public class TenantResource extends ApplicationResource {
 
     @Autowired
@@ -89,27 +83,29 @@ public class TenantResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users")
-    @ApiOperation(
-            value = "Create user",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = User.class,
+    @Operation(
+            summary = "Create user",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = User.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "write"),
-                            @ExtensionProperty(name = "resource", value = "/tenants") })
+                            @ExtensionProperty(name = "resource", value = "/tenants")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)}
+    )
     public Response createUser(
-            @Context
-                final HttpServletRequest httpServletRequest,
-            @ApiParam(value = "The user configuration details.", required = true)
-                final User requestUser) {
+            @Context final HttpServletRequest httpServletRequest,
+            @Parameter(description = "The user configuration details.", required = true) final User requestUser) {
 
         final User createdUser = serviceFacade.createUser(requestUser);
         publish(EventFactory.userCreated(createdUser));
@@ -127,22 +123,25 @@ public class TenantResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users")
-    @ApiOperation(
-            value = "Get all users",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = User.class,
-            responseContainer = "List",
+    @Operation(
+            summary = "Get all users",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = User.class)))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/tenants") })
+                            @ExtensionProperty(name = "resource", value = "/tenants")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)}
+    )
     public Response getUsers() {
         // get all the users
         final List<User> users = serviceFacade.getUsers();
@@ -161,24 +160,28 @@ public class TenantResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users/{id}")
-    @ApiOperation(
-            value = "Get user",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = User.class,
+    @Operation(
+            summary = "Get user",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = User.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/tenants") })
+                            @ExtensionProperty(name = "resource", value = "/tenants")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)}
+    )
     public Response getUser(
-            @ApiParam(value = "The user id.", required = true)
+            @Parameter(description = "The user id.", required = true)
             @PathParam("id") final String identifier) {
         final User user = serviceFacade.getUser(identifier);
         return generateOkResponse(user).build();
@@ -196,30 +199,32 @@ public class TenantResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users/{id}")
-    @ApiOperation(
-            value = "Update user",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = User.class,
+    @Operation(
+            summary = "Update user",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = User.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "write"),
-                            @ExtensionProperty(name = "resource", value = "/tenants") })
+                            @ExtensionProperty(name = "resource", value = "/tenants")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response updateUser(
-            @Context
-            final HttpServletRequest httpServletRequest,
-            @ApiParam(value = "The user id.", required = true)
-            @PathParam("id")
-            final String identifier,
-            @ApiParam(value = "The user configuration details.", required = true)
-            final User requestUser) {
+            @Context final HttpServletRequest httpServletRequest,
+            @Parameter(description = "The user id.", required = true)
+            @PathParam("id") final String identifier,
+            @Parameter(description = "The user configuration details.", required = true) final User requestUser) {
 
         if (requestUser == null) {
             throw new IllegalArgumentException("User details must be specified when updating a user.");
@@ -238,42 +243,43 @@ public class TenantResource extends ApplicationResource {
      * Removes the specified user.
      *
      * @param httpServletRequest request
-     * @param identifier         The id of the user to remove.
+     * @param identifier The id of the user to remove.
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users/{id}")
-    @ApiOperation(
-            value = "Delete user",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = User.class,
+    @Operation(
+            summary = "Delete user",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = User.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "delete"),
-                            @ExtensionProperty(name = "resource", value = "/tenants") })
+                            @ExtensionProperty(name = "resource", value = "/tenants")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response removeUser(
-            @Context
-                final HttpServletRequest httpServletRequest,
-            @ApiParam(value = "The version is used to verify the client is working with the latest version of the entity.", required = true)
-            @QueryParam(VERSION)
-                final LongParameter version,
-            @ApiParam(value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.")
+            @Context final HttpServletRequest httpServletRequest,
+            @Parameter(description = "The version is used to verify the client is working with the latest version of the entity.", required = true)
+            @QueryParam(VERSION) final LongParameter version,
+            @Parameter(description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.")
             @QueryParam(CLIENT_ID)
-            @DefaultValue(StringUtils.EMPTY)
-                final ClientIdParameter clientId,
-            @ApiParam(value = "The user id.", required = true)
-            @PathParam("id")
-                final String identifier) {
+            @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
+            @Parameter(description = "The user id.", required = true)
+            @PathParam("id") final String identifier) {
 
         final RevisionInfo revisionInfo = getRevisionInfo(version, clientId);
         final User user = serviceFacade.deleteUser(identifier, revisionInfo);
@@ -295,27 +301,30 @@ public class TenantResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups")
-    @ApiOperation(
-            value = "Create user group",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = UserGroup.class,
+    @Operation(
+            summary = "Create user group",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = UserGroup.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "write"),
-                            @ExtensionProperty(name = "resource", value = "/tenants") })
+                            @ExtensionProperty(name = "resource", value = "/tenants")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response createUserGroup(
-            @Context
-                final HttpServletRequest httpServletRequest,
-            @ApiParam(value = "The user group configuration details.", required = true)
-                final UserGroup requestUserGroup) {
+            @Context final HttpServletRequest httpServletRequest,
+            @Parameter(description = "The user group configuration details.", required = true) final UserGroup requestUserGroup) {
 
         final UserGroup createdGroup = serviceFacade.createUserGroup(requestUserGroup);
         publish(EventFactory.userGroupCreated(createdGroup));
@@ -333,23 +342,26 @@ public class TenantResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups")
-    @ApiOperation(
-            value = "Get user groups",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = UserGroup.class,
-            responseContainer = "List",
+    @Operation(
+            summary = "Get user groups",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = UserGroup.class)))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/tenants") })
+                            @ExtensionProperty(name = "resource", value = "/tenants")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)}
+    )
     public Response getUserGroups() {
         final List<UserGroup> userGroups = serviceFacade.getUserGroups();
         return generateOkResponse(userGroups).build();
@@ -365,24 +377,29 @@ public class TenantResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups/{id}")
-    @ApiOperation(
-            value = "Get user group",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = UserGroup.class,
+    @Operation(
+            summary = "Get user group",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = UserGroup.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/tenants") })
+                            @ExtensionProperty(name = "resource", value = "/tenants")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getUserGroup(
-            @ApiParam(value = "The user group id.", required = true)
+            @Parameter(description = "The user group id.", required = true)
             @PathParam("id") final String identifier) {
         final UserGroup userGroup = serviceFacade.getUserGroup(identifier);
         return generateOkResponse(userGroup).build();
@@ -400,30 +417,32 @@ public class TenantResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups/{id}")
-    @ApiOperation(
-            value = "Update user group",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = UserGroup.class,
+    @Operation(
+            summary = "Update user group",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = UserGroup.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "write"),
-                            @ExtensionProperty(name = "resource", value = "/tenants") })
+                            @ExtensionProperty(name = "resource", value = "/tenants")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response updateUserGroup(
-            @Context
-            final HttpServletRequest httpServletRequest,
-            @ApiParam(value = "The user group id.", required = true)
-            @PathParam("id")
-            final String identifier,
-            @ApiParam(value = "The user group configuration details.", required = true)
-            final UserGroup requestUserGroup) {
+            @Context final HttpServletRequest httpServletRequest,
+            @Parameter(description = "The user group id.", required = true)
+            @PathParam("id") final String identifier,
+            @Parameter(description = "The user group configuration details.", required = true) final UserGroup requestUserGroup) {
 
         if (requestUserGroup == null) {
             throw new IllegalArgumentException("User group details must be specified to update a user group.");
@@ -442,42 +461,43 @@ public class TenantResource extends ApplicationResource {
      * Removes the specified user group.
      *
      * @param httpServletRequest request
-     * @param identifier                 The id of the user group to remove.
+     * @param identifier The id of the user group to remove.
      * @return The deleted user group.
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups/{id}")
-    @ApiOperation(
-            value = "Delete user group",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = UserGroup.class,
+    @Operation(
+            summary = "Delete user group",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = UserGroup.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "delete"),
-                            @ExtensionProperty(name = "resource", value = "/tenants") })
+                            @ExtensionProperty(name = "resource", value = "/tenants")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response removeUserGroup(
-            @Context
-                final HttpServletRequest httpServletRequest,
-            @ApiParam(value = "The version is used to verify the client is working with the latest version of the entity.", required = true)
-            @QueryParam(VERSION)
-                final LongParameter version,
-            @ApiParam(value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.")
+            @Context final HttpServletRequest httpServletRequest,
+            @Parameter(description = "The version is used to verify the client is working with the latest version of the entity.", required = true)
+            @QueryParam(VERSION) final LongParameter version,
+            @Parameter(description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.")
             @QueryParam(CLIENT_ID)
-            @DefaultValue(StringUtils.EMPTY)
-                final ClientIdParameter clientId,
-            @ApiParam(value = "The user group id.", required = true)
-            @PathParam("id")
-                final String identifier) {
+            @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
+            @Parameter(description = "The user group id.", required = true)
+            @PathParam("id") final String identifier) {
 
         final RevisionInfo revisionInfo = getRevisionInfo(version, clientId);
         final UserGroup userGroup = serviceFacade.deleteUserGroup(identifier, revisionInfo);

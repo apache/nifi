@@ -20,7 +20,7 @@ package org.apache.nifi.cluster.coordination.node;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.jaxb.message.NodeConnectionStatusAdapter;

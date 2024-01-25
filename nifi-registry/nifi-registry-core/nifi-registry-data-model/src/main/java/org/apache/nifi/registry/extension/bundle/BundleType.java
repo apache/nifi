@@ -16,14 +16,11 @@
  */
 package org.apache.nifi.registry.extension.bundle;
 
-import io.swagger.annotations.ApiModel;
-
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 /**
  * The possible types of extension bundles.
  */
-@ApiModel
 @XmlJavaTypeAdapter(BundleTypeAdapter.class)
 public enum BundleType {
 

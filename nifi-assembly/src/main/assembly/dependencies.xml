@@ -19,51 +19,7 @@
     <baseDirectory>nifi-${project.version}</baseDirectory>
 
     <componentDescriptors>
+        <componentDescriptor>src/main/assembly/core.xml</componentDescriptor>
         <componentDescriptor>src/main/assembly/common.xml</componentDescriptor>
     </componentDescriptors>
-
-    <dependencySets>
-        <!-- Write out all dependency artifacts to lib directory -->
-        <dependencySet>
-            <scope>runtime</scope>
-            <useProjectArtifact>false</useProjectArtifact>
-            <outputDirectory>lib</outputDirectory>
-            <directoryMode>0770</directoryMode>
-            <fileMode>0664</fileMode>
-            <useTransitiveFiltering>true</useTransitiveFiltering>
-            <excludes>
-                <exclude>*:nifi-bootstrap</exclude>
-                <exclude>*:nifi-property-protection-api</exclude>
-                <exclude>*:nifi-property-protection-factory</exclude>
-                <exclude>*:nifi-resources</exclude>
-                <exclude>*:nifi-docs</exclude>
-                <exclude>*:nifi-single-user-utils</exclude>
-                <exclude>*:nifi-flow-encryptor</exclude>
-                <!-- exclude AspectJ library from lib included in the aspectj subdir -->
-                <exclude>org.aspectj:aspectjweaver</exclude>
-            </excludes>
-        </dependencySet>
-
-        <!-- Unpack Python extensions -->
-        <dependencySet>
-            <scope>runtime</scope>
-            <useProjectArtifact>false</useProjectArtifact>
-            <outputDirectory>./python/extensions</outputDirectory>
-            <directoryMode>0770</directoryMode>
-            <fileMode>0664</fileMode>
-            <useTransitiveFiltering>true</useTransitiveFiltering>
-            <includes>
-                <include>*:nifi-python-extensions-bundle</include>
-            </includes>
-            <unpack>true</unpack>
-            <unpackOptions>
-                <excludes>
-                    <exclude>META-INF/</exclude>
-                    <exclude>META-INF/**</exclude>
-                </excludes>
-            </unpackOptions>
-        </dependencySet>
-
-    </dependencySets>
-
 </assembly>

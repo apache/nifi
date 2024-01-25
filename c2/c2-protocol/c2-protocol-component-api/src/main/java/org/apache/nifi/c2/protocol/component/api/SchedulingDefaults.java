@@ -17,15 +17,13 @@
 
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map;
 
-@ApiModel
 public class SchedulingDefaults implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -39,7 +37,7 @@ public class SchedulingDefaults implements Serializable {
     private Map<String, Integer> defaultConcurrentTasksBySchedulingStrategy;
     private Map<String, String> defaultSchedulingPeriodsBySchedulingStrategy;
 
-    @ApiModelProperty("The name of the default scheduling strategy")
+    @Schema(description = "The name of the default scheduling strategy")
     public SchedulingStrategy getDefaultSchedulingStrategy() {
         return defaultSchedulingStrategy;
     }
@@ -48,7 +46,7 @@ public class SchedulingDefaults implements Serializable {
         this.defaultSchedulingStrategy = defaultSchedulingStrategy;
     }
 
-    @ApiModelProperty("The default scheduling period in milliseconds")
+    @Schema(description = "The default scheduling period in milliseconds")
     public long getDefaultSchedulingPeriodMillis() {
         return defaultSchedulingPeriodMillis;
     }
@@ -57,7 +55,7 @@ public class SchedulingDefaults implements Serializable {
         this.defaultSchedulingPeriodMillis = defaultSchedulingPeriodMillis;
     }
 
-    @ApiModelProperty("The default penalization period in milliseconds")
+    @Schema(description = "The default penalization period in milliseconds")
     public long getPenalizationPeriodMillis() {
         return penalizationPeriodMillis;
     }
@@ -66,7 +64,7 @@ public class SchedulingDefaults implements Serializable {
         this.penalizationPeriodMillis = penalizationPeriodMillis;
     }
 
-    @ApiModelProperty("The default yield duration in milliseconds")
+    @Schema(description = "The default yield duration in milliseconds")
     public long getYieldDurationMillis() {
         return yieldDurationMillis;
     }
@@ -75,7 +73,7 @@ public class SchedulingDefaults implements Serializable {
         this.yieldDurationMillis = yieldDurationMillis;
     }
 
-    @ApiModelProperty("The default run duration in nano-seconds")
+    @Schema(description = "The default run duration in nano-seconds")
     public long getDefaultRunDurationNanos() {
         return defaultRunDurationNanos;
     }
@@ -84,7 +82,7 @@ public class SchedulingDefaults implements Serializable {
         this.defaultRunDurationNanos = defaultRunDurationNanos;
     }
 
-    @ApiModelProperty("The default concurrent tasks")
+    @Schema(description = "The default concurrent tasks")
     public String getDefaultMaxConcurrentTasks() {
         return defaultMaxConcurrentTasks;
     }
@@ -93,7 +91,7 @@ public class SchedulingDefaults implements Serializable {
         this.defaultMaxConcurrentTasks = defaultMaxConcurrentTasks;
     }
 
-    @ApiModelProperty("The default concurrent tasks for each scheduling strategy")
+    @Schema(description = "The default concurrent tasks for each scheduling strategy")
     public Map<String, Integer> getDefaultConcurrentTasksBySchedulingStrategy() {
         return defaultConcurrentTasksBySchedulingStrategy != null ? Collections.unmodifiableMap(defaultConcurrentTasksBySchedulingStrategy) : null;
     }
@@ -102,7 +100,7 @@ public class SchedulingDefaults implements Serializable {
         this.defaultConcurrentTasksBySchedulingStrategy = defaultConcurrentTasksBySchedulingStrategy;
     }
 
-    @ApiModelProperty("The default scheduling period for each scheduling strategy")
+    @Schema(description = "The default scheduling period for each scheduling strategy")
     public Map<String, String> getDefaultSchedulingPeriodsBySchedulingStrategy() {
         return defaultSchedulingPeriodsBySchedulingStrategy != null ? Collections.unmodifiableMap(defaultSchedulingPeriodsBySchedulingStrategy) : null;
     }

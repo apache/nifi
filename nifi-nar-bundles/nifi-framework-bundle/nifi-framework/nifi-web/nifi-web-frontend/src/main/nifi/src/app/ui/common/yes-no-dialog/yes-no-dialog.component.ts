@@ -29,10 +29,15 @@ import { MatButtonModule } from '@angular/material/button';
 })
 export class YesNoDialog {
     @Output() yes: EventEmitter<void> = new EventEmitter<void>();
+    @Output() no: EventEmitter<void> = new EventEmitter<void>();
 
     constructor(@Inject(MAT_DIALOG_DATA) public request: YesNoDialogRequest) {}
 
     yesClicked(): void {
         this.yes.next();
+    }
+
+    noClicked(): void {
+        this.no.next();
     }
 }

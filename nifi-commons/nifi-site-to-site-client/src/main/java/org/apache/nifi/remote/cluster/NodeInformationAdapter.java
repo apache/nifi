@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.remote.cluster;
 
-import javax.xml.bind.annotation.adapters.XmlAdapter;
+import jakarta.xml.bind.annotation.adapters.XmlAdapter;
 
 public class NodeInformationAdapter extends XmlAdapter<AdaptedNodeInformation, NodeInformation> {
 

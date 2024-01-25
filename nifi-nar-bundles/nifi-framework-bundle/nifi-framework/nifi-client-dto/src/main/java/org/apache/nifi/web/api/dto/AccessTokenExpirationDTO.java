@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.InstantAdapter;
 
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.time.Instant;
 
 @XmlRootElement(name = "accessTokenExpiration")
@@ -29,10 +29,9 @@ public class AccessTokenExpirationDTO {
     private Instant expiration;
 
     @XmlJavaTypeAdapter(InstantAdapter.class)
-    @ApiModelProperty(
-            value = "Token Expiration",
-            dataType = "string",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "Token Expiration",
+            type = "string",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public Instant getExpiration() {
         return expiration;

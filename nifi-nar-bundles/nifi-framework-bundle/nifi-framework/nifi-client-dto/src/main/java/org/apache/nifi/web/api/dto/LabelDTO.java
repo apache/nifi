@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Map;
 
 /**
@@ -43,8 +43,7 @@ public class LabelDTO extends ComponentDTO {
     /**
      * @return z index for this label
      */
-    @ApiModelProperty(
-            value = "The z index of the label."
+    @Schema(description = "The z index of the label."
     )
     public Long getzIndex() {
         return zIndex;
@@ -59,8 +58,7 @@ public class LabelDTO extends ComponentDTO {
      *
      * @return The label text
      */
-    @ApiModelProperty(
-            value = "The text that appears in the label."
+    @Schema(description = "The text that appears in the label."
     )
     public String getLabel() {
         return label;
@@ -73,8 +71,7 @@ public class LabelDTO extends ComponentDTO {
     /**
      * @return style for this label
      */
-    @ApiModelProperty(
-            value = "The styles for this label (font-size : 12px, background-color : #eee, etc)."
+    @Schema(description = "The styles for this label (font-size : 12px, background-color : #eee, etc)."
     )
     public Map<String, String> getStyle() {
         return style;
@@ -87,8 +84,7 @@ public class LabelDTO extends ComponentDTO {
     /**
      * @return height of the label in pixels when at a 1:1 scale
      */
-    @ApiModelProperty(
-            value = "The height of the label in pixels when at a 1:1 scale."
+    @Schema(description = "The height of the label in pixels when at a 1:1 scale."
     )
     public Double getHeight() {
         return height;
@@ -101,8 +97,7 @@ public class LabelDTO extends ComponentDTO {
     /**
      * @return width of the label in pixels when at a 1:1 scale
      */
-    @ApiModelProperty(
-            value = "The width of the label in pixels when at a 1:1 scale."
+    @Schema(description = "The width of the label in pixels when at a 1:1 scale."
     )
     public Double getWidth() {
         return width;

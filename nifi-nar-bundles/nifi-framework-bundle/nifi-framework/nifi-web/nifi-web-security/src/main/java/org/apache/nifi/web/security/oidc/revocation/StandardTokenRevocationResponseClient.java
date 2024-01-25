@@ -20,7 +20,7 @@ import org.apache.nifi.web.security.oidc.client.web.OidcRegistrationProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
@@ -68,7 +68,7 @@ public class StandardTokenRevocationResponseClient implements TokenRevocationRes
 
         final ClientRegistration clientRegistration = clientRegistrationRepository.findByRegistrationId(OidcRegistrationProperty.REGISTRATION_ID.getProperty());
         final ResponseEntity<?> responseEntity = getResponseEntity(revocationRequest, clientRegistration);
-        final HttpStatus statusCode = responseEntity.getStatusCode();
+        final HttpStatusCode statusCode = responseEntity.getStatusCode();
         return new TokenRevocationResponse(statusCode.is2xxSuccessful(), statusCode.value());
     }
 

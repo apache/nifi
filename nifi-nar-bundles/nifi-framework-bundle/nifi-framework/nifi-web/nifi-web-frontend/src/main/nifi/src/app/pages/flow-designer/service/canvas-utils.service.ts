@@ -32,9 +32,12 @@ import { BulletinsTip } from '../../../ui/common/tooltips/bulletins-tip/bulletin
 import { Position } from '../state/shared';
 import { ComponentType, Permissions } from '../../../state/shared';
 import { NiFiCommon } from '../../../service/nifi-common.service';
-import { User } from '../../../state/user';
-import { initialState as initialUserState } from '../../../state/user/user.reducer';
-import { selectUser } from '../../../state/user/user.selectors';
+import { CurrentUser } from '../../../state/current-user';
+import { initialState as initialUserState } from '../../../state/current-user/current-user.reducer';
+import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
+import { FlowConfiguration } from '../../../state/flow-configuration';
+import { initialState as initialFlowConfigurationState } from '../../../state/flow-configuration/flow-configuration.reducer';
+import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
 
 @Injectable({
     providedIn: 'root'
@@ -48,7 +51,8 @@ export class CanvasUtils {
     private currentProcessGroupId: string = initialFlowState.id;
     private parentProcessGroupId: string | null = initialFlowState.flow.processGroupFlow.parentGroupId;
     private canvasPermissions: Permissions = initialFlowState.flow.permissions;
-    private currentUser: User = initialUserState.user;
+    private currentUser: CurrentUser = initialUserState.user;
+    private flowConfiguration: FlowConfiguration | null = initialFlowConfigurationState.flowConfiguration;
     private connections: any[] = [];
 
     private readonly humanizeDuration: Humanizer;
@@ -89,10 +93,17 @@ export class CanvasUtils {
             });
 
         this.store
-            .select(selectUser)
+            .select(selectCurrentUser)
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((user) => {
                 this.currentUser = user;
+            });
+
+        this.store
+            .select(selectFlowConfiguration)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((flowConfiguration) => {
+                this.flowConfiguration = flowConfiguration;
             });
     }
 
@@ -228,7 +239,7 @@ export class CanvasUtils {
         // get the selection data
         const selectionData: any = selection.datum();
 
-        let supportsModification: boolean = false;
+        let supportsModification = false;
         if (this.isProcessor(selection) || this.isInputPort(selection) || this.isOutputPort(selection)) {
             supportsModification = !(
                 selectionData.status.aggregateSnapshot.runStatus === 'Running' ||
@@ -246,8 +257,8 @@ export class CanvasUtils {
         } else if (this.isLabel(selection)) {
             supportsModification = true;
         } else if (this.isConnection(selection)) {
-            let isSourceConfigurable: boolean = false;
-            let isDestinationConfigurable: boolean = false;
+            let isSourceConfigurable = false;
+            let isDestinationConfigurable = false;
 
             const sourceComponentId: string = this.getConnectionSourceComponentId(selectionData);
             const source: any = d3.select('#id-' + sourceComponentId);
@@ -286,7 +297,7 @@ export class CanvasUtils {
         }
 
         const self: CanvasUtils = this;
-        let isDeletable: boolean = true;
+        let isDeletable = true;
         selection.each(function (this: any) {
             if (!self.isDeletable(d3.select(this))) {
                 isDeletable = false;
@@ -454,6 +465,40 @@ export class CanvasUtils {
     }
 
     /**
+     * Determines whether the user can configure or open the policy management page.
+     */
+    public canManagePolicies(selection: any): boolean {
+        // ensure 0 or 1 components selected
+        if (selection.size() <= 1) {
+            // if something is selected, ensure it's not a connection
+            if (!selection.empty() && this.isConnection(selection)) {
+                return false;
+            }
+
+            // ensure access to read tenants
+            return this.canAccessTenants();
+        }
+
+        return false;
+    }
+
+    public supportsManagedAuthorizer(): boolean {
+        if (this.flowConfiguration) {
+            return this.flowConfiguration.supportsManagedAuthorizer;
+        }
+        return false;
+    }
+
+    /**
+     * Determines whether the current user can access tenants.
+     *
+     * @returns {boolean}
+     */
+    public canAccessTenants(): boolean {
+        return this.currentUser.tenantsPermissions.canRead === true;
+    }
+
+    /**
      * Determines whether the current user can access provenance for the specified component.
      *
      * @argument {selection} selection      The selection
@@ -485,6 +530,24 @@ export class CanvasUtils {
         }
 
         return this.isProcessor(selection) && this.canAccessProvenance();
+    }
+
+    /**
+     * Determines whether the current user can view the status history for the selected component.
+     *
+     * @param {selection} selection
+     */
+    public canViewStatusHistory(selection: any): boolean {
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        return (
+            this.isProcessor(selection) ||
+            this.isConnection(selection) ||
+            this.isRemoteProcessGroup(selection) ||
+            this.isProcessGroup(selection)
+        );
     }
 
     /**
@@ -639,7 +702,7 @@ export class CanvasUtils {
         const connections: Map<string, any> = new Map<string, any>();
         const components: Map<string, any> = new Map<string, any>();
 
-        let isDisconnected: boolean = true;
+        let isDisconnected = true;
 
         // include connections
         selection
@@ -894,7 +957,7 @@ export class CanvasUtils {
      * @param tooltipData
      */
     public canvasTooltip<C>(viewContainerRef: ViewContainerRef, type: Type<C>, selection: any, tooltipData: any): void {
-        let closeTimer: number = -1;
+        let closeTimer = -1;
         let tooltipRef: ComponentRef<C> | undefined;
 
         selection
@@ -1034,7 +1097,7 @@ export class CanvasUtils {
      * @param {string} cacheName
      */
     public multilineEllipsis(selection: any, lineCount: number, text: string, cacheName: string) {
-        let i: number = 1;
+        let i = 1;
         const words: string[] = text.split(/\s+/).reverse();
 
         // get the appropriate position
@@ -1047,7 +1110,7 @@ export class CanvasUtils {
 
         // go through each word
         let word = words.pop();
-        while (!!word) {
+        while (word) {
             // add the current word
             line.push(word);
 
@@ -1069,7 +1132,7 @@ export class CanvasUtils {
                 if (++i >= lineCount) {
                     // get the remainder using the current word and
                     // reversing whats left
-                    var remainder = [word].concat(words.reverse());
+                    const remainder = [word].concat(words.reverse());
 
                     // apply ellipsis to the last line
                     this.ellipsis(tspan, remainder.join(' '), cacheName);
@@ -1103,7 +1166,7 @@ export class CanvasUtils {
         // if there is active threads show the count, otherwise hide
         if (activeThreads > 0 || terminatedThreads > 0) {
             const generateThreadsTip = function () {
-                var tip = activeThreads + ' active threads';
+                let tip = activeThreads + ' active threads';
                 if (terminatedThreads > 0) {
                     tip += ' (' + terminatedThreads + ' terminated)';
                 }
@@ -1181,5 +1244,238 @@ export class CanvasUtils {
             return '#000000';
         }
         return '#ffffff';
+    }
+
+    /**
+     * Determines if the components in the specified selection are runnable.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                    Whether the selection is runnable
+     */
+    public areRunnable(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.empty()) {
+            return true;
+        }
+
+        let runnable = true;
+        selection.each((data, index, nodes) => {
+            if (!this.isRunnable(d3.select(nodes[index]))) {
+                runnable = false;
+            }
+        });
+        return runnable;
+    }
+
+    /**
+     * Determines if any of the components in the specified selection are runnable or can start transmitting.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                    Whether the selection is runnable
+     */
+    public areAnyRunnable(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.empty()) {
+            return true;
+        }
+
+        let runnable = false;
+        selection.each((data, index, nodes) => {
+            const d = d3.select(nodes[index]);
+            if (this.isRunnable(d) || this.canStartTransmitting(d)) {
+                runnable = true;
+            }
+        });
+        return runnable;
+    }
+
+    /**
+     * Determines if the component in the specified selection is runnable.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                    Whether the selection is runnable
+     */
+    public isRunnable(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.size() !== 1) {
+            return false;
+        }
+        if (this.isProcessGroup(selection)) {
+            return true;
+        }
+        if (!this.canOperate(selection)) {
+            return false;
+        }
+
+        let runnable = false;
+        const selectionData = selection.datum();
+        if (this.isProcessor(selection) || this.isInputPort(selection) || this.isOutputPort(selection)) {
+            runnable =
+                this.supportsModification(selection) && selectionData.status.aggregateSnapshot.runStatus === 'Stopped';
+        }
+        return runnable;
+    }
+
+    /**
+     * Determines if the components in the specified selection are stoppable.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                    Whether the selection is stoppable
+     */
+    public areStoppable(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.empty()) {
+            return true;
+        }
+
+        let stoppable = true;
+        selection.each((data, index, nodes) => {
+            if (!this.isStoppable(d3.select(nodes[index]))) {
+                stoppable = false;
+            }
+        });
+
+        return stoppable;
+    }
+
+    /**
+     * Determines if any of the components in the specified selection are stoppable.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                    Whether the selection is stoppable
+     */
+    public areAnyStoppable(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.empty()) {
+            return true;
+        }
+
+        let stoppable = false;
+        selection.each((data, index, nodes) => {
+            const d = d3.select(nodes[index]);
+            if (this.isStoppable(d) || this.canStopTransmitting(d)) {
+                stoppable = true;
+            }
+        });
+
+        return stoppable;
+    }
+
+    /**
+     * Determines if the component in the specified selection is runnable.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                    Whether the selection is runnable
+     */
+    public isStoppable(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.size() !== 1) {
+            return false;
+        }
+        if (this.isProcessGroup(selection)) {
+            return true;
+        }
+        if (!this.canOperate(selection)) {
+            return false;
+        }
+
+        let stoppable = false;
+        const selectionData = selection.datum();
+        if (this.isProcessor(selection) || this.isInputPort(selection) || this.isOutputPort(selection)) {
+            stoppable = selectionData.status.aggregateSnapshot.runStatus === 'Running';
+        }
+        return stoppable;
+    }
+
+    public getStartable(selection: d3.Selection<any, any, any, any>) {
+        return selection.filter((d, index, nodes) => {
+            const context = nodes[index];
+            return this.isRunnable(d3.select(context)) || this.canStartTransmitting(d3.select(context));
+        });
+    }
+
+    public getStoppable(selection: d3.Selection<any, any, any, any>) {
+        return selection.filter((d, index, nodes) => {
+            const context = nodes[index];
+            return this.isStoppable(d3.select(context)) || this.canStopTransmitting(d3.select(context));
+        });
+    }
+
+    public canAllStartTransmitting(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.empty()) {
+            return false;
+        }
+
+        let canStartTransmitting = true;
+        selection.each((data, index, nodes) => {
+            if (!this.canStartTransmitting(d3.select(nodes[index]))) {
+                canStartTransmitting = false;
+            }
+        });
+        return canStartTransmitting;
+    }
+
+    /**
+     * Determines if the components in the specified selection support starting transmission.
+     *
+     * @param {d3.Selection} selection
+     */
+    public canStartTransmitting(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        if ((!this.canModify(selection) || !this.canRead(selection)) && !this.canOperate(selection)) {
+            return false;
+        }
+
+        return this.isRemoteProcessGroup(selection);
+    }
+
+    /**
+     * Determines if the components in the specified selection support stopping transmission.
+     *
+     * @param {d3.Selection} selection
+     */
+    public canStopTransmitting(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        if ((!this.canModify(selection) || this.canRead(selection)) && !this.canOperate(selection)) {
+            return false;
+        }
+
+        return this.isRemoteProcessGroup(selection);
+    }
+
+    /**
+     * Determines if the specified selection can all stop transmitting.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}                    Whether the selection can stop transmitting
+     */
+    public canAllStopTransmitting(selection: d3.Selection<any, any, any, any>): boolean {
+        if (selection.empty()) {
+            return false;
+        }
+
+        let canStopTransmitting = true;
+        selection.each((data, index, nodes) => {
+            if (!this.canStopTransmitting(d3.select(nodes[index]))) {
+                canStopTransmitting = false;
+            }
+        });
+        return canStopTransmitting;
+    }
+    /**
+     * Determines whether the components in the specified selection can be operated.
+     *
+     * @argument {d3.Selection} selection      The selection
+     * @return {boolean}            Whether the selection can be operated
+     */
+    public canOperate(selection: d3.Selection<any, any, any, any>): boolean {
+        const selectionSize = selection.size();
+        const writableSize = selection
+            .filter((d) => {
+                return d.permissions.canWrite || d.operatePermissions?.canWrite;
+            })
+            .size();
+
+        return selectionSize === writableSize;
     }
 }

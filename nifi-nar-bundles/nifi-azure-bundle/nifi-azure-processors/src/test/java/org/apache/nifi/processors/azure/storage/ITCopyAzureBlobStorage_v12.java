@@ -94,7 +94,7 @@ public class ITCopyAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
     private void assertFlowFile(String containerName, String blobName, byte[] blobData) throws Exception {
         runner.assertAllFlowFilesTransferred(CopyAzureBlobStorage_v12.REL_SUCCESS, 1);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CopyAzureBlobStorage_v12.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CopyAzureBlobStorage_v12.REL_SUCCESS).getFirst();
 
         assertFlowFileCommonBlobAttributes(flowFile, containerName, blobName);
         if (blobData != null) {

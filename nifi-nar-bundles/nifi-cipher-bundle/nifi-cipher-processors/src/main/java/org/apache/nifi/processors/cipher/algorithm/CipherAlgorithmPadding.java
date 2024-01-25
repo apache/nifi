@@ -24,7 +24,6 @@ import org.apache.nifi.components.DescribedValue;
 public enum CipherAlgorithmPadding implements DescribedValue {
     /** No Padding */
     NO_PADDING("NoPadding"),
-
     /** PKCS5 Padding described in RFC 8018 */
     PKCS5_PADDING("PKCS5Padding");
 

@@ -22,11 +22,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processors.standard.db.ColumnDescription;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
+import org.apache.nifi.processors.standard.db.TableSchema;
 
 import static java.sql.Types.CHAR;
 import static java.sql.Types.CLOB;
@@ -188,13 +190,7 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
         List<String> conflictClause = new ArrayList<>();
 
         for (String columnName : columnsNames) {
-
-            StringBuilder statementStringBuilder = new StringBuilder();
-
-            statementStringBuilder.append(getColumnAssignment(table, columnName, newTableAlias));
-
-            conflictClause.add(statementStringBuilder.toString());
-
+            conflictClause.add(getColumnAssignment(table, columnName, newTableAlias));
         }
 
         return conflictClause;
@@ -253,4 +249,44 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
         }
     }
 
+    @Override
+    public boolean supportsCreateTableIfNotExists() {
+        return true;
+    }
+
+    /**
+     * Generates a CREATE TABLE statement using the specified table schema
+     * @param tableSchema The table schema including column information
+     * @param quoteTableName Whether to quote the table name in the generated DDL
+     * @param quoteColumnNames Whether to quote column names in the generated DDL
+     * @return A String containing DDL to create the specified table
+     */
+    @Override
+    public String getCreateTableStatement(TableSchema tableSchema, boolean quoteTableName, boolean quoteColumnNames) {
+        StringBuilder createTableStatement = new StringBuilder()
+                .append("DECLARE\n\tsql_stmt long;\nBEGIN\n\tsql_stmt:='CREATE TABLE ")
+                .append(generateTableName(quoteTableName, tableSchema.getCatalogName(), tableSchema.getSchemaName(), tableSchema.getTableName(), tableSchema))
+                .append(" (");
+
+        List<ColumnDescription> columns = tableSchema.getColumnsAsList();
+        Set<String> primaryKeyColumnNames = tableSchema.getPrimaryKeyColumnNames();
+        for (int i = 0; i < columns.size(); i++) {
+            ColumnDescription column = columns.get(i);
+            createTableStatement
+                    .append((i != 0) ? ", " : "")
+                    .append(quoteColumnNames ? getColumnQuoteString() : "")
+                    .append(column.getColumnName())
+                    .append(quoteColumnNames ? getColumnQuoteString() : "")
+                    .append(" ")
+                    .append(getSQLForDataType(column.getDataType()))
+                    .append(column.isNullable() ? "" : " NOT NULL")
+                    .append(primaryKeyColumnNames != null && primaryKeyColumnNames.contains(column.getColumnName()) ? " PRIMARY KEY" : "");
+        }
+
+        createTableStatement
+                .append(")';\nEXECUTE IMMEDIATE sql_stmt;\nEXCEPTION\n\tWHEN OTHERS THEN\n\t\tIF SQLCODE = -955 THEN\n\t\t\t")
+                .append("NULL;\n\t\tELSE\n\t\t\tRAISE;\n\t\tEND IF;\nEND;");
+
+        return createTableStatement.toString();
+    }
 }

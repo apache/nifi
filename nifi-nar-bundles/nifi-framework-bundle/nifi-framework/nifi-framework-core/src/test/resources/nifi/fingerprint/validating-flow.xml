@@ -15,7 +15,6 @@
 -->
 <flowController encoding-version="1.0">
   <maxTimerDrivenThreadCount>10</maxTimerDrivenThreadCount>
-  <maxEventDrivenThreadCount>5</maxEventDrivenThreadCount>
   <rootGroup>
     <id>289ff050-015a-1000-b21b-a39f56e56729</id>
     <name>NiFi Flow</name>

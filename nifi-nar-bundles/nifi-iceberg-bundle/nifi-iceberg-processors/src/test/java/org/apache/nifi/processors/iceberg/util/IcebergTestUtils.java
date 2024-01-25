@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -88,7 +87,7 @@ public class IcebergTestUtils {
         List<Path> dataFiles = Files.walk(Paths.get(tableLocation + "/data"))
                 .filter(Files::isRegularFile)
                 .filter(path -> !path.getFileName().toString().startsWith("."))
-                .collect(Collectors.toList());
+                .toList();
 
         assertEquals(numberOfDataFiles, dataFiles.size());
     }

@@ -35,7 +35,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
-import { NgIf } from '@angular/common';
+import { AsyncPipe, NgIf } from '@angular/common';
+import { Observable } from 'rxjs';
 
 @Component({
     selector: 'edit-parameter-dialog',
@@ -50,16 +51,19 @@ import { NgIf } from '@angular/common';
         MatRadioModule,
         MatCheckboxModule,
         NifiSpinnerDirective,
-        NgIf
+        NgIf,
+        AsyncPipe
     ],
     templateUrl: './edit-parameter-dialog.component.html',
     styleUrls: ['./edit-parameter-dialog.component.scss']
 })
 export class EditParameterDialog {
-    @Input() saving!: boolean;
+    @Input() saving$!: Observable<boolean>;
     @Output() editParameter: EventEmitter<EditParameterResponse> = new EventEmitter<EditParameterResponse>();
+    @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
 
     name: FormControl;
+    sensitive: FormControl;
     editParameterForm: FormGroup;
     isNew: boolean;
 
@@ -67,38 +71,48 @@ export class EditParameterDialog {
         @Inject(MAT_DIALOG_DATA) public request: EditParameterRequest,
         private formBuilder: FormBuilder
     ) {
+        // get the optional parameter. when existingParameters are specified this parameter is used to
+        // seed the form for the new parameter. when existingParameters are not specified, this is the
+        // existing parameter that populates the form
         const parameter: Parameter | undefined = request.parameter;
 
-        if (parameter) {
-            this.isNew = false;
-
-            // in edit scenarios the existing parameters shouldn't be enforced since the parameter does exist
-            this.name = new FormControl({ value: parameter.name, disabled: true }, Validators.required);
-
-            this.editParameterForm = this.formBuilder.group({
-                name: this.name,
-                value: new FormControl(parameter.value),
-                empty: new FormControl(parameter.value == ''),
-                sensitive: new FormControl({ value: parameter.sensitive, disabled: true }, Validators.required),
-                description: new FormControl(parameter.description)
-            });
-        } else {
+        const validators: any[] = [Validators.required];
+        if (request.existingParameters) {
             this.isNew = true;
 
-            const validators: any[] = [Validators.required];
-            if (request.existingParameters) {
-                validators.push(this.existingParameterValidator(request.existingParameters));
-            }
-            this.name = new FormControl('', validators);
+            // since there were existing parameters in the request, add the existing parameters validator because
+            // parameters names must be unique
+            validators.push(this.existingParameterValidator(request.existingParameters));
 
-            this.editParameterForm = this.formBuilder.group({
-                name: this.name,
-                value: new FormControl(''),
-                empty: new FormControl(false),
-                sensitive: new FormControl({ value: false, disabled: false }, Validators.required),
-                description: new FormControl('')
-            });
+            this.name = new FormControl(parameter ? parameter.name : '', validators);
+
+            // when seeding a new parameter with a sensitivity flag do not allow it to be changed
+            const disableSensitive: boolean = parameter != null;
+            this.sensitive = new FormControl(
+                { value: parameter ? parameter.sensitive : false, disabled: disableSensitive },
+                Validators.required
+            );
+        } else {
+            this.isNew = false;
+
+            // without existingParameters, we are editing an existing parameter. in this case the name and sensitivity cannot be modified
+            this.name = new FormControl(
+                { value: parameter ? parameter.name : '', disabled: true },
+                Validators.required
+            );
+            this.sensitive = new FormControl(
+                { value: parameter ? parameter.sensitive : false, disabled: true },
+                Validators.required
+            );
         }
+
+        this.editParameterForm = this.formBuilder.group({
+            name: this.name,
+            value: new FormControl(parameter ? parameter.value : ''),
+            empty: new FormControl(parameter ? parameter.value == '' : false),
+            sensitive: this.sensitive,
+            description: new FormControl(parameter ? parameter.description : '')
+        });
     }
 
     private existingParameterValidator(existingParameters: string[]): ValidatorFn {
@@ -136,7 +150,11 @@ export class EditParameterDialog {
         }
     }
 
-    addProperty(): void {
+    cancelClicked(): void {
+        this.cancel.next();
+    }
+
+    okClicked(): void {
         const value: string = this.editParameterForm.get('value')?.value;
         const empty: boolean = this.editParameterForm.get('empty')?.value;
 

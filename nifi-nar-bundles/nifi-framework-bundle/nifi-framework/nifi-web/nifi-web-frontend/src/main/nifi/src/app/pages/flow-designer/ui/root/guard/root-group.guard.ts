@@ -20,7 +20,7 @@ import { FlowService } from '../../../service/flow.service';
 import { inject } from '@angular/core';
 import { switchMap, take } from 'rxjs';
 import { Store } from '@ngrx/store';
-import { UserState } from '../../../../../state/user';
+import { CurrentUserState } from '../../../../../state/current-user';
 import { FlowState } from '../../../state/flow';
 import { selectCurrentProcessGroupId } from '../../../state/flow/flow.selectors';
 import { initialState } from '../../../state/flow/flow.reducer';
@@ -28,7 +28,7 @@ import { initialState } from '../../../state/flow/flow.reducer';
 export const rootGroupGuard: CanActivateFn = (route, state) => {
     const router: Router = inject(Router);
     const flowService: FlowService = inject(FlowService);
-    const store: Store<UserState> = inject(Store<FlowState>);
+    const store: Store<CurrentUserState> = inject(Store<FlowState>);
 
     return store.select(selectCurrentProcessGroupId).pipe(
         take(1),

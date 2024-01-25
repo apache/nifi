@@ -16,27 +16,25 @@
  */
 package org.apache.nifi.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HttpMethod;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -51,18 +49,11 @@ import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.CounterEntity;
 import org.apache.nifi.web.api.entity.CountersEntity;
 
-
 /**
- * RESTful endpoint for managing a cluster.
+ * RESTful endpoint for managing Counters.
  */
 @Path("/counters")
-@Api(
-    value = "/counters",
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Endpoint for managing counters.")
-})
+@Tag(name = "Counters")
 public class CountersResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
@@ -87,32 +78,30 @@ public class CountersResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("") // necessary due to a bug in swagger
-    @ApiOperation(
-            value = "Gets the current counters for this NiFi",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = CountersEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /counters")
+    @Path("")
+    @Operation(
+            summary = "Gets the current counters for this NiFi",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = CountersEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /counters")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getCounters(
-            @ApiParam(
-                    value = "Whether or not to include the breakdown per node. Optional, defaults to false",
-                    required = false
+            @Parameter(
+                    description = "Whether or not to include the breakdown per node. Optional, defaults to false"
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) final Boolean nodewise,
-            @ApiParam(
-                    value = "The id of the node where to get the status.",
-                    required = false
+            @Parameter(
+                    description = "The id of the node where to get the status."
             )
             @QueryParam("clusterNodeId") final String clusterNodeId) throws InterruptedException {
 
@@ -170,36 +159,32 @@ public class CountersResource extends ApplicationResource {
     /**
      * Update the specified counter. This will reset the counter value to 0.
      *
-     * @param httpServletRequest request
-     * @param id                 The id of the counter.
+     * @param id The id of the counter.
      * @return A counterEntity.
      */
     @PUT
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    @ApiOperation(
-            value = "Updates the specified counter. This will reset the counter value to 0",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = CounterEntity.class,
-            authorizations = {
-                    @Authorization(value = "Write - /counters")
+    @Operation(
+            summary = "Updates the specified counter. This will reset the counter value to 0",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = CounterEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /counters")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response updateCounter(
-            @Context final HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "The id of the counter."
-            )
+            @Parameter(description = "The id of the counter.")
             @PathParam("id") final String id) {
 
         if (isReplicateRequest()) {
@@ -212,9 +197,7 @@ public class CountersResource extends ApplicationResource {
         return withWriteLock(
                 serviceFacade,
                 requestComponentEntity,
-                lookup -> {
-                    authorizeCounters(RequestAction.WRITE);
-                },
+                lookup -> authorizeCounters(RequestAction.WRITE),
                 null,
                 (componentEntity) -> {
                     // reset the specified counter
@@ -229,8 +212,6 @@ public class CountersResource extends ApplicationResource {
                 }
         );
     }
-
-    // setters
 
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;

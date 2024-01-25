@@ -196,7 +196,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
                 case UUID:
                 case TIMESTAMP:
                     try {
-                        return DataTypeUtils.convertType(value, dataType, getLazyDateFormat(), getLazyTimeFormat(), getLazyTimestampFormat(), fieldName);
+                        return DataTypeUtils.convertType(value, dataType, getDateFormat(), getTimeFormat(), getTimestampFormat(), fieldName);
                     } catch (final Exception e) {
                         return value;
                     }
@@ -249,7 +249,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
 
             return new MapRecord(childSchema, coercedValues);
         } else {
-            return DataTypeUtils.convertType(value, dataType, getLazyDateFormat(), getLazyTimeFormat(), getLazyTimestampFormat(), fieldName);
+            return DataTypeUtils.convertType(value, dataType, getDateFormat(), getTimeFormat(), getTimestampFormat(), fieldName);
         }
     }
 

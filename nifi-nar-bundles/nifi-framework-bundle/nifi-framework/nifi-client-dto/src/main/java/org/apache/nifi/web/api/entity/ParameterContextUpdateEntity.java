@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.Set;
 
 @XmlRootElement(name = "parameterContextUpdateEntity")
@@ -29,7 +29,7 @@ public class ParameterContextUpdateEntity extends Entity {
     private ParameterContextDTO parameterContext;
     private Set<AffectedComponentEntity> referencingComponents;
 
-    @ApiModelProperty("The Revision of the Parameter Context")
+    @Schema(description = "The Revision of the Parameter Context")
     public RevisionDTO getParameterContextRevision() {
         return parameterContextRevision;
     }
@@ -38,8 +38,8 @@ public class ParameterContextUpdateEntity extends Entity {
         this.parameterContextRevision = parameterContextRevision;
     }
 
-    @ApiModelProperty(value = "The Parameter Context that is being operated on. This may not be populated until the request has successfully completed.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The Parameter Context that is being operated on. This may not be populated until the request has successfully completed.",
+            accessMode = Schema.AccessMode.READ_ONLY)
     public ParameterContextDTO getParameterContext() {
         return parameterContext;
     }
@@ -48,7 +48,7 @@ public class ParameterContextUpdateEntity extends Entity {
         this.parameterContext = parameterContext;
     }
 
-    @ApiModelProperty(value = "The components that are referenced by the update.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The components that are referenced by the update.", accessMode = Schema.AccessMode.READ_ONLY)
     public Set<AffectedComponentEntity> getReferencingComponents() {
         return referencingComponents;
     }

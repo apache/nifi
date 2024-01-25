@@ -16,16 +16,14 @@
  */
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel
 public class Attribute {
 
     private String name;
     private String description;
 
-    @ApiModelProperty(value = "The name of the attribute")
+    @Schema(description = "The name of the attribute")
     public String getName() {
         return name;
     }
@@ -34,7 +32,7 @@ public class Attribute {
         this.name = name;
     }
 
-    @ApiModelProperty(value = "The description of the attribute")
+    @Schema(description = "The description of the attribute")
     public String getDescription() {
         return description;
     }

@@ -85,7 +85,7 @@ public class GetAzureEventHubTest {
         testRunner.assertValid();
         testRunner.setProperty(GetAzureEventHub.RECEIVER_FETCH_TIMEOUT, "10000");
         testRunner.assertValid();
-        testRunner.setProperty(GetAzureEventHub.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS.getValue());
+        testRunner.setProperty(GetAzureEventHub.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS);
         testRunner.assertValid();
         configureProxyControllerService();
         testRunner.assertValid();
@@ -132,7 +132,7 @@ public class GetAzureEventHubTest {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(GetAzureEventHub.REL_SUCCESS, 1);
 
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GetAzureEventHub.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GetAzureEventHub.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals(CONTENT);
         flowFile.assertAttributeEquals("eventhub.enqueued.timestamp", ENQUEUED_TIME.toString());
         flowFile.assertAttributeEquals("eventhub.offset", Long.toString(OFFSET));

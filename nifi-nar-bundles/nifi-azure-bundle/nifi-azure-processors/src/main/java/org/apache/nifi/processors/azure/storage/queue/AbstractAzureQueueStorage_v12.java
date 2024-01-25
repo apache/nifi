@@ -43,10 +43,8 @@ import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,12 +62,7 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
 
     public static final PropertyDescriptor ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.ENDPOINT_SUFFIX)
-            .displayName("Endpoint Suffix")
-            .description("Storage accounts in public Azure always use a common FQDN suffix. " +
-                    "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions).")
-            .required(true)
             .defaultValue(AzureServiceEndpoints.DEFAULT_QUEUE_ENDPOINT_SUFFIX)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     public static final PropertyDescriptor STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
@@ -100,7 +93,7 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
             .description("Unsuccessful operations will be transferred to the failure relationship.")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
 
     static final String URI_ATTRIBUTE = "azure.queue.uri";
     static final String INSERTION_TIME_ATTRIBUTE = "azure.queue.insertionTime";

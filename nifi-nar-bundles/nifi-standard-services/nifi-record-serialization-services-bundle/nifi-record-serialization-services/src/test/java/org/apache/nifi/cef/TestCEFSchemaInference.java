@@ -18,7 +18,6 @@ package org.apache.nifi.cef;
 
 import com.fluenda.parcefone.event.CommonEvent;
 import com.fluenda.parcefone.parser.CEFParser;
-import org.apache.bval.jsr.ApacheValidationProvider;
 import org.apache.nifi.schema.inference.RecordSource;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -27,7 +26,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.validation.Validation;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -40,8 +38,7 @@ import java.util.stream.Collectors;
 
 public class TestCEFSchemaInference {
 
-    private final javax.validation.Validator validator = Validation.byProvider(ApacheValidationProvider.class).configure().buildValidatorFactory().getValidator();
-    private final CEFParser parser = new CEFParser(validator);
+    private final CEFParser parser = new CEFParser();
 
     private boolean includeExtensions;
     private boolean includeCustomExtensions;

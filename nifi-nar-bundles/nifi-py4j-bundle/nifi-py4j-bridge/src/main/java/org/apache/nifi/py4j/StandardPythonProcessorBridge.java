@@ -117,7 +117,7 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
                 }
 
                 sleepMillis = Math.min(sleepMillis * 2, TimeUnit.MINUTES.toMillis(10));
-                logger.error("Failed to load code for Python Processor {} ({}). Will try again in {} millis", initializationContext.getIdentifier(), getProcessorType(), sleepMillis);
+                logger.error("Failed to load code for Python Processor {} ({}). Will try again in {} millis", initializationContext.getIdentifier(), getProcessorType(), sleepMillis, e);
 
                 try {
                     Thread.sleep(sleepMillis);

@@ -16,11 +16,12 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import {
+    ConfigureReportingTaskRequest,
     CreateReportingTaskRequest,
     DeleteReportingTaskRequest,
     ReportingTaskEntity,
@@ -91,7 +92,17 @@ export class ReportingTaskService {
         return this.httpClient.put(`${this.stripProtocol(entity.uri)}/run-status`, payload);
     }
 
-    // updateControllerConfig(controllerEntity: ControllerEntity): Observable<any> {
-    //     return this.httpClient.put(`${ControllerServiceService.API}/controller/config`, controllerEntity);
-    // }
+    getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<any> {
+        const params: any = {
+            propertyName,
+            sensitive
+        };
+        return this.httpClient.get(`${ReportingTaskService.API}/reporting-tasks/${id}/descriptors`, {
+            params
+        });
+    }
+
+    updateReportingTask(configureReportingTask: ConfigureReportingTaskRequest): Observable<any> {
+        return this.httpClient.put(this.stripProtocol(configureReportingTask.uri), configureReportingTask.payload);
+    }
 }

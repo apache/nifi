@@ -22,6 +22,7 @@ import {
     loadProvenanceOptionsSuccess,
     pollProvenanceQuerySuccess,
     provenanceApiError,
+    resetProvenanceState,
     saveProvenanceRequest,
     submitProvenanceQuery,
     submitProvenanceQuerySuccess
@@ -31,7 +32,6 @@ export const initialState: ProvenanceEventListingState = {
     options: null,
     request: null,
     provenance: null,
-    saving: false,
     loadedTimestamp: '',
     error: null,
     status: 'pending'
@@ -39,6 +39,9 @@ export const initialState: ProvenanceEventListingState = {
 
 export const provenanceEventListingReducer = createReducer(
     initialState,
+    on(resetProvenanceState, (state) => ({
+        ...initialState
+    })),
     on(loadProvenanceOptionsSuccess, (state, { response }) => ({
         ...state,
         options: response.provenanceOptions
@@ -64,7 +67,6 @@ export const provenanceEventListingReducer = createReducer(
     })),
     on(provenanceApiError, (state, { error }) => ({
         ...state,
-        saving: false,
         error,
         status: 'error' as const
     }))

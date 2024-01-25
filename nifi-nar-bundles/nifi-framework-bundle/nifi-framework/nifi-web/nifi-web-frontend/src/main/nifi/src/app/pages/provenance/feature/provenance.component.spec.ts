@@ -22,15 +22,25 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { initialState } from '../state/provenance-event-listing/provenance-event-listing.reducer';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { Component } from '@angular/core';
 
 describe('Provenance', () => {
     let component: Provenance;
     let fixture: ComponentFixture<Provenance>;
 
+    @Component({
+        selector: 'navigation',
+        standalone: true,
+        template: ''
+    })
+    class MockNavigation {}
+
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Provenance],
-            imports: [RouterModule, RouterTestingModule],
+            imports: [RouterModule, RouterTestingModule, MockNavigation],
             providers: [
                 provideMockStore({
                     initialState

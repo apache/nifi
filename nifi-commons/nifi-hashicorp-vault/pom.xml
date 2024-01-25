@@ -21,7 +21,7 @@
     </parent>
     <artifactId>nifi-hashicorp-vault</artifactId>
     <properties>
-        <spring.vault.version>2.3.4</spring.vault.version>
+        <spring.vault.version>3.1.0</spring.vault.version>
     </properties>
     <dependencies>
         <dependency>

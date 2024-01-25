@@ -38,7 +38,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.hadoop.exception.FailureException;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordWriter;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -68,8 +67,6 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -77,7 +74,6 @@ import java.time.temporal.ChronoField;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.function.BiFunction;
 
 import static org.apache.nifi.processors.hadoop.AbstractHadoopProcessor.HADOOP_FILE_URL_ATTRIBUTE;
@@ -220,13 +216,13 @@ public class PutORCTest {
     public void testWriteORCWithAvroLogicalTypes() throws IOException, InitializationException {
         final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/user_logical_types.avsc"), StandardCharsets.UTF_8);
         schema = new Schema.Parser().parse(avroSchema);
-        LocalTime nowTime = LocalTime.now();
-        LocalDateTime nowDateTime = LocalDateTime.now();
-        LocalDate nowDate = LocalDate.now();
+        LocalTime localTime = LocalTime.of(12, 30, 45);
+        LocalDateTime localDateTime = LocalDateTime.of(2024, 1, 1, 12, 30, 45);
+        LocalDate localDate = LocalDate.of(2024, 1, 1);
 
-        final int timeMillis = nowTime.get(ChronoField.MILLI_OF_DAY);
-        final Timestamp timestampMillis = Timestamp.valueOf(nowDateTime);
-        final Date dt = Date.valueOf(nowDate);
+        final int timeMillis = localTime.get(ChronoField.MILLI_OF_DAY);
+        final Timestamp timestampMillis = Timestamp.valueOf(localDateTime);
+        final Date dt = new Date(1704112245000L);
         final BigDecimal bigDecimal = new BigDecimal("92.12");
 
         configure(proc, 10, (numUsers, readerFactory) -> {
@@ -279,9 +275,10 @@ public class PutORCTest {
                     assertEquals((int) currUser, ((IntWritable) x.get(0)).get());
                     assertEquals(timeMillis, ((IntWritable) x.get(1)).get());
                     assertEquals(timestampMillis, ((TimestampWritableV2) x.get(2)).getTimestamp().toSqlTimestamp());
-                    final DateFormat noTimeOfDayDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                    noTimeOfDayDateFormat.setTimeZone(TimeZone.getTimeZone("gmt"));
-                    assertEquals(noTimeOfDayDateFormat.format(dt), ((DateWritableV2) x.get(3)).get().toString());
+
+                    final DateWritableV2 dateWritableV2 = (DateWritableV2) x.get(3);
+                    final int epochDay = dateWritableV2.get().toEpochDay();
+                    assertEquals(localDate.toEpochDay(), epochDay);
                     assertEquals(bigDecimal, ((HiveDecimalWritable) x.get(4)).getHiveDecimal().bigDecimalValue());
                     return null;
                 }
@@ -391,8 +388,7 @@ public class PutORCTest {
     public void testIOExceptionRenamingShouldRouteToRetry() throws InitializationException {
         final PutORC proc = new PutORC() {
             @Override
-            protected void rename(FileSystem fileSystem, Path srcFile, Path destFile)
-                    throws IOException, InterruptedException, FailureException {
+            protected void rename(FileSystem fileSystem, Path srcFile, Path destFile) throws IOException {
                 throw new IOException("IOException renaming");
             }
         };
@@ -449,7 +445,7 @@ public class PutORCTest {
     }
 
     @Test
-    public void testDDLQuoteTableNameSections() throws IOException, InitializationException {
+    public void testDDLQuoteTableNameSections() throws InitializationException {
         configure(proc, 100);
 
         final String filename = "testORCWithDefaults-" + System.currentTimeMillis();

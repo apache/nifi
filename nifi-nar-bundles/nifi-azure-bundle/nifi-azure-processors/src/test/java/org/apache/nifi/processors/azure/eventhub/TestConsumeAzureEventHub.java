@@ -24,6 +24,7 @@ import com.azure.messaging.eventhubs.models.EventBatchContext;
 import com.azure.messaging.eventhubs.models.PartitionContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointStrategy;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -153,7 +154,7 @@ public class TestConsumeAzureEventHub {
         testRunner.assertNotValid();
         testRunner.setProperty(ConsumeAzureEventHub.USE_MANAGED_IDENTITY,"true");
         testRunner.assertValid();
-        testRunner.setProperty(ConsumeAzureEventHub.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS.getValue());
+        testRunner.setProperty(ConsumeAzureEventHub.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS);
         testRunner.assertValid();
         configureProxyControllerService();
         testRunner.assertValid();
@@ -199,7 +200,7 @@ public class TestConsumeAzureEventHub {
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_NAME);
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_SAS_TOKEN, STORAGE_TOKEN);
         testRunner.assertValid();
-        testRunner.setProperty(ConsumeAzureEventHub.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS.getValue());
+        testRunner.setProperty(ConsumeAzureEventHub.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS);
         testRunner.assertValid();
         configureProxyControllerService();
         testRunner.assertValid();
@@ -217,9 +218,22 @@ public class TestConsumeAzureEventHub {
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_NAME);
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, STORAGE_ACCOUNT_KEY);
         testRunner.assertValid();
-        testRunner.setProperty(ConsumeAzureEventHub.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS.getValue());
+        testRunner.setProperty(ConsumeAzureEventHub.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS);
         testRunner.assertValid();
         configureProxyControllerService();
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void testProcessorConfigValidityWithComponentStateCheckpointStrategy() throws InitializationException {
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.ACCESS_POLICY_NAME, POLICY_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.POLICY_PRIMARY_KEY, POLICY_KEY);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.CHECKPOINT_STRATEGY, CheckpointStrategy.COMPONENT_STATE.getValue());
         testRunner.assertValid();
     }
 
@@ -234,13 +248,13 @@ public class TestConsumeAzureEventHub {
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
-        final MockFlowFile flowFile = flowFiles.get(0);
+        final MockFlowFile flowFile = flowFiles.getFirst();
         flowFile.assertContentEquals(FIRST_CONTENT);
         assertEventHubAttributesFound(flowFile);
 
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
-        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
+        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
         assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
     }
@@ -280,13 +294,13 @@ public class TestConsumeAzureEventHub {
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
-        final MockFlowFile ff1 = flowFiles.get(0);
+        final MockFlowFile ff1 = flowFiles.getFirst();
         ff1.assertContentEquals(FIRST_CONTENT + SECOND_CONTENT);
         assertEventHubAttributesFound(ff1);
 
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
-        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
+        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
         assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
     }
@@ -306,20 +320,20 @@ public class TestConsumeAzureEventHub {
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
-        final MockFlowFile ff1 = flowFiles.get(0);
+        final MockFlowFile ff1 = flowFiles.getFirst();
         ff1.assertContentEquals(FIRST_CONTENT + SECOND_CONTENT + FOURTH_CONTENT);
         assertEventHubAttributesFound(ff1);
 
         final List<MockFlowFile> failedFFs = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
         assertEquals(1, failedFFs.size());
-        final MockFlowFile failed1 = failedFFs.get(0);
+        final MockFlowFile failed1 = failedFFs.getFirst();
         failed1.assertContentEquals(THIRD_CONTENT);
         assertEventHubAttributesFound(failed1);
 
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(2, provenanceEvents.size());
 
-        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
+        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
         assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
 
@@ -346,14 +360,14 @@ public class TestConsumeAzureEventHub {
 
         final List<MockFlowFile> failedFFs = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
         assertEquals(1, failedFFs.size());
-        final MockFlowFile failed1 = failedFFs.get(0);
+        final MockFlowFile failed1 = failedFFs.getFirst();
         failed1.assertContentEquals(FIRST_CONTENT);
         assertEventHubAttributesFound(failed1);
 
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
 
-        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
+        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
         assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
     }
@@ -373,20 +387,20 @@ public class TestConsumeAzureEventHub {
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
-        final MockFlowFile ff1 = flowFiles.get(0);
+        final MockFlowFile ff1 = flowFiles.getFirst();
         ff1.assertContentEquals(FIRST_CONTENT + THIRD_CONTENT + FOURTH_CONTENT);
         assertEventHubAttributesFound(ff1);
 
         final List<MockFlowFile> failedFFs = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_PARSE_FAILURE);
         assertEquals(1, failedFFs.size());
-        final MockFlowFile failed1 = failedFFs.get(0);
+        final MockFlowFile failed1 = failedFFs.getFirst();
         failed1.assertContentEquals(SECOND_CONTENT);
         assertEventHubAttributesFound(failed1);
 
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertEquals(2, provenanceEvents.size());
 
-        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.get(0);
+        final ProvenanceEventRecord provenanceEvent1 = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent1.getEventType());
         assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
 

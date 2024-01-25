@@ -17,12 +17,14 @@
 package org.apache.nifi.websocket.jetty;
 
 import org.apache.nifi.websocket.WebSocketMessageRouter;
+import org.eclipse.jetty.websocket.api.Callback;
 import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.WebSocketAdapter;
+import org.eclipse.jetty.websocket.api.Session.Listener.AbstractAutoDemanding;
 
+import java.nio.ByteBuffer;
 import java.util.UUID;
 
-public class RoutingWebSocketListener extends WebSocketAdapter {
+public class RoutingWebSocketListener extends AbstractAutoDemanding {
     private final WebSocketMessageRouter router;
     private String sessionId;
 
@@ -31,8 +33,8 @@ public class RoutingWebSocketListener extends WebSocketAdapter {
     }
 
     @Override
-    public void onWebSocketConnect(final Session session) {
-        super.onWebSocketConnect(session);
+    public void onWebSocketOpen(final Session session) {
+        super.onWebSocketOpen(session);
         if (sessionId == null || sessionId.isEmpty()) {
             // If sessionId is already assigned to this instance, don't publish new one.
             // So that existing sesionId can be reused when reconnecting.
@@ -54,8 +56,8 @@ public class RoutingWebSocketListener extends WebSocketAdapter {
     }
 
     @Override
-    public void onWebSocketBinary(final byte[] payload, final int offset, final int len) {
-        router.onWebSocketBinary(sessionId, payload, offset, len);
+    public void onWebSocketBinary(final ByteBuffer payload, final Callback callback) {
+        router.onWebSocketBinary(sessionId, payload.array(), payload.arrayOffset(), payload.limit());
     }
 
     public void setSessionId(String sessionId) {

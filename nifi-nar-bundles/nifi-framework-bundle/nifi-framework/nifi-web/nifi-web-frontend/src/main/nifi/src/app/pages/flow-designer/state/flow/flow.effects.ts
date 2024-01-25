@@ -17,8 +17,10 @@
 
 import { Injectable } from '@angular/core';
 import { FlowService } from '../../service/flow.service';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
+import * as ParameterActions from '../parameter/parameter.actions';
+import * as StatusHistoryActions from '../../../../state/status-history/status-history.actions';
 import {
     asyncScheduler,
     catchError,
@@ -34,8 +36,7 @@ import {
     switchMap,
     take,
     takeUntil,
-    tap,
-    withLatestFrom
+    tap
 } from 'rxjs';
 import {
     CreateProcessGroupDialogRequest,
@@ -46,7 +47,8 @@ import {
     Snippet,
     UpdateComponentFailure,
     UpdateComponentResponse,
-    UpdateConnectionSuccess
+    UpdateConnectionSuccess,
+    UpdateProcessorRequest
 } from './index';
 import { Action, Store } from '@ngrx/store';
 import {
@@ -65,6 +67,8 @@ import { CreatePort } from '../../ui/canvas/items/port/create-port/create-port.c
 import { EditPort } from '../../ui/canvas/items/port/edit-port/edit-port.component';
 import {
     ComponentType,
+    EditParameterRequest,
+    EditParameterResponse,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     NewPropertyDialogRequest,
@@ -91,9 +95,12 @@ import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { GroupComponents } from '../../ui/canvas/items/process-group/group-components/group-components.component';
 import { EditProcessGroup } from '../../ui/canvas/items/process-group/edit-process-group/edit-process-group.component';
 import { CreateControllerService } from '../../../../ui/common/controller-service/create-controller-service/create-controller-service.component';
-import * as ControllerServicesActions from '../controller-services/controller-services.actions';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { ControllerServiceService } from '../../service/controller-service.service';
+import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
+import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
+import { selectParameterSaving } from '../parameter/parameter.selectors';
+import { ParameterService } from '../../service/parameter.service';
 
 @Injectable()
 export class FlowEffects {
@@ -103,6 +110,7 @@ export class FlowEffects {
         private flowService: FlowService,
         private extensionTypesService: ExtensionTypesService,
         private controllerServiceService: ControllerServiceService,
+        private parameterService: ParameterService,
         private client: Client,
         private canvasUtils: CanvasUtils,
         private canvasView: CanvasView,
@@ -115,7 +123,7 @@ export class FlowEffects {
     reloadFlow$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.reloadFlow),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([action, processGroupId]) => {
                 return of(
                     FlowActions.loadProcessGroup({
@@ -205,7 +213,7 @@ export class FlowEffects {
                         return of(FlowActions.openNewProcessorDialog({ request }));
                     case ComponentType.ProcessGroup:
                         return from(this.flowService.getParameterContexts()).pipe(
-                            withLatestFrom(this.store.select(selectCurrentParameterContext)),
+                            concatLatestFrom(() => this.store.select(selectCurrentParameterContext)),
                             map(([response, parameterContext]) => {
                                 const dialogRequest: CreateProcessGroupDialogRequest = {
                                     request,
@@ -239,7 +247,7 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.openNewProcessorDialog),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectProcessorTypes)),
+                concatLatestFrom(() => this.store.select(selectProcessorTypes)),
                 tap(([request, processorTypes]) => {
                     this.dialog
                         .open(CreateProcessor, {
@@ -262,7 +270,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.createProcessor),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.createProcessor(processGroupId, request)).pipe(
                     map((response) =>
@@ -303,7 +311,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.createProcessGroup),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.createProcessGroup(processGroupId, request)).pipe(
                     map((response) =>
@@ -324,7 +332,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.uploadProcessGroup),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.uploadProcessGroup(processGroupId, request)).pipe(
                     map((response) =>
@@ -345,10 +353,10 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.getParameterContextsAndOpenGroupComponentsDialog),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, currentProcessGroupId]) =>
                 from(this.flowService.getParameterContexts()).pipe(
-                    withLatestFrom(this.store.select(selectCurrentParameterContext)),
+                    concatLatestFrom(() => this.store.select(selectCurrentParameterContext)),
                     map(([response, parameterContext]) => {
                         const dialogRequest: GroupComponentsDialogRequest = {
                             request,
@@ -393,7 +401,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.groupComponents),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.createProcessGroup(processGroupId, request)).pipe(
                     map((response) =>
@@ -437,7 +445,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.getDefaultsAndOpenNewConnectionDialog),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, currentProcessGroupId]) =>
                 from(this.flowService.getProcessGroup(currentProcessGroupId)).pipe(
                     map((response) =>
@@ -496,7 +504,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.createConnection),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.createConnection(processGroupId, request)).pipe(
                     map((response) =>
@@ -538,7 +546,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.createPort),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.createPort(processGroupId, request)).pipe(
                     map((response) =>
@@ -559,7 +567,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.createFunnel),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.createFunnel(processGroupId, request)).pipe(
                     map((response) =>
@@ -580,7 +588,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.createLabel),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.createLabel(processGroupId, request)).pipe(
                     map((response) =>
@@ -644,7 +652,7 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.navigateToEditComponent),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([request, processGroupId]) => {
                     this.router.navigate(['/process-groups', processGroupId, request.type, request.id, 'edit']);
                 })
@@ -656,9 +664,76 @@ export class FlowEffects {
         () =>
             this.actions$.pipe(
                 ofType(FlowActions.navigateToEditCurrentProcessGroup),
-                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([action, processGroupId]) => {
                     this.router.navigate(['/process-groups', processGroupId, 'edit']);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToManageComponentPolicies$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.navigateToManageComponentPolicies),
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/access-policies', 'read', 'component', request.resource, request.id]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToQueueListing$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.navigateToQueueListing),
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/queue', request.connectionId]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToViewStatusHistoryForComponent$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.navigateToViewStatusHistoryForComponent),
+                map((action) => action.request),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([request, currentProcessGroupId]) => {
+                    this.router.navigate([
+                        '/process-groups',
+                        currentProcessGroupId,
+                        request.type,
+                        request.id,
+                        'history'
+                    ]);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    completeStatusHistoryForComponent$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(StatusHistoryActions.viewStatusHistoryComplete),
+                map((action) => action.request),
+                filter((request) => request.source === 'canvas'),
+                tap((request) => {
+                    this.store.dispatch(
+                        FlowActions.selectComponents({
+                            request: {
+                                components: [
+                                    {
+                                        id: request.componentId,
+                                        componentType: request.componentType
+                                    }
+                                ]
+                            }
+                        })
+                    );
                 })
             ),
         { dispatch: false }
@@ -762,15 +837,16 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.openEditProcessorDialog),
                 map((action) => action.request),
-                withLatestFrom(
+                concatLatestFrom(() => [
                     this.store.select(selectCurrentParameterContext),
                     this.store.select(selectCurrentProcessGroupId)
-                ),
+                ]),
                 tap(([request, parameterContext, processGroupId]) => {
                     const processorId: string = request.entity.id;
 
                     const editDialogReference = this.dialog.open(EditProcessor, {
                         data: request,
+                        id: processorId,
                         panelClass: 'large-dialog'
                     });
 
@@ -807,6 +883,30 @@ export class FlowEffects {
                         );
                     };
 
+                    const goTo = (commands: string[], destination: string): void => {
+                        if (editDialogReference.componentInstance.editProcessorForm.dirty) {
+                            const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
+                                data: {
+                                    title: 'Processor Configuration',
+                                    message: `Save changes before going to this ${destination}?`
+                                },
+                                panelClass: 'small-dialog'
+                            });
+
+                            saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
+                                editDialogReference.componentInstance.submitForm(commands);
+                            });
+
+                            saveChangesDialogReference.componentInstance.no.pipe(take(1)).subscribe(() => {
+                                editDialogReference.close('ROUTED');
+                                this.router.navigate(commands);
+                            });
+                        } else {
+                            editDialogReference.close('ROUTED');
+                            this.router.navigate(commands);
+                        }
+                    };
+
                     if (parameterContext != null) {
                         editDialogReference.componentInstance.getParameters = (sensitive: boolean) => {
                             return this.flowService.getParameterContext(parameterContext.id).pipe(
@@ -819,20 +919,98 @@ export class FlowEffects {
                                 })
                             );
                         };
+
+                        editDialogReference.componentInstance.parameterContext = parameterContext;
+                        editDialogReference.componentInstance.goToParameter = (parameter: string) => {
+                            const commands: string[] = ['/parameter-contexts', parameterContext.id];
+                            goTo(commands, 'Parameter');
+                        };
+
+                        editDialogReference.componentInstance.convertToParameter = (
+                            name: string,
+                            sensitive: boolean,
+                            value: string | null
+                        ) => {
+                            return this.parameterService.getParameterContext(parameterContext.id, false).pipe(
+                                switchMap((parameterContextEntity) => {
+                                    const existingParameters: string[] =
+                                        parameterContextEntity.component.parameters.map(
+                                            (parameterEntity: ParameterEntity) => parameterEntity.parameter.name
+                                        );
+                                    const convertToParameterDialogRequest: EditParameterRequest = {
+                                        parameter: {
+                                            name,
+                                            value,
+                                            sensitive,
+                                            description: ''
+                                        },
+                                        existingParameters
+                                    };
+                                    const convertToParameterDialogReference = this.dialog.open(EditParameterDialog, {
+                                        data: convertToParameterDialogRequest,
+                                        panelClass: 'medium-dialog'
+                                    });
+
+                                    convertToParameterDialogReference.componentInstance.saving$ =
+                                        this.store.select(selectParameterSaving);
+
+                                    convertToParameterDialogReference.componentInstance.cancel.pipe(
+                                        takeUntil(convertToParameterDialogReference.afterClosed()),
+                                        tap(() => ParameterActions.stopPollingParameterContextUpdateRequest())
+                                    );
+
+                                    return convertToParameterDialogReference.componentInstance.editParameter.pipe(
+                                        takeUntil(convertToParameterDialogReference.afterClosed()),
+                                        switchMap((dialogResponse: EditParameterResponse) => {
+                                            this.store.dispatch(
+                                                ParameterActions.submitParameterContextUpdateRequest({
+                                                    request: {
+                                                        id: parameterContext.id,
+                                                        payload: {
+                                                            revision: this.client.getRevision(parameterContextEntity),
+                                                            component: {
+                                                                id: parameterContextEntity.id,
+                                                                parameters: [{ parameter: dialogResponse.parameter }]
+                                                            }
+                                                        }
+                                                    }
+                                                })
+                                            );
+
+                                            return this.store.select(selectParameterSaving).pipe(
+                                                takeUntil(convertToParameterDialogReference.afterClosed()),
+                                                filter((parameterSaving) => parameterSaving === false),
+                                                map(() => {
+                                                    convertToParameterDialogReference.close();
+                                                    return `#{${dialogResponse.parameter.name}}`;
+                                                })
+                                            );
+                                        })
+                                    );
+                                }),
+                                catchError((error) => {
+                                    // TODO handle error
+                                    return NEVER;
+                                })
+                            );
+                        };
                     }
 
-                    editDialogReference.componentInstance.getServiceLink = (serviceId: string) => {
-                        return this.flowService.getControllerService(serviceId).pipe(
-                            take(1),
-                            map((serviceEntity) => {
-                                return [
+                    editDialogReference.componentInstance.goToService = (serviceId: string) => {
+                        this.controllerServiceService.getControllerService(serviceId).subscribe({
+                            next: (serviceEntity) => {
+                                const commands: string[] = [
                                     '/process-groups',
                                     serviceEntity.component.parentGroupId,
                                     'controller-services',
                                     serviceEntity.id
                                 ];
-                            })
-                        );
+                                goTo(commands, 'Controller Service');
+                            },
+                            error: () => {
+                                // TODO - handle error
+                            }
+                        });
                     };
 
                     editDialogReference.componentInstance.createNewService = (
@@ -877,17 +1055,6 @@ export class FlowEffects {
                                                 .pipe(
                                                     take(1),
                                                     switchMap((createReponse) => {
-                                                        // dispatch an inline create service success action so the new service is in the state
-                                                        this.store.dispatch(
-                                                            ControllerServicesActions.inlineCreateControllerServiceSuccess(
-                                                                {
-                                                                    response: {
-                                                                        controllerService: createReponse
-                                                                    }
-                                                                }
-                                                            )
-                                                        );
-
                                                         // fetch an updated property descriptor
                                                         return this.flowService
                                                             .getPropertyDescriptor(processorId, descriptor.name, false)
@@ -917,14 +1084,15 @@ export class FlowEffects {
 
                     editDialogReference.componentInstance.editProcessor
                         .pipe(takeUntil(editDialogReference.afterClosed()))
-                        .subscribe((payload: any) => {
+                        .subscribe((updateProcessorRequest: UpdateProcessorRequest) => {
                             this.store.dispatch(
                                 FlowActions.updateProcessor({
                                     request: {
                                         id: processorId,
                                         uri: request.uri,
                                         type: request.type,
-                                        payload
+                                        payload: updateProcessorRequest.payload,
+                                        postUpdateNavigation: updateProcessorRequest.postUpdateNavigation
                                     }
                                 })
                             );
@@ -1021,13 +1189,14 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.openEditProcessGroupDialog),
                 map((action) => action.request),
-                switchMap((action) =>
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                switchMap(([request, currentProcessGroupId]) =>
                     this.flowService.getParameterContexts().pipe(
                         take(1),
-                        map((response) => [action, response.parameterContexts])
+                        map((response) => [request, response.parameterContexts, currentProcessGroupId])
                     )
                 ),
-                tap(([request, parameterContexts]) => {
+                tap(([request, parameterContexts, currentProcessGroupId]) => {
                     const editDialogReference = this.dialog.open(EditProcessGroup, {
                         data: request,
                         panelClass: 'large-dialog'
@@ -1053,18 +1222,28 @@ export class FlowEffects {
 
                     editDialogReference.afterClosed().subscribe(() => {
                         this.store.dispatch(FlowActions.clearFlowApiError());
-                        this.store.dispatch(
-                            FlowActions.selectComponents({
-                                request: {
-                                    components: [
-                                        {
-                                            id: request.entity.id,
-                                            componentType: request.type
-                                        }
-                                    ]
-                                }
-                            })
-                        );
+                        if (request.entity.id === currentProcessGroupId) {
+                            this.store.dispatch(
+                                FlowActions.enterProcessGroup({
+                                    request: {
+                                        id: currentProcessGroupId
+                                    }
+                                })
+                            );
+                        } else {
+                            this.store.dispatch(
+                                FlowActions.selectComponents({
+                                    request: {
+                                        components: [
+                                            {
+                                                id: request.entity.id,
+                                                componentType: request.type
+                                            }
+                                        ]
+                                    }
+                                })
+                            );
+                        }
                     });
                 })
             ),
@@ -1082,7 +1261,8 @@ export class FlowEffects {
                             requestId: request.requestId,
                             id: request.id,
                             type: request.type,
-                            response: response
+                            postUpdateNavigation: request.postUpdateNavigation,
+                            response
                         };
                         return FlowActions.updateComponentSuccess({ response: updateComponentResponse });
                     }),
@@ -1104,8 +1284,14 @@ export class FlowEffects {
         () =>
             this.actions$.pipe(
                 ofType(FlowActions.updateComponentSuccess),
-                tap(() => {
-                    this.dialog.closeAll();
+                map((action) => action.response),
+                tap((response) => {
+                    if (response.postUpdateNavigation) {
+                        this.router.navigate(response.postUpdateNavigation);
+                        this.dialog.getDialogById(response.id)?.close('ROUTED');
+                    } else {
+                        this.dialog.closeAll();
+                    }
                 })
             ),
         { dispatch: false }
@@ -1130,7 +1316,8 @@ export class FlowEffects {
                             requestId: request.requestId,
                             id: request.id,
                             type: request.type,
-                            response: response
+                            postUpdateNavigation: request.postUpdateNavigation,
+                            response
                         };
                         return FlowActions.updateProcessorSuccess({ response: updateComponentResponse });
                     }),
@@ -1151,10 +1338,16 @@ export class FlowEffects {
     updateProcessorSuccess$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.updateProcessorSuccess),
-            tap(() => {
-                this.dialog.closeAll();
-            }),
             map((action) => action.response),
+            tap((response) => {
+                if (response.postUpdateNavigation) {
+                    this.router.navigate(response.postUpdateNavigation);
+                    this.dialog.getDialogById(response.id)?.close('ROUTED');
+                } else {
+                    this.dialog.closeAll();
+                }
+            }),
+            filter((response) => response.postUpdateNavigation == null),
             switchMap((response) => of(FlowActions.loadConnectionsForComponent({ id: response.id })))
         )
     );
@@ -1422,7 +1615,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.moveComponents),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             mergeMap(([request, processGroupId]) => {
                 const components: any[] = request.components;
 
@@ -1496,7 +1689,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.deleteComponents),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             mergeMap(([requests, processGroupId]) => {
                 if (requests.length === 1) {
                     return from(this.flowService.deleteComponent(requests[0])).pipe(
@@ -1634,7 +1827,7 @@ export class FlowEffects {
         () =>
             this.actions$.pipe(
                 ofType(FlowActions.leaveProcessGroup),
-                withLatestFrom(this.store.select(selectParentProcessGroupId)),
+                concatLatestFrom(() => this.store.select(selectParentProcessGroupId)),
                 filter(([action, parentProcessGroupId]) => parentProcessGroupId != null),
                 tap(([action, parentProcessGroupId]) => {
                     this.router.navigate(['/process-groups', parentProcessGroupId]);
@@ -1647,10 +1840,10 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.addSelectedComponents),
             map((action) => action.request),
-            withLatestFrom(
+            concatLatestFrom(() => [
                 this.store.select(selectCurrentProcessGroupId),
                 this.store.select(selectAnySelectedComponentIds)
-            ),
+            ]),
             switchMap(([request, processGroupId, selected]) => {
                 let commands: string[] = [];
                 if (selected.length === 0) {
@@ -1679,10 +1872,10 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.removeSelectedComponents),
             map((action) => action.request),
-            withLatestFrom(
+            concatLatestFrom(() => [
                 this.store.select(selectCurrentProcessGroupId),
                 this.store.select(selectAnySelectedComponentIds)
-            ),
+            ]),
             switchMap(([request, processGroupId, selected]) => {
                 let commands: string[];
                 if (selected.length === 0) {
@@ -1701,7 +1894,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.selectComponents),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) => {
                 let commands: string[] = [];
                 if (request.components.length === 1) {
@@ -1723,7 +1916,7 @@ export class FlowEffects {
     deselectAllComponent$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.deselectAllComponents),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([action, processGroupId]) => {
                 return of(FlowActions.navigateWithoutTransform({ url: ['/process-groups', processGroupId] }));
             })
@@ -1735,7 +1928,7 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.navigateToComponent),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([request, currentProcessGroupId]) => {
                     if (request.processGroupId) {
                         this.router.navigate(['/process-groups', request.processGroupId, request.type, request.id]);
@@ -1805,8 +1998,8 @@ export class FlowEffects {
                                     })
                                 );
                             } else if (response.nodeSnapshots) {
-                                let replayedCount: number = 0;
-                                let unavailableCount: number = 0;
+                                let replayedCount = 0;
+                                let unavailableCount = 0;
 
                                 response.nodeSnapshots.forEach((nodeResponse: any) => {
                                     if (nodeResponse.snapshot.eventAvailable) {
@@ -1873,5 +2066,277 @@ export class FlowEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    startCurrentProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startCurrentProcessGroup),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([, pgId]) => {
+                return of(
+                    FlowActions.startComponent({
+                        request: {
+                            id: pgId,
+                            type: ComponentType.ProcessGroup
+                        }
+                    })
+                );
+            }),
+            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+        )
+    );
+
+    startComponents$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startComponents),
+            map((action) => action.request),
+            mergeMap((request) => [
+                ...request.components.map((component) => {
+                    return FlowActions.startComponent({
+                        request: component
+                    });
+                })
+            ])
+        )
+    );
+
+    startComponent$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startComponent),
+            map((action) => action.request),
+            mergeMap((request) => {
+                switch (request.type) {
+                    case ComponentType.InputPort:
+                    case ComponentType.OutputPort:
+                    case ComponentType.Processor:
+                    case ComponentType.RemoteProcessGroup:
+                        if ('uri' in request && 'revision' in request) {
+                            return from(this.flowService.startComponent(request)).pipe(
+                                map((response) => {
+                                    return FlowActions.startComponentSuccess({
+                                        response: {
+                                            type: request.type,
+                                            component: response
+                                        }
+                                    });
+                                }),
+                                catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                            );
+                        }
+                        return of(
+                            FlowActions.flowApiError({
+                                error: `Starting ${request.type} requires both uri and revision properties`
+                            })
+                        );
+                    case ComponentType.ProcessGroup:
+                        return combineLatest([
+                            this.flowService.startProcessGroup(request),
+                            this.flowService.startRemoteProcessGroupsInProcessGroup(request)
+                        ]).pipe(
+                            map(([startPgResponse]) => {
+                                return FlowActions.startComponentSuccess({
+                                    response: {
+                                        type: request.type,
+                                        component: startPgResponse
+                                    }
+                                });
+                            }),
+                            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                        );
+                    default:
+                        return of(FlowActions.flowApiError({ error: `${request.type} does not support starting` }));
+                }
+            }),
+            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+        )
+    );
+
+    /**
+     * If the component started was the current process group, reload the flow
+     */
+    startCurrentProcessGroupSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startComponentSuccess),
+            map((action) => action.response),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            filter(([response, currentPg]) => response.component.id === currentPg),
+            switchMap(() => of(FlowActions.reloadFlow()))
+        )
+    );
+
+    /**
+     * If a ProcessGroup was started, it should be reloaded as the response from the start operation doesn't contain all the displayed info
+     */
+    startProcessGroupSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startComponentSuccess),
+            map((action) => action.response),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            filter(([response]) => response.type === ComponentType.ProcessGroup),
+            filter(([response, currentPg]) => response.component.id !== currentPg),
+            switchMap(([response]) =>
+                of(
+                    FlowActions.loadChildProcessGroup({
+                        request: {
+                            id: response.component.id
+                        }
+                    })
+                )
+            )
+        )
+    );
+
+    stopCurrentProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.stopCurrentProcessGroup),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([, pgId]) => {
+                return of(
+                    FlowActions.stopComponent({
+                        request: {
+                            id: pgId,
+                            type: ComponentType.ProcessGroup
+                        }
+                    })
+                );
+            })
+        )
+    );
+
+    stopComponents$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.stopComponents),
+            map((action) => action.request),
+            mergeMap((request) => [
+                ...request.components.map((component) => {
+                    return FlowActions.stopComponent({
+                        request: component
+                    });
+                })
+            ])
+        )
+    );
+
+    stopComponent$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.stopComponent),
+            map((action) => action.request),
+            mergeMap((request) => {
+                switch (request.type) {
+                    case ComponentType.InputPort:
+                    case ComponentType.OutputPort:
+                    case ComponentType.Processor:
+                    case ComponentType.RemoteProcessGroup:
+                        if ('uri' in request && 'revision' in request) {
+                            return from(this.flowService.stopComponent(request)).pipe(
+                                map((response) => {
+                                    return FlowActions.stopComponentSuccess({
+                                        response: {
+                                            type: request.type,
+                                            component: response
+                                        }
+                                    });
+                                }),
+                                catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                            );
+                        }
+                        return of(
+                            FlowActions.flowApiError({
+                                error: `Stopping ${request.type} requires both uri and revision properties`
+                            })
+                        );
+                    case ComponentType.ProcessGroup:
+                        return combineLatest([
+                            this.flowService.stopProcessGroup(request),
+                            this.flowService.stopRemoteProcessGroupsInProcessGroup(request)
+                        ]).pipe(
+                            map(([stopPgResponse]) => {
+                                return FlowActions.stopComponentSuccess({
+                                    response: {
+                                        type: request.type,
+                                        component: stopPgResponse
+                                    }
+                                });
+                            }),
+                            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                        );
+                    default:
+                        return of(FlowActions.flowApiError({ error: `${request.type} does not support stopping` }));
+                }
+            }),
+            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+        )
+    );
+
+    /**
+     * If the component stopped was the current process group, reload the flow
+     */
+    stopCurrentProcessGroupSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.stopComponentSuccess),
+            map((action) => action.response),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            filter(([response, currentPg]) => response.component.id === currentPg),
+            switchMap(() => of(FlowActions.reloadFlow()))
+        )
+    );
+
+    /**
+     * If a ProcessGroup was stopped, it should be reloaded as the response from the stop operation doesn't contain all the displayed info
+     */
+    stopProcessGroupSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.stopComponentSuccess),
+            map((action) => action.response),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            filter(([response]) => response.type === ComponentType.ProcessGroup),
+            filter(([response, currentPg]) => response.component.id !== currentPg),
+            switchMap(([response]) =>
+                of(
+                    FlowActions.loadChildProcessGroup({
+                        request: {
+                            id: response.component.id
+                        }
+                    })
+                )
+            )
+        )
+    );
+
+    runOnce$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.runOnce),
+            map((action) => action.request),
+            switchMap((request) => {
+                return from(this.flowService.runOnce(request)).pipe(
+                    map((response) =>
+                        FlowActions.runOnceSuccess({
+                            response: {
+                                component: response
+                            }
+                        })
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                );
+            }),
+            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+        )
+    );
+
+    reloadProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.loadChildProcessGroup),
+            map((action) => action.request),
+            mergeMap((request) => {
+                return from(this.flowService.getProcessGroup(request.id)).pipe(
+                    map((response) =>
+                        FlowActions.loadChildProcessGroupSuccess({
+                            response: response.component
+                        })
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                );
+            })
+        )
     );
 }
