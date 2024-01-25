@@ -2236,7 +2236,7 @@ export class FlowEffects {
                 return from(this.flowService.getProcessGroup(request.id)).pipe(
                     map((response) =>
                         FlowActions.loadChildProcessGroupSuccess({
-                            response: response.component
+                            response
                         })
                     ),
                     catchError((error) => of(FlowActions.flowApiError({ error: error.error })))

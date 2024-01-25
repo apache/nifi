@@ -16,7 +16,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { NEVER, Observable } from 'rxjs';
+import { EMPTY, NEVER, Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
@@ -83,7 +83,7 @@ export class ControllerServiceService implements ControllerServiceCreator, Prope
                 }
             );
         }
-        return NEVER;
+        return EMPTY;
     }
 
     getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<any> {

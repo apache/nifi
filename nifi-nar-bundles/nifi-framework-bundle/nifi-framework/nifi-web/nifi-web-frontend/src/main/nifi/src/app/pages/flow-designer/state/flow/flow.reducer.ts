@@ -326,10 +326,7 @@ export const flowReducer = createReducer(
             if (collection) {
                 const componentIndex: number = collection.findIndex((f: any) => response.component.id === f.id);
                 if (componentIndex > -1) {
-                    collection[componentIndex] = {
-                        ...collection[componentIndex],
-                        ...response.component
-                    };
+                    collection[componentIndex] = response.component;
                 }
             }
 
@@ -343,10 +340,7 @@ export const flowReducer = createReducer(
             if (collection) {
                 const componentIndex: number = collection.findIndex((f: any) => response.component.id === f.id);
                 if (componentIndex > -1) {
-                    collection[componentIndex] = {
-                        ...collection[componentIndex],
-                        ...response.component
-                    };
+                    collection[componentIndex] = response.component;
                 }
             }
 
@@ -361,10 +355,7 @@ export const flowReducer = createReducer(
             if (collection) {
                 const componentIndex: number = collection.findIndex((f: any) => response.id === f.id);
                 if (componentIndex > -1) {
-                    collection[componentIndex] = {
-                        ...collection[componentIndex],
-                        ...response.component
-                    };
+                    collection[componentIndex] = response;
                 }
             }
 
