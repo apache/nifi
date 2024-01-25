@@ -23,8 +23,7 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import java.text.DateFormat;
-import java.util.function.Supplier;
+import java.util.Optional;
 
 abstract public class AbstractCSVRecordReader implements RecordReader {
 
@@ -32,10 +31,6 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
     protected final boolean hasHeader;
     protected final boolean ignoreHeader;
     private final boolean trimDoubleQuote;
-
-    protected final Supplier<DateFormat> LAZY_DATE_FORMAT;
-    protected final Supplier<DateFormat> LAZY_TIME_FORMAT;
-    protected final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
 
     protected final String dateFormat;
     protected final String timeFormat;
@@ -53,26 +48,20 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
 
         if (dateFormat == null || dateFormat.isEmpty()) {
             this.dateFormat = null;
-            LAZY_DATE_FORMAT = null;
         } else {
             this.dateFormat = dateFormat;
-            LAZY_DATE_FORMAT = () -> DataTypeUtils.getDateFormat(dateFormat);
         }
 
         if (timeFormat == null || timeFormat.isEmpty()) {
             this.timeFormat = null;
-            LAZY_TIME_FORMAT = null;
         } else {
             this.timeFormat = timeFormat;
-            LAZY_TIME_FORMAT = () -> DataTypeUtils.getDateFormat(timeFormat);
         }
 
         if (timestampFormat == null || timestampFormat.isEmpty()) {
             this.timestampFormat = null;
-            LAZY_TIMESTAMP_FORMAT = null;
         } else {
             this.timestampFormat = timestampFormat;
-            LAZY_TIMESTAMP_FORMAT = () -> DataTypeUtils.getDateFormat(timestampFormat);
         }
     }
 
@@ -94,7 +83,7 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
             return null;
         }
 
-        return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+        return DataTypeUtils.convertType(trimmed, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
     }
 
     protected final Object convertSimpleIfPossible(final String value, final DataType dataType, final String fieldName) {
@@ -127,22 +116,22 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
             case CHAR:
             case SHORT:
                 if (DataTypeUtils.isCompatibleDataType(trimmed, dataType)) {
-                    return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                    return DataTypeUtils.convertType(trimmed, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
                 }
                 break;
             case DATE:
                 if (DataTypeUtils.isDateTypeCompatible(trimmed, dateFormat)) {
-                    return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                    return DataTypeUtils.convertType(trimmed, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
                 }
                 break;
             case TIME:
                 if (DataTypeUtils.isTimeTypeCompatible(trimmed, timeFormat)) {
-                    return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                    return DataTypeUtils.convertType(trimmed, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
                 }
                 break;
             case TIMESTAMP:
                 if (DataTypeUtils.isTimestampTypeCompatible(trimmed, timestampFormat)) {
-                    return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                    return DataTypeUtils.convertType(trimmed, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
                 }
                 break;
         }

@@ -25,6 +25,7 @@ import { BulletinBoardEffects } from '../state/bulletin-board/bulletin-board.eff
 import { BulletinsRoutingModule } from './bulletins-routing.module';
 import { CounterListingModule } from '../../counters/ui/counter-listing/counter-listing.module';
 import { BulletinBoard } from '../ui/bulletin-board/bulletin-board.component';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
 
 @NgModule({
     declarations: [Bulletins],
@@ -35,7 +36,8 @@ import { BulletinBoard } from '../ui/bulletin-board/bulletin-board.component';
         StoreModule.forFeature(bulletinsFeatureKey, reducers),
         EffectsModule.forFeature(BulletinBoardEffects),
         CounterListingModule,
-        BulletinBoard
+        BulletinBoard,
+        Navigation
     ]
 })
 export class BulletinsModule {}

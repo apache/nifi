@@ -56,13 +56,14 @@ import {
     selectSkipTransform,
     selectViewStatusHistoryComponent
 } from '../../state/flow/flow.selectors';
-import { filter, map, switchMap, take, withLatestFrom } from 'rxjs';
+import { filter, map, switchMap, take } from 'rxjs';
 import { restoreViewport, zoomFit } from '../../state/transform/transform.actions';
 import { ComponentType, isDefinedAndNotNull } from '../../../../state/shared';
 import { initialState } from '../../state/flow/flow.reducer';
 import { CanvasContextMenu } from '../../service/canvas-context-menu.service';
 import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
 import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
+import { concatLatestFrom } from '@ngrx/effects';
 
 @Component({
     selector: 'fd-canvas',
@@ -114,7 +115,7 @@ export class Canvas implements OnInit, OnDestroy {
                 filter((processGroupId) => processGroupId != initialState.id),
                 switchMap(() => this.store.select(selectProcessGroupRoute)),
                 filter((processGroupRoute) => processGroupRoute != null),
-                withLatestFrom(this.store.select(selectSkipTransform)),
+                concatLatestFrom(() => this.store.select(selectSkipTransform)),
                 takeUntilDestroyed()
             )
             .subscribe(([status, skipTransform]) => {
@@ -132,7 +133,7 @@ export class Canvas implements OnInit, OnDestroy {
                 filter((processGroupId) => processGroupId != initialState.id),
                 switchMap(() => this.store.select(selectSingleSelectedComponent)),
                 filter((selectedComponent) => selectedComponent != null),
-                withLatestFrom(this.store.select(selectSkipTransform)),
+                concatLatestFrom(() => this.store.select(selectSkipTransform)),
                 takeUntilDestroyed()
             )
             .subscribe(([selectedComponent, skipTransform]) => {
@@ -150,7 +151,7 @@ export class Canvas implements OnInit, OnDestroy {
                 filter((processGroupId) => processGroupId != initialState.id),
                 switchMap(() => this.store.select(selectBulkSelectedComponentIds)),
                 filter((ids) => ids.length > 0),
-                withLatestFrom(this.store.select(selectSkipTransform)),
+                concatLatestFrom(() => this.store.select(selectSkipTransform)),
                 takeUntilDestroyed()
             )
             .subscribe(([ids, skipTransform]) => {

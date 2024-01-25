@@ -82,6 +82,9 @@ prop_replace 'nifi.analytics.connection.model.implementation'   "${NIFI_ANALYTIC
 prop_replace 'nifi.analytics.connection.model.score.name'       "${NIFI_ANALYTICS_MODEL_SCORE_NAME:-rSquared}"
 prop_replace 'nifi.analytics.connection.model.score.threshold'  "${NIFI_ANALYTICS_MODEL_SCORE_THRESHOLD:-.90}"
 
+# Set kubernetes properties
+prop_replace 'nifi.cluster.leader.election.kubernetes.lease.prefix'  "${NIFI_CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX:-}"
+
 # Add NAR provider properties
 # nifi-registry NAR provider
 if [ -n "${NIFI_NAR_LIBRARY_PROVIDER_NIFI_REGISTRY_URL}" ]; then

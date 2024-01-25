@@ -439,7 +439,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
         final boolean useTransactions = context.getProperty(USE_TRANSACTIONS).asBoolean();
         final String transactionalIdPrefix = context.getProperty(TRANSACTIONAL_ID_PREFIX).evaluateAttributeExpressions().getValue();
         Supplier<String> transactionalIdSupplier = new TransactionIdSupplier(transactionalIdPrefix);
-        final PublishStrategy publishStrategy = context.getProperty(PUBLISH_STRATEGY).asDescribedValue(PublishStrategy.class);
+        final PublishStrategy publishStrategy = context.getProperty(PUBLISH_STRATEGY).asAllowableValue(PublishStrategy.class);
 
         final String charsetName = context.getProperty(MESSAGE_HEADER_ENCODING).evaluateAttributeExpressions().getValue();
         final Charset charset = Charset.forName(charsetName);
@@ -616,7 +616,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
     }
 
     private PublishFailureStrategy getFailureStrategy(final ProcessContext context) {
-        return switch (context.getProperty(FAILURE_STRATEGY).asDescribedValue(FailureStrategy.class)) {
+        return switch (context.getProperty(FAILURE_STRATEGY).asAllowableValue(FailureStrategy.class)) {
             case ROUTE_TO_FAILURE -> (session, flowFiles) -> session.transfer(flowFiles, REL_FAILURE);
             case ROLLBACK -> (session, flowFiles) -> session.rollback();
         };

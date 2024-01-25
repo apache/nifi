@@ -15,10 +15,10 @@
  *  limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CounterEntity } from '../../../state/counter-listing';
 import { MatTableDataSource } from '@angular/material/table';
-import { MatSort } from '@angular/material/sort';
+import { Sort } from '@angular/material/sort';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { debounceTime } from 'rxjs';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
@@ -39,24 +39,14 @@ export class CounterTable implements AfterViewInit {
     dataSource: MatTableDataSource<CounterEntity> = new MatTableDataSource<CounterEntity>();
     filterForm: FormGroup;
 
-    @Input() initialSortColumn: 'context' | 'name' = 'context';
+    @Input() initialSortColumn: 'context' | 'name' | 'value' = 'context';
     @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
 
     @Input() set counters(counterEntities: CounterEntity[]) {
-        this.dataSource = new MatTableDataSource<CounterEntity>(counterEntities);
-        this.dataSource.sort = this.sort;
-        this.dataSource.sortingDataAccessor = (data: CounterEntity, displayColumn: string) => {
-            switch (displayColumn) {
-                case 'context':
-                    return this.formatContext(data);
-                case 'name':
-                    return this.formatName(data);
-                case 'value':
-                    return data.valueCount;
-                default:
-                    return '';
-            }
-        };
+        this.dataSource.data = this.sortEntities(counterEntities, {
+            active: this.initialSortColumn,
+            direction: this.initialSortDirection
+        });
 
         this.dataSource.filterPredicate = (data: CounterEntity, filter: string) => {
             const { filterTerm, filterColumn } = JSON.parse(filter);
@@ -93,8 +83,6 @@ export class CounterTable implements AfterViewInit {
 
     @Output() resetCounter: EventEmitter<CounterEntity> = new EventEmitter<CounterEntity>();
 
-    @ViewChild(MatSort) sort!: MatSort;
-
     constructor(
         private formBuilder: FormBuilder,
         private nifiCommon: NiFiCommon
@@ -103,8 +91,6 @@ export class CounterTable implements AfterViewInit {
     }
 
     ngAfterViewInit(): void {
-        this.dataSource.sort = this.sort;
-
         this.filterForm
             .get('filterTerm')
             ?.valueChanges.pipe(debounceTime(500))
@@ -139,5 +125,33 @@ export class CounterTable implements AfterViewInit {
     resetClicked(counter: CounterEntity, event: MouseEvent) {
         event.stopPropagation();
         this.resetCounter.next(counter);
+    }
+
+    sortData(sort: Sort) {
+        this.dataSource.data = this.sortEntities(this.dataSource.data, sort);
+    }
+
+    private sortEntities(data: CounterEntity[], sort: Sort): CounterEntity[] {
+        if (!data) {
+            return [];
+        }
+        return data.slice().sort((a, b) => {
+            const isAsc = sort.direction === 'asc';
+            let retVal = 0;
+            switch (sort.active) {
+                case 'name':
+                    retVal = this.nifiCommon.compareString(this.formatName(a), this.formatName(b));
+                    break;
+                case 'value':
+                    retVal = this.nifiCommon.compareNumber(a.valueCount, b.valueCount);
+                    break;
+                case 'context':
+                    retVal = this.nifiCommon.compareString(this.formatContext(a), this.formatContext(b));
+                    break;
+                default:
+                    return 0;
+            }
+            return retVal * (isAsc ? 1 : -1);
+        });
     }
 }

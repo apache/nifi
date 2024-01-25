@@ -53,6 +53,7 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
 import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -82,7 +83,7 @@ public class MiNiFiPropertiesGeneratorTest {
     @Test
     public void testGenerateDefaultNiFiProperties() throws ConfigurationChangeException {
         // given
-        Properties bootstrapProperties = createBootstrapProperties(Map.of());
+        BootstrapProperties bootstrapProperties = createBootstrapProperties(Map.of());
 
         // when
         testPropertiesGenerator.generateMinifiProperties(configDirectory.toString(), bootstrapProperties);
@@ -101,7 +102,7 @@ public class MiNiFiPropertiesGeneratorTest {
     @Test
     public void testMiNiFiPropertiesMappedToAppropriateNiFiProperties() throws ConfigurationChangeException {
         // given
-        Properties bootstrapProperties = createBootstrapProperties(Stream.of(
+        BootstrapProperties bootstrapProperties = createBootstrapProperties(Stream.of(
                 MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey(),
                 MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE.getKey(),
                 MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE_TYPE.getKey(),
@@ -126,7 +127,7 @@ public class MiNiFiPropertiesGeneratorTest {
     @Test
     public void testSensitivePropertiesAreGeneratedWhenNotProvidedInBootstrap() throws ConfigurationChangeException {
         // given
-        Properties bootstrapProperties = createBootstrapProperties(Map.of());
+        BootstrapProperties bootstrapProperties = createBootstrapProperties(Map.of());
 
         // when
         testPropertiesGenerator.generateMinifiProperties(configDirectory.toString(), bootstrapProperties);
@@ -142,7 +143,7 @@ public class MiNiFiPropertiesGeneratorTest {
         // given
         String sensitivePropertiesKey = "sensitive_properties_key";
         String sensitivePropertiesAlgorithm = "sensitive_properties_algorithm";
-        Properties bootstrapProperties = createBootstrapProperties(Map.of(
+        BootstrapProperties bootstrapProperties = createBootstrapProperties(Map.of(
             MiNiFiProperties.NIFI_MINIFI_SENSITIVE_PROPS_KEY.getKey(), sensitivePropertiesKey,
             MiNiFiProperties.NIFI_MINIFI_SENSITIVE_PROPS_ALGORITHM.getKey(), sensitivePropertiesAlgorithm
         ));
@@ -159,7 +160,7 @@ public class MiNiFiPropertiesGeneratorTest {
     @Test
     public void testNonBlankC2PropertiesAreCopiedToMiNiFiProperties() throws ConfigurationChangeException {
         // given
-        Properties bootstrapProperties = createBootstrapProperties(Map.of(
+        BootstrapProperties bootstrapProperties = createBootstrapProperties(Map.of(
             MiNiFiProperties.C2_ENABLE.getKey(), TRUE.toString(),
             MiNiFiProperties.C2_AGENT_CLASS.getKey(), EMPTY,
             MiNiFiProperties.C2_AGENT_IDENTIFIER.getKey(), SPACE
@@ -180,7 +181,7 @@ public class MiNiFiPropertiesGeneratorTest {
     public void testDefaultNiFiPropertiesAreOverridden() throws ConfigurationChangeException {
         // given
         String archiveDir = "/path/to";
-        Properties bootstrapProperties = createBootstrapProperties(Map.of(
+        BootstrapProperties bootstrapProperties = createBootstrapProperties(Map.of(
             NiFiProperties.FLOW_CONFIGURATION_ARCHIVE_ENABLED, TRUE.toString(),
             NiFiProperties.FLOW_CONFIGURATION_ARCHIVE_DIR, archiveDir
         ));
@@ -211,7 +212,7 @@ public class MiNiFiPropertiesGeneratorTest {
     @Test
     public void testArbitraryNiFiPropertyCanBePassedViaBootstrapConf() throws ConfigurationChangeException {
         // given
-        Properties bootstrapProperties = createBootstrapProperties(Map.of(
+        BootstrapProperties bootstrapProperties = createBootstrapProperties(Map.of(
             "nifi.new.property", "new_property_value",
             "nifi.other.new.property", "other_new_property_value"
         ));
@@ -229,7 +230,7 @@ public class MiNiFiPropertiesGeneratorTest {
     @Test
     public void bootstrapFileAndLogPropertiesAreGeneratedIntoMiNiFiProperties() throws ConfigurationChangeException {
         // given
-        Properties bootstrapProperties = createBootstrapProperties(Map.of());
+        BootstrapProperties bootstrapProperties = createBootstrapProperties(Map.of());
 
         // when
         testPropertiesGenerator.generateMinifiProperties(configDirectory.toString(), bootstrapProperties);
@@ -243,12 +244,13 @@ public class MiNiFiPropertiesGeneratorTest {
         );
     }
 
-    private Properties createBootstrapProperties(Map<String, String> keyValues) {
+    private BootstrapProperties createBootstrapProperties(Map<String, String> keyValues) {
         try (OutputStream outputStream = newOutputStream(bootstrapPropertiesFile)) {
             Properties properties = new Properties();
+            BootstrapProperties bootstrapProperties = new BootstrapProperties(keyValues);
             properties.putAll(keyValues);
             properties.store(outputStream, EMPTY);
-            return properties;
+            return bootstrapProperties;
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

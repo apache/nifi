@@ -36,10 +36,11 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.file.transfer.ListFileTransfer;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
-import org.apache.nifi.processors.standard.util.FileInfo;
-import org.apache.nifi.processors.standard.util.FileTransfer;
+import org.apache.nifi.processor.util.file.transfer.FileInfo;
+import org.apache.nifi.processor.util.file.transfer.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
 
 import java.io.IOException;

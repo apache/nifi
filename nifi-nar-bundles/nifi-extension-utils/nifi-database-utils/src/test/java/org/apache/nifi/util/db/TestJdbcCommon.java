@@ -43,7 +43,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
 import java.time.LocalTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -137,7 +137,7 @@ public class TestJdbcCommon {
     private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
 
     @Test
-    public void testCreateSchema() throws ClassNotFoundException, SQLException {
+    public void testCreateSchema() throws SQLException {
         final Statement st = con.createStatement();
         st.executeUpdate("insert into restaurants values (1, 'Irifunes', 'San Mateo')");
         st.executeUpdate("insert into restaurants values (2, 'Estradas', 'Daly City')");
@@ -161,7 +161,7 @@ public class TestJdbcCommon {
     }
 
     @Test
-    public void testCreateSchemaNoColumns() throws ClassNotFoundException, SQLException {
+    public void testCreateSchemaNoColumns() throws SQLException {
 
         final ResultSet resultSet = mock(ResultSet.class);
         final ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
@@ -180,7 +180,7 @@ public class TestJdbcCommon {
     }
 
     @Test
-    public void testCreateSchemaNoTableName() throws ClassNotFoundException, SQLException {
+    public void testCreateSchemaNoTableName() throws SQLException {
 
         final ResultSet resultSet = mock(ResultSet.class);
         final ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
@@ -224,7 +224,7 @@ public class TestJdbcCommon {
     }
 
     @Test
-    public void testConvertToBytes() throws ClassNotFoundException, SQLException, IOException {
+    public void testConvertToBytes() throws SQLException, IOException {
         final Statement st = con.createStatement();
         st.executeUpdate("insert into restaurants values (1, 'Irifunes', 'San Mateo')");
         st.executeUpdate("insert into restaurants values (2, 'Estradas', 'Daly City')");
@@ -285,14 +285,13 @@ public class TestJdbcCommon {
             try {
                 JdbcCommon.createSchema(rs);
             } catch (final IllegalArgumentException | SQLException sqle) {
-                sqle.printStackTrace();
                 fail("Failed when using type " + field.getName());
             }
         }
     }
 
     @Test
-    public void testSignedIntShouldBeInt() throws SQLException, IllegalArgumentException, IllegalAccessException {
+    public void testSignedIntShouldBeInt() throws SQLException, IllegalArgumentException {
         final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
         when(metadata.getColumnCount()).thenReturn(1);
         when(metadata.getColumnType(1)).thenReturn(Types.INTEGER);
@@ -326,7 +325,7 @@ public class TestJdbcCommon {
     }
 
     @Test
-    public void testUnsignedIntShouldBeLong() throws SQLException, IllegalArgumentException, IllegalAccessException {
+    public void testUnsignedIntShouldBeLong() throws SQLException, IllegalArgumentException {
         final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
         when(metadata.getColumnCount()).thenReturn(1);
         when(metadata.getColumnType(1)).thenReturn(Types.INTEGER);
@@ -361,7 +360,7 @@ public class TestJdbcCommon {
     }
 
     @Test
-    public void testMediumUnsignedIntShouldBeInt() throws SQLException, IllegalArgumentException, IllegalAccessException {
+    public void testMediumUnsignedIntShouldBeInt() throws SQLException, IllegalArgumentException {
         final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
         when(metadata.getColumnCount()).thenReturn(1);
         when(metadata.getColumnType(1)).thenReturn(Types.INTEGER);
@@ -396,7 +395,7 @@ public class TestJdbcCommon {
     }
 
     @Test
-    public void testInt9ShouldBeLong() throws SQLException, IllegalArgumentException, IllegalAccessException {
+    public void testInt9ShouldBeLong() throws SQLException, IllegalArgumentException {
         final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
         when(metadata.getColumnCount()).thenReturn(1);
         when(metadata.getColumnType(1)).thenReturn(Types.INTEGER);
@@ -429,7 +428,6 @@ public class TestJdbcCommon {
         assertTrue(foundLongSchema);
         assertTrue(foundNullSchema);
     }
-
 
     @Test
     public void testConvertToAvroStreamForBigDecimal() throws SQLException, IOException {
@@ -777,7 +775,7 @@ public class TestJdbcCommon {
                 },
                 (record, time) -> {
                     int millisSinceMidnight = (int) record.get("time");
-                    LocalTime localTime = Instant.ofEpochMilli(millisSinceMidnight).atZone(ZoneId.systemDefault()).toLocalTime();
+                    LocalTime localTime = Instant.ofEpochMilli(millisSinceMidnight).atOffset(ZoneOffset.UTC).toLocalTime();
                     Time actual = Time.valueOf(localTime);
                     LOGGER.debug("comparing times, expecting '{}', actual '{}'", time, actual);
                     assertEquals(time, actual);

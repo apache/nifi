@@ -63,12 +63,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -302,8 +301,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
         final AuthorizationsHolder holder = authorizationsHolder.get();
         final Authorizations authorizations = holder.getAuthorizations();
 
-        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
-        final String timestamp = dateFormat.format(new Date());
+        final String timestamp = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss").format(OffsetDateTime.now());
 
         final File backupFile = new File(authorizationsFile.getParentFile(), authorizationsFile.getName() + "." + timestamp);
         logger.info("Writing backup of Policies to {}", backupFile.getAbsolutePath());

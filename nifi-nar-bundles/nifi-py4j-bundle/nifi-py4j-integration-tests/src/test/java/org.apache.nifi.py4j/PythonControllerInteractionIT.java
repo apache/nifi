@@ -567,7 +567,7 @@ public class PythonControllerInteractionIT {
 
     private Processor createProcessor(final String type, final String version) {
         bridge.discoverExtensions();
-        final AsyncLoadedProcessor processor = bridge.createProcessor(createId(), type, version, true);
+        final AsyncLoadedProcessor processor = bridge.createProcessor(createId(), type, version, true, true);
 
         final ProcessorInitializationContext initContext = new MockProcessorInitializationContext();
         processor.initialize(initContext);

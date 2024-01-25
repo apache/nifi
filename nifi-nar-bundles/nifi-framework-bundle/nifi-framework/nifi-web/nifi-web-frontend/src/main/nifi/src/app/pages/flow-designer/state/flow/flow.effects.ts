@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { FlowService } from '../../service/flow.service';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
 import * as ParameterActions from '../parameter/parameter.actions';
 import * as StatusHistoryActions from '../../../../state/status-history/status-history.actions';
@@ -36,8 +36,7 @@ import {
     switchMap,
     take,
     takeUntil,
-    tap,
-    withLatestFrom
+    tap
 } from 'rxjs';
 import {
     CreateProcessGroupDialogRequest,
@@ -124,7 +123,7 @@ export class FlowEffects {
     reloadFlow$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.reloadFlow),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([action, processGroupId]) => {
                 return of(
                     FlowActions.loadProcessGroup({
@@ -214,7 +213,7 @@ export class FlowEffects {
                         return of(FlowActions.openNewProcessorDialog({ request }));
                     case ComponentType.ProcessGroup:
                         return from(this.flowService.getParameterContexts()).pipe(
-                            withLatestFrom(this.store.select(selectCurrentParameterContext)),
+                            concatLatestFrom(() => this.store.select(selectCurrentParameterContext)),
                             map(([response, parameterContext]) => {
                                 const dialogRequest: CreateProcessGroupDialogRequest = {
                                     request,
@@ -248,7 +247,7 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.openNewProcessorDialog),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectProcessorTypes)),
+                concatLatestFrom(() => this.store.select(selectProcessorTypes)),
                 tap(([request, processorTypes]) => {
                     this.dialog
                         .open(CreateProcessor, {
@@ -271,7 +270,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.createProcessor),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.createProcessor(processGroupId, request)).pipe(
                     map((response) =>
@@ -312,7 +311,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.createProcessGroup),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.createProcessGroup(processGroupId, request)).pipe(
                     map((response) =>
@@ -333,7 +332,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.uploadProcessGroup),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.uploadProcessGroup(processGroupId, request)).pipe(
                     map((response) =>
@@ -354,10 +353,10 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.getParameterContextsAndOpenGroupComponentsDialog),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, currentProcessGroupId]) =>
                 from(this.flowService.getParameterContexts()).pipe(
-                    withLatestFrom(this.store.select(selectCurrentParameterContext)),
+                    concatLatestFrom(() => this.store.select(selectCurrentParameterContext)),
                     map(([response, parameterContext]) => {
                         const dialogRequest: GroupComponentsDialogRequest = {
                             request,
@@ -402,7 +401,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.groupComponents),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.createProcessGroup(processGroupId, request)).pipe(
                     map((response) =>
@@ -446,7 +445,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.getDefaultsAndOpenNewConnectionDialog),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, currentProcessGroupId]) =>
                 from(this.flowService.getProcessGroup(currentProcessGroupId)).pipe(
                     map((response) =>
@@ -505,7 +504,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.createConnection),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.createConnection(processGroupId, request)).pipe(
                     map((response) =>
@@ -547,7 +546,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.createPort),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.createPort(processGroupId, request)).pipe(
                     map((response) =>
@@ -568,7 +567,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.createFunnel),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.createFunnel(processGroupId, request)).pipe(
                     map((response) =>
@@ -589,7 +588,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.createLabel),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.createLabel(processGroupId, request)).pipe(
                     map((response) =>
@@ -653,7 +652,7 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.navigateToEditComponent),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([request, processGroupId]) => {
                     this.router.navigate(['/process-groups', processGroupId, request.type, request.id, 'edit']);
                 })
@@ -665,7 +664,7 @@ export class FlowEffects {
         () =>
             this.actions$.pipe(
                 ofType(FlowActions.navigateToEditCurrentProcessGroup),
-                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([action, processGroupId]) => {
                     this.router.navigate(['/process-groups', processGroupId, 'edit']);
                 })
@@ -702,7 +701,7 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.navigateToViewStatusHistoryForComponent),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([request, currentProcessGroupId]) => {
                     this.router.navigate([
                         '/process-groups',
@@ -838,10 +837,10 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.openEditProcessorDialog),
                 map((action) => action.request),
-                withLatestFrom(
+                concatLatestFrom(() => [
                     this.store.select(selectCurrentParameterContext),
                     this.store.select(selectCurrentProcessGroupId)
-                ),
+                ]),
                 tap(([request, parameterContext, processGroupId]) => {
                     const processorId: string = request.entity.id;
 
@@ -1190,7 +1189,7 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.openEditProcessGroupDialog),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 switchMap(([request, currentProcessGroupId]) =>
                     this.flowService.getParameterContexts().pipe(
                         take(1),
@@ -1616,7 +1615,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.moveComponents),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             mergeMap(([request, processGroupId]) => {
                 const components: any[] = request.components;
 
@@ -1690,7 +1689,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.deleteComponents),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             mergeMap(([requests, processGroupId]) => {
                 if (requests.length === 1) {
                     return from(this.flowService.deleteComponent(requests[0])).pipe(
@@ -1828,7 +1827,7 @@ export class FlowEffects {
         () =>
             this.actions$.pipe(
                 ofType(FlowActions.leaveProcessGroup),
-                withLatestFrom(this.store.select(selectParentProcessGroupId)),
+                concatLatestFrom(() => this.store.select(selectParentProcessGroupId)),
                 filter(([action, parentProcessGroupId]) => parentProcessGroupId != null),
                 tap(([action, parentProcessGroupId]) => {
                     this.router.navigate(['/process-groups', parentProcessGroupId]);
@@ -1841,10 +1840,10 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.addSelectedComponents),
             map((action) => action.request),
-            withLatestFrom(
+            concatLatestFrom(() => [
                 this.store.select(selectCurrentProcessGroupId),
                 this.store.select(selectAnySelectedComponentIds)
-            ),
+            ]),
             switchMap(([request, processGroupId, selected]) => {
                 let commands: string[] = [];
                 if (selected.length === 0) {
@@ -1873,10 +1872,10 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.removeSelectedComponents),
             map((action) => action.request),
-            withLatestFrom(
+            concatLatestFrom(() => [
                 this.store.select(selectCurrentProcessGroupId),
                 this.store.select(selectAnySelectedComponentIds)
-            ),
+            ]),
             switchMap(([request, processGroupId, selected]) => {
                 let commands: string[];
                 if (selected.length === 0) {
@@ -1895,7 +1894,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.selectComponents),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) => {
                 let commands: string[] = [];
                 if (request.components.length === 1) {
@@ -1917,7 +1916,7 @@ export class FlowEffects {
     deselectAllComponent$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.deselectAllComponents),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([action, processGroupId]) => {
                 return of(FlowActions.navigateWithoutTransform({ url: ['/process-groups', processGroupId] }));
             })
@@ -1929,7 +1928,7 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.navigateToComponent),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([request, currentProcessGroupId]) => {
                     if (request.processGroupId) {
                         this.router.navigate(['/process-groups', request.processGroupId, request.type, request.id]);
@@ -2072,7 +2071,7 @@ export class FlowEffects {
     startCurrentProcessGroup$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.startCurrentProcessGroup),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([, pgId]) => {
                 return of(
                     FlowActions.startComponent({
@@ -2159,7 +2158,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.startComponentSuccess),
             map((action) => action.response),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             filter(([response, currentPg]) => response.component.id === currentPg),
             switchMap(() => of(FlowActions.reloadFlow()))
         )
@@ -2172,7 +2171,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.startComponentSuccess),
             map((action) => action.response),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             filter(([response]) => response.type === ComponentType.ProcessGroup),
             filter(([response, currentPg]) => response.component.id !== currentPg),
             switchMap(([response]) =>
@@ -2190,7 +2189,7 @@ export class FlowEffects {
     stopCurrentProcessGroup$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.stopCurrentProcessGroup),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([, pgId]) => {
                 return of(
                     FlowActions.stopComponent({
@@ -2276,7 +2275,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.stopComponentSuccess),
             map((action) => action.response),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             filter(([response, currentPg]) => response.component.id === currentPg),
             switchMap(() => of(FlowActions.reloadFlow()))
         )
@@ -2289,7 +2288,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.stopComponentSuccess),
             map((action) => action.response),
-            withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             filter(([response]) => response.type === ComponentType.ProcessGroup),
             filter(([response, currentPg]) => response.component.id !== currentPg),
             switchMap(([response]) =>

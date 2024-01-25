@@ -38,9 +38,6 @@ import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -117,7 +114,7 @@ public class TestWriteXMLResult {
         WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, null, "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
-        final String expectedMessage = "The writer attempts to write multiple record although property \'Name of Root Tag\' " +
+        final String expectedMessage = "The writer attempts to write multiple record although property 'Name of Root Tag' " +
                 "has not been set. If the XMLRecordSetWriter is supposed to write multiple records into one FlowFile, this property is required to be configured.";
         final StringBuilder actualMessage = new StringBuilder();
 
@@ -146,7 +143,7 @@ public class TestWriteXMLResult {
     }
 
     @Test
-    public void testDataTypes() throws IOException, ParseException {
+    public void testDataTypes() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
 
         final List<RecordField> fields = new ArrayList<>();
@@ -169,10 +166,6 @@ public class TestWriteXMLResult {
         }
         final RecordSchema schema = new SimpleRecordSchema(fields, SCHEMA_IDENTIFIER_RECORD);
 
-        final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-        final long time = df.parse("2017/01/01 17:00:00.000").getTime();
-        final String date = "2017-01-01";
-
         final Map<String, Object> map = new LinkedHashMap<>();
         map.put("height", 48);
         map.put("width", 96);
@@ -189,9 +182,9 @@ public class TestWriteXMLResult {
         valueMap.put("float", 8.0F);
         valueMap.put("double", 8.0D);
         valueMap.put("decimal", 8.1D);
-        valueMap.put("date", Date.valueOf(date));
-        valueMap.put("time", new Time(time));
-        valueMap.put("timestamp", new Timestamp(time));
+        valueMap.put("date", Date.valueOf("2017-01-01"));
+        valueMap.put("time", Time.valueOf("17:00:00"));
+        valueMap.put("timestamp", Timestamp.valueOf("2017-01-01 17:00:00"));
         valueMap.put("record", null);
         valueMap.put("array", null);
         valueMap.put("enum", null);
@@ -733,8 +726,6 @@ public class TestWriteXMLResult {
 
         String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
-
-        System.out.println(out.toString());
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
     }

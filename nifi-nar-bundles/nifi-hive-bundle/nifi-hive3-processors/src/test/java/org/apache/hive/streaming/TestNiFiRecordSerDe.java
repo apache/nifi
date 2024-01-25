@@ -72,7 +72,11 @@ public class TestNiFiRecordSerDe {
                 )
         );
 
-        long currentTimeMillis = System.currentTimeMillis();
+        final String localDate = "2015-01-01";
+        Date date = Date.valueOf(localDate);
+
+        final String localDateTime = "2015-01-01 12:30:45";
+        Timestamp ts = Timestamp.valueOf(localDateTime);
 
         HashMap<String, Object> input = new HashMap<String, Object>() {{
             put("bytec", (byte) 2);
@@ -85,15 +89,10 @@ public class TestNiFiRecordSerDe {
             put("stringc", "test");
             put("varcharc", "test2");
             put("charc", 'c');
-            put("datec", new java.sql.Date(currentTimeMillis));
-            put("timestampc", new java.sql.Timestamp(currentTimeMillis));
+            put("datec", java.sql.Date.valueOf(localDate));
+            put("timestampc", java.sql.Timestamp.valueOf(localDateTime));
             put("decimalc", 0.45);
         }};
-
-        Date date = new Date();
-        date.setTimeInMillis(currentTimeMillis);
-        Timestamp ts = new Timestamp();
-        ts.setTimeInMillis(currentTimeMillis);
 
         List<Object> expected = Arrays.asList(
                 Byte.valueOf("2"),
@@ -176,11 +175,12 @@ public class TestNiFiRecordSerDe {
 
     @Test
     public void testSimpleArray() throws SerDeException{
-        long now = System.currentTimeMillis();
-        Date hiveDate = new Date();
-        hiveDate.setTimeInMillis(now);
-        Timestamp hiveTs = new Timestamp();
-        hiveTs.setTimeInMillis(now);
+
+        final String localDate = "2015-01-01";
+        Date hiveDate = Date.valueOf(localDate);
+
+        final String localDateTime = "2015-01-01 12:30:45";
+        Timestamp hiveTs = Timestamp.valueOf(localDateTime);
 
         testSimpleArray("tinyint", RecordFieldType.BYTE.getDataType(), new Byte[] { 5, 29 },
                 new Byte[] { 5, 29 });
@@ -202,9 +202,9 @@ public class TestNiFiRecordSerDe {
                 new Object[]  { "niko", "fiti", "sema" });
         testSimpleArray("char(1)", RecordFieldType.CHAR.getDataType(), new Object[] { 'a', 'b', 'c' },
                 new Object[] { "a", "b", "c"});
-        testSimpleArray("date", RecordFieldType.DATE.getDataType(), new Object[] { new java.sql.Date(now)},
+        testSimpleArray("date", RecordFieldType.DATE.getDataType(), new Object[] { java.sql.Date.valueOf(localDate)},
                 new Object[] { hiveDate });
-        testSimpleArray("timestamp", RecordFieldType.TIMESTAMP.getDataType(), new Object[] { new java.sql.Timestamp(now)},
+        testSimpleArray("timestamp", RecordFieldType.TIMESTAMP.getDataType(), new Object[] { java.sql.Timestamp.valueOf(localDateTime)},
                 new Object[] { hiveTs });
         testSimpleArray("decimal(10,2)", RecordFieldType.DOUBLE.getDataType(), new Object[] { 3.45, 1.25 },
                 new Object[] { HiveDecimal.create(3.45), HiveDecimal.create(1.25)});
@@ -280,14 +280,15 @@ public class TestNiFiRecordSerDe {
         testSimpleMap("string", "string", RecordFieldType.STRING.getDataType(), createMap("form", "ni", "aje"), objectMap(createMap("form", "ni", "aje")));
         testSimpleMap("string", "varchar(20)", RecordFieldType.STRING.getDataType(), createMap("niko", "kiza"), objectMap(createMap("niko", "kiza")));
         testSimpleMap("string", "char(1)", RecordFieldType.CHAR.getDataType(), createMap('a', 'b', 'c'), objectMap(createMap("a", "b", "c")));
-        long now = System.currentTimeMillis();
-        Date hiveDate = new Date();
-        hiveDate.setTimeInMillis(now);
-        Timestamp hiveTs = new Timestamp();
-        hiveTs.setTimeInMillis(now);
 
-        testSimpleMap("string", "date", RecordFieldType.DATE.getDataType(), createMap(new java.sql.Date(now)), objectMap(createMap(hiveDate)));
-        testSimpleMap("string", "timestamp", RecordFieldType.TIMESTAMP.getDataType(), createMap(new java.sql.Timestamp(now)), objectMap(createMap(hiveTs)));
+        final String localDate = "2015-01-01";
+        Date hiveDate = Date.valueOf(localDate);
+
+        final String localDateTime = "2015-01-01 12:30:45";
+        Timestamp hiveTs = Timestamp.valueOf(localDateTime);
+
+        testSimpleMap("string", "date", RecordFieldType.DATE.getDataType(), createMap(java.sql.Date.valueOf(localDate)), objectMap(createMap(hiveDate)));
+        testSimpleMap("string", "timestamp", RecordFieldType.TIMESTAMP.getDataType(), createMap(java.sql.Timestamp.valueOf(localDateTime)), objectMap(createMap(hiveTs)));
         testSimpleMap("string", "decimal(10,2)", RecordFieldType.DOUBLE.getDataType(), createMap(45.6, 2345.5), objectMap(createMap(
                 HiveDecimal.create(45.6), HiveDecimal.create(2345.5)
         )));

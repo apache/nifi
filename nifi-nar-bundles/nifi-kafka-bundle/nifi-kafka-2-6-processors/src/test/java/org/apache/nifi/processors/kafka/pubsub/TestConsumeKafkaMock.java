@@ -500,7 +500,7 @@ public class TestConsumeKafkaMock {
         final Pattern patternTopic = (topic == null) ? null : Pattern.compile(topic);
         final String groupId = context.getProperty(ConsumerConfig.GROUP_ID_CONFIG).getValue();
         final OutputStrategy outputStrategy = OutputStrategy.valueOf(context.getProperty("output-strategy").getValue());
-        final KeyFormat keyFormat = context.getProperty("key-format").asDescribedValue(KeyFormat.class);
+        final KeyFormat keyFormat = context.getProperty("key-format").asAllowableValue(KeyFormat.class);
         final RecordReaderFactory keyReaderFactory = context.getProperty("key-record-reader")
                 .asControllerService(RecordReaderFactory.class);
         return new ConsumerPool(

@@ -17,7 +17,14 @@
 
 <div class="relative h-full border">
     <div class="controller-service-table listing-table absolute inset-0 overflow-y-auto">
-        <table mat-table [dataSource]="dataSource" matSort matSortDisableClear>
+        <table
+            mat-table
+            [dataSource]="dataSource"
+            matSort
+            matSortDisableClear
+            (matSortChange)="sortData($event)"
+            [matSortActive]="initialSortColumn"
+            [matSortDirection]="initialSortDirection">
             <!-- More Details Column -->
             <ng-container matColumnDef="moreDetails">
                 <th mat-header-cell *matHeaderCellDef></th>
@@ -64,12 +71,7 @@
             <ng-container matColumnDef="name">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
                 <td mat-cell *matCellDef="let item">
-                    <ng-container *ngIf="canRead(item); else nameNoPermissions">
-                        {{ item.component.name }}
-                    </ng-container>
-                    <ng-template #nameNoPermissions>
-                        <div class="unset">{{ item.id }}</div>
-                    </ng-template>
+                    <div [ngClass]="{ unset: !canRead(item) }">{{ formatName(item) }}</div>
                 </td>
             </ng-container>
 
@@ -77,9 +79,7 @@
             <ng-container matColumnDef="type">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
                 <td mat-cell *matCellDef="let item">
-                    <ng-container *ngIf="canRead(item)">
-                        {{ formatType(item) }}
-                    </ng-container>
+                    {{ formatType(item) }}
                 </td>
             </ng-container>
 
@@ -87,9 +87,7 @@
             <ng-container matColumnDef="bundle">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Bundle</th>
                 <td mat-cell *matCellDef="let item">
-                    <ng-container *ngIf="canRead(item)">
-                        {{ formatBundle(item) }}
-                    </ng-container>
+                    {{ formatBundle(item) }}
                 </td>
             </ng-container>
 

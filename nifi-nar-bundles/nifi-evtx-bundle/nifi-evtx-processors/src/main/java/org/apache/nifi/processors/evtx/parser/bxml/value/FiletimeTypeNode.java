@@ -22,24 +22,20 @@ import org.apache.nifi.processors.evtx.parser.ChunkHeader;
 import org.apache.nifi.processors.evtx.parser.bxml.BxmlNode;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.TimeZone;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Node containing a windows file time
  */
 public class FiletimeTypeNode extends VariantTypeNode {
+    protected static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+
     private final String value;
 
     public FiletimeTypeNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent, int length) throws IOException {
         super(binaryReader, chunkHeader, parent, length);
-        value = getFormat().format(binaryReader.readFileTime());
-    }
-
-    public static final SimpleDateFormat getFormat() {
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-        return simpleDateFormat;
+        value = DATE_TIME_FORMATTER.format(binaryReader.readFileTime().toInstant().atOffset(ZoneOffset.UTC));
     }
 
     @Override

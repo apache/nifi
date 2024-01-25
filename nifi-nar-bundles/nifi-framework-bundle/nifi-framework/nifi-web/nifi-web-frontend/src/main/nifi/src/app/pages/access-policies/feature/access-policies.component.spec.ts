@@ -21,15 +21,23 @@ import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../state/access-policy/access-policy.reducer';
+import { Component } from '@angular/core';
 
 describe('AccessPolicies', () => {
     let component: AccessPolicies;
     let fixture: ComponentFixture<AccessPolicies>;
 
+    @Component({
+        selector: 'navigation',
+        standalone: true,
+        template: ''
+    })
+    class MockNavigation {}
+
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [AccessPolicies],
-            imports: [RouterModule, RouterTestingModule],
+            imports: [RouterModule, RouterTestingModule, MockNavigation],
             providers: [
                 provideMockStore({
                     initialState

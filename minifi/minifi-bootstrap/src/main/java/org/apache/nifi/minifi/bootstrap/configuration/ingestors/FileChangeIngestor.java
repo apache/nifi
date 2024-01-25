@@ -39,7 +39,6 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -50,6 +49,7 @@ import org.apache.nifi.minifi.bootstrap.configuration.differentiators.Differenti
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
 import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,7 +84,7 @@ public class FileChangeIngestor implements Runnable, ChangeIngestor {
     private long pollingSeconds;
 
     @Override
-    public void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
+    public void initialize(BootstrapProperties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
         Path configFile = ofNullable(properties.getProperty(CONFIG_FILE_PATH_KEY))
             .filter(not(String::isBlank))
             .map(Path::of)
@@ -190,7 +190,7 @@ public class FileChangeIngestor implements Runnable, ChangeIngestor {
             + " which does not correspond to any in the FileChangeIngestor Map:" + DIFFERENTIATOR_CONSTRUCTOR_MAP.keySet());
     }
 
-    private void checkConfigFileLocationCorrectness(Properties properties, Path configFile) {
+    private void checkConfigFileLocationCorrectness(BootstrapProperties properties, Path configFile) {
         Path flowConfigFile = Path.of(properties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey())).toAbsolutePath();
         Path rawFlowConfigFile = flowConfigFile.getParent().resolve(getBaseName(flowConfigFile.toString()) + RAW_EXTENSION);
         if (flowConfigFile.equals(configFile) || rawFlowConfigFile.equals(configFile)) {

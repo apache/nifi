@@ -34,6 +34,8 @@ import { parameterFeatureKey } from '../../state/parameter';
 import * as fromParameter from '../../state/parameter/parameter.reducer';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import * as fromFlowConfiguration from '../../../../state/flow-configuration/flow-configuration.reducer';
+import { queueFeatureKey } from '../../../queue/state';
+import * as fromQueue from '../../state/queue/queue.reducer';
 
 describe('LabelManager', () => {
     let service: LabelManager;
@@ -43,7 +45,8 @@ describe('LabelManager', () => {
             [flowFeatureKey]: fromFlow.initialState,
             [transformFeatureKey]: fromTransform.initialState,
             [controllerServicesFeatureKey]: fromControllerServices.initialState,
-            [parameterFeatureKey]: fromParameter.initialState
+            [parameterFeatureKey]: fromParameter.initialState,
+            [queueFeatureKey]: fromQueue.initialState
         };
 
         TestBed.configureTestingModule({

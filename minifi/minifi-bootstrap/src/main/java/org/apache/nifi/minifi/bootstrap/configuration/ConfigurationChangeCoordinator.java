@@ -17,25 +17,25 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration;
 
+import static java.util.Optional.ofNullable;
+import static java.util.function.Predicate.not;
+import static java.util.stream.Collectors.toList;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
 import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
 import org.apache.nifi.minifi.bootstrap.util.ByteBufferInputStream;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static java.util.Optional.ofNullable;
-import static java.util.function.Predicate.not;
-import static java.util.stream.Collectors.toList;
 
 public class ConfigurationChangeCoordinator implements Closeable, ConfigurationChangeNotifier {
 
@@ -94,7 +94,7 @@ public class ConfigurationChangeCoordinator implements Closeable, ConfigurationC
     private void initialize() throws IOException {
         closeIngestors();
 
-        Properties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
+        BootstrapProperties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
         ofNullable(bootstrapProperties.getProperty(NOTIFIER_INGESTORS_KEY))
             .filter(not(String::isBlank))
             .map(ingestors -> ingestors.split(COMMA))
@@ -115,7 +115,7 @@ public class ConfigurationChangeCoordinator implements Closeable, ConfigurationC
         }
     }
 
-    private void instantiateIngestor(Properties bootstrapProperties, String ingestorClassname) {
+    private void instantiateIngestor(BootstrapProperties bootstrapProperties, String ingestorClassname) {
         try {
             Class<?> ingestorClass = Class.forName(ingestorClassname);
             ChangeIngestor changeIngestor = (ChangeIngestor) ingestorClass.getDeclaredConstructor().newInstance();

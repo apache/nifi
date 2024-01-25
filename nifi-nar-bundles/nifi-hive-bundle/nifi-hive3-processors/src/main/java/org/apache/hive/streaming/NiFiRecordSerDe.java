@@ -46,23 +46,25 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.field.FieldConverter;
+import org.apache.nifi.serialization.record.field.StandardFieldConverterRegistry;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class NiFiRecordSerDe extends AbstractSerDe {
 
@@ -83,7 +85,7 @@ public class NiFiRecordSerDe extends AbstractSerDe {
     }
 
     @Override
-    public void initialize(Configuration conf, Properties tbl) throws SerDeException {
+    public void initialize(Configuration conf, Properties tbl) {
         List<TypeInfo> columnTypes;
         StructTypeInfo rowTypeInfo;
 
@@ -108,14 +110,10 @@ public class NiFiRecordSerDe extends AbstractSerDe {
             columnTypes = TypeInfoUtils.getTypeInfosFromTypeString(columnTypeProperty);
         }
 
-        log.debug("columns: {}, {}", new Object[]{columnNameProperty, columnNames});
-        log.debug("types: {}, {} ", new Object[]{columnTypeProperty, columnTypes});
-
         assert (columnNames.size() == columnTypes.size());
 
         rowTypeInfo = (StructTypeInfo) TypeInfoFactory.getStructTypeInfo(columnNames, columnTypes);
         schema = rowTypeInfo;
-        log.debug("schema : {}", new Object[]{schema});
         cachedObjectInspector = (StandardStructObjectInspector) TypeInfoUtils.getStandardJavaObjectInspectorFromTypeInfo(rowTypeInfo);
         tsParser = new TimestampParser(HiveStringUtils.splitAndUnEscape(tbl.getProperty(serdeConstants.TIMESTAMP_FORMATS)));
         stats = new SerDeStats();
@@ -127,7 +125,7 @@ public class NiFiRecordSerDe extends AbstractSerDe {
     }
 
     @Override
-    public Writable serialize(Object o, ObjectInspector objectInspector) throws SerDeException {
+    public Writable serialize(Object o, ObjectInspector objectInspector) {
         throw new UnsupportedOperationException("This SerDe only supports deserialization");
     }
 
@@ -221,18 +219,16 @@ public class NiFiRecordSerDe extends AbstractSerDe {
                         val = AvroTypeUtil.convertByteArray(array).array();
                         break;
                     case DATE:
-                        Date d = DataTypeUtils.toDate(fieldValue, () -> DataTypeUtils.getDateFormat(fieldDataType.getFormat()), fieldName);
-                        org.apache.hadoop.hive.common.type.Date hiveDate = new org.apache.hadoop.hive.common.type.Date();
-                        hiveDate.setTimeInMillis(d.getTime());
-                        val = hiveDate;
+                        final FieldConverter<Object, LocalDate> dateConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDate.class);
+                        final LocalDate localDate = dateConverter.convertField(fieldValue, Optional.ofNullable(fieldDataType.getFormat()), fieldName);
+                        final long epochDay = localDate.toEpochDay();
+                        val = org.apache.hadoop.hive.common.type.Date.ofEpochDay((int) epochDay);
                         break;
                     // ORC doesn't currently handle TIMESTAMPLOCALTZ
                     case TIMESTAMP:
-                        Timestamp ts = DataTypeUtils.toTimestamp(fieldValue, () -> DataTypeUtils.getDateFormat(fieldDataType.getFormat()), fieldName);
-                        // Convert to Hive's Timestamp type
-                        org.apache.hadoop.hive.common.type.Timestamp hivetimestamp = new org.apache.hadoop.hive.common.type.Timestamp();
-                        hivetimestamp.setTimeInMillis(ts.getTime(), ts.getNanos());
-                        val = hivetimestamp;
+                        final FieldConverter<Object, Timestamp> timestampConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(Timestamp.class);
+                        final Timestamp timestamp = timestampConverter.convertField(fieldValue, Optional.ofNullable(fieldDataType.getFormat()), fieldName);
+                        val = org.apache.hadoop.hive.common.type.Timestamp.valueOf(timestamp.toString());
                         break;
                     case DECIMAL:
                         if(fieldValue instanceof BigDecimal){
@@ -299,16 +295,16 @@ public class NiFiRecordSerDe extends AbstractSerDe {
         String normalizedFieldName = fieldName.toLowerCase();
 
         // Normalize struct field names and search for the specified (normalized) field name
-        int fpos = typeInfo.getAllStructFieldNames().stream().map((s) -> s == null ? null : s.toLowerCase()).collect(Collectors.toList()).indexOf(normalizedFieldName);
+        int fpos = typeInfo.getAllStructFieldNames().stream().map((s) -> s == null ? null : s.toLowerCase()).toList().indexOf(normalizedFieldName);
         if (fpos == -1) {
             Matcher m = INTERNAL_PATTERN.matcher(fieldName);
             fpos = m.matches() ? Integer.parseInt(m.group(1)) : -1;
 
             log.debug("NPE finding position for field [{}] in schema [{}],"
-                    + " attempting to check if it is an internal column name like _col0", new Object[]{fieldName, typeInfo});
+                    + " attempting to check if it is an internal column name like _col0", fieldName, typeInfo);
             if (fpos == -1) {
                 // unknown field, we return. We'll continue from the next field onwards. Log at debug level because partition columns will be "unknown fields"
-                log.debug("Field {} is not found in the target table, ignoring...", new Object[]{field.getFieldName()});
+                log.debug("Field {} is not found in the target table, ignoring...", field.getFieldName());
                 return;
             }
             // If we get past this, then the column name did match the hive pattern for an internal
@@ -317,7 +313,7 @@ public class NiFiRecordSerDe extends AbstractSerDe {
             // if we find it.
             if (!fieldName.equalsIgnoreCase(HiveConf.getColumnInternalName(fpos))) {
                 log.error("Hive internal column name {} and position "
-                        + "encoding {} for the column name are at odds", new Object[]{fieldName, fpos});
+                        + "encoding {} for the column name are at odds", fieldName, fpos);
                 throw new SerDeException("Hive internal column name (" + fieldName
                         + ") and position encoding (" + fpos
                         + ") for the column name are at odds");

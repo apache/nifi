@@ -32,8 +32,8 @@
 </p>
 
 <p>
-    This Processor may be used to listen for either Message Events, or Slack Commands. For example, you may wish to create
-    a Slack App that receives the <code>/nifi</code> command and when received, performs some task. The Processor does not
+    This Processor may be used to listen for Message Events, App Mention Events (when the bot user is mentioned in a message) or Slack Commands.
+    For example, you may wish to create a Slack App that receives the <code>/nifi</code> command and when received, performs some task. The Processor does not
     allow listening for both Message Events and Commands, as the output format is very different for the two, and this
     would lead to significant confusion. Instead, if there is a desire to consume both Message Events and Commands,
     two ListenSlack Processors should be used - one for Messages and another the Commands.

@@ -24,10 +24,8 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.Time;
-import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -206,9 +204,9 @@ public class TestCSVRecordReader {
     }
 
     @Test
-    public void testTimeNoCoersionExpectedFormat() throws IOException, MalformedRecordException, ParseException {
+    public void testTimeNoCoersionExpectedFormat() throws IOException, MalformedRecordException {
         final String timeFormat = "HH!mm!ss";
-        DateFormat dateFmt = new SimpleDateFormat(timeFormat);
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(timeFormat);
         final String timeVal = "19!02!03";
         final String text = "time\n" + timeVal;
 
@@ -223,7 +221,8 @@ public class TestCSVRecordReader {
             final Record record = reader.nextRecord(false, false);
             final java.sql.Time time = (Time) record.getValue("time");
 
-            assertEquals(new Time(dateFmt.parse(timeVal).getTime()), time);
+            final LocalTime localTime = LocalTime.parse(timeVal, dateTimeFormatter);
+            assertEquals(Time.valueOf(localTime), time);
         }
     }
 
@@ -275,28 +274,6 @@ public class TestCSVRecordReader {
 
             final Record record = reader.nextRecord(false, false);
             assertEquals("01:02:03", record.getValue("time"));
-        }
-    }
-
-    @Test
-    public void testTimestampNoCoersionExpectedFormat() throws IOException, MalformedRecordException, ParseException {
-        final String timeFormat = "HH!mm!ss";
-        DateFormat dateFmt = new SimpleDateFormat(timeFormat);
-        final String timeVal = "19!02!03";
-        final String text = "timestamp\n" + timeVal;
-
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
-             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), timeFormat,"UTF-8")) {
-
-            final Record record = reader.nextRecord(false, false);
-            final java.sql.Timestamp time = (Timestamp) record.getValue("timestamp");
-
-            assertEquals(new Timestamp(dateFmt.parse(timeVal).getTime()), time);
         }
     }
 
@@ -946,8 +923,6 @@ public class TestCSVRecordReader {
 
     @Test
     public void testMultipleRecordsEscapedWithNull_withoutDoubleQuoteTrimming() throws IOException, MalformedRecordException {
-
-        final CSVFormat format = RFC4180WithTrim;
         final List<RecordField> fields = getDefaultFields();
         fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
 

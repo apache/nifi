@@ -374,7 +374,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
         final String topicListing = context.getProperty(ConsumeKafka_2_6.TOPICS).evaluateAttributeExpressions().getValue();
         final String topicType = context.getProperty(ConsumeKafka_2_6.TOPIC_TYPE).evaluateAttributeExpressions().getValue();
         final List<String> topics = new ArrayList<>();
-        final KeyEncoding keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).asDescribedValue(KeyEncoding.class);
+        final KeyEncoding keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).asAllowableValue(KeyEncoding.class);
         final String securityProtocol = context.getProperty(SECURITY_PROTOCOL).getValue();
         final String bootstrapServers = context.getProperty(BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
         final boolean honorTransactions = context.getProperty(HONOR_TRANSACTIONS).asBoolean();

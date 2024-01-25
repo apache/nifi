@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { NiFiCommon } from '../../../service/nifi-common.service';
-import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { NgIf } from '@angular/common';
 import { ControllerServiceApiTipInput, DocumentedType, RestrictionsTipInput } from '../../../state/shared';
 import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
@@ -43,27 +43,23 @@ import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
     ],
     styleUrls: ['./extension-creation.component.scss']
 })
-export class ExtensionCreation implements AfterViewInit {
+export class ExtensionCreation {
     @Input() set documentedTypes(documentedTypes: DocumentedType[]) {
         if (this.selectedType == null && documentedTypes.length > 0) {
             this.selectedType = documentedTypes[0];
         }
 
-        this.dataSource = new MatTableDataSource<DocumentedType>(documentedTypes);
-        this.dataSource.sort = this.sort;
-        this.dataSource.sortingDataAccessor = (data: DocumentedType, displayColumn: string) => {
-            if (displayColumn == 'type') {
-                return this.formatType(data);
-            } else if (displayColumn == 'version') {
-                return this.formatVersion(data);
-            } else if (displayColumn == 'tags') {
-                return this.formatTags(data);
-            }
-            return '';
-        };
+        this.dataSource.data = this.sortEntities(documentedTypes, {
+            active: this.initialSortColumn,
+            direction: this.initialSortDirection
+        });
     }
+
     @Input() componentType!: string;
     @Input() saving!: boolean;
+    @Input() initialSortColumn: 'type' | 'version' | 'tags' = 'type';
+    @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
+
     @Output() extensionTypeSelected: EventEmitter<DocumentedType> = new EventEmitter<DocumentedType>();
 
     protected readonly RestrictionsTip = RestrictionsTip;
@@ -73,13 +69,7 @@ export class ExtensionCreation implements AfterViewInit {
     dataSource: MatTableDataSource<DocumentedType> = new MatTableDataSource<DocumentedType>();
     selectedType: DocumentedType | null = null;
 
-    @ViewChild(MatSort) sort!: MatSort;
-
     constructor(private nifiCommon: NiFiCommon) {}
-
-    ngAfterViewInit(): void {
-        this.dataSource.sort = this.sort;
-    }
 
     formatType(documentedType: DocumentedType): string {
         if (documentedType) {
@@ -115,7 +105,10 @@ export class ExtensionCreation implements AfterViewInit {
 
     formatTags(documentedType: DocumentedType): string {
         if (documentedType?.tags) {
-            return documentedType.tags.join(', ');
+            return documentedType.tags
+                .slice()
+                .sort((a, b) => this.nifiCommon.compareString(a, b))
+                .join(', ');
         }
         return '';
     }
@@ -155,5 +148,31 @@ export class ExtensionCreation implements AfterViewInit {
         if (documentedType && !this.saving) {
             this.extensionTypeSelected.next(documentedType);
         }
+    }
+
+    sortData(sort: Sort) {
+        this.dataSource.data = this.sortEntities(this.dataSource.data, sort);
+    }
+
+    sortEntities(data: DocumentedType[], sort: Sort): DocumentedType[] {
+        if (!data) {
+            return [];
+        }
+        return data.slice().sort((a, b) => {
+            const isAsc = sort.direction === 'asc';
+            let retVal = 0;
+            switch (sort.active) {
+                case 'type':
+                    retVal = this.nifiCommon.compareString(this.formatType(a), this.formatType(b));
+                    break;
+                case 'version':
+                    retVal = this.nifiCommon.compareString(this.formatVersion(a), this.formatVersion(b));
+                    break;
+                case 'tags':
+                    retVal = this.nifiCommon.compareString(this.formatTags(a), this.formatTags(b));
+                    break;
+            }
+            return retVal * (isAsc ? 1 : -1);
+        });
     }
 }

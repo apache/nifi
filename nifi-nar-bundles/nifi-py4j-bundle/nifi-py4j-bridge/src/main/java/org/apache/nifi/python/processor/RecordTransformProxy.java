@@ -78,8 +78,8 @@ public class RecordTransformProxy extends PythonProcessorProxy {
         .build();
 
 
-    public RecordTransformProxy(final String processorType, final Supplier<PythonProcessorBridge> bridgeFactory) {
-        super(processorType, bridgeFactory);
+    public RecordTransformProxy(final String processorType, final Supplier<PythonProcessorBridge> bridgeFactory, final boolean initialize) {
+        super(processorType, bridgeFactory, initialize);
     }
 
     @Override

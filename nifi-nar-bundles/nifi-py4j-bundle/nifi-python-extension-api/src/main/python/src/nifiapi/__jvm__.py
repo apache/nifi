@@ -15,3 +15,9 @@
 
 class JvmHolder:
     jvm = None
+
+def ArrayList(list: list):
+    array_list = JvmHolder.jvm.java.util.ArrayList()
+    for val in list:
+        array_list.add(val)
+    return array_list

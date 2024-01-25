@@ -19,6 +19,7 @@ package org.apache.nifi.minifi.bootstrap.service;
 
 import static java.lang.String.join;
 import static java.lang.System.getProperty;
+import static java.util.Map.entry;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -59,6 +60,7 @@ import org.apache.commons.lang3.tuple.Triple;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
 import org.apache.nifi.minifi.bootstrap.util.OrderedProperties;
 import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.apache.nifi.util.NiFiProperties;
 
 public class MiNiFiPropertiesGenerator {
@@ -139,15 +141,19 @@ public class MiNiFiPropertiesGenerator {
         Triple.of(NiFiProperties.FLOW_CONFIGURATION_FILE, "./conf/flow.json.gz", EMPTY)
     );
 
-    static final Map<String, String> MINIFI_TO_NIFI_PROPERTY_MAPPING = Map.of(
-        MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey(), NiFiProperties.FLOW_CONFIGURATION_FILE,
-        MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE.getKey(), NiFiProperties.SECURITY_KEYSTORE,
-        MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE_TYPE.getKey(), NiFiProperties.SECURITY_KEYSTORE_TYPE,
-        MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE_PASSWD.getKey(), NiFiProperties.SECURITY_KEYSTORE_PASSWD,
-        MiNiFiProperties.NIFI_MINIFI_SECURITY_KEY_PASSWD.getKey(), NiFiProperties.SECURITY_KEY_PASSWD,
-        MiNiFiProperties.NIFI_MINIFI_SECURITY_TRUSTSTORE.getKey(), NiFiProperties.SECURITY_TRUSTSTORE,
-        MiNiFiProperties.NIFI_MINIFI_SECURITY_TRUSTSTORE_TYPE.getKey(), NiFiProperties.SECURITY_TRUSTSTORE_TYPE,
-        MiNiFiProperties.NIFI_MINIFI_SECURITY_TRUSTSTORE_PASSWD.getKey(), NiFiProperties.SECURITY_TRUSTSTORE_PASSWD
+    static final String PROTECTED_POSTFIX = ".protected";
+    static final Map<String, String> MINIFI_TO_NIFI_PROPERTY_MAPPING = Map.ofEntries(
+        entry(MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey(), NiFiProperties.FLOW_CONFIGURATION_FILE),
+        entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE.getKey(), NiFiProperties.SECURITY_KEYSTORE),
+        entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE_TYPE.getKey(), NiFiProperties.SECURITY_KEYSTORE_TYPE),
+        entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE_PASSWD.getKey(), NiFiProperties.SECURITY_KEYSTORE_PASSWD),
+        entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE_PASSWD.getKey() + PROTECTED_POSTFIX, NiFiProperties.SECURITY_KEYSTORE_PASSWD + PROTECTED_POSTFIX),
+        entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_KEY_PASSWD.getKey(), NiFiProperties.SECURITY_KEY_PASSWD),
+        entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_KEY_PASSWD.getKey() + PROTECTED_POSTFIX, NiFiProperties.SECURITY_KEY_PASSWD + PROTECTED_POSTFIX),
+        entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_TRUSTSTORE.getKey(), NiFiProperties.SECURITY_TRUSTSTORE),
+        entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_TRUSTSTORE_TYPE.getKey(), NiFiProperties.SECURITY_TRUSTSTORE_TYPE),
+        entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_TRUSTSTORE_PASSWD.getKey(), NiFiProperties.SECURITY_TRUSTSTORE_PASSWD),
+        entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_TRUSTSTORE_PASSWD.getKey() + PROTECTED_POSTFIX, NiFiProperties.SECURITY_TRUSTSTORE_PASSWD + PROTECTED_POSTFIX)
     );
 
     static final String DEFAULT_SENSITIVE_PROPERTIES_ENCODING_ALGORITHM = "NIFI_PBKDF2_AES_GCM_256";
@@ -160,7 +166,7 @@ public class MiNiFiPropertiesGenerator {
 
     public static final String FILE_EXTENSION_DELIMITER = ".";
 
-    public void generateMinifiProperties(String configDirectory, Properties bootstrapProperties) throws ConfigurationChangeException {
+    public void generateMinifiProperties(String configDirectory, BootstrapProperties bootstrapProperties) throws ConfigurationChangeException {
         String minifiPropertiesFileName = Path.of(getMiNiFiPropertiesPath(bootstrapProperties, new File(configDirectory))).getFileName().toString();
         Path minifiPropertiesFile = Path.of(configDirectory, minifiPropertiesFileName);
 
@@ -188,22 +194,22 @@ public class MiNiFiPropertiesGenerator {
         );
     }
 
-    private OrderedProperties prepareMinifiProperties(Properties bootstrapProperties, Map<String, String> existingSensitivePropertiesConfiguration) {
+    private OrderedProperties prepareMinifiProperties(BootstrapProperties bootstrapProperties, Map<String, String> existingSensitivePropertiesConfiguration) {
         OrderedProperties minifiProperties = new OrderedProperties();
 
         NIFI_PROPERTIES_WITH_DEFAULT_VALUES_AND_COMMENTS
             .forEach(triple -> minifiProperties.setProperty(triple.getLeft(), triple.getMiddle(), triple.getRight()));
 
-        getNonBlankPropertiesWithPredicate(bootstrapProperties, entry -> MINIFI_TO_NIFI_PROPERTY_MAPPING.containsKey(entry.getKey()))
+        getNonBlankPropertiesWithPredicate(bootstrapProperties, MINIFI_TO_NIFI_PROPERTY_MAPPING::containsKey)
             .forEach(entry -> minifiProperties.setProperty(MINIFI_TO_NIFI_PROPERTY_MAPPING.get(entry.getKey()), entry.getValue()));
 
         getSensitiveProperties(bootstrapProperties, existingSensitivePropertiesConfiguration)
             .forEach(entry -> minifiProperties.setProperty(entry.getKey(), entry.getValue()));
 
-        getNonBlankPropertiesWithPredicate(bootstrapProperties, entry -> ((String) entry.getKey()).startsWith(C2_PROPERTY_PREFIX))
+        getNonBlankPropertiesWithPredicate(bootstrapProperties, key -> key.startsWith(C2_PROPERTY_PREFIX))
             .forEach(entry -> minifiProperties.setProperty(entry.getKey(), entry.getValue()));
 
-        getNonBlankPropertiesWithPredicate(bootstrapProperties, entry -> ((String) entry.getKey()).startsWith(NIFI_PREFIX))
+        getNonBlankPropertiesWithPredicate(bootstrapProperties, key -> key.startsWith(NIFI_PREFIX))
             .forEach(entry -> minifiProperties.setProperty(entry.getKey(), entry.getValue()));
 
         bootstrapFileAndLogProperties()
@@ -212,19 +218,19 @@ public class MiNiFiPropertiesGenerator {
         return minifiProperties;
     }
 
-    private List<Pair<String, String>> getNonBlankPropertiesWithPredicate(Properties bootstrapProperties, Predicate<Map.Entry> predicate) {
+    private List<Pair<String, String>> getNonBlankPropertiesWithPredicate(BootstrapProperties bootstrapProperties, Predicate<String> predicate) {
         return ofNullable(bootstrapProperties)
-            .map(Properties::entrySet)
+            .map(BootstrapProperties::getPropertyKeys)
             .orElseGet(Set::of)
             .stream()
             .filter(predicate)
-            .filter(entry -> isNotBlank((String) entry.getValue()))
-            .map(entry -> Pair.of((String) entry.getKey(), (String) entry.getValue()))
+            .map(key -> Pair.of(key, bootstrapProperties.getProperty(key)))
+            .filter(pair -> isNotBlank(pair.getValue()))
             .sorted((o1, o2) -> Comparator.<String>naturalOrder().compare(o1.getKey(), o2.getKey()))
             .toList();
     }
 
-    private List<Pair<String, String>> getSensitiveProperties(Properties bootstrapProperties, Map<String, String> existingSensitivePropertiesConfiguration) {
+    private List<Pair<String, String>> getSensitiveProperties(BootstrapProperties bootstrapProperties, Map<String, String> existingSensitivePropertiesConfiguration) {
         return existingSensitivePropertiesConfiguration.isEmpty()
             ? List.of(
                 Pair.of(NiFiProperties.SENSITIVE_PROPS_KEY,

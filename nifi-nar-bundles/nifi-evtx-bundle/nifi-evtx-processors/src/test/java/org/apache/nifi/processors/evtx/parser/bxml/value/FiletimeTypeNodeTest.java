@@ -21,6 +21,8 @@ import org.apache.nifi.processors.evtx.parser.bxml.BxmlNodeTestBase;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,8 +30,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class FiletimeTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testFiletimeTypeNode() throws IOException {
-        Date date = new Date();
-        assertEquals(FiletimeTypeNode.getFormat().format(date),
-                new FiletimeTypeNode(testBinaryReaderBuilder.putFileTime(date).build(), chunkHeader, parent, -1).getValue());
+        final Instant instant = Instant.now();
+        assertEquals(FiletimeTypeNode.DATE_TIME_FORMATTER.format(instant.atOffset(ZoneOffset.UTC)),
+                new FiletimeTypeNode(testBinaryReaderBuilder.putFileTime(Date.from(instant)).build(), chunkHeader, parent, -1).getValue());
     }
 }

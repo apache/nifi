@@ -195,7 +195,7 @@ public class ModifyCompression extends AbstractProcessor {
         }
 
         final CompressionStrategy inputCompressionStrategy;
-        final CompressionStrategy configuredInputCompressionStrategy = context.getProperty(INPUT_COMPRESSION_STRATEGY).asDescribedValue(CompressionStrategy.class);
+        final CompressionStrategy configuredInputCompressionStrategy = context.getProperty(INPUT_COMPRESSION_STRATEGY).asAllowableValue(CompressionStrategy.class);
         if (CompressionStrategy.MIME_TYPE_ATTRIBUTE == configuredInputCompressionStrategy) {
             final String mimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
             if (mimeType == null) {
@@ -214,7 +214,7 @@ public class ModifyCompression extends AbstractProcessor {
             inputCompressionStrategy = configuredInputCompressionStrategy;
         }
 
-        final CompressionStrategy outputCompressionStrategy = context.getProperty(OUTPUT_COMPRESSION_STRATEGY).asDescribedValue(CompressionStrategy.class);
+        final CompressionStrategy outputCompressionStrategy = context.getProperty(OUTPUT_COMPRESSION_STRATEGY).asAllowableValue(CompressionStrategy.class);
         final AtomicReference<String> mimeTypeRef = new AtomicReference<>(null);
         final StopWatch stopWatch = new StopWatch(true);
         final long inputFileSize = flowFile.getSize();

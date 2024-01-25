@@ -18,7 +18,7 @@
 package org.apache.nifi.minifi.bootstrap.service;
 
 import java.io.IOException;
-import java.util.Properties;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +36,7 @@ public class GracefulShutdownParameterProvider {
     }
 
     public int getGracefulShutdownSeconds() throws IOException {
-        Properties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
+        BootstrapProperties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
 
         String gracefulShutdown = bootstrapProperties.getProperty(GRACEFUL_SHUTDOWN_PROP, DEFAULT_GRACEFUL_SHUTDOWN_VALUE);
 

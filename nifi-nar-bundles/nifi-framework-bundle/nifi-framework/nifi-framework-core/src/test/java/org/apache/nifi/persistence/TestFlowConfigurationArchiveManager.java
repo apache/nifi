@@ -32,7 +32,8 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
-import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -160,13 +161,13 @@ public class TestFlowConfigurationArchiveManager {
 
         // Create old archive files. Altering file name and last modified date to simulate existing files.
         final long now = System.currentTimeMillis();
-        final SimpleDateFormat dateFormat = new SimpleDateFormat("HHmmss");
+        final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("HHmmss");
 
         final FlowConfigurationArchiveManager archiveManager = createArchiveManager(null,null, null);
 
         for (int i = oldArchives.length; i > 0; i--) {
             final Date date = new Date(now - (intervalMillis * i));
-            final String hhmmss = dateFormat.format(date);
+            final String hhmmss = dateFormat.format(date.toInstant().atZone(ZoneId.systemDefault()));
 
             final File archiveFile = archiveManager.archive(flowXmlFile);
             final String renamedArchiveName = archiveFile.getName().replaceFirst("T[\\d]{6}", "T" + hhmmss);

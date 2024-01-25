@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.web.api.request;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Date;
-import java.util.Locale;
 
 /**
  * Class for parsing integer parameters and providing a user friendly error message.
@@ -27,14 +28,15 @@ import java.util.Locale;
 public class DateTimeParameter {
 
     private static final String DATE_TIME_FORMAT = "MM/dd/yyyy HH:mm:ss";
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT);
     private static final String INVALID_INTEGER_MESSAGE = "Unable to parse '%s' as a date/time. Expected format '%s'.";
 
-    private Date dateTimeValue;
+    private final Date dateTimeValue;
 
     public DateTimeParameter(String rawDateTime) {
         try {
             dateTimeValue = parse(rawDateTime);
-        } catch (ParseException pe) {
+        } catch (DateTimeParseException pe) {
             throw new IllegalArgumentException(String.format(INVALID_INTEGER_MESSAGE,
                     rawDateTime, DATE_TIME_FORMAT));
         }
@@ -44,19 +46,8 @@ public class DateTimeParameter {
         return dateTimeValue;
     }
 
-    public static String format(final Date date) {
-        SimpleDateFormat parser = new SimpleDateFormat(DATE_TIME_FORMAT, Locale.US);
-        parser.setLenient(false);
-        return parser.format(date);
-    }
-
-    public static String format(final DateTimeParameter param) {
-        return format(param.getDateTime());
-    }
-
-    public static Date parse(final String str) throws ParseException {
-        SimpleDateFormat parser = new SimpleDateFormat(DATE_TIME_FORMAT, Locale.US);
-        parser.setLenient(false);
-        return parser.parse(str);
+    private static Date parse(final String str) {
+        final LocalDateTime localDateTime = LocalDateTime.parse(str, DATE_TIME_FORMATTER);
+        return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
     }
 }

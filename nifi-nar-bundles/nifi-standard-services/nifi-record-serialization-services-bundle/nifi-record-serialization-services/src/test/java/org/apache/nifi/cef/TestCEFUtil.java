@@ -21,12 +21,10 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 
 import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -62,7 +60,7 @@ public class TestCEFUtil {
     ));
 
     static {
-        EXPECTED_HEADER_VALUES.put("version", Integer.valueOf(0));
+        EXPECTED_HEADER_VALUES.put("version", 0);
         EXPECTED_HEADER_VALUES.put("deviceVendor", "Company");
         EXPECTED_HEADER_VALUES.put("deviceProduct", "Product");
         EXPECTED_HEADER_VALUES.put("deviceVersion", "1.2.3");
@@ -71,23 +69,17 @@ public class TestCEFUtil {
         EXPECTED_HEADER_VALUES.put("severity", "3");
 
         EXPECTED_EXTENSION_VALUES.put("cn1Label", "userid");
-        EXPECTED_EXTENSION_VALUES.put("spt", Integer.valueOf(46117));
-        EXPECTED_EXTENSION_VALUES.put("cn1", Long.valueOf(99999));
-        EXPECTED_EXTENSION_VALUES.put("cfp1", Float.valueOf(1.23F));
+        EXPECTED_EXTENSION_VALUES.put("spt", 46117);
+        EXPECTED_EXTENSION_VALUES.put("cn1", 99999L);
+        EXPECTED_EXTENSION_VALUES.put("cfp1", 1.23F);
         EXPECTED_EXTENSION_VALUES.put("dst", "127.0.0.1");
         EXPECTED_EXTENSION_VALUES.put("c6a1", "2345:425:2ca1:0:0:567:5673:23b5"); // Lower case representation is expected and values with leading zeroes shortened
         EXPECTED_EXTENSION_VALUES.put("dmac", "00:0d:60:af:1b:61"); // Lower case representation is expected
 
         EXPECTED_EXTENSION_VALUES.put("start", new Timestamp(1479152665000L));
+        EXPECTED_EXTENSION_VALUES.put("end", Timestamp.valueOf("2017-01-12 12:23:45"));
 
-        try {
-            final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss.SSS", Locale.US);
-            EXPECTED_EXTENSION_VALUES.put("end", simpleDateFormat.parse("2017-Jan-12 12:23:45.000"));
-        } catch (ParseException e) {
-            throw new RuntimeException(e);
-        }
-
-        EXPECTED_EXTENSION_VALUES.put("dlat", Double.valueOf(456.789D));
+        EXPECTED_EXTENSION_VALUES.put("dlat", 456.789D);
     }
 
     /**
@@ -112,9 +104,7 @@ public class TestCEFUtil {
     static List<RecordField> getFieldsWithCustomExtensions(RecordField... customExtensions) {
         final List<RecordField> result = TestCEFUtil.getFieldWithExtensions();
 
-        for (final RecordField customExtension : customExtensions) {
-            result.add(customExtension);
-        }
+        Collections.addAll(result, customExtensions);
 
         return result;
     }
@@ -124,7 +114,6 @@ public class TestCEFUtil {
      */
     static void assertFieldsAre(final Record record, final Map<String, Object> expectedValues) {
         assertEquals(expectedValues.size(), record.getValues().length);
-        expectedValues.entrySet().forEach(field -> assertEquals(field.getValue(), record.getValue(field.getKey()),
-                "Field " + field.getKey() + " is incorrect"));
+        expectedValues.forEach((key, value) -> assertEquals(value, record.getValue(key), "Field " + key + " is incorrect"));
     }
 }

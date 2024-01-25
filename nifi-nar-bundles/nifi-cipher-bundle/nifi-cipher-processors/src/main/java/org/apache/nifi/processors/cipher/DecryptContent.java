@@ -161,11 +161,11 @@ public class DecryptContent extends AbstractProcessor {
             return;
         }
 
-        final KeySpecificationFormat keySpecificationFormat = context.getProperty(KEY_SPECIFICATION_FORMAT).asDescribedValue(KeySpecificationFormat.class);
+        final KeySpecificationFormat keySpecificationFormat = context.getProperty(KEY_SPECIFICATION_FORMAT).asAllowableValue(KeySpecificationFormat.class);
 
         final String cipherTransformation = getCipherTransformation(context);
         final Cipher cipher = getCipher(cipherTransformation);
-        final CipherAlgorithmMode cipherAlgorithmMode = context.getProperty(CIPHER_ALGORITHM_MODE).asDescribedValue(CipherAlgorithmMode.class);
+        final CipherAlgorithmMode cipherAlgorithmMode = context.getProperty(CIPHER_ALGORITHM_MODE).asAllowableValue(CipherAlgorithmMode.class);
 
         final KeySpec keySpec = getKeySpec(context, keySpecificationFormat);
         final StreamCallback callback = new DecryptCallback(cipher, cipherAlgorithmMode, keySpec);

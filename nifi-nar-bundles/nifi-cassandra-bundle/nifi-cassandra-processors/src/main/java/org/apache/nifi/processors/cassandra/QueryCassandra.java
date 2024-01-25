@@ -59,7 +59,9 @@ import org.apache.nifi.util.StopWatch;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
-import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -71,7 +73,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -181,7 +182,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             .addValidator((subject, input, context) -> {
                 final ValidationResult.Builder vrb = new ValidationResult.Builder().subject(subject).input(input);
                 try {
-                    new SimpleDateFormat(input).format(new Date());
+                    DateTimeFormatter.ofPattern(input);
                     vrb.valid(true).explanation("Valid date format pattern");
                 } catch (Exception ex) {
                     vrb.valid(false).explanation("the pattern is invalid: " + ex.getMessage());
@@ -526,9 +527,9 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         final String dateFormatPattern = context
                 .map(_context -> _context.getProperty(TIMESTAMP_FORMAT_PATTERN).getValue())
                 .orElse(TIMESTAMP_FORMAT_PATTERN.getDefaultValue());
-        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatPattern);
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-        return dateFormat.format(value);
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(dateFormatPattern);
+        final OffsetDateTime offsetDateTime = value.toInstant().atOffset(ZoneOffset.UTC);
+        return dateTimeFormatter.format(offsetDateTime);
     }
 
     public static long convertToJsonStream(final ResultSet rs, long maxRowsPerFlowFile,
@@ -682,9 +683,8 @@ public class QueryCassandra extends AbstractCassandraProcessor {
      *
      * @param rs The result set from which an Avro schema will be created
      * @return An Avro schema corresponding to the given result set's metadata
-     * @throws IOException If an error occurs during schema discovery/building
      */
-    public static Schema createSchema(final ResultSet rs) throws IOException {
+    public static Schema createSchema(final ResultSet rs) {
         final ColumnDefinitions columnDefinitions = rs.getColumnDefinitions();
         final int nrOfColumns = (columnDefinitions == null ? 0 : columnDefinitions.size());
         String tableName = "NiFi_Cassandra_Query_Record";

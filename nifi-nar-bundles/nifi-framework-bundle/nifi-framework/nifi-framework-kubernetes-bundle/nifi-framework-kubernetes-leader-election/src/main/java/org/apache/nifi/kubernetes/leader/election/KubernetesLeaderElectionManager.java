@@ -25,6 +25,7 @@ import org.apache.nifi.kubernetes.client.ServiceAccountNamespaceProvider;
 import org.apache.nifi.kubernetes.client.StandardKubernetesClientProvider;
 import org.apache.nifi.kubernetes.leader.election.command.LeaderElectionCommandProvider;
 import org.apache.nifi.kubernetes.leader.election.command.StandardLeaderElectionCommandProvider;
+import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,10 +74,14 @@ public class KubernetesLeaderElectionManager extends TrackedLeaderElectionManage
 
     private final LeaderElectionCommandProvider leaderElectionCommandProvider;
 
+    private final String roleIdPrefix;
+
     /**
-     * Kubernetes Leader Election Manager default constructor
+     * Kubernetes Leader Election Manager constructor with NiFi Properties
      */
-    public KubernetesLeaderElectionManager() {
+    public KubernetesLeaderElectionManager(final NiFiProperties nifiProperties) {
+        final String leasePrefix = nifiProperties.getProperty(NiFiProperties.CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX);
+        this.roleIdPrefix = leasePrefix == null || leasePrefix.isBlank() ? null : leasePrefix;
         executorService = createExecutorService();
         leaderElectionCommandProvider = createLeaderElectionCommandProvider();
     }
@@ -285,7 +290,7 @@ public class KubernetesLeaderElectionManager extends TrackedLeaderElectionManage
         if (roleId == null) {
             throw new IllegalArgumentException(String.format("Role Name [%s] not supported", roleName));
         }
-        return roleId;
+        return roleIdPrefix == null ? roleId : String.format("%s-%s", roleIdPrefix, roleId);
     }
 
     private static class ParticipantRegistration {

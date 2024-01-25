@@ -341,7 +341,7 @@ public class GetAsanaObject extends AbstractProcessor {
     }
 
     protected AsanaObjectFetcher createObjectFetcher(final ProcessContext context, AsanaClient client) {
-        final AsanaObjectType objectType = context.getProperty(PROP_ASANA_OBJECT_TYPE).asDescribedValue(AsanaObjectType.class);
+        final AsanaObjectType objectType = context.getProperty(PROP_ASANA_OBJECT_TYPE).asAllowableValue(AsanaObjectType.class);
         final String projectName = context.getProperty(PROP_ASANA_PROJECT).getValue();
         final String sectionName = context.getProperty(PROP_ASANA_SECTION).getValue();
         final String teamName = context.getProperty(PROP_ASANA_TEAM_NAME).getValue();

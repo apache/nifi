@@ -19,6 +19,8 @@ package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SchemaValidationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.field.FieldConverter;
+import org.apache.nifi.serialization.record.field.StandardFieldConverterRegistry;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
@@ -29,7 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -42,7 +44,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
 
 public class MapRecord implements Record {
     private static final Logger logger = LoggerFactory.getLogger(MapRecord.class);
@@ -225,7 +226,8 @@ public class MapRecord implements Record {
             return convertToString(getValue(fieldName), dataTypeOption.get().getFormat());
         }
 
-        return DataTypeUtils.toString(getValue(fieldName), (Supplier<DateFormat>) null);
+        final FieldConverter<Object, String> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(String.class);
+        return converter.convertField(getValue(fieldName), Optional.empty(), fieldName);
     }
 
     @Override
@@ -278,7 +280,9 @@ public class MapRecord implements Record {
 
     @Override
     public Date getAsDate(final String fieldName, final String format) {
-        return DataTypeUtils.toDate(getValue(fieldName), () -> DataTypeUtils.getDateFormat(format), fieldName);
+        final FieldConverter<Object, LocalDate> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDate.class);
+        final LocalDate localDate = converter.convertField(getValue(fieldName), Optional.ofNullable(format), fieldName);
+        return localDate == null ? null : java.sql.Date.valueOf(localDate);
     }
 
     @Override

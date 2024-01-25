@@ -43,7 +43,7 @@ This includes derived works from the Apache Hive (ASLv2 licensed) project (https
 This includes derived works from the Apache Software License V2 library Jolt (https://github.com/bazaarvoice/jolt)
   Copyright 2013-2014 Bazaarvoice, Inc
   The derived work is adapted from com.bazaarvoice.jolt.chainr.ChainrBuilder.java, com.bazaarvoice.jolt.chainr.spec.ChainrSpec.java,
-  com.bazaarvoice.jolt.chainr.spec.ChainrEntry.java and can be found in the org.apache.nifi.processors.standard.util.jolt.TransformFactory.java class.
+  com.bazaarvoice.jolt.chainr.spec.ChainrEntry.java and can be found in the org.apache.nifi.processors.jolt.TransformFactory.java class.
 
 This includes derived works from Elastic Logstash (https://github.com/elastic/logstash/tree/v1.4.0/) and modified by Anthony Corbacho, and contributors
   available under an Apache Software License V2.

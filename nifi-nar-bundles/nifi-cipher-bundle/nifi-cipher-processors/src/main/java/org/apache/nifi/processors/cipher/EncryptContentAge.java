@@ -214,7 +214,7 @@ public class EncryptContentAge extends AbstractProcessor implements VerifiablePr
         }
 
         try {
-            final FileEncoding fileEncoding = context.getProperty(FILE_ENCODING).asDescribedValue(FileEncoding.class);
+            final FileEncoding fileEncoding = context.getProperty(FILE_ENCODING).asAllowableValue(FileEncoding.class);
             final EncryptingChannelFactory encryptingChannelFactory = getEncryptingChannelFactory(fileEncoding);
             final StreamCallback streamCallback = new EncryptingStreamCallback(configuredRecipientStanzaWriters, encryptingChannelFactory);
             flowFile = session.write(flowFile, streamCallback);
@@ -234,7 +234,7 @@ public class EncryptContentAge extends AbstractProcessor implements VerifiablePr
     }
 
     private List<RecipientStanzaWriter> getRecipientStanzaWriters(final PropertyContext context) throws IOException {
-        final KeySource keySource = context.getProperty(PUBLIC_KEY_SOURCE).asDescribedValue(KeySource.class);
+        final KeySource keySource = context.getProperty(PUBLIC_KEY_SOURCE).asAllowableValue(KeySource.class);
         final List<ResourceReference> resources = switch (keySource) {
             case PROPERTIES -> List.of(context.getProperty(PUBLIC_KEY_RECIPIENTS).asResource());
             case RESOURCES -> context.getProperty(PUBLIC_KEY_RECIPIENT_RESOURCES).asResources().asList();

@@ -1,7 +1,0 @@
-{
-  "rating": {
-    "series": {
-      "series_first": "=firstElement(@(1,value))"
-    }
-  }
-}

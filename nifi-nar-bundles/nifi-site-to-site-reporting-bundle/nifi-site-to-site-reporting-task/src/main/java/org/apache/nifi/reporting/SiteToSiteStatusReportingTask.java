@@ -22,15 +22,12 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -146,11 +143,8 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         final Map<String, ?> config = Collections.emptyMap();
         final JsonBuilderFactory factory = Json.createBuilderFactory(config);
 
-        final DateFormat df = new SimpleDateFormat(TIMESTAMP_FORMAT);
-        df.setTimeZone(TimeZone.getTimeZone("Z"));
-
         final JsonArrayBuilder arrayBuilder = factory.createArrayBuilder();
-        serializeProcessGroupStatus(arrayBuilder, factory, procGroupStatus, df,
+        serializeProcessGroupStatus(arrayBuilder, factory, procGroupStatus,
                 hostname, rootGroupName, platform, null, new Date(), allowNullValues);
 
         final JsonArray jsonArray = arrayBuilder.build();
@@ -235,8 +229,6 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
      *            The JSON Builder Factory
      * @param status
      *            The ProcessGroupStatus
-     * @param df
-     *            A date format
      * @param hostname
      *            The current hostname
      * @param applicationName
@@ -251,7 +243,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
      *            Allow null values
      */
     private void serializeProcessGroupStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory,
-            final ProcessGroupStatus status, final DateFormat df, final String hostname, final String applicationName,
+            final ProcessGroupStatus status, final String hostname, final String applicationName,
             final String platform, final ProcessGroupStatus parent, final Date currentDate, Boolean allowNullValues) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
         final String componentType = parent == null ? "RootProcessGroup" : "ProcessGroup";
@@ -262,7 +254,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         }
 
         if (componentMatchesFilters(componentType, componentName)) {
-            addCommonFields(builder, df, hostname, applicationName, platform, parent, currentDate,
+            addCommonFields(builder, hostname, applicationName, platform, parent, currentDate,
                     componentType, componentName, allowNullValues);
 
             addField(builder, "componentId", status.getId(), allowNullValues);
@@ -291,40 +283,40 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
 
             processGroupIDToPath.put(childGroupStatus.getId(), processGroupIDToPath.get(status.getId()) + " / " + childGroupStatus.getName());
 
-            serializeProcessGroupStatus(arrayBuilder, factory, childGroupStatus, df, hostname,
+            serializeProcessGroupStatus(arrayBuilder, factory, childGroupStatus, hostname,
                     applicationName, platform, status, currentDate, allowNullValues);
         }
         for(ProcessorStatus processorStatus : status.getProcessorStatus()) {
-            serializeProcessorStatus(arrayBuilder, factory, processorStatus, df, hostname,
+            serializeProcessorStatus(arrayBuilder, factory, processorStatus, hostname,
                     applicationName, platform, status, currentDate, allowNullValues);
         }
         for(ConnectionStatus connectionStatus : status.getConnectionStatus()) {
-            serializeConnectionStatus(arrayBuilder, factory, connectionStatus, df, hostname,
+            serializeConnectionStatus(arrayBuilder, factory, connectionStatus, hostname,
                     applicationName, platform, status, currentDate, allowNullValues);
         }
         for(PortStatus portStatus : status.getInputPortStatus()) {
-            serializePortStatus("InputPort", arrayBuilder, factory, portStatus, df,
+            serializePortStatus("InputPort", arrayBuilder, factory, portStatus,
                     hostname, applicationName, platform, status, currentDate, allowNullValues);
         }
         for(PortStatus portStatus : status.getOutputPortStatus()) {
-            serializePortStatus("OutputPort", arrayBuilder, factory, portStatus, df,
+            serializePortStatus("OutputPort", arrayBuilder, factory, portStatus,
                     hostname, applicationName, platform, status, currentDate, allowNullValues);
         }
         for(RemoteProcessGroupStatus remoteProcessGroupStatus : status.getRemoteProcessGroupStatus()) {
-            serializeRemoteProcessGroupStatus(arrayBuilder, factory, remoteProcessGroupStatus, df, hostname,
+            serializeRemoteProcessGroupStatus(arrayBuilder, factory, remoteProcessGroupStatus, hostname,
                     applicationName, platform, status, currentDate, allowNullValues);
         }
     }
 
     private void serializeRemoteProcessGroupStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory,
-            final RemoteProcessGroupStatus status, final DateFormat df, final String hostname, final String applicationName,
+            final RemoteProcessGroupStatus status, final String hostname, final String applicationName,
             final String platform, final ProcessGroupStatus parent, final Date currentDate, final Boolean allowNullValues) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
         final String componentType = "RemoteProcessGroup";
         final String componentName = status.getName();
 
         if (componentMatchesFilters(componentType, componentName)) {
-            addCommonFields(builder, df, hostname, applicationName, platform, parent, currentDate,
+            addCommonFields(builder, hostname, applicationName, platform, parent, currentDate,
                     componentType, componentName, allowNullValues);
 
             addField(builder, "componentId", status.getId(), allowNullValues);
@@ -344,12 +336,12 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
     }
 
     private void serializePortStatus(final String componentType, final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final PortStatus status,
-            final DateFormat df, final String hostname, final String applicationName, final String platform, final ProcessGroupStatus parent, final Date currentDate, final Boolean allowNullValues) {
+            final String hostname, final String applicationName, final String platform, final ProcessGroupStatus parent, final Date currentDate, final Boolean allowNullValues) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
         final String componentName = status.getName();
 
         if (componentMatchesFilters(componentType, componentName)) {
-            addCommonFields(builder, df, hostname, applicationName, platform, parent, currentDate,
+            addCommonFields(builder, hostname, applicationName, platform, parent, currentDate,
                     componentType, componentName, allowNullValues);
 
             addField(builder, "componentId", status.getId(), allowNullValues);
@@ -369,14 +361,14 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         }
     }
 
-    private void serializeConnectionStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final ConnectionStatus status, final DateFormat df,
+    private void serializeConnectionStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final ConnectionStatus status,
             final String hostname, final String applicationName, final String platform, final ProcessGroupStatus parent, final Date currentDate, final Boolean allowNullValues) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
         final String componentType = "Connection";
         final String componentName = status.getName();
 
         if (componentMatchesFilters(componentType, componentName)) {
-            addCommonFields(builder, df, hostname, applicationName, platform, parent, currentDate,
+            addCommonFields(builder, hostname, applicationName, platform, parent, currentDate,
                     componentType, componentName, allowNullValues);
 
             addField(builder, "componentId", status.getId(), allowNullValues);
@@ -402,14 +394,14 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         }
     }
 
-    private void serializeProcessorStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final ProcessorStatus status, final DateFormat df,
+    private void serializeProcessorStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final ProcessorStatus status,
             final String hostname, final String applicationName, final String platform, final ProcessGroupStatus parent, final Date currentDate, final Boolean allowNullValues) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
         final String componentType = "Processor";
         final String componentName = status.getName();
 
         if (componentMatchesFilters(componentType, componentName)) {
-            addCommonFields(builder, df, hostname, applicationName, platform, parent, currentDate, componentType, componentName, allowNullValues);
+            addCommonFields(builder, hostname, applicationName, platform, parent, currentDate, componentType, componentName, allowNullValues);
 
             addField(builder, "componentId", status.getId(), allowNullValues);
             addField(builder, "processorType", status.getType(), allowNullValues);
@@ -437,12 +429,12 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         }
     }
 
-    private void addCommonFields(final JsonObjectBuilder builder, final DateFormat df, final String hostname,
+    private void addCommonFields(final JsonObjectBuilder builder, final String hostname,
             final String applicationName, final String platform, final ProcessGroupStatus parent, final Date currentDate,
             final String componentType, final String componentName, Boolean allowNullValues) {
         addField(builder, "statusId", UUID.randomUUID().toString(), allowNullValues);
         addField(builder, "timestampMillis", currentDate.getTime(), allowNullValues);
-        addField(builder, "timestamp", df.format(currentDate), allowNullValues);
+        addField(builder, "timestamp", DATE_TIME_FORMATTER.format(currentDate.toInstant()), allowNullValues);
         addField(builder, "actorHostname", hostname, allowNullValues);
         addField(builder, "componentType", componentType, allowNullValues);
         addField(builder, "componentName", componentName, allowNullValues);

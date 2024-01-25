@@ -24,6 +24,7 @@ import { ParameterContextsRoutingModule } from './parameter-contexts-routing.mod
 import { parameterContextsFeatureKey, reducers } from '../state';
 import { ParameterContextListingEffects } from '../state/parameter-context-listing/parameter-context-listing.effects';
 import { ParameterContextListingModule } from '../ui/parameter-context-listing/parameter-context-listing.module';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
 
 @NgModule({
     declarations: [ParameterContexts],
@@ -33,7 +34,8 @@ import { ParameterContextListingModule } from '../ui/parameter-context-listing/p
         ParameterContextsRoutingModule,
         StoreModule.forFeature(parameterContextsFeatureKey, reducers),
         EffectsModule.forFeature(ParameterContextListingEffects),
-        ParameterContextListingModule
+        ParameterContextListingModule,
+        Navigation
     ]
 })
 export class ParameterContextsModule {}

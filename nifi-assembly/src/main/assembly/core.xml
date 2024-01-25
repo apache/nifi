@@ -29,9 +29,6 @@
                 <include>org.slf4j:jul-to-slf4j</include>
                 <include>ch.qos.logback:logback-classic</include>
                 <include>ch.qos.logback:logback-core</include>
-                <!-- Servlet API -->
-                <include>jakarta.servlet:jakarta.servlet-api</include>
-                <include>org.eclipse.jetty.toolchain:jetty-schemas</include>
                 <!-- Apache NiFi -->
                 <include>org.apache.nifi:nifi-api</include>
                 <include>org.apache.nifi:nifi-framework-api</include>

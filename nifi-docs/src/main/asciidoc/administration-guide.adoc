@@ -24,7 +24,7 @@ Apache NiFi Team <dev@nifi.apache.org>
 Apache NiFi can run on something as simple as a laptop, but it can also be clustered across many enterprise-class servers. Therefore, the amount of hardware and memory needed will depend on the size and nature of the dataflow involved. The data is stored on disk while NiFi is processing it. So NiFi needs to have sufficient disk space allocated for its various repositories, particularly the content repository, flowfile repository, and provenance repository (see the <<system_properties>> section for more information about these repositories). NiFi has the following minimum system requirements:
 
 * Requires Java 21
-* Use of Python-based Processors (beta feature) requires Python 3.9+
+* Use of Python-based Processors (beta feature) requires Python 3.9, 3.10 or 3.11
 * Supported Operating Systems:
 ** Linux
 ** Unix
@@ -231,7 +231,7 @@ The `name` attribute must start with `deprecation`, followed by the component cl
 
 NiFi is a Java-based application. NiFi 2.0 introduces support for a Python-based Processor API. This capability is still
 considered to be in "Beta" mode and should not be used in production. By default, support for Python-based Processors is disabled. In order to enable it,
-Python 3.9+ must be installed on the NiFi node.
+Python 3.9, 3.10 or 3.11 must be installed on the NiFi node (Python 3.12 is not supported yet).
 
 The following properties may be used to configure the Python 3 installation and process management. These properties are all located under the
 "Python Extensions" heading in the _nifi.properties_ file:

@@ -128,8 +128,8 @@ class TestRuntimeManifest {
         assertEquals(REPORTING_TASK_DEFAULT_SCHEDULE_TIME, prometheusDefaultSchedulingPeriods.get(SchedulingStrategy.TIMER_DRIVEN.name()));
         assertEquals(SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod(), prometheusDefaultSchedulingPeriods.get(SchedulingStrategy.CRON_DRIVEN.name()));
 
-        final ProcessorDefinition joltTransformDef = getProcessorDefinition(bundles, "nifi-jolt-record-nar",
-                "org.apache.nifi.processors.jolt.record.JoltTransformRecord");
+        final ProcessorDefinition joltTransformDef = getProcessorDefinition(bundles, "nifi-jolt-nar",
+                "org.apache.nifi.processors.jolt.JoltTransformRecord");
         assertEquals(SchedulingStrategy.TIMER_DRIVEN.name(), joltTransformDef.getDefaultSchedulingStrategy());
 
         final List<String> joltTransformSchedulingStrategies = joltTransformDef.getSupportedSchedulingStrategies();

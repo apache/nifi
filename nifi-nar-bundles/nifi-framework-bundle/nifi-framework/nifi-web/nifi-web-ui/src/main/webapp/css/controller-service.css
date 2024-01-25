@@ -249,3 +249,8 @@ div.new-inline-controller-service-button-container {
     right: 0;
     padding: 0 8px 10px;
 }
+
+/* Status bar button icon */
+#controller-service-configuration div.dialog-status-bar div.button-icon.fa-hourglass-end {
+    font-size : 11px !important;
+}

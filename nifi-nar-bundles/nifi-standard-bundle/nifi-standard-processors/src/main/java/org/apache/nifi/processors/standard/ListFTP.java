@@ -34,9 +34,10 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.file.transfer.ListFileTransfer;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
-import org.apache.nifi.processors.standard.util.FileTransfer;
+import org.apache.nifi.processor.util.file.transfer.FileTransfer;
 
 import java.util.ArrayList;
 import java.util.Collection;

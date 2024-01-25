@@ -18,7 +18,6 @@
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
 import java.io.IOException;
-import java.util.Properties;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -26,20 +25,21 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 
 public abstract class AbstractPullChangeIngestor implements Runnable, ChangeIngestor {
 
     protected static final String DEFAULT_POLLING_PERIOD_MILLISECONDS = "300000";
 
     protected final AtomicInteger pollingPeriodMS = new AtomicInteger();
-    protected final AtomicReference<Properties> properties = new AtomicReference<>();
+    protected final AtomicReference<BootstrapProperties> properties = new AtomicReference<>();
 
     private final ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
 
     protected volatile ConfigurationChangeNotifier configurationChangeNotifier;
 
     @Override
-    public void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
+    public void initialize(BootstrapProperties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
         this.configurationChangeNotifier = configurationChangeNotifier;
         this.properties.set(properties);
     }

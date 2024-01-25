@@ -57,6 +57,8 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.serialization.record.field.FieldConverter;
+import org.apache.nifi.serialization.record.field.StandardFieldConverterRegistry;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.ssl.SSLContextService;
@@ -350,7 +352,8 @@ public class SolrUtils {
 
         switch (chosenDataType.getFieldType()) {
             case DATE: {
-                final String stringValue = DataTypeUtils.toString(coercedValue, () -> DataTypeUtils.getDateFormat(RecordFieldType.DATE.getDefaultFormat()));
+                final FieldConverter<Object, String> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(String.class);
+                final String stringValue = converter.convertField(coercedValue, Optional.ofNullable(RecordFieldType.DATE.getDefaultFormat()), fieldName);
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
                     LocalDate localDate = getLocalDateFromEpochTime(fieldName, coercedValue);
                     addFieldToSolrDocument(inputDocument,fieldName,localDate.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)+'Z',fieldsToIndex);
@@ -360,7 +363,8 @@ public class SolrUtils {
                 break;
             }
             case TIMESTAMP: {
-                final String stringValue = DataTypeUtils.toString(coercedValue, () -> DataTypeUtils.getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat()));
+                final FieldConverter<Object, String> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(String.class);
+                final String stringValue = converter.convertField(coercedValue, Optional.ofNullable(RecordFieldType.TIMESTAMP.getDefaultFormat()), fieldName);
                 if (DataTypeUtils.isLongTypeCompatible(stringValue)) {
                     LocalDateTime localDateTime = getLocalDateTimeFromEpochTime(fieldName, coercedValue);
                     addFieldToSolrDocument(inputDocument,fieldName,localDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)+'Z',fieldsToIndex);

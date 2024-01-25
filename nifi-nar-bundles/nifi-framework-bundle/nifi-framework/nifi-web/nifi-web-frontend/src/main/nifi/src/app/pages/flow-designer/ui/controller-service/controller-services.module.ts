@@ -22,6 +22,7 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
 import { ControllerServicesRoutingModule } from './controller-services-routing.module';
 import { Breadcrumbs } from '../common/breadcrumbs/breadcrumbs.component';
+import { Navigation } from '../../../../ui/common/navigation/navigation.component';
 
 @NgModule({
     declarations: [ControllerServices],
@@ -31,7 +32,8 @@ import { Breadcrumbs } from '../common/breadcrumbs/breadcrumbs.component';
         NgxSkeletonLoaderModule,
         ControllerServicesRoutingModule,
         ControllerServiceTable,
-        Breadcrumbs
+        Breadcrumbs,
+        Navigation
     ]
 })
 export class ControllerServicesModule {}

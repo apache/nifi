@@ -16,25 +16,12 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import { NiFiState } from '../../../../state';
 import { Store } from '@ngrx/store';
 import { Router } from '@angular/router';
 import * as UserListingActions from './user-listing.actions';
-import {
-    catchError,
-    combineLatest,
-    filter,
-    from,
-    map,
-    mergeMap,
-    of,
-    switchMap,
-    take,
-    takeUntil,
-    tap,
-    withLatestFrom
-} from 'rxjs';
+import { catchError, combineLatest, filter, from, map, mergeMap, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { UsersService } from '../../service/users.service';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
@@ -102,7 +89,7 @@ export class UserListingEffects {
         () =>
             this.actions$.pipe(
                 ofType(UserListingActions.openCreateTenantDialog),
-                withLatestFrom(this.store.select(selectUsers), this.store.select(selectUserGroups)),
+                concatLatestFrom(() => [this.store.select(selectUsers), this.store.select(selectUserGroups)]),
                 tap(([action, existingUsers, existingUserGroups]) => {
                     const editTenantRequest: EditTenantRequest = {
                         existingUsers,
@@ -178,7 +165,7 @@ export class UserListingEffects {
         this.actions$.pipe(
             ofType(UserListingActions.createUserSuccess),
             map((action) => action.response),
-            withLatestFrom(this.store.select(selectUserGroups)),
+            concatLatestFrom(() => this.store.select(selectUserGroups)),
             switchMap(([response, userGroups]) => {
                 if (response.userGroupUpdate) {
                     const userGroupUpdate = response.userGroupUpdate;
@@ -311,7 +298,7 @@ export class UserListingEffects {
             this.actions$.pipe(
                 ofType(UserListingActions.openConfigureUserDialog),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectUsers), this.store.select(selectUserGroups)),
+                concatLatestFrom(() => [this.store.select(selectUsers), this.store.select(selectUserGroups)]),
                 tap(([request, existingUsers, existingUserGroups]) => {
                     const editTenantRequest: EditTenantRequest = {
                         user: request.user,
@@ -408,7 +395,7 @@ export class UserListingEffects {
         this.actions$.pipe(
             ofType(UserListingActions.updateUserSuccess),
             map((action) => action.response),
-            withLatestFrom(this.store.select(selectUserGroups)),
+            concatLatestFrom(() => this.store.select(selectUserGroups)),
             switchMap(([response, userGroups]) => {
                 if (response.userGroupUpdate) {
                     const userGroupUpdate = response.userGroupUpdate;
@@ -533,7 +520,7 @@ export class UserListingEffects {
             this.actions$.pipe(
                 ofType(UserListingActions.openConfigureUserGroupDialog),
                 map((action) => action.request),
-                withLatestFrom(this.store.select(selectUsers), this.store.select(selectUserGroups)),
+                concatLatestFrom(() => [this.store.select(selectUsers), this.store.select(selectUserGroups)]),
                 tap(([request, existingUsers, existingUserGroups]) => {
                     const editTenantRequest: EditTenantRequest = {
                         userGroup: request.userGroup,

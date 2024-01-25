@@ -63,7 +63,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -81,6 +82,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
     protected static final String LAST_EVENT_ID_KEY = "last_event_id";
     protected static final String DESTINATION_URL_PATH = "/nifi";
     protected static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+    protected static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(TIMESTAMP_FORMAT).withZone(ZoneOffset.UTC);
 
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
             .name("record-writer")
@@ -122,7 +124,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         return properties;
     }
 
-    public void setup(final PropertyContext reportContext) throws IOException {
+    public void setup(final PropertyContext reportContext) {
         if (siteToSiteClient == null) {
             siteToSiteClient = SiteToSiteUtils.getClient(reportContext, getLogger(), null);
         }
@@ -216,10 +218,6 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         private final boolean array;
         private final JsonNode firstJsonNode;
         private boolean firstObjectConsumed = false;
-
-        private final Supplier<DateFormat> dateFormat = () -> DataTypeUtils.getDateFormat(RecordFieldType.DATE.getDefaultFormat());
-        private final Supplier<DateFormat> timeFormat = () -> DataTypeUtils.getDateFormat(RecordFieldType.TIME.getDefaultFormat());
-        private final Supplier<DateFormat> timestampFormat = () -> DataTypeUtils.getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat());
 
         public JsonRecordReader(final InputStream in, RecordSchema recordSchema) throws IOException, MalformedRecordException {
             this.recordSchema = recordSchema;
@@ -381,8 +379,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
                 case TIME:
                 case TIMESTAMP: {
                     final Object rawValue = getRawNodeValue(fieldNode, null);
-                    final Object converted = DataTypeUtils.convertType(rawValue, desiredType, dateFormat, timeFormat, timestampFormat, fieldName);
-                    return converted;
+                    return DataTypeUtils.convertType(rawValue, desiredType, fieldName);
                 }
                 case MAP: {
                     final DataType valueType = ((MapDataType) desiredType).getValueType();

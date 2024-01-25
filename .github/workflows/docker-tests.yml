@@ -31,8 +31,6 @@ on:
       - 'nifi-toolkit/nifi-toolkit-encrypt-config/**'
       - 'minifi/minifi-assembly/**'
       - 'minifi/minifi-docker/**'
-      - 'minifi/minifi-c2/minifi-c2-assembly/**'
-      - 'minifi/minifi-c2/minifi-c2-docker/**'
   pull_request:
     paths:
       - '.github/workflows/docker-tests.yml'
@@ -45,8 +43,6 @@ on:
       - 'nifi-toolkit/nifi-toolkit-encrypt-config/**'
       - 'minifi/minifi-assembly/**'
       - 'minifi/minifi-docker/**'
-      - 'minifi/minifi-c2/minifi-c2-assembly/**'
-      - 'minifi/minifi-c2/minifi-c2-docker/**'
 
 env:
   DEFAULT_MAVEN_OPTS: >-
@@ -74,7 +70,6 @@ env:
     -pl nifi-registry/nifi-registry-assembly
     -pl nifi-toolkit/nifi-toolkit-assembly
     -pl minifi/minifi-assembly
-    -pl minifi/minifi-c2/minifi-c2-assembly
 
   MAVEN_CLEAN_ARGUMENTS: >-
     -T 2.0C
@@ -86,7 +81,6 @@ env:
     -pl -nifi-toolkit/nifi-toolkit-cli
     -pl -nifi-toolkit/nifi-toolkit-encrypt-config
     -pl -minifi/minifi-assembly
-    -pl -minifi/minifi-c2/minifi-c2-assembly
 
 # build and test Docker Images
   MAVEN_DOCKER_ARGUMENTS: >-
@@ -94,7 +88,6 @@ env:
     -P docker
   MAVEN_DOCKER_PROJECTS: >-
     -pl minifi/minifi-docker
-    -pl minifi/minifi-c2/minifi-c2-docker
     -pl nifi-docker/dockermaven
     -pl nifi-registry/nifi-registry-docker-maven/dockermaven
 

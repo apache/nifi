@@ -22,11 +22,11 @@ import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_ST
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_STATUS_REPORTER_LOG_QUERY;
 
 import java.io.IOException;
-import java.util.Properties;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.minifi.bootstrap.QueryableStatusAggregator;
 import org.apache.nifi.minifi.bootstrap.status.PeriodicStatusReporter;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +41,7 @@ public class StatusLogger extends PeriodicStatusReporter {
     static final String ENCOUNTERED_IO_EXCEPTION = "Encountered an IO Exception while attempting to query the flow status.";
 
     @Override
-    public void initialize(Properties properties, QueryableStatusAggregator queryableStatusAggregator) {
+    public void initialize(BootstrapProperties properties, QueryableStatusAggregator queryableStatusAggregator) {
         this.queryableStatusAggregator = queryableStatusAggregator;
 
         String periodString = properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_PERIOD.getKey());

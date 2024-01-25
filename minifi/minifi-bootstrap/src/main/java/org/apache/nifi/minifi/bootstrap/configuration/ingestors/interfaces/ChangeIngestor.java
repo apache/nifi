@@ -17,14 +17,13 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces;
 
+import java.io.IOException;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
-
-import java.io.IOException;
-import java.util.Properties;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 
 public interface ChangeIngestor {
-    void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier);
+    void initialize(BootstrapProperties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier);
 
     void start();
 

@@ -15,14 +15,12 @@
   ~  limitations under the License.
   -->
 
-<div class="p-4 flex flex-col h-screen justify-between gap-y-5">
-    <div class="flex justify-between">
+<div class="pb-5 flex flex-col h-screen justify-between gap-y-5">
+    <header class="nifi-header">
+        <navigation></navigation>
+    </header>
+    <div class="px-5 flex-1 flex flex-col">
         <h3 class="text-xl bold summary-header">NiFi Summary</h3>
-        <button class="nifi-button" [routerLink]="['/']">
-            <i class="fa fa-times"></i>
-        </button>
-    </div>
-    <div class="flex-1 flex flex-col">
         <div class="summary-tabs">
             <nav mat-tab-nav-bar color="primary" [tabPanel]="tabPanel">
                 <a

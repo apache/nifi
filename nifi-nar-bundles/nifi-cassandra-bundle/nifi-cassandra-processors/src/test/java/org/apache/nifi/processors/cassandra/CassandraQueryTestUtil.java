@@ -26,7 +26,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Set;
 import java.util.Map;
 import java.util.List;
@@ -67,7 +68,7 @@ public class CassandraQueryTestUtil {
                     "user_id", "first_name", "last_name", "emails", "top_places", "todo", "registered", "scale", "metric");
 
             @Override
-            public String answer(InvocationOnMock invocationOnMock) throws Throwable {
+            public String answer(InvocationOnMock invocationOnMock) {
                 return colNames.get((Integer) invocationOnMock.getArguments()[0]);
 
             }
@@ -90,10 +91,10 @@ public class CassandraQueryTestUtil {
             }
         });
 
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-        final Date aMonthPrior = dateFormat.parse("2016-01-03 05:00:00+0000");
-        final Date testDate = dateFormat.parse("2016-02-03 05:00:00+0000");
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssZ");
+        final Date aMonthPrior = Date.from(OffsetDateTime.parse("2016-01-03 05:00:00+0000", dateTimeFormatter).toInstant());
+        final Date testDate = Date.from(OffsetDateTime.parse("2016-02-03 05:00:00+0000", dateTimeFormatter).toInstant());
+
         List<Row> rows = Arrays.asList(
                 createRow("user1", "Joe", "Smith", Sets.newHashSet("jsmith@notareal.com"),
                         Arrays.asList("New York, NY", "Santa Clara, CA"),

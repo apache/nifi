@@ -17,6 +17,10 @@
 
 package org.apache.nifi.python;
 
+import org.apache.nifi.python.processor.documentation.MultiProcessorUseCaseDetails;
+import org.apache.nifi.python.processor.documentation.PropertyDescription;
+import org.apache.nifi.python.processor.documentation.UseCaseDetails;
+
 import java.util.List;
 
 public interface PythonProcessorDetails {
@@ -54,4 +58,22 @@ public interface PythonProcessorDetails {
      * @return the name of the Java interface that is implemented by the Python Processor
      */
     String getInterface();
+
+    /**
+     * @return the use cases that have been described by the Python Processor
+     */
+    List<UseCaseDetails> getUseCases();
+
+    /**
+     * @return the multi-processor use cases that have been described by the Python Processor
+     */
+    List<MultiProcessorUseCaseDetails> getMultiProcessorUseCases();
+
+    /**
+     * A list of property descriptions for the known properties. Note that unlikely Java Processors, Python-based Processors are
+     * more dynamic, and the properties may not all be discoverable
+     *
+     * @return a list of descriptions for known properties
+     */
+    List<PropertyDescription> getPropertyDescriptions();
 }

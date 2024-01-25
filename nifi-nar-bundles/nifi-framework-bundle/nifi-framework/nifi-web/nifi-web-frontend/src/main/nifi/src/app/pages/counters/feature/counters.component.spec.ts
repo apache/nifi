@@ -22,15 +22,23 @@ import { initialState } from '../state/counter-listing/counter-listing.reducer';
 import { CounterListing } from '../ui/counter-listing/counter-listing.component';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
+import { Component } from '@angular/core';
 
 describe('Counters', () => {
     let component: Counters;
     let fixture: ComponentFixture<Counters>;
 
+    @Component({
+        selector: 'navigation',
+        standalone: true,
+        template: ''
+    })
+    class MockNavigation {}
+
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Counters, CounterListing],
-            imports: [RouterModule, RouterTestingModule],
+            imports: [RouterModule, RouterTestingModule, MockNavigation],
             providers: [provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(Counters);

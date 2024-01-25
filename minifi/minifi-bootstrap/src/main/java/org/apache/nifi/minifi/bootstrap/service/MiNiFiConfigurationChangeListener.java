@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.util.Properties;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.nifi.controller.flow.VersionedDataflow;
@@ -42,6 +41,7 @@ import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListene
 import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
 import org.apache.nifi.minifi.commons.service.FlowEnrichService;
 import org.apache.nifi.minifi.commons.service.FlowSerDeService;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.slf4j.Logger;
 
 public class MiNiFiConfigurationChangeListener implements ConfigurationChangeListener {
@@ -76,7 +76,7 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
         Path currentRawFlowConfigFile = null;
         Path backupRawFlowConfigFile = null;
         try {
-            Properties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
+            BootstrapProperties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
 
             currentFlowConfigFile = Path.of(bootstrapProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey())).toAbsolutePath();
             backupFlowConfigFile = Path.of(currentFlowConfigFile + BACKUP_EXTENSION);

@@ -49,13 +49,13 @@ import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TimeZone;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -67,6 +67,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Unit tests for the QueryDatabaseTableRecord processor
  */
 public class QueryDatabaseTableRecordTest {
+
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
     MockQueryDatabaseTableRecord processor;
     private TestRunner runner;
@@ -846,19 +848,15 @@ public class QueryDatabaseTableRecordTest {
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
 
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.setTimeInMillis(0);
-
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        LocalDateTime dateTime = LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC);
 
         int rowCount = 0;
         //create larger row set
         for (int batch = 0; batch < 10; batch++) {
-            stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '" + dateFormat.format(cal.getTime().getTime()) + "')");
+            stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '" + DATE_TIME_FORMATTER.format(dateTime) + "')");
 
             rowCount++;
-            cal.add(Calendar.MINUTE, 1);
+            dateTime = dateTime.plusMinutes(1);
         }
 
         runner.setProperty(QueryDatabaseTableRecord.TABLE_NAME, "${" + TABLE_NAME_KEY + "}");
@@ -866,9 +864,8 @@ public class QueryDatabaseTableRecordTest {
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "created_on");
 
-        cal.setTimeInMillis(0);
-        cal.add(Calendar.MINUTE, 5);
-        runner.setProperty("initial.maxvalue.CREATED_ON", dateFormat.format(cal.getTime().getTime()));
+        dateTime = LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC).plusMinutes(5);
+        runner.setProperty("initial.maxvalue.CREATED_ON", DATE_TIME_FORMATTER.format(dateTime));
         // Initial run with no previous state. Should get only last 4 records
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
@@ -900,19 +897,14 @@ public class QueryDatabaseTableRecordTest {
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
 
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.setTimeInMillis(0);
-
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-
+        LocalDateTime dateTime = LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC);
         int rowCount = 0;
         //create larger row set
         for (int batch = 0; batch < 10; batch++) {
-            stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '" + dateFormat.format(cal.getTime().getTime()) + "')");
+            stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '" + DATE_TIME_FORMATTER.format(dateTime) + "')");
 
             rowCount++;
-            cal.add(Calendar.MINUTE, 1);
+            dateTime = dateTime.plusMinutes(1);
         }
 
         runner.setProperty(QueryDatabaseTableRecord.TABLE_NAME, "${" + TABLE_NAME_KEY + "}");
@@ -920,10 +912,9 @@ public class QueryDatabaseTableRecordTest {
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "created_on");
 
-        cal.setTimeInMillis(0);
-        cal.add(Calendar.MINUTE, 5);
+        dateTime = LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC).plusMinutes(5);
         runner.setProperty("initial.maxvalue.CREATED_ON", "${created.on}");
-        runner.setEnvironmentVariableValue("created.on", dateFormat.format(cal.getTime().getTime()));
+        runner.setEnvironmentVariableValue("created.on", DATE_TIME_FORMATTER.format(dateTime));
         // Initial run with no previous state. Should get only last 4 records
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
@@ -940,9 +931,8 @@ public class QueryDatabaseTableRecordTest {
         runner.clearTransferState();
 
         // Append a new row, expect 1 flowfile one row
-        cal.setTimeInMillis(0);
-        cal.add(Calendar.MINUTE, rowCount);
-        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '" + dateFormat.format(cal.getTime().getTime()) + "')");
+        dateTime = LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC).plusMinutes(rowCount);
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '" + DATE_TIME_FORMATTER.format(dateTime) + "')");
 
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
@@ -967,19 +957,14 @@ public class QueryDatabaseTableRecordTest {
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
 
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.setTimeInMillis(0);
-
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-
+        LocalDateTime dateTime = LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC);
         int rowCount = 0;
         //create larger row set
         for (int batch = 0; batch < 10; batch++) {
-            stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '" + dateFormat.format(cal.getTime().getTime()) + "')");
+            stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '" + DATE_TIME_FORMATTER.format(dateTime) + "')");
 
             rowCount++;
-            cal.add(Calendar.MINUTE, 1);
+            dateTime = dateTime.plusMinutes(1);
         }
 
         runner.setProperty(QueryDatabaseTableRecord.TABLE_NAME, "${" + TABLE_NAME_KEY + "}");
@@ -1019,19 +1004,14 @@ public class QueryDatabaseTableRecordTest {
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
 
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.setTimeInMillis(0);
-
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-
+        LocalDateTime dateTime = LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC);
         int rowCount = 0;
         //create larger row set
         for (int batch = 0; batch < 10; batch++) {
-            stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '" + dateFormat.format(cal.getTime().getTime()) + "')");
+            stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (" + rowCount + ", 'Joe Smith', 1.0, '" + DATE_TIME_FORMATTER.format(dateTime) + "')");
 
             rowCount++;
-            cal.add(Calendar.MINUTE, 1);
+            dateTime = dateTime.plusMinutes(1);
         }
 
         runner.setProperty(QueryDatabaseTableRecord.TABLE_NAME, "${" + TABLE_NAME_KEY + "}");

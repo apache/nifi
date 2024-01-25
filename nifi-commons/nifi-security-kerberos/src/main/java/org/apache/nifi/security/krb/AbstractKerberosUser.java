@@ -32,17 +32,15 @@ import javax.security.auth.login.LoginException;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Base class for implementations of KerberosUser.
- *
  * Generally implementations must provide the specific Configuration instance for performing the login,
  * along with an optional CallbackHandler.
- *
  * Some functionality in this class is adapted from Hadoop's UserGroupInformation.
  */
 public abstract class AbstractKerberosUser implements KerberosUser {
@@ -50,6 +48,7 @@ public abstract class AbstractKerberosUser implements KerberosUser {
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractKerberosUser.class);
 
     static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(DATE_FORMAT);
 
     /**
      * Percentage of the ticket window to use before we renew the TGT.
@@ -99,7 +98,7 @@ public abstract class AbstractKerberosUser implements KerberosUser {
 
             loginContext.login();
             loggedIn.set(true);
-            LOGGER.debug("Successful login for {}", new Object[]{principal});
+            LOGGER.debug("Successful login for {}", principal);
         } catch (final LoginException le) {
             throw new KerberosLoginException("Unable to login with " + principal + " due to: " + le.getMessage(), le);
         }
@@ -143,7 +142,7 @@ public abstract class AbstractKerberosUser implements KerberosUser {
         try {
             loginContext.logout();
             loggedIn.set(false);
-            LOGGER.debug("Successful logout for {}", new Object[]{principal});
+            LOGGER.debug("Successful logout for {}", principal);
 
             loginContext = null;
         } catch (final LoginException e) {
@@ -190,7 +189,6 @@ public abstract class AbstractKerberosUser implements KerberosUser {
     /**
      * Re-login a user from keytab if TGT is expired or is close to expiry.
      *
-     * @throws LoginException if an error happens performing the re-login
      */
     @Override
     public synchronized boolean checkTGTAndRelogin()  {
@@ -200,7 +198,7 @@ public abstract class AbstractKerberosUser implements KerberosUser {
             return logoutAndLogin();
         }
 
-        if (tgt != null && System.currentTimeMillis() < getRefreshTime(tgt)) {
+        if (System.currentTimeMillis() < getRefreshTime(tgt)) {
             LOGGER.debug("TGT for {} was found, but has not reached expiration window", principal);
             return false;
         }
@@ -222,7 +220,7 @@ public abstract class AbstractKerberosUser implements KerberosUser {
     }
 
     private boolean logoutAndLogin() {
-        LOGGER.debug("Performing logout/login", principal);
+        LOGGER.debug("Performing logout/login {}", principal);
         logout();
         login();
         return true;
@@ -271,15 +269,14 @@ public abstract class AbstractKerberosUser implements KerberosUser {
         final long end = tgt.getEndTime().getTime();
 
         if (LOGGER.isTraceEnabled()) {
-            final SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
-            final String startDate = dateFormat.format(new Date(start));
-            final String endDate = dateFormat.format(new Date(end));
+            final String startDate = DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(start));
+            final String endDate = DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(end));
             LOGGER.trace("TGT for {} is valid starting at [{}]", principal, startDate);
             LOGGER.trace("TGT for {} expires at [{}]", principal, endDate);
             if (tgt.getRenewTill() == null) {
                 LOGGER.trace("TGT for {} is non-renewable", principal);
             } else {
-                LOGGER.trace("TGT for {} renews until [{}]", principal,  dateFormat.format(tgt.getRenewTill()));
+                LOGGER.trace("TGT for {} renews until [{}]", principal,  DATE_TIME_FORMATTER.format(tgt.getRenewTill().toInstant()));
             }
         }
 

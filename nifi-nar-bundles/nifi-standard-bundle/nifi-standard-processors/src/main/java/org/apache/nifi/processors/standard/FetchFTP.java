@@ -33,8 +33,9 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.file.transfer.FetchFileTransfer;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
-import org.apache.nifi.processors.standard.util.FileTransfer;
+import org.apache.nifi.processor.util.file.transfer.FileTransfer;
 
 // Note that we do not use @SupportsBatching annotation. This processor cannot support batching because it must ensure that session commits happen before remote files are deleted.
 

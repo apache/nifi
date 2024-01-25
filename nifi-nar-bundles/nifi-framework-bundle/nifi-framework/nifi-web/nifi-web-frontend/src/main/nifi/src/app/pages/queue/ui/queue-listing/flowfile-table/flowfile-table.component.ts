@@ -22,11 +22,9 @@ import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bu
 import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { NgForOf, NgIf } from '@angular/common';
-import { ProvenanceEventSummary } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
 import { FlowFileSummary, ListingRequest } from '../../../state/queue-listing';
 import { CurrentUser } from '../../../../../state/current-user';
-import { Flow } from '../../../../flow-designer/state/flow';
 
 @Component({
     selector: 'flowfile-table',

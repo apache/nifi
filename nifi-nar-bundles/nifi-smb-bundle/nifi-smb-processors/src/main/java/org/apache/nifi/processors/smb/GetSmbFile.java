@@ -58,8 +58,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.InputStream;
 import java.net.URI;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -213,7 +213,7 @@ public class GetSmbFile extends AbstractProcessor {
     public static final String FILE_SIZE_ATTRIBUTE = "file.size";
 
     public static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
-    final static DateFormat dateFormatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
+    private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All files are routed to success").build();
 
@@ -486,9 +486,9 @@ public class GetSmbFile extends AbstractProcessor {
                             attributes.put(CoreAttributes.FILENAME.key(), filename);
                             attributes.put(CoreAttributes.PATH.key(), filePath);
                             attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), "\\\\" + hostname + "\\" + shareName + "\\" + file);
-                            attributes.put(FILE_CREATION_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getCreationTime().toDate()));
-                            attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getLastAccessTime().toDate()));
-                            attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getLastWriteTime().toDate()));
+                            attributes.put(FILE_CREATION_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getCreationTime().toInstant().atZone(ZoneId.systemDefault())));
+                            attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getLastAccessTime().toInstant().atZone(ZoneId.systemDefault())));
+                            attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getLastWriteTime().toInstant().atZone(ZoneId.systemDefault())));
                             attributes.put(FILE_SIZE_ATTRIBUTE, String.valueOf(fileSize));
                             attributes.put(HOSTNAME.getName(), hostname);
                             attributes.put(SHARE.getName(), shareName);
@@ -497,12 +497,10 @@ public class GetSmbFile extends AbstractProcessor {
                             session.getProvenanceReporter().receive(flowFile, uri.toString(), importMillis);
 
                             session.transfer(flowFile, REL_SUCCESS);
-                            logger.info("added {} to flow", new Object[]{flowFile});
-
                         } catch (SMBApiException e) {
                             // do not fail whole batch if a single file cannot be accessed
                             if (e.getStatus() == NtStatus.STATUS_SHARING_VIOLATION) {
-                                logger.info("Could not acquire sharing access for file {}", new Object[]{file});
+                                logger.info("Could not acquire sharing access for file {}", file);
                                 if (flowFile != null) {
                                     session.remove(flowFile);
                                 }
@@ -517,7 +515,7 @@ public class GetSmbFile extends AbstractProcessor {
                                 share.rm(file);
                             }
                         } catch (SMBApiException e) {
-                            logger.error("Could not remove file {}", new Object[]{file});
+                            logger.error("Could not remove file {}", file);
                         }
 
                         if (!isScheduled()) {  // if processor stopped, put the rest of the files back on the queue.

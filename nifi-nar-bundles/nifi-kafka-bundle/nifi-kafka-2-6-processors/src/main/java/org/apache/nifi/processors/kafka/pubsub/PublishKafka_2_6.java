@@ -514,7 +514,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
     }
 
     private PublishFailureStrategy getFailureStrategy(final ProcessContext context) {
-        return switch (context.getProperty(FAILURE_STRATEGY).asDescribedValue(FailureStrategy.class)) {
+        return switch (context.getProperty(FAILURE_STRATEGY).asAllowableValue(FailureStrategy.class)) {
             case ROUTE_TO_FAILURE -> (session, flowFiles) -> session.transfer(flowFiles, REL_FAILURE);
             case ROLLBACK -> (session, flowFiles) -> session.rollback();
         };

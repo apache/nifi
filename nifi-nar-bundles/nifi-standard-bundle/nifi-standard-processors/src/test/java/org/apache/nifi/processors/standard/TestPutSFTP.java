@@ -18,7 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processors.standard.util.FileTransfer;
+import org.apache.nifi.processor.util.file.transfer.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
 import org.apache.nifi.processors.standard.util.SSHTestServer;
 import org.apache.nifi.provenance.ProvenanceEventRecord;

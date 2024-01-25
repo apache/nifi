@@ -487,7 +487,7 @@ public class TestAttributesToJSON {
     private static Stream<Arguments> getNestedJson() throws IOException {
         return Stream.of(
                 Arguments.of(Files.readString(Paths.get("src/test/resources/TestJson/json-sample.json")), List.class),
-                Arguments.of(Files.readString(Paths.get("src/test/resources/TestJoltTransformJson/input.json")), Map.class));
+                Arguments.of(Files.readString(Paths.get("src/test/resources/TestAttributesToJSON/input.json")), Map.class));
     }
 
     @ParameterizedTest

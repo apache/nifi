@@ -31,6 +31,7 @@ import { OutputPortStatusListingModule } from '../ui/output-port-status-listing/
 import { InputPortStatusListingModule } from '../ui/input-port-status-listing/input-port-status-listing.module';
 import { SummaryListingEffects } from '../state/summary-listing/summary-listing.effects';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
 
 @NgModule({
     declarations: [Summary],
@@ -48,7 +49,8 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
         InputPortStatusListingModule,
         StoreModule.forFeature(summaryFeatureKey, reducers),
         EffectsModule.forFeature(SummaryListingEffects),
-        NgxSkeletonLoaderModule
+        NgxSkeletonLoaderModule,
+        Navigation
     ]
 })
 export class SummaryModule {}

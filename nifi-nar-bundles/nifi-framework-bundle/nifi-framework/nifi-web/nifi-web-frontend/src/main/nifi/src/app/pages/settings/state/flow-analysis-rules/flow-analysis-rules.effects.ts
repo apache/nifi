@@ -16,9 +16,9 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as FlowAnalysisRuleActions from './flow-analysis-rules.actions';
-import { catchError, from, map, NEVER, Observable, of, switchMap, take, takeUntil, tap, withLatestFrom } from 'rxjs';
+import { catchError, from, map, NEVER, Observable, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
@@ -87,7 +87,7 @@ export class FlowAnalysisRulesEffects {
         () =>
             this.actions$.pipe(
                 ofType(FlowAnalysisRuleActions.openNewFlowAnalysisRuleDialog),
-                withLatestFrom(this.store.select(selectFlowAnalysisRuleTypes)),
+                concatLatestFrom(() => this.store.select(selectFlowAnalysisRuleTypes)),
                 tap(([action, flowAnalysisRuleTypes]) => {
                     this.dialog.open(CreateFlowAnalysisRule, {
                         data: {

@@ -39,8 +39,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -59,6 +59,7 @@ public class RuntimeManifestGenerator {
     private static final String BUILD_TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss'Z'";
     private static final String BUILD_JDK = "Build-Jdk";
     private static final String BUILD_JDK_VENDOR = "Build-Jdk-Vendor";
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern(BUILD_TIMESTAMP_FORMAT);
 
     private final File extensionManifestBaseDir;
     private final File buildPropertiesFile;
@@ -87,9 +88,7 @@ public class RuntimeManifestGenerator {
 
         long buildTimestampMillis;
         try {
-            final SimpleDateFormat buildTimestampFormat = new SimpleDateFormat(BUILD_TIMESTAMP_FORMAT);
-            final Date buildTimestampDate = buildTimestampFormat.parse(buildTimestamp);
-            buildTimestampMillis = buildTimestampDate.getTime();
+            buildTimestampMillis = OffsetDateTime.parse(buildTimestamp, TIMESTAMP_FORMATTER).toInstant().toEpochMilli();
         } catch (Exception e) {
             buildTimestampMillis = System.currentTimeMillis();
         }

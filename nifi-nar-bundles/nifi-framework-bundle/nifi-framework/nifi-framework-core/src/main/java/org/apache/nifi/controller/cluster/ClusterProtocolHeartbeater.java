@@ -31,11 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -102,7 +99,6 @@ public class ClusterProtocolHeartbeater implements Heartbeater {
         final long sendNanos = System.nanoTime() - sendStart;
         final long sendMillis = TimeUnit.NANOSECONDS.toMillis(sendNanos);
 
-        final DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS", Locale.US);
         final String flowElectionMessage = responseMessage.getFlowElectionMessage();
         final String formattedElectionMessage = flowElectionMessage == null ? "" : "; " + flowElectionMessage;
 
@@ -110,9 +106,9 @@ public class ClusterProtocolHeartbeater implements Heartbeater {
 
         logger.info("Heartbeat created at {} and sent to {} at {}; determining Cluster Coordinator took {} millis; DNS lookup for coordinator took {} millis; connecting to coordinator took {} " +
                 "millis; sending heartbeat took {} millis; receiving first byte from response took {} millis; receiving full response took {} millis; total time was {} millis{}",
-            dateFormatter.format(new Date(heartbeatMessage.getHeartbeat().getCreatedTimestamp())),
+            Instant.ofEpochMilli(heartbeatMessage.getHeartbeat().getCreatedTimestamp()),
             heartbeatAddress,
-            dateFormatter.format(new Date()),
+            Instant.now(),
             TimeUnit.NANOSECONDS.toMillis(findCoordinatorNanos),
             timingDetails.getDnsLookupMillis(),
             timingDetails.getConnectMillis(),

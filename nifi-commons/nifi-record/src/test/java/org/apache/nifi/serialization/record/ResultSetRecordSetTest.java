@@ -19,7 +19,6 @@ package org.apache.nifi.serialization.record;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.DecimalDataType;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -265,7 +264,6 @@ public class ResultSetRecordSetTest {
 
     @Test
     public void testCreateRecord() throws SQLException {
-        // given
         final RecordSchema recordSchema = givenRecordSchema(COLUMNS);
 
         LocalDate testDate = LocalDate.of(2021, 1, 26);
@@ -311,11 +309,9 @@ public class ResultSetRecordSetTest {
         when(resultSet.getObject(COLUMN_NAME_BIG_DECIMAL_4)).thenReturn(bigDecimal4Value);
         when(resultSet.getObject(COLUMN_NAME_BIG_DECIMAL_5)).thenReturn(bigDecimal5Value);
 
-        // when
         ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema);
         Record record = testSubject.createRecord(resultSet);
 
-        // then
         assertEquals(varcharValue, record.getAsString(COLUMN_NAME_VARCHAR));
         assertEquals(bigintValue, record.getAsLong(COLUMN_NAME_BIGINT));
         assertEquals(rowidValue, record.getAsLong(COLUMN_NAME_ROWID));
@@ -324,7 +320,8 @@ public class ResultSetRecordSetTest {
         assertEquals(charValue, record.getValue(COLUMN_NAME_CHAR));
 
         assertEquals(dateValue, record.getAsDate(COLUMN_NAME_DATE, null));
-        assertEquals(timestampValue, DataTypeUtils.toTimestamp(record.getValue(COLUMN_NAME_TIMESTAMP), null, COLUMN_NAME_TIMESTAMP));
+        final Object timestampObject = record.getValue(COLUMN_NAME_TIMESTAMP);
+        assertEquals(timestampValue, timestampObject);
 
         assertEquals(integerValue, record.getAsInt(COLUMN_NAME_INTEGER));
         assertEquals(doubleValue, record.getAsDouble(COLUMN_NAME_DOUBLE));

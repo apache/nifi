@@ -866,7 +866,7 @@ public class ExtensionBuilder {
 
            // TODO: This is a hack because there's a bug in the UI that causes it to not load extensions that don't have a `.` in the type.
            final String processorType = type.startsWith("python.") ? type.substring("python.".length()) : type;
-           final Processor processor = pythonBridge.createProcessor(identifier, processorType, bundleCoordinate.getVersion(), true);
+           final Processor processor = pythonBridge.createProcessor(identifier, processorType, bundleCoordinate.getVersion(), true, true);
 
            final ComponentLog componentLog = new SimpleProcessLogger(identifier, processor, new StandardLoggingContext(null));
            final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);

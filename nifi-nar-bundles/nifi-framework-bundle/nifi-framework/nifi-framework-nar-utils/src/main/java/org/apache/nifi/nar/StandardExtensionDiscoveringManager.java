@@ -96,6 +96,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
     private final Map<BundleCoordinate, Bundle> bundleCoordinateBundleLookup = new HashMap<>();
     private final Map<ClassLoader, Bundle> classLoaderBundleLookup = new HashMap<>();
     private final Map<String, ConfigurableComponent> tempComponentLookup = new HashMap<>();
+    private final Map<String, List<PythonProcessorDetails>> pythonProcessorDetails = new HashMap<>();
 
     private final Map<String, InstanceClassLoader> instanceClassloaderLookup = new ConcurrentHashMap<>();
     private final ConcurrentMap<BaseClassLoaderKey, SharedInstanceClassLoader> sharedBaseClassloaders = new ConcurrentHashMap<>();
@@ -201,7 +202,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             final Bundle bundle = new Bundle(bundleDetails, pythonBundle.getClassLoader());
 
             // TODO: This is a workaround because the UI has a bug that causes it not to work properly if the type doesn't have a '.' in it
-            final String className = "python." + details.getProcessorType();
+            final String className = PYTHON_TYPE_PREFIX + details.getProcessorType();
             final ExtensionDefinition extensionDefinition = new ExtensionDefinition.Builder()
                 .implementationClassName(className)
                 .runtime(ExtensionRuntime.PYTHON)
@@ -218,6 +219,10 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                 final List<Bundle> bundlesForClass = classNameBundleLookup.computeIfAbsent(className, key -> new ArrayList<>());
                 bundlesForClass.add(bundle);
                 bundleCoordinateBundleLookup.putIfAbsent(bundleDetails.getCoordinate(), bundle);
+
+                final List<PythonProcessorDetails> detailsList = this.pythonProcessorDetails.computeIfAbsent(details.getProcessorType(), key -> new ArrayList<>());
+                detailsList.add(details);
+
                 logger.info("Discovered Python Processor {}", details.getProcessorType());
             } else {
                 logger.debug("Python Processor {} is already known", details.getProcessorType());
@@ -229,6 +234,23 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         } else {
             logger.info("Discovered or updated {} Python Processors in {} millis", processorsFound, System.currentTimeMillis() - start);
         }
+    }
+
+    @Override
+    public PythonProcessorDetails getPythonProcessorDetails(final String processorType, final String version) {
+        final String canonicalProcessorType = stripPythonTypePrefix(processorType);
+        final List<PythonProcessorDetails> detailsList = this.pythonProcessorDetails.get(canonicalProcessorType);
+        if (detailsList == null) {
+            return null;
+        }
+
+        for (final PythonProcessorDetails processorDetails : detailsList) {
+            if (processorDetails.getProcessorVersion().equals(version)) {
+                return processorDetails;
+            }
+        }
+
+        return null;
     }
 
     private BundleDetails createBundleDetailsWithOverriddenVersion(final BundleDetails details, final String version) {
@@ -705,10 +727,10 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             final ConfigurableComponent tempComponent;
             if (PythonBundle.isPythonCoordinate(bundle.getBundleDetails().getCoordinate())) {
                 // TODO: This is a workaround due to bug in UI. Fix bug in UI.
-                final String type = classType.startsWith(PYTHON_TYPE_PREFIX) ? classType.substring(PYTHON_TYPE_PREFIX.length()) : classType;
+                final String type = stripPythonTypePrefix(classType);
 
                 final String procId = "temp-component-" + type;
-                tempComponent = pythonBridge.createProcessor(procId, type, bundleCoordinate.getVersion(), false);
+                tempComponent = pythonBridge.createProcessor(procId, type, bundleCoordinate.getVersion(), false, false);
             } else {
                 final Class<?> componentClass = Class.forName(classType, true, bundleClassLoader);
                 tempComponent = (ConfigurableComponent) componentClass.getDeclaredConstructor().newInstance();
@@ -729,6 +751,16 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         }
     }
 
+    private static String stripPythonTypePrefix(final String value) {
+        if (value == null) {
+            return null;
+        }
+        if (value.startsWith(PYTHON_TYPE_PREFIX)) {
+            return value.substring(PYTHON_TYPE_PREFIX.length());
+        }
+
+        return value;
+    }
 
     private static String getClassBundleKey(final String classType, final BundleCoordinate bundleCoordinate) {
         return classType + "_" + bundleCoordinate.getCoordinate();

@@ -23,6 +23,8 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.MultiProcessorUseCase;
+import org.apache.nifi.annotation.documentation.ProcessorConfiguration;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
@@ -70,6 +72,50 @@ import java.util.concurrent.TimeUnit;
                         requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
                         explanation = "Provides operator the ability to delete any file that NiFi has access to.")
         }
+)
+@MultiProcessorUseCase(
+    description = "Ingest all files from a directory into NiFi",
+    keywords = {"local", "files", "filesystem", "ingest", "ingress", "get", "source", "input", "fetch"},
+    configurations = {
+        @ProcessorConfiguration(processorClass = ListFile.class,
+            configuration = """
+                Configure the "Input Directory" property to point to the directory that you want to ingest files from.
+                Set the "Input Directory Location" property to "Local"
+                Optionally, set "Minimum File Age" to a small value such as "1 min" to avoid ingesting files that are still being written to.
+
+                Connect the 'success' Relationship to the FetchFile processor.
+                """
+        ),
+        @ProcessorConfiguration(processorClass = FetchFile.class,
+            configuration = """
+                Set the "File to Fetch" property to `${absolute.path}/${filename}`
+                Set the "Completion Strategy" property to `None`
+                """
+        )
+    }
+)
+@MultiProcessorUseCase(
+    description = "Ingest specific files from a directory into NiFi, filtering on filename",
+    keywords = {"local", "files", "filesystem", "ingest", "ingress", "get", "source", "input", "fetch", "filter"},
+    configurations = {
+        @ProcessorConfiguration(processorClass = ListFile.class,
+            configuration = """
+                Configure the "Input Directory" property to point to the directory that you want to ingest files from.
+                Set the "Input Directory Location" property to "Local"
+                Set the "File Filter" property to a Regular Expression that matches the filename (without path) of the files that you want to ingest. \
+                For example, to ingest all .jpg files, set the value to `.*\\.jpg`
+                Optionally, set "Minimum File Age" to a small value such as "1 min" to avoid ingesting files that are still being written to.
+
+                Connect the 'success' Relationship to the FetchFile processor.
+                """
+        ),
+        @ProcessorConfiguration(processorClass = FetchFile.class,
+            configuration = """
+                Set the "File to Fetch" property to `${absolute.path}/${filename}`
+                Set the "Completion Strategy" property to `None`
+                """
+        )
+    }
 )
 public class FetchFile extends AbstractProcessor {
     static final AllowableValue COMPLETION_NONE = new AllowableValue("None", "None", "Leave the file as-is");

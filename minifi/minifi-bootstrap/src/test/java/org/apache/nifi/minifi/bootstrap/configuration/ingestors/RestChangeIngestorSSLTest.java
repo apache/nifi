@@ -25,7 +25,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
 import java.util.Collections;
-import java.util.Properties;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -35,6 +36,7 @@ import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.ListenerHandleResult;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.security.ssl.StandardTrustManagerBuilder;
@@ -50,16 +52,17 @@ public class RestChangeIngestorSSLTest extends RestChangeIngestorCommonTest {
     public static void setUpHttps() throws IOException, InterruptedException {
         final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().trustStoreType("JKS").build();
 
-        Properties properties = new Properties();
-        properties.setProperty(RestChangeIngestor.TRUSTSTORE_LOCATION_KEY, tlsConfiguration.getTruststorePath());
-        properties.setProperty(RestChangeIngestor.TRUSTSTORE_PASSWORD_KEY, tlsConfiguration.getTruststorePassword());
-        properties.setProperty(RestChangeIngestor.TRUSTSTORE_TYPE_KEY, tlsConfiguration.getTruststoreType().getType());
-        properties.setProperty(RestChangeIngestor.KEYSTORE_LOCATION_KEY, tlsConfiguration.getKeystorePath());
-        properties.setProperty(RestChangeIngestor.KEYSTORE_PASSWORD_KEY, tlsConfiguration.getKeystorePassword());
-        properties.setProperty(RestChangeIngestor.KEYSTORE_TYPE_KEY, tlsConfiguration.getKeystoreType().getType());
-        properties.setProperty(RestChangeIngestor.NEED_CLIENT_AUTH_KEY, "false");
-        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
-        properties.put(PULL_HTTP_BASE_KEY + ".override.core", "true");
+        Map<String, String> bootstrapProperties = new HashMap<>();
+        bootstrapProperties.put(RestChangeIngestor.TRUSTSTORE_LOCATION_KEY, tlsConfiguration.getTruststorePath());
+        bootstrapProperties.put(RestChangeIngestor.TRUSTSTORE_PASSWORD_KEY, tlsConfiguration.getTruststorePassword());
+        bootstrapProperties.put(RestChangeIngestor.TRUSTSTORE_TYPE_KEY, tlsConfiguration.getTruststoreType().getType());
+        bootstrapProperties.put(RestChangeIngestor.KEYSTORE_LOCATION_KEY, tlsConfiguration.getKeystorePath());
+        bootstrapProperties.put(RestChangeIngestor.KEYSTORE_PASSWORD_KEY, tlsConfiguration.getKeystorePassword());
+        bootstrapProperties.put(RestChangeIngestor.KEYSTORE_TYPE_KEY, tlsConfiguration.getKeystoreType().getType());
+        bootstrapProperties.put(RestChangeIngestor.NEED_CLIENT_AUTH_KEY, "false");
+        bootstrapProperties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
+        bootstrapProperties.put(PULL_HTTP_BASE_KEY + ".override.core", "true");
+        BootstrapProperties properties = new BootstrapProperties(bootstrapProperties);
 
         restChangeIngestor = new RestChangeIngestor();
 

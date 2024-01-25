@@ -35,7 +35,6 @@ import java.util.function.Function;
 
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.CREDENTIALS_TYPE;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.PROXY_CONFIGURATION_SERVICE;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID;
@@ -71,6 +70,11 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
             .fromPropertyDescriptor(AzureStorageUtils.ENDPOINT_SUFFIX)
             .defaultValue(AzureServiceEndpoints.DEFAULT_ADLS_ENDPOINT_SUFFIX)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build();
+
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AzureStorageUtils.PROXY_CONFIGURATION_SERVICE)
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL, AzureStorageCredentialsType.MANAGED_IDENTITY)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
@@ -129,7 +133,7 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
         setValue(credentialsBuilder, ACCOUNT_KEY, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountKey, attributes);
         setValue(credentialsBuilder, SAS_TOKEN, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setSasToken, attributes);
         setValue(credentialsBuilder, ENDPOINT_SUFFIX, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setEndpointSuffix, attributes);
-        setValue(credentialsBuilder, CREDENTIALS_TYPE, property -> property.asDescribedValue(AzureStorageCredentialsType.class) == AzureStorageCredentialsType.MANAGED_IDENTITY,
+        setValue(credentialsBuilder, CREDENTIALS_TYPE, property -> property.asAllowableValue(AzureStorageCredentialsType.class) == AzureStorageCredentialsType.MANAGED_IDENTITY,
                 ADLSCredentialsDetails.Builder::setUseManagedIdentity, attributes);
         setValue(credentialsBuilder, MANAGED_IDENTITY_CLIENT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setManagedIdentityClientId, attributes);
         setValue(credentialsBuilder, SERVICE_PRINCIPAL_TENANT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalTenantId, attributes);

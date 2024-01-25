@@ -447,7 +447,7 @@ public class FormatUtils {
     }
 
     /**
-     * Parse text to Instant - support different formats like: zoned date time, date time, date, time (similar to those supported in SimpleDateFormat)
+     * Parse text to Instant - support different formats like: zoned date time, date time, date, time
      * @param formatter configured formatter
      * @param text      text which will be parsed
      * @return parsed Instant

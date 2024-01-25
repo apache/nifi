@@ -49,15 +49,13 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.nio.file.attribute.UserPrincipalLookupService;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -84,6 +82,7 @@ public class PutFile extends AbstractProcessor {
 
     public static final String FILE_MODIFY_DATE_ATTRIBUTE = "file.lastModifiedTime";
     public static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(FILE_MODIFY_DATE_ATTR_FORMAT);
 
     public static final Pattern RWX_PATTERN = Pattern.compile("^([r-][w-])([x-])([r-][w-])([x-])([r-][w-])([x-])$");
     public static final Pattern NUM_PATTERN = Pattern.compile("^[0-7]{3}$");
@@ -335,9 +334,8 @@ public class PutFile extends AbstractProcessor {
             final String lastModifiedTime = context.getProperty(CHANGE_LAST_MODIFIED_TIME).evaluateAttributeExpressions(flowFile).getValue();
             if (lastModifiedTime != null && !lastModifiedTime.trim().isEmpty()) {
                 try {
-                    final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-                    final Date fileModifyTime = formatter.parse(lastModifiedTime);
-                    dotCopyFile.toFile().setLastModified(fileModifyTime.getTime());
+                    final OffsetDateTime fileModifyTime = OffsetDateTime.parse(lastModifiedTime, DATE_TIME_FORMATTER);
+                    dotCopyFile.toFile().setLastModified(fileModifyTime.toInstant().toEpochMilli());
                 } catch (Exception e) {
                     logger.warn("Could not set file lastModifiedTime to {} because {}", new Object[]{lastModifiedTime, e});
                 }

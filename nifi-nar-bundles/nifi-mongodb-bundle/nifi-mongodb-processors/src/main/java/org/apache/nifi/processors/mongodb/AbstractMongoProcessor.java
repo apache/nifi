@@ -53,16 +53,6 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class AbstractMongoProcessor extends AbstractProcessor {
-    static final String WRITE_CONCERN_ACKNOWLEDGED = "ACKNOWLEDGED";
-    static final String WRITE_CONCERN_UNACKNOWLEDGED = "UNACKNOWLEDGED";
-    static final String WRITE_CONCERN_FSYNCED = "FSYNCED";
-    static final String WRITE_CONCERN_JOURNALED = "JOURNALED";
-    static final String WRITE_CONCERN_REPLICA_ACKNOWLEDGED = "REPLICA_ACKNOWLEDGED";
-    static final String WRITE_CONCERN_MAJORITY = "MAJORITY";
-    static final String WRITE_CONCERN_W1 = "W1";
-    static final String WRITE_CONCERN_W2 = "W2";
-    static final String WRITE_CONCERN_W3 = "W3";
-
     protected static final String JSON_TYPE_EXTENDED = "Extended";
     protected static final String JSON_TYPE_STANDARD   = "Standard";
     protected static final AllowableValue JSON_EXTENDED = new AllowableValue(JSON_TYPE_EXTENDED, "Extended JSON",
@@ -147,8 +137,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         .name("mongo-date-format")
         .displayName("Date Format")
         .description("The date format string to use for formatting Date fields that are returned from Mongo. It is only " +
-                "applied when the JSON output format is set to Standard JSON. Full documentation for format characters can be " +
-                "found here: https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/text/SimpleDateFormat.html")
+                "applied when the JSON output format is set to Standard JSON.")
         .defaultValue("yyyy-MM-dd'T'HH:mm:ss'Z'")
         .addValidator((subject, input, context) -> {
             ValidationResult.Builder result = new ValidationResult.Builder()

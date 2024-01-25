@@ -31,11 +31,10 @@ import org.apache.poi.ss.usermodel.Row;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.DateFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.Optional;
 import java.util.stream.IntStream;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -43,9 +42,6 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 public class ExcelRecordReader implements RecordReader {
     private final RowIterator rowIterator;
     private final RecordSchema schema;
-    private final Supplier<DateFormat> LAZY_DATE_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIME_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
     private final String dateFormat;
     private final String timeFormat;
     private final String timestampFormat;
@@ -55,26 +51,20 @@ public class ExcelRecordReader implements RecordReader {
 
         if (isEmpty(configuration.getDateFormat())) {
             this.dateFormat = null;
-            LAZY_DATE_FORMAT = null;
         } else {
             this.dateFormat = configuration.getDateFormat();
-            LAZY_DATE_FORMAT = () -> DataTypeUtils.getDateFormat(dateFormat);
         }
 
         if (isEmpty(configuration.getTimeFormat())) {
             this.timeFormat = null;
-            LAZY_TIME_FORMAT = null;
         } else {
             this.timeFormat = configuration.getTimeFormat();
-            LAZY_TIME_FORMAT = () -> DataTypeUtils.getDateFormat(timeFormat);
         }
 
         if (isEmpty(configuration.getTimestampFormat())) {
             this.timestampFormat = null;
-            LAZY_TIMESTAMP_FORMAT = null;
         } else {
             this.timestampFormat = configuration.getTimestampFormat();
-            LAZY_TIMESTAMP_FORMAT = () -> DataTypeUtils.getDateFormat(timestampFormat);
         }
 
         try {
@@ -139,18 +129,11 @@ public class ExcelRecordReader implements RecordReader {
 
     private static Object getCellValue(Cell cell) {
         if (cell != null) {
-            switch (cell.getCellType()) {
-                case _NONE:
-                case BLANK:
-                case ERROR:
-                case FORMULA:
-                case STRING:
-                    return cell.getStringCellValue();
-                case NUMERIC:
-                    return DateUtil.isCellDateFormatted(cell) ? cell.getDateCellValue() : cell.getNumericCellValue();
-                case BOOLEAN:
-                    return cell.getBooleanCellValue();
-            }
+            return switch (cell.getCellType()) {
+                case _NONE, BLANK, ERROR, FORMULA, STRING -> cell.getStringCellValue();
+                case NUMERIC -> DateUtil.isCellDateFormatted(cell) ? cell.getDateCellValue() : cell.getNumericCellValue();
+                case BOOLEAN -> cell.getBooleanCellValue();
+            };
         }
         return null;
     }
@@ -160,7 +143,7 @@ public class ExcelRecordReader implements RecordReader {
             return value;
         }
 
-        return DataTypeUtils.convertType(value, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+        return DataTypeUtils.convertType(value, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
     }
 
     private Object convertSimpleIfPossible(final Object value, final DataType dataType, final String fieldName) {
@@ -181,22 +164,22 @@ public class ExcelRecordReader implements RecordReader {
             case CHAR:
             case SHORT:
                 if (DataTypeUtils.isCompatibleDataType(value, dataType)) {
-                    return DataTypeUtils.convertType(value, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                    return DataTypeUtils.convertType(value, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
                 }
                 break;
             case DATE:
                 if (DataTypeUtils.isDateTypeCompatible(value, dateFormat)) {
-                    return DataTypeUtils.convertType(value, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                    return DataTypeUtils.convertType(value, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
                 }
                 break;
             case TIME:
                 if (DataTypeUtils.isTimeTypeCompatible(value, timeFormat)) {
-                    return DataTypeUtils.convertType(value, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                    return DataTypeUtils.convertType(value, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
                 }
                 break;
             case TIMESTAMP:
                 if (DataTypeUtils.isTimestampTypeCompatible(value, timestampFormat)) {
-                    return DataTypeUtils.convertType(value, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                    return DataTypeUtils.convertType(value, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
                 }
                 break;
         }

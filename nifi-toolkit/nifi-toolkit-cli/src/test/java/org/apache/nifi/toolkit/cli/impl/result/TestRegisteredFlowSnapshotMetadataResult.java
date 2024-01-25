@@ -28,8 +28,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,19 +49,19 @@ public class TestRegisteredFlowSnapshotMetadataResult {
     }
 
     @Test
-    public void testWriteSimpleVersionedFlowSnapshotResult() throws ParseException, IOException {
-        final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+    public void testWriteSimpleVersionedFlowSnapshotResult() throws IOException {
+        final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
         final VersionedFlowSnapshotMetadata vfs1 = new VersionedFlowSnapshotMetadata();
         vfs1.setVersion(1);
         vfs1.setAuthor("user1");
-        vfs1.setTimestamp(dateFormat.parse("2018-02-14T12:00:00").getTime());
+        vfs1.setTimestamp(LocalDateTime.from(dateFormat.parse("2018-02-14T12:00:00")).toInstant(ZoneOffset.UTC).toEpochMilli());
         vfs1.setComments("This is a long comment, longer than the display limit for comments");
 
         final VersionedFlowSnapshotMetadata vfs2 = new VersionedFlowSnapshotMetadata();
         vfs2.setVersion(2);
         vfs2.setAuthor("user2");
-        vfs2.setTimestamp(dateFormat.parse("2018-02-14T12:30:00").getTime());
+        vfs2.setTimestamp(LocalDateTime.from(dateFormat.parse("2018-02-14T12:30:00")).toInstant(ZoneOffset.UTC).toEpochMilli());
         vfs2.setComments("This is v2");
 
         final List<VersionedFlowSnapshotMetadata> versions = new ArrayList<>();

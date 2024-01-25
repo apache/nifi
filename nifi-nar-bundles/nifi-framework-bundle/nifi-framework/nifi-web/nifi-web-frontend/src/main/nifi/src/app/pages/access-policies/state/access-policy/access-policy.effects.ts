@@ -16,12 +16,12 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import { NiFiState } from '../../../../state';
 import { Store } from '@ngrx/store';
 import { Router } from '@angular/router';
 import * as AccessPolicyActions from './access-policy.actions';
-import { catchError, combineLatest, filter, from, map, of, switchMap, take, tap, withLatestFrom } from 'rxjs';
+import { catchError, from, map, of, switchMap, take, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { AccessPolicyService } from '../../service/access-policy.service';
 import { AccessPolicyEntity, ComponentResourceAction, PolicyStatus, ResourceAction } from '../shared';
@@ -30,7 +30,6 @@ import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.c
 import { isDefinedAndNotNull, TenantEntity } from '../../../../state/shared';
 import { AddTenantToPolicyDialog } from '../../ui/common/add-tenant-to-policy-dialog/add-tenant-to-policy-dialog.component';
 import { AddTenantsToPolicyRequest } from './index';
-import { ComponentAccessPolicies } from '../../ui/component-access-policies/component-access-policies.component';
 import { selectUserGroups, selectUsers } from '../tenants/tenants.selectors';
 
 @Injectable()
@@ -62,7 +61,7 @@ export class AccessPolicyEffects {
     reloadAccessPolicy$ = createEffect(() =>
         this.actions$.pipe(
             ofType(AccessPolicyActions.reloadAccessPolicy),
-            withLatestFrom(this.store.select(selectResourceAction).pipe(isDefinedAndNotNull())),
+            concatLatestFrom(() => this.store.select(selectResourceAction).pipe(isDefinedAndNotNull())),
             switchMap(([action, resourceAction]) => {
                 return of(
                     AccessPolicyActions.loadAccessPolicy({
@@ -137,7 +136,7 @@ export class AccessPolicyEffects {
     createAccessPolicy$ = createEffect(() =>
         this.actions$.pipe(
             ofType(AccessPolicyActions.createAccessPolicy),
-            withLatestFrom(this.store.select(selectResourceAction).pipe(isDefinedAndNotNull())),
+            concatLatestFrom(() => this.store.select(selectResourceAction).pipe(isDefinedAndNotNull())),
             switchMap(([action, resourceAction]) =>
                 from(this.accessPoliciesService.createAccessPolicy(resourceAction)).pipe(
                     map((response) => {
@@ -212,7 +211,7 @@ export class AccessPolicyEffects {
         () =>
             this.actions$.pipe(
                 ofType(AccessPolicyActions.openAddTenantToPolicyDialog),
-                withLatestFrom(this.store.select(selectAccessPolicy)),
+                concatLatestFrom(() => this.store.select(selectAccessPolicy)),
                 tap(([action, accessPolicy]) => {
                     const dialogReference = this.dialog.open(AddTenantToPolicyDialog, {
                         data: {
@@ -239,7 +238,7 @@ export class AccessPolicyEffects {
         this.actions$.pipe(
             ofType(AccessPolicyActions.addTenantsToPolicy),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectAccessPolicy).pipe(isDefinedAndNotNull())),
+            concatLatestFrom(() => this.store.select(selectAccessPolicy).pipe(isDefinedAndNotNull())),
             switchMap(([request, accessPolicy]) => {
                 const users: TenantEntity[] = [...accessPolicy.component.users, ...request.users];
                 const userGroups: TenantEntity[] = [...accessPolicy.component.userGroups, ...request.userGroups];
@@ -295,7 +294,7 @@ export class AccessPolicyEffects {
         this.actions$.pipe(
             ofType(AccessPolicyActions.removeTenantFromPolicy),
             map((action) => action.request),
-            withLatestFrom(this.store.select(selectAccessPolicy).pipe(isDefinedAndNotNull())),
+            concatLatestFrom(() => this.store.select(selectAccessPolicy).pipe(isDefinedAndNotNull())),
             switchMap(([request, accessPolicy]) => {
                 const users: TenantEntity[] = [...accessPolicy.component.users];
                 const userGroups: TenantEntity[] = [...accessPolicy.component.userGroups];
@@ -364,10 +363,10 @@ export class AccessPolicyEffects {
     deleteAccessPolicy$ = createEffect(() =>
         this.actions$.pipe(
             ofType(AccessPolicyActions.deleteAccessPolicy),
-            withLatestFrom(
+            concatLatestFrom(() => [
                 this.store.select(selectResourceAction).pipe(isDefinedAndNotNull()),
                 this.store.select(selectAccessPolicy).pipe(isDefinedAndNotNull())
-            ),
+            ]),
             switchMap(([action, resourceAction, accessPolicy]) =>
                 from(this.accessPoliciesService.deleteAccessPolicy(accessPolicy)).pipe(
                     map((response) => {

@@ -161,7 +161,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
         final PrivateKey privateKey = privateKeyService.getPrivateKey();
 
         final AccountIdentifierFormat accountIdentifierFormat = context.getProperty(ACCOUNT_IDENTIFIER_FORMAT)
-                .asDescribedValue(AccountIdentifierFormat.class);
+                .asAllowableValue(AccountIdentifierFormat.class);
         final AccountIdentifierFormatParameters parameters = getAccountIdentifierFormatParameters(context);
         final String account = accountIdentifierFormat.getAccount(parameters);
         final String host = accountIdentifierFormat.getHostname(parameters);

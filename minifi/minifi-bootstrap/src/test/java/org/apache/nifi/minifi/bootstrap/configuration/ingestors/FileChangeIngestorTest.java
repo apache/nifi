@@ -18,8 +18,11 @@
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.FileChangeIngestor.DEFAULT_POLLING_PERIOD_INTERVAL;
 import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.PULL_HTTP_BASE_KEY;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,12 +34,12 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.Collections;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.Differentiator;
 import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,7 +52,7 @@ public class FileChangeIngestorTest {
 
     private FileChangeIngestor notifierSpy;
     private WatchService mockWatchService;
-    private Properties testProperties;
+    private BootstrapProperties testProperties;
     private Differentiator<ByteBuffer> mockDifferentiator;
     private ConfigurationChangeNotifier testNotifier;
 
@@ -60,15 +63,15 @@ public class FileChangeIngestorTest {
         notifierSpy = Mockito.spy(new FileChangeIngestor());
         mockDifferentiator = mock(Differentiator.class);
         testNotifier = mock(ConfigurationChangeNotifier.class);
+        testProperties = mock(BootstrapProperties.class);
 
         setMocks();
 
-        testProperties = new Properties();
-        testProperties.put(FileChangeIngestor.CONFIG_FILE_PATH_KEY, TEST_CONFIG_PATH);
-        testProperties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
-        testProperties.put(PULL_HTTP_BASE_KEY + ".override.core", "true");
-        testProperties.put(FileChangeIngestor.POLLING_PERIOD_INTERVAL_KEY, FileChangeIngestor.DEFAULT_POLLING_PERIOD_INTERVAL);
-        testProperties.put(MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey(), MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getDefaultValue());
+        when(testProperties.getProperty(FileChangeIngestor.CONFIG_FILE_PATH_KEY)).thenReturn(TEST_CONFIG_PATH);
+        when(testProperties.getProperty(PullHttpChangeIngestor.OVERRIDE_SECURITY)).thenReturn("true");
+        when(testProperties.getProperty(PULL_HTTP_BASE_KEY + ".override.core")).thenReturn("true");
+        when(testProperties.getProperty(eq(FileChangeIngestor.POLLING_PERIOD_INTERVAL_KEY), any())).thenReturn(String.valueOf(DEFAULT_POLLING_PERIOD_INTERVAL));
+        when(testProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey())).thenReturn(MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getDefaultValue());
     }
 
     @AfterEach
@@ -78,7 +81,7 @@ public class FileChangeIngestorTest {
 
     @Test
     public void testInitializeInvalidFile() {
-        testProperties.put(FileChangeIngestor.CONFIG_FILE_PATH_KEY, "/land/of/make/believe");
+        when(testProperties.getProperty(FileChangeIngestor.CONFIG_FILE_PATH_KEY)).thenReturn("/land/of/make/believe");
         assertThrows(IllegalStateException.class, () -> notifierSpy.initialize(testProperties, mock(ConfigurationFileHolder.class), mock(ConfigurationChangeNotifier.class)));
     }
 
@@ -89,13 +92,12 @@ public class FileChangeIngestorTest {
 
     @Test
     public void testInitializeInvalidPollingPeriod() {
-        testProperties.put(FileChangeIngestor.POLLING_PERIOD_INTERVAL_KEY, "abc");
+        when(testProperties.getProperty(eq(FileChangeIngestor.POLLING_PERIOD_INTERVAL_KEY), any())).thenReturn("abc");
         assertThrows(IllegalStateException.class, () -> notifierSpy.initialize(testProperties, mock(ConfigurationFileHolder.class), mock(ConfigurationChangeNotifier.class)));
     }
 
     @Test
     public void testInitializeUseDefaultPolling() {
-        testProperties.remove(FileChangeIngestor.POLLING_PERIOD_INTERVAL_KEY);
         notifierSpy.initialize(testProperties, mock(ConfigurationFileHolder.class), mock(ConfigurationChangeNotifier.class));
     }
 

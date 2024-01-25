@@ -36,12 +36,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 
-// TODO, look into replacing this JwtService service with Apache Licensed JJWT library
 @Service
 public class JwtService {
 
@@ -50,8 +47,6 @@ public class JwtService {
     private static final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
     private static final String KEY_ID_CLAIM = "kid";
     private static final String USERNAME_CLAIM = "preferred_username";
-    private static final Pattern tokenPattern = Pattern.compile("^Bearer (\\S*\\.\\S*\\.\\S*)$");
-    public static final String AUTHORIZATION = "Authorization";
 
     private final KeyService keyService;
 
@@ -209,16 +204,12 @@ public class JwtService {
         expirationTime.setTimeInMillis(authenticationResponse.getExpiration());
         long remainingTime = expirationTime.getTimeInMillis() - Calendar.getInstance().getTimeInMillis();
 
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss.SSS");
-        dateFormat.setTimeZone(expirationTime.getTimeZone());
-        String expirationTimeString = dateFormat.format(expirationTime.getTime());
-
         return new StringBuilder("LoginAuthenticationToken for ")
                 .append(authenticationResponse.getUsername())
                 .append(" issued by ")
                 .append(authenticationResponse.getIssuer())
                 .append(" expiring at ")
-                .append(expirationTimeString)
+                .append(expirationTime.getTime().toInstant().toString())
                 .append(" [")
                 .append(authenticationResponse.getExpiration())
                 .append(" ms, ")

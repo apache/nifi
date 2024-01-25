@@ -21,8 +21,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -423,17 +424,17 @@ public class TestPutKudu {
     }
 
     @Test
-    public void testBuildPartialRowWithDateDefaultTimeZone() throws ParseException {
-        final SimpleDateFormat dateFormat = new SimpleDateFormat(ISO_8601_YEAR_MONTH_DAY_PATTERN);
-        final java.util.Date dateFieldValue = dateFormat.parse(ISO_8601_YEAR_MONTH_DAY);
+    public void testBuildPartialRowWithDateDefaultTimeZone() {
+        final Instant localDate = LocalDate.parse(ISO_8601_YEAR_MONTH_DAY).atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+        final java.util.Date dateFieldValue = java.util.Date.from(localDate);
 
         assertPartialRowDateFieldEquals(dateFieldValue);
     }
 
     @Test
-    public void testBuildPartialRowWithDateToString() throws ParseException {
-        final SimpleDateFormat dateFormat = new SimpleDateFormat(ISO_8601_YEAR_MONTH_DAY_PATTERN);
-        final java.util.Date dateFieldValue = dateFormat.parse(ISO_8601_YEAR_MONTH_DAY);
+    public void testBuildPartialRowWithDateToString() {
+        final Instant localDate = LocalDate.parse(ISO_8601_YEAR_MONTH_DAY).atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+        final java.util.Date dateFieldValue = java.util.Date.from(localDate);
 
         final PartialRow row = buildPartialRowDateField(dateFieldValue, Type.STRING);
         final String column = row.getString(DATE_FIELD);

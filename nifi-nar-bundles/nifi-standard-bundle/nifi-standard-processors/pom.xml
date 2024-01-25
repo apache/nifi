@@ -69,6 +69,11 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-file-transfer</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-syslog-utils</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
@@ -396,19 +401,6 @@
             <groupId>org.mockftpserver</groupId>
             <artifactId>MockFtpServer</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.bazaarvoice.jolt</groupId>
-            <artifactId>jolt-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.bazaarvoice.jolt</groupId>
-            <artifactId>json-utils</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>net.sf.supercsv</groupId>

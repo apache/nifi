@@ -26,7 +26,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListProcessorTestWatcher;
-import org.apache.nifi.processors.standard.util.FileInfo;
+import org.apache.nifi.processor.util.file.transfer.FileInfo;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -44,8 +44,9 @@ import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -787,8 +788,8 @@ public class TestListFile {
         final Path absolutePath = file1.toPath().toAbsolutePath();
         final String absolutePathString = absolutePath.getParent().toString() + File.separator;
         final FileStore store = Files.getFileStore(file1Path);
-        final DateFormat formatter = new SimpleDateFormat(ListFile.FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-        final String time3Formatted = formatter.format(time3rounded);
+        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern(ListFile.FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
+        final String time3Formatted = formatter.format(Instant.ofEpochMilli(time3rounded).atZone(ZoneId.systemDefault()));
 
         // check standard attributes
         MockFlowFile mock1 = successFiles1.get(0);
@@ -913,7 +914,7 @@ public class TestListFile {
         age5 = Long.toString(age5millis) + " millis";
     }
 
-    private void deleteDirectory(final File directory) throws IOException {
+    private void deleteDirectory(final File directory) {
         if (directory.exists()) {
             File[] files = directory.listFiles();
             if (files != null) {

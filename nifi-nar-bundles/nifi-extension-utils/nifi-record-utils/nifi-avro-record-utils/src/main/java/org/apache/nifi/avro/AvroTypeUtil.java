@@ -17,23 +17,23 @@
 
 package org.apache.nifi.avro;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -68,6 +68,8 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.serialization.record.StandardSchemaIdentifier;
+import org.apache.nifi.serialization.record.field.FieldConverter;
+import org.apache.nifi.serialization.record.field.StandardFieldConverterRegistry;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.DecimalDataType;
@@ -91,6 +93,7 @@ public class AvroTypeUtil {
     private static final String LOGICAL_TYPE_DECIMAL = "decimal";
     private static final String LOGICAL_TYPE_UUID = "uuid";
 
+    private static final long ONE_THOUSAND_MILLISECONDS = 1000;
 
     public static Schema extractAvroSchema(final RecordSchema recordSchema) {
         if (recordSchema == null) {
@@ -592,11 +595,11 @@ public class AvroTypeUtil {
         return new ImmutablePair<>(fieldName, field);
     }
 
-    public static GenericRecord createAvroRecord(final Record record, final Schema avroSchema) throws IOException {
+    public static GenericRecord createAvroRecord(final Record record, final Schema avroSchema) {
         return createAvroRecord(record, avroSchema, StandardCharsets.UTF_8);
     }
 
-    public static GenericRecord createAvroRecord(final Record record, final Schema avroSchema, final Charset charset) throws IOException {
+    public static GenericRecord createAvroRecord(final Record record, final Schema avroSchema, final Charset charset) {
         final GenericRecord rec = new GenericData.Record(avroSchema);
         final RecordSchema recordSchema = record.getSchema();
 
@@ -692,8 +695,9 @@ public class AvroTypeUtil {
 
     private static Long getLongFromTimestamp(final Object rawValue, final Schema fieldSchema, final String fieldName) {
         final String format = AvroTypeUtil.determineDataType(fieldSchema).getFormat();
-        Timestamp t = DataTypeUtils.toTimestamp(rawValue, () -> DataTypeUtils.getDateFormat(format), fieldName);
-        return t.getTime();
+        final FieldConverter<Object, Timestamp> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(Timestamp.class);
+        final Timestamp timestamp = converter.convertField(rawValue, Optional.ofNullable(format), fieldName);
+        return timestamp.getTime();
     }
 
     @SuppressWarnings("unchecked")
@@ -709,17 +713,15 @@ public class AvroTypeUtil {
                     return DataTypeUtils.toInteger(rawValue, fieldName);
                 }
 
+
                 if (LOGICAL_TYPE_DATE.equals(logicalType.getName())) {
                     final String format = AvroTypeUtil.determineDataType(fieldSchema).getFormat();
-                    final LocalDate localDate = DataTypeUtils.toLocalDate(rawValue, () -> DataTypeUtils.getDateTimeFormatter(format, ZoneId.systemDefault()), fieldName);
+                    final FieldConverter<Object, LocalDate> fieldConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDate.class);
+                    final LocalDate localDate = fieldConverter.convertField(rawValue, Optional.ofNullable(format), fieldName);
                     return (int) localDate.toEpochDay();
                 } else if (LOGICAL_TYPE_TIME_MILLIS.equals(logicalType.getName())) {
                     final String format = AvroTypeUtil.determineDataType(fieldSchema).getFormat();
-                    final Time time = DataTypeUtils.toTime(rawValue, () -> DataTypeUtils.getDateFormat(format), fieldName);
-                    final Date date = new Date(time.getTime());
-                    final Duration duration = Duration.between(date.toInstant().truncatedTo(ChronoUnit.DAYS), date.toInstant());
-                    final long millisSinceMidnight = duration.toMillis();
-                    return (int) millisSinceMidnight;
+                    return getLogicalTimeMillis(rawValue, format, fieldName);
                 }
 
                 return DataTypeUtils.toInteger(rawValue, fieldName);
@@ -731,14 +733,15 @@ public class AvroTypeUtil {
                 }
 
                 if (LOGICAL_TYPE_TIME_MICROS.equals(logicalType.getName())) {
-                    final long longValue = getLongFromTimestamp(rawValue, fieldSchema, fieldName);
-                    final Date date = new Date(longValue);
-                    final Duration duration = Duration.between(date.toInstant().truncatedTo(ChronoUnit.DAYS), date.toInstant());
-                    return duration.toMillis() * 1000L;
+                    final long epochMilli = getLongFromTimestamp(rawValue, fieldSchema, fieldName);
+                    final ZonedDateTime zonedDateTime = Instant.ofEpochMilli(epochMilli).atZone(ZoneId.systemDefault());
+                    final ZonedDateTime midnight = zonedDateTime.truncatedTo(ChronoUnit.DAYS);
+                    final Duration duration = Duration.between(midnight, zonedDateTime);
+                    return duration.toMillis() * ONE_THOUSAND_MILLISECONDS;
                 } else if (LOGICAL_TYPE_TIMESTAMP_MILLIS.equals(logicalType.getName())) {
                     return getLongFromTimestamp(rawValue, fieldSchema, fieldName);
                 } else if (LOGICAL_TYPE_TIMESTAMP_MICROS.equals(logicalType.getName())) {
-                    return getLongFromTimestamp(rawValue, fieldSchema, fieldName) * 1000L;
+                    return getLongFromTimestamp(rawValue, fieldSchema, fieldName) * ONE_THOUSAND_MILLISECONDS;
                 }
 
                 return DataTypeUtils.toLong(rawValue, fieldName);
@@ -1174,4 +1177,13 @@ public class AvroTypeUtil {
         return value;
     }
 
+    private static int getLogicalTimeMillis(final Object value, final String format, final String fieldName) {
+        final FieldConverter<Object, LocalTime> fieldConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalTime.class);
+        final LocalTime localTime = fieldConverter.convertField(value, Optional.ofNullable(format), fieldName);
+
+        final LocalTime midnightLocalTime = localTime.truncatedTo(ChronoUnit.DAYS);
+        final Duration duration = Duration.between(midnightLocalTime, localTime);
+        final long millisSinceMidnight = duration.toMillis();
+        return (int) millisSinceMidnight;
+    }
 }

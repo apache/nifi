@@ -30,57 +30,57 @@ import {
 const QUEUE_PREFIX = '[Queue Listing]';
 
 export const loadConnectionLabel = createAction(
-    `[${QUEUE_PREFIX}] Load Connection Label`,
+    `${QUEUE_PREFIX} Load Connection Label`,
     props<{ request: LoadConnectionLabelRequest }>()
 );
 
 export const loadConnectionLabelSuccess = createAction(
-    `[${QUEUE_PREFIX}] Load Connection Label Success`,
+    `${QUEUE_PREFIX} Load Connection Label Success`,
     props<{ response: LoadConnectionLabelResponse }>()
 );
 
-export const queueListingApiError = createAction(`[${QUEUE_PREFIX}] Queue Error`, props<{ error: string }>());
+export const queueListingApiError = createAction(`${QUEUE_PREFIX} Queue Error`, props<{ error: string }>());
 
-export const resetQueueListingState = createAction(`[${QUEUE_PREFIX}] Reset Queue Listing State`);
+export const resetQueueListingState = createAction(`${QUEUE_PREFIX} Reset Queue Listing State`);
 
 export const submitQueueListingRequest = createAction(
-    `[${QUEUE_PREFIX}] Submit Queue Listing Request`,
+    `${QUEUE_PREFIX} Submit Queue Listing Request`,
     props<{ request: SubmitQueueListingRequest }>()
 );
 
-export const resubmitQueueListingRequest = createAction(`[${QUEUE_PREFIX}] Resubmit Queue Listing Request`);
+export const resubmitQueueListingRequest = createAction(`${QUEUE_PREFIX} Resubmit Queue Listing Request`);
 
 export const submitQueueListingRequestSuccess = createAction(
-    `[${QUEUE_PREFIX}] Submit Queue Listing Request Success`,
+    `${QUEUE_PREFIX} Submit Queue Listing Request Success`,
     props<{ response: PollQueueListingSuccess }>()
 );
 
-export const startPollingQueueListingRequest = createAction(`[${QUEUE_PREFIX}] Start Polling Queue Listing Request`);
+export const startPollingQueueListingRequest = createAction(`${QUEUE_PREFIX} Start Polling Queue Listing Request`);
 
-export const pollQueueListingRequest = createAction(`[${QUEUE_PREFIX}] Poll Queue Listing Request`);
+export const pollQueueListingRequest = createAction(`${QUEUE_PREFIX} Poll Queue Listing Request`);
 
 export const pollQueueListingRequestSuccess = createAction(
-    `[${QUEUE_PREFIX}] Poll Queue Listing Request Success`,
+    `${QUEUE_PREFIX} Poll Queue Listing Request Success`,
     props<{ response: PollQueueListingSuccess }>()
 );
 
-export const stopPollingQueueListingRequest = createAction(`[${QUEUE_PREFIX}] Stop Polling Queue Listing Request`);
+export const stopPollingQueueListingRequest = createAction(`${QUEUE_PREFIX} Stop Polling Queue Listing Request`);
 
-export const deleteQueueListingRequest = createAction(`[${QUEUE_PREFIX}] Delete Queue Listing Request`);
+export const deleteQueueListingRequest = createAction(`${QUEUE_PREFIX} Delete Queue Listing Request`);
 
-export const viewFlowFile = createAction(`[${QUEUE_PREFIX}] View FlowFile`, props<{ request: ViewFlowFileRequest }>());
+export const viewFlowFile = createAction(`${QUEUE_PREFIX} View FlowFile`, props<{ request: ViewFlowFileRequest }>());
 
 export const openFlowFileDialog = createAction(
-    `[${QUEUE_PREFIX}] Open FlowFile Dialog`,
+    `${QUEUE_PREFIX} Open FlowFile Dialog`,
     props<{ request: FlowFileDialogRequest }>()
 );
 
 export const downloadFlowFileContent = createAction(
-    `[${QUEUE_PREFIX}] Download FlowFile Content`,
+    `${QUEUE_PREFIX} Download FlowFile Content`,
     props<{ request: DownloadFlowFileContentRequest }>()
 );
 
 export const viewFlowFileContent = createAction(
-    `[${QUEUE_PREFIX}] View FlowFile Content`,
+    `${QUEUE_PREFIX} View FlowFile Content`,
     props<{ request: ViewFlowFileContentRequest }>()
 );

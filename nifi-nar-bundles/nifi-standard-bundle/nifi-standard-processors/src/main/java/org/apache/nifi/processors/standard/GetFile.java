@@ -53,11 +53,10 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileOwnerAttributeView;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermissions;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -339,12 +338,12 @@ public class GetFile extends AbstractProcessor {
             FileStore store = Files.getFileStore(file);
             if (store.supportsFileAttributeView("basic")) {
                 try {
-                    final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
+                    final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
                     BasicFileAttributeView view = Files.getFileAttributeView(file, BasicFileAttributeView.class);
                     BasicFileAttributes attrs = view.readAttributes();
-                    attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, formatter.format(new Date(attrs.lastModifiedTime().toMillis())));
-                    attributes.put(FILE_CREATION_TIME_ATTRIBUTE, formatter.format(new Date(attrs.creationTime().toMillis())));
-                    attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, formatter.format(new Date(attrs.lastAccessTime().toMillis())));
+                    attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, dateTimeFormatter.format(attrs.lastModifiedTime().toInstant().atZone(ZoneId.systemDefault())));
+                    attributes.put(FILE_CREATION_TIME_ATTRIBUTE, dateTimeFormatter.format(attrs.creationTime().toInstant().atZone(ZoneId.systemDefault())));
+                    attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, dateTimeFormatter.format(attrs.lastAccessTime().toInstant().atZone(ZoneId.systemDefault())));
                 } catch (Exception ignore) {
                 } // allow other attributes if these fail
             }
@@ -453,7 +452,7 @@ public class GetFile extends AbstractProcessor {
 
                 session.getProvenanceReporter().receive(flowFile, file.toURI().toString(), importMillis);
                 session.transfer(flowFile, REL_SUCCESS);
-                logger.info("added {} to flow", new Object[]{flowFile});
+                logger.info("added {} to flow", flowFile);
 
                 if (!isScheduled()) {  // if processor stopped, put the rest of the files back on the queue.
                     queueLock.lock();

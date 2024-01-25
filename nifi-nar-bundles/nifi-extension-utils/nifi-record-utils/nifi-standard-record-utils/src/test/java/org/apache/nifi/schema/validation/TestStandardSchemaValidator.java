@@ -35,9 +35,6 @@ import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -48,7 +45,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -75,7 +71,7 @@ public class TestStandardSchemaValidator {
     ));
 
     @Test
-    public void testValidateCorrectSimpleTypesStrictValidation() throws ParseException {
+    public void testValidateCorrectSimpleTypesStrictValidation() {
         final List<RecordField> fields = new ArrayList<>();
         for (final RecordFieldType fieldType : RecordFieldType.values()) {
             if (fieldType == RecordFieldType.CHOICE) {
@@ -97,9 +93,7 @@ public class TestStandardSchemaValidator {
             }
         }
 
-        final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-        df.setTimeZone(TimeZone.getTimeZone("gmt"));
-        final long time = df.parse("2017/01/01 17:00:00.000").getTime();
+        final long time = 1483290000000L;
 
         final Map<String, Object> intMap = new LinkedHashMap<>();
         intMap.put("height", 48);
@@ -229,7 +223,7 @@ public class TestStandardSchemaValidator {
     }
 
     @Test
-    public void testValidateWrongButCoerceableType() throws ParseException {
+    public void testValidateWrongButCoerceableType() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);

@@ -18,10 +18,8 @@ package org.apache.nifi.logging;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.sql.Date;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Locale;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 
 public class LogMessage {
 
@@ -32,8 +30,9 @@ public class LogMessage {
     private final String flowFileUuid;
     private final Object[] objects;
 
-    public static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
-    public static final String TO_STRING_FORMAT = "%1$s %2$s - %3$s";
+    private static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
+    private static final String TO_STRING_FORMAT = "%1$s %2$s - %3$s";
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT);
 
     public static class Builder {
 
@@ -109,8 +108,7 @@ public class LogMessage {
 
     @Override
     public String toString() {
-        final DateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT, Locale.US);
-        final String formattedTime = dateFormat.format(new Date(time));
+        final String formattedTime = DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(time));
 
         String formattedMsg = String.format(TO_STRING_FORMAT, formattedTime, logLevel.toString(), message);
         if (throwable != null) {

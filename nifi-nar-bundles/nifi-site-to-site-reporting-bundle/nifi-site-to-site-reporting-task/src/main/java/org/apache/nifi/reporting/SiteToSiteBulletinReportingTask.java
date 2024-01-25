@@ -40,15 +40,12 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -121,16 +118,13 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         final JsonBuilderFactory factory = Json.createBuilderFactory(config);
         final JsonObjectBuilder builder = factory.createObjectBuilder();
 
-        final DateFormat df = new SimpleDateFormat(TIMESTAMP_FORMAT);
-        df.setTimeZone(TimeZone.getTimeZone("Z"));
-
         final long start = System.nanoTime();
 
         // Create a JSON array of all the events in the current batch
         final JsonArrayBuilder arrayBuilder = factory.createArrayBuilder();
         for (final Bulletin bulletin : bulletins) {
             if (bulletin.getId() > lastSentBulletinId) {
-                arrayBuilder.add(serialize(builder, bulletin, df, platform, nodeId, allowNullValues));
+                arrayBuilder.add(serialize(builder, bulletin, platform, nodeId, allowNullValues));
             }
         }
         final JsonArray jsonArray = arrayBuilder.build();
@@ -176,7 +170,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         lastSentBulletinId = currMaxId;
     }
 
-    private JsonObject serialize(final JsonObjectBuilder builder, final Bulletin bulletin, final DateFormat df,
+    private JsonObject serialize(final JsonObjectBuilder builder, final Bulletin bulletin,
                                  final String platform, final String nodeIdentifier, Boolean allowNullValues) {
 
         addField(builder, "objectId", UUID.randomUUID().toString(), allowNullValues);
@@ -193,7 +187,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         addField(builder, "bulletinSourceId", bulletin.getSourceId(), allowNullValues);
         addField(builder, "bulletinSourceName", bulletin.getSourceName(), allowNullValues);
         addField(builder, "bulletinSourceType", bulletin.getSourceType() == null ? null : bulletin.getSourceType().name(), allowNullValues);
-        addField(builder, "bulletinTimestamp", df.format(bulletin.getTimestamp()), allowNullValues);
+        addField(builder, "bulletinTimestamp", DATE_TIME_FORMATTER.format(bulletin.getTimestamp().toInstant()), allowNullValues);
         addField(builder, "bulletinFlowFileUuid", bulletin.getFlowFileUuid(), allowNullValues);
 
         return builder.build();

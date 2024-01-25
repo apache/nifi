@@ -19,22 +19,17 @@ package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import org.junit.jupiter.api.Test;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestStatusHistoryEndpointMerger {
     @Test
-    public void testNormalizedStatusSnapshotDate() throws ParseException {
-        final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:SS.SSS", Locale.US);
-        final Date date1 = df.parse("2014/01/01 00:00:00.000");
-        final Date date2 = df.parse("2014/01/01 00:04:59.999");
-        final Date date3 = df.parse("2014/01/01 00:05:00.000");
-        final Date date4 = df.parse("2014/01/01 00:05:00.001");
+    public void testNormalizedStatusSnapshotDate() {
+        final Date date1 = new Date(1388538000000L);
+        final Date date2 = new Date(1388538299999L);
+        final Date date3 = new Date(1388538300000L);
+        final Date date4 = new Date(1388538300001L);
 
         final Date normalized1 = StatusHistoryEndpointMerger.normalizeStatusSnapshotDate(date1, 300000);
         assertEquals(date1, normalized1);

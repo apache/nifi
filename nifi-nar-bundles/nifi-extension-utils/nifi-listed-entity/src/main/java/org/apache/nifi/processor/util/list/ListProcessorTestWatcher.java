@@ -24,7 +24,11 @@ import org.junit.jupiter.api.extension.TestWatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +49,7 @@ public class ListProcessorTestWatcher implements TestWatcher, BeforeEachCallback
         T provide();
     }
 
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+    private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME;
     private final Provider<Map<String, String>> stateMapProvider;
     private final Provider<List<ListableEntity>> entitiesProvider;
     private final Provider<List<FlowFile>> successFlowFilesProvider;
@@ -68,36 +72,39 @@ public class ListProcessorTestWatcher implements TestWatcher, BeforeEachCallback
 
     private void dumpState(Consumer<String> d, final Map<String, String> state, final List<ListableEntity> entities, final List<FlowFile> flowFiles, final long start) {
 
-        final long nTime = System.currentTimeMillis();
+        final OffsetDateTime nTime = OffsetDateTime.now();
         log(d, "--------------------------------------------------------------------");
         log(d, "%-19s   %-13s %-23s %s", "", "timestamp", "date from timestamp", "t0 delta");
         log(d, "%-19s   %-13s %-23s %s", "-------------------", "-------------", "-----------------------", "--------");
-        log(d, "%-19s = %13d %s %8d", "started at", start, dateFormat.format(start), 0);
-        log(d, "%-19s = %13d %s %8d", "current time", nTime, dateFormat.format(nTime), 0);
+        log(d, "%-19s = %13d %s %8d", "started at", start, dateTimeFormatter.format(Instant.ofEpochMilli(start).atZone(ZoneId.systemDefault())), 0);
+        log(d, "%-19s = %13d %s %8d", "current time", nTime.toInstant().toEpochMilli(), dateTimeFormatter.format(nTime), 0);
         log(d, "---- processor state -----------------------------------------------");
         if (state.containsKey("processed.timestamp")) {
             final long pTime = Long.parseLong(state.get("processed.timestamp"));
-            log(d, "%19s = %13d %s %8d", "processed.timestamp", pTime, dateFormat.format(pTime), pTime - nTime);
+            final OffsetDateTime processedTime = OffsetDateTime.ofInstant(Instant.ofEpochMilli(pTime), ZoneOffset.UTC);
+            log(d, "%19s = %13d %s %8d", "processed.timestamp", pTime, dateTimeFormatter.format(processedTime), pTime - nTime.toInstant().toEpochMilli());
         } else {
             log(d, "%19s = na", "processed.timestamp");
         }
         if (state.containsKey("listing.timestamp")) {
             final long lTime = Long.parseLong(state.get("listing.timestamp"));
-            log(d, "%19s = %13d %s %8d", "listing.timestamp", lTime, dateFormat.format(lTime), lTime - nTime);
+            log(d, "%19s = %13d %s %8d", "listing.timestamp", lTime, dateTimeFormatter.format(Instant.ofEpochMilli(lTime).atZone(ZoneId.systemDefault())), lTime - nTime.toInstant().toEpochMilli());
         } else {
             log(d, "%19s = na", "listing.timestamp");
         }
         log(d, "---- input folder contents -----------------------------------------");
         entities.sort(Comparator.comparing(ListableEntity::getIdentifier));
         for (ListableEntity entity : entities) {
-            log(d, "%19s = %12d %s %8d", entity.getIdentifier(), entity.getTimestamp(), dateFormat.format(entity.getTimestamp()), entity.getTimestamp() - nTime);
+            final OffsetDateTime timestamp = OffsetDateTime.ofInstant(Instant.ofEpochMilli(entity.getTimestamp()), ZoneId.systemDefault());
+            log(d, "%19s = %12d %s %8d", entity.getIdentifier(), entity.getTimestamp(), dateTimeFormatter.format(timestamp), entity.getTimestamp() - nTime.toInstant().toEpochMilli());
         }
         log(d, "---- output flowfiles ----------------------------------------------");
         final Map<String, Long> fileTimes = entities.stream().collect(Collectors.toMap(ListableEntity::getIdentifier, ListableEntity::getTimestamp));
         for (FlowFile ff : flowFiles) {
             String fName = ff.getAttribute(CoreAttributes.FILENAME.key());
             Long fTime = fileTimes.get(fName);
-            log(d, "%19s = %13d %s %8d", fName, fTime, dateFormat.format(fTime), fTime - nTime);
+            final OffsetDateTime timestamp = OffsetDateTime.ofInstant(Instant.ofEpochMilli(fTime), ZoneId.systemDefault());
+            log(d, "%19s = %13d %s %8d", fName, fTime, dateTimeFormatter.format(timestamp), fTime - nTime.toInstant().toEpochMilli());
         }
         log(d, "REL_SUCCESS count = " + flowFiles.size());
         log(d, "--------------------------------------------------------------------");

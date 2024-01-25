@@ -248,6 +248,11 @@ a:hover {
     text-decoration-color: #004849;
 }
 
+header.nifi-header {
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+    position: relative;
+}
+
 /*
     Icon for styling mat-icon in forms throughout the application.
  */

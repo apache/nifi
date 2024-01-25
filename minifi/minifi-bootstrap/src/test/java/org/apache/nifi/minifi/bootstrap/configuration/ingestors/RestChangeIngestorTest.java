@@ -18,15 +18,20 @@
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
 import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.PULL_HTTP_BASE_KEY;
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.RestChangeIngestor.HOST_KEY;
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.RestChangeIngestor.PORT_KEY;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
 import java.nio.ByteBuffer;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 import okhttp3.OkHttpClient;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.mockito.Mockito;
@@ -35,9 +40,11 @@ public class RestChangeIngestorTest extends RestChangeIngestorCommonTest {
 
     @BeforeAll
     public static void setUp() throws InterruptedException, MalformedURLException {
-        Properties properties = new Properties();
-        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
-        properties.put(PULL_HTTP_BASE_KEY + ".override.core", "true");
+        BootstrapProperties properties = mock(BootstrapProperties.class);
+        when(properties.getProperty(PullHttpChangeIngestor.OVERRIDE_SECURITY)).thenReturn("true");
+        when(properties.getProperty(PULL_HTTP_BASE_KEY + ".override.core")).thenReturn("true");
+        when(properties.getProperty(eq(PORT_KEY), any())).thenReturn("0");
+        when(properties.getProperty(eq(HOST_KEY), any())).thenReturn("localhost");
         restChangeIngestor = new RestChangeIngestor();
 
         testNotifier = Mockito.mock(ConfigurationChangeNotifier.class);

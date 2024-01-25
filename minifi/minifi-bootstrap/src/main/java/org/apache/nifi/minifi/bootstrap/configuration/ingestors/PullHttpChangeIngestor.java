@@ -41,7 +41,6 @@ import java.nio.ByteBuffer;
 import java.security.KeyStore;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -59,6 +58,7 @@ import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.Differentiator;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.security.ssl.StandardTrustManagerBuilder;
@@ -91,18 +91,18 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
     public static final String OVERRIDE_SECURITY = PULL_HTTP_BASE_KEY + ".override.security";
     public static final String HTTP_HEADERS = PULL_HTTP_BASE_KEY + ".headers";
 
+    protected static final String DEFAULT_CONNECT_TIMEOUT_MS = "5000";
+    protected static final String DEFAULT_READ_TIMEOUT_MS = "15000";
+    protected static final String DEFAULT_PATH = "/";
     private static final Logger logger = LoggerFactory.getLogger(PullHttpChangeIngestor.class);
 
     private static final Map<String, Supplier<Differentiator<ByteBuffer>>> DIFFERENTIATOR_CONSTRUCTOR_MAP = Map.of(
         WHOLE_CONFIG_KEY, WholeConfigDifferentiator::getByteBufferDifferentiator
     );
     private static final int NOT_MODIFIED_STATUS_CODE = 304;
-    private static final String DEFAULT_CONNECT_TIMEOUT_MS = "5000";
-    private static final String DEFAULT_READ_TIMEOUT_MS = "15000";
     private static final String DOUBLE_QUOTES = "\"";
     private static final String ETAG_HEADER = "ETag";
     private static final String PROXY_AUTHORIZATION_HEADER = "Proxy-Authorization";
-    private static final String DEFAULT_PATH = "/";
     private static final int BAD_REQUEST_STATUS_CODE = 400;
     private static final String IF_NONE_MATCH_HEADER_KEY = "If-None-Match";
     private static final String HTTP_HEADERS_SEPARATOR = ",";
@@ -121,7 +121,7 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
     private volatile boolean useEtag = false;
 
     @Override
-    public void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
+    public void initialize(BootstrapProperties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
         super.initialize(properties, configurationFileHolder, configurationChangeNotifier);
 
         pollingPeriodMS.set(Integer.parseInt(properties.getProperty(PULL_HTTP_POLLING_PERIOD_KEY, DEFAULT_POLLING_PERIOD_MILLISECONDS)));
@@ -145,8 +145,7 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
             .collect(toMap(split -> ofNullable(split[0]).map(String::trim).orElse(EMPTY), split -> ofNullable(split[1]).map(String::trim).orElse(EMPTY)));
         logger.debug("Configured HTTP headers: {}", httpHeaders);
 
-        ofNullable(properties.get(PORT_KEY))
-            .map(String.class::cast)
+        ofNullable(properties.getProperty(PORT_KEY))
             .map(Integer::parseInt)
             .ifPresentOrElse(
                 portReference::set,
@@ -157,7 +156,7 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
         pathReference.set(path);
         queryReference.set(query);
         httpHeadersReference.set(httpHeaders);
-        useEtag = parseBoolean((String) properties.getOrDefault(USE_ETAG_KEY, FALSE.toString()));
+        useEtag = parseBoolean(properties.getProperty(USE_ETAG_KEY, FALSE.toString()));
 
         httpClientReference.set(null);
 
@@ -263,7 +262,7 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
         }
     }
 
-    private void setSslSocketFactory(OkHttpClient.Builder okHttpClientBuilder, Properties properties) {
+    private void setSslSocketFactory(OkHttpClient.Builder okHttpClientBuilder, BootstrapProperties properties) {
         String keystorePass = properties.getProperty(KEYSTORE_PASSWORD_KEY);
         KeyStore keyStore = buildKeyStore(properties, KEYSTORE_LOCATION_KEY, KEYSTORE_PASSWORD_KEY, KEYSTORE_TYPE_KEY);
         KeyStore truststore = buildKeyStore(properties, TRUSTSTORE_LOCATION_KEY, TRUSTSTORE_PASSWORD_KEY, TRUSTSTORE_TYPE_KEY);
@@ -279,7 +278,7 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
         okHttpClientBuilder.sslSocketFactory(sslSocketFactory, trustManager);
     }
 
-    private KeyStore buildKeyStore(Properties properties, String locationKey, String passKey, String typeKey) {
+    private KeyStore buildKeyStore(BootstrapProperties properties, String locationKey, String passKey, String typeKey) {
         String keystoreLocation = ofNullable(properties.getProperty(locationKey))
             .filter(StringUtils::isNotBlank)
             .orElseThrow(() -> new IllegalArgumentException(locationKey + " is null or empty"));

@@ -42,9 +42,6 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,26 +55,23 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestAvroReaderWithEmbeddedSchema {
 
-
     @Test
-    public void testLogicalTypes() throws IOException, ParseException, MalformedRecordException {
+    public void testLogicalTypes() throws IOException, MalformedRecordException {
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/logical-types.avsc"));
         testLogicalTypes(schema);
     }
 
     @Test
-    public void testNullableLogicalTypes() throws IOException, ParseException, MalformedRecordException {
+    public void testNullableLogicalTypes() throws IOException, MalformedRecordException {
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/logical-types-nullable.avsc"));
         testLogicalTypes(schema);
     }
 
-    private void testLogicalTypes(Schema schema) throws ParseException, IOException, MalformedRecordException {
+    private void testLogicalTypes(Schema schema) throws IOException, MalformedRecordException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         final int epochDay = 17260;
-        final String expectedTime = "2017-04-04 14:20:33.000";
-        final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        final long timeLong = df.parse(expectedTime).getTime();
+        final long timeLong = 1491316173000L;
 
         final long secondsSinceMidnight = 33 + (20 * 60) + (14 * 60 * 60);
         final long millisSinceMidnight = secondsSinceMidnight * 1000L;
@@ -241,7 +235,7 @@ public class TestAvroReaderWithEmbeddedSchema {
             assertEquals(1234.56D, values[2]);
             assertEquals(0.045F, values[3]);
             assertEquals(false, values[4]);
-            assertEquals(null, values[5]);
+            assertNull(values[5]);
             assertArrayEquals(toObjectArray("binary".getBytes(StandardCharsets.UTF_8)), (Object[]) values[6]);
             assertArrayEquals(toObjectArray("fixed".getBytes(StandardCharsets.UTF_8)), (Object[]) values[7]);
             assertEquals(map, values[8]);
@@ -341,6 +335,6 @@ public class TestAvroReaderWithEmbeddedSchema {
     }
 
     public enum Status {
-        GOOD, BAD;
+        GOOD, BAD
     }
 }

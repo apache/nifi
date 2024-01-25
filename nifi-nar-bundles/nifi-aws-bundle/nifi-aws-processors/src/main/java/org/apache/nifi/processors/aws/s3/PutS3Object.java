@@ -71,8 +71,6 @@ import java.io.Serializable;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -877,7 +875,6 @@ public class PutS3Object extends AbstractS3Processor {
 
     private final Lock s3BucketLock = new ReentrantLock();
     private final AtomicLong lastS3AgeOff = new AtomicLong(0L);
-    private final DateFormat logFormat = new SimpleDateFormat();
 
     protected void ageoffS3Uploads(final ProcessContext context, final AmazonS3 s3, final long now, String bucket) {
         MultipartUploadListing oldUploads = getS3AgeoffListAndAgeoffLocalState(context, s3, now, bucket);
@@ -940,10 +937,10 @@ public class PutS3Object extends AbstractS3Processor {
         try {
             s3.abortMultipartUpload(abortRequest);
             getLogger().info("Aborting out of date multipart upload, bucket {} key {} ID {}, initiated {}",
-                    new Object[]{bucket, uploadKey, uploadId, logFormat.format(upload.getInitiated())});
+                    bucket, uploadKey, uploadId, upload.getInitiated());
         } catch (AmazonClientException ace) {
             getLogger().info("Error trying to abort multipart upload from bucket {} with key {} and ID {}: {}",
-                    new Object[]{bucket, uploadKey, uploadId, ace.getMessage()});
+                    bucket, uploadKey, uploadId, ace.getMessage());
         }
     }
 

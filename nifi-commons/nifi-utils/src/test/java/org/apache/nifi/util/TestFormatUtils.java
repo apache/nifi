@@ -25,14 +25,12 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.text.DecimalFormatSymbols;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -404,8 +402,8 @@ public class TestFormatUtils {
 
     @ParameterizedTest
     @MethodSource("getParseToInstantUsingFormatterWithoutZones")
-    public void testParseToInstantUsingFormatterWithoutZones(String pattern, String parsedDateTime, String systemDefaultZoneId, String expectedUtcDateTime) throws Exception {
-        checkSameResultsWithSimpleDateFormat(pattern, parsedDateTime, systemDefaultZoneId, null, expectedUtcDateTime);
+    public void testParseToInstantUsingFormatterWithoutZones(String pattern, String parsedDateTime, String systemDefaultZoneId, String expectedUtcDateTime) {
+        checkSameResultsWithFormatter(pattern, parsedDateTime, systemDefaultZoneId, null, expectedUtcDateTime);
     }
 
     private static Stream<Arguments> getParseToInstantUsingFormatterWithoutZones() {
@@ -428,8 +426,8 @@ public class TestFormatUtils {
 
     @ParameterizedTest
     @MethodSource("getParseToInstantUsingFormatterWithZone")
-    public void testParseToInstantUsingFormatterWithZone(String pattern, String parsedDateTime, String systemDefaultZoneId, String formatZoneId, String expectedUtcDateTime) throws Exception {
-        checkSameResultsWithSimpleDateFormat(pattern, parsedDateTime, systemDefaultZoneId, formatZoneId, expectedUtcDateTime);
+    public void testParseToInstantUsingFormatterWithZone(String pattern, String parsedDateTime, String systemDefaultZoneId, String formatZoneId, String expectedUtcDateTime) {
+        checkSameResultsWithFormatter(pattern, parsedDateTime, systemDefaultZoneId, formatZoneId, expectedUtcDateTime);
     }
 
     private static Stream<Arguments> getParseToInstantUsingFormatterWithZone() {
@@ -448,8 +446,8 @@ public class TestFormatUtils {
 
     @ParameterizedTest
     @MethodSource("getParseToInstantWithZonePassedInText")
-    public void testParseToInstantWithZonePassedInText(String pattern, String parsedDateTime, String systemDefaultZoneId, String expectedUtcDateTime) throws Exception {
-        checkSameResultsWithSimpleDateFormat(pattern, parsedDateTime, systemDefaultZoneId, null, expectedUtcDateTime);
+    public void testParseToInstantWithZonePassedInText(String pattern, String parsedDateTime, String systemDefaultZoneId, String expectedUtcDateTime) {
+        checkSameResultsWithFormatter(pattern, parsedDateTime, systemDefaultZoneId, null, expectedUtcDateTime);
     }
 
     private static Stream<Arguments> getParseToInstantWithZonePassedInText() {
@@ -465,26 +463,18 @@ public class TestFormatUtils {
                 Arguments.of(pattern, "2020-01-01 02:00:00 +0000", UTC_TIME_ZONE_ID, "2020-01-01T02:00:00"));
     }
 
-    private void checkSameResultsWithSimpleDateFormat(String pattern, String parsedDateTime, String systemDefaultZoneId, String formatZoneId, String expectedUtcDateTime) throws Exception {
+    private void checkSameResultsWithFormatter(String pattern, String parsedDateTime, String systemDefaultZoneId, String formatZoneId, String expectedUtcDateTime) {
         TimeZone current = TimeZone.getDefault();
         TimeZone.setDefault(TimeZone.getTimeZone(systemDefaultZoneId));
         try {
-            checkSameResultsWithSimpleDateFormat(pattern, parsedDateTime, formatZoneId, expectedUtcDateTime);
+            checkSameResultsWithFormatter(pattern, parsedDateTime, formatZoneId, expectedUtcDateTime);
         } finally {
             TimeZone.setDefault(current);
         }
     }
 
-    private void checkSameResultsWithSimpleDateFormat(String pattern, String parsedDateTime, String formatterZoneId, String expectedUtcDateTime) throws Exception {
+    private void checkSameResultsWithFormatter(String pattern, String parsedDateTime, String formatterZoneId, String expectedUtcDateTime) {
         Instant expectedInstant = LocalDateTime.parse(expectedUtcDateTime).atZone(ZoneOffset.UTC).toInstant();
-
-        // reference implementation
-        SimpleDateFormat sdf = new SimpleDateFormat(pattern, Locale.US);
-        if (formatterZoneId != null) {
-            sdf.setTimeZone(TimeZone.getTimeZone(formatterZoneId));
-        }
-        Instant simpleDateFormatResult = sdf.parse(parsedDateTime).toInstant();
-        assertEquals(expectedInstant, simpleDateFormatResult);
 
         // current implementation
         DateTimeFormatter dtf = FormatUtils.prepareLenientCaseInsensitiveDateTimeFormatter(pattern);

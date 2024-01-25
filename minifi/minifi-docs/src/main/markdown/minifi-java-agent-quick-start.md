@@ -104,7 +104,7 @@ You can use the MiNiFi Toolkit, located in your MiNiFi installation directory, a
 **Result:** Once you have your _flow.json.raw_ file in the `minifi/conf` directory, launch that instance of MiNiFi and your dataflow begins automatically.
 
 ### Utilizing a C2 Server via the c2 protocol
-If you have a [C2 server](../../../../minifi-c2/README.md) running, you can expose the whole _flow.json_ for the agent to download. As the agent is heartbeating via the C2 protocol, changes in flow version will trigger automatic config updates.
+If you have a C2 server running, you can expose the whole _flow.json_ for the agent to download. As the agent is heartbeating via the C2 protocol, changes in flow version will trigger automatic config updates.
 
 1. Launch C2 server
 2. Configure MiNiFi for C2 capability

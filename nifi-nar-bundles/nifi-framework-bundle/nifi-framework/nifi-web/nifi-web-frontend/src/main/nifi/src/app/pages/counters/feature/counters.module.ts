@@ -25,6 +25,7 @@ import { EffectsModule } from '@ngrx/effects';
 import { CounterListingEffects } from '../state/counter-listing/counter-listing.effects';
 import { CounterListingModule } from '../ui/counter-listing/counter-listing.module';
 import { MatDialogModule } from '@angular/material/dialog';
+import { Navigation } from '../../../ui/common/navigation/navigation.component';
 
 @NgModule({
     declarations: [Counters],
@@ -35,7 +36,8 @@ import { MatDialogModule } from '@angular/material/dialog';
         StoreModule.forFeature(countersFeatureKey, reducers),
         EffectsModule.forFeature(CounterListingEffects),
         CounterListingModule,
-        MatDialogModule
+        MatDialogModule,
+        Navigation
     ]
 })
 export class CountersModule {}

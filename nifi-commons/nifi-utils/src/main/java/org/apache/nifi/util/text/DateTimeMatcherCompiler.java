@@ -49,8 +49,8 @@ class DateTimeMatcherCompiler {
 
         matchers.add(regexMatcher);
 
-        // Use the SimpleDateFormatMatcher only if our regex matches. This allows us to parse the date only to guarantee that we are correct if we say that the input text matches.
-        matchers.add(new SimpleDateFormatMatcher(format));
+        // Use the DateTimeFormatterMatcher only if our regex matches. This allows us to parse the date only to guarantee that we are correct if we say that the input text matches.
+        matchers.add(new DateTimeFormatterMatcher(format));
         return new ListDateTimeMatcher(matchers);
     }
 }

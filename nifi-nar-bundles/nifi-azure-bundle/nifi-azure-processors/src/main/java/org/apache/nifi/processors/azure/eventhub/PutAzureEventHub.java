@@ -187,7 +187,7 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
         final String namespace = context.getProperty(NAMESPACE).getValue();
         final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
-        final AmqpTransportType transportType = context.getProperty(TRANSPORT_TYPE).asDescribedValue(AzureEventHubTransportType.class).asAmqpTransportType();
+        final AmqpTransportType transportType = context.getProperty(TRANSPORT_TYPE).asAllowableValue(AzureEventHubTransportType.class).asAmqpTransportType();
 
         try {
             final EventHubClientBuilder eventHubClientBuilder = new EventHubClientBuilder();

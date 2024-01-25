@@ -180,7 +180,7 @@ public class ExtensionDefinition {
         }
     }
 
-    enum ExtensionRuntime {
+    public enum ExtensionRuntime {
         JAVA,
 
         PYTHON;

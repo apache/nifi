@@ -143,7 +143,7 @@ public class DecryptContentCompatibility extends AbstractProcessor {
         }
 
         final CompatibilityModeEncryptionScheme encryptionScheme =
-                context.getProperty(ENCRYPTION_SCHEME).asDescribedValue(CompatibilityModeEncryptionScheme.class);
+                context.getProperty(ENCRYPTION_SCHEME).asAllowableValue(CompatibilityModeEncryptionScheme.class);
         final String scheme = encryptionScheme.getValue();
         final Cipher cipher = getCipher(scheme);
 
@@ -151,7 +151,7 @@ public class DecryptContentCompatibility extends AbstractProcessor {
         final PBEKeySpec keySpec = new PBEKeySpec(password);
 
         final CompatibilityModeKeyDerivationStrategy keyDerivationStrategy =
-                context.getProperty(KEY_DERIVATION_STRATEGY).asDescribedValue(CompatibilityModeKeyDerivationStrategy.class);
+                context.getProperty(KEY_DERIVATION_STRATEGY).asAllowableValue(CompatibilityModeKeyDerivationStrategy.class);
         final StreamCallback callback = new DecryptCallback(cipher, keySpec, keyDerivationStrategy);
 
         final Map<String, String> attributes = new LinkedHashMap<>();

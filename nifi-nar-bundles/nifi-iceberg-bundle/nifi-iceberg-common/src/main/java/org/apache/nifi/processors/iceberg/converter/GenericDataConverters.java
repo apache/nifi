@@ -27,16 +27,16 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.field.FieldConverter;
+import org.apache.nifi.serialization.record.field.StandardFieldConverterRegistry;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -74,12 +74,13 @@ public class GenericDataConverters {
                 case DOUBLE:
                     return DataTypeUtils.toDouble(data, null);
                 case DATE:
-                    return DataTypeUtils.toLocalDate(data, () -> DataTypeUtils.getDateTimeFormatter(sourceType.getFormat(), ZoneId.systemDefault()), null);
+                    final FieldConverter<Object, LocalDate> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDate.class);
+                    return converter.convertField(data, Optional.ofNullable(sourceType.getFormat()), null);
                 case UUID:
                     return DataTypeUtils.toUUID(data);
                 case STRING:
                 default:
-                    return DataTypeUtils.toString(data, () -> null);
+                    return StandardFieldConverterRegistry.getRegistry().getFieldConverter(String.class).convertField(data, Optional.empty(), null);
             }
         }
     }
@@ -94,8 +95,8 @@ public class GenericDataConverters {
 
         @Override
         public LocalTime convert(Object data) {
-            Time time = DataTypeUtils.toTime(data, () -> DataTypeUtils.getDateFormat(timeFormat), null);
-            return time == null ? null : time.toLocalTime();
+            final FieldConverter<Object, LocalTime> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalTime.class);
+            return converter.convertField(data, Optional.ofNullable(timeFormat), null);
         }
     }
 
@@ -109,8 +110,8 @@ public class GenericDataConverters {
 
         @Override
         public LocalDateTime convert(Object data) {
-            final Timestamp convertedTimestamp = DataTypeUtils.toTimestamp(data, () -> DataTypeUtils.getDateFormat(dataType.getFormat()), null);
-            return convertedTimestamp == null ? null : convertedTimestamp.toLocalDateTime();
+            final FieldConverter<Object, LocalDateTime> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDateTime.class);
+            return converter.convertField(data, Optional.ofNullable(dataType.getFormat()), null);
         }
     }
 
@@ -124,8 +125,8 @@ public class GenericDataConverters {
 
         @Override
         public OffsetDateTime convert(Object data) {
-            final Timestamp convertedTimestamp = DataTypeUtils.toTimestamp(data, () -> DataTypeUtils.getDateFormat(dataType.getFormat()), null);
-            return convertedTimestamp == null ? null : OffsetDateTime.ofInstant(convertedTimestamp.toInstant(), ZoneId.of("UTC"));
+            final FieldConverter<Object, OffsetDateTime> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(OffsetDateTime.class);
+            return converter.convertField(data, Optional.ofNullable(dataType.getFormat()), null);
         }
     }
 

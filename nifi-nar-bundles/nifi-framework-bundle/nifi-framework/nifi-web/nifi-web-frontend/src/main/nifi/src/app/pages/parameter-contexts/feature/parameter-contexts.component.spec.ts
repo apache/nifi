@@ -23,15 +23,23 @@ import { initialState } from '../state/parameter-context-listing/parameter-conte
 import { ParameterContextListing } from '../ui/parameter-context-listing/parameter-context-listing.component';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
+import { Component } from '@angular/core';
 
 describe('ParameterContexts', () => {
     let component: ParameterContexts;
     let fixture: ComponentFixture<ParameterContexts>;
 
+    @Component({
+        selector: 'navigation',
+        standalone: true,
+        template: ''
+    })
+    class MockNavigation {}
+
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [ParameterContexts, ParameterContextListing],
-            imports: [RouterModule, RouterTestingModule],
+            imports: [RouterModule, RouterTestingModule, MockNavigation],
             providers: [
                 provideMockStore({
                     initialState

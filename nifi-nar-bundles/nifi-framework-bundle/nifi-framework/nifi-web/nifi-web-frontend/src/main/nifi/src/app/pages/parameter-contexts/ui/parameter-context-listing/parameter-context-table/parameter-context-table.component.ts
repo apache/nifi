@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
-import { MatSort } from '@angular/material/sort';
+import { Sort } from '@angular/material/sort';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { ParameterContextEntity } from '../../../state/parameter-context-listing';
 import { FlowConfiguration } from '../../../../../state/flow-configuration';
@@ -28,22 +28,15 @@ import { CurrentUser } from '../../../../../state/current-user';
     templateUrl: './parameter-context-table.component.html',
     styleUrls: ['./parameter-context-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
 })
-export class ParameterContextTable implements AfterViewInit {
+export class ParameterContextTable {
+    @Input() initialSortColumn: 'name' | 'provider' | 'description' = 'name';
+    @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
+
     @Input() set parameterContexts(parameterContextEntities: ParameterContextEntity[]) {
-        this.dataSource = new MatTableDataSource<ParameterContextEntity>(parameterContextEntities);
-        this.dataSource.sort = this.sort;
-        this.dataSource.sortingDataAccessor = (data: ParameterContextEntity, displayColumn: string) => {
-            if (this.canRead(data)) {
-                if (displayColumn === 'name') {
-                    return this.formatName(data);
-                } else if (displayColumn === 'type') {
-                    return this.formatProvider(data);
-                } else if (displayColumn === 'bundle') {
-                    return this.formatDescription(data);
-                }
-            }
-            return '';
-        };
+        this.dataSource.data = this.sortEntities(parameterContextEntities, {
+            active: this.initialSortColumn,
+            direction: this.initialSortDirection
+        });
     }
 
     @Input() selectedParameterContextId!: string;
@@ -57,13 +50,7 @@ export class ParameterContextTable implements AfterViewInit {
     displayedColumns: string[] = ['moreDetails', 'name', 'provider', 'description', 'actions'];
     dataSource: MatTableDataSource<ParameterContextEntity> = new MatTableDataSource<ParameterContextEntity>();
 
-    @ViewChild(MatSort) sort!: MatSort;
-
     constructor(private nifiCommon: NiFiCommon) {}
-
-    ngAfterViewInit(): void {
-        this.dataSource.sort = this.sort;
-    }
 
     canRead(entity: ParameterContextEntity): boolean {
         return entity.permissions.canRead;
@@ -74,7 +61,7 @@ export class ParameterContextTable implements AfterViewInit {
     }
 
     formatName(entity: ParameterContextEntity): string {
-        return entity.component.name;
+        return this.canRead(entity) ? entity.component.name : entity.id;
     }
 
     formatProvider(entity: ParameterContextEntity): string {
@@ -82,7 +69,7 @@ export class ParameterContextTable implements AfterViewInit {
     }
 
     formatDescription(entity: ParameterContextEntity): string {
-        return entity.component.description;
+        return this.canRead(entity) ? entity.component.description : '';
     }
 
     editClicked(entity: ParameterContextEntity, event: MouseEvent): void {
@@ -119,5 +106,34 @@ export class ParameterContextTable implements AfterViewInit {
             return entity.id == this.selectedParameterContextId;
         }
         return false;
+    }
+
+    sortData(sort: Sort) {
+        this.dataSource.data = this.sortEntities(this.dataSource.data, sort);
+    }
+
+    private sortEntities(data: ParameterContextEntity[], sort: Sort): ParameterContextEntity[] {
+        if (!data) {
+            return [];
+        }
+        return data.slice().sort((a, b) => {
+            const isAsc = sort.direction === 'asc';
+            let retVal = 0;
+
+            switch (sort.active) {
+                case 'name':
+                    retVal = this.nifiCommon.compareString(this.formatName(a), this.formatName(b));
+                    break;
+                case 'provider':
+                    retVal = this.nifiCommon.compareString(this.formatProvider(a), this.formatProvider(b));
+                    break;
+                case 'description':
+                    retVal = this.nifiCommon.compareString(this.formatDescription(a), this.formatDescription(b));
+                    break;
+                default:
+                    return 0;
+            }
+            return retVal * (isAsc ? 1 : -1);
+        });
     }
 }

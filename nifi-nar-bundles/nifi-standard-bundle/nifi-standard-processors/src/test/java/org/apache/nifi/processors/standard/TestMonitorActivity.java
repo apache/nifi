@@ -101,6 +101,61 @@ public class TestMonitorActivity {
     }
 
     @Test
+    public void testFirstMessageWithWaitForActivityTrue() {
+        final TestableProcessor processor = new TestableProcessor(1000);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
+        runner.setProperty(MonitorActivity.THRESHOLD, "100 millis");
+        runner.setProperty(MonitorActivity.WAIT_FOR_ACTIVITY, "true");
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS, 1);
+        runner.clearTransferState();
+
+        processor.resetLastSuccessfulTransfer();
+
+        runNext(runner);
+        runner.assertAllFlowFilesTransferred(MonitorActivity.REL_INACTIVE, 1);
+        runner.clearTransferState();
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("key", "value");
+        attributes.put("key1", "value1");
+
+        runner.enqueue(new byte[0], attributes);
+        runNext(runner);
+
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 1);
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 1);
+
+        MockFlowFile restoredFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).get(0);
+        restoredFlowFile.assertAttributeNotExists("key");
+        restoredFlowFile.assertAttributeNotExists("key1");
+
+        runner.clearTransferState();
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "true");
+
+        processor.resetLastSuccessfulTransfer();
+        runNext(runner);
+
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 1);
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+        runner.clearTransferState();
+
+        runner.enqueue(new byte[0], attributes);
+        runNext(runner);
+
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 1);
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 1);
+
+        restoredFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).get(0);
+        restoredFlowFile.assertAttributeNotExists("key");
+        restoredFlowFile.assertAttributeNotExists("key1");
+    }
+    @Test
     public void testReconcileAfterFirstStartWhenLastSuccessIsAlreadySet() throws Exception {
         final String lastSuccessInCluster = String.valueOf(System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(5));
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(0));

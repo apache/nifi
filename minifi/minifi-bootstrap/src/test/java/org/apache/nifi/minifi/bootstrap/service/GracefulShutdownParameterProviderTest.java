@@ -20,10 +20,14 @@ package org.apache.nifi.minifi.bootstrap.service;
 import static org.apache.nifi.minifi.bootstrap.service.GracefulShutdownParameterProvider.DEFAULT_GRACEFUL_SHUTDOWN_VALUE;
 import static org.apache.nifi.minifi.bootstrap.service.GracefulShutdownParameterProvider.GRACEFUL_SHUTDOWN_PROP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.Properties;
+import java.util.Optional;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -46,10 +50,11 @@ class GracefulShutdownParameterProviderTest {
     @NullSource
     @ValueSource(strings = {"notAnInteger", "-1"})
     void testGetBootstrapPropertiesShouldReturnDefaultShutdownPropertyValue(String shutdownProperty) throws IOException {
-        Properties properties = new Properties();
-        if (shutdownProperty != null) {
-            properties.setProperty(GRACEFUL_SHUTDOWN_PROP, shutdownProperty);
-        }
+        BootstrapProperties properties = mock(BootstrapProperties.class);
+
+        when(properties.getProperty(eq(GRACEFUL_SHUTDOWN_PROP), any()))
+            .thenReturn(Optional.ofNullable(shutdownProperty).orElse(DEFAULT_GRACEFUL_SHUTDOWN_VALUE));
+
         when(bootstrapFileProvider.getBootstrapProperties()).thenReturn(properties);
 
         assertEquals(Integer.parseInt(DEFAULT_GRACEFUL_SHUTDOWN_VALUE), gracefulShutdownParameterProvider.getGracefulShutdownSeconds());
@@ -57,8 +62,8 @@ class GracefulShutdownParameterProviderTest {
 
     @Test
     void testGetBootstrapPropertiesShouldReturnShutdownPropertyValue() throws IOException {
-        Properties properties = new Properties();
-        properties.setProperty(GRACEFUL_SHUTDOWN_PROP, "1000");
+        BootstrapProperties properties = mock(BootstrapProperties.class);
+        when(properties.getProperty(eq(GRACEFUL_SHUTDOWN_PROP), any())).thenReturn("1000");
         when(bootstrapFileProvider.getBootstrapProperties()).thenReturn(properties);
 
         assertEquals(1000, gracefulShutdownParameterProvider.getGracefulShutdownSeconds());

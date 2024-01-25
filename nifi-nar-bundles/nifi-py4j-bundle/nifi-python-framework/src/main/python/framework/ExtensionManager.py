@@ -13,9 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import ast
 import importlib
-import importlib.util  # Note requires Python 3.4+
+import importlib.util
 import inspect
 import logging
 import os
@@ -24,7 +23,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-logger = logging.getLogger("org.apache.nifi.py4j.ExtensionManager")
+import ProcessorInspection
+
+
+logger = logging.getLogger("python.ExtensionManager")
 
 
 # A simple wrapper class to encompass a processor type and its version
@@ -40,67 +42,6 @@ class ExtensionId:
         return (self.classname, self.version) == (other.classname, other.version)
 
 
-class ExtensionDetails:
-    class Java:
-        implements = ['org.apache.nifi.python.PythonProcessorDetails']
-
-    def __init__(self, gateway, type, interfaces,
-                 version='Unknown',
-                 dependencies=None,
-                 source_location=None,
-                 description=None,
-                 tags=None):
-
-        self.gateway = gateway
-        self.type = type
-
-        if interfaces is None:
-            interfaces = []
-        self.interfaces = interfaces
-
-        if dependencies is None:
-            dependencies = []
-        if tags is None:
-            tags = []
-
-        self.version = version
-        self.dependencies = dependencies
-        self.source_location = source_location
-        self.description = description
-        self.tags = tags
-
-    def getProcessorType(self):
-        return self.type
-
-    def getProcessorVersion(self):
-        return self.version
-
-    def getSourceLocation(self):
-        return self.source_location
-
-    def getDependencies(self):
-        list = self.gateway.jvm.java.util.ArrayList()
-        for dep in self.dependencies:
-            list.add(dep)
-
-        return list
-
-    def getCapabilityDescription(self):
-        return self.description
-
-    def getTags(self):
-        list = self.gateway.jvm.java.util.ArrayList()
-        for tag in self.tags:
-            list.add(tag)
-
-        return list
-
-    def getInterface(self):
-        if len(self.interfaces) == 0:
-            return None
-        return self.interfaces[0]
-
-
 
 class ExtensionManager:
     """
@@ -113,7 +54,7 @@ class ExtensionManager:
     third-party dependencies have been imported.
     """
 
-    processorInterfaces = ['org.apache.nifi.python.processor.FlowFileTransform', 'org.apache.nifi.python.processor.RecordTransform']
+    processor_interfaces = ['org.apache.nifi.python.processor.FlowFileTransform', 'org.apache.nifi.python.processor.RecordTransform']
     processor_details = {}
     processor_class_by_name = {}
     module_files_by_extension_type = {}
@@ -307,164 +248,15 @@ class ExtensionManager:
         return self.processor_details[id].dependencies
 
     def __get_processor_classes_and_details(self, module_file):
-        # Parse the python file
-        with open(module_file) as file:
-            root_node = ast.parse(file.read())
-
+        class_nodes = ProcessorInspection.get_processor_class_nodes(module_file)
         details_by_class = {}
 
-        # Get top-level class nodes (e.g., MyProcessor)
-        class_nodes = self.__get_class_nodes(root_node)
-
         for class_node in class_nodes:
-            logger.debug(f"Checking if class {class_node.name} is a processor")
-            if self.__is_processor_class_node(class_node):
-                logger.info(f"Discovered Processor class {class_node.name} in module {module_file}")
-                details = self.__get_processor_details(class_node, module_file)
-                details_by_class[class_node.name] = details
+            logger.info(f"Discovered Processor class {class_node.name} in module {module_file}")
+            details = ProcessorInspection.get_processor_details(class_node, module_file)
+            details_by_class[class_node.name] = details
 
         return details_by_class
-
-
-    def __is_processor_class_node(self, class_node):
-        """
-        Checks if the Abstract Syntax Tree (AST) Node represents a Processor class.
-        We are looking for any classes within the given module file that look like:
-
-        class MyProcessor:
-            ...
-            class Java:
-                implements = ['org.apache.nifi.python.processor.FlowFileTransform']
-
-        :param class_node: the abstract syntax tree (AST) node
-        :return: True if the AST Node represents a Python Class that is a Processor, False otherwise
-        """
-
-        # Look for a 'Java' sub-class
-        interfaces = self.__get_java_interfaces(class_node)
-        return len(interfaces) > 0
-
-
-    def __get_java_interfaces(self, class_node):
-        # Get all class definition nodes
-        child_class_nodes = self.__get_class_nodes(class_node)
-
-        interfaces = []
-        for child_class_node in child_class_nodes:
-            # Look for a 'Java' sub-class
-            if child_class_node.name != 'Java':
-                continue
-
-            # Look for an assignment that assigns values to the `implements` keyword
-            assignment_nodes = self.__get_assignment_nodes(child_class_node)
-            for assignment_node in assignment_nodes:
-                targets = assignment_node.targets
-                if (len(targets) == 1 and targets[0].id == 'implements'):
-                    assigned_values = assignment_node.value.elts
-                    for assigned_value in assigned_values:
-                        if assigned_value.value in self.processorInterfaces:
-                            interfaces.append(assigned_value.value)
-
-        return interfaces
-
-
-    def __get_processor_details(self, class_node, module_file):
-        # Look for a 'ProcessorDetails' class
-        child_class_nodes = self.__get_class_nodes(class_node)
-
-        # Get the Java interfaces that it implements
-        interfaces = self.__get_java_interfaces(class_node)
-
-        for child_class_node in child_class_nodes:
-            if child_class_node.name == 'ProcessorDetails':
-                logger.debug(f"Found ProcessorDetails class in {class_node.name}")
-                version = self.__get_processor_version(child_class_node, class_node.name)
-                dependencies = self.__get_processor_dependencies(child_class_node, class_node.name)
-                description = self.__get_processor_description(child_class_node, class_node.name)
-                tags = self.__get_processor_tags(child_class_node, class_node.name)
-
-                return ExtensionDetails(gateway=self.gateway,
-                                        interfaces=interfaces,
-                                        type=class_node.name,
-                                        version=version,
-                                        dependencies=dependencies,
-                                        source_location=module_file,
-                                        description=description,
-                                        tags=tags)
-
-        return ExtensionDetails(gateway=self.gateway,
-                                interfaces=interfaces,
-                                type=class_node.name,
-                                version='Unknown',
-                                dependencies=[],
-                                source_location=module_file)
-
-
-    def __get_processor_version(self, details_node, class_name):
-        assignment_nodes = self.__get_assignment_nodes(details_node)
-        for assignment_node in assignment_nodes:
-            targets = assignment_node.targets
-            if (len(targets) == 1 and targets[0].id == 'version'):
-                assigned_values = assignment_node.value.value
-                logger.info("Found version of {0} to be {1}".format(class_name, assigned_values))
-                return assigned_values
-
-        # No dependencies found
-        logger.info("Found no version information for {0}".format(class_name))
-        return 'Unknown'
-
-
-    def __get_processor_dependencies(self, details_node, class_name):
-        deps = self.__get_assigned_list(details_node, class_name, 'dependencies')
-        if len(deps) == 0:
-            logger.info("Found no external dependencies that are required for class %s" % class_name)
-        else:
-            logger.info("Found the following external dependencies that are required for class {0}: {1}".format(class_name, deps))
-
-        return deps
-
-
-    def __get_processor_tags(self, details_node, class_name):
-        return self.__get_assigned_list(details_node, class_name, 'tags')
-
-
-    def __get_assigned_list(self, details_node, class_name, element_name):
-        assignment_nodes = self.__get_assignment_nodes(details_node)
-        for assignment_node in assignment_nodes:
-            targets = assignment_node.targets
-            if (len(targets) == 1 and targets[0].id == element_name):
-                assigned_values = assignment_node.value.elts
-                declared_dependencies = []
-                for assigned_value in assigned_values:
-                    declared_dependencies.append(assigned_value.value)
-
-                return declared_dependencies
-
-        # No values found
-        return []
-
-
-    def __get_processor_description(self, details_node, class_name):
-        assignment_nodes = self.__get_assignment_nodes(details_node)
-        for assignment_node in assignment_nodes:
-            targets = assignment_node.targets
-            if (len(targets) == 1 and targets[0].id == 'description'):
-                return assignment_node.value.value
-
-        # No description found
-        logger.debug("Found no description for class %s" % class_name)
-        return None
-
-
-
-    def __get_class_nodes(self, node):
-        class_nodes = [n for n in node.body if isinstance(n, ast.ClassDef)]
-        return class_nodes
-
-
-    def __get_assignment_nodes(self, node):
-        assignment_nodes = [n for n in node.body if isinstance(n, ast.Assign)]
-        return assignment_nodes
 
 
     def import_external_dependencies(self, processor_details, work_dir):
@@ -519,7 +311,7 @@ class ExtensionManager:
 
     def __load_extension_module(self, file, local_dependencies):
         # If there are any local dependencies (i.e., other python files in the same directory), load those modules first
-        if local_dependencies is not None and len(local_dependencies) > 0:
+        if local_dependencies:
             to_load = [dep for dep in local_dependencies]
             if file in to_load:
                 to_load.remove(file)
@@ -553,20 +345,20 @@ class ExtensionManager:
                     to_load.insert(0, local_dependency)
 
         # Determine the module name
-        moduleName = Path(file).name.split('.py')[0]
+        module_name = Path(file).name.split('.py')[0]
 
         # Create the module specification
-        moduleSpec = importlib.util.spec_from_file_location(moduleName, file)
-        logger.debug(f"Module Spec: {moduleSpec}")
+        module_spec = importlib.util.spec_from_file_location(module_name, file)
+        logger.debug(f"Module Spec: {module_spec}")
 
         # Create the module from the specification
-        module = importlib.util.module_from_spec(moduleSpec)
+        module = importlib.util.module_from_spec(module_spec)
         logger.debug(f"Module: {module}")
 
         # Load the module
-        sys.modules[moduleName] = module
-        moduleSpec.loader.exec_module(module)
-        logger.info(f"Loaded module {moduleName}")
+        sys.modules[module_name] = module
+        module_spec.loader.exec_module(module)
+        logger.info(f"Loaded module {module_name}")
 
         # Find the Processor class and return it
         for name, member in inspect.getmembers(module):
@@ -579,27 +371,27 @@ class ExtensionManager:
         return None
 
 
-    def __is_processor_class(self, potentialProcessorClass):
+    def __is_processor_class(self, potential_processor_class):
         # Go through all members of the given class and see if it has an inner class named Java
-        for name, member in inspect.getmembers(potentialProcessorClass):
+        for name, member in inspect.getmembers(potential_processor_class):
             if name == 'Java' and inspect.isclass(member):
                 # Instantiate the Java class
                 instance = member()
 
                 # Check if the instance has a method named 'implements'
-                hasImplements = False
+                has_implements = False
                 for attr in dir(instance):
                     if attr == 'implements':
-                        hasImplements = True
+                        has_implements = True
                         break
 
                 # If not, move to the next member
-                if not hasImplements:
+                if not has_implements:
                     continue
 
                 # The class implements something. Check if it implements Processor
                 for interface in instance.implements:
-                    if interface in self.processorInterfaces:
-                        logger.debug(f"{potentialProcessorClass} implements Processor")
+                    if interface in self.processor_interfaces:
+                        logger.debug(f"{potential_processor_class} implements Processor")
                         return True
         return False

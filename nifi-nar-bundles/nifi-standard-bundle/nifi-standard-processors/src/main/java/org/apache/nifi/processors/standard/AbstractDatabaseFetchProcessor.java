@@ -43,7 +43,12 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -198,7 +203,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
     // the setup logic to be performed in onTrigger() versus OnScheduled to avoid any issues with DB connection when first scheduled to run.
     protected final AtomicBoolean setupComplete = new AtomicBoolean(false);
 
-    private static SimpleDateFormat TIME_TYPE_FORMAT = new SimpleDateFormat("HH:mm:ss.SSS");
+    private static final DateTimeFormatter TIME_TYPE_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
     // A Map (name to value) of initial maximum-value properties, filled at schedule-time and used at trigger-time
     protected Map<String,String> maxValueProperties;
@@ -412,17 +417,17 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             case TIME:
                 // Compare milliseconds-since-epoch. Need getTimestamp() instead of getTime() since some databases
                 // don't return milliseconds in the Time returned by getTime().
-                Date colTimeValue = new Date(resultSet.getTimestamp(columnIndex).getTime());
-                Date maxTimeValue = null;
+                Instant colTimeValue = Instant.ofEpochMilli(resultSet.getTimestamp(columnIndex).getTime());
+                LocalTime maxTimeValue = null;
                 if (maxValueString != null) {
                     try {
-                        maxTimeValue = TIME_TYPE_FORMAT.parse(maxValueString);
-                    } catch (ParseException pe) {
+                        maxTimeValue = LocalTime.parse(maxValueString, TIME_TYPE_FORMAT);
+                    } catch (DateTimeParseException pe) {
                         // Shouldn't happen, but just in case, leave the value as null so the new value will be stored
                     }
                 }
-                if (maxTimeValue == null || colTimeValue.after(maxTimeValue)) {
-                    return TIME_TYPE_FORMAT.format(colTimeValue);
+                if (maxTimeValue == null || colTimeValue.isAfter(maxTimeValue.atDate(LocalDate.now()).atZone(ZoneId.systemDefault()).toInstant())) {
+                    return TIME_TYPE_FORMAT.format(LocalTime.ofInstant(colTimeValue, ZoneId.systemDefault()));
                 }
                 break;
 

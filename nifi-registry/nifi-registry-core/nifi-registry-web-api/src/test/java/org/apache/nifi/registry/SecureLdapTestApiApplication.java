@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry;
 
+import org.apache.nifi.registry.db.DataSourceFactory;
 import org.apache.nifi.registry.security.authorization.AuthorizerFactory;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
@@ -29,6 +30,9 @@ import org.springframework.context.annotation.FilterType;
                 @ComponentScan.Filter(
                         type = FilterType.ASSIGNABLE_TYPE,
                         value = SpringBootServletInitializer.class), // Avoid loading NiFiRegistryApiApplication
+                @ComponentScan.Filter(
+                        type = FilterType.ASSIGNABLE_TYPE,
+                        value = DataSourceFactory.class), // Avoid loading DataSourceFactory
                 @ComponentScan.Filter(
                         type = FilterType.ASSIGNABLE_TYPE,
                         value = AuthorizerFactory.class), // Avoid loading AuthorizerFactory.getAuthorizer(), as we need to add it again with test-specific @DependsOn annotation

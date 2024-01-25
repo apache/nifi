@@ -16,23 +16,10 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as LineageActions from './lineage.actions';
 import * as ProvenanceActions from '../provenance-event-listing/provenance-event-listing.actions';
-import {
-    asyncScheduler,
-    catchError,
-    from,
-    interval,
-    map,
-    NEVER,
-    of,
-    switchMap,
-    take,
-    takeUntil,
-    tap,
-    withLatestFrom
-} from 'rxjs';
+import { asyncScheduler, catchError, from, interval, map, NEVER, of, switchMap, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
@@ -113,7 +100,7 @@ export class LineageEffects {
     pollLineageQuery$ = createEffect(() =>
         this.actions$.pipe(
             ofType(LineageActions.pollLineageQuery),
-            withLatestFrom(this.store.select(selectLineageId), this.store.select(selectClusterNodeId)),
+            concatLatestFrom(() => [this.store.select(selectLineageId), this.store.select(selectClusterNodeId)]),
             switchMap(([action, id, clusterNodeId]) => {
                 if (id) {
                     return from(this.provenanceService.getLineageQuery(id, clusterNodeId)).pipe(
@@ -166,7 +153,7 @@ export class LineageEffects {
         () =>
             this.actions$.pipe(
                 ofType(LineageActions.deleteLineageQuery),
-                withLatestFrom(this.store.select(selectLineageId), this.store.select(selectClusterNodeId)),
+                concatLatestFrom(() => [this.store.select(selectLineageId), this.store.select(selectClusterNodeId)]),
                 tap(([action, id, clusterNodeId]) => {
                     if (id) {
                         this.provenanceService.deleteLineageQuery(id, clusterNodeId).subscribe();

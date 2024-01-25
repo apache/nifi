@@ -860,6 +860,7 @@ public class TestFlowController {
         assertEquals(ServiceA.class.getSimpleName(), controllerServiceNode.getComponentType());
         assertEquals(ServiceA.class.getCanonicalName(), controllerServiceNode.getComponent().getClass().getCanonicalName());
         assertEquals(LogLevel.WARN, controllerServiceNode.getBulletinLevel());
+        assertEquals("", controllerServiceNode.getComments());
 
         controller.getReloadComponent().reload(controllerServiceNode, ServiceB.class.getName(), coordinate, Collections.emptySet());
 
@@ -868,6 +869,7 @@ public class TestFlowController {
         assertEquals(id, controllerServiceNode.getComponent().getIdentifier());
         assertEquals(coordinate.getCoordinate(), controllerServiceNode.getBundleCoordinate().getCoordinate());
         assertEquals(LogLevel.WARN, controllerServiceNode.getBulletinLevel());
+        assertEquals("", controllerServiceNode.getComments());
 
         // in this test we happened to change between two services that have different canonical class names
         // but in the running application the DAO layer would call verifyCanUpdateBundle and would prevent this so

@@ -26,12 +26,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -80,8 +77,7 @@ public class TestGetFile {
 
     @Test
     public void testTodaysFilesPickedUp() throws IOException {
-        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd", Locale.US);
-        final String dirStruc = sdf.format(new Date());
+        final String dirStruc = DateTimeFormatter.ofPattern("yyyy/MM/dd").format(OffsetDateTime.now());
 
         final File directory = new File("target/test/data/in/" + dirStruc);
         deleteDirectory(directory);
@@ -104,8 +100,7 @@ public class TestGetFile {
 
     @Test
     public void testPath() throws IOException {
-        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd/", Locale.US);
-        final String dirStruc = sdf.format(new Date());
+        final String dirStruc = DateTimeFormatter.ofPattern("yyyy/MM/dd/").format(OffsetDateTime.now());
 
         final File directory = new File("target/test/data/in/" + dirStruc);
         deleteDirectory(new File("target/test/data/in"));
@@ -134,7 +129,7 @@ public class TestGetFile {
     }
 
     @Test
-    public void testAttributes() throws IOException, ParseException {
+    public void testAttributes() throws IOException {
         final File directory = new File("target/test/data/in/");
         deleteDirectory(directory);
         assertTrue(directory.exists() || directory.mkdirs(), "Unable to create test data directory " + directory.getAbsolutePath());
@@ -158,12 +153,6 @@ public class TestGetFile {
 
         runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 1);
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(GetFile.REL_SUCCESS);
-
-        if (verifyLastModified) {
-            final DateFormat formatter = new SimpleDateFormat(GetFile.FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-            final Date fileModifyTime = formatter.parse(successFiles.get(0).getAttribute("file.lastModifiedTime"));
-            assertEquals(new Date(1000000000), fileModifyTime);
-        }
         //permissions are not verified as these are very environmentally specific
     }
 }

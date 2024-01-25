@@ -487,7 +487,7 @@ public class RegexDateTimeMatcher implements DateTimeMatcher {
         }
 
         private String getGMTOffsetTimeZone() {
-            // From SimpleDateFormat JavaDocs, GMTOffsetTimeZone defined as: GMT Sign Hours : Minutes
+            // From Date Format JavaDocs, GMTOffsetTimeZone defined as: GMT Sign Hours : Minutes
             // Sign defined as '-' or '+'
             // Hours defined as 1 or 2 digits, Minutes defined as 1 or 2 digits
             // Digit defined as number between 0-9

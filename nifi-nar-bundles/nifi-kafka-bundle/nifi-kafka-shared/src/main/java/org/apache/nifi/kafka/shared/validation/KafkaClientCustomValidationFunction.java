@@ -94,7 +94,7 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
     }
 
     private void validateKerberosCredentials(final ValidationContext validationContext, final Collection<ValidationResult> results) {
-        final SaslMechanism saslMechanism = validationContext.getProperty(SASL_MECHANISM).asDescribedValue(SaslMechanism.class);
+        final SaslMechanism saslMechanism = validationContext.getProperty(SASL_MECHANISM).asAllowableValue(SaslMechanism.class);
         final String securityProtocol = validationContext.getProperty(SECURITY_PROTOCOL).getValue();
 
         if (saslMechanism == SaslMechanism.GSSAPI && SASL_PROTOCOLS.contains(securityProtocol)) {
@@ -123,7 +123,7 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
     }
 
     private void validateUsernamePassword(final ValidationContext validationContext, final Collection<ValidationResult> results) {
-        final SaslMechanism saslMechanism = validationContext.getProperty(SASL_MECHANISM).asDescribedValue(SaslMechanism.class);
+        final SaslMechanism saslMechanism = validationContext.getProperty(SASL_MECHANISM).asAllowableValue(SaslMechanism.class);
 
         if (USERNAME_PASSWORD_SASL_MECHANISMS.contains(saslMechanism)) {
             final String username = validationContext.getProperty(SASL_USERNAME).evaluateAttributeExpressions().getValue();
@@ -151,7 +151,7 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
     private void validateAwsMskIamMechanism(final ValidationContext validationContext, final Collection<ValidationResult> results) {
         final PropertyValue saslMechanismProperty = validationContext.getProperty(SASL_MECHANISM);
         if (saslMechanismProperty.isSet()) {
-            final SaslMechanism saslMechanism = saslMechanismProperty.asDescribedValue(SaslMechanism.class);
+            final SaslMechanism saslMechanism = saslMechanismProperty.asAllowableValue(SaslMechanism.class);
 
             if (saslMechanism == SaslMechanism.AWS_MSK_IAM && !StandardKafkaPropertyProvider.isAwsMskIamCallbackHandlerFound()) {
                 final String explanation = String.format("[%s] required class not found: Kafka modules must be compiled with AWS MSK enabled",

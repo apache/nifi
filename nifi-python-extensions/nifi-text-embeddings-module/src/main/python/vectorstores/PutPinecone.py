@@ -19,8 +19,34 @@ from nifiapi.properties import PropertyDescriptor, StandardValidators, Expressio
 import pinecone
 import json
 from EmbeddingUtils import OPENAI, HUGGING_FACE, EMBEDDING_MODEL, create_embedding_service
+from nifiapi.documentation import use_case, multi_processor_use_case, ProcessorConfiguration
 
+@use_case(description="Create vectors/embeddings that represent text content and send the vectors to Pinecone",
+          notes="This use case assumes that the data has already been formatted in JSONL format with the text to store in Pinecone provided in the 'text' field.",
+          keywords=["pinecone", "embedding", "vector", "text", "vectorstore", "insert"],
+          configuration="""
+                Configure the 'Pinecone API Key' to the appropriate authentication token for interacting with Pinecone.
+                Configure 'Embedding Model' to indicate whether OpenAI embeddings should be used or a HuggingFace embedding model should be used: 'Hugging Face Model' or 'OpenAI Model'
+                Configure the 'OpenAI API Key' or 'HuggingFace API Key', depending on the chosen Embedding Model.
+                Set 'Pinecone Environment' to the name of your Pinecone environment
+                Set 'Index Name' to the name of your Pinecone Index.
+                Set 'Namespace' to appropriate namespace, or leave it empty to use the default Namespace.
 
+                If the documents to send to Pinecone contain a unique identifier, set the 'Document ID Field Name' property to the name of the field that contains the document ID.
+                This property can be left blank, in which case a unique ID will be generated based on the FlowFile's filename.
+                """)
+@use_case(description="Update vectors/embeddings in Pinecone",
+          notes="This use case assumes that the data has already been formatted in JSONL format with the text to store in Pinecone provided in the 'text' field.",
+          keywords=["pinecone", "embedding", "vector", "text", "vectorstore", "update", "upsert"],
+          configuration="""
+                Configure the 'Pinecone API Key' to the appropriate authentication token for interacting with Pinecone.
+                Configure 'Embedding Model' to indicate whether OpenAI embeddings should be used or a HuggingFace embedding model should be used: 'Hugging Face Model' or 'OpenAI Model'
+                Configure the 'OpenAI API Key' or 'HuggingFace API Key', depending on the chosen Embedding Model.
+                Set 'Pinecone Environment' to the name of your Pinecone environment
+                Set 'Index Name' to the name of your Pinecone Index.
+                Set 'Namespace' to appropriate namespace, or leave it empty to use the default Namespace.
+                Set the 'Document ID Field Name' property to the name of the field that contains the identifier of the document in Pinecone to update.
+                """)
 class PutPinecone(FlowFileTransform):
     class Java:
         implements = ['org.apache.nifi.python.processor.FlowFileTransform']
@@ -30,6 +56,7 @@ class PutPinecone(FlowFileTransform):
         description = """Publishes JSON data to Pinecone. The Incoming data must be in single JSON per Line format, each with two keys: 'text' and 'metadata'.
                        The text must be a string, while metadata must be a map with strings for values. Any additional fields will be ignored."""
         tags = ["pinecone", "vector", "vectordb", "vectorstore", "embeddings", "ai", "artificial intelligence", "ml", "machine learning", "text", "LLM"]
+
 
     PINECONE_API_KEY = PropertyDescriptor(
         name="Pinecone API Key",

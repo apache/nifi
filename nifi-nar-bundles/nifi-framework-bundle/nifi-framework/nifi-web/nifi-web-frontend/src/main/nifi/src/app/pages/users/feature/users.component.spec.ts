@@ -22,15 +22,23 @@ import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { UserListing } from '../ui/user-listing/user-listing.component';
 import { initialState } from '../state/user-listing/user-listing.reducer';
+import { Component } from '@angular/core';
 
 describe('Users', () => {
     let component: Users;
     let fixture: ComponentFixture<Users>;
 
+    @Component({
+        selector: 'navigation',
+        standalone: true,
+        template: ''
+    })
+    class MockNavigation {}
+
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Users, UserListing],
-            imports: [RouterModule, RouterTestingModule],
+            imports: [RouterModule, RouterTestingModule, MockNavigation],
             providers: [provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(Users);

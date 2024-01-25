@@ -39,7 +39,7 @@ public class WindowsEventLogReader extends AbstractControllerService implements 
 
     private static final String DATE_FORMAT = RecordFieldType.DATE.getDefaultFormat();
     private static final String TIME_FORMAT = RecordFieldType.TIME.getDefaultFormat();
-    private static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS"; // The timestamps have nanoseconds but need a SimpleDateFormat string here
+    private static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS";
 
     @Override
     public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger)

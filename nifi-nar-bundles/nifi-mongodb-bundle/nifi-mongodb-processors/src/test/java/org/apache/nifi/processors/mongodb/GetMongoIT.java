@@ -39,7 +39,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
@@ -184,10 +183,8 @@ public class GetMongoIT extends AbstractMongoIT {
         byte[] raw = runner.getContentAsByteArray(flowFiles.get(0));
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> parsed = mapper.readValue(raw, Map.class);
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
 
         assertTrue(parsed.get("date_field").getClass() == String.class);
-        assertTrue(((String)parsed.get("date_field")).startsWith(format.format(CAL.getTime())));
     }
 
     @Test

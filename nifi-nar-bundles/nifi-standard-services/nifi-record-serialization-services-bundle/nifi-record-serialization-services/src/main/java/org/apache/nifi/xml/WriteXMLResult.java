@@ -29,6 +29,8 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.field.FieldConverter;
+import org.apache.nifi.serialization.record.field.StandardFieldConverterRegistry;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
@@ -40,14 +42,11 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import static org.apache.nifi.xml.XMLRecordSetWriter.RECORD_TAG_NAME;
@@ -56,6 +55,8 @@ import static org.apache.nifi.xml.XMLRecordSetWriter.ROOT_TAG_NAME;
 
 public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSetWriter, RawRecordWriter {
     private static final Pattern TAG_NAME_CHARS_TO_STRIP = Pattern.compile("[/<>!&'\"]");
+
+    private static final FieldConverter<Object, String> STRING_FIELD_CONVERTER = StandardFieldConverterRegistry.getRegistry().getFieldConverter(String.class);
 
     private final RecordSchema recordSchema;
     private final SchemaAccessWriter schemaAccess;
@@ -69,9 +70,9 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
     private final boolean allowWritingMultipleRecords;
     private boolean hasWrittenRecord;
 
-    private final Supplier<DateFormat> LAZY_DATE_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIME_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
+    private final String dateFormat;
+    private final String timeFormat;
+    private final String timestampFormat;
 
     public WriteXMLResult(final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint, final boolean omitDeclaration,
                           final NullSuppression nullSuppression, final ArrayWrapping arrayWrapping, final String arrayTagName, final String rootTagName, final String recordTagName,
@@ -106,14 +107,9 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         this.allowWritingMultipleRecords = !(this.rootTagName == null);
         hasWrittenRecord = false;
 
-        // Use DateFormat with default TimeZone to avoid unexpected conversion of year-month-day
-        final DateFormat df = dateFormat == null ? null : new SimpleDateFormat(dateFormat);
-        final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
-        final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
-
-        LAZY_DATE_FORMAT = () -> df;
-        LAZY_TIME_FORMAT = () -> tf;
-        LAZY_TIMESTAMP_FORMAT = () -> tsf;
+        this.dateFormat = dateFormat;
+        this.timeFormat = timeFormat;
+        this.timestampFormat = timestampFormat;
 
         try {
             XMLOutputFactory factory = XMLOutputFactory.newInstance();
@@ -232,7 +228,9 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
             Object value = record.getValue(field);
 
             final DataType chosenDataType = dataType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(value, (ChoiceDataType) dataType) : dataType;
-            final Object coercedValue = DataTypeUtils.convertType(value, chosenDataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+            final Object coercedValue = DataTypeUtils.convertType(
+                    value, chosenDataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName
+            );
 
             if (coercedValue != null) {
                 boolean hasWritten = writeFieldForType(tagsToOpen, coercedValue, chosenDataType, fieldName);
@@ -272,21 +270,21 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
             }
             case DATE: {
                 writeAllTags(tagsToOpen, fieldName);
-                final String stringValue = DataTypeUtils.toString(coercedValue, LAZY_DATE_FORMAT);
+                final String stringValue = STRING_FIELD_CONVERTER.convertField(coercedValue, Optional.ofNullable(dateFormat), fieldName);
                 writer.writeCharacters(stringValue);
                 writer.writeEndElement();
                 return true;
             }
             case TIME: {
                 writeAllTags(tagsToOpen, fieldName);
-                final String stringValue = DataTypeUtils.toString(coercedValue, LAZY_TIME_FORMAT);
+                final String stringValue = STRING_FIELD_CONVERTER.convertField(coercedValue, Optional.ofNullable(timeFormat), fieldName);
                 writer.writeCharacters(stringValue);
                 writer.writeEndElement();
                 return true;
             }
             case TIMESTAMP: {
                 writeAllTags(tagsToOpen, fieldName);
-                final String stringValue = DataTypeUtils.toString(coercedValue, LAZY_TIMESTAMP_FORMAT);
+                final String stringValue = STRING_FIELD_CONVERTER.convertField(coercedValue, Optional.ofNullable(timestampFormat), fieldName);
                 writer.writeCharacters(stringValue);
                 writer.writeEndElement();
                 return true;
@@ -346,7 +344,9 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                 for (Object element : arrayValues) {
 
                     final DataType chosenDataType = elementType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(element, (ChoiceDataType) elementType) : elementType;
-                    final Object coercedElement = DataTypeUtils.convertType(element, chosenDataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, elementName);
+                    final Object coercedElement = DataTypeUtils.convertType(
+                            element, chosenDataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName
+                    );
 
                     if (coercedElement != null) {
                         boolean hasWritten = writeFieldForType(tagsToOpen, coercedElement, elementType, elementName);
@@ -396,7 +396,9 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
 
                     final DataType chosenDataType = valueDataType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(entry.getValue(),
                             (ChoiceDataType) valueDataType) : valueDataType;
-                    final Object coercedElement = DataTypeUtils.convertType(entry.getValue(), chosenDataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, key);
+                    final Object coercedElement = DataTypeUtils.convertType(
+                            entry.getValue(), chosenDataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName
+                    );
 
                     if (coercedElement != null) {
                         boolean hasWritten = writeFieldForType(tagsToOpen, entry.getValue(), valueDataType, key);

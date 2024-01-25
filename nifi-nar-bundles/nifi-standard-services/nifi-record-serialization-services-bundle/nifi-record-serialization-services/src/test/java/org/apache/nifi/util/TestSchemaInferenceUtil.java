@@ -78,8 +78,8 @@ class TestSchemaInferenceUtil {
             Arguments.of("2017.03.19", RecordFieldType.STRING.getDataType()),
 
             Arguments.of("12:13:14", RecordFieldType.TIME.getDataType(TIME_FORMAT)),
-            Arguments.of("12:13:0", RecordFieldType.TIME.getDataType(TIME_FORMAT)),
-            Arguments.of("12:3:0", RecordFieldType.TIME.getDataType(TIME_FORMAT)),
+            Arguments.of("12:13:00", RecordFieldType.TIME.getDataType(TIME_FORMAT)),
+            Arguments.of("12:03:00", RecordFieldType.TIME.getDataType(TIME_FORMAT)),
             Arguments.of("25:13:14", RecordFieldType.STRING.getDataType()),
             Arguments.of("25::14", RecordFieldType.STRING.getDataType()),
 

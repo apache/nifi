@@ -36,8 +36,8 @@ public class FlowFileTransformProxy extends PythonProcessorProxy {
 
     private volatile FlowFileTransform transform;
 
-    public FlowFileTransformProxy(final String processorType, final Supplier<PythonProcessorBridge> bridgeFactory) {
-        super(processorType, bridgeFactory);
+    public FlowFileTransformProxy(final String processorType, final Supplier<PythonProcessorBridge> bridgeFactory, final boolean initialize) {
+        super(processorType, bridgeFactory, initialize);
     }
 
     @OnScheduled

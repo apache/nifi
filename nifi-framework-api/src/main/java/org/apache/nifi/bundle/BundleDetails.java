@@ -17,8 +17,9 @@
 package org.apache.nifi.bundle;
 
 import java.io.File;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Date;
 
 /**
@@ -107,10 +108,9 @@ public class BundleDetails {
     public Date getBuildTimestampDate() {
         if (buildTimestamp != null && !buildTimestamp.isEmpty()) {
             try {
-                SimpleDateFormat buildTimestampFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-                Date buildTimestampDate = buildTimestampFormat.parse(buildTimestamp);
-                return buildTimestampDate;
-            } catch (ParseException parseEx) {
+                final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
+                return Date.from(OffsetDateTime.parse(buildTimestamp, dateTimeFormatter).toInstant());
+            } catch (DateTimeParseException e) {
                 return null;
             }
         } else {
