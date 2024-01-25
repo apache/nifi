@@ -25,7 +25,7 @@ public abstract class AbstractJsonQueryElasticsearch_IT extends AbstractElastics
     @BeforeEach
     public void setUp() {
         // set Query Definition Style and default Query Clause for all tests, allowing for ConsumeElasticsearch test override
-        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY.getValue());
+        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY);
         runner.setProperty(ElasticsearchRestProcessor.QUERY_CLAUSE, "{\"match_all\":{}}");
     }
 

@@ -19,7 +19,6 @@ package org.apache.nifi.processors.elasticsearch.api;
 
 import org.apache.nifi.components.DescribedValue;
 
-import java.util.Arrays;
 import java.util.EnumSet;
 
 public enum ResultOutputStrategy implements DescribedValue {
@@ -55,10 +54,5 @@ public enum ResultOutputStrategy implements DescribedValue {
 
     public static EnumSet<ResultOutputStrategy> getNonPaginatedResponseOutputStrategies() {
         return EnumSet.of(PER_RESPONSE, PER_HIT);
-    }
-
-    public static ResultOutputStrategy fromValue(final String value) {
-        return Arrays.stream(ResultOutputStrategy.values()).filter(v -> v.getValue().equals(value)).findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(String.format("Unknown value %s", value)));
     }
 }

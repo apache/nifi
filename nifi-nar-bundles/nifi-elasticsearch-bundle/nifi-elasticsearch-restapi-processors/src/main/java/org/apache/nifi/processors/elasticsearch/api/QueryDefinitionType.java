@@ -19,8 +19,6 @@ package org.apache.nifi.processors.elasticsearch.api;
 
 import org.apache.nifi.components.DescribedValue;
 
-import java.util.Arrays;
-
 public enum QueryDefinitionType implements DescribedValue {
     FULL_QUERY("full", "Provide the full Query."),
     BUILD_QUERY("build", "Build the Query from separate JSON objects.");
@@ -46,10 +44,5 @@ public enum QueryDefinitionType implements DescribedValue {
     @Override
     public String getDescription() {
         return description;
-    }
-
-    public static QueryDefinitionType fromValue(final String value) {
-        return Arrays.stream(QueryDefinitionType.values()).filter(v -> v.getValue().equals(value)).findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(String.format("Unknown value %s", value)));
     }
 }

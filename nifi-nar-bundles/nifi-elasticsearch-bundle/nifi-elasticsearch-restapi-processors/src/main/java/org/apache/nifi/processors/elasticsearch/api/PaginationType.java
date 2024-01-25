@@ -19,8 +19,6 @@ package org.apache.nifi.processors.elasticsearch.api;
 
 import org.apache.nifi.components.DescribedValue;
 
-import java.util.Arrays;
-
 public enum PaginationType implements DescribedValue {
     SCROLL("pagination-scroll", "Use Elasticsearch \"_scroll\" API to page results. Does not accept additional query parameters."),
     SEARCH_AFTER("pagination-search_after", "Use Elasticsearch \"search_after\" _search API to page sorted results."),
@@ -47,10 +45,5 @@ public enum PaginationType implements DescribedValue {
     @Override
     public String getDescription() {
         return description;
-    }
-
-    public static PaginationType fromValue(final String value) {
-        return Arrays.stream(PaginationType.values()).filter(v -> v.getValue().equals(value)).findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(String.format("Unknown value %s", value)));
     }
 }

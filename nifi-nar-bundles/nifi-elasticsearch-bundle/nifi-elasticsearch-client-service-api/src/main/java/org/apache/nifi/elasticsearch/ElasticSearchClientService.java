@@ -57,7 +57,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .displayName("Authorization Scheme")
             .description("Authorization Scheme used for optional authentication to Elasticsearch.")
             .allowableValues(AuthorizationScheme.class)
-            .defaultValue(AuthorizationScheme.BASIC.getValue())
+            .defaultValue(AuthorizationScheme.BASIC)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -141,7 +141,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .displayName("Suppress Null/Empty Values")
             .description("Specifies how the writer should handle null and empty fields (including objects and arrays)")
             .allowableValues(NEVER_SUPPRESS, ALWAYS_SUPPRESS)
-            .defaultValue(ALWAYS_SUPPRESS.getValue())
+            .defaultValue(ALWAYS_SUPPRESS)
             .required(true)
             .build();
 
@@ -186,7 +186,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .displayName("Node Selector")
             .description("Selects Elasticsearch nodes that can receive requests. Used to keep requests away from dedicated Elasticsearch master nodes")
             .allowableValues(NODE_SELECTOR_ANY, NODE_SELECTOR_SKIP_DEDICATED_MASTERS)
-            .defaultValue(NODE_SELECTOR_ANY.getValue())
+            .defaultValue(NODE_SELECTOR_ANY)
             .required(true)
             .build();
 

@@ -150,14 +150,14 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
         if ("asc".equals(sortOrder)) {
             if (hasHits) {
                 final List<Map<String, Object>> expectedHits = pageCount == 0 ? FIRST_PAGE_OF_HITS : SECOND_PAGE_OF_HITS;
-                assertEquals(getHitValue(expectedHits.get(expectedHits.size() - 1)), paginatedJsonQueryParameters.getTrackingRangeValue());
+                assertEquals(getHitValue(expectedHits.getLast()), paginatedJsonQueryParameters.getTrackingRangeValue());
             } else {
                 assertEquals(defaultUnset, paginatedJsonQueryParameters.getTrackingRangeValue());
             }
         } else {
             if (pageCount == 0) {
                 if (hasHits) {
-                    assertEquals(getHitValue(FIRST_PAGE_OF_HITS.get(0)), paginatedJsonQueryParameters.getTrackingRangeValue());
+                    assertEquals(getHitValue(FIRST_PAGE_OF_HITS.getFirst()), paginatedJsonQueryParameters.getTrackingRangeValue());
                 } else {
                     assertEquals(defaultUnset, paginatedJsonQueryParameters.getTrackingRangeValue());
                 }

@@ -26,7 +26,7 @@ class ConsumeElasticsearch_IT extends AbstractJsonQueryElasticsearch_IT {
     private static final String RANGE_SORT_ORDER = "asc";
 
     ElasticsearchRestProcessor getProcessor() {
-        return new TestConsumeElasticsearch();
+        return new ConsumeElasticsearch();
     }
 
     @BeforeEach

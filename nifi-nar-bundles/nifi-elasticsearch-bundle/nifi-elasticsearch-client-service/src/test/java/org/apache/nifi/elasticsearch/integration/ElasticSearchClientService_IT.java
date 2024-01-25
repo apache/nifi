@@ -125,7 +125,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         final Pair<String, String> apiKey = createApiKeyForIndex();
 
         runner.disableControllerService(service);
-        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY.getValue());
+        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY);
         runner.removeProperty(service, ElasticSearchClientService.USERNAME);
         runner.removeProperty(service, ElasticSearchClientService.PASSWORD);
         runner.setProperty(service, ElasticSearchClientService.API_KEY_ID, apiKey.getKey());
@@ -216,7 +216,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     @Test
     void testVerifyFailedApiKeyAuth() {
         runner.disableControllerService(service);
-        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY.getValue());
+        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY);
         runner.removeProperty(service, ElasticSearchClientService.USERNAME);
         runner.removeProperty(service, ElasticSearchClientService.PASSWORD);
         runner.setProperty(service, ElasticSearchClientService.API_KEY_ID, "invalid");
@@ -691,7 +691,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     @Test
     void testNodeSelector() {
         runner.disableControllerService(service);
-        runner.setProperty(service, ElasticSearchClientService.NODE_SELECTOR, ElasticSearchClientService.NODE_SELECTOR_SKIP_DEDICATED_MASTERS.getValue());
+        runner.setProperty(service, ElasticSearchClientService.NODE_SELECTOR, ElasticSearchClientService.NODE_SELECTOR_SKIP_DEDICATED_MASTERS);
         runner.enableControllerService(service);
         runner.assertValid(service);
 

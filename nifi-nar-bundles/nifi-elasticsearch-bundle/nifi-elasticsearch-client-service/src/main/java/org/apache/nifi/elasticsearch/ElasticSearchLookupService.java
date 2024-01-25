@@ -48,6 +48,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @CapabilityDescription("Lookup a record from Elasticsearch Server associated with the specified document ID. " +
         "The coordinates that are passed to the lookup must contain the key 'id'.")
@@ -91,11 +92,10 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
     private final List<PropertyDescriptor> descriptors;
 
     public ElasticSearchLookupService() {
-        final List<PropertyDescriptor> desc = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        desc.add(CLIENT_SERVICE);
-        desc.add(INDEX);
-        desc.add(TYPE);
-        descriptors = Collections.unmodifiableList(desc);
+        descriptors = Stream.concat(
+                super.getSupportedPropertyDescriptors().stream(),
+                Stream.of(CLIENT_SERVICE, INDEX, TYPE)
+        ).toList();
     }
 
     @Override
@@ -108,7 +108,7 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
 
         final List<PropertyDescriptor> dynamicDescriptors = context.getProperties().keySet().stream()
             .filter(PropertyDescriptor::isDynamic)
-            .collect(Collectors.toList());
+            .toList();
 
         final Map<String, RecordPath> tempRecordPathMappings = new HashMap<>();
         for (final PropertyDescriptor desc : dynamicDescriptors) {

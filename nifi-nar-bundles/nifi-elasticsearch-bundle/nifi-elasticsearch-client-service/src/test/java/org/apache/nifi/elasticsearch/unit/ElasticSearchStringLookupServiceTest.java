@@ -38,7 +38,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class ElasticSearchStringLookupServiceTest {
     private ElasticSearchClientService mockClientService;
     private ElasticSearchStringLookupService lookupService;
-    private TestRunner runner;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -46,7 +45,7 @@ public class ElasticSearchStringLookupServiceTest {
     public void setup() throws Exception {
         mockClientService = new TestElasticSearchClientService();
         lookupService = new ElasticSearchStringLookupService();
-        runner = TestRunners.newTestRunner(TestControllerServiceProcessor.class);
+        TestRunner runner = TestRunners.newTestRunner(TestControllerServiceProcessor.class);
         runner.addControllerService("clientService", mockClientService);
         runner.addControllerService("lookupService", lookupService);
         runner.enableControllerService(mockClientService);

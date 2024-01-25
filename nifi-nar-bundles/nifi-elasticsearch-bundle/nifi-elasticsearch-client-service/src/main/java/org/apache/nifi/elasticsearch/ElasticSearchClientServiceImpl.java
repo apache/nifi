@@ -104,7 +104,10 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
     private ObjectMapper mapper;
 
-    private static final List<PropertyDescriptor> properties;
+    private static final List<PropertyDescriptor> properties = List.of(HTTP_HOSTS, PATH_PREFIX, AUTHORIZATION_SCHEME, USERNAME, PASSWORD, API_KEY_ID, API_KEY,
+            PROP_SSL_CONTEXT_SERVICE, PROXY_CONFIGURATION_SERVICE, CONNECT_TIMEOUT, SOCKET_TIMEOUT, CHARSET,
+            SUPPRESS_NULLS, COMPRESSION, SEND_META_HEADER, STRICT_DEPRECATION, NODE_SELECTOR, SNIFF_CLUSTER_NODES,
+            SNIFFER_INTERVAL, SNIFFER_REQUEST_TIMEOUT, SNIFF_ON_FAILURE, SNIFFER_FAILURE_DELAY);
 
     private RestClient client;
 
@@ -113,13 +116,6 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     private String url;
     private Charset responseCharset;
     private ObjectWriter prettyPrintWriter;
-
-    static {
-        properties = List.of(HTTP_HOSTS, PATH_PREFIX, AUTHORIZATION_SCHEME, USERNAME, PASSWORD, API_KEY_ID, API_KEY,
-                PROP_SSL_CONTEXT_SERVICE, PROXY_CONFIGURATION_SERVICE, CONNECT_TIMEOUT, SOCKET_TIMEOUT, CHARSET,
-                SUPPRESS_NULLS, COMPRESSION, SEND_META_HEADER, STRICT_DEPRECATION, NODE_SELECTOR, SNIFF_CLUSTER_NODES,
-                SNIFFER_INTERVAL, SNIFFER_REQUEST_TIMEOUT, SNIFF_ON_FAILURE, SNIFFER_FAILURE_DELAY);
-    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -141,7 +137,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(1);
 
-        final AuthorizationScheme authorizationScheme = AuthorizationScheme.valueOf(validationContext.getProperty(AUTHORIZATION_SCHEME).getValue());
+        final AuthorizationScheme authorizationScheme = validationContext.getProperty(AUTHORIZATION_SCHEME).asAllowableValue(AuthorizationScheme.class);
 
         final boolean usernameSet = validationContext.getProperty(USERNAME).isSet();
         final boolean passwordSet = validationContext.getProperty(PASSWORD).isSet();
@@ -394,8 +390,8 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     private HttpHost[] getHttpHosts(final ConfigurationContext context) throws MalformedURLException {
         final String hosts = context.getProperty(HTTP_HOSTS).evaluateAttributeExpressions().getValue();
 
-        final List<String> hostsSplit = Arrays.stream(hosts.split(",\\s*")).map(String::trim).collect(Collectors.toList());
-        this.url = hostsSplit.get(0);
+        final List<String> hostsSplit = Arrays.stream(hosts.split(",\\s*")).map(String::trim).toList();
+        this.url = hostsSplit.getFirst();
         final List<HttpHost> hh = new ArrayList<>(hostsSplit.size());
         for (final String host : hostsSplit) {
             final URL u = URI.create(host).toURL();
@@ -406,7 +402,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     }
 
     private RestClientBuilder addAuthAndProxy(final ConfigurationContext context, final RestClientBuilder builder) throws InitializationException {
-        final AuthorizationScheme authorizationScheme = AuthorizationScheme.valueOf(context.getProperty(AUTHORIZATION_SCHEME).getValue());
+        final AuthorizationScheme authorizationScheme = context.getProperty(AUTHORIZATION_SCHEME).asAllowableValue(AuthorizationScheme.class);
 
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
         final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
@@ -976,7 +972,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     private String getSearchAfter(final List<Map<String, Object>> hits) throws JsonProcessingException {
         String searchAfter = null;
         if (!hits.isEmpty()) {
-            final Object lastHitSort = hits.get(hits.size() - 1).get("sort");
+            final Object lastHitSort = hits.getLast().get("sort");
             if (lastHitSort != null && !"null".equalsIgnoreCase(lastHitSort.toString())) {
                 searchAfter = mapper.writeValueAsString(lastHitSort);
             }
