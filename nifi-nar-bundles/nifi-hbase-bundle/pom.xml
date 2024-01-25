@@ -19,7 +19,7 @@
     <parent>
         <artifactId>nifi-standard-shared-bom</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.25.0-SNAPSHOT</version>
+        <version>1.25.0</version>
         <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
 
@@ -36,7 +36,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hbase-processors</artifactId>
-                <version>1.25.0-SNAPSHOT</version>
+                <version>1.25.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

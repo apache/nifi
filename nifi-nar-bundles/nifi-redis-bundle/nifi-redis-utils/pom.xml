@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-redis-bundle</artifactId>
-        <version>1.25.0-SNAPSHOT</version>
+        <version>1.25.0</version>
     </parent>
 
     <artifactId>nifi-redis-utils</artifactId>
@@ -33,7 +33,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-redis-service-api</artifactId>
-            <version>1.25.0-SNAPSHOT</version>
+            <version>1.25.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -56,7 +56,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.25.0-SNAPSHOT</version>
+            <version>1.25.0</version>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
