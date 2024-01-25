@@ -22,16 +22,6 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
-import java.io.InputStream;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.fileresource.service.api.FileResourceService;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -42,6 +32,16 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+
+import java.io.InputStream;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static com.google.cloud.storage.Storage.PredefinedAcl.BUCKET_OWNER_READ;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_ATTR;
@@ -74,7 +74,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
@@ -194,8 +193,8 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         String serviceId = "fileresource";
         FileResourceService service = mock(FileResourceService.class);
         InputStream localFileInputStream = mock(InputStream.class);
-        doReturn(serviceId).when(service).getIdentifier();
-        doReturn(new FileResource(localFileInputStream, 10)).when(service).getFileResource(anyMap());
+        when(service.getIdentifier()).thenReturn(serviceId);
+        when(service.getFileResource(anyMap())).thenReturn(new FileResource(localFileInputStream, 10));
 
         runner.addControllerService(serviceId, service);
         runner.enableControllerService(service);
