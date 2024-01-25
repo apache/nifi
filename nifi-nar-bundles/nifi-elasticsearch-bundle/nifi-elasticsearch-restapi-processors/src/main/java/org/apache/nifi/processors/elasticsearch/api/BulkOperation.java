@@ -24,9 +24,9 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import java.util.List;
 
 public class BulkOperation {
-    private List<IndexOperationRequest> operationList;
-    private List<Record> originalRecords;
-    private RecordSchema schema;
+    private final List<IndexOperationRequest> operationList;
+    private final List<Record> originalRecords;
+    private final RecordSchema schema;
 
     public BulkOperation(List<IndexOperationRequest> operationList, List<Record> originalRecords, RecordSchema schema) {
         this.operationList = operationList;

@@ -186,7 +186,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
             assertEquals(1L, opCount);
             assertEquals(1L, headerFieldsCount);
 
-            final Map<String, String> headerFields = items.get(0).getHeaderFields();
+            final Map<String, String> headerFields = items.getFirst().getHeaderFields();
             assertEquals(2, headerFields.size());
             assertEquals("1", headerFields.get("routing"));
             assertEquals("external", headerFields.get("version"));
@@ -217,7 +217,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
             assertEquals(1L, nullIdCount);
             assertEquals(1L, headerFieldsCount);
 
-            final Map<String, String> headerFields = items.get(0).getHeaderFields();
+            final Map<String, String> headerFields = items.getFirst().getHeaderFields();
             assertEquals(2, headerFields.size());
             assertEquals("1", headerFields.get("routing"));
             assertEquals("external", headerFields.get("version"));
@@ -335,7 +335,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 3);
         runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
 
-        MockFlowFile failedDoc = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS).get(0);
+        MockFlowFile failedDoc = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS).getFirst();
         assertTrue(failedDoc.getContent().contains("20abcd"));
         failedDoc.assertAttributeExists("elasticsearch.bulk.error");
         failedDoc.assertAttributeNotExists("elasticsearch.put.error");
@@ -376,7 +376,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 4);
         runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 1);
 
-        MockFlowFile failedDoc = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS).get(0);
+        MockFlowFile failedDoc = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS).getFirst();
         assertTrue(failedDoc.getContent().contains("not_found"));
         failedDoc.assertAttributeExists("elasticsearch.bulk.error");
         failedDoc.assertAttributeNotExists("elasticsearch.put.error");
@@ -400,7 +400,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         failedDoc.assertAttributeNotExists("elasticsearch.put.error");
         assertTrue(failedDoc.getAttribute("elasticsearch.bulk.error").contains("some_other_exception"));
 
-        final String errorResponses = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_ERROR_RESPONSES).get(0).getContent();
+        final String errorResponses = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_ERROR_RESPONSES).getFirst().getContent();
         assertTrue(errorResponses.contains("not_found"));
         assertTrue(errorResponses.contains("For input string: 20abc"));
         assertTrue(errorResponses.contains("For input string: 213,456.9"));
@@ -441,7 +441,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 0);
         runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
 
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILURE).get(0);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILURE).getFirst();
         assertTrue(flowFile.getAttribute("elasticsearch.put.error").contains("not"));
     }
 }

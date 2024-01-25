@@ -483,7 +483,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
         runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
-        final MockFlowFile failure = runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILURE).get(0);
+        final MockFlowFile failure = runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILURE).getFirst();
         failure.assertAttributeEquals("elasticsearch.put.error", String.format("Field referenced by %s must be Map-type compatible or a String parsable into a JSON Object", "/dynamic_templates"));
     }
 
@@ -666,8 +666,8 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 1);
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 1);
         runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
-        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).get(0).assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, String.valueOf(errorCount));
-        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS).get(0).assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT,
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).getFirst().assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, String.valueOf(errorCount));
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS).getFirst().assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT,
                 String.valueOf(successCount));
     }
 
@@ -691,7 +691,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
                 .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "1");
         assertTrue(runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).get(1)
                 .getAttribute("elasticsearch.bulk.error").contains("some_other_exception"));
-        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS).get(0)
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS).getFirst()
                 .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, String.valueOf(successCount));
     }
 
@@ -707,9 +707,9 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 1);
         runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
 
-        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).get(0)
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).getFirst()
                 .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, String.valueOf(errorCount));
-        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS).get(0)
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS).getFirst()
                 .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, String.valueOf(successCount));
     }
 
@@ -737,7 +737,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
                 .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "1");
         assertTrue(runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS).get(2)
                 .getAttribute("elasticsearch.bulk.error").contains("not_found"));
-        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS).get(0)
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS).getFirst()
                 .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, String.valueOf(successCount));
     }
 
@@ -752,7 +752,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
         runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 1);
-        final String errorResponses = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_ERROR_RESPONSES).get(0).getContent();
+        final String errorResponses = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_ERROR_RESPONSES).getFirst().getContent();
         assertTrue(errorResponses.contains("not_found"));
         assertTrue(errorResponses.contains("For input string: 20abc"));
         assertTrue(errorResponses.contains("For input string: 213,456.9"));
@@ -856,7 +856,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
             msg.computeIfPresent("time", (key, val) -> Time.valueOf(LOCAL_TIME).getTime());
             msg.computeIfPresent("choice_ts", (key, val) -> Timestamp.valueOf(LOCAL_DATE_TIME).toInstant().toEpochMilli());
         });
-        parsedJson.get(parsedJson.size() - 1).computeIfPresent("choice_ts", (key, val) -> "not-timestamp");
+        parsedJson.getLast().computeIfPresent("choice_ts", (key, val) -> "not-timestamp");
         return JsonUtils.prettyPrint(parsedJson);
     }
 }

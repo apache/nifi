@@ -111,7 +111,7 @@ public class GetElasticsearchTest {
     public void testFetch() {
         runProcessor(runner);
         testCounts(runner, 1, 0, 0);
-        final MockFlowFile doc = runner.getFlowFilesForRelationship(GetElasticsearch.REL_DOC).get(0);
+        final MockFlowFile doc = runner.getFlowFilesForRelationship(GetElasticsearch.REL_DOC).getFirst();
         assertOutputContent(doc.getContent());
         assertEquals(1L, runner.getProvenanceEvents().stream()
                 .filter(event -> ProvenanceEventType.RECEIVE.equals(event.getEventType()) && event.getAttribute("uuid").equals(doc.getAttribute("uuid"))).count());
@@ -123,7 +123,7 @@ public class GetElasticsearchTest {
         runner.setIncomingConnection(true);
         runProcessor(runner);
         testCounts(runner, 1, 0, 0);
-        MockFlowFile doc = runner.getFlowFilesForRelationship(GetElasticsearch.REL_DOC).get(0);
+        MockFlowFile doc = runner.getFlowFilesForRelationship(GetElasticsearch.REL_DOC).getFirst();
         assertOutputContent(doc.getContent());
         assertCommonAttributes(doc);
         assertOutputAttribute(doc, false);
@@ -132,7 +132,7 @@ public class GetElasticsearchTest {
         runner.setIncomingConnection(false);
         runner.run();
         testCounts(runner, 1, 0, 0);
-        doc = runner.getFlowFilesForRelationship(GetElasticsearch.REL_DOC).get(0);
+        doc = runner.getFlowFilesForRelationship(GetElasticsearch.REL_DOC).getFirst();
         assertOutputContent(doc.getContent());
         assertCommonAttributes(doc);
         assertOutputAttribute(doc, false);
@@ -144,7 +144,7 @@ public class GetElasticsearchTest {
         runner.setIncomingConnection(true);
         runProcessor(runner);
         testCounts(runner, 1, 0, 0);
-        MockFlowFile doc = runner.getFlowFilesForRelationship(GetElasticsearch.REL_DOC).get(0);
+        MockFlowFile doc = runner.getFlowFilesForRelationship(GetElasticsearch.REL_DOC).getFirst();
         assertEquals("test", doc.getContent());
         assertCommonAttributes(doc);
         assertOutputAttribute(doc, true);
@@ -156,7 +156,7 @@ public class GetElasticsearchTest {
         runner.setIncomingConnection(false);
         runner.run();
         testCounts(runner, 1, 0, 0);
-        doc = runner.getFlowFilesForRelationship(GetElasticsearch.REL_DOC).get(0);
+        doc = runner.getFlowFilesForRelationship(GetElasticsearch.REL_DOC).getFirst();
         assertEquals("", doc.getContent());
         assertCommonAttributes(doc, false);
         assertOutputAttribute(doc, true, "my_attr");
@@ -188,7 +188,7 @@ public class GetElasticsearchTest {
         runner.setProperty(GetElasticsearch.ID, "${noAttribute}");
         runProcessor(runner);
         testCounts(runner, 0, 1, 0);
-        final MockFlowFile failed = runner.getFlowFilesForRelationship(GetElasticsearch.REL_FAILURE).get(0);
+        final MockFlowFile failed = runner.getFlowFilesForRelationship(GetElasticsearch.REL_FAILURE).getFirst();
         failed.assertAttributeEquals("elasticsearch.get.error", GetElasticsearch.ID.getDisplayName() + " is blank (after evaluating attribute expressions), cannot GET document");
         reset(runner);
     }

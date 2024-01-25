@@ -59,9 +59,9 @@ public class PaginatedJsonQueryElasticsearchTest extends AbstractPaginatedJsonQu
             case PER_QUERY:
                 final int expectedHits = 20;
                 AbstractJsonQueryElasticsearchTest.testCounts(runner, 1, 1, 0, 0);
-                runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", Integer.toString(expectedHits));
-                runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("page.number", "2");
-                assertEquals(expectedHits, runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).getContent().split("\n").length);
+                runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", Integer.toString(expectedHits));
+                runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("page.number", "2");
+                assertEquals(expectedHits, runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().getContent().split("\n").length);
                 break;
             case PER_HIT:
                 AbstractJsonQueryElasticsearchTest.testCounts(runner, 1, 20, 0, 0);

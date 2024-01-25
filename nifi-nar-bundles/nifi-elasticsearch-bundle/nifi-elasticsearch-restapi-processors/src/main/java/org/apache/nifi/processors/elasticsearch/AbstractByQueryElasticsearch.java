@@ -32,10 +32,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,37 +40,26 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AbstractByQueryElasticsearch extends AbstractProcessor implements ElasticsearchRestProcessor {
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
-        .description("If the \"by query\" operation fails, and a flowfile was read, it will be sent to this relationship.")
-        .build();
+            .description("If the \"by query\" operation fails, and a flowfile was read, it will be sent to this relationship.")
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
-        .description("If the \"by query\" operation succeeds, and a flowfile was read, it will be sent to this relationship.")
-        .build();
+            .description("If the \"by query\" operation succeeds, and a flowfile was read, it will be sent to this relationship.")
+            .build();
 
-    private static final Set<Relationship> relationships;
-    static final List<PropertyDescriptor> byQueryPropertyDescriptors;
+    private static final Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE, REL_RETRY);
+    static final List<PropertyDescriptor> byQueryPropertyDescriptors = List.of(
+            QUERY_DEFINITION_STYLE,
+            QUERY,
+            QUERY_CLAUSE,
+            SCRIPT,
+            QUERY_ATTRIBUTE,
+            INDEX,
+            TYPE,
+            CLIENT_SERVICE
+    );
 
     private final AtomicReference<ElasticSearchClientService> clientService = new AtomicReference<>(null);
-
-    static {
-        final Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_SUCCESS);
-        rels.add(REL_FAILURE);
-        rels.add(REL_RETRY);
-        relationships = Collections.unmodifiableSet(rels);
-
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(QUERY_DEFINITION_STYLE);
-        descriptors.add(QUERY);
-        descriptors.add(QUERY_CLAUSE);
-        descriptors.add(SCRIPT);
-        descriptors.add(QUERY_ATTRIBUTE);
-        descriptors.add(INDEX);
-        descriptors.add(TYPE);
-        descriptors.add(CLIENT_SERVICE);
-
-        byQueryPropertyDescriptors = Collections.unmodifiableList(descriptors);
-    }
 
     abstract String getTookAttribute();
 
@@ -133,7 +119,7 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
         try {
             final String query = getQuery(input, context, session);
             final String index = context.getProperty(INDEX).evaluateAttributeExpressions(input).getValue();
-            final String type  = context.getProperty(TYPE).isSet()
+            final String type = context.getProperty(TYPE).isSet()
                     ? context.getProperty(TYPE).evaluateAttributeExpressions(input).getValue()
                     : null;
             final String queryAttr = context.getProperty(QUERY_ATTRIBUTE).isSet()

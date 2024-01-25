@@ -52,7 +52,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @WritesAttributes({
         @WritesAttribute(attribute = "mime.type", description = "application/json"),
@@ -63,7 +63,7 @@ import java.util.stream.Collectors;
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @TriggerSerially
 @PrimaryNodeOnly
-@DefaultSchedule(period="1 min")
+@DefaultSchedule(period = "1 min")
 @Tags({"elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "query", "scroll", "page", "search", "json"})
 @CapabilityDescription("A processor that repeatedly runs a paginated query against a field using a Range query to consume new Documents from an Elasticsearch index/query. " +
         "The processor will retrieve multiple pages of results until either no more results are available or the Pagination Keep Alive expiration is reached, " +
@@ -174,29 +174,19 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
             .required(false)
             .build();
 
-    private static final List<PropertyDescriptor> propertyDescriptors;
-
-    static {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(RANGE_FIELD);
-        descriptors.add(RANGE_FIELD_SORT_ORDER);
-        descriptors.add(RANGE_INITIAL_VALUE);
-        descriptors.add(RANGE_DATE_FORMAT);
-        descriptors.add(RANGE_TIME_ZONE);
-        descriptors.add(ADDITIONAL_FILTERS);
-        descriptors.addAll(scrollPropertyDescriptors.stream()
-                .filter(pd -> !QUERY.equals(pd) && !QUERY_CLAUSE.equals(pd) && !QUERY_DEFINITION_STYLE.equals(pd))
-                .collect(Collectors.toList()));
-
-        // replace Query Builder properties with updated version without the property dependencies that are invalid for ConsumeElasticsearch
-        descriptors.set(descriptors.indexOf(ElasticsearchRestProcessor.SIZE), ConsumeElasticsearch.SIZE);
-        descriptors.set(descriptors.indexOf(ElasticsearchRestProcessor.AGGREGATIONS), ConsumeElasticsearch.AGGREGATIONS);
-        descriptors.set(descriptors.indexOf(ElasticsearchRestProcessor.SORT), ConsumeElasticsearch.SORT);
-        descriptors.set(descriptors.indexOf(ElasticsearchRestProcessor.FIELDS), ConsumeElasticsearch.FIELDS);
-        descriptors.set(descriptors.indexOf(ElasticsearchRestProcessor.SCRIPT_FIELDS), ConsumeElasticsearch.SCRIPT_FIELDS);
-
-        propertyDescriptors = Collections.unmodifiableList(descriptors);
-    }
+    private static final List<PropertyDescriptor> propertyDescriptors = Stream.concat(
+            Stream.of(RANGE_FIELD, RANGE_FIELD_SORT_ORDER, RANGE_INITIAL_VALUE, RANGE_DATE_FORMAT, RANGE_TIME_ZONE, ADDITIONAL_FILTERS),
+            scrollPropertyDescriptors.stream()
+                    .filter(pd -> !QUERY.equals(pd) && !QUERY_CLAUSE.equals(pd) && !QUERY_DEFINITION_STYLE.equals(pd))
+                    .map(property -> {
+                        if (property == ElasticsearchRestProcessor.SIZE) return SIZE;
+                        if (property == ElasticsearchRestProcessor.AGGREGATIONS) return AGGREGATIONS;
+                        if (property == ElasticsearchRestProcessor.SORT) return SORT;
+                        if (property == ElasticsearchRestProcessor.FIELDS) return FIELDS;
+                        if (property == ElasticsearchRestProcessor.SCRIPT_FIELDS) return SCRIPT_FIELDS;
+                        return property;
+                    })
+    ).toList();
 
     protected String trackingRangeField;
     protected String trackingSortOrder;
@@ -285,9 +275,11 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
         if (context.getProperty(ADDITIONAL_FILTERS).isSet()) {
             final JsonNode additionalFilters = mapper.readTree(context.getProperty(ADDITIONAL_FILTERS).getValue());
             if (additionalFilters.isArray()) {
-                filters.addAll(mapper.convertValue(additionalFilters, new TypeReference<List<Map<String, Object>>>() {}));
+                filters.addAll(mapper.convertValue(additionalFilters, new TypeReference<List<Map<String, Object>>>() {
+                }));
             } else {
-                filters.add(mapper.convertValue(additionalFilters, new TypeReference<Map<String, Object>>() {}));
+                filters.add(mapper.convertValue(additionalFilters, new TypeReference<Map<String, Object>>() {
+                }));
             }
         }
 
@@ -311,7 +303,7 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
         }
 
         if (sort.stream().noneMatch(s -> s.containsKey(getTrackingRangeField(context)))) {
-            sort.add(0, Collections.singletonMap(getTrackingRangeField(context), getTrackingSortOrder(context)));
+            sort.addFirst(Collections.singletonMap(getTrackingRangeField(context), getTrackingSortOrder(context)));
         }
     }
 
@@ -335,8 +327,7 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
                 return;
             }
 
-            @SuppressWarnings("unchecked")
-            final String nextValue = String.valueOf(((Map<String, Object>) response.getHits().get(trackingHitIndex).get("_source"))
+            @SuppressWarnings("unchecked") final String nextValue = String.valueOf(((Map<String, Object>) response.getHits().get(trackingHitIndex).get("_source"))
                     .get(getTrackingRangeField(null)));
             if (StringUtils.isNotBlank(nextValue)) {
                 paginatedJsonQueryParameters.setTrackingRangeValue(nextValue);

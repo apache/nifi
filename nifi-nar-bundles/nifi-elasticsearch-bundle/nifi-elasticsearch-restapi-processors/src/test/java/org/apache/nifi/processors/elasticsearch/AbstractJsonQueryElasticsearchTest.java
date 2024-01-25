@@ -176,7 +176,7 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
     @Test
     void testInvalidQueryBuilderProperties() {
         final TestRunner runner = createRunner(false);
-        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY.getValue());
+        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY);
         runner.setProperty(ElasticsearchRestProcessor.QUERY_CLAUSE, "not-json");
         runner.setProperty(ElasticsearchRestProcessor.SIZE, "-1");
         runner.setProperty(ElasticsearchRestProcessor.AGGREGATIONS, "not-json-aggs");
@@ -193,10 +193,10 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
         // test hits (no splitting) - full hit format
         final TestRunner runner = createRunner(false);
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllQuery);
-        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_FORMAT, SearchResultsFormat.FULL.getValue());
+        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_FORMAT, SearchResultsFormat.FULL);
         runOnce(runner);
         testCounts(runner, isInput() ? 1 : 0, 1, 0, 0);
-        final MockFlowFile hits = runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0);
+        final MockFlowFile hits = runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst();
         hits.assertAttributeEquals("hit.count", "10");
         assertOutputContent(hits.getContent(), 10, false);
         final List<Map<String, Object>> result = JsonUtils.readListOfMaps(hits.getContent());
@@ -211,8 +211,8 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
         reset(runner);
 
         // test splitting hits - _source only format
-        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_HIT.getValue());
-        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_FORMAT, SearchResultsFormat.SOURCE_ONLY.getValue());
+        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_HIT);
+        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_FORMAT, SearchResultsFormat.SOURCE_ONLY);
         runOnce(runner);
         testCounts(runner, isInput() ? 1 : 0, 10, 0, 0);
 
@@ -235,8 +235,8 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
         reset(runner);
 
         // test splitting hits - metadata only format
-        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_HIT.getValue());
-        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_FORMAT, SearchResultsFormat.METADATA_ONLY.getValue());
+        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_HIT);
+        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_FORMAT, SearchResultsFormat.METADATA_ONLY);
         runOnce(runner);
         testCounts(runner, isInput() ? 1 : 0, 10, 0, 0);
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach(hit -> {
@@ -290,11 +290,11 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
     void testAggregationsFullFormat() {
         final TestRunner runner = createRunner(true);
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllAggregationWithDefaultTermsQuery);
-        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_FORMAT, AggregationResultsFormat.FULL.getValue());
+        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_FORMAT, AggregationResultsFormat.FULL);
         runOnce(runner);
         testCounts(runner, isInput() ? 1 : 0, 1, 0, 1);
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "10");
-        final MockFlowFile aggregations = runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_AGGREGATIONS).get(0);
+        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", "10");
+        final MockFlowFile aggregations = runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_AGGREGATIONS).getFirst();
         aggregations.assertAttributeNotExists("aggregation.number");
         aggregations.assertAttributeNotExists("aggregation.name");
         // count == 1 because aggregations is a single Map rather than a List of Maps, even when there are multiple aggs
@@ -315,11 +315,11 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
         final TestRunner runner = createRunner(true);
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllAggregationWithDefaultTermsQuery);
         runner.setIncomingConnection(false);
-        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_FORMAT, AggregationResultsFormat.BUCKETS_ONLY.getValue());
+        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_FORMAT, AggregationResultsFormat.BUCKETS_ONLY);
         runner.run(1, true, true);
         testCounts(runner, 0, 1, 0, 1);
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "10");
-        final MockFlowFile singleAgg = runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_AGGREGATIONS).get(0);
+        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", "10");
+        final MockFlowFile singleAgg = runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_AGGREGATIONS).getFirst();
         singleAgg.assertAttributeNotExists("aggregation.number");
         singleAgg.assertAttributeNotExists("aggregation.name");
         final Map<String, Object> agg2 = JsonUtils.readMap(singleAgg.getContent());
@@ -339,11 +339,11 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
     void testSplittingAggregationsMetadataOnlyFormat() {
         final TestRunner runner = createRunner(true);
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllAggregationWithDefaultTermsQuery);
-        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT, ResultOutputStrategy.PER_HIT.getValue());
-        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_FORMAT, AggregationResultsFormat.METADATA_ONLY.getValue());
+        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT, ResultOutputStrategy.PER_HIT);
+        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_FORMAT, AggregationResultsFormat.METADATA_ONLY);
         runOnce(runner);
         testCounts(runner, isInput() ? 1 : 0, 1, 0, 2);
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "10");
+        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", "10");
         int a = 0;
         for (final MockFlowFile termAgg : runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_AGGREGATIONS)) {
             termAgg.assertAttributeEquals("aggregation.name", a == 0 ? "term_agg" : "term_agg2");
@@ -366,11 +366,11 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, query);
         runner.setProperty(AbstractJsonQueryElasticsearch.INDEX, "${es.index}");
         runner.setProperty(AbstractJsonQueryElasticsearch.TYPE, "${es.type}");
-        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT, ResultOutputStrategy.PER_HIT.getValue());
-        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_FORMAT, AggregationResultsFormat.FULL.getValue());
+        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT, ResultOutputStrategy.PER_HIT);
+        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_FORMAT, AggregationResultsFormat.FULL);
         runOnce(runner);
         testCounts(runner, isInput() ? 1 : 0, 1, 0, 2);
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "10");
+        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).getFirst().assertAttributeEquals("hit.count", "10");
         int a = 0;
         for (final MockFlowFile termAgg : runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_AGGREGATIONS)) {
             termAgg.assertAttributeEquals("aggregation.name", a == 0 ? "term_agg" : "term_agg2");
@@ -399,7 +399,7 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
 
         final TestRunner runner = createRunner(true);
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY_ATTRIBUTE, queryAttr);
-        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, queryDefinitionType.getValue());
+        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, queryDefinitionType);
         setQuery(runner, query);
 
         runOnce(runner);
@@ -475,7 +475,7 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
             ((ConsumeElasticsearch) runner.getProcessor()).trackingRangeField = RANGE_FIELD_NAME;
             ((ConsumeElasticsearch) runner.getProcessor()).trackingSortOrder = RANGE_SORT_ORDER;
         } else {
-            runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY.getValue());
+            runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY);
         }
 
         if (queryClause != null) {
@@ -555,7 +555,7 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
         final String expected;
         if (runner.getProcessor() instanceof ConsumeElasticsearch) {
             // test Range Field defined but no initial value
-            runner.setProperty(ConsumeElasticsearch.QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY.getValue());
+            runner.setProperty(ConsumeElasticsearch.QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY);
             runner.setProperty(ConsumeElasticsearch.RANGE_FIELD, RANGE_FIELD_NAME);
 
             // should be no "query" (with no initial value) but "sort" added
@@ -570,7 +570,7 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
 
     void setQuery(final TestRunner runner, final String query) throws JsonProcessingException {
         if (runner.getProcessor() instanceof ConsumeElasticsearch) {
-            runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY.getValue());
+            runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY);
         }
 
         if (QueryDefinitionType.BUILD_QUERY.getValue().equals(runner.getProcessContext().getProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE).getValue())) {

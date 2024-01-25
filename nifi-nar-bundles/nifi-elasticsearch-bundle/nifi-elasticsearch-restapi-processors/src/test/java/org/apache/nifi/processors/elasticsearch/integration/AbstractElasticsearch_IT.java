@@ -31,10 +31,9 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 abstract class AbstractElasticsearch_IT<P extends ElasticsearchRestProcessor> extends AbstractElasticsearchITBase {
     static final List<String> TEST_INDICES = Collections.singletonList("messages");
@@ -54,7 +53,7 @@ abstract class AbstractElasticsearch_IT<P extends ElasticsearchRestProcessor> ex
         runner.setProperty(service, ElasticSearchClientService.HTTP_HOSTS, elasticsearchHost);
         runner.setProperty(service, ElasticSearchClientService.CONNECT_TIMEOUT, "10000");
         runner.setProperty(service, ElasticSearchClientService.SOCKET_TIMEOUT, "60000");
-        runner.setProperty(service, ElasticSearchClientService.SUPPRESS_NULLS, ElasticSearchClientService.ALWAYS_SUPPRESS.getValue());
+        runner.setProperty(service, ElasticSearchClientService.SUPPRESS_NULLS, ElasticSearchClientService.ALWAYS_SUPPRESS);
         runner.setProperty(service, ElasticSearchClientService.USERNAME, "elastic");
         runner.setProperty(service, ElasticSearchClientService.PASSWORD, ELASTIC_USER_PASSWORD);
 
@@ -102,12 +101,12 @@ abstract class AbstractElasticsearch_IT<P extends ElasticsearchRestProcessor> ex
     private void assertIndexVerificationResults(final List<ConfigVerificationResult> results, final boolean expectedExists, final String expectedExplanation)
             throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
         // allow for extra verification test results beyond Index Exist
-        assertTrue(results.size() >= 1);
+        assertFalse(results.isEmpty());
         final List<ConfigVerificationResult> indexResults = results.stream()
                 .filter(result -> ElasticsearchRestProcessor.VERIFICATION_STEP_INDEX_EXISTS.equals(result.getVerificationStepName()))
-                .collect(Collectors.toList());
+                .toList();
         assertEquals(1, indexResults.size(), results.toString());
-        final ConfigVerificationResult result = indexResults.get(0);
+        final ConfigVerificationResult result = indexResults.getFirst();
 
         final ConfigVerificationResult.Outcome expectedOutcome;
         if (getProcessor().isIndexNotExistSuccessful()) {

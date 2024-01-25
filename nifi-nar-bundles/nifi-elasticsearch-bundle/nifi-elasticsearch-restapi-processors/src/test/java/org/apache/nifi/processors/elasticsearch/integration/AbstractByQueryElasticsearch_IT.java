@@ -28,7 +28,7 @@ public abstract class AbstractByQueryElasticsearch_IT extends AbstractElasticsea
         Assumptions.assumeFalse(runner.getProcessor() instanceof DeleteByQueryElasticsearch,
                 "DeleteByQueryElasticsearch does not use the SCRIPT property");
 
-        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY.getValue());
+        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY);
         runner.setProperty(ElasticsearchRestProcessor.SCRIPT, "{\"source\": \"ctx._source.num++\", \"lang\": \"painless\"}");
 
         assertQueryVerify(3, 0);

@@ -39,7 +39,7 @@ public abstract class AbstractElasticsearchRestProcessor_IT extends AbstractElas
     void testVerifyFullQueryInvalidJson() {
         Assumptions.assumeFalse(isConsumeElasticsearch(), "ConsumeElasticsearch does not use the FULL_QUERY Definition Type");
 
-        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.FULL_QUERY.getValue());
+        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.FULL_QUERY);
         runner.setProperty(ElasticsearchRestProcessor.QUERY, "{\"query\":");
 
         final List<ConfigVerificationResult> results = ((VerifiableProcessor) runner.getProcessor()).verify(
@@ -67,7 +67,7 @@ public abstract class AbstractElasticsearchRestProcessor_IT extends AbstractElas
     void testVerifyFullQueryValid() {
         Assumptions.assumeFalse(isConsumeElasticsearch(), "ConsumeElasticsearch does not use the FULL_QUERY Definition Type");
 
-        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.FULL_QUERY.getValue());
+        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.FULL_QUERY);
         runner.setProperty(ElasticsearchRestProcessor.QUERY, "{\"query\":{\"term\":{\"msg\":\"one\"}}, \"aggs\":{\"messages\":{\"terms\":{\"field\":\"msg\"}}}}");
 
         assertQueryVerify(1, 1);
@@ -77,7 +77,7 @@ public abstract class AbstractElasticsearchRestProcessor_IT extends AbstractElas
     void testVerifyFullQueryValidEmptyQuery() {
         Assumptions.assumeFalse(isConsumeElasticsearch(), "ConsumeElasticsearch does not use the FULL_QUERY Definition Type");
 
-        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.FULL_QUERY.getValue());
+        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.FULL_QUERY);
         runner.removeProperty(ElasticsearchRestProcessor.QUERY); // should run a default "match_all" query
 
         assertQueryVerify(3, 0);
@@ -87,7 +87,7 @@ public abstract class AbstractElasticsearchRestProcessor_IT extends AbstractElas
     void testVerifyFullQueryInvalid() {
         Assumptions.assumeFalse(isConsumeElasticsearch(), "ConsumeElasticsearch does not use the FULL_QUERY Definition Type");
 
-        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.FULL_QUERY.getValue());
+        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.FULL_QUERY);
         runner.setProperty(ElasticsearchRestProcessor.QUERY, "{\"query\":{\"unknown\":{}}}");
 
         final List<ConfigVerificationResult> results = assertVerify(2);
@@ -106,7 +106,7 @@ public abstract class AbstractElasticsearchRestProcessor_IT extends AbstractElas
     void testVerifyBuildQueryValidQueryClause() {
         Assumptions.assumeFalse(isConsumeElasticsearch(), "ConsumeElasticsearch does not use the QUERY_CLAUSE");
 
-        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY.getValue());
+        runner.setProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY);
         runner.setProperty(ElasticsearchRestProcessor.QUERY_CLAUSE, "{\"term\":{\"msg\":\"one\"}}");
 
         assertQueryVerify(1, 0);
