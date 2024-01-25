@@ -23,12 +23,12 @@
 
         <ng-template #loaded>
             <ng-container *ngIf="access.error; else noErrors">
-                <login-message [title]="access.error.title" [message]="access.error.message"></login-message>
+                <message [title]="access.error.title" [message]="access.error.message"></message>
             </ng-container>
 
             <ng-template #noErrors>
                 <ng-container *ngIf="access.accessStatus.status === 'ACTIVE'; else needsLogin">
-                    <login-message [title]="'Success'" [message]="access.accessStatus.message"></login-message>
+                    <message [title]="'Success'" [message]="access.accessStatus.message"></message>
                 </ng-container>
                 <ng-template #needsLogin>
                     <ng-container *ngIf="access.accessConfig.supportsLogin; else loginNotSupported">
@@ -36,11 +36,9 @@
                     </ng-container>
 
                     <ng-template #loginNotSupported>
-                        <login-message
+                        <message
                             [title]="'Access Denied'"
-                            [message]="
-                                'This NiFi is not configured to support username/password logins.'
-                            "></login-message>
+                            [message]="'This NiFi is not configured to support username/password logins.'"></message>
                     </ng-template>
                 </ng-template>
             </ng-template>

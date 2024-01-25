@@ -15,29 +15,11 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
-import { AuthStorage } from '../../../../service/auth-storage.service';
-import { AuthService } from '../../../../service/auth.service';
+import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { errorFeatureKey, ErrorState } from './index';
 
-@Component({
-    selector: 'login-message',
-    templateUrl: './login-message.component.html',
-    styleUrls: ['./login-message.component.scss']
-})
-export class LoginMessage {
-    @Input() title: string = '';
-    @Input() message: string = '';
+export const selectErrorState = createFeatureSelector<ErrorState>(errorFeatureKey);
 
-    constructor(
-        private authStorage: AuthStorage,
-        private authService: AuthService
-    ) {}
+export const selectFullScreenError = createSelector(selectErrorState, (state: ErrorState) => state.fullScreenError);
 
-    logout(): void {
-        this.authService.logout();
-    }
-
-    hasToken(): boolean {
-        return this.authStorage.hasToken();
-    }
-}
+export const selectBannerErrors = createSelector(selectErrorState, (state: ErrorState) => state.bannerErrors);

@@ -47,6 +47,7 @@ import {
     RelationshipConfiguration,
     RelationshipSettings
 } from './relationship-settings/relationship-settings.component';
+import { Banner } from '../../../../../../../ui/common/banner/banner.component';
 
 @Component({
     selector: 'edit-processor',
@@ -68,7 +69,8 @@ import {
         NifiSpinnerDirective,
         NifiTooltipDirective,
         RunDurationSlider,
-        RelationshipSettings
+        RelationshipSettings,
+        Banner
     ],
     styleUrls: ['./edit-processor.component.scss']
 })

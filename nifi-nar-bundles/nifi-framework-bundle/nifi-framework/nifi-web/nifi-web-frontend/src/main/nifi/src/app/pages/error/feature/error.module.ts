@@ -17,14 +17,13 @@
 
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ManagementControllerServices } from './management-controller-services.component';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
-import { Banner } from '../../../../ui/common/banner/banner.component';
+import { Error } from './error.component';
+import { ErrorRoutingModule } from './error-routing.module';
+import { Message } from '../../../ui/common/message/message.component';
 
 @NgModule({
-    declarations: [ManagementControllerServices],
-    exports: [ManagementControllerServices],
-    imports: [CommonModule, NgxSkeletonLoaderModule, ControllerServiceTable, Banner]
+    declarations: [Error],
+    exports: [Error],
+    imports: [CommonModule, ErrorRoutingModule, Message]
 })
-export class ManagementControllerServicesModule {}
+export class ErrorModule {}

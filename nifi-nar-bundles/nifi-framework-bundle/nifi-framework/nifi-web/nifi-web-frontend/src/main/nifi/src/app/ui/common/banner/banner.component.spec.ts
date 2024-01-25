@@ -15,8 +15,27 @@
  * limitations under the License.
  */
 
-div {
-    &.error {
-        background-color: #ffcdd2;
-    }
-}
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { Banner } from './banner.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../state/error/error.reducer';
+
+describe('Banner', () => {
+    let component: Banner;
+    let fixture: ComponentFixture<Banner>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            imports: [Banner],
+            providers: [provideMockStore({ initialState })]
+        });
+        fixture = TestBed.createComponent(Banner);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

@@ -15,16 +15,14 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ManagementControllerServices } from './management-controller-services.component';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
-import { Banner } from '../../../../ui/common/banner/banner.component';
+export const errorFeatureKey = 'error';
 
-@NgModule({
-    declarations: [ManagementControllerServices],
-    exports: [ManagementControllerServices],
-    imports: [CommonModule, NgxSkeletonLoaderModule, ControllerServiceTable, Banner]
-})
-export class ManagementControllerServicesModule {}
+export interface ErrorDetail {
+    title: string;
+    message: string;
+}
+
+export interface ErrorState {
+    bannerErrors: string[] | null;
+    fullScreenError: ErrorDetail | null;
+}

@@ -15,16 +15,13 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ManagementControllerServices } from './management-controller-services.component';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
-import { Banner } from '../../../../ui/common/banner/banner.component';
+@use '@angular/material' as mat;
 
-@NgModule({
-    declarations: [ManagementControllerServices],
-    exports: [ManagementControllerServices],
-    imports: [CommonModule, NgxSkeletonLoaderModule, ControllerServiceTable, Banner]
-})
-export class ManagementControllerServicesModule {}
+.banner-container {
+    @include mat.button-density(-1);
+
+    ul {
+        list-style-type: disc;
+        list-style-position: inside;
+    }
+}

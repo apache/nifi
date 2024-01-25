@@ -17,28 +17,16 @@
 
 import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { CanvasState } from '../../../state';
-import { selectApiError } from '../../../state/flow/flow.selectors';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NgClass, NgIf } from '@angular/common';
+import { selectFullScreenError } from '../../../state/error/error.selectors';
+import { NiFiState } from '../../../state';
 
 @Component({
-    selector: 'banner',
-    standalone: true,
-    imports: [NgClass, NgIf],
-    templateUrl: './banner.component.html',
-    styleUrls: ['./banner.component.scss']
+    selector: 'error',
+    templateUrl: './error.component.html',
+    styleUrls: ['./error.component.scss']
 })
-export class Banner {
-    message: string | null = '';
-    severity: string = 'alert';
+export class Error {
+    errorDetail$ = this.store.select(selectFullScreenError);
 
-    constructor(private store: Store<CanvasState>) {
-        this.store
-            .select(selectApiError)
-            .pipe(takeUntilDestroyed())
-            .subscribe((message) => {
-                this.message = message;
-            });
-    }
+    constructor(private store: Store<NiFiState>) {}
 }

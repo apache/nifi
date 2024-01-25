@@ -15,16 +15,33 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ManagementControllerServices } from './management-controller-services.component';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
-import { Banner } from '../../../../ui/common/banner/banner.component';
+import { Component, Input } from '@angular/core';
+import { AuthStorage } from '../../../service/auth-storage.service';
+import { AuthService } from '../../../service/auth.service';
+import { RouterLink } from '@angular/router';
+import { NgIf } from '@angular/common';
 
-@NgModule({
-    declarations: [ManagementControllerServices],
-    exports: [ManagementControllerServices],
-    imports: [CommonModule, NgxSkeletonLoaderModule, ControllerServiceTable, Banner]
+@Component({
+    selector: 'message',
+    standalone: true,
+    templateUrl: './message.component.html',
+    imports: [RouterLink, NgIf],
+    styleUrls: ['./message.component.scss']
 })
-export class ManagementControllerServicesModule {}
+export class Message {
+    @Input() title: string = '';
+    @Input() message: string = '';
+
+    constructor(
+        private authStorage: AuthStorage,
+        private authService: AuthService
+    ) {}
+
+    logout(): void {
+        this.authService.logout();
+    }
+
+    hasToken(): boolean {
+        return this.authStorage.hasToken();
+    }
+}

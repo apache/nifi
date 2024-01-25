@@ -15,16 +15,27 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ManagementControllerServices } from './management-controller-services.component';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
-import { Banner } from '../../../../ui/common/banner/banner.component';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-@NgModule({
-    declarations: [ManagementControllerServices],
-    exports: [ManagementControllerServices],
-    imports: [CommonModule, NgxSkeletonLoaderModule, ControllerServiceTable, Banner]
-})
-export class ManagementControllerServicesModule {}
+import { Message } from './message.component';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { RouterModule } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
+
+describe('Message', () => {
+    let component: Message;
+    let fixture: ComponentFixture<Message>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            imports: [Message, HttpClientTestingModule, RouterModule, RouterTestingModule]
+        });
+        fixture = TestBed.createComponent(Message);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

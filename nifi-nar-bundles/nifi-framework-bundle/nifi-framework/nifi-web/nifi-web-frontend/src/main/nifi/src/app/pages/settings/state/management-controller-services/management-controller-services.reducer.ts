@@ -27,16 +27,16 @@ import {
     inlineCreateControllerServiceSuccess,
     loadManagementControllerServices,
     loadManagementControllerServicesSuccess,
-    managementControllerServicesApiError,
+    managementControllerServicesBannerApiError,
     resetManagementControllerServicesState
 } from './management-controller-services.actions';
 import { produce } from 'immer';
+import { addBannerError } from '../../../../state/error/error.actions';
 
 export const initialState: ManagementControllerServicesState = {
     controllerServices: [],
     saving: false,
     loadedTimestamp: '',
-    error: null,
     status: 'pending'
 };
 
@@ -53,14 +53,11 @@ export const managementControllerServicesReducer = createReducer(
         ...state,
         controllerServices: response.controllerServices,
         loadedTimestamp: response.loadedTimestamp,
-        error: null,
         status: 'success' as const
     })),
-    on(managementControllerServicesApiError, (state, { error }) => ({
+    on(managementControllerServicesBannerApiError, (state, { error }) => ({
         ...state,
-        saving: false,
-        error,
-        status: 'error' as const
+        saving: false
     })),
     on(createControllerService, configureControllerService, deleteControllerService, (state, { request }) => ({
         ...state,

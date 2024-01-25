@@ -15,27 +15,14 @@
  * limitations under the License.
  */
 
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { Error } from './error.component';
 
-import { Banner } from './banner.component';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../state/flow/flow.reducer';
+const routes: Routes = [{ path: '', component: Error }];
 
-describe('Banner', () => {
-    let component: Banner;
-    let fixture: ComponentFixture<Banner>;
-
-    beforeEach(() => {
-        TestBed.configureTestingModule({
-            imports: [Banner],
-            providers: [provideMockStore({ initialState })]
-        });
-        fixture = TestBed.createComponent(Banner);
-        component = fixture.componentInstance;
-        fixture.detectChanges();
-    });
-
-    it('should create', () => {
-        expect(component).toBeTruthy();
-    });
-});
+@NgModule({
+    imports: [RouterModule.forChild(routes)],
+    exports: [RouterModule]
+})
+export class ErrorRoutingModule {}

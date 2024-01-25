@@ -17,21 +17,29 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { LoginMessage } from './login-message.component';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { RouterModule } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
+import { Error } from './error.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../state/current-user/current-user.reducer';
+import { Component } from '@angular/core';
 
-describe('LoginMessage', () => {
-    let component: LoginMessage;
-    let fixture: ComponentFixture<LoginMessage>;
+describe('Error', () => {
+    let component: Error;
+    let fixture: ComponentFixture<Error>;
+
+    @Component({
+        selector: 'message',
+        standalone: true,
+        template: ''
+    })
+    class MockMessage {}
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [LoginMessage],
-            imports: [HttpClientTestingModule, RouterModule, RouterTestingModule]
+            declarations: [Error],
+            imports: [MockMessage],
+            providers: [provideMockStore({ initialState })]
         });
-        fixture = TestBed.createComponent(LoginMessage);
+        fixture = TestBed.createComponent(Error);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

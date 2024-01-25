@@ -24,7 +24,7 @@ import { createProcessGroup, uploadProcessGroup } from '../../../../../state/flo
 import { SelectOption, TextTipInput } from '../../../../../../../state/shared';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
-import { Banner } from '../../../../common/banner/banner.component';
+import { Banner } from '../../../../../../../ui/common/banner/banner.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';

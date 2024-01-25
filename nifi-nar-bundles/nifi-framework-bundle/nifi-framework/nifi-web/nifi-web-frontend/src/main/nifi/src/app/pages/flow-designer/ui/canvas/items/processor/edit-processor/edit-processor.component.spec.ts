@@ -22,6 +22,9 @@ import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ComponentType } from '../../../../../../../state/shared';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { Component } from '@angular/core';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../../../../../state/error/error.reducer';
 
 describe('EditProcessor', () => {
     let component: EditProcessor;
@@ -719,10 +722,22 @@ describe('EditProcessor', () => {
         }
     };
 
+    @Component({
+        selector: 'banner',
+        standalone: true,
+        template: ''
+    })
+    class MockBanner {}
+
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditProcessor, BrowserAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
+            imports: [EditProcessor, MockBanner, BrowserAnimationsModule],
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                provideMockStore({
+                    initialState
+                })
+            ]
         });
         fixture = TestBed.createComponent(EditProcessor);
         component = fixture.componentInstance;

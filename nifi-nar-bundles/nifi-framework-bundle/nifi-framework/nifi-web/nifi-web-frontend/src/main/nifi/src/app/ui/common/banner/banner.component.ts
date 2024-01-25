@@ -15,16 +15,27 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ManagementControllerServices } from './management-controller-services.component';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
-import { Banner } from '../../../../ui/common/banner/banner.component';
+import { Component } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { NiFiState } from '../../../state';
+import { selectBannerErrors } from '../../../state/error/error.selectors';
+import { clearBannerErrors } from '../../../state/error/error.actions';
 
-@NgModule({
-    declarations: [ManagementControllerServices],
-    exports: [ManagementControllerServices],
-    imports: [CommonModule, NgxSkeletonLoaderModule, ControllerServiceTable, Banner]
+@Component({
+    selector: 'banner',
+    standalone: true,
+    imports: [NgIf, NgForOf, MatButtonModule, AsyncPipe],
+    templateUrl: './banner.component.html',
+    styleUrls: ['./banner.component.scss']
 })
-export class ManagementControllerServicesModule {}
+export class Banner {
+    messages$ = this.store.select(selectBannerErrors);
+
+    constructor(private store: Store<NiFiState>) {}
+
+    dismiss(): void {
+        this.store.dispatch(clearBannerErrors());
+    }
+}

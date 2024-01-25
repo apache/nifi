@@ -18,7 +18,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { CanvasUtils } from './canvas-utils.service';
 import {
     ComponentRunStatusRequest,
     CreateComponentRequest,
@@ -48,7 +47,6 @@ export class FlowService implements PropertyDescriptorRetriever {
 
     constructor(
         private httpClient: HttpClient,
-        private canvasUtils: CanvasUtils,
         private client: Client,
         private nifiCommon: NiFiCommon
     ) {}
@@ -198,12 +196,10 @@ export class FlowService implements PropertyDescriptorRetriever {
     }
 
     updateComponent(updateComponent: UpdateComponentRequest): Observable<any> {
-        // return throwError('API Error');
         return this.httpClient.put(this.nifiCommon.stripProtocol(updateComponent.uri), updateComponent.payload);
     }
 
     deleteComponent(deleteComponent: DeleteComponentRequest): Observable<any> {
-        // return throwError('API Error');
         const revision: any = this.client.getRevision(deleteComponent.entity);
         return this.httpClient.delete(this.nifiCommon.stripProtocol(deleteComponent.uri), { params: revision });
     }

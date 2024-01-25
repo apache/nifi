@@ -15,16 +15,15 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ManagementControllerServices } from './management-controller-services.component';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
-import { Banner } from '../../../../ui/common/banner/banner.component';
+import { createAction, props } from '@ngrx/store';
+import { ErrorDetail } from './index';
 
-@NgModule({
-    declarations: [ManagementControllerServices],
-    exports: [ManagementControllerServices],
-    imports: [CommonModule, NgxSkeletonLoaderModule, ControllerServiceTable, Banner]
-})
-export class ManagementControllerServicesModule {}
+export const fullScreenError = createAction('[Error] Full Screen Error', props<{ errorDetail: ErrorDetail }>());
+
+export const snackBarError = createAction('[Error] Snackbar Error', props<{ error: string }>());
+
+export const addBannerError = createAction('[Error] Add Banner Error', props<{ error: string }>());
+
+export const clearBannerErrors = createAction('[Error] Clear Banner Errors');
+
+export const resetErrorState = createAction('[Error] Reset Error State');

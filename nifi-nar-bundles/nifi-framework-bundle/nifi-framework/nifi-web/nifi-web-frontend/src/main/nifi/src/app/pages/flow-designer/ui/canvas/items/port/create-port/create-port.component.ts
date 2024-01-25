@@ -28,7 +28,7 @@ import { ComponentType, SelectOption, TextTipInput } from '../../../../../../../
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Banner } from '../../../../common/banner/banner.component';
+import { Banner } from '../../../../../../../ui/common/banner/banner.component';
 import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';

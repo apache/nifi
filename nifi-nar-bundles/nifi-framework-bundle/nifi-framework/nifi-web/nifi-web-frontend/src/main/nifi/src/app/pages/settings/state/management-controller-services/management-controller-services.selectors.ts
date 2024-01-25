@@ -31,6 +31,11 @@ export const selectSaving = createSelector(
     (state: ManagementControllerServicesState) => state.saving
 );
 
+export const selectStatus = createSelector(
+    selectManagementControllerServicesState,
+    (state: ManagementControllerServicesState) => state.status
+);
+
 export const selectControllerServiceIdFromRoute = createSelector(selectCurrentRoute, (route) => {
     if (route) {
         // always select the controller service from the route

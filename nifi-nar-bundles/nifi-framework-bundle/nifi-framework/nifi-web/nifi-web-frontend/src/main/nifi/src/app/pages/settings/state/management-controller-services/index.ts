@@ -57,6 +57,5 @@ export interface ManagementControllerServicesState {
     controllerServices: ControllerServiceEntity[];
     saving: boolean;
     loadedTimestamp: string;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }

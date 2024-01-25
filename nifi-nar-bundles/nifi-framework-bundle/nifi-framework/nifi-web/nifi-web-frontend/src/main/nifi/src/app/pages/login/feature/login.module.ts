@@ -28,11 +28,11 @@ import { EffectsModule } from '@ngrx/effects';
 import { loginFeatureKey, reducers } from '../state';
 import { AccessEffects } from '../state/access/access.effects';
 import { LoginForm } from '../ui/login-form/login-form.component';
-import { LoginMessage } from '../ui/login-message/login-message.component';
+import { Message } from '../../../ui/common/message/message.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 
 @NgModule({
-    declarations: [Login, LoginForm, LoginMessage],
+    declarations: [Login, LoginForm],
     exports: [Login],
     imports: [
         CommonModule,
@@ -44,7 +44,8 @@ import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
         MatFormFieldModule,
         MatInputModule,
         MatButtonModule,
-        NgxSkeletonLoaderModule
+        NgxSkeletonLoaderModule,
+        Message
     ]
 })
 export class LoginModule {}
