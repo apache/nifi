@@ -68,9 +68,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 
 public class TestPutS3Object {
@@ -103,8 +103,9 @@ public class TestPutS3Object {
         String serviceId = "fileresource";
         FileResourceService service = mock(FileResourceService.class);
         InputStream localFileInputStream = mock(InputStream.class);
-        doReturn(serviceId).when(service).getIdentifier();
-        doReturn(new FileResource(localFileInputStream, 10)).when(service).getFileResource(anyMap());
+        when(service.getIdentifier()).thenReturn(serviceId);
+        long contentLength = 10L;
+        when(service.getFileResource(anyMap())).thenReturn(new FileResource(localFileInputStream, contentLength));
 
         runner.addControllerService(serviceId, service);
         runner.enableControllerService(service);
@@ -115,7 +116,9 @@ public class TestPutS3Object {
 
         ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
         verify(mockS3Client).putObject(captureRequest.capture());
-        assertEquals(localFileInputStream, captureRequest.getValue().getInputStream());
+        PutObjectRequest putObjectRequest = captureRequest.getValue();
+        assertEquals(localFileInputStream, putObjectRequest.getInputStream());
+        assertEquals(putObjectRequest.getMetadata().getContentLength(), contentLength);
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
     }
@@ -147,7 +150,7 @@ public class TestPutS3Object {
     public void testPutSinglePartException() {
         prepareTest();
 
-        Mockito.when(mockS3Client.putObject(Mockito.any(PutObjectRequest.class))).thenThrow(new AmazonS3Exception("TestFail"));
+        when(mockS3Client.putObject(Mockito.any(PutObjectRequest.class))).thenThrow(new AmazonS3Exception("TestFail"));
 
         runner.run(1);
 
@@ -275,10 +278,10 @@ public class TestPutS3Object {
         putObjectResult.setVersionId("test-version");
         putObjectResult.setETag("test-etag");
 
-        Mockito.when(mockS3Client.putObject(Mockito.any(PutObjectRequest.class))).thenReturn(putObjectResult);
+        when(mockS3Client.putObject(Mockito.any(PutObjectRequest.class))).thenReturn(putObjectResult);
 
         MultipartUploadListing uploadListing = new MultipartUploadListing();
-        Mockito.when(mockS3Client.listMultipartUploads(Mockito.any(ListMultipartUploadsRequest.class))).thenReturn(uploadListing);
+        when(mockS3Client.listMultipartUploads(Mockito.any(ListMultipartUploadsRequest.class))).thenReturn(uploadListing);
     }
 
     @Test

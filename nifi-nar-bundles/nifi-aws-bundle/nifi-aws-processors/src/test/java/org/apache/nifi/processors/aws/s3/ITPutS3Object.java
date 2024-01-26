@@ -63,6 +63,7 @@ import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FIL
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -139,6 +140,7 @@ public class ITPutS3Object extends AbstractS3IT {
         List<S3ObjectSummary> objectSummaries = getClient().listObjects(BUCKET_NAME).getObjectSummaries();
         assertThat(objectSummaries, hasSize(1));
         assertEquals(objectSummaries.getFirst().getKey(), resourcePath.getFileName().toString());
+        assertThat(objectSummaries.getFirst().getSize(), greaterThan(0L));
     }
 
     @Test

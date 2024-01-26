@@ -79,6 +79,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
@@ -527,11 +528,12 @@ public class PutS3Object extends AbstractS3Processor {
          * Then
          */
         final FlowFile flowFileCopy = session.clone(flowFile);
-        try (InputStream in = getFileResource(resourceTransferSource, context, flowFile.getAttributes())
+        Optional<FileResource> optFileResource = getFileResource(resourceTransferSource, context, flowFile.getAttributes());
+        try (InputStream in = optFileResource
                 .map(FileResource::getInputStream)
                 .orElseGet(() -> session.read(flowFileCopy))) {
             final ObjectMetadata objectMetadata = new ObjectMetadata();
-            objectMetadata.setContentLength(ff.getSize());
+            objectMetadata.setContentLength(optFileResource.map(FileResource::getSize).orElseGet(ff::getSize));
 
             final String contentType = context.getProperty(CONTENT_TYPE)
                     .evaluateAttributeExpressions(ff).getValue();
@@ -867,12 +869,12 @@ public class PutS3Object extends AbstractS3Processor {
             }
 
         } catch (final ProcessException | AmazonClientException | IOException e) {
-            extractExceptionDetails(pe, session, flowFile);
-            if (pe.getMessage().contains(S3_PROCESS_UNSCHEDULED_MESSAGE)) {
-                getLogger().info(pe.getMessage());
+            extractExceptionDetails(e, session, flowFile);
+            if (e.getMessage().contains(S3_PROCESS_UNSCHEDULED_MESSAGE)) {
+                getLogger().info(e.getMessage());
                 session.rollback();
             } else {
-                getLogger().error("Failed to put {} to Amazon S3 due to {}", flowFile, pe);
+                getLogger().error("Failed to put {} to Amazon S3 due to {}", flowFile, e);
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
             }
