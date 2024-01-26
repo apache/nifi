@@ -342,7 +342,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
             final FlowFile ff = flowFile;
             final String ffFilename = ff.getAttributes().get(CoreAttributes.FILENAME.key());
             final Map<String, String> attributes = new HashMap<>();
-            final ResourceTransferSource resourceTransferSource = ResourceTransferSource.valueOf(context.getProperty(RESOURCE_TRANSFER_SOURCE).getValue());
+            final ResourceTransferSource resourceTransferSource = context.getProperty(RESOURCE_TRANSFER_SOURCE).asAllowableValue(ResourceTransferSource.class);
             final Storage storage = getCloudService();
 
             try (final InputStream inputStream = getFileResource(resourceTransferSource, context, flowFile.getAttributes())
