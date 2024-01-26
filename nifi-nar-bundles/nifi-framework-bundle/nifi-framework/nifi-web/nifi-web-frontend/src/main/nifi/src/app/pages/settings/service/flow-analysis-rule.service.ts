@@ -33,19 +33,6 @@ import { PropertyDescriptorRetriever } from '../../../state/shared';
 export class FlowAnalysisRuleService implements PropertyDescriptorRetriever {
     private static readonly API: string = '../nifi-api';
 
-    /**
-     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
-     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
-     *
-     * https://stackoverflow.com/a/59586462
-     *
-     * @param url
-     * @private
-     */
-    private stripProtocol(url: string): string {
-        return this.nifiCommon.substringAfterFirst(url, ':');
-    }
-
     constructor(
         private httpClient: HttpClient,
         private client: Client,
@@ -69,7 +56,7 @@ export class FlowAnalysisRuleService implements PropertyDescriptorRetriever {
     deleteFlowAnalysisRule(deleteFlowAnalysisRule: DeleteFlowAnalysisRuleRequest): Observable<any> {
         const entity: FlowAnalysisRuleEntity = deleteFlowAnalysisRule.flowAnalysisRule;
         const revision: any = this.client.getRevision(entity);
-        return this.httpClient.delete(this.stripProtocol(entity.uri), { params: revision });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(entity.uri), { params: revision });
     }
 
     getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<any> {
@@ -84,14 +71,14 @@ export class FlowAnalysisRuleService implements PropertyDescriptorRetriever {
 
     updateFlowAnalysisRule(configureFlowAnalysisRule: ConfigureFlowAnalysisRuleRequest): Observable<any> {
         return this.httpClient.put(
-            this.stripProtocol(configureFlowAnalysisRule.uri),
+            this.nifiCommon.stripProtocol(configureFlowAnalysisRule.uri),
             configureFlowAnalysisRule.payload
         );
     }
 
     setEnable(flowAnalysisRule: EnableFlowAnalysisRuleRequest, enabled: boolean): Observable<any> {
         const entity: FlowAnalysisRuleEntity = flowAnalysisRule.flowAnalysisRule;
-        return this.httpClient.put(`${this.stripProtocol(entity.uri)}/run-status`, {
+        return this.httpClient.put(`${this.nifiCommon.stripProtocol(entity.uri)}/run-status`, {
             revision: this.client.getRevision(entity),
             state: enabled ? 'ENABLED' : 'DISABLED',
             uiOnly: true

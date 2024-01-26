@@ -37,19 +37,6 @@ export class ParameterContextService {
         private nifiCommon: NiFiCommon
     ) {}
 
-    /**
-     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
-     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
-     *
-     * https://stackoverflow.com/a/59586462
-     *
-     * @param url
-     * @private
-     */
-    private stripProtocol(url: string): string {
-        return this.nifiCommon.substringAfterFirst(url, ':');
-    }
-
     getParameterContexts(): Observable<any> {
         return this.httpClient.get(`${ParameterContextService.API}/flow/parameter-contexts`);
     }
@@ -77,11 +64,11 @@ export class ParameterContextService {
     }
 
     pollParameterContextUpdate(updateRequest: ParameterContextUpdateRequest): Observable<any> {
-        return this.httpClient.get(this.stripProtocol(updateRequest.uri));
+        return this.httpClient.get(this.nifiCommon.stripProtocol(updateRequest.uri));
     }
 
     deleteParameterContextUpdate(updateRequest: ParameterContextUpdateRequest): Observable<any> {
-        return this.httpClient.delete(this.stripProtocol(updateRequest.uri));
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(updateRequest.uri));
     }
 
     deleteParameterContext(deleteParameterContext: DeleteParameterContextRequest): Observable<any> {

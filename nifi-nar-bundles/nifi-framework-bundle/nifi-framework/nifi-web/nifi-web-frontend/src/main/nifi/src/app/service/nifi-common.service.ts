@@ -511,4 +511,17 @@ export class NiFiCommon {
     public getAllPolicyTypeListing(): SelectOption[] {
         return this.policyTypeListing;
     }
+
+    /**
+     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
+     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
+     *
+     * https://stackoverflow.com/a/59586462
+     *
+     * @param url
+     * @private
+     */
+    public stripProtocol(url: string): string {
+        return this.substringAfterFirst(url, ':');
+    }
 }

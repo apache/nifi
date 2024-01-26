@@ -30,25 +30,12 @@ export class QueueService {
         private nifiCommon: NiFiCommon
     ) {}
 
-    /**
-     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
-     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
-     *
-     * https://stackoverflow.com/a/59586462
-     *
-     * @param url
-     * @private
-     */
-    private stripProtocol(url: string): string {
-        return this.nifiCommon.substringAfterFirst(url, ':');
-    }
-
     getConnection(connectionId: string): Observable<any> {
         return this.httpClient.get(`${QueueService.API}/connections/${connectionId}`);
     }
 
     getFlowFile(flowfileSummary: FlowFileSummary): Observable<any> {
-        return this.httpClient.get(this.stripProtocol(flowfileSummary.uri));
+        return this.httpClient.get(this.nifiCommon.stripProtocol(flowfileSummary.uri));
     }
 
     submitQueueListingRequest(queueListingRequest: SubmitQueueListingRequest): Observable<any> {
@@ -59,15 +46,15 @@ export class QueueService {
     }
 
     pollQueueListingRequest(listingRequest: ListingRequest): Observable<any> {
-        return this.httpClient.get(this.stripProtocol(listingRequest.uri));
+        return this.httpClient.get(this.nifiCommon.stripProtocol(listingRequest.uri));
     }
 
     deleteQueueListingRequest(listingRequest: ListingRequest): Observable<any> {
-        return this.httpClient.delete(this.stripProtocol(listingRequest.uri));
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(listingRequest.uri));
     }
 
     downloadContent(flowfileSummary: FlowFileSummary): void {
-        let dataUri: string = `${this.stripProtocol(flowfileSummary.uri)}/content`;
+        let dataUri: string = `${this.nifiCommon.stripProtocol(flowfileSummary.uri)}/content`;
 
         const queryParameters: any = {};
 
@@ -83,7 +70,7 @@ export class QueueService {
 
     viewContent(flowfileSummary: FlowFileSummary, contentViewerUrl: string): void {
         // build the uri to the data
-        let dataUri: string = `${this.stripProtocol(flowfileSummary.uri)}/content`;
+        let dataUri: string = `${this.nifiCommon.stripProtocol(flowfileSummary.uri)}/content`;
 
         const dataUriParameters: any = {};
 

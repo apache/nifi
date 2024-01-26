@@ -36,25 +36,12 @@ export class ControllerServiceStateService {
         private client: Client
     ) {}
 
-    /**
-     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
-     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
-     *
-     * https://stackoverflow.com/a/59586462
-     *
-     * @param url
-     * @private
-     */
-    private stripProtocol(url: string): string {
-        return this.nifiCommon.substringAfterFirst(url, ':');
-    }
-
     getControllerService(id: string): Observable<any> {
         return this.httpClient.get(`${ControllerServiceStateService.API}/controller-services/${id}`);
     }
 
     setEnable(controllerService: ControllerServiceEntity, enabled: boolean): Observable<any> {
-        return this.httpClient.put(`${this.stripProtocol(controllerService.uri)}/run-status`, {
+        return this.httpClient.put(`${this.nifiCommon.stripProtocol(controllerService.uri)}/run-status`, {
             revision: this.client.getRevision(controllerService),
             state: enabled ? 'ENABLED' : 'DISABLED',
             uiOnly: true
@@ -69,7 +56,7 @@ export class ControllerServiceStateService {
             true
         );
 
-        return this.httpClient.put(`${this.stripProtocol(controllerService.uri)}/references`, {
+        return this.httpClient.put(`${this.nifiCommon.stripProtocol(controllerService.uri)}/references`, {
             id: controllerService.id,
             state: enabled ? 'ENABLED' : 'DISABLED',
             referencingComponentRevisions: referencingComponentRevisions,
@@ -89,7 +76,7 @@ export class ControllerServiceStateService {
             false
         );
 
-        return this.httpClient.put(`${this.stripProtocol(controllerService.uri)}/references`, {
+        return this.httpClient.put(`${this.nifiCommon.stripProtocol(controllerService.uri)}/references`, {
             id: controllerService.id,
             state: running ? 'RUNNING' : 'STOPPED',
             referencingComponentRevisions: referencingComponentRevisions,

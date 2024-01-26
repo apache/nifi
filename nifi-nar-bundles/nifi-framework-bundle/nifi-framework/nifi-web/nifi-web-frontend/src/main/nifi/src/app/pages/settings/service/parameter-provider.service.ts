@@ -59,7 +59,7 @@ export class ParameterProviderService implements PropertyDescriptorRetriever {
             ...revision,
             disconnectedNodeAcknowledged: false
         };
-        return this.httpClient.delete(this.stripProtocol(entity.uri), { params: revision });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(entity.uri), { params: revision });
     }
 
     getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<any> {
@@ -73,19 +73,6 @@ export class ParameterProviderService implements PropertyDescriptorRetriever {
     }
 
     updateParameterProvider(configureRequest: ConfigureParameterProviderRequest): Observable<any> {
-        return this.httpClient.put(this.stripProtocol(configureRequest.uri), configureRequest.payload);
-    }
-
-    /**
-     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
-     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
-     *
-     * https://stackoverflow.com/a/59586462
-     *
-     * @param url
-     * @private
-     */
-    private stripProtocol(url: string): string {
-        return this.nifiCommon.substringAfterFirst(url, ':');
+        return this.httpClient.put(this.nifiCommon.stripProtocol(configureRequest.uri), configureRequest.payload);
     }
 }

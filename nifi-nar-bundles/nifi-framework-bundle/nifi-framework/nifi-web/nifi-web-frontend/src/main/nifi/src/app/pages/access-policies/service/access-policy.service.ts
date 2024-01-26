@@ -33,19 +33,6 @@ export class AccessPolicyService {
         private nifiCommon: NiFiCommon
     ) {}
 
-    /**
-     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
-     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
-     *
-     * https://stackoverflow.com/a/59586462
-     *
-     * @param url
-     * @private
-     */
-    private stripProtocol(url: string): string {
-        return this.nifiCommon.substringAfterFirst(url, ':');
-    }
-
     createAccessPolicy(resourceAction: ResourceAction): Observable<any> {
         let resource: string = `/${resourceAction.resource}`;
         if (resourceAction.resourceIdentifier) {
@@ -92,12 +79,12 @@ export class AccessPolicyService {
             }
         };
 
-        return this.httpClient.put(this.stripProtocol(accessPolicy.uri), payload);
+        return this.httpClient.put(this.nifiCommon.stripProtocol(accessPolicy.uri), payload);
     }
 
     deleteAccessPolicy(accessPolicy: AccessPolicyEntity): Observable<any> {
         const revision: any = this.client.getRevision(accessPolicy);
-        return this.httpClient.delete(this.stripProtocol(accessPolicy.uri), { params: revision });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(accessPolicy.uri), { params: revision });
     }
 
     getUsers(): Observable<any> {
