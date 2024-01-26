@@ -593,10 +593,9 @@ public class TestLookupRecord {
         final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
         runner.addControllerService("writer", jsonWriter);
         runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+        runner.setProperty(jsonWriter, JsonRecordSetWriter.SUPPRESS_NULLS, JsonRecordSetWriter.ALWAYS_SUPPRESS);
 
-        runner.addControllerService("reader", jsonReader);
         runner.enableControllerService(jsonReader);
-        runner.addControllerService("writer", jsonWriter);
         runner.enableControllerService(jsonWriter);
         runner.addControllerService("lookup", lookupService);
         runner.enableControllerService(lookupService);
