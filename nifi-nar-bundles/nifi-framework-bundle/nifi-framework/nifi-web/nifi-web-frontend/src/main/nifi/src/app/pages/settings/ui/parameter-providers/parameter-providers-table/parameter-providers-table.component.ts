@@ -115,13 +115,13 @@ export class ParameterProvidersTable {
     }
 
     hasErrors(entity: ParameterProviderEntity): boolean {
-        return !this.nifiCommon.isEmpty(entity.component.validationErrors);
+        return this.canRead(entity) && !this.nifiCommon.isEmpty(entity.component.validationErrors);
     }
 
-    getValidationErrorsTipData(entity: ParameterProviderEntity): ValidationErrorsTipInput {
+    getValidationErrorsTipData(entity: ParameterProviderEntity): ValidationErrorsTipInput | null {
         return {
             isValidating: entity.component.validationStatus === 'VALIDATING',
-            validationErrors: entity.component.validationErrors || []
+            validationErrors: entity.component?.validationErrors || []
         };
     }
 

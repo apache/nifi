@@ -16,7 +16,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { EMPTY, NEVER, Observable } from 'rxjs';
+import { EMPTY, Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';

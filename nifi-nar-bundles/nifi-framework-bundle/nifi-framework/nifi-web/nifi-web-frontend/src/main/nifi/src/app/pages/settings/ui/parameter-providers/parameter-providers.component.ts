@@ -32,6 +32,7 @@ import * as ParameterProviderActions from '../../state/parameter-providers/param
 import { initialParameterProvidersState } from '../../state/parameter-providers/parameter-providers.reducer';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { isDefinedAndNotNull } from '../../../../state/shared';
 
 @Component({
     selector: 'parameter-providers',
@@ -48,26 +49,21 @@ export class ParameterProviders implements OnInit, OnDestroy {
         this.store
             .select(selectSingleEditedParameterProvider)
             .pipe(
-                filter((id: string) => !!id),
+                isDefinedAndNotNull(),
                 switchMap((id: string) =>
-                    this.store.select(selectParameterProvider(id)).pipe(
-                        filter((entity) => !!entity),
-                        take(1)
-                    )
+                    this.store.select(selectParameterProvider(id)).pipe(isDefinedAndNotNull(), take(1))
                 ),
                 takeUntilDestroyed()
             )
             .subscribe((entity) => {
-                if (entity) {
-                    this.store.dispatch(
-                        ParameterProviderActions.openConfigureParameterProviderDialog({
-                            request: {
-                                id: entity.id,
-                                parameterProvider: entity
-                            }
-                        })
-                    );
-                }
+                this.store.dispatch(
+                    ParameterProviderActions.openConfigureParameterProviderDialog({
+                        request: {
+                            id: entity.id,
+                            parameterProvider: entity
+                        }
+                    })
+                );
             });
     }
 

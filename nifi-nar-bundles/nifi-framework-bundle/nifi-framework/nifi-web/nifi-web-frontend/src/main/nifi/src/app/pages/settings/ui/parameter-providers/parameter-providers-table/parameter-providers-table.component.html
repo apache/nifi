@@ -57,7 +57,7 @@
                             <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
                         </th>
                         <td mat-cell *matCellDef="let item" [title]="formatName(item)">
-                            {{ formatName(item) }}
+                            <div [ngClass]="{ unset: !canRead(item) }">{{ formatName(item) }}</div>
                         </td>
                     </ng-container>
 
