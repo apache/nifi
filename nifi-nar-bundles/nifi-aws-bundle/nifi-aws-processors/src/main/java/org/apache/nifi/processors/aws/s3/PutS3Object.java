@@ -866,7 +866,7 @@ public class PutS3Object extends AbstractS3Processor {
                         new Object[]{cacheKey, e.getMessage()});
             }
 
-        } catch (final ProcessException | AmazonClientException | IOException pe) {
+        } catch (final ProcessException | AmazonClientException | IOException e) {
             extractExceptionDetails(pe, session, flowFile);
             if (pe.getMessage().contains(S3_PROCESS_UNSCHEDULED_MESSAGE)) {
                 getLogger().info(pe.getMessage());
