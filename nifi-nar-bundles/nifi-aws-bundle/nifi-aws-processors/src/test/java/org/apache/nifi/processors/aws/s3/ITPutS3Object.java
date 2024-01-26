@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingResult;
 import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
@@ -41,7 +40,6 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -98,19 +96,6 @@ public class ITPutS3Object extends AbstractS3IT {
 
         randomKeyMaterial = Base64.encodeBase64String(keyRawBytes);
         kmsKeyId = getKMSKey();
-    }
-
-    @AfterEach
-    public void tearDown() {
-        // clear bucket content
-        AmazonS3 client = getClient();
-        List<S3ObjectSummary> objectSummaries = client.listObjects(BUCKET_NAME).getObjectSummaries();
-        if (!objectSummaries.isEmpty()) {
-            client.deleteObjects(new DeleteObjectsRequest(BUCKET_NAME)
-                    .withKeys(objectSummaries.stream()
-                            .map(S3ObjectSummary::getKey)
-                            .toArray(String[]::new)));
-        }
     }
 
     @Test

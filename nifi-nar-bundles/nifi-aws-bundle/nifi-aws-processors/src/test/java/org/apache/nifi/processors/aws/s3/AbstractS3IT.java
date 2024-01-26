@@ -30,6 +30,7 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
 import com.amazonaws.services.s3.model.DeleteBucketRequest;
+import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.ObjectTagging;
@@ -41,6 +42,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,7 +84,6 @@ public abstract class AbstractS3IT {
     private static final LocalStackContainer localstack = new LocalStackContainer(localstackImage)
             .withServices(LocalStackContainer.Service.S3, LocalStackContainer.Service.KMS);
 
-
     @BeforeAll
     public static void oneTimeSetup() {
         localstack.start();
@@ -99,6 +100,51 @@ public abstract class AbstractS3IT {
 
         final CreateBucketRequest request = new CreateBucketRequest(BUCKET_NAME);
         client.createBucket(request);
+    }
+
+    @BeforeEach
+    public void clearKeys() {
+        addedKeys.clear();
+    }
+
+    @AfterEach
+    public void emptyBucket() {
+        if (!client.doesBucketExistV2(BUCKET_NAME)) {
+            return;
+        }
+
+        ObjectListing objectListing = client.listObjects(BUCKET_NAME);
+        if(objectListing.getObjectSummaries().isEmpty()) {
+            return;
+        }
+
+        while (true) {
+            client.deleteObjects(new DeleteObjectsRequest(BUCKET_NAME)
+                    .withKeys(objectListing.getObjectSummaries()
+                            .stream()
+                            .map(S3ObjectSummary::getKey)
+                            .toArray(String[]::new)));
+
+            if (objectListing.isTruncated()) {
+                objectListing = client.listNextBatchOfObjects(objectListing);
+            } else {
+                break;
+            }
+        }
+    }
+
+    @AfterAll
+    public static void oneTimeTearDown() {
+        try {
+            if (!client.doesBucketExistV2(BUCKET_NAME)) {
+                return;
+            }
+
+            DeleteBucketRequest dbr = new DeleteBucketRequest(BUCKET_NAME);
+            client.deleteBucket(dbr);
+        } catch (final AmazonS3Exception e) {
+            System.err.println("Unable to delete bucket " + BUCKET_NAME + e);
+        }
     }
 
     protected AmazonS3 getClient() {
@@ -119,44 +165,6 @@ public abstract class AbstractS3IT {
 
     protected static void setSecureProperties(final TestRunner runner) throws InitializationException {
         AuthUtils.enableAccessKey(runner, localstack.getAccessKey(), localstack.getSecretKey());
-    }
-
-    @BeforeEach
-    public void clearKeys() {
-        addedKeys.clear();
-    }
-
-    @AfterAll
-    public static void oneTimeTearDown() {
-        // Empty the bucket before deleting it.
-        try {
-            if (client == null) {
-                return;
-            }
-
-            ObjectListing objectListing = client.listObjects(BUCKET_NAME);
-
-            while (true) {
-                for (S3ObjectSummary objectSummary : objectListing.getObjectSummaries()) {
-                    client.deleteObject(BUCKET_NAME, objectSummary.getKey());
-                }
-
-                if (objectListing.isTruncated()) {
-                    objectListing = client.listNextBatchOfObjects(objectListing);
-                } else {
-                    break;
-                }
-            }
-
-            DeleteBucketRequest dbr = new DeleteBucketRequest(BUCKET_NAME);
-            client.deleteBucket(dbr);
-        } catch (final AmazonS3Exception e) {
-            System.err.println("Unable to delete bucket " + BUCKET_NAME + e.toString());
-        }
-
-        if (client.doesBucketExistV2(BUCKET_NAME)) {
-            fail("Incomplete teardown, subsequent tests might fail");
-        }
     }
 
     protected void putTestFile(String key, File file) throws AmazonS3Exception {
