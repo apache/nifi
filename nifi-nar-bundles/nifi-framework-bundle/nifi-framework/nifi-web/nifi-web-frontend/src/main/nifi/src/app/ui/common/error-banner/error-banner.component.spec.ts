@@ -15,11 +15,27 @@
  * limitations under the License.
  */
 
-.message {
-    .title {
-        font-size: 18px;
-        font-weight: 600;
-        font-family: Roboto Slab;
-        color: #728e9b;
-    }
-}
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { ErrorBanner } from './error-banner.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../state/error/error.reducer';
+
+describe('ErrorBanner', () => {
+    let component: ErrorBanner;
+    let fixture: ComponentFixture<ErrorBanner>;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            imports: [ErrorBanner],
+            providers: [provideMockStore({ initialState })]
+        });
+        fixture = TestBed.createComponent(ErrorBanner);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

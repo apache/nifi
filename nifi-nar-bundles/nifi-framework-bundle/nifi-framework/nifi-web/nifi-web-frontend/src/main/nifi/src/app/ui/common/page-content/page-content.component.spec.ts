@@ -17,20 +17,20 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { Banner } from './banner.component';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../state/error/error.reducer';
+import { PageContent } from './page-content.component';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { RouterModule } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
 
-describe('Banner', () => {
-    let component: Banner;
-    let fixture: ComponentFixture<Banner>;
+describe('PageContent', () => {
+    let component: PageContent;
+    let fixture: ComponentFixture<PageContent>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [Banner],
-            providers: [provideMockStore({ initialState })]
+            imports: [PageContent, HttpClientTestingModule, RouterModule, RouterTestingModule]
         });
-        fixture = TestBed.createComponent(Banner);
+        fixture = TestBed.createComponent(PageContent);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

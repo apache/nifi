@@ -47,7 +47,7 @@ import {
     RelationshipConfiguration,
     RelationshipSettings
 } from './relationship-settings/relationship-settings.component';
-import { Banner } from '../../../../../../../ui/common/banner/banner.component';
+import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 
 @Component({
     selector: 'edit-processor',
@@ -70,7 +70,7 @@ import { Banner } from '../../../../../../../ui/common/banner/banner.component';
         NifiTooltipDirective,
         RunDurationSlider,
         RelationshipSettings,
-        Banner
+        ErrorBanner
     ],
     styleUrls: ['./edit-processor.component.scss']
 })

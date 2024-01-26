@@ -24,13 +24,13 @@ import { selectBannerErrors } from '../../../state/error/error.selectors';
 import { clearBannerErrors } from '../../../state/error/error.actions';
 
 @Component({
-    selector: 'banner',
+    selector: 'error-banner',
     standalone: true,
     imports: [NgIf, NgForOf, MatButtonModule, AsyncPipe],
-    templateUrl: './banner.component.html',
-    styleUrls: ['./banner.component.scss']
+    templateUrl: './error-banner.component.html',
+    styleUrls: ['./error-banner.component.scss']
 })
-export class Banner {
+export class ErrorBanner {
     messages$ = this.store.select(selectBannerErrors);
 
     constructor(private store: Store<NiFiState>) {}

@@ -15,33 +15,13 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
-import { AuthStorage } from '../../../service/auth-storage.service';
-import { AuthService } from '../../../service/auth.service';
-import { RouterLink } from '@angular/router';
-import { NgIf } from '@angular/common';
+.page-content {
+    //width: 500px;
 
-@Component({
-    selector: 'message',
-    standalone: true,
-    templateUrl: './message.component.html',
-    imports: [RouterLink, NgIf],
-    styleUrls: ['./message.component.scss']
-})
-export class Message {
-    @Input() title: string = '';
-    @Input() message: string = '';
-
-    constructor(
-        private authStorage: AuthStorage,
-        private authService: AuthService
-    ) {}
-
-    logout(): void {
-        this.authService.logout();
-    }
-
-    hasToken(): boolean {
-        return this.authStorage.hasToken();
+    .title {
+        font-size: 18px;
+        font-weight: 600;
+        font-family: Roboto Slab;
+        color: #728e9b;
     }
 }

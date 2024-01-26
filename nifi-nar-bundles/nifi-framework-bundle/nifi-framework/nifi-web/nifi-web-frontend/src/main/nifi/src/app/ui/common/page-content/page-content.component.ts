@@ -15,27 +15,32 @@
  * limitations under the License.
  */
 
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Component, Input } from '@angular/core';
+import { AuthStorage } from '../../../service/auth-storage.service';
+import { AuthService } from '../../../service/auth.service';
+import { RouterLink } from '@angular/router';
+import { NgIf } from '@angular/common';
 
-import { Message } from './message.component';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { RouterModule } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
+@Component({
+    selector: 'page-content',
+    standalone: true,
+    templateUrl: './page-content.component.html',
+    imports: [RouterLink, NgIf],
+    styleUrls: ['./page-content.component.scss']
+})
+export class PageContent {
+    @Input() title: string = '';
 
-describe('Message', () => {
-    let component: Message;
-    let fixture: ComponentFixture<Message>;
+    constructor(
+        private authStorage: AuthStorage,
+        private authService: AuthService
+    ) {}
 
-    beforeEach(() => {
-        TestBed.configureTestingModule({
-            imports: [Message, HttpClientTestingModule, RouterModule, RouterTestingModule]
-        });
-        fixture = TestBed.createComponent(Message);
-        component = fixture.componentInstance;
-        fixture.detectChanges();
-    });
+    logout(): void {
+        this.authService.logout();
+    }
 
-    it('should create', () => {
-        expect(component).toBeTruthy();
-    });
-});
+    hasToken(): boolean {
+        return this.authStorage.hasToken();
+    }
+}

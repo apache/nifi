@@ -27,16 +27,16 @@ describe('Error', () => {
     let fixture: ComponentFixture<Error>;
 
     @Component({
-        selector: 'message',
+        selector: 'page-content',
         standalone: true,
         template: ''
     })
-    class MockMessage {}
+    class MockPageContent {}
 
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [Error],
-            imports: [MockMessage],
+            imports: [MockPageContent],
             providers: [provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(Error);

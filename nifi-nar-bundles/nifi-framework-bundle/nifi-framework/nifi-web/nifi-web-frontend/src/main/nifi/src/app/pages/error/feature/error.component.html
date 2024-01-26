@@ -16,10 +16,14 @@
   -->
 
 <div class="error-background pt-24 pl-24 h-screen">
-    <ng-container *ngIf="errorDetail$ | async; let errorDetail; else noErrorDetails">
-        <message [title]="errorDetail.title" [message]="errorDetail.message"></message>
+    <ng-container *ngIf="errorDetail$ | async; let errorDetail; else: noErrorDetails">
+        <page-content [title]="errorDetail.title">
+            <div class="text-sm">{{ errorDetail.message }}</div>
+        </page-content>
     </ng-container>
     <ng-template #noErrorDetails>
-        <message title="Error" message="Please check the logs or navigate home and try again."></message>
+        <page-content title="Error">
+            <div class="text-sm">Please check the logs or navigate home and try again.</div>
+        </page-content>
     </ng-template>
 </div>

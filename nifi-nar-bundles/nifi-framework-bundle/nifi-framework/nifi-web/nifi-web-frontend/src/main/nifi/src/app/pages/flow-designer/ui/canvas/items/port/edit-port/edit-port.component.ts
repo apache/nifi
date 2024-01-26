@@ -24,7 +24,7 @@ import { updateComponent } from '../../../../../state/flow/flow.actions';
 import { Client } from '../../../../../../../service/client.service';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { ComponentType } from '../../../../../../../state/shared';
-import { Banner } from '../../../../../../../ui/common/banner/banner.component';
+import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
@@ -38,7 +38,7 @@ import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nif
     templateUrl: './edit-port.component.html',
     imports: [
         ReactiveFormsModule,
-        Banner,
+        ErrorBanner,
         MatDialogModule,
         MatInputModule,
         MatCheckboxModule,

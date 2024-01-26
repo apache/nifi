@@ -43,7 +43,7 @@ import { ControllerServiceApi } from '../controller-service-api/controller-servi
 import { Observable } from 'rxjs';
 import { ControllerServiceReferences } from '../controller-service-references/controller-service-references.component';
 import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
-import { Banner } from '../../banner/banner.component';
+import { ErrorBanner } from '../../error-banner/error-banner.component';
 
 @Component({
     selector: 'edit-controller-service',
@@ -65,7 +65,7 @@ import { Banner } from '../../banner/banner.component';
         ControllerServiceReferences,
         AsyncPipe,
         NifiSpinnerDirective,
-        Banner
+        ErrorBanner
     ],
     styleUrls: ['./edit-controller-service.component.scss']
 })

@@ -723,15 +723,15 @@ describe('EditProcessor', () => {
     };
 
     @Component({
-        selector: 'banner',
+        selector: 'error-banner',
         standalone: true,
         template: ''
     })
-    class MockBanner {}
+    class MockErrorBanner {}
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditProcessor, MockBanner, BrowserAnimationsModule],
+            imports: [EditProcessor, MockErrorBanner, BrowserAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 provideMockStore({

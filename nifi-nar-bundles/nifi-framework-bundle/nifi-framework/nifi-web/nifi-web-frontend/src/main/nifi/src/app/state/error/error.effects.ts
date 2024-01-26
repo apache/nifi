@@ -35,7 +35,7 @@ export class ErrorEffects {
             this.actions$.pipe(
                 ofType(ErrorActions.fullScreenError),
                 tap(() => {
-                    this.router.navigate(['/error']);
+                    this.router.navigate(['/error'], { replaceUrl: true });
                 })
             ),
         { dispatch: false }
@@ -47,7 +47,7 @@ export class ErrorEffects {
                 ofType(ErrorActions.snackBarError),
                 map((action) => action.error),
                 tap((error) => {
-                    this.snackBar.open(error, 'Dismiss');
+                    this.snackBar.open(error, 'Dismiss', { duration: 30000 });
                 })
             ),
         { dispatch: false }

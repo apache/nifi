@@ -19,11 +19,11 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Error } from './error.component';
 import { ErrorRoutingModule } from './error-routing.module';
-import { Message } from '../../../ui/common/message/message.component';
+import { PageContent } from '../../../ui/common/page-content/page-content.component';
 
 @NgModule({
     declarations: [Error],
     exports: [Error],
-    imports: [CommonModule, ErrorRoutingModule, Message]
+    imports: [CommonModule, ErrorRoutingModule, PageContent]
 })
 export class ErrorModule {}

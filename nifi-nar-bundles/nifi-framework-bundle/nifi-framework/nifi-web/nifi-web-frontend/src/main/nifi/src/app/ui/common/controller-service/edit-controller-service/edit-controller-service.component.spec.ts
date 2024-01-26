@@ -545,15 +545,15 @@ describe('EditControllerService', () => {
     };
 
     @Component({
-        selector: 'banner',
+        selector: 'error-banner',
         standalone: true,
         template: ''
     })
-    class MockBanner {}
+    class MockErrorBanner {}
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditControllerService, MockBanner, BrowserAnimationsModule],
+            imports: [EditControllerService, MockErrorBanner, BrowserAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 provideMockStore({
