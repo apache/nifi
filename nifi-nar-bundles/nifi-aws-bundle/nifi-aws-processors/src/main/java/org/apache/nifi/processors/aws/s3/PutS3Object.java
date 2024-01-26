@@ -508,7 +508,7 @@ public class PutS3Object extends AbstractS3Processor {
         final FlowFile ff = flowFile;
         final Map<String, String> attributes = new HashMap<>();
         final String ffFilename = ff.getAttributes().get(CoreAttributes.FILENAME.key());
-        final ResourceTransferSource resourceTransferSource = ResourceTransferSource.valueOf(context.getProperty(RESOURCE_TRANSFER_SOURCE).getValue());
+        final ResourceTransferSource resourceTransferSource = context.getProperty(RESOURCE_TRANSFER_SOURCE).asAllowableValue(ResourceTransferSource.class);
 
         attributes.put(S3_BUCKET_KEY, bucket);
         attributes.put(S3_OBJECT_KEY, key);
