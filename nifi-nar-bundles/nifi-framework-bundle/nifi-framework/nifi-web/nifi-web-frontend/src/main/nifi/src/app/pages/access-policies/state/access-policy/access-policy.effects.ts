@@ -31,6 +31,7 @@ import { isDefinedAndNotNull, TenantEntity } from '../../../../state/shared';
 import { AddTenantToPolicyDialog } from '../../ui/common/add-tenant-to-policy-dialog/add-tenant-to-policy-dialog.component';
 import { AddTenantsToPolicyRequest } from './index';
 import { selectUserGroups, selectUsers } from '../tenants/tenants.selectors';
+import { OverridePolicyDialog } from '../../ui/common/override-policy-dialog/override-policy-dialog.component';
 
 @Injectable()
 export class AccessPolicyEffects {
@@ -139,6 +140,80 @@ export class AccessPolicyEffects {
             concatLatestFrom(() => this.store.select(selectResourceAction).pipe(isDefinedAndNotNull())),
             switchMap(([action, resourceAction]) =>
                 from(this.accessPoliciesService.createAccessPolicy(resourceAction)).pipe(
+                    map((response) => {
+                        const accessPolicy: AccessPolicyEntity = response;
+                        const policyStatus: PolicyStatus = PolicyStatus.Found;
+
+                        return AccessPolicyActions.createAccessPolicySuccess({
+                            response: {
+                                accessPolicy,
+                                policyStatus
+                            }
+                        });
+                    }),
+                    catchError((error) =>
+                        of(
+                            AccessPolicyActions.accessPolicyApiError({
+                                response: {
+                                    error: error.error
+                                }
+                            })
+                        )
+                    )
+                )
+            )
+        )
+    );
+
+    promptOverrideAccessPolicy$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(AccessPolicyActions.promptOverrideAccessPolicy),
+                concatLatestFrom(() => this.store.select(selectAccessPolicy).pipe(isDefinedAndNotNull())),
+                tap(([action, accessPolicy]) => {
+                    const dialogReference = this.dialog.open(OverridePolicyDialog, {
+                        panelClass: 'small-dialog'
+                    });
+
+                    dialogReference.componentInstance.copyInheritedPolicy
+                        .pipe(take(1))
+                        .subscribe((copyInheritedPolicy: boolean) => {
+                            dialogReference.close();
+
+                            const users: TenantEntity[] = [];
+                            const userGroups: TenantEntity[] = [];
+
+                            if (copyInheritedPolicy) {
+                                users.push(...accessPolicy.component.users);
+                                userGroups.push(...accessPolicy.component.userGroups);
+                            }
+
+                            this.store.dispatch(
+                                AccessPolicyActions.overrideAccessPolicy({
+                                    request: {
+                                        users,
+                                        userGroups
+                                    }
+                                })
+                            );
+                        });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    overrideAccessPolicy$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(AccessPolicyActions.overrideAccessPolicy),
+            map((action) => action.request),
+            concatLatestFrom(() => this.store.select(selectResourceAction).pipe(isDefinedAndNotNull())),
+            switchMap(([request, resourceAction]) =>
+                from(
+                    this.accessPoliciesService.createAccessPolicy(resourceAction, {
+                        userGroups: request.userGroups,
+                        users: request.users
+                    })
+                ).pipe(
                     map((response) => {
                         const accessPolicy: AccessPolicyEntity = response;
                         const policyStatus: PolicyStatus = PolicyStatus.Found;

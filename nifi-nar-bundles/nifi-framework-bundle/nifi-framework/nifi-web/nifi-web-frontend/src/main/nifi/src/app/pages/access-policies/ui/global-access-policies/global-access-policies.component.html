@@ -140,13 +140,13 @@
 <ng-template #inheritedFromPolicies let-policy let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
     Showing effective policy inherited from all policies.
     <ng-container *ngIf="supportsConfigurableAuthorizer">
-        <a (click)="createNewPolicy()">Override</a> this policy.
+        <a (click)="overridePolicy()">Override</a> this policy.
     </ng-container>
 </ng-template>
 <ng-template #inheritedFromController let-policy let-supportsConfigurableAuthorizer="supportsConfigurableAuthorizer">
     Showing effective policy inherited from the controller.
     <ng-container *ngIf="supportsConfigurableAuthorizer">
-        <a (click)="createNewPolicy()">Override</a> this policy.
+        <a (click)="overridePolicy()">Override</a> this policy.
     </ng-container>
 </ng-template>
 <ng-template

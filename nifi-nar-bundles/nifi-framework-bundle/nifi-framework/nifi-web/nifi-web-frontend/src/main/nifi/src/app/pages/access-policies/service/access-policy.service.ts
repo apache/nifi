@@ -33,7 +33,16 @@ export class AccessPolicyService {
         private nifiCommon: NiFiCommon
     ) {}
 
-    createAccessPolicy(resourceAction: ResourceAction): Observable<any> {
+    createAccessPolicy(
+        resourceAction: ResourceAction,
+        {
+            userGroups = [],
+            users = []
+        }: {
+            userGroups?: TenantEntity[];
+            users?: TenantEntity[];
+        } = {}
+    ): Observable<any> {
         let resource: string = `/${resourceAction.resource}`;
         if (resourceAction.resourceIdentifier) {
             resource += `/${resourceAction.resourceIdentifier}`;
@@ -47,8 +56,8 @@ export class AccessPolicyService {
             component: {
                 action: resourceAction.action,
                 resource,
-                userGroups: [],
-                users: []
+                userGroups,
+                users
             }
         };
 
