@@ -28,23 +28,11 @@ import {
     StartReportingTaskRequest,
     StopReportingTaskRequest
 } from '../state/reporting-tasks';
+import { PropertyDescriptorRetriever } from '../../../state/shared';
 
 @Injectable({ providedIn: 'root' })
-export class ReportingTaskService {
+export class ReportingTaskService implements PropertyDescriptorRetriever {
     private static readonly API: string = '../nifi-api';
-
-    /**
-     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
-     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
-     *
-     * https://stackoverflow.com/a/59586462
-     *
-     * @param url
-     * @private
-     */
-    private stripProtocol(url: string): string {
-        return this.nifiCommon.substringAfterFirst(url, ':');
-    }
 
     constructor(
         private httpClient: HttpClient,
@@ -69,7 +57,7 @@ export class ReportingTaskService {
     deleteReportingTask(deleteReportingTask: DeleteReportingTaskRequest): Observable<any> {
         const entity: ReportingTaskEntity = deleteReportingTask.reportingTask;
         const revision: any = this.client.getRevision(entity);
-        return this.httpClient.delete(this.stripProtocol(entity.uri), { params: revision });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(entity.uri), { params: revision });
     }
 
     startReportingTask(startReportingTask: StartReportingTaskRequest): Observable<any> {
@@ -79,7 +67,7 @@ export class ReportingTaskService {
             revision,
             state: 'RUNNING'
         };
-        return this.httpClient.put(`${this.stripProtocol(entity.uri)}/run-status`, payload);
+        return this.httpClient.put(`${this.nifiCommon.stripProtocol(entity.uri)}/run-status`, payload);
     }
 
     stopReportingTask(stopReportingTask: StopReportingTaskRequest): Observable<any> {
@@ -89,7 +77,7 @@ export class ReportingTaskService {
             revision,
             state: 'STOPPED'
         };
-        return this.httpClient.put(`${this.stripProtocol(entity.uri)}/run-status`, payload);
+        return this.httpClient.put(`${this.nifiCommon.stripProtocol(entity.uri)}/run-status`, payload);
     }
 
     getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<any> {
@@ -103,6 +91,9 @@ export class ReportingTaskService {
     }
 
     updateReportingTask(configureReportingTask: ConfigureReportingTaskRequest): Observable<any> {
-        return this.httpClient.put(this.stripProtocol(configureReportingTask.uri), configureReportingTask.payload);
+        return this.httpClient.put(
+            this.nifiCommon.stripProtocol(configureReportingTask.uri),
+            configureReportingTask.payload
+        );
     }
 }

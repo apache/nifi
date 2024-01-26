@@ -42,11 +42,13 @@ export class CounterTable implements AfterViewInit {
     @Input() initialSortColumn: 'context' | 'name' | 'value' = 'context';
     @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
 
+    activeSort: Sort = {
+        active: this.initialSortColumn,
+        direction: this.initialSortDirection
+    };
+
     @Input() set counters(counterEntities: CounterEntity[]) {
-        this.dataSource.data = this.sortEntities(counterEntities, {
-            active: this.initialSortColumn,
-            direction: this.initialSortDirection
-        });
+        this.dataSource.data = this.sortEntities(counterEntities, this.activeSort);
 
         this.dataSource.filterPredicate = (data: CounterEntity, filter: string) => {
             const { filterTerm, filterColumn } = JSON.parse(filter);
@@ -128,6 +130,7 @@ export class CounterTable implements AfterViewInit {
     }
 
     sortData(sort: Sort) {
+        this.activeSort = sort;
         this.dataSource.data = this.sortEntities(this.dataSource.data, sort);
     }
 

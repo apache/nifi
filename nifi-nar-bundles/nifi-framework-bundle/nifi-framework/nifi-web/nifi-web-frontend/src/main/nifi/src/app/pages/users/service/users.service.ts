@@ -32,19 +32,6 @@ import {
 export class UsersService {
     private static readonly API: string = '../nifi-api';
 
-    /**
-     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
-     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
-     *
-     * https://stackoverflow.com/a/59586462
-     *
-     * @param url
-     * @private
-     */
-    private stripProtocol(url: string): string {
-        return this.nifiCommon.substringAfterFirst(url, ':');
-    }
-
     constructor(
         private httpClient: HttpClient,
         private client: Client,
@@ -83,7 +70,7 @@ export class UsersService {
                 ...request.userPayload
             }
         };
-        return this.httpClient.put(this.stripProtocol(request.uri), payload);
+        return this.httpClient.put(this.nifiCommon.stripProtocol(request.uri), payload);
     }
 
     updateUserGroup(request: UpdateUserGroupRequest): Observable<any> {
@@ -94,16 +81,16 @@ export class UsersService {
                 ...request.userGroupPayload
             }
         };
-        return this.httpClient.put(this.stripProtocol(request.uri), payload);
+        return this.httpClient.put(this.nifiCommon.stripProtocol(request.uri), payload);
     }
 
     deleteUser(user: UserEntity): Observable<any> {
         const revision: any = this.client.getRevision(user);
-        return this.httpClient.delete(this.stripProtocol(user.uri), { params: revision });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(user.uri), { params: revision });
     }
 
     deleteUserGroup(userGroup: UserGroupEntity): Observable<any> {
         const revision: any = this.client.getRevision(userGroup);
-        return this.httpClient.delete(this.stripProtocol(userGroup.uri), { params: revision });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(userGroup.uri), { params: revision });
     }
 }

@@ -26,23 +26,11 @@ import {
     EditRegistryClientRequest,
     RegistryClientEntity
 } from '../state/registry-clients';
+import { PropertyDescriptorRetriever } from '../../../state/shared';
 
 @Injectable({ providedIn: 'root' })
-export class RegistryClientService {
+export class RegistryClientService implements PropertyDescriptorRetriever {
     private static readonly API: string = '../nifi-api';
-
-    /**
-     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
-     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
-     *
-     * https://stackoverflow.com/a/59586462
-     *
-     * @param url
-     * @private
-     */
-    private stripProtocol(url: string): string {
-        return this.nifiCommon.substringAfterFirst(url, ':');
-    }
 
     constructor(
         private httpClient: HttpClient,
@@ -69,12 +57,12 @@ export class RegistryClientService {
     }
 
     updateRegistryClient(request: EditRegistryClientRequest): Observable<any> {
-        return this.httpClient.put(this.stripProtocol(request.uri), request.payload);
+        return this.httpClient.put(this.nifiCommon.stripProtocol(request.uri), request.payload);
     }
 
     deleteRegistryClient(deleteRegistryClient: DeleteRegistryClientRequest): Observable<any> {
         const entity: RegistryClientEntity = deleteRegistryClient.registryClient;
         const revision: any = this.client.getRevision(entity);
-        return this.httpClient.delete(this.stripProtocol(entity.uri), { params: revision });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(entity.uri), { params: revision });
     }
 }

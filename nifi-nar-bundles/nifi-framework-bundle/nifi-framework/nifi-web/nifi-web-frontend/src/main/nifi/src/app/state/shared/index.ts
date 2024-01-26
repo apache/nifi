@@ -112,7 +112,7 @@ export interface EditTenantResponse {
     userGroup?: any;
 }
 
-export interface CreateControllerServiceRequest {
+export interface CreateControllerServiceDialogRequest {
     controllerServiceTypes: DocumentedType[];
 }
 
@@ -306,6 +306,7 @@ export interface ParameterContextReferenceEntity {
     permissions: Permissions;
     id: string;
     component?: ParameterContextReference;
+    bulletins?: BulletinEntity[];
 }
 
 export interface ParameterContextReference {
@@ -508,6 +509,10 @@ export interface PropertyDescriptor {
     identifiesControllerServiceBundle?: Bundle;
 }
 
+export interface PropertyDescriptorEntity {
+    propertyDescriptor: PropertyDescriptor;
+}
+
 export interface Property {
     property: string;
     value: string | null;
@@ -521,4 +526,19 @@ export interface InlineServiceCreationRequest {
 export interface InlineServiceCreationResponse {
     value: string;
     descriptor: PropertyDescriptor;
+}
+
+export interface PropertyDescriptorRetriever {
+    getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<PropertyDescriptorEntity>;
+}
+
+export interface CreateControllerServiceRequest {
+    processGroupId?: string;
+    controllerServiceType: string;
+    controllerServiceBundle: Bundle;
+    revision: Revision;
+}
+
+export interface ControllerServiceCreator {
+    createControllerService(createControllerService: CreateControllerServiceRequest): Observable<any>;
 }

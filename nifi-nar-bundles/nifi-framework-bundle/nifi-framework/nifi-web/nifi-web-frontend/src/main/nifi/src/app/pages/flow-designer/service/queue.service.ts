@@ -30,19 +30,6 @@ export class QueueService {
         private nifiCommon: NiFiCommon
     ) {}
 
-    /**
-     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
-     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
-     *
-     * https://stackoverflow.com/a/59586462
-     *
-     * @param url
-     * @private
-     */
-    private stripProtocol(url: string): string {
-        return this.nifiCommon.substringAfterFirst(url, ':');
-    }
-
     submitEmptyQueueRequest(emptyQueueRequest: SubmitEmptyQueueRequest): Observable<any> {
         return this.httpClient.post(
             `${QueueService.API}/flowfile-queues/${emptyQueueRequest.connectionId}/drop-requests`,
@@ -58,10 +45,10 @@ export class QueueService {
     }
 
     pollEmptyQueueRequest(dropRequest: DropRequest): Observable<any> {
-        return this.httpClient.get(this.stripProtocol(dropRequest.uri));
+        return this.httpClient.get(this.nifiCommon.stripProtocol(dropRequest.uri));
     }
 
     deleteEmptyQueueRequest(dropRequest: DropRequest): Observable<any> {
-        return this.httpClient.delete(this.stripProtocol(dropRequest.uri));
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(dropRequest.uri));
     }
 }

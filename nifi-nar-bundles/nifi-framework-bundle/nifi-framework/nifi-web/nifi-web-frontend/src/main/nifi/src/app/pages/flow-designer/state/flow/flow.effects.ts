@@ -69,14 +69,8 @@ import {
     ComponentType,
     EditParameterRequest,
     EditParameterResponse,
-    InlineServiceCreationRequest,
-    InlineServiceCreationResponse,
-    NewPropertyDialogRequest,
-    NewPropertyDialogResponse,
     Parameter,
-    ParameterEntity,
-    Property,
-    PropertyDescriptor
+    ParameterEntity
 } from '../../../../state/shared';
 import { Router } from '@angular/router';
 import { Client } from '../../../../service/client.service';
@@ -86,7 +80,6 @@ import { selectProcessorTypes } from '../../../../state/extension-types/extensio
 import { NiFiState } from '../../../../state';
 import { CreateProcessor } from '../../ui/canvas/items/processor/create-processor/create-processor.component';
 import { EditProcessor } from '../../ui/canvas/items/processor/edit-processor/edit-processor.component';
-import { NewPropertyDialog } from '../../../../ui/common/new-property-dialog/new-property-dialog.component';
 import { BirdseyeView } from '../../service/birdseye-view.service';
 import { CreateProcessGroup } from '../../ui/canvas/items/process-group/create-process-group/create-process-group.component';
 import { CreateConnection } from '../../ui/canvas/items/connection/create-connection/create-connection.component';
@@ -94,13 +87,13 @@ import { EditConnectionComponent } from '../../ui/canvas/items/connection/edit-c
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { GroupComponents } from '../../ui/canvas/items/process-group/group-components/group-components.component';
 import { EditProcessGroup } from '../../ui/canvas/items/process-group/edit-process-group/edit-process-group.component';
-import { CreateControllerService } from '../../../../ui/common/controller-service/create-controller-service/create-controller-service.component';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { ControllerServiceService } from '../../service/controller-service.service';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
 import { selectParameterSaving } from '../parameter/parameter.selectors';
 import { ParameterService } from '../../service/parameter.service';
+import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 
 @Injectable()
 export class FlowEffects {
@@ -117,7 +110,8 @@ export class FlowEffects {
         private birdseyeView: BirdseyeView,
         private connectionManager: ConnectionManager,
         private router: Router,
-        private dialog: MatDialog
+        private dialog: MatDialog,
+        private propertyTableHelperService: PropertyTableHelperService
     ) {}
 
     reloadFlow$ = createEffect(() =>
@@ -852,36 +846,8 @@ export class FlowEffects {
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
 
-                    editDialogReference.componentInstance.createNewProperty = (
-                        existingProperties: string[],
-                        allowsSensitive: boolean
-                    ): Observable<Property> => {
-                        const dialogRequest: NewPropertyDialogRequest = { existingProperties, allowsSensitive };
-                        const newPropertyDialogReference = this.dialog.open(NewPropertyDialog, {
-                            data: dialogRequest,
-                            panelClass: 'small-dialog'
-                        });
-
-                        return newPropertyDialogReference.componentInstance.newProperty.pipe(
-                            take(1),
-                            switchMap((dialogResponse: NewPropertyDialogResponse) => {
-                                return this.flowService
-                                    .getPropertyDescriptor(processorId, dialogResponse.name, dialogResponse.sensitive)
-                                    .pipe(
-                                        take(1),
-                                        map((response) => {
-                                            newPropertyDialogReference.close();
-
-                                            return {
-                                                property: dialogResponse.name,
-                                                value: null,
-                                                descriptor: response.propertyDescriptor
-                                            };
-                                        })
-                                    );
-                            })
-                        );
-                    };
+                    editDialogReference.componentInstance.createNewProperty =
+                        this.propertyTableHelperService.createNewProperty(processorId, this.flowService);
 
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editProcessorForm.dirty) {
@@ -1013,74 +979,13 @@ export class FlowEffects {
                         });
                     };
 
-                    editDialogReference.componentInstance.createNewService = (
-                        serviceRequest: InlineServiceCreationRequest
-                    ): Observable<InlineServiceCreationResponse> => {
-                        const descriptor: PropertyDescriptor = serviceRequest.descriptor;
-
-                        // fetch all services that implement the requested service api
-                        return this.extensionTypesService
-                            .getImplementingControllerServiceTypes(
-                                // @ts-ignore
-                                descriptor.identifiesControllerService,
-                                descriptor.identifiesControllerServiceBundle
-                            )
-                            .pipe(
-                                take(1),
-                                switchMap((implementingTypesResponse) => {
-                                    // show the create controller service dialog with the types that implemented the interface
-                                    const createServiceDialogReference = this.dialog.open(CreateControllerService, {
-                                        data: {
-                                            controllerServiceTypes: implementingTypesResponse.controllerServiceTypes
-                                        },
-                                        panelClass: 'medium-dialog'
-                                    });
-
-                                    return createServiceDialogReference.componentInstance.createControllerService.pipe(
-                                        take(1),
-                                        switchMap((controllerServiceType) => {
-                                            // typically this sequence would be implemented with ngrx actions, however we are
-                                            // currently in an edit session and we need to return both the value (new service id)
-                                            // and updated property descriptor so the table renders correctly
-                                            return this.controllerServiceService
-                                                .createControllerService({
-                                                    revision: {
-                                                        clientId: this.client.getClientId(),
-                                                        version: 0
-                                                    },
-                                                    processGroupId,
-                                                    controllerServiceType: controllerServiceType.type,
-                                                    controllerServiceBundle: controllerServiceType.bundle
-                                                })
-                                                .pipe(
-                                                    take(1),
-                                                    switchMap((createReponse) => {
-                                                        // fetch an updated property descriptor
-                                                        return this.flowService
-                                                            .getPropertyDescriptor(processorId, descriptor.name, false)
-                                                            .pipe(
-                                                                take(1),
-                                                                map((descriptorResponse) => {
-                                                                    createServiceDialogReference.close();
-
-                                                                    return {
-                                                                        value: createReponse.id,
-                                                                        descriptor:
-                                                                            descriptorResponse.propertyDescriptor
-                                                                    };
-                                                                })
-                                                            );
-                                                    }),
-                                                    catchError((error) => {
-                                                        // TODO - show error
-                                                        return NEVER;
-                                                    })
-                                                );
-                                        })
-                                    );
-                                })
-                            );
-                    };
+                    editDialogReference.componentInstance.createNewService =
+                        this.propertyTableHelperService.createNewService(
+                            processorId,
+                            this.controllerServiceService,
+                            this.flowService,
+                            processGroupId
+                        );
 
                     editDialogReference.componentInstance.editProcessor
                         .pipe(takeUntil(editDialogReference.afterClosed()))
@@ -2331,7 +2236,7 @@ export class FlowEffects {
                 return from(this.flowService.getProcessGroup(request.id)).pipe(
                     map((response) =>
                         FlowActions.loadChildProcessGroupSuccess({
-                            response: response.component
+                            response
                         })
                     ),
                     catchError((error) => of(FlowActions.flowApiError({ error: error.error })))

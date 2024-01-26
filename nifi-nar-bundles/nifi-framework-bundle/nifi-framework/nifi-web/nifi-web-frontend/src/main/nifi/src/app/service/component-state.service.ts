@@ -28,24 +28,11 @@ export class ComponentStateService {
         private nifiCommon: NiFiCommon
     ) {}
 
-    /**
-     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
-     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
-     *
-     * https://stackoverflow.com/a/59586462
-     *
-     * @param url
-     * @private
-     */
-    private stripProtocol(url: string): string {
-        return this.nifiCommon.substringAfterFirst(url, ':');
-    }
-
     getComponentState(request: LoadComponentStateRequest): Observable<any> {
-        return this.httpClient.get(`${this.stripProtocol(request.componentUri)}/state`);
+        return this.httpClient.get(`${this.nifiCommon.stripProtocol(request.componentUri)}/state`);
     }
 
     clearComponentState(request: ClearComponentStateRequest): Observable<any> {
-        return this.httpClient.post(`${this.stripProtocol(request.componentUri)}/state/clear-requests`, {});
+        return this.httpClient.post(`${this.nifiCommon.stripProtocol(request.componentUri)}/state/clear-requests`, {});
     }
 }

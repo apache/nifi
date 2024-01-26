@@ -35,12 +35,13 @@ import { CurrentUser } from '../../../../../state/current-user';
 export class ReportingTaskTable {
     @Input() initialSortColumn: 'name' | 'type' | 'bundle' | 'state' = 'name';
     @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
+    activeSort: Sort = {
+        active: this.initialSortColumn,
+        direction: this.initialSortDirection
+    };
 
     @Input() set reportingTasks(reportingTaskEntities: ReportingTaskEntity[]) {
-        this.dataSource.data = this.sortEntities(reportingTaskEntities, {
-            active: this.initialSortColumn,
-            direction: this.initialSortDirection
-        });
+        this.dataSource.data = this.sortEntities(reportingTaskEntities, this.activeSort);
     }
 
     @Input() selectedReportingTaskId!: string;
@@ -258,6 +259,7 @@ export class ReportingTaskTable {
     }
 
     sortData(sort: Sort) {
+        this.activeSort = sort;
         this.dataSource.data = this.sortEntities(this.dataSource.data, sort);
     }
 

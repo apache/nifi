@@ -16,7 +16,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { ProvenanceRequest } from '../state/provenance-event-listing';
@@ -30,19 +30,6 @@ export class ProvenanceService {
         private httpClient: HttpClient,
         private nifiCommon: NiFiCommon
     ) {}
-
-    /**
-     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
-     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
-     *
-     * https://stackoverflow.com/a/59586462
-     *
-     * @param url
-     * @private
-     */
-    private stripProtocol(url: string): string {
-        return this.nifiCommon.substringAfterFirst(url, ':');
-    }
 
     getSearchOptions(): Observable<any> {
         return this.httpClient.get(`${ProvenanceService.API}/provenance/search-options`);

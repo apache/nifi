@@ -38,12 +38,12 @@ import {
     UpdateComponentRequest,
     UploadProcessGroupRequest
 } from '../state/flow';
-import { ComponentType } from '../../../state/shared';
+import { ComponentType, PropertyDescriptorRetriever } from '../../../state/shared';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 
 @Injectable({ providedIn: 'root' })
-export class FlowService {
+export class FlowService implements PropertyDescriptorRetriever {
     private static readonly API: string = '../nifi-api';
 
     constructor(
@@ -52,19 +52,6 @@ export class FlowService {
         private client: Client,
         private nifiCommon: NiFiCommon
     ) {}
-
-    /**
-     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
-     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
-     *
-     * https://stackoverflow.com/a/59586462
-     *
-     * @param url
-     * @private
-     */
-    private stripProtocol(url: string): string {
-        return this.nifiCommon.substringAfterFirst(url, ':');
-    }
 
     getFlow(processGroupId = 'root'): Observable<any> {
         // TODO - support uiOnly... this would mean that we need to load the entire resource prior to editing
@@ -212,13 +199,13 @@ export class FlowService {
 
     updateComponent(updateComponent: UpdateComponentRequest): Observable<any> {
         // return throwError('API Error');
-        return this.httpClient.put(this.stripProtocol(updateComponent.uri), updateComponent.payload);
+        return this.httpClient.put(this.nifiCommon.stripProtocol(updateComponent.uri), updateComponent.payload);
     }
 
     deleteComponent(deleteComponent: DeleteComponentRequest): Observable<any> {
         // return throwError('API Error');
         const revision: any = this.client.getRevision(deleteComponent.entity);
-        return this.httpClient.delete(this.stripProtocol(deleteComponent.uri), { params: revision });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(deleteComponent.uri), { params: revision });
     }
 
     createSnippet(snippet: Snippet): Observable<any> {
@@ -250,7 +237,7 @@ export class FlowService {
             disconnectedNodeAcknowledged: false,
             state: 'RUN_ONCE'
         };
-        return this.httpClient.put(`${this.stripProtocol(request.uri)}/run-status`, startRequest);
+        return this.httpClient.put(`${this.nifiCommon.stripProtocol(request.uri)}/run-status`, startRequest);
     }
 
     startComponent(request: StartComponentRequest): Observable<any> {
@@ -259,7 +246,7 @@ export class FlowService {
             disconnectedNodeAcknowledged: false,
             state: request.type === ComponentType.RemoteProcessGroup ? 'TRANSMITTING' : 'RUNNING'
         };
-        return this.httpClient.put(`${this.stripProtocol(request.uri)}/run-status`, startRequest);
+        return this.httpClient.put(`${this.nifiCommon.stripProtocol(request.uri)}/run-status`, startRequest);
     }
 
     stopComponent(request: StopComponentRequest): Observable<any> {
@@ -268,7 +255,7 @@ export class FlowService {
             disconnectedNodeAcknowledged: false,
             state: 'STOPPED'
         };
-        return this.httpClient.put(`${this.stripProtocol(request.uri)}/run-status`, stopRequest);
+        return this.httpClient.put(`${this.nifiCommon.stripProtocol(request.uri)}/run-status`, stopRequest);
     }
 
     startProcessGroup(request: StartProcessGroupRequest): Observable<any> {

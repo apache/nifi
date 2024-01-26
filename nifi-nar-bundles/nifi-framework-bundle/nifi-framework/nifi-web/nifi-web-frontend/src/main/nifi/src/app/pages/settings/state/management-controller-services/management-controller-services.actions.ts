@@ -19,7 +19,6 @@ import { createAction, props } from '@ngrx/store';
 import {
     ConfigureControllerServiceRequest,
     ConfigureControllerServiceSuccess,
-    CreateControllerServiceRequest,
     CreateControllerServiceSuccess,
     DeleteControllerServiceRequest,
     DeleteControllerServiceSuccess,
@@ -27,6 +26,7 @@ import {
     SelectControllerServiceRequest
 } from './index';
 import {
+    CreateControllerServiceRequest,
     DisableControllerServiceDialogRequest,
     EditControllerServiceDialogRequest,
     SetEnableControllerServiceDialogRequest
