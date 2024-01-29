@@ -21,6 +21,7 @@ import { selectCurrentUser } from '../../../../state/current-user/current-user.s
 import {
     createAccessPolicy,
     openAddTenantToPolicyDialog,
+    promptOverrideAccessPolicy,
     promptDeleteAccessPolicy,
     promptRemoveTenantFromPolicy,
     reloadAccessPolicy,
@@ -412,6 +413,10 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
 
     createNewPolicy(): void {
         this.store.dispatch(createAccessPolicy());
+    }
+
+    overridePolicy(): void {
+        this.store.dispatch(promptOverrideAccessPolicy());
     }
 
     removeTenantFromPolicy(request: RemoveTenantFromPolicyRequest): void {

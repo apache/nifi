@@ -59,6 +59,13 @@ export const loadAccessPolicySuccess = createAction(
 
 export const createAccessPolicy = createAction(`${ACCESS_POLICY_PREFIX} Create Access Policy`);
 
+export const promptOverrideAccessPolicy = createAction(`${ACCESS_POLICY_PREFIX} Prompt Override Access Policy`);
+
+export const overrideAccessPolicy = createAction(
+    `${ACCESS_POLICY_PREFIX} Override Access Policy`,
+    props<{ request: AddTenantsToPolicyRequest }>()
+);
+
 export const createAccessPolicySuccess = createAction(
     `${ACCESS_POLICY_PREFIX} Create Access Policy Success`,
     props<{ response: AccessPolicyResponse }>()
