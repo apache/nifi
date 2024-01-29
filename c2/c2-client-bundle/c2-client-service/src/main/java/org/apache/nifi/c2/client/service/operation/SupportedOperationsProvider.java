@@ -17,7 +17,10 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.nifi.c2.protocol.api.OperandType;
@@ -34,17 +37,26 @@ public class SupportedOperationsProvider {
     public Set<SupportedOperation> getSupportedOperations() {
         return operationHandlers.entrySet()
             .stream()
+            .sorted(Map.Entry.comparingByKey())
             .map(operationEntry -> getSupportedOperation(operationEntry.getKey(), operationEntry.getValue()))
-            .collect(Collectors.toSet());
+            .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     private SupportedOperation getSupportedOperation(OperationType operationType, Map<OperandType, C2OperationHandler> operands) {
         SupportedOperation supportedOperation = new SupportedOperation();
         supportedOperation.setType(operationType);
 
-        Map<OperandType, Map<String, Object>> properties = operands.values()
+        Map<OperandType, Map<String, Object>> properties = operands.entrySet()
             .stream()
-            .collect(Collectors.toMap(C2OperationHandler::getOperandType, C2OperationHandler::getProperties));
+            .sorted(Map.Entry.comparingByKey())
+            .map(Entry::getValue)
+            .collect(
+                Collectors.toMap(
+                    C2OperationHandler::getOperandType,
+                    C2OperationHandler::getProperties,
+                    (existing, replacement) -> existing,
+                    LinkedHashMap::new
+                ));
 
         supportedOperation.setProperties(properties);
 
