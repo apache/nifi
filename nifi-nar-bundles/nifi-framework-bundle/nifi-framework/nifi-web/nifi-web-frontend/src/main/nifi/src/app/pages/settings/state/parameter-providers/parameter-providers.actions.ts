@@ -24,9 +24,14 @@ import {
     DeleteParameterProviderRequest,
     DeleteParameterProviderSuccess,
     EditParameterProviderRequest,
+    FetchParameterProviderParametersRequest,
+    FetchParameterProviderParametersResponse,
     LoadParameterProvidersResponse,
+    ParameterProviderParameterApplicationEntity,
+    PollParameterProviderParametersUpdateSuccess,
     SelectParameterProviderRequest
 } from './index';
+import { FetchParameterProviderParameters } from '../../ui/parameter-providers/fetch-parameter-provider-parameters/fetch-parameter-provider-parameters.component';
 
 const PARAMETER_PROVIDERS_PREFIX = '[Parameter Providers]';
 
@@ -39,7 +44,7 @@ export const loadParameterProvidersSuccess = createAction(
     props<{ response: LoadParameterProvidersResponse }>()
 );
 
-export const parameterProvidersApiError = createAction(
+export const parameterProvidersBannerApiError = createAction(
     `${PARAMETER_PROVIDERS_PREFIX} Load Parameter Providers Error`,
     props<{ error: string }>()
 );
@@ -83,6 +88,11 @@ export const navigateToEditParameterProvider = createAction(
     props<{ id: string }>()
 );
 
+export const navigateToFetchParameterProvider = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Navigate To Fetch Parameter Provider`,
+    props<{ id: string }>()
+);
+
 export const openConfigureParameterProviderDialog = createAction(
     `${PARAMETER_PROVIDERS_PREFIX} Open Configure Parameter Provider Dialog`,
     props<{ request: EditParameterProviderRequest }>()
@@ -96,4 +106,59 @@ export const configureParameterProvider = createAction(
 export const configureParameterProviderSuccess = createAction(
     `${PARAMETER_PROVIDERS_PREFIX} Configure Parameter Provider Success`,
     props<{ response: ConfigureParameterProviderSuccess }>()
+);
+
+export const fetchParameterProviderParametersAndOpenDialog = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Fetch Parameter Provider Parameters and Open Dialog`,
+    props<{ request: FetchParameterProviderParametersRequest }>()
+);
+
+export const fetchParameterProviderParametersSuccess = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Fetch Parameter Provider Parameters Success`,
+    props<{ response: FetchParameterProviderParametersResponse }>()
+);
+
+export const openFetchParameterProviderDialog = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Open Fetch Parameter Provider Parameters Dialog`,
+    props<{ request: FetchParameterProviderParametersResponse }>()
+);
+
+export const resetFetchedParameterProvider = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Reset Fetched Parameter Provider`
+);
+
+// UPDATE FETCHED PARAMETERS
+export const submitParameterProviderParametersUpdateRequest = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Submit Parameter Provider Parameters Update Request`,
+    props<{ request: ParameterProviderParameterApplicationEntity }>()
+);
+
+export const submitParameterProviderParametersUpdateRequestSuccess = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Submit Parameter Provider Parameters Update Request Success`,
+    props<{ response: PollParameterProviderParametersUpdateSuccess }>()
+);
+
+export const startPollingParameterProviderParametersUpdateRequest = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Start Polling Parameter Provider Parameters Update Request`
+);
+
+export const pollParameterProviderParametersUpdateRequest = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Poll Parameter Provider Parameters Update Request`
+);
+
+export const pollParameterProviderParametersUpdateRequestSuccess = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Poll Parameter Provider Parameters Update Request Success`,
+    props<{ response: PollParameterProviderParametersUpdateSuccess }>()
+);
+
+export const stopPollingParameterProviderParametersUpdateRequest = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Stop Polling Parameter Provider Parameters Update Request`
+);
+
+export const deleteParameterProviderParametersUpdateRequest = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Delete Parameter Provider Parameters Update Request`
+);
+
+export const submitParameterProviderParametersUpdateComplete = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Submit Parameter Provider Parameters Update Complete`
 );

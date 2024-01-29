@@ -33,7 +33,7 @@ import { ParameterTable } from '../parameter-table/parameter-table.component';
 import { Parameter, ParameterContextUpdateRequestEntity, ParameterEntity } from '../../../../../state/shared';
 import { ProcessGroupReferences } from '../process-group-references/process-group-references.component';
 import { ParameterContextInheritance } from '../parameter-context-inheritance/parameter-context-inheritance.component';
-import { ParameterReferences } from '../parameter-references/parameter-references.component';
+import { ParameterReferences } from '../../../../../ui/common/parameter-references/parameter-references.component';
 
 @Component({
     selector: 'edit-parameter-context',

@@ -94,6 +94,34 @@ export class ParameterProvidersTable {
         return this.flowConfiguration.supportsManagedAuthorizer && this.currentUser.tenantsPermissions.canRead;
     }
 
+    canConfigure(entity: ParameterProviderEntity): boolean {
+        return this.canRead(entity) && this.canWrite(entity);
+    }
+
+    canDelete(entity: ParameterProviderEntity): boolean {
+        return (
+            this.canRead(entity) &&
+            this.canWrite(entity) &&
+            this.currentUser.controllerPermissions.canRead &&
+            this.currentUser.controllerPermissions.canWrite
+        );
+    }
+
+    canFetch(entity: ParameterProviderEntity): boolean {
+        let hasReadParameterContextsPermissions = true;
+        if (this.canRead(entity) && entity.component.referencingParameterContexts) {
+            hasReadParameterContextsPermissions = entity.component.referencingParameterContexts.every(
+                (context) => context.permissions.canRead
+            );
+        }
+        return (
+            this.canRead(entity) &&
+            this.canWrite(entity) &&
+            hasReadParameterContextsPermissions &&
+            !this.hasErrors(entity)
+        );
+    }
+
     isSelected(parameterProvider: ParameterProviderEntity): boolean {
         if (this.selectedParameterProviderId) {
             return parameterProvider.id === this.selectedParameterProviderId;

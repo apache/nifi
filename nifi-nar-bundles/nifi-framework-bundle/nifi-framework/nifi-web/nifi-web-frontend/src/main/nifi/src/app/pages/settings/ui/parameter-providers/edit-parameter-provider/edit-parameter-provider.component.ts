@@ -41,6 +41,7 @@ import { MatInputModule } from '@angular/material/input';
 import { ControllerServiceReferences } from '../../../../../ui/common/controller-service/controller-service-references/controller-service-references.component';
 import { ParameterProviderReferences } from '../parameter-context-references/parameter-provider-references.component';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
+import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 
 @Component({
     selector: 'edit-parameter-provider',
@@ -56,7 +57,8 @@ import { PropertyTable } from '../../../../../ui/common/property-table/property-
         MatInputModule,
         ControllerServiceReferences,
         ParameterProviderReferences,
-        PropertyTable
+        PropertyTable,
+        ErrorBanner
     ],
     templateUrl: './edit-parameter-provider.component.html',
     styleUrls: ['./edit-parameter-provider.component.scss']

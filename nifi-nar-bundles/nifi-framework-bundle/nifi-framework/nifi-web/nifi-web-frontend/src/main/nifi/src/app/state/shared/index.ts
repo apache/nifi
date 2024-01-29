@@ -21,7 +21,7 @@ export function isDefinedAndNotNull<T>() {
     return (source$: Observable<null | undefined | T>) =>
         source$.pipe(
             filter((input: null | undefined | T): input is T => {
-                return input !== null && typeof input !== undefined;
+                return input !== null && typeof input !== 'undefined';
             })
         );
 }

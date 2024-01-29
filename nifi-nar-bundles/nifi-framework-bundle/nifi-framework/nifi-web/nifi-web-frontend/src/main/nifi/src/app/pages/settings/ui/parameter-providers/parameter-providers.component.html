@@ -37,6 +37,7 @@
                     [selectedParameterProviderId]="selectedParameterProviderId$ | async"
                     (deleteParameterProvider)="deleteParameterProvider($event)"
                     (configureParameterProvider)="openConfigureParameterProviderDialog($event)"
+                    (fetchParameterProvider)="fetchParameterProviderParameters($event)"
                     (selectParameterProvider)="selectParameterProvider($event)"></parameter-providers-table>
             </div>
             <div class="flex justify-between">

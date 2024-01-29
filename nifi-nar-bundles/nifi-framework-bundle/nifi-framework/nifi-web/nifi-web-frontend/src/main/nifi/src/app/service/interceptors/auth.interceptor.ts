@@ -43,6 +43,8 @@ export class AuthInterceptor implements HttpInterceptor {
                     if (errorResponse instanceof HttpErrorResponse) {
                         if (errorResponse.status === 401) {
                             if (this.authStorage.hasToken()) {
+                                this.routedToFullScreenError = true;
+
                                 this.authStorage.removeToken();
 
                                 let message: string = errorResponse.error;
@@ -51,8 +53,6 @@ export class AuthInterceptor implements HttpInterceptor {
                                 } else {
                                     message += '. Please navigate home to log in again.';
                                 }
-
-                                this.routedToFullScreenError = true;
 
                                 this.store.dispatch(
                                     fullScreenError({

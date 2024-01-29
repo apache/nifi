@@ -17,17 +17,18 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { EditParameterProvider } from './edit-parameter-provider.component';
+import { FetchParameterProviderParameters } from './fetch-parameter-provider-parameters.component';
+import { FetchParameterProviderDialogRequest } from '../../../state/parameter-providers';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { EditParameterProviderRequest } from '../../../state/parameter-providers';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialParameterProvidersState } from '../../../state/parameter-providers/parameter-providers.reducer';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
-describe('EditParameterProvider', () => {
-    let component: EditParameterProvider;
-    let fixture: ComponentFixture<EditParameterProvider>;
-    const data: EditParameterProviderRequest = {
+describe('FetchParameterProviderParameters', () => {
+    let component: FetchParameterProviderParameters;
+    let fixture: ComponentFixture<FetchParameterProviderParameters>;
+
+    const data: FetchParameterProviderDialogRequest = {
         id: 'id',
         parameterProvider: {
             revision: {
@@ -154,7 +155,7 @@ describe('EditParameterProvider', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditParameterProvider, NoopAnimationsModule],
+            imports: [FetchParameterProviderParameters, NoopAnimationsModule],
             providers: [
                 {
                     provide: MAT_DIALOG_DATA,
@@ -165,7 +166,7 @@ describe('EditParameterProvider', () => {
                 })
             ]
         });
-        fixture = TestBed.createComponent(EditParameterProvider);
+        fixture = TestBed.createComponent(FetchParameterProviderParameters);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

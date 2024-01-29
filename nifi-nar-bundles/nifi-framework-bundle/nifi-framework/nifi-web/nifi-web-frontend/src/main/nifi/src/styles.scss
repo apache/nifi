@@ -388,6 +388,13 @@ $appFontPath: '~roboto-fontface/fonts';
         min-width: 760px;
     }
 
+    .xl-dialog {
+        max-height: 72%;
+        max-width: 85%;
+        min-height: 560px;
+        min-width: 1024px;
+    }
+
     .edit-parameter-context-dialog {
         max-height: 72%;
         max-width: 55%;

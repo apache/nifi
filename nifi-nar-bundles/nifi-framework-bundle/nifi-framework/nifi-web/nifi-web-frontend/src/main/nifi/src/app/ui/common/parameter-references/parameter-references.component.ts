@@ -22,17 +22,17 @@ import { MatButtonModule } from '@angular/material/button';
 import { NgClass, NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatDialogModule } from '@angular/material/dialog';
-import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
 import {
     AffectedComponent,
     AffectedComponentEntity,
     BulletinsTipInput,
     ProcessGroupName,
     ValidationErrorsTipInput
-} from '../../../../../state/shared';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
-import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
-import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
+} from '../../../state/shared';
+import { NiFiCommon } from '../../../service/nifi-common.service';
+import { ValidationErrorsTip } from '../tooltips/validation-errors-tip/validation-errors-tip.component';
+import { BulletinsTip } from '../tooltips/bulletins-tip/bulletins-tip.component';
 
 @Component({
     selector: 'parameter-references',
