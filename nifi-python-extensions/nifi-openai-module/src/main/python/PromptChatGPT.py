@@ -30,7 +30,7 @@ class PromptChatGPT(FlowFileTransform):
         implements = ['org.apache.nifi.python.processor.FlowFileTransform']
 
     class ProcessorDetails:
-        version = '2.0.0-M2'
+        version = '2.0.0-SNAPSHOT'
         description = "Submits a prompt to ChatGPT, writing the results either to a FlowFile attribute or to the contents of the FlowFile"
         tags = ["text", "chatgpt", "gpt", "machine learning", "ML", "artificial intelligence", "ai", "document", "langchain"]
         dependencies = ['langchain==0.0.331', 'openai==0.28.1', 'jsonpath-ng']
