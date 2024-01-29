@@ -30,7 +30,6 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
 import com.amazonaws.services.s3.model.DeleteBucketRequest;
-import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.ObjectTagging;
@@ -46,6 +45,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -72,6 +73,8 @@ import static org.junit.jupiter.api.Assertions.fail;
  * @see ITListS3
  */
 public abstract class AbstractS3IT {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractS3IT.class);
+
     protected final static String SAMPLE_FILE_RESOURCE_NAME = "/hello.txt";
     protected final static String BUCKET_NAME = "test-bucket-" + System.currentTimeMillis();
 
@@ -114,16 +117,10 @@ public abstract class AbstractS3IT {
         }
 
         ObjectListing objectListing = client.listObjects(BUCKET_NAME);
-        if(objectListing.getObjectSummaries().isEmpty()) {
-            return;
-        }
-
         while (true) {
-            client.deleteObjects(new DeleteObjectsRequest(BUCKET_NAME)
-                    .withKeys(objectListing.getObjectSummaries()
-                            .stream()
-                            .map(S3ObjectSummary::getKey)
-                            .toArray(String[]::new)));
+            for (S3ObjectSummary objectSummary : objectListing.getObjectSummaries()) {
+                client.deleteObject(BUCKET_NAME, objectSummary.getKey());
+            }
 
             if (objectListing.isTruncated()) {
                 objectListing = client.listNextBatchOfObjects(objectListing);
@@ -136,14 +133,14 @@ public abstract class AbstractS3IT {
     @AfterAll
     public static void oneTimeTearDown() {
         try {
-            if (!client.doesBucketExistV2(BUCKET_NAME)) {
+            if (client == null || !client.doesBucketExistV2(BUCKET_NAME)) {
                 return;
             }
 
             DeleteBucketRequest dbr = new DeleteBucketRequest(BUCKET_NAME);
             client.deleteBucket(dbr);
         } catch (final AmazonS3Exception e) {
-            System.err.println("Unable to delete bucket " + BUCKET_NAME + e);
+            logger.error("Unable to delete bucket {}", BUCKET_NAME, e);
         }
     }
 
