@@ -1229,11 +1229,11 @@ export class CanvasUtils {
                     const bBox = activeThreadCount.node().getBBox();
                     return d.dimensions.width - bBox.width - 20;
                 })
-                .style('fill', function () {
+                .attr('class', function () {
                     if (terminatedThreads > 0) {
-                        return '#ba554a';
+                        return `active-thread-count-icon warn-400`;
                     } else {
-                        return '#728e9b';
+                        return `active-thread-count-icon primary-500`;
                     }
                 })
                 .style('display', 'block')

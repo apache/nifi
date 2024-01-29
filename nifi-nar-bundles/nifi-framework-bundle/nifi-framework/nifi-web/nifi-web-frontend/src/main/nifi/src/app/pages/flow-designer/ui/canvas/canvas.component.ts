@@ -313,15 +313,15 @@ export class Canvas implements OnInit, OnDestroy {
             .attr('markerWidth', 6)
             .attr('markerHeight', 6)
             .attr('orient', 'auto')
-            .attr('fill', function (d: string) {
+            .attr('class', function (d: string) {
                 if (d === 'ghost') {
-                    return '#aaaaaa';
+                    return 'primary-contrast-300';
                 } else if (d === 'unauthorized') {
-                    return '#ba554a';
+                    return 'warn-400';
                 } else if (d === 'full') {
-                    return '#ba554a';
+                    return 'warn-400';
                 } else {
-                    return '#000000';
+                    return 'primary-contrast-200';
                 }
             })
             .append('path')
@@ -352,7 +352,6 @@ export class Canvas implements OnInit, OnDestroy {
         // color/opacity
         componentDropShadowFilter
             .append('feFlood')
-            .attr('flood-color', '#000000')
             .attr('flood-opacity', 0.4)
             .attr('result', 'offsetColor');
 
@@ -394,7 +393,6 @@ export class Canvas implements OnInit, OnDestroy {
         // color/opacity
         connectionFullDropShadowFilter
             .append('feFlood')
-            .attr('flood-color', '#ba554a')
             .attr('flood-opacity', 1)
             .attr('result', 'offsetColor');
 

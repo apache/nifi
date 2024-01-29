@@ -46,7 +46,7 @@ export type SupportedColumns = 'name' | 'type' | 'bundle';
         RouterLink
     ],
     templateUrl: './parameter-providers-table.component.html',
-    styleUrls: ['./parameter-providers-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./parameter-providers-table.component.scss']
 })
 export class ParameterProvidersTable {
     @Input() initialSortColumn: SupportedColumns = 'name';

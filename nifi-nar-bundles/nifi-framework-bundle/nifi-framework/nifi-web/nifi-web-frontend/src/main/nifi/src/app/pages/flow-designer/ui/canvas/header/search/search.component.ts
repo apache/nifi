@@ -37,8 +37,8 @@ import { RouterLink } from '@angular/router';
     selector: 'search',
     standalone: true,
     templateUrl: './search.component.html',
-    imports: [ReactiveFormsModule, CdkOverlayOrigin, CdkConnectedOverlay, NgIf, NgTemplateOutlet, RouterLink, NgForOf],
-    styleUrls: ['./search.component.scss']
+    styleUrls: ['./search.component.scss'],
+    imports: [ReactiveFormsModule, CdkOverlayOrigin, CdkConnectedOverlay, NgIf, NgTemplateOutlet, RouterLink, NgForOf]
 })
 export class Search implements OnInit {
     protected readonly ComponentType = ComponentType;

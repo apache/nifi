@@ -222,7 +222,7 @@
                         <div class="flex justify-between">
                             <div class="event-header">Attribute Values</div>
                             <div class="flex items-center gap-x-1">
-                                <mat-checkbox [(ngModel)]="onlyShowModifiedAttributes"></mat-checkbox>
+                                <mat-checkbox color="primary" [(ngModel)]="onlyShowModifiedAttributes"></mat-checkbox>
                                 <div>Show modified attributes only</div>
                             </div>
                         </div>
@@ -300,8 +300,8 @@
                                     </div>
                                     <div *ngIf="request.event.inputContentAvailable" class="flex">
                                         <button
-                                            color="accent"
-                                            mat-raised-button
+                                            color="primary"
+                                            mat-stroked-button
                                             (click)="downloadContentClicked('input')">
                                             <i class="fa fa-download"></i>
                                             Download
@@ -309,8 +309,8 @@
                                         <button
                                             *ngIf="contentViewerAvailable"
                                             class="ml-3"
-                                            color="accent"
-                                            mat-raised-button
+                                            color="primary"
+                                            mat-stroked-button
                                             (click)="viewContentClicked('input')">
                                             <i class="fa fa-eye"></i>
                                             View
@@ -366,8 +366,8 @@
                                     </div>
                                     <div *ngIf="request.event.outputContentAvailable" class="flex">
                                         <button
-                                            color="accent"
-                                            mat-raised-button
+                                            color="primary"
+                                            mat-stroked-button
                                             (click)="downloadContentClicked('output')">
                                             <i class="fa fa-download"></i>
                                             Download
@@ -375,8 +375,8 @@
                                         <button
                                             *ngIf="contentViewerAvailable"
                                             class="ml-3"
-                                            color="accent"
-                                            mat-raised-button
+                                            color="primary"
+                                            mat-stroked-button
                                             (click)="viewContentClicked('output')">
                                             <i class="fa fa-eye"></i>
                                             View
@@ -399,7 +399,7 @@
                                         "></ng-container>
                                 </div>
                                 <div>
-                                    <button color="accent" mat-raised-button mat-dialog-close (click)="replayClicked()">
+                                    <button color="primary" mat-stroked-button mat-dialog-close (click)="replayClicked()">
                                         <i class="fa fa-repeat"></i>
                                         Replay
                                     </button>

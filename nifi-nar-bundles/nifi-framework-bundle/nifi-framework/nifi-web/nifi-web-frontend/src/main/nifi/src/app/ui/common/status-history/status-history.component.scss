@@ -74,14 +74,11 @@
 
 :host ::ng-deep #status-history-chart-container,
 :host ::ng-deep #status-history-chart-control-container {
-    background-color: #fff;
     overflow: hidden;
     cursor: default;
 
     .axis path,
     .axis line {
-        fill: none;
-        stroke: #000;
         shape-rendering: crispEdges;
     }
 
@@ -90,7 +87,6 @@
     }
 
     .chart-line {
-        fill: none;
         stroke-width: 1.5px;
     }
 
@@ -99,7 +95,6 @@
     }
 
     .brush .selection {
-        stroke: #666;
         fill-opacity: 0.125;
         shape-rendering: crispEdges;
     }
@@ -107,7 +102,6 @@
 
 :host ::ng-deep #status-history-chart-control-container {
     height: 125px;
-    background-color: #fff;
     margin-top: 5px;
     cursor: default;
     overflow: hidden;
@@ -115,7 +109,6 @@
 
 :host ::ng-deep #status-history-chart-container text,
 #status-history-chart-control-container text {
-    fill: #527991;
     font-family: Arial, sans-serif;
     font-size: 10px;
 }

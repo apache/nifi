@@ -25,7 +25,10 @@
                     <input matInput formControlName="value" type="text" />
                 </mat-form-field>
                 <div class="-mt-6 mb-4">
-                    <mat-checkbox formControlName="inverse" name="inverse"> Exclude </mat-checkbox>
+                    <mat-checkbox
+                        color="primary"
+                        formControlName="inverse"
+                        name="inverse"> Exclude </mat-checkbox>
                 </div>
             </div>
         </ng-container>
@@ -62,7 +65,7 @@
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-        <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
+        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
         <button
             [disabled]="provenanceOptionsForm.invalid"
             type="button"

@@ -57,7 +57,7 @@ export interface ParameterItem {
         NifiTooltipDirective,
         ParameterReferences
     ],
-    styleUrls: ['./parameter-table.component.scss', '../../../../../../assets/styles/listing-table.scss'],
+    styleUrls: ['./parameter-table.component.scss'],
     providers: [
         {
             provide: NG_VALUE_ACCESSOR,

@@ -36,7 +36,7 @@ export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 
 @Component({
     selector: 'processor-status-table',
     templateUrl: './processor-status-table.component.html',
-    styleUrls: ['./processor-status-table.component.scss', '../../../../../../assets/styles/listing-table.scss'],
+    styleUrls: ['./processor-status-table.component.scss'],
     standalone: true,
     imports: [RouterLink, SummaryTableFilterModule, MatTableModule, MatSortModule, NgClass, NgIf, MatPaginatorModule]
 })

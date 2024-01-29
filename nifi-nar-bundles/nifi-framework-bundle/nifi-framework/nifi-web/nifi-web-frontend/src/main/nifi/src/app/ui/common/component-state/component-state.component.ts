@@ -56,7 +56,7 @@ import { MatInputModule } from '@angular/material/input';
         MatFormFieldModule,
         MatInputModule
     ],
-    styleUrls: ['./component-state.component.scss', '../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./component-state.component.scss']
 })
 export class ComponentStateDialog implements AfterViewInit {
     @Input() initialSortColumn: 'key' | 'value' = 'key';

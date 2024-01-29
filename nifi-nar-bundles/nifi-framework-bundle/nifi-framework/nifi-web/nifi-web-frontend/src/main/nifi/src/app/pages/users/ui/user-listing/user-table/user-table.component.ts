@@ -54,7 +54,7 @@ export interface Tenants {
         MatSortModule,
         MatInputModule
     ],
-    styleUrls: ['./user-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./user-table.component.scss']
 })
 export class UserTable implements AfterViewInit {
     filterTerm: string = '';

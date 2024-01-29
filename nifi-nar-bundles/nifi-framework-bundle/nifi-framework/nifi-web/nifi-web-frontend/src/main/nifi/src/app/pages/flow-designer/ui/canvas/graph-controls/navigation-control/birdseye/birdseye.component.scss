@@ -18,19 +18,12 @@
 :host ::ng-deep #birdseye {
     width: 266px;
     height: 150px;
-    background: #fff;
     overflow: hidden;
-    border: 1px solid #e5ebed;
     box-sizing: content-box;
 
     canvas,
     svg {
         position: absolute;
         overflow: hidden;
-    }
-
-    rect.birdseye-brush {
-        stroke: #7098ad;
-        fill: transparent;
     }
 }

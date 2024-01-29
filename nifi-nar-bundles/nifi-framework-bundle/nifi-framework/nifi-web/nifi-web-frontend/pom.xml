@@ -30,6 +30,12 @@
         <node.version>v20.5.1</node.version>
         <frontend.source>${basedir}/src/main/nifi</frontend.source>
         <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>
+        <copy-rename-maven-plugin.version>1.0</copy-rename-maven-plugin.version>
+        <!--
+            String name of the theme file to be used.
+            Ex: 'purple' // will overwrite the nifi.scss theme file with the 'purple' theme.
+        -->
+        <frontend.theme>nifi</frontend.theme>
     </properties>
 
     <build>
@@ -81,6 +87,27 @@
                                     </includes>
                                 </resource>
                             </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.coderplus.maven.plugins</groupId>
+                <artifactId>copy-rename-maven-plugin</artifactId>
+                <version>${copy-rename-maven-plugin.version}</version>
+                <executions>
+                    <!--
+                        Copy theme.
+                    -->
+                    <execution>
+                        <id>copy-theme</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <sourceFile>${frontend.working.dir}/src/assets/themes/${frontend.theme}.scss</sourceFile>
+                            <destinationFile>${frontend.working.dir}/src/assets/themes/nifi.scss</destinationFile>
                         </configuration>
                     </execution>
                 </executions>

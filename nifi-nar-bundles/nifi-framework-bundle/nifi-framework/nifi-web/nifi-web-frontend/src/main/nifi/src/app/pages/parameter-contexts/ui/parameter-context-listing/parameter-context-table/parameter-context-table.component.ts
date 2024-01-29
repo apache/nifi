@@ -26,7 +26,7 @@ import { CurrentUser } from '../../../../../state/current-user';
 @Component({
     selector: 'parameter-context-table',
     templateUrl: './parameter-context-table.component.html',
-    styleUrls: ['./parameter-context-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./parameter-context-table.component.scss']
 })
 export class ParameterContextTable {
     @Input() initialSortColumn: 'name' | 'provider' | 'description' = 'name';

@@ -26,7 +26,7 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
 @Component({
     selector: 'counter-table',
     templateUrl: './counter-table.component.html',
-    styleUrls: ['./counter-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./counter-table.component.scss']
 })
 export class CounterTable implements AfterViewInit {
     private _canModifyCounters: boolean = false;

@@ -38,7 +38,7 @@ export type SupportedColumns = 'name' | 'runStatus' | 'in' | 'out';
     standalone: true,
     imports: [CommonModule, SummaryTableFilterModule, MatSortModule, MatTableModule, RouterLink, MatPaginatorModule],
     templateUrl: './port-status-table.component.html',
-    styleUrls: ['./port-status-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./port-status-table.component.scss']
 })
 export class PortStatusTable implements AfterViewInit {
     private _initialSortColumn: SupportedColumns = 'name';

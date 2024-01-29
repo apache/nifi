@@ -37,7 +37,7 @@ export interface TenantItem {
     standalone: true,
     templateUrl: './policy-table.component.html',
     imports: [MatTableModule, MatSortModule, NgIf],
-    styleUrls: ['./policy-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./policy-table.component.scss']
 })
 export class PolicyTable {
     displayedColumns: string[] = ['user', 'actions'];

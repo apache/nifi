@@ -16,34 +16,21 @@
  */
 
 .flow-status {
-    border-bottom: 1px solid #aabbc3;
     box-sizing: content-box;
     font-size: 15px;
 
     .fa,
     .icon {
         font-style: normal;
-        color: #728e9b;
     }
 
     .status-value {
         white-space: nowrap;
         font-weight: 500;
-        color: #775351;
         text-shadow: none;
     }
 
     .controller-bulletins {
-        border-left: 1px solid #aabbc3;
-        background-color: #728e9b;
         cursor: default;
-    }
-
-    .controller-bulletins.has-bulletins {
-        background-color: #ba554a;
-    }
-
-    .controller-bulletins .fa {
-        color: #fff;
     }
 }

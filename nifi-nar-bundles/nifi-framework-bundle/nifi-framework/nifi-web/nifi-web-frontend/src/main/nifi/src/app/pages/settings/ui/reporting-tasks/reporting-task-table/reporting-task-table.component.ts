@@ -30,7 +30,7 @@ import { CurrentUser } from '../../../../../state/current-user';
 @Component({
     selector: 'reporting-task-table',
     templateUrl: './reporting-task-table.component.html',
-    styleUrls: ['./reporting-task-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./reporting-task-table.component.scss']
 })
 export class ReportingTaskTable {
     @Input() initialSortColumn: 'name' | 'type' | 'bundle' | 'state' = 'name';

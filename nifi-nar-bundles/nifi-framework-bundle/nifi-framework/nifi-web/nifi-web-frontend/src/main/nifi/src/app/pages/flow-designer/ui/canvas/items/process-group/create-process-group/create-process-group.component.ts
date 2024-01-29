@@ -56,8 +56,7 @@ import { NiFiCommon } from '../../../../../../../service/nifi-common.service';
         NifiTooltipDirective,
         MatIconModule
     ],
-    templateUrl: './create-process-group.component.html',
-    styleUrls: ['./create-process-group.component.scss']
+    templateUrl: './create-process-group.component.html'
 })
 export class CreateProcessGroup {
     saving$ = this.store.select(selectSaving);
