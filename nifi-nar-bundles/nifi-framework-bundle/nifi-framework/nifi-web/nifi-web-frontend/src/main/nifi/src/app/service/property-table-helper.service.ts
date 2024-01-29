@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { catchError, map, NEVER, Observable, switchMap, take } from 'rxjs';
+import { catchError, EMPTY, map, Observable, switchMap, take, takeUntil, tap } from 'rxjs';
 import {
     ControllerServiceCreator,
     ControllerServiceEntity,
@@ -32,9 +32,12 @@ import {
 } from '../state/shared';
 import { NewPropertyDialog } from '../ui/common/new-property-dialog/new-property-dialog.component';
 import { CreateControllerService } from '../ui/common/controller-service/create-controller-service/create-controller-service.component';
-import { ManagementControllerServiceService } from '../pages/settings/service/management-controller-service.service';
 import { ExtensionTypesService } from './extension-types.service';
 import { Client } from './client.service';
+import { NiFiState } from '../state';
+import { Store } from '@ngrx/store';
+import { snackBarError } from '../state/error/error.actions';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable({
     providedIn: 'root'
@@ -42,6 +45,7 @@ import { Client } from './client.service';
 export class PropertyTableHelperService {
     constructor(
         private dialog: MatDialog,
+        private store: Store<NiFiState>,
         private extensionTypesService: ExtensionTypesService,
         private client: Client
     ) {}
@@ -63,12 +67,19 @@ export class PropertyTableHelperService {
             });
 
             return newPropertyDialogReference.componentInstance.newProperty.pipe(
-                take(1),
+                takeUntil(newPropertyDialogReference.afterClosed()),
                 switchMap((dialogResponse: NewPropertyDialogResponse) => {
                     return propertyDescriptorService
                         .getPropertyDescriptor(id, dialogResponse.name, dialogResponse.sensitive)
                         .pipe(
                             take(1),
+                            catchError((errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(snackBarError({ error: errorResponse.error }));
+
+                                // handle the error here to keep the observable alive so the
+                                // user can attempt to create the property again
+                                return EMPTY;
+                            }),
                             map((response) => {
                                 newPropertyDialogReference.close();
 
@@ -112,6 +123,11 @@ export class PropertyTableHelperService {
                 )
                 .pipe(
                     take(1),
+                    tap({
+                        error: (errorResponse: HttpErrorResponse) => {
+                            this.store.dispatch(snackBarError({ error: errorResponse.error }));
+                        }
+                    }),
                     switchMap((implementingTypesResponse) => {
                         // show the create controller service dialog with the types that implemented the interface
                         const createServiceDialogReference = this.dialog.open(CreateControllerService, {
@@ -122,7 +138,7 @@ export class PropertyTableHelperService {
                         });
 
                         return createServiceDialogReference.componentInstance.createControllerService.pipe(
-                            take(1),
+                            takeUntil(createServiceDialogReference.afterClosed()),
                             switchMap((controllerServiceType) => {
                                 // typically this sequence would be implemented with ngrx actions, however we are
                                 // currently in an edit session, and we need to return both the value (new service id)
@@ -142,6 +158,17 @@ export class PropertyTableHelperService {
 
                                 return controllerServiceCreator.createControllerService(payload).pipe(
                                     take(1),
+                                    catchError((errorResponse: HttpErrorResponse) => {
+                                        this.store.dispatch(
+                                            snackBarError({
+                                                error: `Unable to create new Service: ${errorResponse.error}`
+                                            })
+                                        );
+
+                                        // handle the error here to keep the observable alive so the
+                                        // user can attempt to create the service again
+                                        return EMPTY;
+                                    }),
                                     switchMap((createResponse) => {
                                         // if provided, call the callback function
                                         if (afterServiceCreated) {
@@ -153,6 +180,20 @@ export class PropertyTableHelperService {
                                             .getPropertyDescriptor(id, descriptor.name, false)
                                             .pipe(
                                                 take(1),
+                                                tap({
+                                                    error: (errorResponse: HttpErrorResponse) => {
+                                                        // we've errored getting the descriptor but since the service
+                                                        // was already created, we should close the create service dialog
+                                                        // so multiple service instances are not inadvertently created
+                                                        createServiceDialogReference.close();
+
+                                                        this.store.dispatch(
+                                                            snackBarError({
+                                                                error: `Service created but unable to reload Property Descriptor: ${errorResponse.error}`
+                                                            })
+                                                        );
+                                                    }
+                                                }),
                                                 map((descriptorResponse) => {
                                                     createServiceDialogReference.close();
 
@@ -162,10 +203,6 @@ export class PropertyTableHelperService {
                                                     };
                                                 })
                                             );
-                                    }),
-                                    catchError((error) => {
-                                        // TODO - show error
-                                        return NEVER;
                                     })
                                 );
                             })

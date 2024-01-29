@@ -15,27 +15,14 @@
  * limitations under the License.
  */
 
-import { TestBed } from '@angular/core/testing';
+export const errorFeatureKey = 'error';
 
-import { AuthInterceptor } from './auth.interceptor';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/error/error.reducer';
+export interface ErrorDetail {
+    title: string;
+    message: string;
+}
 
-describe('AuthInterceptor', () => {
-    let service: AuthInterceptor;
-
-    beforeEach(() => {
-        TestBed.configureTestingModule({
-            providers: [
-                provideMockStore({
-                    initialState
-                })
-            ]
-        });
-        service = TestBed.inject(AuthInterceptor);
-    });
-
-    it('should be created', () => {
-        expect(service).toBeTruthy();
-    });
-});
+export interface ErrorState {
+    bannerErrors: string[] | null;
+    fullScreenError: ErrorDetail | null;
+}

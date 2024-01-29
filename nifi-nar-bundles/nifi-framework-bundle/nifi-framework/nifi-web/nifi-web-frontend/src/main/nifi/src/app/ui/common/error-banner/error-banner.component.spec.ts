@@ -15,27 +15,27 @@
  * limitations under the License.
  */
 
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { AuthInterceptor } from './auth.interceptor';
+import { ErrorBanner } from './error-banner.component';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/error/error.reducer';
+import { initialState } from '../../../state/error/error.reducer';
 
-describe('AuthInterceptor', () => {
-    let service: AuthInterceptor;
+describe('ErrorBanner', () => {
+    let component: ErrorBanner;
+    let fixture: ComponentFixture<ErrorBanner>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            providers: [
-                provideMockStore({
-                    initialState
-                })
-            ]
+            imports: [ErrorBanner],
+            providers: [provideMockStore({ initialState })]
         });
-        service = TestBed.inject(AuthInterceptor);
+        fixture = TestBed.createComponent(ErrorBanner);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
     });
 
-    it('should be created', () => {
-        expect(service).toBeTruthy();
+    it('should create', () => {
+        expect(component).toBeTruthy();
     });
 });

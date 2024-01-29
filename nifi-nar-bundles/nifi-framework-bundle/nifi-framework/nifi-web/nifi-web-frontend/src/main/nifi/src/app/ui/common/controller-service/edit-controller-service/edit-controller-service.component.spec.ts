@@ -21,6 +21,9 @@ import { EditControllerService } from './edit-controller-service.component';
 import { EditControllerServiceDialogRequest } from '../../../../state/shared';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { Component } from '@angular/core';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../../state/error/error.reducer';
 
 describe('EditControllerService', () => {
     let component: EditControllerService;
@@ -541,10 +544,22 @@ describe('EditControllerService', () => {
         }
     };
 
+    @Component({
+        selector: 'error-banner',
+        standalone: true,
+        template: ''
+    })
+    class MockErrorBanner {}
+
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditControllerService, BrowserAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
+            imports: [EditControllerService, MockErrorBanner, BrowserAnimationsModule],
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                provideMockStore({
+                    initialState
+                })
+            ]
         });
         fixture = TestBed.createComponent(EditControllerService);
         component = fixture.componentInstance;

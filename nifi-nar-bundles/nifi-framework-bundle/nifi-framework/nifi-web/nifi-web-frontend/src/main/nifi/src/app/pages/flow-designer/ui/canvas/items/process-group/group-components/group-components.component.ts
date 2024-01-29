@@ -24,7 +24,6 @@ import { groupComponents } from '../../../../../state/flow/flow.actions';
 import { ComponentType, SelectOption, TextTipInput } from '../../../../../../../state/shared';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
-import { Banner } from '../../../../common/banner/banner.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -42,7 +41,6 @@ import { Client } from '../../../../../../../service/client.service';
     standalone: true,
     imports: [
         AsyncPipe,
-        Banner,
         MatButtonModule,
         MatDialogModule,
         MatFormFieldModule,

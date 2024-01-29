@@ -20,10 +20,11 @@ import { CommonModule } from '@angular/common';
 import { ManagementControllerServices } from './management-controller-services.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
+import { ErrorBanner } from '../../../../ui/common/error-banner/error-banner.component';
 
 @NgModule({
     declarations: [ManagementControllerServices],
     exports: [ManagementControllerServices],
-    imports: [CommonModule, NgxSkeletonLoaderModule, ControllerServiceTable]
+    imports: [CommonModule, NgxSkeletonLoaderModule, ControllerServiceTable, ErrorBanner]
 })
 export class ManagementControllerServicesModule {}

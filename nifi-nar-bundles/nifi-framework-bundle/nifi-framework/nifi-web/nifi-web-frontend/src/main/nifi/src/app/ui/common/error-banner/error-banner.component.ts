@@ -17,28 +17,25 @@
 
 import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { CanvasState } from '../../../state';
-import { selectApiError } from '../../../state/flow/flow.selectors';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NgClass, NgIf } from '@angular/common';
+import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { NiFiState } from '../../../state';
+import { selectBannerErrors } from '../../../state/error/error.selectors';
+import { clearBannerErrors } from '../../../state/error/error.actions';
 
 @Component({
-    selector: 'banner',
+    selector: 'error-banner',
     standalone: true,
-    imports: [NgClass, NgIf],
-    templateUrl: './banner.component.html',
-    styleUrls: ['./banner.component.scss']
+    imports: [NgIf, NgForOf, MatButtonModule, AsyncPipe],
+    templateUrl: './error-banner.component.html',
+    styleUrls: ['./error-banner.component.scss']
 })
-export class Banner {
-    message: string | null = '';
-    severity: string = 'alert';
+export class ErrorBanner {
+    messages$ = this.store.select(selectBannerErrors);
 
-    constructor(private store: Store<CanvasState>) {
-        this.store
-            .select(selectApiError)
-            .pipe(takeUntilDestroyed())
-            .subscribe((message) => {
-                this.message = message;
-            });
+    constructor(private store: Store<NiFiState>) {}
+
+    dismiss(): void {
+        this.store.dispatch(clearBannerErrors());
     }
 }

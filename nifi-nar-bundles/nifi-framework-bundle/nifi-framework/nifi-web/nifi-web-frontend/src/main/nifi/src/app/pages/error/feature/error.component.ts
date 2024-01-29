@@ -15,27 +15,18 @@
  * limitations under the License.
  */
 
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Component } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { selectFullScreenError } from '../../../state/error/error.selectors';
+import { NiFiState } from '../../../state';
 
-import { Banner } from './banner.component';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../state/flow/flow.reducer';
+@Component({
+    selector: 'error',
+    templateUrl: './error.component.html',
+    styleUrls: ['./error.component.scss']
+})
+export class Error {
+    errorDetail$ = this.store.select(selectFullScreenError);
 
-describe('Banner', () => {
-    let component: Banner;
-    let fixture: ComponentFixture<Banner>;
-
-    beforeEach(() => {
-        TestBed.configureTestingModule({
-            imports: [Banner],
-            providers: [provideMockStore({ initialState })]
-        });
-        fixture = TestBed.createComponent(Banner);
-        component = fixture.componentInstance;
-        fixture.detectChanges();
-    });
-
-    it('should create', () => {
-        expect(component).toBeTruthy();
-    });
-});
+    constructor(private store: Store<NiFiState>) {}
+}

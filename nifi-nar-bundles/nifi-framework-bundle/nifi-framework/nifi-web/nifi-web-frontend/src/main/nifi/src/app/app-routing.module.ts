@@ -25,6 +25,10 @@ const routes: Routes = [
         loadChildren: () => import('./pages/login/feature/login.module').then((m) => m.LoginModule)
     },
     {
+        path: 'error',
+        loadChildren: () => import('./pages/error/feature/error.module').then((m) => m.ErrorModule)
+    },
+    {
         path: 'settings',
         canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/settings/feature/settings.module').then((m) => m.SettingsModule)

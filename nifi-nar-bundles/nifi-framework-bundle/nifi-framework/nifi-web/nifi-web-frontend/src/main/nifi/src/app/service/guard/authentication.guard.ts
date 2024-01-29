@@ -80,7 +80,9 @@ export const authenticationGuard: CanMatchFn = (route, state) => {
                 .select(selectCurrentUserState)
                 .pipe(take(1))
                 .subscribe((userState) => {
-                    if (userState.status == 'pending') {
+                    if (userState.status == 'success') {
+                        resolve(true);
+                    } else {
                         userService
                             .getUser()
                             .pipe(take(1))
@@ -118,7 +120,7 @@ export const authenticationGuard: CanMatchFn = (route, state) => {
                                     }
                                 },
                                 error: (error) => {
-                                    // there is no anonymous access and we don't know this user - open the login page which handles login/registration/etc
+                                    // there is no anonymous access and we don't know this user - open the login page which handles login
                                     if (error.status === 401) {
                                         authStorage.removeToken();
                                         window.location.href = './login';
@@ -126,8 +128,6 @@ export const authenticationGuard: CanMatchFn = (route, state) => {
                                     resolve(false);
                                 }
                             });
-                    } else {
-                        resolve(true);
                     }
                 });
         });

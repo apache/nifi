@@ -15,27 +15,32 @@
  * limitations under the License.
  */
 
-import { TestBed } from '@angular/core/testing';
+import { Component, Input } from '@angular/core';
+import { AuthStorage } from '../../../service/auth-storage.service';
+import { AuthService } from '../../../service/auth.service';
+import { RouterLink } from '@angular/router';
+import { NgIf } from '@angular/common';
 
-import { AuthInterceptor } from './auth.interceptor';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/error/error.reducer';
+@Component({
+    selector: 'page-content',
+    standalone: true,
+    templateUrl: './page-content.component.html',
+    imports: [RouterLink, NgIf],
+    styleUrls: ['./page-content.component.scss']
+})
+export class PageContent {
+    @Input() title: string = '';
 
-describe('AuthInterceptor', () => {
-    let service: AuthInterceptor;
+    constructor(
+        private authStorage: AuthStorage,
+        private authService: AuthService
+    ) {}
 
-    beforeEach(() => {
-        TestBed.configureTestingModule({
-            providers: [
-                provideMockStore({
-                    initialState
-                })
-            ]
-        });
-        service = TestBed.inject(AuthInterceptor);
-    });
+    logout(): void {
+        this.authService.logout();
+    }
 
-    it('should be created', () => {
-        expect(service).toBeTruthy();
-    });
-});
+    hasToken(): boolean {
+        return this.authStorage.hasToken();
+    }
+}

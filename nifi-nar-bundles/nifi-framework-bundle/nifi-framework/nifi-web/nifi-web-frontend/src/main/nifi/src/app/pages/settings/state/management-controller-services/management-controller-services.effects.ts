@@ -18,7 +18,8 @@
 import { Injectable } from '@angular/core';
 import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ManagementControllerServicesActions from './management-controller-services.actions';
-import { catchError, from, map, NEVER, Observable, of, switchMap, take, takeUntil, tap } from 'rxjs';
+import * as ErrorActions from '../../../../state/error/error.actions';
+import { catchError, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { Store } from '@ngrx/store';
@@ -31,17 +32,15 @@ import { EditControllerService } from '../../../../ui/common/controller-service/
 import {
     ComponentType,
     ControllerServiceReferencingComponent,
-    InlineServiceCreationRequest,
-    InlineServiceCreationResponse,
-    PropertyDescriptor,
     UpdateControllerServiceRequest
 } from '../../../../state/shared';
 import { Router } from '@angular/router';
-import { ExtensionTypesService } from '../../../../service/extension-types.service';
-import { selectSaving } from './management-controller-services.selectors';
+import { selectSaving, selectStatus } from './management-controller-services.selectors';
 import { EnableControllerService } from '../../../../ui/common/controller-service/enable-controller-service/enable-controller-service.component';
 import { DisableControllerService } from '../../../../ui/common/controller-service/disable-controller-service/disable-controller-service.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../../../service/error-helper.service';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
@@ -50,7 +49,7 @@ export class ManagementControllerServicesEffects {
         private store: Store<NiFiState>,
         private client: Client,
         private managementControllerServiceService: ManagementControllerServiceService,
-        private extensionTypesService: ExtensionTypesService,
+        private errorHelper: ErrorHelper,
         private dialog: MatDialog,
         private router: Router,
         private propertyTableHelperService: PropertyTableHelperService
@@ -59,7 +58,8 @@ export class ManagementControllerServicesEffects {
     loadManagementControllerServices$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ManagementControllerServicesActions.loadManagementControllerServices),
-            switchMap(() =>
+            concatLatestFrom(() => this.store.select(selectStatus)),
+            switchMap(([action, status]) =>
                 from(this.managementControllerServiceService.getControllerServices()).pipe(
                     map((response) =>
                         ManagementControllerServicesActions.loadManagementControllerServicesSuccess({
@@ -69,13 +69,17 @@ export class ManagementControllerServicesEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ManagementControllerServicesActions.managementControllerServicesApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (status === 'success') {
+                            if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                                return of(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            } else {
+                                return of(this.errorHelper.fullScreenError(errorResponse));
+                            }
+                        } else {
+                            return of(this.errorHelper.fullScreenError(errorResponse));
+                        }
+                    })
                 )
             )
         )
@@ -130,13 +134,10 @@ export class ManagementControllerServicesEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ManagementControllerServicesActions.managementControllerServicesApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        this.dialog.closeAll();
+                        return of(ErrorActions.snackBarError({ error: errorResponse.error }));
+                    })
                 )
             )
         )
@@ -265,6 +266,8 @@ export class ManagementControllerServicesEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe((response) => {
+                        this.store.dispatch(ErrorActions.clearBannerErrors());
+
                         if (response != 'ROUTED') {
                             this.store.dispatch(
                                 ManagementControllerServicesActions.selectControllerService({
@@ -295,15 +298,28 @@ export class ManagementControllerServicesEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ManagementControllerServicesActions.managementControllerServicesApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                            return of(
+                                ManagementControllerServicesActions.managementControllerServicesBannerApiError({
+                                    error: errorResponse.error
+                                })
+                            );
+                        } else {
+                            this.dialog.getDialogById(request.id)?.close('ROUTED');
+                            return of(this.errorHelper.fullScreenError(errorResponse));
+                        }
+                    })
                 )
             )
+        )
+    );
+
+    managementControllerServicesBannerApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ManagementControllerServicesActions.managementControllerServicesBannerApiError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.addBannerError({ error })))
         )
     );
 
@@ -425,13 +441,9 @@ export class ManagementControllerServicesEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ManagementControllerServicesActions.managementControllerServicesApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        return of(ErrorActions.snackBarError({ error: errorResponse.error }));
+                    })
                 )
             )
         )

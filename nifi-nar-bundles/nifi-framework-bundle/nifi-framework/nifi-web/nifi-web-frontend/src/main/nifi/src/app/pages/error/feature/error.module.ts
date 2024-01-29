@@ -15,8 +15,15 @@
  * limitations under the License.
  */
 
-div {
-    &.error {
-        background-color: #ffcdd2;
-    }
-}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Error } from './error.component';
+import { ErrorRoutingModule } from './error-routing.module';
+import { PageContent } from '../../../ui/common/page-content/page-content.component';
+
+@NgModule({
+    declarations: [Error],
+    exports: [Error],
+    imports: [CommonModule, ErrorRoutingModule, PageContent]
+})
+export class ErrorModule {}

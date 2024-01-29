@@ -15,11 +15,14 @@
  * limitations under the License.
  */
 
-.login-message {
-    .login-title {
-        font-size: 18px;
-        font-weight: 600;
-        font-family: Roboto Slab;
-        color: #728e9b;
-    }
-}
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { Error } from './error.component';
+
+const routes: Routes = [{ path: '', component: Error }];
+
+@NgModule({
+    imports: [RouterModule.forChild(routes)],
+    exports: [RouterModule]
+})
+export class ErrorRoutingModule {}

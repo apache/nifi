@@ -42,6 +42,8 @@ import { ControllerServiceStateEffects } from './state/contoller-service-state/c
 import { SystemDiagnosticsEffects } from './state/system-diagnostics/system-diagnostics.effects';
 import { FlowConfigurationEffects } from './state/flow-configuration/flow-configuration.effects';
 import { ComponentStateEffects } from './state/component-state/component-state.effects';
+import { ErrorEffects } from './state/error/error.effects';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 
 @NgModule({
     declarations: [AppComponent],
@@ -60,6 +62,7 @@ import { ComponentStateEffects } from './state/component-state/component-state.e
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
         EffectsModule.forRoot(
+            ErrorEffects,
             CurrentUserEffects,
             ExtensionTypesEffects,
             AboutEffects,
@@ -76,7 +79,8 @@ import { ComponentStateEffects } from './state/component-state/component-state.e
         }),
         MatProgressSpinnerModule,
         MatNativeDateModule,
-        MatDialogModule
+        MatDialogModule,
+        MatSnackBarModule
     ],
     providers: [
         {

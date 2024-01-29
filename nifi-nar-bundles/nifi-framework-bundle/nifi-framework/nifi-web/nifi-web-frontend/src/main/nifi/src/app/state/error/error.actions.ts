@@ -15,27 +15,15 @@
  * limitations under the License.
  */
 
-import { TestBed } from '@angular/core/testing';
+import { createAction, props } from '@ngrx/store';
+import { ErrorDetail } from './index';
 
-import { AuthInterceptor } from './auth.interceptor';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/error/error.reducer';
+export const fullScreenError = createAction('[Error] Full Screen Error', props<{ errorDetail: ErrorDetail }>());
 
-describe('AuthInterceptor', () => {
-    let service: AuthInterceptor;
+export const snackBarError = createAction('[Error] Snackbar Error', props<{ error: string }>());
 
-    beforeEach(() => {
-        TestBed.configureTestingModule({
-            providers: [
-                provideMockStore({
-                    initialState
-                })
-            ]
-        });
-        service = TestBed.inject(AuthInterceptor);
-    });
+export const addBannerError = createAction('[Error] Add Banner Error', props<{ error: string }>());
 
-    it('should be created', () => {
-        expect(service).toBeTruthy();
-    });
-});
+export const clearBannerErrors = createAction('[Error] Clear Banner Errors');
+
+export const resetErrorState = createAction('[Error] Reset Error State');

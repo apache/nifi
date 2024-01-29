@@ -33,9 +33,12 @@ import { flowConfigurationFeatureKey, FlowConfigurationState } from './flow-conf
 import { flowConfigurationReducer } from './flow-configuration/flow-configuration.reducer';
 import { componentStateFeatureKey, ComponentStateState } from './component-state';
 import { componentStateReducer } from './component-state/component-state.reducer';
+import { errorFeatureKey, ErrorState } from './error';
+import { errorReducer } from './error/error.reducer';
 
 export interface NiFiState {
     router: RouterReducerState;
+    [errorFeatureKey]: ErrorState;
     [currentUserFeatureKey]: CurrentUserState;
     [extensionTypesFeatureKey]: ExtensionTypesState;
     [aboutFeatureKey]: AboutState;
@@ -48,6 +51,7 @@ export interface NiFiState {
 
 export const rootReducers: ActionReducerMap<NiFiState> = {
     router: routerReducer,
+    [errorFeatureKey]: errorReducer,
     [currentUserFeatureKey]: currentUserReducer,
     [extensionTypesFeatureKey]: extensionTypesReducer,
     [aboutFeatureKey]: aboutReducer,

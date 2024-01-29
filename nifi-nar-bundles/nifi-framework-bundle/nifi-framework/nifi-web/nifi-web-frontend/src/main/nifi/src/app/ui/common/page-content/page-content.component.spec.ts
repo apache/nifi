@@ -15,27 +15,27 @@
  * limitations under the License.
  */
 
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { AuthInterceptor } from './auth.interceptor';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/error/error.reducer';
+import { PageContent } from './page-content.component';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { RouterModule } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
 
-describe('AuthInterceptor', () => {
-    let service: AuthInterceptor;
+describe('PageContent', () => {
+    let component: PageContent;
+    let fixture: ComponentFixture<PageContent>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            providers: [
-                provideMockStore({
-                    initialState
-                })
-            ]
+            imports: [PageContent, HttpClientTestingModule, RouterModule, RouterTestingModule]
         });
-        service = TestBed.inject(AuthInterceptor);
+        fixture = TestBed.createComponent(PageContent);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
     });
 
-    it('should be created', () => {
-        expect(service).toBeTruthy();
+    it('should create', () => {
+        expect(component).toBeTruthy();
     });
 });
