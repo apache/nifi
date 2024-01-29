@@ -189,7 +189,7 @@ export class PropertyTableHelperService {
 
                                                         this.store.dispatch(
                                                             snackBarError({
-                                                                error: `Service created but until to reload Property Descriptor: ${errorResponse.error}`
+                                                                error: `Service created but unable to reload Property Descriptor: ${errorResponse.error}`
                                                             })
                                                         );
                                                     }
