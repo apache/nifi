@@ -30,4 +30,8 @@
         cursor: -moz-grabbing;
         cursor: -webkit-grabbing;
     }
+
+    &:disabled {
+        box-shadow: none;
+    }
 }

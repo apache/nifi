@@ -20,6 +20,7 @@
         class="h-16 w-16 pl-1.5 -mt-16 flex items-center justify-center relative icon"
         [class]="isHovering() ? iconHoverClass + ' hovering' : iconClass"
         [class.dragging]="dragging"
+        [disabled]="disabled"
         (mouseenter)="mouseEnter()"
         (mouseleave)="mouseLeave()"
         cdkDrag

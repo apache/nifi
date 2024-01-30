@@ -20,6 +20,7 @@ import { ComponentType } from '../../../../../state/shared';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
 import {
+    selectCanvasPermissions,
     selectClusterSummary,
     selectControllerBulletins,
     selectControllerStatus,
@@ -62,6 +63,7 @@ export class HeaderComponent {
     clusterSummary$ = this.store.select(selectClusterSummary);
     controllerBulletins$ = this.store.select(selectControllerBulletins);
     currentProcessGroupId$ = this.store.select(selectCurrentProcessGroupId);
+    canvasPermissions$ = this.store.select(selectCanvasPermissions);
 
     constructor(
         private store: Store<CanvasState>,
