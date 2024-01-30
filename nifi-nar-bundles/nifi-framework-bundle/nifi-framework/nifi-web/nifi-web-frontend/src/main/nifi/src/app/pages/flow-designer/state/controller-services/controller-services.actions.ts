@@ -45,8 +45,8 @@ export const loadControllerServicesSuccess = createAction(
     props<{ response: LoadControllerServicesResponse }>()
 );
 
-export const controllerServicesApiError = createAction(
-    '[Controller Services] Load Controller Service Error',
+export const controllerServicesBannerApiError = createAction(
+    '[Controller Services] Controller Services Banner Api Error',
     props<{ error: string }>()
 );
 

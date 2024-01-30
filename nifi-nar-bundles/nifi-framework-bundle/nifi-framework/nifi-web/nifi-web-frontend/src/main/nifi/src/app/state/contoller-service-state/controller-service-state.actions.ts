@@ -26,62 +26,62 @@ import {
 } from './index';
 
 export const resetEnableControllerServiceState = createAction(
-    '[Enable Controller Service] Reset Enable Controller Service State'
+    '[Controller Service State] Reset Enable Controller Service State'
 );
 
 export const setControllerService = createAction(
-    '[Enable Controller Service] Set Controller Service',
+    '[Controller Service State] Set Controller Service',
     props<{
         request: SetControllerServiceRequest;
     }>()
 );
 
 export const submitEnableRequest = createAction(
-    '[Enable Controller Service] Submit Enable Request',
+    '[Controller Service State] Submit Enable Request',
     props<{
         request: SetEnableControllerServiceRequest;
     }>()
 );
 
-export const submitDisableRequest = createAction('[Enable Controller Service] Submit Disable Request');
+export const submitDisableRequest = createAction('[Controller Service State] Submit Disable Request');
 
-export const setEnableControllerService = createAction('[Enable Controller Service] Set Enable Controller Service');
+export const setEnableControllerService = createAction('[Controller Service State] Set Enable Controller Service');
 
 export const setEnableControllerServiceSuccess = createAction(
-    '[Enable Controller Service] Set Enable Controller Service Success',
+    '[Controller Service State] Set Enable Controller Service Success',
     props<{
         response: ControllerServiceStepResponse;
     }>()
 );
 
-export const updateReferencingServices = createAction('[Enable Controller Service] Update Referencing Services');
+export const updateReferencingServices = createAction('[Controller Service State] Update Referencing Services');
 
 export const updateReferencingServicesSuccess = createAction(
-    '[Enable Controller Service] Update Referencing Services Success',
+    '[Controller Service State] Update Referencing Services Success',
     props<{
         response: ReferencingComponentsStepResponse;
     }>()
 );
 
-export const updateReferencingComponents = createAction('[Enable Controller Service] Update Referencing Components');
+export const updateReferencingComponents = createAction('[Controller Service State] Update Referencing Components');
 
 export const updateReferencingComponentsSuccess = createAction(
-    '[Enable Controller Service] Update Referencing Components Success',
+    '[Controller Service State] Update Referencing Components Success',
     props<{
         response: ReferencingComponentsStepResponse;
     }>()
 );
 
 export const startPollingControllerService = createAction(
-    '[Enable Controller Service] Start Polling Controller Service'
+    '[Controller Service State] Start Polling Controller Service'
 );
 
-export const stopPollingControllerService = createAction('[Enable Controller Service] Stop Polling Controller Service');
+export const stopPollingControllerService = createAction('[Controller Service State] Stop Polling Controller Service');
 
-export const pollControllerService = createAction('[Enable Controller Service] Poll Controller Service');
+export const pollControllerService = createAction('[Controller Service State] Poll Controller Service');
 
 export const pollControllerServiceSuccess = createAction(
-    '[Enable Controller Service] Poll Controller Service Success',
+    '[Controller Service State] Poll Controller Service Success',
     props<{
         response: ControllerServiceStepResponse;
         previousStep: SetEnableStep;
@@ -89,25 +89,14 @@ export const pollControllerServiceSuccess = createAction(
 );
 
 export const setEnableStepFailure = createAction(
-    '[Enable Controller Service] Set Enable Step Failure',
+    '[Controller Service State] Set Enable Step Failure',
     props<{
         response: SetEnableStepFailure;
     }>()
 );
 
-export const controllerServiceApiError = createAction(
-    '[Enable Controller Service] Controller Service Api Error',
-    props<{
-        error: string;
-    }>()
-);
-
-export const clearControllerServiceApiError = createAction(
-    '[Enable Controller Service] Clear Controller Service Api Error'
-);
-
 export const showOkDialog = createAction(
-    '[Enable Controller Service] Show Ok Dialog',
+    '[Controller Service State] Show Ok Dialog',
     props<{
         title: string;
         message: string;

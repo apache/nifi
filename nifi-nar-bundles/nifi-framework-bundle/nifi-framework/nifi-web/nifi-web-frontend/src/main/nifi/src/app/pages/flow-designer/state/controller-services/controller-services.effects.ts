@@ -18,7 +18,7 @@
 import { Injectable } from '@angular/core';
 import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ControllerServicesActions from './controller-services.actions';
-import { catchError, combineLatest, filter, from, map, NEVER, of, switchMap, take, takeUntil, tap } from 'rxjs';
+import { catchError, combineLatest, EMPTY, filter, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
@@ -37,18 +37,25 @@ import {
     UpdateControllerServiceRequest
 } from '../../../../state/shared';
 import { Router } from '@angular/router';
-import { ExtensionTypesService } from '../../../../service/extension-types.service';
-import { selectCurrentProcessGroupId, selectSaving } from './controller-services.selectors';
+import {
+    selectCurrentProcessGroupId,
+    selectParameterContext,
+    selectSaving,
+    selectStatus
+} from './controller-services.selectors';
 import { ControllerServiceService } from '../../service/controller-service.service';
-import { selectCurrentParameterContext } from '../flow/flow.selectors';
 import { FlowService } from '../../service/flow.service';
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
-import { selectParameterSaving } from '../parameter/parameter.selectors';
+import { selectParameterSaving, selectParameterState } from '../parameter/parameter.selectors';
 import * as ParameterActions from '../parameter/parameter.actions';
 import { ParameterService } from '../../service/parameter.service';
 import { EnableControllerService } from '../../../../ui/common/controller-service/enable-controller-service/enable-controller-service.component';
 import { DisableControllerService } from '../../../../ui/common/controller-service/disable-controller-service/disable-controller-service.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
+import * as ErrorActions from '../../../../state/error/error.actions';
+import { ErrorHelper } from '../../../../service/error-helper.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ParameterState } from '../parameter';
 
 @Injectable()
 export class ControllerServicesEffects {
@@ -59,7 +66,7 @@ export class ControllerServicesEffects {
         private controllerServiceService: ControllerServiceService,
         private flowService: FlowService,
         private parameterService: ParameterService,
-        private extensionTypesService: ExtensionTypesService,
+        private errorHelper: ErrorHelper,
         private dialog: MatDialog,
         private router: Router,
         private propertyTableHelperService: PropertyTableHelperService
@@ -69,28 +76,34 @@ export class ControllerServicesEffects {
         this.actions$.pipe(
             ofType(ControllerServicesActions.loadControllerServices),
             map((action) => action.request),
-            switchMap((request) =>
+            concatLatestFrom(() => this.store.select(selectStatus)),
+            switchMap(([request, status]) =>
                 combineLatest([
                     this.controllerServiceService.getControllerServices(request.processGroupId),
-                    this.controllerServiceService.getBreadcrumbs(request.processGroupId)
+                    this.controllerServiceService.getFlow(request.processGroupId)
                 ]).pipe(
-                    map(([controllerServicesResponse, breadcrumbsResponse]) =>
+                    map(([controllerServicesResponse, flowResponse]) =>
                         ControllerServicesActions.loadControllerServicesSuccess({
                             response: {
-                                processGroupId: breadcrumbsResponse.id,
+                                processGroupId: flowResponse.processGroupFlow.id,
                                 controllerServices: controllerServicesResponse.controllerServices,
                                 loadedTimestamp: controllerServicesResponse.currentTime,
-                                breadcrumb: breadcrumbsResponse
+                                breadcrumb: flowResponse.processGroupFlow.breadcrumb,
+                                parameterContext: flowResponse.processGroupFlow.parameterContext ?? null
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ControllerServicesActions.controllerServicesApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (status === 'success') {
+                            if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                                return of(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            } else {
+                                return of(this.errorHelper.fullScreenError(errorResponse));
+                            }
+                        } else {
+                            return of(this.errorHelper.fullScreenError(errorResponse));
+                        }
+                    })
                 )
             )
         )
@@ -149,13 +162,10 @@ export class ControllerServicesEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ControllerServicesActions.controllerServicesApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        this.dialog.closeAll();
+                        return of(ErrorActions.snackBarError({ error: errorResponse.error }));
+                    })
                 )
             )
         )
@@ -191,7 +201,7 @@ export class ControllerServicesEffects {
                 ofType(ControllerServicesActions.openConfigureControllerServiceDialog),
                 map((action) => action.request),
                 concatLatestFrom(() => [
-                    this.store.select(selectCurrentParameterContext),
+                    this.store.select(selectParameterContext),
                     this.store.select(selectCurrentProcessGroupId)
                 ]),
                 tap(([request, parameterContext, processGroupId]) => {
@@ -245,6 +255,11 @@ export class ControllerServicesEffects {
                         editDialogReference.componentInstance.getParameters = (sensitive: boolean) => {
                             return this.flowService.getParameterContext(parameterContext.id).pipe(
                                 take(1),
+                                tap({
+                                    error: (errorResponse: HttpErrorResponse) => {
+                                        this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                                    }
+                                }),
                                 map((response) => response.component.parameters),
                                 map((parameterEntities) => {
                                     return parameterEntities
@@ -266,6 +281,10 @@ export class ControllerServicesEffects {
                             value: string | null
                         ) => {
                             return this.parameterService.getParameterContext(parameterContext.id, false).pipe(
+                                catchError((errorResponse: HttpErrorResponse) => {
+                                    this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                                    return EMPTY;
+                                }),
                                 switchMap((parameterContextEntity) => {
                                     const existingParameters: string[] =
                                         parameterContextEntity.component.parameters.map(
@@ -311,20 +330,31 @@ export class ControllerServicesEffects {
                                                 })
                                             );
 
-                                            return this.store.select(selectParameterSaving).pipe(
+                                            return this.store.select(selectParameterState).pipe(
                                                 takeUntil(convertToParameterDialogReference.afterClosed()),
-                                                filter((parameterSaving) => parameterSaving === false),
+                                                tap((parameterState: ParameterState) => {
+                                                    if (parameterState.error) {
+                                                        throw new Error(parameterState.error);
+                                                    }
+                                                }),
+                                                filter((parameterState: ParameterState) => !parameterState.saving),
                                                 map(() => {
                                                     convertToParameterDialogReference.close();
                                                     return `#{${dialogResponse.parameter.name}}`;
+                                                }),
+                                                catchError((error) => {
+                                                    convertToParameterDialogReference.close();
+                                                    this.store.dispatch(
+                                                        ErrorActions.snackBarError({ error: error.message })
+                                                    );
+                                                    this.store.dispatch(
+                                                        ParameterActions.editParameterContextComplete()
+                                                    );
+                                                    return EMPTY;
                                                 })
                                             );
                                         })
                                     );
-                                }),
-                                catchError(() => {
-                                    // TODO handle error
-                                    return NEVER;
                                 })
                             );
                         };
@@ -341,8 +371,8 @@ export class ControllerServicesEffects {
                                 ];
                                 goTo(commands, 'Controller Service');
                             },
-                            error: () => {
-                                // TODO - handle error
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
                             }
                         });
                     };
@@ -410,15 +440,28 @@ export class ControllerServicesEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ControllerServicesActions.controllerServicesApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                            return of(
+                                ControllerServicesActions.controllerServicesBannerApiError({
+                                    error: errorResponse.error
+                                })
+                            );
+                        } else {
+                            this.dialog.getDialogById(request.id)?.close('ROUTED');
+                            return of(this.errorHelper.fullScreenError(errorResponse));
+                        }
+                    })
                 )
             )
+        )
+    );
+
+    controllerServicesBannerApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ControllerServicesActions.controllerServicesBannerApiError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.addBannerError({ error })))
         )
     );
 
@@ -558,12 +601,8 @@ export class ControllerServicesEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ControllerServicesActions.controllerServicesApiError({
-                                error: error.error
-                            })
-                        )
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(ErrorActions.snackBarError({ error: errorResponse.error }))
                     )
                 )
             )

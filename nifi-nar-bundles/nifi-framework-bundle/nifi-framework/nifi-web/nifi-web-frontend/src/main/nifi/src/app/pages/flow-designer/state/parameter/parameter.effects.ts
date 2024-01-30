@@ -20,10 +20,11 @@ import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ParameterActions from './parameter.actions';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../index';
-import { asyncScheduler, catchError, from, interval, map, NEVER, of, switchMap, takeUntil, tap } from 'rxjs';
+import { asyncScheduler, catchError, from, interval, map, NEVER, of, switchMap, takeUntil } from 'rxjs';
 import { ParameterContextUpdateRequest } from '../../../../state/shared';
 import { selectUpdateRequest } from './parameter.selectors';
 import { ParameterService } from '../../service/parameter.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class ParameterEffects {
@@ -46,12 +47,8 @@ export class ParameterEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ParameterActions.parameterApiError({
-                                error: error.error
-                            })
-                        )
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(ParameterActions.parameterApiError({ error: errorResponse.error }))
                     )
                 )
             )
@@ -140,12 +137,22 @@ export class ParameterEffects {
         this.actions$.pipe(
             ofType(ParameterActions.deleteParameterContextUpdateRequest),
             concatLatestFrom(() => this.store.select(selectUpdateRequest)),
-            tap(([, updateRequest]) => {
+            switchMap(([, updateRequest]) => {
                 if (updateRequest) {
-                    this.parameterService.deleteParameterContextUpdate(updateRequest.request).subscribe();
+                    return from(this.parameterService.deleteParameterContextUpdate(updateRequest.request)).pipe(
+                        map(() => ParameterActions.editParameterContextComplete()),
+                        catchError((error) =>
+                            of(
+                                ParameterActions.parameterApiError({
+                                    error: error.error
+                                })
+                            )
+                        )
+                    );
+                } else {
+                    return of(ParameterActions.editParameterContextComplete());
                 }
-            }),
-            switchMap(() => of(ParameterActions.editParameterContextComplete()))
+            })
         )
     );
 }

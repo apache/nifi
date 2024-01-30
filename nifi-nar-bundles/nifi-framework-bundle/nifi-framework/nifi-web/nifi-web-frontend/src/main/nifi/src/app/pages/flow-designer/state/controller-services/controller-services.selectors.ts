@@ -31,9 +31,19 @@ export const selectSaving = createSelector(
     (state: ControllerServicesState) => state.saving
 );
 
+export const selectStatus = createSelector(
+    selectControllerServicesState,
+    (state: ControllerServicesState) => state.status
+);
+
 export const selectCurrentProcessGroupId = createSelector(
     selectControllerServicesState,
     (state: ControllerServicesState) => state.processGroupId
+);
+
+export const selectParameterContext = createSelector(
+    selectControllerServicesState,
+    (state: ControllerServicesState) => state.parameterContext
 );
 
 export const selectProcessGroupIdFromRoute = createSelector(selectCurrentRoute, (route) => {

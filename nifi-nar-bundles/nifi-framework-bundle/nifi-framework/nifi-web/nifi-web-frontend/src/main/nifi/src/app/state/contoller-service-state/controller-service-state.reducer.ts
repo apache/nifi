@@ -18,8 +18,6 @@
 import { createReducer, on } from '@ngrx/store';
 import { ControllerServiceState, SetEnableStep } from './index';
 import {
-    clearControllerServiceApiError,
-    controllerServiceApiError,
     setEnableStepFailure,
     pollControllerServiceSuccess,
     resetEnableControllerServiceState,
@@ -39,7 +37,6 @@ export const initialState: ControllerServiceState = {
         scope: 'SERVICE_ONLY'
     },
     controllerService: null,
-    error: null,
     status: 'pending'
 };
 
@@ -91,15 +88,5 @@ export const controllerServiceStateReducer = createReducer(
             error: response
         },
         status: 'error' as const
-    })),
-    on(controllerServiceApiError, (state, { error }) => ({
-        ...state,
-        error: error,
-        status: 'error' as const
-    })),
-    on(clearControllerServiceApiError, (state) => ({
-        ...state,
-        error: null,
-        status: 'pending' as const
     }))
 );

@@ -22,4 +22,5 @@ export const parameterFeatureKey = 'parameter';
 export interface ParameterState {
     updateRequestEntity: ParameterContextUpdateRequestEntity | null;
     saving: boolean;
+    error: string | null;
 }

@@ -35,14 +35,14 @@
                             <i class="fa fa-plus"></i>
                         </button>
                     </div>
-                    <div class="flex-1">
+                    <div class="flex-1" *ngIf="flowConfiguration$ | async; let flowConfiguration">
                         <controller-service-table
                             [selectedServiceId]="selectedServiceId$ | async"
                             [controllerServices]="serviceState.controllerServices"
                             [formatScope]="formatScope(serviceState.breadcrumb)"
                             [definedByCurrentGroup]="definedByCurrentGroup(serviceState.breadcrumb)"
                             [currentUser]="(currentUser$ | async)!"
-                            [flowConfiguration]="(flowConfiguration$ | async)!"
+                            [flowConfiguration]="flowConfiguration"
                             [canModifyParent]="canModifyParent(serviceState.breadcrumb)"
                             (selectControllerService)="selectControllerService($event)"
                             (configureControllerService)="configureControllerService($event)"

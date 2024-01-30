@@ -39,7 +39,7 @@ import {
     selectControllerService
 } from '../../state/controller-services/controller-services.actions';
 import { initialState } from '../../state/controller-services/controller-services.reducer';
-import { ControllerServiceEntity } from '../../../../state/shared';
+import { ControllerServiceEntity, isDefinedAndNotNull } from '../../../../state/shared';
 import { BreadcrumbEntity } from '../../state/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
@@ -56,7 +56,7 @@ export class ControllerServices implements OnInit, OnDestroy {
     serviceState$ = this.store.select(selectControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
-    flowConfiguration$ = this.store.select(selectFlowConfiguration);
+    flowConfiguration$ = this.store.select(selectFlowConfiguration).pipe(isDefinedAndNotNull());
 
     private currentProcessGroupId!: string;
 
