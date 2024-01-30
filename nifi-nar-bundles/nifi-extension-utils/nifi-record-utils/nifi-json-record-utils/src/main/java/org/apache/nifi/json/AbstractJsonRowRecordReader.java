@@ -19,6 +19,7 @@ package org.apache.nifi.json;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonParser.Feature;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -138,6 +139,8 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         try {
             final StreamReadConstraints configuredStreamReadConstraints = streamReadConstraints == null ? DEFAULT_STREAM_READ_CONSTRAINTS : streamReadConstraints;
             jsonParser = tokenParserFactory.getJsonParser(in, configuredStreamReadConstraints, allowComments);
+            jsonParser.enable(Feature.USE_FAST_DOUBLE_PARSER);
+            jsonParser.enable(Feature.USE_FAST_BIG_NUMBER_PARSER);
 
             if (strategy == StartingFieldStrategy.NESTED_FIELD) {
                 while (jsonParser.nextToken() != null) {
