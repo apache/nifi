@@ -19,6 +19,7 @@ package org.apache.nifi.json;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonGenerator.Feature;
 import com.fasterxml.jackson.core.util.MinimalPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.NullSuppression;
@@ -50,7 +51,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
+
+import java.util.regex.Pattern;
+
 public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSetWriter, RawRecordWriter {
+    private static final Pattern SCIENTIFIC_NOTATION_PATTERN = Pattern.compile("[0-9]([eE][-+]?)[0-9]");
+
     private final ComponentLog logger;
     private final SchemaAccessWriter schemaAccess;
     private final RecordSchema recordSchema;
@@ -62,17 +68,18 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
     private String mimeType = "application/json";
     private final boolean prettyPrint;
+    private final boolean allowScientificNotation;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
             final NullSuppression nullSuppression, final OutputGrouping outputGrouping, final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
-        this(logger, recordSchema, schemaAccess, out, prettyPrint, nullSuppression, outputGrouping, dateFormat, timeFormat, timestampFormat, "application/json");
+        this(logger, recordSchema, schemaAccess, out, prettyPrint, nullSuppression, outputGrouping, dateFormat, timeFormat, timestampFormat, "application/json", false);
     }
 
     public WriteJsonResult(final ComponentLog logger, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
         final NullSuppression nullSuppression, final OutputGrouping outputGrouping, final String dateFormat, final String timeFormat, final String timestampFormat,
-        final String mimeType) throws IOException {
+        final String mimeType, final boolean allowScientificNotation) throws IOException {
 
         super(out);
         this.logger = logger;
@@ -81,6 +88,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         this.nullSuppression = nullSuppression;
         this.outputGrouping = outputGrouping;
         this.mimeType = mimeType;
+        this.allowScientificNotation = allowScientificNotation;
 
         // Use DateFormat with default TimeZone to avoid unexpected conversion of year-month-day
         final DateFormat df = dateFormat == null ? null : new SimpleDateFormat(dateFormat);
@@ -95,6 +103,10 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         factory.setCodec(objectMapper);
 
         this.generator = factory.createGenerator(out);
+        if (!allowScientificNotation) {
+            generator.enable(Feature.WRITE_BIGDECIMAL_AS_PLAIN);
+        }
+
         this.prettyPrint = prettyPrint;
         if (prettyPrint) {
             generator.useDefaultPrettyPrinter();
@@ -167,23 +179,49 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         return WriteResult.of(incrementRecordCount(), attributes);
     }
 
+    private boolean isUseSerializeForm(final Record record, final RecordSchema writeSchema) {
+        final Optional<SerializedForm> serializedForm = record.getSerializedForm();
+        if (!serializedForm.isPresent()) {
+            return false;
+        }
+
+        final SerializedForm form = serializedForm.get();
+        if (!form.getMimeType().equals(getMimeType()) || !record.getSchema().equals(writeSchema)) {
+            return false;
+        }
+
+        final Object serialized = form.getSerialized();
+        String serializedString;
+
+        if (!(serialized instanceof String)) {
+            return false;
+        } else {
+            serializedString = (String) serialized;
+        }
+
+        final boolean serializedPretty = serializedString.contains("\n");
+        if (serializedPretty != this.prettyPrint) {
+            return false;
+        }
+
+        if (!allowScientificNotation && hasScientificNotation(serializedString)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean hasScientificNotation(final String value) {
+        return SCIENTIFIC_NOTATION_PATTERN.matcher(value).find();
+    }
+
     private void writeRecord(final Record record, final RecordSchema writeSchema, final JsonGenerator generator,
         final GeneratorTask startTask, final GeneratorTask endTask, final boolean schemaAware) throws IOException {
 
-        final Optional<SerializedForm> serializedForm = record.getSerializedForm();
-        if (serializedForm.isPresent()) {
-            final SerializedForm form = serializedForm.get();
-            if (form.getMimeType().equals(getMimeType()) && record.getSchema().equals(writeSchema)) {
-                final Object serialized = form.getSerialized();
-                if (serialized instanceof String) {
-                    String serializedString = (String) serialized;
-                    final boolean serializedPretty = serializedString.contains("\n");
-                    if (serializedPretty == this.prettyPrint) {
-                        generator.writeRawValue((String) serialized);
-                        return;
-                    }
-                }
-            }
+        if (isUseSerializeForm(record, writeSchema)) {
+            final String serialized = (String) record.getSerializedForm().get().getSerialized();
+            generator.writeRawValue(serialized);
+            return;
         }
 
         try {
@@ -298,6 +336,12 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             generator.writeObject(formatted);
             return;
         }
+        if (!allowScientificNotation) {
+            if (value instanceof Double || value instanceof Float) {
+                generator.writeNumber(DataTypeUtils.toBigDecimal(value, fieldName));
+                return;
+            }
+        }
 
         generator.writeObject(value);
     }
@@ -367,10 +411,18 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
                 break;
             }
             case DOUBLE:
-                generator.writeNumber(DataTypeUtils.toDouble(coercedValue, fieldName));
+                if (allowScientificNotation) {
+                    generator.writeNumber(DataTypeUtils.toDouble(coercedValue, fieldName));
+                } else {
+                    generator.writeNumber(DataTypeUtils.toBigDecimal(coercedValue, fieldName));
+                }
                 break;
             case FLOAT:
-                generator.writeNumber(DataTypeUtils.toFloat(coercedValue, fieldName));
+                if (allowScientificNotation) {
+                    generator.writeNumber(DataTypeUtils.toFloat(coercedValue, fieldName));
+                } else {
+                    generator.writeNumber(DataTypeUtils.toBigDecimal(coercedValue, fieldName));
+                }
                 break;
             case LONG:
                 generator.writeNumber(DataTypeUtils.toLong(coercedValue, fieldName));
