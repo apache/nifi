@@ -68,7 +68,9 @@ import {
     UpdateConnectionSuccess,
     UpdatePositionsRequest,
     UploadProcessGroupRequest,
-    NavigateToQueueListing
+    NavigateToQueueListing,
+    StartProcessGroupResponse,
+    StopProcessGroupResponse
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
 
@@ -495,6 +497,11 @@ export const startComponentSuccess = createAction(
     props<{ response: StartComponentResponse }>()
 );
 
+export const startProcessGroupSuccess = createAction(
+    `${CANVAS_PREFIX} Start Process Group Success`,
+    props<{ response: StartProcessGroupResponse }>()
+);
+
 export const stopComponent = createAction(
     `${CANVAS_PREFIX} Stop Component`,
     props<{ request: StopComponentRequest | StopProcessGroupRequest }>()
@@ -508,6 +515,11 @@ export const stopComponents = createAction(
 export const stopComponentSuccess = createAction(
     `${CANVAS_PREFIX} Stop Component Success`,
     props<{ response: StopComponentResponse }>()
+);
+
+export const stopProcessGroupSuccess = createAction(
+    `${CANVAS_PREFIX} Stop Process Group Success`,
+    props<{ response: StopProcessGroupResponse }>()
 );
 
 export const startCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Start Current Process Group`);

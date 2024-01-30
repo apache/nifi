@@ -30,6 +30,7 @@ import {
     flowApiError,
     groupComponents,
     groupComponentsSuccess,
+    loadChildProcessGroupSuccess,
     loadConnectionSuccess,
     loadInputPortSuccess,
     loadProcessGroup,
@@ -37,7 +38,6 @@ import {
     loadProcessorSuccess,
     loadRemoteProcessGroupSuccess,
     navigateWithoutTransform,
-    loadChildProcessGroupSuccess,
     resetFlowState,
     runOnce,
     runOnceSuccess,
@@ -333,6 +333,7 @@ export const flowReducer = createReducer(
             draftState.saving = false;
         });
     }),
+
     on(runOnceSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             const collection: any[] | null = getComponentCollection(draftState, ComponentType.Processor);
