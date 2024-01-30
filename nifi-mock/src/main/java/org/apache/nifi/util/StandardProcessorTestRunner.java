@@ -420,6 +420,11 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public boolean isValid() {
+        return context.isValid();
+    }
+
+    @Override
     public void assertNotValid() {
         Assertions.assertFalse(context.isValid(), "Processor appears to be valid but expected it to be invalid");
     }

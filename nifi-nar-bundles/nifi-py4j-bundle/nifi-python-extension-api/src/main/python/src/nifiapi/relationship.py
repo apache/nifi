@@ -19,7 +19,7 @@ class Relationship:
         self.description = description
         self.auto_terminated = auto_terminated
 
-    def to_java_descriptor(self, gateway):
+    def to_java_relationship(self, gateway):
         return gateway.jvm.org.apache.nifi.processor.Relationship.Builder() \
             .name(self.name) \
             .description(self.description) \

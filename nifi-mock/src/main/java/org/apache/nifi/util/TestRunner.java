@@ -394,6 +394,8 @@ public interface TestRunner {
      */
     void assertValid();
 
+    boolean isValid();
+
     /**
      * Assert that the currently configured set of properties/annotation data
      * are NOT valid
