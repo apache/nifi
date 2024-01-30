@@ -18,6 +18,7 @@ package org.apache.nifi.validation;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flowanalysis.EnforcementPolicy;
 
 import java.util.StringJoiner;
@@ -32,6 +33,7 @@ public class RuleViolation {
     private final String scope;
     private final String subjectId;
     private final String subjectDisplayName;
+    private final ComponentType subjectComponentType;
     private final String groupId;
     private final String ruleId;
     private final String issueId;
@@ -45,6 +47,7 @@ public class RuleViolation {
             String scope,
             String subjectId,
             String subjectDisplayName,
+            ComponentType subjectComponentType,
             String groupId,
             String ruleId,
             String issueId,
@@ -55,6 +58,7 @@ public class RuleViolation {
         this.scope = scope;
         this.subjectId = subjectId;
         this.subjectDisplayName = subjectDisplayName;
+        this.subjectComponentType = subjectComponentType;
         this.groupId = groupId;
         this.ruleId = ruleId;
         this.issueId = issueId;
@@ -90,6 +94,13 @@ public class RuleViolation {
      */
     public String getSubjectDisplayName() {
         return subjectDisplayName;
+    }
+
+    /**
+     * @return the type of the subject that violated the rule
+     */
+    public ComponentType getSubjectComponentType() {
+        return subjectComponentType;
     }
 
     /**
@@ -146,6 +157,7 @@ public class RuleViolation {
             .add("scope='" + scope + "'")
             .add("subjectId='" + subjectId + "'")
             .add("subjectDisplayName='" + subjectDisplayName + "'")
+            .add("subjectComponentType='" + subjectComponentType + "'")
             .add("groupId='" + groupId + "'")
             .add("issueId='" + issueId + "'")
             .add("ruleId='" + ruleId + "'")
