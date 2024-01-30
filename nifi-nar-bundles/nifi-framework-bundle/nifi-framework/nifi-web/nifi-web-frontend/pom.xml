@@ -192,8 +192,6 @@
                         <exclude>src/main/nifi/README.md</exclude>
                         <exclude>src/main/nifi/proxy.config.mjs</exclude>
                         <exclude>src/main/nifi/.prettierrc</exclude>
-                        <exclude>src/main/nifi/src/.eslintrc</exclude>
-                        <exclude>src/main/nifi/src/.eslintrc.json</exclude>
                         <exclude>src/main/nifi/.prettierignore</exclude>
                         <exclude>src/main/nifi/dist/**/*</exclude>
                     </excludes>
