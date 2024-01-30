@@ -52,8 +52,85 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestWriteJsonResult {
+
+    @Test
+    public void testScientificNotationUsage() throws IOException {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("float", RecordFieldType.FLOAT.getDataType()));
+        fields.add(new RecordField("double", RecordFieldType.DOUBLE.getDataType()));
+        fields.add(new RecordField("decimal", RecordFieldType.DECIMAL.getDecimalDataType(5, 10)));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final String expectedWithScientificNotation = """
+            {"float":-4.2910323,"double":4.51E-7,"decimal":8.0E-8}
+            """.trim();
+        final String expectedWithScientificNotationArray = "[" + expectedWithScientificNotation + "]";
+        final String expectedWithoutScientificNotation = """
+            {"float":-4.2910323,"double":0.000000451,"decimal":0.000000080}
+            """.trim();
+        final String expectedWithoutScientificNotationArray = "[" + expectedWithoutScientificNotation + "]";
+
+        final Map<String, Object> values = Map.of(
+            "float", -4.291032244F,
+            "double", 0.000000451D,
+            "decimal", new BigDecimal("0.000000080")
+        );
+        final Record record = new MapRecord(schema, values);
+
+        final String withScientificNotation = writeRecord(record, true, false);
+        assertEquals(expectedWithScientificNotationArray, withScientificNotation);
+
+        // We cannot be sure of the ordering when writing the raw record
+        final String rawWithScientificNotation = writeRecord(record, true, true);
+        assertTrue(rawWithScientificNotation.contains("\"float\":-4.2910323"));
+        assertTrue(rawWithScientificNotation.contains("\"double\":4.51E-7"));
+        assertTrue(rawWithScientificNotation.contains("\"decimal\":8.0E-8"));
+
+        final String withoutScientificNotation = writeRecord(record, false, false);
+        assertEquals(expectedWithoutScientificNotationArray, withoutScientificNotation);
+
+        // We cannot be sure of the ordering when writing the raw record
+        final String rawWithoutScientificNotation = writeRecord(record, false, true);
+        assertTrue(rawWithoutScientificNotation.contains("\"float\":-4.2910323"));
+        assertTrue(rawWithoutScientificNotation.contains("\"double\":0.000000451"));
+        assertTrue(rawWithoutScientificNotation.contains("\"decimal\":0.000000080"));
+
+        final Record recordWithSerializedForm = new MapRecord(schema, values, SerializedForm.of(expectedWithScientificNotation, "application/json"));
+        final String writtenWith = writeRecord(recordWithSerializedForm, true, false);
+        assertEquals(expectedWithScientificNotationArray, writtenWith);
+
+        final String writtenWithout = writeRecord(recordWithSerializedForm, false, false);
+        assertEquals(expectedWithoutScientificNotationArray, writtenWithout);
+
+        // We cannot be sure of the ordering when writing the raw record
+        final String writtenWithoutRaw = writeRecord(recordWithSerializedForm, false, true);
+        assertTrue(writtenWithoutRaw.contains("\"float\":-4.2910323"));
+        assertTrue(writtenWithoutRaw.contains("\"double\":0.000000451"));
+        assertTrue(writtenWithoutRaw.contains("\"decimal\":0.000000080"));
+    }
+
+    private String writeRecord(final Record record, final boolean allowScientificNotation, final boolean writeRawRecord) throws IOException {
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), record.getSchema(), new SchemaNameAsAttribute(), baos, false,
+                 NullSuppression.NEVER_SUPPRESS, OutputGrouping.OUTPUT_ARRAY, RecordFieldType.DATE.getDefaultFormat(),
+                 RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "application/json", allowScientificNotation)) {
+
+            writer.beginRecordSet();
+            if (writeRawRecord) {
+                writer.writeRawRecord(record);
+            } else {
+                writer.write(record);
+            }
+
+            writer.finishRecordSet();
+            writer.flush();
+
+            return baos.toString(StandardCharsets.UTF_8);
+        }
+    }
 
     @Test
     void testDataTypes() throws IOException {
@@ -111,7 +188,7 @@ class TestWriteJsonResult {
             writer.write(rs);
         }
 
-        final String output = baos.toString("UTF-8");
+        final String output = baos.toString(StandardCharsets.UTF_8);
 
         final String expected = new String(Files.readAllBytes(Paths.get("src/test/resources/json/output/dataTypes.json")));
         assertEquals(StringUtils.deleteWhitespace(expected), StringUtils.deleteWhitespace(output));
