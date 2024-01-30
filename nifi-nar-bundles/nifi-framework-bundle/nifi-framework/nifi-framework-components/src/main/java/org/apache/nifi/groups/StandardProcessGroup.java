@@ -1263,6 +1263,14 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             }
 
+            // Remove connections prior to removing the Processor. If there is any failure in removing the Processor or the associated cleanup,
+            // we can handle that. However, we could have many potential issues if Connections exist whose source or destination does not exist.
+            // must copy to avoid a concurrent modification
+            final List<Connection> copy = new ArrayList<>(processor.getConnections());
+            for (final Connection conn : copy) {
+                removeConnection(conn);
+            }
+
             processors.remove(id);
             onComponentModified();
 
@@ -1274,18 +1282,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 logRepository.removeAllObservers();
             }
 
-            scheduler.submitFrameworkTask(new Runnable() {
-                @Override
-                public void run() {
-                    stateManagerProvider.onComponentRemoved(processor.getIdentifier());
-                }
-            });
-
-            // must copy to avoid a concurrent modification
-            final Set<Connection> copy = new HashSet<>(processor.getConnections());
-            for (final Connection conn : copy) {
-                removeConnection(conn);
-            }
+            scheduler.submitFrameworkTask(() -> stateManagerProvider.onComponentRemoved(processor.getIdentifier()));
 
             removed = true;
             LOG.info("{} removed from flow", processor);
