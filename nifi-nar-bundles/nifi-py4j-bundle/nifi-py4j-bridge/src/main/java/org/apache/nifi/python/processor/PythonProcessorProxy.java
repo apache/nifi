@@ -126,7 +126,7 @@ public abstract class PythonProcessorProxy extends AbstractProcessor implements 
             return this.cachedPropertyDescriptors;
         }
 
-        if (bridge == null) {
+        if (getState() != LoadState.FINISHED_LOADING) {
             return Collections.emptyList();
         }
 
@@ -202,7 +202,7 @@ public abstract class PythonProcessorProxy extends AbstractProcessor implements 
             return cachedDynamicDescriptors.get(propertyDescriptorName);
         }
 
-        if (bridge == null) {
+        if (getState() != LoadState.FINISHED_LOADING) {
             return null;
         }
 
@@ -221,7 +221,7 @@ public abstract class PythonProcessorProxy extends AbstractProcessor implements 
             return supportsDynamicProperties;
         }
 
-        if (bridge == null) {
+        if (getState() != LoadState.FINISHED_LOADING) {
             return false;
         }
 
@@ -266,7 +266,7 @@ public abstract class PythonProcessorProxy extends AbstractProcessor implements 
     }
 
     private Set<Relationship> fetchRelationshipsFromPythonProcessor() {
-        if (bridge == null) {
+        if (getState() != LoadState.FINISHED_LOADING) {
             return Collections.emptySet();
         }
 

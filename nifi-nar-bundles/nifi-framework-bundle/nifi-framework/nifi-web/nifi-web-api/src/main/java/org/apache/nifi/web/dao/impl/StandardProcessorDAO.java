@@ -589,7 +589,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         try {
             // attempt remove the processor
             processor.getProcessGroup().removeProcessor(processor);
-        } catch (ComponentLifeCycleException plce) {
+        } catch (final ComponentLifeCycleException plce) {
             throw new NiFiCoreException(plce.getMessage(), plce);
         }
     }
