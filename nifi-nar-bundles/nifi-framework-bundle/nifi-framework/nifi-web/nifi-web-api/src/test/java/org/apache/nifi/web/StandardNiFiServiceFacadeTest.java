@@ -926,6 +926,7 @@ public class StandardNiFiServiceFacadeTest {
                 "scope" + ruleViolationCounter,
                 "subjectId" + ruleViolationCounter,
                 "subjectDisplayName" + ruleViolationCounter,
+                null,
                 groupId,
                 "ruleId" + ruleViolationCounter,
                 "issueId" + ruleViolationCounter,
