@@ -47,9 +47,11 @@ import org.snmp4j.smi.VariableBinding;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.Vector;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -197,7 +199,7 @@ public final class SNMPUtils {
     }
 
     public static VariableBinding[] addGetVariables(final Map<String, String> attributes) {
-        List<VariableBinding> variableBindings = new ArrayList<>();
+        Set<VariableBinding> variableBindings = new HashSet<>();
         try {
             for (Map.Entry<String, String> attributeEntry : attributes.entrySet()) {
                 if (attributeEntry.getKey().startsWith(SNMPUtils.SNMP_PROP_PREFIX)) {
