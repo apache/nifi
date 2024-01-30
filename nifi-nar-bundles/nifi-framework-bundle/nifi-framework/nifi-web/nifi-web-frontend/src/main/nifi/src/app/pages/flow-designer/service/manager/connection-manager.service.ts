@@ -1432,18 +1432,18 @@ export class ConnectionManager {
                     // update the coloring of the backgrounds
                     backgrounds.forEach((background, i) => {
                         if (i % 2 === 0) {
-                            background.attr('fill', '#f4f6f7');
+                            background.attr('class', 'primary-contrast-800');
                         } else {
-                            background.attr('fill', '#ffffff');
+                            background.attr('class', 'primary-contrast-900');
                         }
                     });
 
                     // update the coloring of the label borders
                     borders.forEach((border, i) => {
                         if (i > 0) {
-                            border.attr('fill', '#c7d2d7');
+                            border.attr('class', 'primary-200');
                         } else {
-                            border.attr('fill', 'transparent');
+                            border.attr('class', 'transparent');
                         }
                     });
 

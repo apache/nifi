@@ -54,7 +54,6 @@ import { StatusHistoryChart } from './status-history-chart/status-history-chart.
 @Component({
     selector: 'status-history',
     templateUrl: './status-history.component.html',
-    styleUrls: ['./status-history.component.scss'],
     standalone: true,
     imports: [
         MatDialogModule,
@@ -70,7 +69,8 @@ import { StatusHistoryChart } from './status-history-chart/status-history-chart.
         MatCheckboxModule,
         Resizable,
         StatusHistoryChart
-    ]
+    ],
+    styleUrls: ['./status-history.component.scss']
 })
 export class StatusHistory implements OnInit, AfterViewInit {
     request: StatusHistoryRequest;

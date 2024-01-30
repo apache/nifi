@@ -59,7 +59,7 @@ import { MatSliderModule } from '@angular/material/slider';
         LineageComponent,
         MatSliderModule
     ],
-    styleUrls: ['./provenance-event-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./provenance-event-table.component.scss']
 })
 export class ProvenanceEventTable implements AfterViewInit {
     @Input() set events(events: ProvenanceEventSummary[]) {

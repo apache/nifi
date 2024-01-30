@@ -46,7 +46,7 @@ import { CurrentUser } from '../../../../../state/current-user';
         NifiTooltipDirective,
         RouterLink
     ],
-    styleUrls: ['./flow-analysis-rule-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./flow-analysis-rule-table.component.scss']
 })
 export class FlowAnalysisRuleTable {
     @Input() set flowAnalysisRules(flowAnalysisRuleEntities: FlowAnalysisRuleEntity[]) {

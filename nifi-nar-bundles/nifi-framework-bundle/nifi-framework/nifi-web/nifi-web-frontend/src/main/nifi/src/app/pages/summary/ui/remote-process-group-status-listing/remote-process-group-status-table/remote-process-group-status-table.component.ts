@@ -42,8 +42,7 @@ export type SupportedColumns = 'name' | 'uri' | 'transmitting' | 'sent' | 'recei
     imports: [CommonModule, SummaryTableFilterModule, MatSortModule, MatTableModule, RouterLink, MatPaginatorModule],
     templateUrl: './remote-process-group-status-table.component.html',
     styleUrls: [
-        './remote-process-group-status-table.component.scss',
-        '../../../../../../assets/styles/listing-table.scss'
+        './remote-process-group-status-table.component.scss'
     ]
 })
 export class RemoteProcessGroupStatusTable implements AfterViewInit {

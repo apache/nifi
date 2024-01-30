@@ -280,9 +280,9 @@ export class LineageComponent implements OnInit {
             .on('dblclick.zoom', null);
 
         svg.append('rect')
+            .attr('class', 'lineage')
             .attr('width', '100%')
             .attr('height', '100%')
-            .attr('fill', '#f9fafb')
             .on('mousedown', function (event, d) {
                 // hide the context menu if necessary
                 self.clearSelectionContext();
@@ -311,11 +311,11 @@ export class LineageComponent implements OnInit {
             .attr('markerWidth', 6)
             .attr('markerHeight', 6)
             .attr('orient', 'auto')
-            .attr('fill', function (d) {
+            .attr('class', function (d) {
                 if (d.indexOf('SELECTED') >= 0) {
-                    return '#ba554a';
+                    return 'warn-400';
                 } else {
-                    return '#000000';
+                    return 'primary-contrast-200';
                 }
             })
             .append('path')
@@ -723,9 +723,8 @@ export class LineageComponent implements OnInit {
         // node
         flowfiles
             .append('circle')
+            .attr('class', 'flowfile-link')
             .attr('r', 16)
-            .attr('fill', '#fff')
-            .attr('stroke', '#000')
             .attr('stroke-width', 1.0)
             .on('mouseover', function (event: MouseEvent, d: any) {
                 self.lineageContainerElement
@@ -759,7 +758,6 @@ export class LineageComponent implements OnInit {
             .append('text')
             .attr('font-family', 'flowfont')
             .attr('font-size', '18px')
-            .attr('fill', '#ad9897')
             .attr('transform', function () {
                 return 'translate(0,15)';
             })
@@ -822,12 +820,11 @@ export class LineageComponent implements OnInit {
 
         events
             .append('circle')
+            .attr('class', 'event-circle')
             .classed('selected', function (d: any) {
                 return d.id === self.eventId;
             })
             .attr('r', 8)
-            .attr('fill', '#aabbc3')
-            .attr('stroke', '#000')
             .attr('stroke-width', 1.0)
             .attr('id', function (d: any) {
                 return `event-node-${d.id}`;
@@ -956,7 +953,6 @@ export class LineageComponent implements OnInit {
             .insert('path', '.node')
             .attr('class', 'link')
             .attr('stroke-width', 1.5)
-            .attr('stroke', '#000')
             .attr('fill', 'none')
             .attr('d', function (d: any) {
                 return `M${d.source.x},${d.source.y}L${d.source.x},${d.source.y}`;

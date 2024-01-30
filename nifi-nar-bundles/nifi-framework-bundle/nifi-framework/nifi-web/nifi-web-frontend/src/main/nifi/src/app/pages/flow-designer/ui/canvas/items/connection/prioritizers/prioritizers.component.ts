@@ -56,14 +56,14 @@ import {
         CdkDrag,
         NgForOf
     ],
-    styleUrls: ['./prioritizers.component.scss'],
     providers: [
         {
             provide: NG_VALUE_ACCESSOR,
             useExisting: forwardRef(() => Prioritizers),
             multi: true
         }
-    ]
+    ],
+    styleUrls: ['./prioritizers.component.scss']
 })
 export class Prioritizers implements ControlValueAccessor {
     @Input() set allPrioritizers(allPrioritizers: DocumentedType[]) {

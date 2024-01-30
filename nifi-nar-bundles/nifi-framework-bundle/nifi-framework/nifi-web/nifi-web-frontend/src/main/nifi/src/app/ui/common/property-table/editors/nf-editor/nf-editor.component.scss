@@ -35,17 +35,9 @@
         cursor: default;
 
         .CodeMirror {
-            border: 1px solid #aaa;
             font-family: monospace;
-            background-color: #fff;
             cursor: default;
             line-height: normal;
-
-            &.blank {
-                background: #b2b8c1;
-                color: #dbdee2;
-                border: 1px solid #b2b8c1;
-            }
         }
 
         .CodeMirror-scroll {
@@ -63,8 +55,6 @@
         }
 
         .cm-s-default .CodeMirror-matchingbracket {
-            color: #000 !important;
-            background-color: #aaa;
             opacity: 0.5;
             filter: alpha(opacity=50);
         }

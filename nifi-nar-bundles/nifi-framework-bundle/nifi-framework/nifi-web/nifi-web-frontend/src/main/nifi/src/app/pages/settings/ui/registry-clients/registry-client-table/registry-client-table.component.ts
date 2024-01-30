@@ -29,7 +29,7 @@ import { RegistryClientEntity } from '../../../state/registry-clients';
 @Component({
     selector: 'registry-client-table',
     templateUrl: './registry-client-table.component.html',
-    styleUrls: ['./registry-client-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./registry-client-table.component.scss']
 })
 export class RegistryClientTable {
     @Input() set registryClients(registryClientEntities: RegistryClientEntity[]) {

@@ -17,31 +17,24 @@
 
 .parameter-context-inheritance {
     .parameter-context-inheritance-list {
-        background: #eaeef0;
-
-        border: solid 1px #ccc;
         min-height: 66px;
         border-radius: 4px;
         overflow: hidden;
         display: block;
 
         .cdk-drag-disabled {
-            background: #ccc;
             cursor: not-allowed;
         }
     }
 
     .parameter-context-draggable-item {
         padding: 20px 10px;
-        border-bottom: solid 1px #ccc;
-        color: rgba(0, 0, 0, 0.87);
         display: flex;
         flex-direction: row;
         align-items: center;
         justify-content: space-between;
         box-sizing: border-box;
         cursor: grab;
-        background: white;
         font-size: 14px;
 
         &:last-child {
@@ -52,10 +45,6 @@
     .cdk-drag-preview {
         box-sizing: border-box;
         border-radius: 4px;
-        box-shadow:
-            0 5px 5px -3px rgba(0, 0, 0, 0.2),
-            0 8px 10px 1px rgba(0, 0, 0, 0.14),
-            0 3px 14px 2px rgba(0, 0, 0, 0.12);
     }
 
     .cdk-drag-placeholder {

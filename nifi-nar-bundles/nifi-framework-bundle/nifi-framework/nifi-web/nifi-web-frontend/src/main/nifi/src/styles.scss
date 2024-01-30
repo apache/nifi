@@ -16,8 +16,51 @@
  */
 
 // Custom Theming for Angular Material
-// For more information: https://material.angular.io/guide/theming
+// For more information: https://v16.material.angular.io/guide/theming-your-components
 @use '@angular/material' as mat;
+@use 'sass:map';
+@use 'assets/styles/listing-table-theme' as listing-table;
+@use 'app/app.component-theme' as app-component;
+@use 'app/pages/access-policies/feature/access-policies.component-theme' as access-policies;
+@use 'app/pages/access-policies/ui/common/add-tenant-to-policy-dialog/add-tenant-to-policy-dialog.component-theme' as add-tenant-to-policy;
+@use 'app/pages/access-policies/ui/component-access-policies/component-access-policies.component-theme' as component-access-policies;
+@use 'app/pages/bulletins/feature/bulletins.component-theme' as bulletins;
+@use 'app/pages/bulletins/ui/bulletin-board/bulletin-board-list/bulletin-board-list.component-theme' as bulletin-board-list;
+@use 'app/pages/counters/feature/counters.component-theme' as counters;
+@use 'app/pages/flow-designer/ui/canvas/canvas.component-theme' as canvas;
+@use 'app/pages/flow-designer/ui/canvas/footer/footer.component-theme' as footer;
+@use 'app/pages/flow-designer/ui/canvas/graph-controls/navigation-control/navigation-control.component-theme' as navigation-control;
+@use 'app/pages/flow-designer/ui/canvas/graph-controls/navigation-control/birdseye/birdseye.component-theme' as birdseye-control;
+@use 'app/pages/flow-designer/ui/canvas/graph-controls/operation-control/operation-control.component-theme' as operation-control;
+@use 'app/pages/flow-designer/ui/canvas/header/flow-status/flow-status.component-theme' as flow-status;
+@use 'app/pages/flow-designer/ui/canvas/header/header.component-theme' as header;
+@use 'app/pages/flow-designer/ui/canvas/header/new-canvas-item/new-canvas-item.component-theme' as new-canvas-item;
+@use 'app/pages/flow-designer/ui/canvas/header/search/search.component-theme' as search;
+@use 'app/pages/flow-designer/ui/canvas/items/connection/prioritizers/prioritizers.component-theme' as prioritizers;
+@use 'app/pages/flow-designer/ui/canvas/items/process-group/create-process-group/create-process-group.component-theme' as create-process-group;
+@use 'app/pages/flow-designer/ui/common/banner/banner.component-theme' as banner;
+@use 'app/pages/flow-designer/ui/controller-service/controller-services.component-theme' as controller-service;
+@use 'app/pages/login/feature/login.component-theme' as login;
+@use 'app/pages/login/ui/login-form/login-form.component-theme' as login-form;
+@use 'app/pages/provenance/feature/provenance.component-theme' as provenance;
+@use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/provenance-event-table.component-theme' as provenance-event-table;
+@use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/lineage/lineage.component-theme' as lineage;
+@use 'app/pages/parameter-contexts/feature/parameter-contexts.component-theme' as parameter-contexts;
+@use 'app/pages/parameter-contexts/ui/parameter-context-listing/parameter-context-inheritance/parameter-context-inheritance.component-theme' as parameter-context-inheritance;
+@use 'app/pages/queue/ui/queue-listing/flowfile-dialog/flowfile-dialog.component-theme' as flowfile-dialog;
+@use 'app/pages/queue/ui/queue-listing/flowfile-table/flowfile-table.component-theme' as flowfile-table;
+@use 'app/pages/settings/feature/settings.component-theme' as settings;
+@use 'app/pages/summary/feature/summary.component-theme' as summary;
+@use 'app/pages/users/feature/users.component-theme' as users;
+@use 'app/ui/common/context-menu/context-menu.component-theme' as context-menu;
+@use 'app/ui/common/extension-creation/extension-creation.component-theme' as extension-creation;
+@use 'app/ui/common/navigation/navigation.component-theme' as navigation;
+@use 'app/ui/common/property-table/editors/nf-editor/nf-editor.component-theme' as nf-editor;
+@use 'app/ui/common/resizable/resizable.component-theme' as resizable;
+@use 'app/ui/common/system-diagnostics-dialog/system-diagnostics-dialog.component-theme' as system-diagnostics-dialog;
+@use 'app/ui/common/status-history/status-history.component-theme' as status-history;
+@use 'app/ui/common/tooltips/property-hint-tip/property-hint-tip.component-theme' as property-hint-tip;
+@use 'app/ui/common/provenance-event-dialog/provenance-event-dialog.component-theme' as provenance-event-dialog;
 
 // Plus imports for other components in your app.
 @use 'roboto-fontface/css/roboto/roboto-fontface.css';
@@ -25,6 +68,10 @@
 @use 'font-awesome/css/font-awesome.min.css';
 @use 'codemirror/lib/codemirror.css';
 @use 'codemirror/addon/hint/show-hint.css';
+
+// NOTE: for faster developer cycles during theme development the theme can also be changed here.
+// Ex: @import 'assets/themes/purple';
+@import 'assets/themes/nifi';
 
 $fontPrimary: 'Roboto', sans-serif;
 $fontSecondary: 'Robot Slab', sans-serif;
@@ -122,341 +169,332 @@ $appFontPath: '~roboto-fontface/fonts';
 @tailwind components;
 @tailwind utilities;
 
-$nifi-primary-palette: (
-    50: #eef1f3,
-    100: #d5dde1,
-    200: #b9c7cd,
-    300: #9cb0b9,
-    400: #879faa,
-    500: #728e9b,
-    600: #6a8693,
-    700: #5f7b89,
-    800: #55717f,
-    900: #425f6d,
-    A100: #c7ecff,
-    A200: #94daff,
-    A400: #61c9ff,
-    A700: #47c0ff,
-    contrast: (
-        50: #000000,
-        100: #000000,
-        200: #000000,
-        300: #000000,
-        400: #000000,
-        500: #000000,
-        600: #ffffff,
-        700: #ffffff,
-        800: #ffffff,
-        900: #ffffff,
-        A100: #000000,
-        A200: #000000,
-        A400: #000000,
-        A700: #000000
-    )
-);
+//General status styles. TODO - Reconsider this... separating canvas/style styles from html styles...
+@mixin theme($material-theme, $canvas-theme) {
+    // Get the color config from the theme.
+    $color-config: mat.get-color-config($material-theme);
+    $canvas-color-config: mat.get-color-config($canvas-theme);
 
-$nifi-accent-palette: (
-    50: #fcfcfd,
-    100: #f7f8f9,
-    200: #f1f4f5,
-    300: #ebeff1,
-    400: #e7ebee,
-    500: #e3e8eb,
-    600: #e0e5e9,
-    700: #dce2e5,
-    800: #d8dee2,
-    900: #d0d8dd,
-    A100: #ffffff,
-    A200: #ffffff,
-    A400: #ffffff,
-    A700: #ffffff,
-    contrast: (
-        50: #000000,
-        100: #000000,
-        200: #000000,
-        300: #000000,
-        400: #000000,
-        500: #000000,
-        600: #000000,
-        700: #000000,
-        800: #000000,
-        900: #000000,
-        A100: #000000,
-        A200: #000000,
-        A400: #000000,
-        A700: #000000
-    )
-);
+    // Get the color palette from the color-config.
+    $primary-palette: map.get($color-config, 'primary');
+    $warn-palette: map.get($color-config, 'warn');
+    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
+    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
 
-// Define the palettes for your theme using the Material Design palettes available in palette.scss
-// (imported above). For each palette, you can optionally specify a default, lighter, and darker
-// hue. Available color palettes: https://material.io/design/color/
-$nifi-primary: mat.define-palette($nifi-primary-palette);
-$nifi-accent: mat.define-palette($nifi-accent-palette);
+    // Get hues from palette
+    $primary-palette-50: mat.get-color-from-palette($primary-palette, 50);
+    $primary-palette-200: mat.get-color-from-palette($primary-palette, 200);
+    $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
+    $primary-palette-A100: mat.get-color-from-palette($primary-palette, 'A100');
+    $primary-palette-A200: mat.get-color-from-palette($primary-palette, 'A200');
+    $primary-palette-A400: mat.get-color-from-palette($primary-palette, 'A400');
+    $canvas-primary-palette-50: mat.get-color-from-palette($canvas-primary-palette, 50);
+    $canvas-primary-palette-200: mat.get-color-from-palette($canvas-primary-palette, 200);
+    $canvas-primary-palette-400: mat.get-color-from-palette($canvas-primary-palette, 400);
+    $canvas-primary-palette-900: mat.get-color-from-palette($canvas-primary-palette, 900);
+    $canvas-accent-palette-200: mat.get-color-from-palette($canvas-accent-palette, 200);
+    $canvas-accent-palette-400: mat.get-color-from-palette($canvas-accent-palette, 400);
+    $canvas-accent-palette-A200: mat.get-color-from-palette($canvas-accent-palette, 'A200');
+    $warn-palette-200: mat.get-color-from-palette($warn-palette, 200);
+    $warn-palette-300: mat.get-color-from-palette($warn-palette, 300);
+    $warn-palette-A100: mat.get-color-from-palette($warn-palette, 'A100');
+    $warn-palette-A400: mat.get-color-from-palette($warn-palette, 'A400');
 
-//#728e9b
-//#aabbc3
-//#e3e8eb
+    html,
+    body {
+        height: 100%;
+    }
 
-// The warn palette is optional (defaults to red).
-$nifi-warn: mat.define-palette(mat.$red-palette);
+    body {
+        margin: 0;
+        font-family: Roboto, 'Helvetica Neue', sans-serif;
+    }
 
-// Create the theme object. A theme consists of configurations for individual
-// theming systems such as "color" or "typography".
-$nifi-theme: mat.define-light-theme(
-    (
-        color: (
-            primary: $nifi-primary,
-            accent: $nifi-accent,
-            warn: $nifi-warn
-        ),
-        //typography: mat.define-typography-config(),
-        density: -3
-    )
-);
+    a {
+        font-size: 13px;
+        cursor: pointer;
+        color: $primary-palette-A400;
+        font-weight: normal;
+        display: inline-block;
+        font-family: Roboto;
+        text-decoration: underline;
+        text-decoration-color: $primary-palette-200;
+        text-underline-offset: 3px;
+    }
 
-// Include theme styles for core and each component used in your app.
-// Alternatively, you can import and @include the theme mixins for each component
-// that you are using.
-@include mat.all-component-themes($nifi-theme);
+    a:hover {
+        text-decoration-color: $primary-palette-A400;
+    }
 
-/* You can add global styles to this file, and also import other style files */
 
-html,
-body {
-    height: 100%;
-}
+    //Icon for styling mat-icon in forms throughout the application.
+    .info-icon {
+        font-size: 14px;
+        height: 14px !important;
+        width: 14px !important;
+    }
 
-body {
-    margin: 0;
-    //font-family: Roboto, 'Helvetica Neue', sans-serif;
-}
+    //This style is needed due to an incompatibility between material and tailwind.
+    .mdc-notched-outline__notch {
+        border-right: none;
+    }
 
-a {
-    font-size: 13px;
-    cursor: pointer;
-    color: #004849;
-    font-weight: normal;
-    display: inline-block;
-    font-family: Roboto;
-    text-decoration: underline;
-    text-decoration-color: #ccdadb;
-    text-underline-offset: 3px;
-}
+    .small-dialog {
+        min-width: 320px;
+    }
 
-a:hover {
-    text-decoration-color: #004849;
-}
+    .medium-dialog {
+        min-width: 470px;
+    }
 
-header.nifi-header {
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
-    position: relative;
-}
+    .medium-short-dialog {
+        max-height: 32%;
+        max-width: 34%;
+        min-height: 250px;
+        min-width: 440px;
+        font-size: 13px;
+    }
 
-/*
-    Icon for styling mat-icon in forms throughout the application.
- */
+    .large-dialog {
+        max-height: 72%;
+        max-width: 55%;
+        min-height: 560px;
+        min-width: 760px;
+    }
 
-.info-icon {
-    font-size: 14px;
-    height: 14px !important;
-    width: 14px !important;
-}
+    .edit-parameter-context-dialog {
+        max-height: 72%;
+        max-width: 55%;
+        min-width: 850px;
+        min-height: 575px;
+    }
 
-/*
-    This style is needed due to an incompatibility between material and tailwind.
- */
+    .tooltip {
+        position: fixed;
+        max-width: 500px;
+        padding: 10px;
+        background-color: $canvas-primary-palette-900;
+        border-radius: 2px;
+        border-width: 1px;
+        border-color: $canvas-primary-palette-200;
+        box-shadow: 0 2px 5px $canvas-primary-palette-50;
+        font-size: 13px;
+        font-family: Roboto;
+        font-weight: 400;
+        word-wrap: break-word;
+        white-space: normal;
+        color: $canvas-primary-palette-200;
+        z-index: 1;
 
-.mdc-notched-outline__notch {
-    border-right: none;
-}
+        ul {
+            list-style: disc outside;
+            margin-left: 1em;
+        }
+    }
 
-/*
-    Dialog styles
- */
+    .property-editor {
+        background-color: $canvas-primary-palette-900;
+        box-shadow: 0 2px 5px $canvas-primary-palette-50;
+        font-size: 13px;
+        font-family: Roboto;
+        font-weight: 400;
+    }
 
-.small-dialog {
-    min-width: 320px;
-}
+    .CodeMirror-hints {
+        font-size: 13px !important;
+        z-index: 1000 !important;
+        overflow-y: scroll !important;
+    }
 
-.medium-dialog {
-    min-width: 470px;
-}
+    .disabled {
+        color: $primary-palette-500 !important;
+        fill: $primary-palette-500 !important;
+        text-shadow: 0 0 4px $canvas-primary-palette-900;
+    }
 
-.medium-short-dialog {
-    max-height: 32%;
-    max-width: 34%;
-    min-height: 250px;
-    min-width: 440px;
-    font-size: 13px;
-}
+    .enabled {
+        color: $primary-palette-A200 !important;
+        fill: $primary-palette-A200 !important;
+        text-shadow: 0 0 4px $canvas-primary-palette-900;
+    }
 
-.large-dialog {
-    max-height: 72%;
-    max-width: 55%;
-    min-height: 560px;
-    min-width: 760px;
-}
+    .stopped {
+        color: $warn-palette-200 !important;
+        fill: $warn-palette-200 !important;
+        text-shadow: 0 0 4px $canvas-primary-palette-900;
+    }
 
-.edit-parameter-context-dialog {
-    max-height: 72%;
-    max-width: 55%;
-    min-width: 850px;
-    min-height: 575px;
-}
+    .running {
+        color: $canvas-accent-palette-200 !important;
+        fill: $canvas-accent-palette-200 !important;
+        text-shadow: 0 0 4px $canvas-primary-palette-900;
+    }
 
-.tooltip {
-    position: fixed;
-    max-width: 500px;
-    padding: 10px;
-    background-color: #fff;
-    border-radius: 2px;
-    border-width: 1px;
-    border-color: #000;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
-    font-size: 13px;
-    font-family: Roboto;
-    font-weight: 400;
-    word-wrap: break-word;
-    white-space: normal;
-    color: #000;
-    z-index: 1;
+    .has-errors,
+    .invalid {
+        color: $canvas-accent-palette-A200 !important;
+        fill: $canvas-accent-palette-A200 !important;
+        text-shadow: 0 0 4px $canvas-primary-palette-900;
+    }
 
-    ul {
-        list-style: disc outside;
-        margin-left: 1em;
+    .validating {
+        color: $canvas-primary-palette-400 !important;
+        fill: $canvas-primary-palette-400 !important;
+        text-shadow: 0 0 4px $canvas-primary-palette-900;
+    }
+
+    .transmitting {
+        color: $primary-palette-A200 !important;
+        fill: $primary-palette-A200 !important;
+        text-shadow: 0 0 4px $canvas-primary-palette-900;
+    }
+
+    .not-transmitting {
+        color: $primary-palette-500 !important;
+        fill: $primary-palette-500 !important;
+        text-shadow: 0 0 4px $canvas-primary-palette-900;
+    }
+
+    .up-to-date {
+        color: $canvas-accent-palette-400 !important;
+        fill: $canvas-accent-palette-400 !important;
+        text-shadow: 0 0 4px $canvas-primary-palette-900;
+    }
+
+    .locally-modified,
+    .sync-failure {
+        color: $warn-palette-A100 !important;
+        fill: $warn-palette-A100 !important;
+        text-shadow: 0 0 4px $canvas-primary-palette-900;
+    }
+
+    .stale,
+    .locally-modified-and-stale {
+        color: $warn-palette-300 !important;
+        fill: $warn-palette-300 !important;
+        text-shadow: 0 0 4px $canvas-primary-palette-900;
+    }
+
+    .zero {
+        color: $primary-palette-A100 !important;
+        fill: $primary-palette-A100 !important;
+        text-shadow: none !important;
+    }
+
+    .blank,
+    .unset,
+    .sensitive {
+        font-weight: normal !important;
+        color: $canvas-primary-palette-400 !important;
+    }
+
+    button.nifi-button {
+        height: 28px;
+        width: 28px;
+        line-height: 28px;
+        border: 1px solid $primary-palette-200;
+        background-color: $primary-palette-50;
+        color: $primary-palette-A400;
+    }
+
+    button.nifi-button:hover {
+        cursor: pointer;
+        border-color: $primary-palette-A400;
+    }
+
+    button.nifi-button:disabled {
+        cursor: not-allowed;
+        border: 1px solid $primary-palette-200;
+
+        i {
+            color: $primary-palette-200 !important;
+        }
+    }
+
+    .pointer {
+        cursor: pointer;
+    }
+
+    .value,
+    .refresh-timestamp {
+        font-weight: 500;
+        color: $warn-palette-A400;
     }
 }
 
-.property-editor {
-    background-color: #fff;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
-    font-size: 13px;
-    font-family: Roboto;
-    font-weight: 400;
-}
+// Define the palettes for your theme
+$material-primary-light: mat.define-palette($material-primary-light-palette, 300);
+$material-accent-light: mat.define-palette($material-primary-light-palette, A400, A100, A700);
+$nifi-canvas-primary-light: mat.define-palette($nifi-canvas-light-palette);
+$nifi-canvas-accent-light: mat.define-palette($nifi-canvas-accent-light-palette, 400, 100, 700);
+$warn-light: mat.define-palette($warn-light-palette, 400, 100, 700);
 
-.CodeMirror-hints {
-    font-size: 13px !important;
-    z-index: 1000 !important;
-    overflow-y: scroll !important;
-}
+// Create the theme objects. We can extract the values we need from the theme passed into the mixins.
+$material-theme-light: mat.define-light-theme(
+        (
+            color: (
+                primary: $material-primary-light,
+                accent: $material-accent-light,
+                warn: $warn-light,
+            ),
+            //typography: mat.define-typography-config(), // TODO: typography
+            density: -3
+        )
+);
 
-/*
-    General status styles. TODO - Reconsider this... separating canvas/style styles from html styles...
- */
+$nifi-canvas-theme-light: mat.define-light-theme(
+        (
+            color: (
+                primary: $nifi-canvas-primary-light,
+                accent: $nifi-canvas-accent-light,
+                warn: $warn-light,
+            ),
+            //typography: mat.define-typography-config(), // TODO: typography
+            density: -3
+        )
+);
 
-.disabled {
-    color: #728e9b !important;
-    fill: #728e9b !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-}
-
-.enabled {
-    color: #44a3cf !important;
-    fill: #44a3cf !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-}
-
-.stopped {
-    color: #d18686 !important;
-    fill: #d18686 !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-}
-
-.running {
-    color: #7dc7a0 !important;
-    fill: #7dc7a0 !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-}
-
-.has-errors,
-.invalid {
-    color: #cf9f5d !important;
-    fill: #cf9f5d !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-}
-
-.validating {
-    color: #a8a8a8 !important;
-    fill: #a8a8a8 !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-}
-
-.transmitting {
-    color: #44a3cf !important;
-    fill: #44a3cf !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-}
-
-.not-transmitting {
-    color: #728e9b !important;
-    fill: #728e9b !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-}
-
-.up-to-date {
-    color: #3da67a !important;
-    fill: #3da67a !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-}
-
-.locally-modified,
-.sync-failure {
-    color: #747474 !important;
-    fill: #747474 !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-}
-
-.stale,
-.locally-modified-and-stale {
-    color: #c7685d !important;
-    fill: #c7685d !important;
-    text-shadow: 0 0 4px rgba(255, 255, 255, 1);
-}
-
-.zero {
-    color: #aabec7 !important;
-    fill: #aabec7 !important;
-    text-shadow: none !important;
-}
-
-.blank,
-.unset,
-.sensitive {
-    font-weight: normal !important;
-    color: #a8a8a8 !important;
-}
-
-button.nifi-button {
-    height: 28px;
-    width: 28px;
-    line-height: 28px;
-    border: 1px solid #ccdadb;
-    background-color: rgba(249, 250, 251, 0.97);
-    color: #004849;
-}
-
-button.nifi-button:hover {
-    cursor: pointer;
-    border-color: #004849;
-}
-
-button.nifi-button:disabled {
-    cursor: not-allowed;
-    border: 1px solid #ccdadb;
-
-    i {
-        color: #ccdadb !important;
-    }
-}
-
-.pointer {
-    cursor: pointer;
-}
-
-.value,
-.refresh-timestamp {
-    font-weight: 500;
-    color: #775351;
-}
+@include mat.all-component-themes($material-theme-light);
+@include app-component.theme($material-theme-light);
+@include theme($material-theme-light, $nifi-canvas-theme-light);
+@include listing-table.theme($material-theme-light, $nifi-canvas-theme-light);
+@include access-policies.theme($material-theme-light);
+@include add-tenant-to-policy.theme($material-theme-light);
+@include component-access-policies.theme($material-theme-light, $nifi-canvas-theme-light);
+@include bulletins.theme($material-theme-light);
+@include bulletin-board-list.theme($material-theme-light, $nifi-canvas-theme-light);
+@include counters.theme($material-theme-light);
+@include canvas.theme($material-theme-light, $nifi-canvas-theme-light);
+@include banner.theme($material-theme-light);
+@include controller-service.theme($material-theme-light);
+@include footer.theme($material-theme-light, $nifi-canvas-theme-light);
+@include navigation-control.theme($material-theme-light, $nifi-canvas-theme-light);
+@include birdseye-control.theme($material-theme-light, $nifi-canvas-theme-light);
+@include operation-control.theme($material-theme-light, $nifi-canvas-theme-light);
+@include flow-status.theme($material-theme-light, $nifi-canvas-theme-light);
+@include header.theme($nifi-canvas-theme-light);
+@include new-canvas-item.theme($material-theme-light, $nifi-canvas-theme-light);
+@include search.theme($material-theme-light, $nifi-canvas-theme-light);
+@include prioritizers.theme($material-theme-light, $nifi-canvas-theme-light);
+@include create-process-group.theme($material-theme-light);
+@include login.theme($material-theme-light, $nifi-canvas-theme-light);
+@include login-form.theme($material-theme-light);
+@include provenance-event-table.theme($material-theme-light, $nifi-canvas-theme-light);
+@include provenance.theme($material-theme-light, $nifi-canvas-theme-light);
+@include lineage.theme($material-theme-light, $nifi-canvas-theme-light);
+@include parameter-context-inheritance.theme($material-theme-light, $nifi-canvas-theme-light);
+@include parameter-contexts.theme($material-theme-light);
+@include flowfile-dialog.theme($material-theme-light);
+@include flowfile-table.theme($material-theme-light);
+@include settings.theme($material-theme-light);
+@include summary.theme($material-theme-light);
+@include users.theme($material-theme-light);
+@include context-menu.theme($material-theme-light, $nifi-canvas-theme-light);
+@include extension-creation.theme($material-theme-light, $nifi-canvas-theme-light);
+@include navigation.theme($material-theme-light, $nifi-canvas-theme-light);
+@include nf-editor.theme($material-theme-light, $nifi-canvas-theme-light);
+@include resizable.theme($material-theme-light, $nifi-canvas-theme-light);
+@include system-diagnostics-dialog.theme($material-theme-light);
+@include status-history.theme($material-theme-light, $nifi-canvas-theme-light);
+@include property-hint-tip.theme($material-theme-light);
+@include provenance-event-dialog.theme($material-theme-light);

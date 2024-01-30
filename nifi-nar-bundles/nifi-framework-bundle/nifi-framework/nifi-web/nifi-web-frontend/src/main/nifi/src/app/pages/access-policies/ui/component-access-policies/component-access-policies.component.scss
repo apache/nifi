@@ -29,20 +29,14 @@
     .operation-context-logo {
         .icon {
             font-size: 36px;
-            color: #ad9897;
         }
     }
 
     .operation-context-name {
         font-size: 18px;
-        color: #262626;
         width: 370px;
         text-overflow: ellipsis;
         overflow: hidden;
         white-space: nowrap;
-    }
-
-    .operation-context-type {
-        color: #728e9b;
     }
 }

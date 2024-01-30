@@ -30,6 +30,7 @@
             <div *ngFor="let item of relationshipItems; index as i" class="flex flex-col gap-y-1.5">
                 <div class="flex items-center gap-x-2">
                     <mat-checkbox
+                        color="primary"
                         [(ngModel)]="item.selected"
                         name="selected-{{ i }}"
                         (change)="handleChanged()"

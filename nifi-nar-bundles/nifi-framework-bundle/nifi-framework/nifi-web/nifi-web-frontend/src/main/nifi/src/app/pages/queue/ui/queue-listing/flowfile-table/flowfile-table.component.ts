@@ -31,7 +31,7 @@ import { CurrentUser } from '../../../../../state/current-user';
     standalone: true,
     templateUrl: './flowfile-table.component.html',
     imports: [MatTableModule, NgForOf, NgIf, RouterLink],
-    styleUrls: ['./flowfile-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./flowfile-table.component.scss']
 })
 export class FlowFileTable implements AfterViewInit {
     @Input() connectionLabel!: string;

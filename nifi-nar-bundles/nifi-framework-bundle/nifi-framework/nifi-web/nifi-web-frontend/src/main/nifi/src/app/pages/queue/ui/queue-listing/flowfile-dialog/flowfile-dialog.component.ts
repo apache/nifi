@@ -31,6 +31,7 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
     selector: 'flowfile-dialog',
     standalone: true,
     templateUrl: './flowfile-dialog.component.html',
+    styleUrls: ['./flowfile-dialog.component.scss'],
     imports: [
         ReactiveFormsModule,
         MatDialogModule,
@@ -45,8 +46,7 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
         NgTemplateOutlet,
         FormsModule,
         KeyValuePipe
-    ],
-    styleUrls: ['./flowfile-dialog.component.scss']
+    ]
 })
 export class FlowFileDialog {
     @Input() contentViewerAvailable!: boolean;

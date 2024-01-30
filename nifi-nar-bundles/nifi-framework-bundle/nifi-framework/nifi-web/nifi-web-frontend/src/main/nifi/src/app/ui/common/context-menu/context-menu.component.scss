@@ -18,11 +18,7 @@
 div.context-menu {
     font-size: 13px;
     padding: 3px;
-    background-color: rgba(249, 250, 251, 0.97);
-    border: 1px solid #004849;
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
     width: 215px;
-    color: #004849;
     user-select: none;
     display: flex;
     flex-direction: column;
@@ -62,7 +58,6 @@ div.context-menu {
         .context-menu-item-text {
             margin-left: 4px;
             line-height: 16px;
-            color: #262626;
         }
 
         .context-menu-group-item-img {
@@ -74,21 +69,7 @@ div.context-menu {
         }
     }
 
-    .context-menu-item:hover {
-        background-color: rgb(208, 208, 208);
-    }
-
-    .context-menu-item:active {
-        background-color: rgb(170, 170, 170);
-    }
-
     .context-menu-item:focus {
         outline: none;
-    }
-
-    &.show-focused {
-        .context-menu-item:focus {
-            outline: blue solid 1px;
-        }
     }
 }

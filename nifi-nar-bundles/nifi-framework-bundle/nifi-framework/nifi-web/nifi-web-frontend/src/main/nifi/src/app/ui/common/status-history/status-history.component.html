@@ -60,6 +60,7 @@
                                             </div>
                                             <div class="legend-entry">
                                                 <mat-checkbox
+                                                    color="primary"
                                                     value="nifi-instance-id"
                                                     (change)="selectNode($event)"
                                                     [checked]="!!instanceVisibility['nifi-instance-id']"></mat-checkbox>
@@ -78,6 +79,7 @@
                                             <div class="legend-entry">
                                                 <ng-container *ngFor="let node of nodes">
                                                     <mat-checkbox
+                                                        color="primary"
                                                         [value]="node.id"
                                                         (change)="selectNode($event)"
                                                         [checked]="

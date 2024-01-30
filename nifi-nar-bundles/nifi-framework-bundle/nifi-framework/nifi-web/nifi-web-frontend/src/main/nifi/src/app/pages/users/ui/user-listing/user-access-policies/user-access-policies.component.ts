@@ -36,7 +36,7 @@ import { UserAccessPoliciesDialogRequest } from '../../../state/user-listing';
     standalone: true,
     templateUrl: './user-access-policies.component.html',
     imports: [MatButtonModule, MatDialogModule, MatTableModule, MatSortModule, NgIf, RouterLink],
-    styleUrls: ['./user-access-policies.component.scss', '../../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./user-access-policies.component.scss']
 })
 export class UserAccessPolicies {
     displayedColumns: string[] = ['policy', 'action', 'actions'];

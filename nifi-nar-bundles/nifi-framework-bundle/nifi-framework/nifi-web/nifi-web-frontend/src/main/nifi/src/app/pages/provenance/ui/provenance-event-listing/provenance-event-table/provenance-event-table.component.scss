@@ -26,9 +26,6 @@
     }
 
     .lineage {
-        border: 1px solid #e5ebed;
-        background-color: #f9fafb;
-
         .lineage-controls {
             position: absolute;
             top: 5px;
@@ -37,7 +34,6 @@
 
             .fa,
             .icon {
-                color: #004849;
                 width: 14px;
                 height: 14px;
                 text-align: center;

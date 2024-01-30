@@ -17,8 +17,10 @@
 
 <div class="splash h-screen p-20" *ngIf="guardLoading">
     <div class="splash-img h-full flex items-center justify-center">
-        <mat-spinner color="warn"></mat-spinner>
+        <mat-spinner color="primary"></mat-spinner>
     </div>
 </div>
 
-<router-outlet></router-outlet>
+<div class="mat-app-background">
+    <router-outlet></router-outlet>
+</div>

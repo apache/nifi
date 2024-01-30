@@ -20,10 +20,6 @@
 .add-tenant-to-policy-form {
     @include mat.button-density(-1);
 
-    .fa {
-        color: #004849;
-    }
-
     mat-selection-list {
         max-height: 250px;
         overflow: auto;

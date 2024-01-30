@@ -24,21 +24,9 @@
         position: absolute;
         overflow: hidden;
 
-        path.link.selected {
-            stroke: #ba554a;
-        }
-
         g.event {
             cursor: pointer;
             user-select: none;
-        }
-
-        g.event circle.selected {
-            fill: #ba554a;
-        }
-
-        g.event circle.context {
-            fill: #cf9f5d;
         }
 
         text.event-type {
@@ -63,7 +51,6 @@
 
         g.flowfile circle.context,
         g.event circle.context {
-            stroke: #004849;
             stroke-width: 1.5px;
         }
 
@@ -71,7 +58,6 @@
             font-family: flowfont;
             content: '\e808';
             font-size: 16px;
-            color: #ad9897;
         }
     }
 }

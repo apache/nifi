@@ -31,6 +31,7 @@ import { Attribute, ProvenanceEventDialogRequest } from '../../../state/shared';
     selector: 'provenance-event-dialog',
     standalone: true,
     templateUrl: './provenance-event-dialog.component.html',
+    styleUrls: ['./provenance-event-dialog.component.scss'],
     imports: [
         MatDialogModule,
         MatInputModule,
@@ -43,8 +44,7 @@ import { Attribute, ProvenanceEventDialogRequest } from '../../../state/shared';
         MatTabsModule,
         NgTemplateOutlet,
         FormsModule
-    ],
-    styleUrls: ['./provenance-event-dialog.component.scss']
+    ]
 })
 export class ProvenanceEventDialog {
     @Input() contentViewerAvailable!: boolean;

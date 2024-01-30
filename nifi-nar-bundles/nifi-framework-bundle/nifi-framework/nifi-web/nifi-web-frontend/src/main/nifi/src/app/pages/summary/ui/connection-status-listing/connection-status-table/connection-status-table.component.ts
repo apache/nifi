@@ -38,7 +38,7 @@ export type SupportedColumns = 'name' | 'queue' | 'in' | 'out' | 'threshold' | '
     standalone: true,
     imports: [CommonModule, SummaryTableFilterModule, MatSortModule, RouterLink, MatTableModule, MatPaginatorModule],
     templateUrl: './connection-status-table.component.html',
-    styleUrls: ['./connection-status-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./connection-status-table.component.scss']
 })
 export class ConnectionStatusTable {
     private _initialSortColumn: SupportedColumns = 'sourceName';

@@ -17,25 +17,12 @@
 
 .icon {
     font-size: 32px;
-    color: #004849;
 
     &.hovering {
         cursor: move;
         cursor: grab;
         cursor: -moz-grab;
         cursor: -webkit-grab;
-        background-color: #e3e8eb;
-        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
-
-        .component-button-grip {
-            background: repeating-linear-gradient(
-                90deg,
-                rgba(170, 187, 195, 1),
-                rgba(170, 187, 195, 1) 4px,
-                rgba(170, 187, 195, 0) 4px,
-                rgba(170, 187, 195, 0) 6px
-            );
-        }
     }
 
     &.dragging {

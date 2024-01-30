@@ -50,7 +50,7 @@ import { CurrentUser } from '../../../../state/current-user';
         NifiTooltipDirective,
         RouterLink
     ],
-    styleUrls: ['./controller-service-table.component.scss', '../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./controller-service-table.component.scss']
 })
 export class ControllerServiceTable {
     @Input() initialSortColumn: 'name' | 'type' | 'bundle' | 'state' | 'scope' = 'name';

@@ -104,7 +104,7 @@
         </mat-tab-group>
     </mat-dialog-content>
     <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
+        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
         <button
             [disabled]="!editControllerServiceForm.dirty || editControllerServiceForm.invalid || saving.value"
             type="button"

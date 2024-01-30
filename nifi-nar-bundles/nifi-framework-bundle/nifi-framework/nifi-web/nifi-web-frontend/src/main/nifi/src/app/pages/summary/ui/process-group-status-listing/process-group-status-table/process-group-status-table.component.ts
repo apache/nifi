@@ -47,7 +47,7 @@ export type SupportedColumns =
     standalone: true,
     imports: [CommonModule, MatSortModule, MatTableModule, SummaryTableFilterModule, RouterLink, MatPaginatorModule],
     templateUrl: './process-group-status-table.component.html',
-    styleUrls: ['./process-group-status-table.component.scss', '../../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./process-group-status-table.component.scss']
 })
 export class ProcessGroupStatusTable implements AfterViewInit {
     private _initialSortColumn: SupportedColumns = 'name';
