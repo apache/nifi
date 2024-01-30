@@ -18,7 +18,7 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin theme($material-theme, $canvas-theme) {
+@mixin nifi-theme($material-theme, $canvas-theme) {
     // Get the color config from the theme.
     $color-config: mat.get-color-config($material-theme);
     $canvas-color-config: mat.get-color-config($canvas-theme);
@@ -33,18 +33,13 @@
     $canvas-primary-palette-A100: mat.get-color-from-palette($canvas-primary-palette, 'A100');
     $canvas-primary-palette-A700: mat.get-color-from-palette($canvas-primary-palette, 'A700');
 
-    #status-history-chart-container,
-    #status-history-chart-control-container {
+    :host ::ng-deep #status-history-chart-container,
+    :host ::ng-deep #status-history-chart-control-container {
         background-color: $canvas-primary-palette-900;
 
         .axis path,
         .axis line {
-            fill: none;
             stroke: $canvas-primary-palette-A100;
-        }
-
-        .chart-line {
-            fill: none;
         }
 
         .brush .selection {
@@ -56,7 +51,7 @@
         background-color: $canvas-primary-palette-900;
     }
 
-    #status-history-chart-container text,
+    :host ::ng-deep #status-history-chart-container text,
     #status-history-chart-control-container text {
         fill: $primary-palette-700;
     }

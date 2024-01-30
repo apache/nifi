@@ -22,41 +22,31 @@
 @use 'assets/styles/listing-table-theme' as listing-table;
 @use 'app/app.component-theme' as app-component;
 @use 'app/pages/access-policies/feature/access-policies.component-theme' as access-policies;
-@use 'app/pages/access-policies/ui/common/add-tenant-to-policy-dialog/add-tenant-to-policy-dialog.component-theme' as
-    add-tenant-to-policy;
-@use 'app/pages/access-policies/ui/component-access-policies/component-access-policies.component-theme' as
-    component-access-policies;
+@use 'app/pages/access-policies/ui/common/add-tenant-to-policy-dialog/add-tenant-to-policy-dialog.component-theme' as add-tenant-to-policy;
+@use 'app/pages/access-policies/ui/component-access-policies/component-access-policies.component-theme' as component-access-policies;
 @use 'app/pages/bulletins/feature/bulletins.component-theme' as bulletins;
-@use 'app/pages/bulletins/ui/bulletin-board/bulletin-board-list/bulletin-board-list.component-theme' as
-    bulletin-board-list;
+@use 'app/pages/bulletins/ui/bulletin-board/bulletin-board-list/bulletin-board-list.component-theme' as bulletin-board-list;
 @use 'app/pages/counters/feature/counters.component-theme' as counters;
 @use 'app/pages/flow-designer/ui/canvas/canvas.component-theme' as canvas;
 @use 'app/pages/flow-designer/ui/canvas/footer/footer.component-theme' as footer;
-@use 'app/pages/flow-designer/ui/canvas/graph-controls/navigation-control/navigation-control.component-theme' as
-    navigation-control;
-@use 'app/pages/flow-designer/ui/canvas/graph-controls/navigation-control/birdseye/birdseye.component-theme' as
-    birdseye-control;
-@use 'app/pages/flow-designer/ui/canvas/graph-controls/operation-control/operation-control.component-theme' as
-    operation-control;
+@use 'app/pages/flow-designer/ui/canvas/graph-controls/navigation-control/navigation-control.component-theme' as navigation-control;
+@use 'app/pages/flow-designer/ui/canvas/graph-controls/navigation-control/birdseye/birdseye.component-theme' as birdseye-control;
+@use 'app/pages/flow-designer/ui/canvas/graph-controls/operation-control/operation-control.component-theme' as operation-control;
 @use 'app/pages/flow-designer/ui/canvas/header/flow-status/flow-status.component-theme' as flow-status;
 @use 'app/pages/flow-designer/ui/canvas/header/header.component-theme' as header;
 @use 'app/pages/flow-designer/ui/canvas/header/new-canvas-item/new-canvas-item.component-theme' as new-canvas-item;
 @use 'app/pages/flow-designer/ui/canvas/header/search/search.component-theme' as search;
 @use 'app/pages/flow-designer/ui/canvas/items/connection/prioritizers/prioritizers.component-theme' as prioritizers;
-@use 'app/pages/flow-designer/ui/canvas/items/process-group/create-process-group/create-process-group.component-theme'
-    as create-process-group;
+@use 'app/pages/flow-designer/ui/canvas/items/process-group/create-process-group/create-process-group.component-theme' as create-process-group;
 @use 'app/pages/flow-designer/ui/common/banner/banner.component-theme' as banner;
 @use 'app/pages/flow-designer/ui/controller-service/controller-services.component-theme' as controller-service;
 @use 'app/pages/login/feature/login.component-theme' as login;
 @use 'app/pages/login/ui/login-form/login-form.component-theme' as login-form;
 @use 'app/pages/provenance/feature/provenance.component-theme' as provenance;
-@use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/provenance-event-table.component-theme' as
-    provenance-event-table;
-@use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/lineage/lineage.component-theme' as
-    lineage;
+@use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/provenance-event-table.component-theme' as provenance-event-table;
+@use 'app/pages/provenance/ui/provenance-event-listing/provenance-event-table/lineage/lineage.component-theme' as lineage;
 @use 'app/pages/parameter-contexts/feature/parameter-contexts.component-theme' as parameter-contexts;
-@use 'app/pages/parameter-contexts/ui/parameter-context-listing/parameter-context-inheritance/parameter-context-inheritance.component-theme'
-    as parameter-context-inheritance;
+@use 'app/pages/parameter-contexts/ui/parameter-context-listing/parameter-context-inheritance/parameter-context-inheritance.component-theme' as parameter-context-inheritance;
 @use 'app/pages/queue/ui/queue-listing/flowfile-dialog/flowfile-dialog.component-theme' as flowfile-dialog;
 @use 'app/pages/queue/ui/queue-listing/flowfile-table/flowfile-table.component-theme' as flowfile-table;
 @use 'app/pages/settings/feature/settings.component-theme' as settings;
@@ -180,7 +170,7 @@ $appFontPath: '~roboto-fontface/fonts';
 @tailwind utilities;
 
 //General status styles. TODO - Reconsider this... separating canvas/style styles from html styles...
-@mixin theme($material-theme, $canvas-theme) {
+@mixin nifi-colors($material-theme, $canvas-theme) {
     // Get the color config from the theme.
     $color-config: mat.get-color-config($material-theme);
     $canvas-color-config: mat.get-color-config($canvas-theme);
@@ -210,109 +200,25 @@ $appFontPath: '~roboto-fontface/fonts';
     $warn-palette-A100: mat.get-color-from-palette($warn-palette, 'A100');
     $warn-palette-A400: mat.get-color-from-palette($warn-palette, 'A400');
 
-    html,
-    body {
-        height: 100%;
-    }
-
-    body {
-        margin: 0;
-        font-family: Roboto, 'Helvetica Neue', sans-serif;
-    }
-
     a {
-        font-size: 13px;
-        cursor: pointer;
         color: $primary-palette-A400;
-        font-weight: normal;
-        display: inline-block;
-        font-family: Roboto;
-        text-decoration: underline;
         text-decoration-color: $primary-palette-200;
-        text-underline-offset: 3px;
     }
 
     a:hover {
         text-decoration-color: $primary-palette-A400;
     }
 
-    //Icon for styling mat-icon in forms throughout the application.
-    .info-icon {
-        font-size: 14px;
-        height: 14px !important;
-        width: 14px !important;
-    }
-
-    //This style is needed due to an incompatibility between material and tailwind.
-    .mdc-notched-outline__notch {
-        border-right: none;
-    }
-
-    .small-dialog {
-        min-width: 320px;
-    }
-
-    .medium-dialog {
-        min-width: 470px;
-    }
-
-    .medium-short-dialog {
-        max-height: 32%;
-        max-width: 34%;
-        min-height: 250px;
-        min-width: 440px;
-        font-size: 13px;
-    }
-
-    .large-dialog {
-        max-height: 72%;
-        max-width: 55%;
-        min-height: 560px;
-        min-width: 760px;
-    }
-
-    .edit-parameter-context-dialog {
-        max-height: 72%;
-        max-width: 55%;
-        min-width: 850px;
-        min-height: 575px;
-    }
-
     .tooltip {
-        position: fixed;
-        max-width: 500px;
-        padding: 10px;
         background-color: $canvas-primary-palette-900;
-        border-radius: 2px;
-        border-width: 1px;
         border-color: $canvas-primary-palette-200;
         box-shadow: 0 2px 5px $canvas-primary-palette-50;
-        font-size: 13px;
-        font-family: Roboto;
-        font-weight: 400;
-        word-wrap: break-word;
-        white-space: normal;
         color: $canvas-primary-palette-200;
-        z-index: 1;
-
-        ul {
-            list-style: disc outside;
-            margin-left: 1em;
-        }
     }
 
     .property-editor {
         background-color: $canvas-primary-palette-900;
         box-shadow: 0 2px 5px $canvas-primary-palette-50;
-        font-size: 13px;
-        font-family: Roboto;
-        font-weight: 400;
-    }
-
-    .CodeMirror-hints {
-        font-size: 13px !important;
-        z-index: 1000 !important;
-        overflow-y: scroll !important;
     }
 
     .disabled {
@@ -393,21 +299,16 @@ $appFontPath: '~roboto-fontface/fonts';
     .blank,
     .unset,
     .sensitive {
-        font-weight: normal !important;
         color: $canvas-primary-palette-400 !important;
     }
 
     button.nifi-button {
-        height: 28px;
-        width: 28px;
-        line-height: 28px;
         border: 1px solid $primary-palette-200;
         background-color: $primary-palette-50;
         color: $primary-palette-A400;
     }
 
     button.nifi-button:hover {
-        cursor: pointer;
         border-color: $primary-palette-A400;
     }
 
@@ -424,6 +325,126 @@ $appFontPath: '~roboto-fontface/fonts';
         }
     }
 
+    .value,
+    .refresh-timestamp {
+        color: $warn-palette-A400;
+    }
+}
+
+@mixin nifi-styles() {
+    html,
+    body {
+        height: 100%;
+    }
+
+    body {
+        margin: 0;
+        font-family: Roboto, 'Helvetica Neue', sans-serif;
+    }
+
+    a {
+        font-size: 13px;
+        cursor: pointer;
+        font-weight: normal;
+        display: inline-block;
+        font-family: Roboto;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+
+    //Icon for styling mat-icon in forms throughout the application.
+    .info-icon {
+        font-size: 14px;
+        height: 14px !important;
+        width: 14px !important;
+    }
+
+    //This style is needed due to an incompatibility between material and tailwind.
+    .mdc-notched-outline__notch {
+        border-right: none;
+    }
+
+    .small-dialog {
+        min-width: 320px;
+    }
+
+    .medium-dialog {
+        min-width: 470px;
+    }
+
+    .medium-short-dialog {
+        max-height: 32%;
+        max-width: 34%;
+        min-height: 250px;
+        min-width: 440px;
+        font-size: 13px;
+    }
+
+    .large-dialog {
+        max-height: 72%;
+        max-width: 55%;
+        min-height: 560px;
+        min-width: 760px;
+    }
+
+    .edit-parameter-context-dialog {
+        max-height: 72%;
+        max-width: 55%;
+        min-width: 850px;
+        min-height: 575px;
+    }
+
+    .tooltip {
+        position: fixed;
+        max-width: 500px;
+        padding: 10px;
+        border-radius: 2px;
+        border-width: 1px;
+        font-size: 13px;
+        font-family: Roboto;
+        font-weight: 400;
+        word-wrap: break-word;
+        white-space: normal;
+        z-index: 1;
+
+        ul {
+            list-style: disc outside;
+            margin-left: 1em;
+        }
+    }
+
+    .property-editor {
+        font-size: 13px;
+        font-family: Roboto;
+        font-weight: 400;
+    }
+
+    .CodeMirror-hints {
+        font-size: 13px !important;
+        z-index: 1000 !important;
+        overflow-y: scroll !important;
+    }
+
+    .blank,
+    .unset,
+    .sensitive {
+        font-weight: normal !important;
+    }
+
+    button.nifi-button {
+        height: 28px;
+        width: 28px;
+        line-height: 28px;
+    }
+
+    button.nifi-button:hover {
+        cursor: pointer;
+    }
+
+    button.nifi-button:disabled {
+        cursor: not-allowed;
+    }
+
     .pointer {
         cursor: pointer;
     }
@@ -431,12 +452,11 @@ $appFontPath: '~roboto-fontface/fonts';
     .value,
     .refresh-timestamp {
         font-weight: 500;
-        color: $warn-palette-A400;
     }
 }
 
 // Define the palettes for your theme
-$material-primary-light: mat.define-palette($material-primary-light-palette, 300);
+$material-primary-light: mat.define-palette($material-primary-light-palette);
 $material-accent-light: mat.define-palette($material-primary-light-palette, A400, A100, A700);
 $nifi-canvas-primary-light: mat.define-palette($nifi-canvas-light-palette);
 $nifi-canvas-accent-light: mat.define-palette($nifi-canvas-accent-light-palette, 400, 100, 700);
@@ -467,47 +487,132 @@ $nifi-canvas-theme-light: mat.define-light-theme(
     )
 );
 
+// only include this once (not needed for dark mode)
+@include nifi-styles();
+
+// generate light mode nifi stylesheets
 @include mat.all-component-themes($material-theme-light);
-@include app-component.theme($material-theme-light);
-@include theme($material-theme-light, $nifi-canvas-theme-light);
-@include listing-table.theme($material-theme-light, $nifi-canvas-theme-light);
-@include access-policies.theme($material-theme-light);
-@include add-tenant-to-policy.theme($material-theme-light);
-@include component-access-policies.theme($material-theme-light, $nifi-canvas-theme-light);
-@include bulletins.theme($material-theme-light);
-@include bulletin-board-list.theme($material-theme-light, $nifi-canvas-theme-light);
-@include counters.theme($material-theme-light);
-@include canvas.theme($material-theme-light, $nifi-canvas-theme-light);
-@include banner.theme($material-theme-light);
-@include controller-service.theme($material-theme-light);
-@include footer.theme($material-theme-light, $nifi-canvas-theme-light);
-@include navigation-control.theme($material-theme-light, $nifi-canvas-theme-light);
-@include birdseye-control.theme($material-theme-light, $nifi-canvas-theme-light);
-@include operation-control.theme($material-theme-light, $nifi-canvas-theme-light);
-@include flow-status.theme($material-theme-light, $nifi-canvas-theme-light);
-@include header.theme($nifi-canvas-theme-light);
-@include new-canvas-item.theme($material-theme-light, $nifi-canvas-theme-light);
-@include search.theme($material-theme-light, $nifi-canvas-theme-light);
-@include prioritizers.theme($material-theme-light, $nifi-canvas-theme-light);
-@include create-process-group.theme($material-theme-light);
-@include login.theme($material-theme-light, $nifi-canvas-theme-light);
-@include login-form.theme($material-theme-light);
-@include provenance-event-table.theme($material-theme-light, $nifi-canvas-theme-light);
-@include provenance.theme($material-theme-light, $nifi-canvas-theme-light);
-@include lineage.theme($material-theme-light, $nifi-canvas-theme-light);
-@include parameter-context-inheritance.theme($material-theme-light, $nifi-canvas-theme-light);
-@include parameter-contexts.theme($material-theme-light);
-@include flowfile-dialog.theme($material-theme-light);
-@include flowfile-table.theme($material-theme-light);
-@include settings.theme($material-theme-light);
-@include summary.theme($material-theme-light);
-@include users.theme($material-theme-light);
-@include context-menu.theme($material-theme-light, $nifi-canvas-theme-light);
-@include extension-creation.theme($material-theme-light, $nifi-canvas-theme-light);
-@include navigation.theme($material-theme-light, $nifi-canvas-theme-light);
-@include nf-editor.theme($material-theme-light, $nifi-canvas-theme-light);
-@include resizable.theme($material-theme-light, $nifi-canvas-theme-light);
-@include system-diagnostics-dialog.theme($material-theme-light);
-@include status-history.theme($material-theme-light, $nifi-canvas-theme-light);
-@include property-hint-tip.theme($material-theme-light);
-@include provenance-event-dialog.theme($material-theme-light);
+@include app-component.nifi-theme($material-theme-light);
+@include nifi-colors($material-theme-light, $nifi-canvas-theme-light);
+@include listing-table.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include access-policies.nifi-theme($material-theme-light);
+@include add-tenant-to-policy.nifi-theme($material-theme-light);
+@include component-access-policies.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include bulletins.nifi-theme($material-theme-light);
+@include bulletin-board-list.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include counters.nifi-theme($material-theme-light);
+@include canvas.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include banner.nifi-theme($material-theme-light);
+@include controller-service.nifi-theme($material-theme-light);
+@include footer.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include navigation-control.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include birdseye-control.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include operation-control.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include flow-status.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include header.nifi-theme($nifi-canvas-theme-light);
+@include new-canvas-item.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include search.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include prioritizers.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include create-process-group.nifi-theme($material-theme-light);
+@include login.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include login-form.nifi-theme($material-theme-light);
+@include provenance-event-table.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include provenance.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include lineage.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include parameter-context-inheritance.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include parameter-contexts.nifi-theme($material-theme-light);
+@include flowfile-dialog.nifi-theme($material-theme-light);
+@include flowfile-table.nifi-theme($material-theme-light);
+@include settings.nifi-theme($material-theme-light);
+@include summary.nifi-theme($material-theme-light);
+@include users.nifi-theme($material-theme-light);
+@include context-menu.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include extension-creation.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include navigation.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include nf-editor.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include resizable.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include system-diagnostics-dialog.nifi-theme($material-theme-light);
+@include status-history.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include property-hint-tip.nifi-theme($material-theme-light);
+@include provenance-event-dialog.nifi-theme($material-theme-light);
+
+.dark-theme {
+    // Create the color palettes used in our dark theme.
+    $material-primary-dark: mat.define-palette($material-primary-dark-palette);
+    $material-accent-dark: mat.define-palette($material-primary-dark-palette, A400, A100, A700);
+    $nifi-canvas-primary-dark: mat.define-palette($nifi-canvas-dark-palette);
+    $nifi-canvas-accent-dark: mat.define-palette($nifi-canvas-accent-dark-palette);
+    $warn-dark: mat.define-palette($warn-dark-palette, 600, 200, 800);
+
+    $material-theme-dark: mat.define-dark-theme(
+            (
+                color: (
+                    primary: $material-primary-dark,
+                    accent: $material-accent-dark,
+                    warn: $warn-dark
+                ),
+                density: 0,
+                typography: mat.define-typography-config(),
+            )
+    );
+
+    $nifi-canvas-theme-dark: mat.define-dark-theme(
+            (
+                color: (
+                    primary: $nifi-canvas-primary-dark,
+                    accent: $nifi-canvas-accent-dark,
+                    warn: $warn-dark,
+                ),
+                //typography: mat.define-typography-config(), // TODO: typography
+                density: -3
+            )
+    );
+
+    // Include the dark theme color styles.
+    @include mat.all-component-colors($material-theme-dark);
+
+    // generate dark mode nifi stylesheets
+    @include app-component.nifi-theme($material-theme-dark);
+    @include nifi-colors($material-theme-dark, $nifi-canvas-theme-dark);
+    @include listing-table.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include access-policies.nifi-theme($material-theme-dark);
+    @include add-tenant-to-policy.nifi-theme($material-theme-dark);
+    @include component-access-policies.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include bulletins.nifi-theme($material-theme-dark);
+    @include bulletin-board-list.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include counters.nifi-theme($material-theme-dark);
+    @include canvas.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include banner.nifi-theme($material-theme-dark);
+    @include controller-service.nifi-theme($material-theme-dark);
+    @include footer.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include navigation-control.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include birdseye-control.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include operation-control.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include flow-status.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include header.nifi-theme($nifi-canvas-theme-dark);
+    @include new-canvas-item.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include search.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include prioritizers.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include create-process-group.nifi-theme($material-theme-dark);
+    @include login.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include login-form.nifi-theme($material-theme-dark);
+    @include provenance-event-table.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include provenance.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include lineage.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include parameter-context-inheritance.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include parameter-contexts.nifi-theme($material-theme-dark);
+    @include flowfile-dialog.nifi-theme($material-theme-dark);
+    @include flowfile-table.nifi-theme($material-theme-dark);
+    @include settings.nifi-theme($material-theme-dark);
+    @include summary.nifi-theme($material-theme-dark);
+    @include users.nifi-theme($material-theme-dark);
+    @include context-menu.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include extension-creation.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include navigation.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include nf-editor.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include resizable.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include system-diagnostics-dialog.nifi-theme($material-theme-dark);
+    @include status-history.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include property-hint-tip.nifi-theme($material-theme-dark);
+    @include provenance-event-dialog.nifi-theme($material-theme-dark);
+}

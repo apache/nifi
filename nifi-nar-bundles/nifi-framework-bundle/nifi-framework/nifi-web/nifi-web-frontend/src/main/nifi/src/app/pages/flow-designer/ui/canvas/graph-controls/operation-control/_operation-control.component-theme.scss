@@ -18,7 +18,7 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin theme($material-theme, $canvas-theme) {
+@mixin nifi-theme($material-theme, $canvas-theme) {
     // Get the color config from the theme.
     $color-config: mat.get-color-config($material-theme);
     $canvas-color-config: mat.get-color-config($canvas-theme);
@@ -31,7 +31,7 @@
     // Get hues from palette
     $primary-palette-100: mat.get-color-from-palette($primary-palette, 100);
     $primary-palette-300: mat.get-color-from-palette($primary-palette, 300);
-    $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
+    $primary-palette-700: mat.get-color-from-palette($primary-palette, 700);
     $primary-palette-A400: mat.get-color-from-palette($primary-palette, 'A400');
     $warn-palette-A200: mat.get-color-from-palette($warn-palette, 'A200');
     $warn-palette-A400: mat.get-color-from-palette($warn-palette, 'A400');
@@ -73,7 +73,7 @@
         }
 
         .operation-context-type {
-            color: $primary-palette-500;
+            color: $primary-palette-700;
         }
     }
 }

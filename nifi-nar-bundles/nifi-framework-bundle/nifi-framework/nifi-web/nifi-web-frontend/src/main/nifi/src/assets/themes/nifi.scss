@@ -34,10 +34,10 @@ $material-primary-light-palette: (
 
     // A100 -> A700 are the ACCENT color (mat.define-palette($material-primary-light-palette, A400, A100, A700);). These color are the ANALOGOUS (or possibly the TRIADIC??) colors as defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #728e9b
     // These colors are also used by some custom canvas components that display the ANALOGOUS color for things like buttons, links, borders, info, etc.
-    A100: #c1dbd7, // .zero
-    A200: #9dc4be, // .enabled, .transmitting, .load-balance-icon-active
-    A400: #729b93, // a, a:hover, button.nifi-button, button.nifi-button:hover, .add-tenant-to-policy-form.fa, .component.selected rect.border, .add-connect, .remote-process-group-uri, .remote-process-group-transmission-secure, .navigation-control.fa, .operation-control.fa, .new-canvas-item.icon, .upload-flow-definition, .lineage-controls.fa, .event circle.context, .nifi-navigation.icon, .listing-table.fa, .listing-table.icon, .context-menu
-    A700: rgba(91, 109, 104, 1), // .hint-pattern
+    A100: #aabec7, // .zero
+    A200: #44a3cf, // .enabled, .transmitting, .load-balance-icon-active
+    A400: #004849, // a, a:hover, button.nifi-button, button.nifi-button:hover, .add-tenant-to-policy-form.fa, .component.selected rect.border, .add-connect, .remote-process-group-uri, .remote-process-group-transmission-secure, .navigation-control.fa, .operation-control.fa, .new-canvas-item.icon, .upload-flow-definition, .lineage-controls.fa, .event circle.context, .nifi-navigation.icon, .listing-table.fa, .listing-table.icon, .context-menu
+    A700: rgba(20, 145, 193, 0.12), // .hint-pattern
 
     // These are the $material-primary-light-palette PRIMARY AND ACCENT contrast colors. These color do not really get defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors.
     // Instead if we look to the Angular Material provided palettes we see that these fields are typically rgba(black, 0.87) or white. These values are particularly important
@@ -62,6 +62,53 @@ $material-primary-light-palette: (
         A200: rgba(black, 0.87),
         A400: #ffffff,
         A700: #ffffff,
+    )
+);
+
+// The $material-primary-dark-palette define the PRIMARY AND ACCENT palettes for all Angular Material components used throughout Apache NiFi
+$material-primary-dark-palette: (
+    // 50 -> 900 are the PRIMARY colors (mat.define-palette($material-primary-dark-palette, 300);) defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #728e9b
+    50: rgb(30, 45, 54), // .context-menu
+    100: rgba(32, 47, 54, 1), // "lighter" hue for this palette. Also .global-menu:hover, .navigation-control-header:hover, .operation-control-header:hover, .new-canvas-item.icon.hovering, table tr:hover, .CodeMirror.blank, .remote-banner, .process-group-details-banner, .process-group-details-banner, remote-process-group-details-banner, .remote-process-group-last-refresh-rect,
+    200: #30444d, // .processor-stats-border, .process-group-stats-border, .context-menu-item:hover, .process-group-banner, .remote-process-group-banner, .a, button.nifi-button, button.nifi-button:disabled
+    300: #3e5762, // .breadcrumb-container, .navigation-control, .operation-control, .flow-status, .controller-bulletins, .component-button-grip, .search-container, .nifi-navigation, .CodeMirror.blank
+    400: #4d6b78, // Default hue for this palette (color="primary").
+    500: #587a89, // .disabled, .not-transmitting, .splash, .access-policies-header, .operation-context-type, .bulletin-board-header, .counter-header, .stats-info, .active-thread-count-icon, .processor-type, .port-transmission-icon, .operation-context-type, .flow-status.fa, .flow-status.icon, .controller-bulletins, .prioritizers-list, .controller-services-header, .login-title, .parameter-context-header, .parameter-context-inheritance-list, .provenance-header, .flowfile-header, .queue-listing-header, .settings-header, .summary-header, .user-header, table th, button.global-menu-item.fa, button.global-menu-item.icon, .event-header, .section-header,
+    600: #718d9a, // .breadcrumb-container, .birdseye-brush
+    700: #8aa2ad, // "darker" hue for this palette. Also #status-history-chart-container text, #status-history-chart-control-container text
+    800: #abbcc5,
+    900: #abbcc5,
+
+    // A100 -> A700 are the ACCENT color (mat.define-palette($material-primary-dark-palette, A400, A100, A700);). These color are the ANALOGOUS (or possibly the TRIADIC??) colors as defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #728e9b
+    // These colors are also used by some custom canvas components that display the ANALOGOUS color for things like buttons, links, borders, info, etc.
+    A100: #2cd5d5, // .zero
+    A200: #009b9d, // .enabled, .transmitting, .load-balance-icon-active
+    A400: #44a3cf, // a, a:hover, button.nifi-button, button.nifi-button:hover, .add-tenant-to-policy-form.fa, .component.selected rect.border, .add-connect, .remote-process-group-uri, .remote-process-group-transmission-secure, .navigation-control.fa, .operation-control.fa, .new-canvas-item.icon, .upload-flow-definition, .lineage-controls.fa, .event circle.context, .nifi-navigation.icon, .listing-table.fa, .listing-table.icon, .context-menu
+    A700: rgba(139, 208, 229, 1),//#aabec7 // .hint-pattern
+
+    // These are the $material-primary-dark-palette PRIMARY AND ACCENT contrast colors. These color do not really get defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors.
+    // Instead if we look to the Angular Material provided palettes we see that these fields are typically rgba(black, 0.87) or white. These values are particularly important
+    // for light mode and dark mode as these values set the colors for the text when displayed against the primary background on a button, badge, chip, etc.
+    //
+    // NOTE: Care should be taken here to ensure the values meet accessibility standards.
+    //
+    // NOTE: When creating the Material palette definition mat.define-palette($material-primary-dark-palette, 300);
+    // Since 300, was set as the default the contrast-300 will be used as the default text color.
+    contrast: (
+        50: #ffffff,
+        100: #ffffff,
+        200: #ffffff,
+        300: #ffffff,
+        400: #ffffff,
+        500: #ffffff,
+        600: rgba(black, 0.87),
+        700: rgba(black, 0.87),
+        800: rgba(black, 0.87),
+        900: rgba(black, 0.87),
+        A100: #ffffff,
+        A200: #ffffff,
+        A400: rgba(black, 0.87),
+        A700: rgba(black, 0.87),
     )
 );
 
@@ -111,6 +158,52 @@ $nifi-canvas-light-palette: (
     )
 );
 
+// The $nifi-canvas-dark-palette defines the PRIMARY palette for all flow designer canvas components that make up the NiFi canvas theme used throughout Apache NiFi
+$nifi-canvas-dark-palette: (
+    // mat.define-palette($nifi-canvas-dark-palette)
+    50: rgba(255, 255, 255, 1), // .tooltip, .property-editor, g.component rect.border, .component-comments, g.connection path.connection-path, g.connection rect.backpressure-tick.data-size-prediction, g.connection rect.backpressure-tick.object-prediction, g.connection rect.backpressure-object, g.connection rect.backpressure-data-size, .breadcrumb-container, .navigation-control, .operation-control, header.nifi-header, .new-canvas-item.icon.hovering, .cdk-drag-disabled, .cdk-drag-preview, .context-menu, .global-menu:hover,
+    100: #f4f6f7, //rgba(black, 0.87), // .prioritizer-draggable-item, .parameter-context-draggable-item
+    200: #e5ebed, // .tooltip, .cm-s-default .CodeMirror-matchingbracket, circle.flowfile-link
+    300: #f9fafb, // .context-menu-item:active, .CodeMirror, .cm-s-default .CodeMirror-matchingbracket
+    400: #d8d8d8, // .unset, .border.ghost, .backpressure-tick.not-configured, g.connection.ghost path.connection-path, g.connection.ghost rect.connection-label, .prioritizers-list, .prioritizer-draggable-item, .parameter-context-inheritance-list, .parameter-context-draggable-item
+    500: #acacac, // g.connection rect.backpressure-object, g.connection rect.backpressure-data-size, .cdk-drag-disabled, .resizable-triangle
+    600: #545454, // .canvas-background, .navigation-control, .operation-control, .lineage
+    700: #696060, // .canvas-background, g.component rect.body.unauthorized, g.component rect.processor-icon-container.unauthorized, g.connection rect.body.unauthorized, #birdseye, .lineage
+    800: rgba(#6b6464, 0.5), // .even, .remote-process-group-sent-stats, .processor-stats-in-out, .process-group-queued-stats, .process-group-read-write-stats
+    900: rgba(#252424, 0.97), // circle.flowfile-link, .processor-read-write-stats, .process-group-stats-in-out, .tooltip, .property-editor, .disabled, .enabled, .stopped, .running, .has-errors, .invalid, .validating, .transmitting, .not-transmitting, .up-to-date, .locally-modified, .sync-failure, .stale, .locally-modified-and-stale, g.component rect.body, text.bulletin-icon, rect.processor-icon-container, circle.restricted-background, circle.is-primary-background, g.connection rect.body, text.connection-to-run-status, text.expiration-icon, text.load-balance-icon, text.penalized-icon, g.connection rect.backpressure-tick.data-size-prediction.prediction-down, g.connection rect.backpressure-tick.object-prediction.prediction-down, text.version-control, .breadcrumb-container, #birdseye, .controller-bulletins .fa, .search-container:hover, .search-container.open, .login-background, table th, .mat-sort-header-arrow, .CodeMirror, #status-history-chart-container, #status-history-chart-control-container, #status-history-chart-control-container,
+
+    // some analog colors for headers and hover states, inputs, stats, etc
+    A100: #000, // .navigation-control-header:hover, .operation-control-header:hover, .axis path, .axis line
+    A200: #e7e6e6, // .operation-context-name, text.stats-label, text.processor-name, text.port-name, text.process-group-name, text.remote-process-group-name, .navigation-control-title, .operation-control-title, .operation-context-name, .search-input, .context-menu-item-text, .current-user
+    A400: #b0b0b0, // rect.component-selection, rect.drag-selection, rect.label-drag
+    A700: #b2b2b2, // text.processor-bundle, .search-container:hover, .search-container.open, .search-container.fa, .selected-type-bundle, .brush .selection
+
+    // These are the $nifi-canvas-dark-palette PRIMARY palette contrast colors. These color do not really get defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors.
+    // Instead if we look to the Angular Material provided palettes we see that these fields are typically rgba(black, 0.87) or white. These values are particularly important
+    // for light mode and dark mode as these values set the colors for the text when displayed against the primary background on a button, badge, chip, etc.
+    //
+    // NOTE: Care should be taken here to ensure the values meet accessibility standards.
+    //
+    // NOTE: When creating the Material palette definition mat.define-palette($nifi-canvas-dark-palette);
+    // Since 500 is the default the contrast-500 will be used as the default text color.
+    contrast: (
+        50: #ffffff,
+        100: #ffffff,
+        200: #ffffff,
+        300: #ffffff,
+        400: #ffffff,
+        500: #ffffff,
+        600: rgba(black, 0.87),
+        700: rgba(black, 0.87),
+        800: rgba(black, 0.87),
+        900: rgba(black, 0.87),
+        A100: #ffffff,
+        A200: #ffffff,
+        A400: rgba(black, 0.87),
+        A700: rgba(black, 0.87),
+    )
+);
+
 // The $nifi-canvas-light-palette defines the ACCENT palette for all flow designer canvas components that make up the NiFi canvas theme used throughout Apache NiFi
 $nifi-canvas-accent-light-palette: (
     // 50 -> 900 are the PRIMARY colors defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #52bf7e
@@ -157,6 +250,53 @@ $nifi-canvas-accent-light-palette: (
     )
 );
 
+// The $nifi-canvas-dark-palette defines the ACCENT palette for all flow designer canvas components that make up the NiFi canvas theme used throughout Apache NiFi
+$nifi-canvas-accent-dark-palette: (
+    // 50 -> 900 are the PRIMARY colors defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #52bf7e
+    50: #016131,
+    100: #1A9964, // "lighter" hue for this palette.
+    200: #2cb367, //.running
+    300: #52bf7e, //.backpressure-percent
+    400: #73ca94, // color="primary" Default hue for this palette. Also .up-to-date
+    500: #9dd9b2,
+    600: #c3e8d0, //.version-control
+    700: #e6f6ec, // "darker" hue for this palette Also .bulletin-normal
+    800: #0000ff, //.endpoint, g.process-group.drop rect.border
+    900: #00ff00, //.connectable-destination, .connector.connectable
+
+    // A100 - A700 are the ANALOGOUS colors but are more customized. These colors are used to highlight, warn, denote midpoints and labelpoints, etc
+    A100: #cbaa09, //.selected
+    A200: #bda500, //.invalid, .is-missing-port, circle.context
+    A400: #f8bf47, //.backpressure-percent-warning, .bulletin-warn, .backpressure-percent.warning, text.run-status-icon
+    A700: #948b4b, //g.connection.selected rect.border, .connection-selection-path, .midpoint, .labelpoint
+
+    // These are the $nifi-canvas-accent-dark-palette PRIMARY palette contrast colors. These color do not really get defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors.
+    // Instead if we look to the Angu
+    // lar Material provided palettes we see that these fields are typically rgba(black, 0.87) or white. These values are particularly important
+    // for light mode and dark mode as these values set the colors for the text when displayed against the primary background on a button, badge, chip, etc.
+    //
+    // NOTE: Care should be taken here to ensure the values meet accessibility standards.
+    //
+    // NOTE: When creating the Material palette definition mat.define-palette($nifi-canvas-accent-dark-palette, 400, 100, 700);
+    // Since 400 is the default the contrast-400 will be used as the default text color in some cases.
+    contrast: (
+        50: #ffffff,
+        100: #ffffff,
+        200: #ffffff,
+        300: #ffffff,
+        400: #ffffff,
+        500: #ffffff,
+        600: rgba(black, 0.87),
+        700: rgba(black, 0.87),
+        800: rgba(black, 0.87),
+        900: rgba(black, 0.87),
+        A100: #ffffff,
+        A200: #ffffff,
+        A400: rgba(black, 0.87),
+        A700: rgba(black, 0.87),
+    )
+);
+
 // The $warn-light-palette defines the WARN palette both for all Angular Material components used throughout Apache NiFi and for all flow designer canvas components that make up the NiFi canvas theme used throughout Apache NiFi
 $warn-light-palette: (
     // 50 -> 900 are the PRIMARY colors defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #f64e4c
@@ -173,7 +313,7 @@ $warn-light-palette: (
 
     // A100 - A700 are the COMPLEMENTARY colors defined by the PRIMARY colors defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #728e9b which is the primary color of the $material-primary-light-palette.
     // These color are used for label values, stats, timestamps, counts, etc.
-    A100: #b6abaa, //.sync-failure
+    A100: #d0c3c2, //.sync-failure
     A200: #9c8886, // .operation-context-logo, .funnel-icon, .port-icon, .flowfile-icon
     A400: #765452, // .value, .refresh-timestamp, .stats-value, .active-thread-count, .process-group-contents-count, .operation-context-id, .selected-type-name
     A700: #4a3435, // .version-control
@@ -201,5 +341,52 @@ $warn-light-palette: (
         A200: #ffffff,
         A400: #ffffff,
         A700: #ffffff,
+    )
+);
+
+// The $warn-dark-palette defines the WARN palette both for all Angular Material components used throughout Apache NiFi and for all flow designer canvas components that make up the NiFi canvas theme used throughout Apache NiFi
+$warn-dark-palette: (
+    // 50 -> 900 are the PRIMARY colors defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #f64e4c
+    50: #f10000,
+    100: #ff0000, // "lighter" hue for this palette. Also .banner-error
+    200: #ff1507, //.stopped
+    300: #ec3030, //.stale
+    400: #fa3b30, // color="primary" Default hue for this palette. Also .unauthorized, .bulletin-background, .restricted, .connection-path.full, .connection-path.unauthorized, .backpressure-percent.error, .controller-bulletins.has-bulletins, .link.selected, circle.selected, .listing-message, .fa-shield
+    500: #f64e4c,
+    600: #eb7071, //.bulletin-error
+    700: #f49999, // "darker" hue for this palette
+    800: #ffccd2, //.connector, .startpoint
+    900: #ffebee,
+
+    // A100 - A700 are the COMPLEMENTARY colors defined by the PRIMARY colors defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #728e9b which is the primary color of the $material-primary-dark-palette.
+    // These color are used for label values, stats, timestamps, counts, etc.
+    A100: #ab777a, //.sync-failure
+    A200: #b98481, // .operation-context-logo, .funnel-icon, .port-icon, .flowfile-icon
+    A400: #d5bab7, // .value, .refresh-timestamp, .stats-value, .active-thread-count, .process-group-contents-count, .operation-context-id, .selected-type-name
+    A700: #b6abaa, // .version-control
+
+    // These are the $nifi-canvas-accent-dark-palette PRIMARY palette contrast colors. These color do not really get defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors.
+    // Instead if we look to the Angular Material provided palettes we see that these fields are typically rgba(black, 0.87) or white. These values are particularly important
+    // for light mode and dark mode as these values set the colors for the text when displayed against the primary background on a button, badge, chip, etc.
+    //
+    // NOTE: Care should be taken here to ensure the values meet accessibility standards.
+    //
+    // NOTE: When creating the Material palette definition mat.define-palette($warn-dark-palette, 400, 100, 700);
+    // Since 400 is the default the contrast-400 will be used as the default text color in some cases.
+    contrast: (
+        50: #ffffff,
+        100: #ffffff,
+        200: #ffffff,
+        300: #ffffff,
+        400: #ffffff,
+        500: rgba(black, 0.87),
+        600: rgba(black, 0.87),
+        700: rgba(black, 0.87),
+        800: rgba(black, 0.87),
+        900: rgba(black, 0.87),
+        A100: #ffffff,
+        A200: #ffffff,
+        A400: rgba(black, 0.87),
+        A700: rgba(black, 0.87),
     )
 );
