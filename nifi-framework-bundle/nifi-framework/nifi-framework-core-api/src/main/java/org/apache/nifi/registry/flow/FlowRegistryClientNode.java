@@ -63,5 +63,7 @@ public interface FlowRegistryClientNode extends ComponentNode {
     Set<RegisteredFlowSnapshotMetadata> getFlowVersions(FlowRegistryClientUserContext context, FlowLocation flowLocation) throws FlowRegistryException, IOException;
     Optional<String> getLatestVersion(FlowRegistryClientUserContext context, FlowLocation flowLocation) throws FlowRegistryException, IOException;
 
+    String generateFlowId(String flowName) throws IOException, FlowRegistryException;
+
     void setComponent(LoggableComponent<FlowRegistryClient> component);
 }
