@@ -26,7 +26,7 @@ import {
     DeleteParameterProviderRequest,
     ParameterProviderEntity
 } from '../state/parameter-providers';
-import { PropertyDescriptorRetriever, Revision } from '../../../state/shared';
+import { PropertyDescriptorRetriever } from '../../../state/shared';
 
 @Injectable({ providedIn: 'root' })
 export class ParameterProviderService implements PropertyDescriptorRetriever {
@@ -59,7 +59,7 @@ export class ParameterProviderService implements PropertyDescriptorRetriever {
             ...revision,
             disconnectedNodeAcknowledged: false
         };
-        return this.httpClient.delete(this.nifiCommon.stripProtocol(entity.uri), { params: revision });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(entity.uri), { params });
     }
 
     getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<any> {

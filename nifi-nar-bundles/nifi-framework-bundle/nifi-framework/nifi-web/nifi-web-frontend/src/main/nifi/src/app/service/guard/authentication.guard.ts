@@ -26,7 +26,7 @@ import { CurrentUserState } from '../../state/current-user';
 import { loadCurrentUserSuccess } from '../../state/current-user/current-user.actions';
 import { selectCurrentUserState } from '../../state/current-user/current-user.selectors';
 
-export const authenticationGuard: CanMatchFn = (route, state) => {
+export const authenticationGuard: CanMatchFn = () => {
     const authStorage: AuthStorage = inject(AuthStorage);
     const authService: AuthService = inject(AuthService);
     const userService: CurrentUserService = inject(CurrentUserService);
@@ -49,7 +49,7 @@ export const authenticationGuard: CanMatchFn = (route, state) => {
 
                         resolve(true);
                     },
-                    error: (error) => {
+                    error: () => {
                         authService
                             .ticketExpiration()
                             .pipe(take(1))
@@ -65,7 +65,7 @@ export const authenticationGuard: CanMatchFn = (route, state) => {
 
                                     resolve(true);
                                 },
-                                error: (error) => {
+                                error: () => {
                                     resolve(false);
                                 }
                             });
@@ -112,7 +112,7 @@ export const authenticationGuard: CanMatchFn = (route, state) => {
                                                     }
                                                     resolve(true);
                                                 },
-                                                error: (error) => {
+                                                error: () => {
                                                     window.location.href = './login';
                                                     resolve(false);
                                                 }

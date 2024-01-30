@@ -69,8 +69,8 @@ export class ProvenanceSearchDialog {
         let startTime: string = ProvenanceSearchDialog.DEFAULT_START_TIME;
         let endDate: Date = now;
         let endTime: string = ProvenanceSearchDialog.DEFAULT_END_TIME;
-        let minFileSize: string = '';
-        let maxFileSize: string = '';
+        let minFileSize = '';
+        let maxFileSize = '';
 
         if (request.currentRequest) {
             const requestedStartDate = request.currentRequest.startDate;
@@ -117,8 +117,8 @@ export class ProvenanceSearchDialog {
 
         const searchableFields: SearchableField[] = request.options.searchableFields;
         searchableFields.forEach((searchableField) => {
-            let value: string = '';
-            let inverse: boolean = false;
+            let value = '';
+            let inverse = false;
             if (searchTerms && searchTerms[searchableField.id]) {
                 value = searchTerms[searchableField.id].value;
                 inverse = searchTerms[searchableField.id].inverse;

@@ -23,7 +23,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Observable } from 'rxjs';
 import {
-    ControllerServiceReferencingComponent,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     ParameterContextReferenceEntity,

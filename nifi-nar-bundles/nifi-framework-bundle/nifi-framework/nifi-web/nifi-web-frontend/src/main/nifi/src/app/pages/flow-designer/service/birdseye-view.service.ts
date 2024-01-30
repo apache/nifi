@@ -208,8 +208,8 @@ export class BirdseyeView {
         }
 
         // offset in case the graph has positive/negative coordinates and panning appropriately
-        let offsetX: number = 0;
-        let left: number = -graphLeft;
+        let offsetX = 0;
+        const left: number = -graphLeft;
         if (translate[0] < 0) {
             if (translate[0] < left) {
                 offsetX = left;
@@ -221,8 +221,8 @@ export class BirdseyeView {
                 offsetX = left - translate[0];
             }
         }
-        let offsetY: number = 0;
-        let top: number = -graphTop;
+        let offsetY = 0;
+        const top: number = -graphTop;
         if (translate[1] < 0) {
             if (translate[1] < top) {
                 offsetY = top;
@@ -274,7 +274,7 @@ export class BirdseyeView {
         // labels
         this.labelManager.selectAll().each(function (d: any) {
             // default color
-            let color: string = '#fff7d7';
+            let color = '#fff7d7';
 
             if (d.permissions.canRead) {
                 // use the specified color if appropriate
@@ -313,7 +313,7 @@ export class BirdseyeView {
         // processors
         this.processorManager.selectAll().each(function (d: any) {
             // default color
-            let color: string = '#dde4eb';
+            let color = '#dde4eb';
 
             if (d.permissions.canRead) {
                 // use the specified color if appropriate

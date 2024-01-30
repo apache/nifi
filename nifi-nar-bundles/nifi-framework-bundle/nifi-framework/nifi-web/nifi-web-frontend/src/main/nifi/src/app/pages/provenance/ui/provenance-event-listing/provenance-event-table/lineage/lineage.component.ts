@@ -51,8 +51,8 @@ export class LineageComponent implements OnInit {
 
     @Input() set eventTimestampThreshold(eventTimestampThreshold: number) {
         if (this.previousEventTimestampThreshold >= 0) {
-            let nodes: any = this.lineageContainerElement.selectAll('g.node.rendered');
-            let links: any = this.lineageContainerElement.selectAll('path.link.rendered');
+            const nodes: any = this.lineageContainerElement.selectAll('g.node.rendered');
+            const links: any = this.lineageContainerElement.selectAll('path.link.rendered');
 
             if (this.previousEventTimestampThreshold > eventTimestampThreshold) {
                 // the threshold is descending
@@ -123,7 +123,7 @@ export class LineageComponent implements OnInit {
                 },
                 clazz: 'fa fa-long-arrow-left',
                 text: 'Back to events',
-                action: (selection: any) => {
+                action: () => {
                     this.closeLineage.next();
                 }
             },
@@ -226,7 +226,7 @@ export class LineageComponent implements OnInit {
 
     private nodeLookup: Map<string, any> = new Map<string, any>();
     private linkLookup: Map<string, any> = new Map<string, any>();
-    private previousEventTimestampThreshold: number = -1;
+    private previousEventTimestampThreshold = -1;
 
     constructor() {
         this.allMenus = new Map<string, ContextMenuDefinition>();
@@ -247,7 +247,7 @@ export class LineageComponent implements OnInit {
                 // include if there is no condition (non conditional item, separator, sub menu, etc)
                 return true;
             },
-            menuItemClicked(menuItem: ContextMenuItemDefinition, event: MouseEvent) {
+            menuItemClicked(menuItem: ContextMenuItemDefinition) {
                 if (menuItem.action) {
                     const selection: any = d3.select('circle.context');
                     return menuItem.action(selection);
@@ -257,7 +257,6 @@ export class LineageComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        const self: LineageComponent = this;
         this.lineageElement = document.getElementById('lineage');
 
         // handle zoom behavior
@@ -283,9 +282,9 @@ export class LineageComponent implements OnInit {
             .attr('class', 'lineage')
             .attr('width', '100%')
             .attr('height', '100%')
-            .on('mousedown', function (event, d) {
+            .on('mousedown', (event) => {
                 // hide the context menu if necessary
-                self.clearSelectionContext();
+                this.clearSelectionContext();
 
                 // prevents browser from using text cursor
                 event.preventDefault();
@@ -385,7 +384,7 @@ export class LineageComponent implements OnInit {
         let immediate: string[] = Array.from(immediateSet.values());
 
         // attempt to identify fan in/out cases
-        let nodesWithTwoParents: number = 0;
+        let nodesWithTwoParents = 0;
         immediate.forEach((nodeId) => {
             const node: any = this.nodeLookup.get(nodeId);
 
@@ -552,7 +551,7 @@ export class LineageComponent implements OnInit {
             });
 
             // mark each nodes index so subsequent recursive calls can position children accordingly
-            let nodesWithTwoChildren: number = 0;
+            let nodesWithTwoChildren = 0;
             immediate.forEach((nodeId: string, i: number) => {
                 const node: any = this.nodeLookup.get(nodeId);
                 node.index = i;
@@ -593,7 +592,7 @@ export class LineageComponent implements OnInit {
 
         // add the new links
         links.forEach((link) => {
-            const linkId: string = `${link.sourceId}-${link.targetId}`;
+            const linkId = `${link.sourceId}-${link.targetId}`;
 
             // create the link object
             this.linkLookup.set(linkId, {
@@ -614,13 +613,13 @@ export class LineageComponent implements OnInit {
         const startNodes: Set<string> = new Set(this.nodeLookup.keys());
 
         // go through the nodes to reset their outgoing links
-        this.nodeLookup.forEach(function (node, id) {
+        this.nodeLookup.forEach((node) => {
             node.outgoing = [];
             node.incoming = [];
         });
 
         // go through the links in order to compute the new layout
-        this.linkLookup.forEach(function (link, id) {
+        this.linkLookup.forEach((link) => {
             // updating the nodes connections
             link.source.outgoing.push(link);
             link.target.incoming.push(link);
@@ -713,10 +712,8 @@ export class LineageComponent implements OnInit {
     }
 
     private renderFlowFile(flowfiles: any): void {
-        const self: LineageComponent = this;
-
-        flowfiles.classed('flowfile', true).on('mousedown', function (event: MouseEvent, d: any) {
-            self.clearSelectionContext();
+        flowfiles.classed('flowfile', true).on('mousedown', (event: MouseEvent) => {
+            this.clearSelectionContext();
             event.stopPropagation();
         });
 
@@ -726,25 +723,25 @@ export class LineageComponent implements OnInit {
             .attr('class', 'flowfile-link')
             .attr('r', 16)
             .attr('stroke-width', 1.0)
-            .on('mouseover', function (event: MouseEvent, d: any) {
-                self.lineageContainerElement
+            .on('mouseover', (event: MouseEvent, d: any) => {
+                this.lineageContainerElement
                     .selectAll('path.link')
-                    .filter(function (linkDatum: any) {
+                    .filter((linkDatum: any) => {
                         return d.id === linkDatum.flowFileUuid;
                     })
                     .classed('selected', true)
-                    .attr('marker-end', function (d: any) {
+                    .attr('marker-end', (d: any) => {
                         return `url(#${d.target.type}-SELECTED)`;
                     });
             })
-            .on('mouseout', function (event: MouseEvent, d: any) {
-                self.lineageContainerElement
+            .on('mouseout', (event: MouseEvent, d: any) => {
+                this.lineageContainerElement
                     .selectAll('path.link')
-                    .filter(function (linkDatum: any) {
+                    .filter((linkDatum: any) => {
                         return d.id === linkDatum.flowFileUuid;
                     })
                     .classed('selected', false)
-                    .attr('marker-end', function (d: any) {
+                    .attr('marker-end', (d: any) => {
                         return `url(#${d.target.type})`;
                     });
             });
@@ -761,25 +758,25 @@ export class LineageComponent implements OnInit {
             .attr('transform', function () {
                 return 'translate(0,15)';
             })
-            .on('mouseover', function (event: MouseEvent, d: any) {
-                self.lineageContainerElement
+            .on('mouseover', (event: MouseEvent, d: any) => {
+                this.lineageContainerElement
                     .selectAll('path.link')
-                    .filter(function (linkDatum: any) {
+                    .filter((linkDatum: any) => {
                         return d.id === linkDatum.flowFileUuid;
                     })
                     .classed('selected', true)
-                    .attr('marker-end', function (d: any) {
+                    .attr('marker-end', (d: any) => {
                         return `url(#${d.target.type}-SELECTED)`;
                     });
             })
-            .on('mouseout', function (event: MouseEvent, d: any) {
-                self.lineageContainerElement
+            .on('mouseout', (event: MouseEvent, d: any) => {
+                this.lineageContainerElement
                     .selectAll('path.link')
-                    .filter(function (linkDatum: any) {
+                    .filter((linkDatum: any) => {
                         return d.id === linkDatum.flowFileUuid;
                     })
                     .classed('selected', false)
-                    .attr('marker-end', function (d: any) {
+                    .attr('marker-end', (d: any) => {
                         return `url(#${d.target.type})`;
                     });
             })
@@ -789,18 +786,16 @@ export class LineageComponent implements OnInit {
     }
 
     private renderEvent(events: any): void {
-        const self: LineageComponent = this;
-
         events
-            .on('mousedown', function (event: MouseEvent, d: any) {
-                self.clearSelectionContext();
+            .on('mousedown', (event: MouseEvent, d: any) => {
+                this.clearSelectionContext();
                 d3.select(`#event-node-${d.id}`).classed('context', true);
                 event.stopPropagation();
             })
-            .on('dblclick', function (event: MouseEvent, d: any) {
+            .on('dblclick', (event: MouseEvent, d: any) => {
                 // show the event details
                 // TODO - cluster node id
-                self.openEventDialog.next({
+                this.openEventDialog.next({
                     id: d.id
                 });
             });
@@ -821,8 +816,8 @@ export class LineageComponent implements OnInit {
         events
             .append('circle')
             .attr('class', 'event-circle')
-            .classed('selected', function (d: any) {
-                return d.id === self.eventId;
+            .classed('selected', (d: any) => {
+                return d.id === this.eventId;
             })
             .attr('r', 8)
             .attr('stroke-width', 1.0)
@@ -941,7 +936,7 @@ export class LineageComponent implements OnInit {
             .remove();
 
         // select the links
-        let linkSelection: any = this.lineageContainerElement
+        const linkSelection: any = this.lineageContainerElement
             .selectAll('path.link')
             .data(this.linkLookup.values(), function (d: any) {
                 return d.id;

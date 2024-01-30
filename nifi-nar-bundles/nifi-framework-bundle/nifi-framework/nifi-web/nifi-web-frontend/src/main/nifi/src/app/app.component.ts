@@ -26,7 +26,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 })
 export class AppComponent {
     title = 'nifi';
-    guardLoading: boolean = true;
+    guardLoading = true;
 
     constructor(private router: Router) {
         this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {

@@ -45,7 +45,7 @@ export const initialState: FlowAnalysisRulesState = {
 
 export const flowAnalysisRulesReducer = createReducer(
     initialState,
-    on(resetFlowAnalysisRulesState, (state) => ({
+    on(resetFlowAnalysisRulesState, () => ({
         ...initialState
     })),
     on(loadFlowAnalysisRules, (state) => ({
@@ -98,7 +98,7 @@ export const flowAnalysisRulesReducer = createReducer(
         configureFlowAnalysisRule,
         enableFlowAnalysisRule,
         disableFlowAnalysisRule,
-        (state, { request }) => ({
+        (state) => ({
             ...state,
             saving: true
         })

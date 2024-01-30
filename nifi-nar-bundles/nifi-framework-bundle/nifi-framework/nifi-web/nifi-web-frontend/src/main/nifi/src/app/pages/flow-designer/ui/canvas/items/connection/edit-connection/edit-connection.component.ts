@@ -160,9 +160,9 @@ export class EditConnectionComponent {
     childOutputPorts$!: Observable<any> | null;
     childInputPorts$!: Observable<any> | null;
 
-    loadBalancePartitionAttributeRequired: boolean = false;
+    loadBalancePartitionAttributeRequired = false;
     initialPartitionAttribute: string;
-    loadBalanceCompressionRequired: boolean = false;
+    loadBalanceCompressionRequired = false;
     initialCompression: string;
 
     constructor(

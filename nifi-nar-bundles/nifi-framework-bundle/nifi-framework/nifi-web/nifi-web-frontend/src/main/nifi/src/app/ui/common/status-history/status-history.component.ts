@@ -80,8 +80,8 @@ export class StatusHistory implements OnInit, AfterViewInit {
     fieldDescriptors$ = this.store.select(selectStatusHistoryFieldDescriptors);
     fieldDescriptors: FieldDescriptor[] = [];
 
-    minDate: string = '';
-    maxDate: string = '';
+    minDate = '';
+    maxDate = '';
     statusHistoryForm: FormGroup;
 
     nodeStats: Stats = {
@@ -216,8 +216,6 @@ export class StatusHistory implements OnInit, AfterViewInit {
 
     protected readonly Object = Object;
 
-    private resizeChart() {}
-
     protected readonly TextTip = TextTip;
 
     selectNode(event: MatCheckboxChange) {
@@ -242,7 +240,7 @@ export class StatusHistory implements OnInit, AfterViewInit {
         };
     }
 
-    resized(event: DOMRect) {
+    resized() {
         if (this.selectedDescriptor) {
             // trigger the chart to re-render by changing the selection
             this.selectedDescriptor = { ...this.selectedDescriptor };

@@ -185,12 +185,12 @@ export class StatusHistoryChart {
         let width = chartContainer.clientWidth - margin.left - margin.right;
         let height = chartContainer.clientHeight - margin.top - margin.bottom;
 
-        let maxWidth = Math.min(chartContainer.clientWidth, this.getChartMaxWidth());
+        const maxWidth = Math.min(chartContainer.clientWidth, this.getChartMaxWidth());
         if (width > maxWidth) {
             width = maxWidth;
         }
 
-        let maxHeight = this.getChartMaxHeight();
+        const maxHeight = this.getChartMaxHeight();
         if (height > maxHeight) {
             height = maxHeight;
         }
@@ -295,12 +295,11 @@ export class StatusHistoryChart {
                 return d.label;
             });
 
-        const me = this;
         // draw the control points for each line
-        status.each(function (d) {
+        status.each((d, index, nodes) => {
             // create a group for the control points
             const markGroup = d3
-                .select(this)
+                .select(nodes[index])
                 .append('g')
                 .attr('class', function () {
                     return 'mark-group mark-group-' + d.id;
@@ -329,12 +328,15 @@ export class StatusHistoryChart {
                 .attr('r', 1.5)
                 .append('title')
                 .text((v) => {
-                    return d.label + ' -- ' + me.formatters[selectedDescriptor.formatter](v.value);
+                    return d.label + ' -- ' + this.formatters[selectedDescriptor.formatter](v.value);
                 });
         });
 
         // update the size of the chart
-        chartSvg.attr('width', chartContainer.parentElement?.clientWidth!).attr('height', chartContainer.clientHeight);
+        const parentElement = chartContainer.parentElement;
+        if (parentElement) {
+            chartSvg.attr('width', parentElement.clientWidth).attr('height', chartContainer.clientHeight);
+        }
 
         // update the size of the clipper
         clipPath.attr('width', width).attr('height', height);
@@ -572,7 +574,7 @@ export class StatusHistoryChart {
         // context area
         const brushNode: any = control.append('g').attr('class', 'brush').on('click', brushed).call(brush);
 
-        if (!!this.brushSelection) {
+        if (this.brushSelection) {
             brush = brush.move(brushNode, this.brushSelection);
         }
 

@@ -219,7 +219,7 @@ export class ControllerServiceTable {
         return userAuthorized && this.isDisabled(entity) && entity.status.validationStatus === 'VALID';
     }
 
-    enabledClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
+    enabledClicked(entity: ControllerServiceEntity): void {
         this.enableControllerService.next(entity);
     }
 
@@ -228,7 +228,7 @@ export class ControllerServiceTable {
         return userAuthorized && this.isEnabledOrEnabling(entity);
     }
 
-    disableClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
+    disableClicked(entity: ControllerServiceEntity): void {
         this.disableControllerService.next(entity);
     }
 

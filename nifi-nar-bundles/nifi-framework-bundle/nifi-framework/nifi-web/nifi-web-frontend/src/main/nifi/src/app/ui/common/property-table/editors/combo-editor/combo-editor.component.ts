@@ -91,21 +91,21 @@ export class ComboEditor {
     protected readonly TextTip = TextTip;
 
     itemLookup: Map<number, AllowableValueItem> = new Map<number, AllowableValueItem>();
-    referencesParametersId: number = -1;
-    configuredParameterId: number = -1;
+    referencesParametersId = -1;
+    configuredParameterId = -1;
 
     comboEditorForm: FormGroup;
     descriptor!: PropertyDescriptor;
     allowableValues!: AllowableValueItem[];
 
-    showParameterAllowableValues: boolean = false;
+    showParameterAllowableValues = false;
     parameterAllowableValues!: AllowableValueItem[];
 
-    sensitive: boolean = false;
-    supportsParameters: boolean = false;
-    parametersLoaded: boolean = false;
+    sensitive = false;
+    supportsParameters = false;
+    parametersLoaded = false;
 
-    itemSet: boolean = false;
+    itemSet = false;
     configuredValue: string | null = null;
     _getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
 
@@ -121,7 +121,7 @@ export class ComboEditor {
             this.allowableValues = [];
             this.referencesParametersId = -1;
 
-            let i: number = 0;
+            let i = 0;
             let selectedItem: AllowableValueItem | null = null;
 
             if (!this.descriptor.required) {

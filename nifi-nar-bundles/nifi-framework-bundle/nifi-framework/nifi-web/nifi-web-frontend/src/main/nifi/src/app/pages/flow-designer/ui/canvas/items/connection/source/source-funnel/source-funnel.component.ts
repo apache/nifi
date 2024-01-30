@@ -25,6 +25,4 @@ import { Component, Input } from '@angular/core';
 })
 export class SourceFunnel {
     @Input() groupName!: string;
-
-    constructor() {}
 }

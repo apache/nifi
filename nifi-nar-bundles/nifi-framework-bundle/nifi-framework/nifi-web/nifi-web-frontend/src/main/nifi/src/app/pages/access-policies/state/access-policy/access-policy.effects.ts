@@ -63,7 +63,7 @@ export class AccessPolicyEffects {
         this.actions$.pipe(
             ofType(AccessPolicyActions.reloadAccessPolicy),
             concatLatestFrom(() => this.store.select(selectResourceAction).pipe(isDefinedAndNotNull())),
-            switchMap(([action, resourceAction]) => {
+            switchMap(([, resourceAction]) => {
                 return of(
                     AccessPolicyActions.loadAccessPolicy({
                         request: {
@@ -84,7 +84,7 @@ export class AccessPolicyEffects {
                     map((response) => {
                         const accessPolicy: AccessPolicyEntity = response;
 
-                        let requestedResource: string = `/${request.resourceAction.resource}`;
+                        let requestedResource = `/${request.resourceAction.resource}`;
                         if (request.resourceAction.resourceIdentifier) {
                             requestedResource += `/${request.resourceAction.resourceIdentifier}`;
                         }
@@ -138,7 +138,7 @@ export class AccessPolicyEffects {
         this.actions$.pipe(
             ofType(AccessPolicyActions.createAccessPolicy),
             concatLatestFrom(() => this.store.select(selectResourceAction).pipe(isDefinedAndNotNull())),
-            switchMap(([action, resourceAction]) =>
+            switchMap(([, resourceAction]) =>
                 from(this.accessPoliciesService.createAccessPolicy(resourceAction)).pipe(
                     map((response) => {
                         const accessPolicy: AccessPolicyEntity = response;
@@ -170,7 +170,7 @@ export class AccessPolicyEffects {
             this.actions$.pipe(
                 ofType(AccessPolicyActions.promptOverrideAccessPolicy),
                 concatLatestFrom(() => this.store.select(selectAccessPolicy).pipe(isDefinedAndNotNull())),
-                tap(([action, accessPolicy]) => {
+                tap(([, accessPolicy]) => {
                     const dialogReference = this.dialog.open(OverridePolicyDialog, {
                         panelClass: 'small-dialog'
                     });
@@ -287,7 +287,7 @@ export class AccessPolicyEffects {
             this.actions$.pipe(
                 ofType(AccessPolicyActions.openAddTenantToPolicyDialog),
                 concatLatestFrom(() => this.store.select(selectAccessPolicy)),
-                tap(([action, accessPolicy]) => {
+                tap(([, accessPolicy]) => {
                     const dialogReference = this.dialog.open(AddTenantToPolicyDialog, {
                         data: {
                             accessPolicy
@@ -417,7 +417,7 @@ export class AccessPolicyEffects {
         () =>
             this.actions$.pipe(
                 ofType(AccessPolicyActions.promptDeleteAccessPolicy),
-                tap((request) => {
+                tap(() => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
                         data: {
                             title: 'Delete Policy',
@@ -442,9 +442,9 @@ export class AccessPolicyEffects {
                 this.store.select(selectResourceAction).pipe(isDefinedAndNotNull()),
                 this.store.select(selectAccessPolicy).pipe(isDefinedAndNotNull())
             ]),
-            switchMap(([action, resourceAction, accessPolicy]) =>
+            switchMap(([, resourceAction, accessPolicy]) =>
                 from(this.accessPoliciesService.deleteAccessPolicy(accessPolicy)).pipe(
-                    map((response) => {
+                    map(() => {
                         // the policy was removed, we need to reload the policy for this resource and action to fetch
                         // the inherited policy or correctly when it's not found
                         return AccessPolicyActions.loadAccessPolicy({

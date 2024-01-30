@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { CanMatchFn, Route, Router, UrlSegment } from '@angular/router';
+import { CanMatchFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { map } from 'rxjs';
 import { Store } from '@ngrx/store';
@@ -25,7 +25,7 @@ import { selectFlowConfiguration } from '../../state/flow-configuration/flow-con
 export const checkFlowConfiguration = (
     flowConfigurationCheck: (flowConfiguration: FlowConfiguration) => boolean
 ): CanMatchFn => {
-    return (route: Route, state: UrlSegment[]) => {
+    return () => {
         const router: Router = inject(Router);
         const store: Store<FlowConfigurationState> = inject(Store<FlowConfigurationState>);
 

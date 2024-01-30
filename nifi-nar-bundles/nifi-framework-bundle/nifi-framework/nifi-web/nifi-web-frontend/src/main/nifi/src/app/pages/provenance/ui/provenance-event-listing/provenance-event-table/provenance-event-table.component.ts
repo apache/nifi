@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
@@ -89,17 +89,19 @@ export class ProvenanceEventTable implements AfterViewInit {
             }
         }
     }
+
     @Input() oldestEventAvailable!: string;
     @Input() timeOffset!: number;
     @Input() resultsMessage!: string;
     @Input() hasRequest!: boolean;
     @Input() loading!: boolean;
     @Input() loadedTimestamp!: string;
+
     @Input() set lineage$(lineage$: Observable<Lineage | null>) {
         this.provenanceLineage$ = lineage$.pipe(
             tap((lineage) => {
-                let minMillis: number = -1;
-                let maxMillis: number = -1;
+                let minMillis = -1;
+                let maxMillis = -1;
 
                 lineage?.results.nodes.forEach((node) => {
                     // ensure this event has an event time
@@ -121,7 +123,7 @@ export class ProvenanceEventTable implements AfterViewInit {
                 // determine the range for the slider
                 let range: number = this.maxEventTimestamp - this.minEventTimestamp;
 
-                const binCount: number = 10;
+                const binCount = 10;
                 const remainder: number = range % binCount;
                 if (remainder > 0) {
                     // if the range doesn't fall evenly into binCount, increase the
@@ -174,19 +176,19 @@ export class ProvenanceEventTable implements AfterViewInit {
 
     filterForm: FormGroup;
     filterColumnOptions: string[] = ['component name', 'component type', 'type'];
-    totalCount: number = 0;
-    filteredCount: number = 0;
-    filterApplied: boolean = false;
+    totalCount = 0;
+    filteredCount = 0;
+    filterApplied = false;
 
-    showLineage: boolean = false;
+    showLineage = false;
     provenanceLineage$!: Observable<Lineage | null>;
     eventId: string | null = null;
 
-    minEventTimestamp: number = -1;
-    maxEventTimestamp: number = -1;
-    eventTimestampStep: number = 1;
-    initialEventTimestampThreshold: number = 0;
-    currentEventTimestampThreshold: number = 0;
+    minEventTimestamp = -1;
+    maxEventTimestamp = -1;
+    eventTimestampStep = 1;
+    initialEventTimestampThreshold = 0;
+    currentEventTimestampThreshold = 0;
 
     constructor(
         private formBuilder: FormBuilder,
@@ -223,7 +225,7 @@ export class ProvenanceEventTable implements AfterViewInit {
         return data.sort((a, b) => {
             const isAsc = sort.direction === 'asc';
 
-            let retVal: number = 0;
+            let retVal = 0;
             switch (sort.active) {
                 case 'eventTime':
                     // event ideas are increasing, so we can use this simple number for sorting purposes

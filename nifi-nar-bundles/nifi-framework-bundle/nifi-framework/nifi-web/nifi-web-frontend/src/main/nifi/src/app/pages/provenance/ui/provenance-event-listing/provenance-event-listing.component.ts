@@ -44,7 +44,6 @@ import {
     saveProvenanceRequest
 } from '../../state/provenance-event-listing/provenance-event-listing.actions';
 import { ProvenanceSearchDialog } from './provenance-search-dialog/provenance-search-dialog.component';
-import { ProvenanceEventSummary } from '../../../../state/shared';
 import { resetLineage, submitLineageQuery } from '../../state/lineage/lineage.actions';
 import { LineageRequest } from '../../state/lineage';
 import { selectLineage } from '../../state/lineage/lineage.selectors';
@@ -61,7 +60,7 @@ export class ProvenanceEventListing implements OnDestroy {
     lineage$ = this.store.select(selectLineage);
 
     request!: ProvenanceRequest;
-    stateReset: boolean = false;
+    stateReset = false;
 
     constructor(private store: Store<ProvenanceEventListingState>) {
         this.store

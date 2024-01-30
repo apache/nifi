@@ -28,7 +28,7 @@ import { ControllerServiceApi } from '../../controller-service/controller-servic
     styleUrls: ['./property-hint-tip.component.scss']
 })
 export class PropertyHintTip {
-    @Input() left: number = 0;
-    @Input() top: number = 0;
+    @Input() left = 0;
+    @Input() top = 0;
     @Input() data: PropertyHintTipInput | undefined;
 }

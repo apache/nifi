@@ -105,16 +105,16 @@ export const summaryListingReducer = createReducer(
         status: 'error' as const
     })),
 
-    on(resetSummaryState, (state) => ({
+    on(resetSummaryState, () => ({
         ...initialState
     }))
 );
 
 function flattenProcessorStatusSnapshots(
     snapshot: ProcessGroupStatusSnapshot,
-    parentPath: string = ''
+    parentPath = ''
 ): ProcessorStatusSnapshotEntity[] {
-    const path: string = `${parentPath}/${snapshot.name}`;
+    const path = `${parentPath}/${snapshot.name}`;
     // supplement the processors with the parent process group name
     const processors = snapshot.processorStatusSnapshots.map((p) => {
         return {

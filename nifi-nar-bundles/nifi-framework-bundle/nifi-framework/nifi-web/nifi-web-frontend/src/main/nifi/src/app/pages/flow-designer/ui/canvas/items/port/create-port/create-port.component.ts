@@ -61,7 +61,7 @@ export class CreatePort {
     protected readonly TextTip = TextTip;
 
     createPortForm: FormGroup;
-    isRootProcessGroup: boolean = false;
+    isRootProcessGroup = false;
     portTypeLabel: string;
 
     allowRemoteAccessOptions: SelectOption[] = [

@@ -20,8 +20,6 @@ import { RouterModule, Routes } from '@angular/router';
 import { FlowDesigner } from './flow-designer.component';
 import { RootGroupRedirector } from '../ui/root/redirector/root-group-redirector.component';
 import { rootGroupGuard } from '../ui/root/guard/root-group.guard';
-import { Canvas } from '../ui/canvas/canvas.component';
-import { ControllerServices } from '../ui/controller-service/controller-services.component';
 
 const routes: Routes = [
     {

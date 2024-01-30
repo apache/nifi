@@ -41,7 +41,7 @@ export const initialState: ManagementControllerServicesState = {
 
 export const managementControllerServicesReducer = createReducer(
     initialState,
-    on(resetManagementControllerServicesState, (state) => ({
+    on(resetManagementControllerServicesState, () => ({
         ...initialState
     })),
     on(loadManagementControllerServices, (state) => ({
@@ -54,11 +54,11 @@ export const managementControllerServicesReducer = createReducer(
         loadedTimestamp: response.loadedTimestamp,
         status: 'success' as const
     })),
-    on(managementControllerServicesBannerApiError, (state, { error }) => ({
+    on(managementControllerServicesBannerApiError, (state) => ({
         ...state,
         saving: false
     })),
-    on(createControllerService, configureControllerService, deleteControllerService, (state, { request }) => ({
+    on(createControllerService, configureControllerService, deleteControllerService, (state) => ({
         ...state,
         saving: true
     })),

@@ -37,11 +37,9 @@ export class FlowStatus {
     @Input() clusterSummary: ClusterSummary = initialState.clusterSummary;
     @Input() bulletins: BulletinEntity[] = initialState.controllerBulletins.bulletins;
     @Input() currentProcessGroupId: string = initialState.id;
-    @Input() loadingStatus: boolean = false;
+    @Input() loadingStatus = false;
 
     protected readonly BulletinsTip = BulletinsTip;
-
-    constructor() {}
 
     hasTerminatedThreads(): boolean {
         return this.controllerStatus.terminatedThreadCount > 0;

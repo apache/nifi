@@ -18,7 +18,7 @@
 import { createAction, props } from '@ngrx/store';
 import { LoadTenantsSuccess } from './index';
 
-const TENANTS_PREFIX: string = '[Tenants]';
+const TENANTS_PREFIX = '[Tenants]';
 
 export const loadTenants = createAction(`${TENANTS_PREFIX} Load Tenants`);
 

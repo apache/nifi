@@ -28,11 +28,11 @@ export interface ContextMenuDefinitionProvider {
 
 export interface ContextMenuItemDefinition {
     isSeparator?: boolean;
-    condition?: Function;
+    condition?: (selection: any) => boolean;
     clazz?: string;
     text?: string;
     subMenuId?: string;
-    action?: Function;
+    action?: (selection: any, event?: MouseEvent) => void;
 }
 
 export interface ContextMenuDefinition {
@@ -54,8 +54,6 @@ export class ContextMenu implements OnInit {
 
     private showFocused: Subject<boolean> = new Subject();
     showFocused$: Observable<boolean> = this.showFocused.asObservable();
-
-    constructor() {}
 
     getMenuItems(menuId: string | undefined): ContextMenuItemDefinition[] {
         if (menuId) {
@@ -116,7 +114,7 @@ export class ContextMenu implements OnInit {
         return !!menuItemDefinition.subMenuId;
     }
 
-    keydown(event: KeyboardEvent): void {
+    keydown(): void {
         // TODO - Currently the first item in the context menu is auto focused. By default, this is rendered with an
         // outline. This appears to be an issue with the cdkMenu/cdkMenuItem so we are working around it by manually
         // overriding styles.

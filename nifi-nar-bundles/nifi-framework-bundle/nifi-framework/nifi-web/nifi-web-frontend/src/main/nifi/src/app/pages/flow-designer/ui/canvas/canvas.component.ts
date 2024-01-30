@@ -118,7 +118,7 @@ export class Canvas implements OnInit, OnDestroy {
                 concatLatestFrom(() => this.store.select(selectSkipTransform)),
                 takeUntilDestroyed()
             )
-            .subscribe(([status, skipTransform]) => {
+            .subscribe(([, skipTransform]) => {
                 if (skipTransform) {
                     this.store.dispatch(setSkipTransform({ skipTransform: false }));
                 } else {
@@ -136,7 +136,7 @@ export class Canvas implements OnInit, OnDestroy {
                 concatLatestFrom(() => this.store.select(selectSkipTransform)),
                 takeUntilDestroyed()
             )
-            .subscribe(([selectedComponent, skipTransform]) => {
+            .subscribe(([, skipTransform]) => {
                 if (skipTransform) {
                     this.store.dispatch(setSkipTransform({ skipTransform: false }));
                 } else {
@@ -154,7 +154,7 @@ export class Canvas implements OnInit, OnDestroy {
                 concatLatestFrom(() => this.store.select(selectSkipTransform)),
                 takeUntilDestroyed()
             )
-            .subscribe(([ids, skipTransform]) => {
+            .subscribe(([, skipTransform]) => {
                 if (skipTransform) {
                     this.store.dispatch(setSkipTransform({ skipTransform: false }));
                 } else {
@@ -350,10 +350,7 @@ export class Canvas implements OnInit, OnDestroy {
             .attr('result', 'offsetBlur');
 
         // color/opacity
-        componentDropShadowFilter
-            .append('feFlood')
-            .attr('flood-opacity', 0.4)
-            .attr('result', 'offsetColor');
+        componentDropShadowFilter.append('feFlood').attr('flood-opacity', 0.4).attr('result', 'offsetColor');
 
         // combine
         componentDropShadowFilter
@@ -391,10 +388,7 @@ export class Canvas implements OnInit, OnDestroy {
             .attr('result', 'offsetBlur');
 
         // color/opacity
-        connectionFullDropShadowFilter
-            .append('feFlood')
-            .attr('flood-opacity', 1)
-            .attr('result', 'offsetColor');
+        connectionFullDropShadowFilter.append('feFlood').attr('flood-opacity', 1).attr('result', 'offsetColor');
 
         // combine
         connectionFullDropShadowFilter

@@ -53,7 +53,7 @@ export class ProcessorManager {
 
     private processors: [] = [];
     private processorContainer: any;
-    private transitionRequired: boolean = false;
+    private transitionRequired = false;
 
     private viewContainerRef: ViewContainerRef | undefined;
 
@@ -670,7 +670,7 @@ export class ProcessorManager {
         updated
             .select('text.run-status-icon')
             .attr('class', function (d: any) {
-                let clazz: string = 'primary-500';
+                let clazz = 'primary-500';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Validating') {
                     clazz = 'warn-contrast-300';
@@ -685,7 +685,7 @@ export class ProcessorManager {
                 return `run-status-icon ${clazz}`;
             })
             .attr('font-family', function (d: any) {
-                let family: string = 'FontAwesome';
+                let family = 'FontAwesome';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     family = 'flowfont';
                 }
@@ -695,7 +695,7 @@ export class ProcessorManager {
                 return d.status.aggregateSnapshot.runStatus === 'Validating';
             })
             .text(function (d: any) {
-                let img: string = '';
+                let img = '';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     img = '\ue802';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Validating') {

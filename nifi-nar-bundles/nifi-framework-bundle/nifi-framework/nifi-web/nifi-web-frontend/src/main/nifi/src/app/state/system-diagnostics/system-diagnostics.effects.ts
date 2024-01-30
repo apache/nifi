@@ -16,7 +16,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { act, Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../index';
 import { MatDialog } from '@angular/material/dialog';

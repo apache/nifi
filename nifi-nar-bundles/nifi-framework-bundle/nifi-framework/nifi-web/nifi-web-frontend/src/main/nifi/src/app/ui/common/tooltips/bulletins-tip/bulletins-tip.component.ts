@@ -27,7 +27,7 @@ import { NgForOf, NgIf } from '@angular/common';
     styleUrls: ['./bulletins-tip.component.scss']
 })
 export class BulletinsTip {
-    @Input() left: number = 0;
-    @Input() top: number = 0;
+    @Input() left = 0;
+    @Input() top = 0;
     @Input() data: BulletinsTipInput | undefined;
 }

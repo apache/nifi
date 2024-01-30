@@ -21,10 +21,7 @@ import { CreateParameterProvider } from './create-parameter-provider.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialParameterProvidersState } from '../../../state/parameter-providers/parameter-providers.reducer';
-import {
-    CreateParameterProviderDialogRequest,
-    CreateParameterProviderRequest
-} from '../../../state/parameter-providers';
+import { CreateParameterProviderDialogRequest } from '../../../state/parameter-providers';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('CreateParameterProvider', () => {

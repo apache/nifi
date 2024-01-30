@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Bundle, ControllerServiceEntity, Revision } from '../../../../state/shared';
+import { ControllerServiceEntity } from '../../../../state/shared';
 import { BreadcrumbEntity } from '../shared';
 
 export const controllerServicesFeatureKey = 'controllerServiceListing';

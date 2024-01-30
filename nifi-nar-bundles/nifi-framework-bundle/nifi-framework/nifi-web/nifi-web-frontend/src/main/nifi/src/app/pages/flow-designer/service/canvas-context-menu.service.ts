@@ -778,7 +778,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                         const selectionData = selection.datum();
                         const componentType: ComponentType = selectionData.type;
 
-                        let resource: string = 'process-groups';
+                        let resource = 'process-groups';
                         switch (componentType) {
                             case ComponentType.Processor:
                                 resource = 'processors';

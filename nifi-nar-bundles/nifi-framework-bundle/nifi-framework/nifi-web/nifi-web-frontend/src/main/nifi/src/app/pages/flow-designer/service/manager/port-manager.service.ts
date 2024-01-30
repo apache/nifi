@@ -59,7 +59,7 @@ export class PortManager {
 
     private ports: [] = [];
     private portContainer: any;
-    private transitionRequired: boolean = false;
+    private transitionRequired = false;
 
     private viewContainerRef: ViewContainerRef | undefined;
 
@@ -386,7 +386,7 @@ export class PortManager {
         updated
             .select('text.run-status-icon')
             .attr('class', function (d: any) {
-                let clazz: string = 'primary-500';
+                let clazz = 'primary-500';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                     clazz = 'canvas-accent-A200';
@@ -399,7 +399,7 @@ export class PortManager {
                 return `run-status-icon ${clazz}`;
             })
             .attr('font-family', function (d: any) {
-                let family: string = 'FontAwesome';
+                let family = 'FontAwesome';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     family = 'flowfont';
                 }
@@ -407,7 +407,7 @@ export class PortManager {
             })
             .attr('y', this.offsetY(25))
             .text(function (d: any) {
-                let img: string = '';
+                let img = '';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     img = '\ue802';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {

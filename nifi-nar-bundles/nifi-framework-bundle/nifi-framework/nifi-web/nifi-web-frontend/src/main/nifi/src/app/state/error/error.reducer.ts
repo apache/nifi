@@ -44,7 +44,7 @@ export const errorReducer = createReducer(
         ...state,
         bannerErrors: null
     })),
-    on(resetErrorState, (state) => ({
+    on(resetErrorState, () => ({
         ...initialState
     }))
 );

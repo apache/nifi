@@ -65,7 +65,7 @@ export class UserAccessPolicies {
         return data.sort((a, b) => {
             const isAsc = sort.direction === 'asc';
 
-            let retVal: number = 0;
+            let retVal = 0;
             if (a.permissions.canRead && b.permissions.canRead) {
                 switch (sort.active) {
                     case 'policy':
@@ -124,7 +124,7 @@ export class UserAccessPolicies {
             return 'Restricted components regardless of restrictions';
         }
 
-        var subResource = this.nifiCommon.substringAfterFirst(resource, '/restricted-components/');
+        const subResource = this.nifiCommon.substringAfterFirst(resource, '/restricted-components/');
         return `Restricted components requiring '${subResource}'`;
     }
 
@@ -136,7 +136,7 @@ export class UserAccessPolicies {
      */
     private componentResourceParser(policy: AccessPolicySummaryEntity): string {
         let resource: string = policy.component.resource;
-        let policyLabel: string = '';
+        let policyLabel = '';
 
         // determine policy type
         if (resource.startsWith('/policies')) {

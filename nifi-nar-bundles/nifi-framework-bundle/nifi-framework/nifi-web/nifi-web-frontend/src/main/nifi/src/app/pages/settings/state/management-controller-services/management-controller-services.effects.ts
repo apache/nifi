@@ -59,7 +59,7 @@ export class ManagementControllerServicesEffects {
         this.actions$.pipe(
             ofType(ManagementControllerServicesActions.loadManagementControllerServices),
             concatLatestFrom(() => this.store.select(selectStatus)),
-            switchMap(([action, status]) =>
+            switchMap(([, status]) =>
                 from(this.managementControllerServiceService.getControllerServices()).pipe(
                     map((response) =>
                         ManagementControllerServicesActions.loadManagementControllerServicesSuccess({
@@ -90,7 +90,7 @@ export class ManagementControllerServicesEffects {
             this.actions$.pipe(
                 ofType(ManagementControllerServicesActions.openNewControllerServiceDialog),
                 concatLatestFrom(() => this.store.select(selectControllerServiceTypes)),
-                tap(([action, controllerServiceTypes]) => {
+                tap(([, controllerServiceTypes]) => {
                     const dialogReference = this.dialog.open(CreateControllerService, {
                         data: {
                             controllerServiceTypes

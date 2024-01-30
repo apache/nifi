@@ -80,7 +80,7 @@ export class FlowAnalysisRulesEffects {
             this.actions$.pipe(
                 ofType(FlowAnalysisRuleActions.openNewFlowAnalysisRuleDialog),
                 concatLatestFrom(() => this.store.select(selectFlowAnalysisRuleTypes)),
-                tap(([action, flowAnalysisRuleTypes]) => {
+                tap(([, flowAnalysisRuleTypes]) => {
                     this.dialog.open(CreateFlowAnalysisRule, {
                         data: {
                             flowAnalysisRuleTypes

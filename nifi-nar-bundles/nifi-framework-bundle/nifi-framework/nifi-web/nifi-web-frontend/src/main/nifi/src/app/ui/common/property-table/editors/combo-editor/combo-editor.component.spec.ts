@@ -28,7 +28,7 @@ describe('ComboEditor', () => {
     let fixture: ComponentFixture<ComboEditor>;
 
     let item: PropertyItem | null = null;
-    let parameters: Parameter[] = [
+    const parameters: Parameter[] = [
         {
             name: 'one',
             description: 'Description for one.',
@@ -186,7 +186,7 @@ describe('ComboEditor', () => {
             item.value = '#{one}';
 
             component.item = item;
-            component.getParameters = (sensitive: boolean) => {
+            component.getParameters = () => {
                 return of(parameters);
             };
             fixture.detectChanges();
@@ -210,7 +210,7 @@ describe('ComboEditor', () => {
             item.value = '#{three}';
 
             component.item = item;
-            component.getParameters = (sensitive: boolean) => {
+            component.getParameters = () => {
                 return of(parameters);
             };
             fixture.detectChanges();

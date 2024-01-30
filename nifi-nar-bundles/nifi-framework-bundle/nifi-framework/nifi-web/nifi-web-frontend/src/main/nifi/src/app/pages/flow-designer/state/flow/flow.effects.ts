@@ -118,7 +118,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.reloadFlow),
             concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
-            switchMap(([action, processGroupId]) => {
+            switchMap(([, processGroupId]) => {
                 return of(
                     FlowActions.loadProcessGroup({
                         request: {
@@ -193,7 +193,7 @@ export class FlowEffects {
                     takeUntil(this.actions$.pipe(ofType(FlowActions.stopProcessGroupPolling)))
                 )
             ),
-            switchMap((request) => of(FlowActions.reloadFlow()))
+            switchMap(() => of(FlowActions.reloadFlow()))
         )
     );
 
@@ -348,7 +348,7 @@ export class FlowEffects {
             ofType(FlowActions.getParameterContextsAndOpenGroupComponentsDialog),
             map((action) => action.request),
             concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
-            switchMap(([request, currentProcessGroupId]) =>
+            switchMap(([request]) =>
                 from(this.flowService.getParameterContexts()).pipe(
                     concatLatestFrom(() => this.store.select(selectCurrentParameterContext)),
                     map(([response, parameterContext]) => {
@@ -659,7 +659,7 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.navigateToEditCurrentProcessGroup),
                 concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
-                tap(([action, processGroupId]) => {
+                tap(([, processGroupId]) => {
                     this.router.navigate(['/process-groups', processGroupId, 'edit']);
                 })
             ),
@@ -887,7 +887,7 @@ export class FlowEffects {
                         };
 
                         editDialogReference.componentInstance.parameterContext = parameterContext;
-                        editDialogReference.componentInstance.goToParameter = (parameter: string) => {
+                        editDialogReference.componentInstance.goToParameter = () => {
                             const commands: string[] = ['/parameter-contexts', parameterContext.id];
                             goTo(commands, 'Parameter');
                         };
@@ -954,7 +954,7 @@ export class FlowEffects {
                                         })
                                     );
                                 }),
-                                catchError((error) => {
+                                catchError(() => {
                                     // TODO handle error
                                     return NEVER;
                                 })
@@ -1569,7 +1569,7 @@ export class FlowEffects {
 
                 return from(this.flowService.createSnippet(snippet)).pipe(
                     switchMap((response) => this.flowService.moveSnippet(response.snippet.id, request.groupId)),
-                    map((response) => {
+                    map(() => {
                         const deleteResponses: DeleteComponentResponse[] = [];
 
                         // prepare the delete responses with all requested components that are now deleted
@@ -1598,7 +1598,7 @@ export class FlowEffects {
             mergeMap(([requests, processGroupId]) => {
                 if (requests.length === 1) {
                     return from(this.flowService.deleteComponent(requests[0])).pipe(
-                        map((response) => {
+                        map(() => {
                             const deleteResponses: DeleteComponentResponse[] = [
                                 {
                                     id: requests[0].id,
@@ -1670,7 +1670,7 @@ export class FlowEffects {
 
                     return from(this.flowService.createSnippet(snippet)).pipe(
                         switchMap((response) => this.flowService.deleteSnippet(response.snippet.id)),
-                        map((response) => {
+                        map(() => {
                             const deleteResponses: DeleteComponentResponse[] = [];
 
                             // prepare the delete responses with all requested components that are now deleted
@@ -1733,8 +1733,8 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.leaveProcessGroup),
                 concatLatestFrom(() => this.store.select(selectParentProcessGroupId)),
-                filter(([action, parentProcessGroupId]) => parentProcessGroupId != null),
-                tap(([action, parentProcessGroupId]) => {
+                filter(([, parentProcessGroupId]) => parentProcessGroupId != null),
+                tap(([, parentProcessGroupId]) => {
                     this.router.navigate(['/process-groups', parentProcessGroupId]);
                 })
             ),
@@ -1822,7 +1822,7 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.deselectAllComponents),
             concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
-            switchMap(([action, processGroupId]) => {
+            switchMap(([, processGroupId]) => {
                 return of(FlowActions.navigateWithoutTransform({ url: ['/process-groups', processGroupId] }));
             })
         )

@@ -86,7 +86,7 @@ export class ParameterProvidersEffects {
             this.actions$.pipe(
                 ofType(ParameterProviderActions.openNewParameterProviderDialog),
                 concatLatestFrom(() => this.store.select(selectParameterProviderTypes)),
-                tap(([action, parameterProviderTypes]) => {
+                tap(([, parameterProviderTypes]) => {
                     const dialogReference = this.dialog.open(CreateParameterProvider, {
                         data: {
                             parameterProviderTypes

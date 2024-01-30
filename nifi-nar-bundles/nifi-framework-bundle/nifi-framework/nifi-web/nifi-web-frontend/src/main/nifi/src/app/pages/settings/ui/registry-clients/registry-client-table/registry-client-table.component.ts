@@ -106,7 +106,7 @@ export class RegistryClientTable {
         return data.sort((a, b) => {
             const isAsc = sort.direction === 'asc';
 
-            let retVal: number = 0;
+            let retVal = 0;
             switch (sort.active) {
                 case 'name':
                     retVal = this.nifiCommon.compareString(a.component.name, b.component.name);

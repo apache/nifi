@@ -18,7 +18,7 @@
 import { createAction, props } from '@ngrx/store';
 import { LoadPolicyComponentRequest, LoadPolicyComponentSuccess } from './index';
 
-const POLICY_COMPONENT_PREFIX: string = '[Policy Component]';
+const POLICY_COMPONENT_PREFIX = '[Policy Component]';
 
 export const loadPolicyComponent = createAction(
     `${POLICY_COMPONENT_PREFIX} Load Policy Component`,

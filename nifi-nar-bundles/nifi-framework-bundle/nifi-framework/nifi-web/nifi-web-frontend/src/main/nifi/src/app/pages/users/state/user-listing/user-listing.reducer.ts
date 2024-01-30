@@ -42,7 +42,7 @@ export const initialState: UserListingState = {
 
 export const userListingReducer = createReducer(
     initialState,
-    on(resetUsersState, (state) => ({
+    on(resetUsersState, () => ({
         ...initialState
     })),
     on(loadTenants, (state) => ({
@@ -69,7 +69,7 @@ export const userListingReducer = createReducer(
         ...state,
         saving: false
     })),
-    on(createUserGroupSuccess, (state, { response }) => ({
+    on(createUserGroupSuccess, (state) => ({
         ...state,
         saving: false
     })),

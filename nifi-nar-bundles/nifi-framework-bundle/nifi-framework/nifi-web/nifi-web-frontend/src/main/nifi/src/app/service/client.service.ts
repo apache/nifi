@@ -23,8 +23,6 @@ import { Injectable } from '@angular/core';
 export class Client {
     private clientId: string = crypto.randomUUID();
 
-    constructor() {}
-
     public getClientId(): string {
         return this.clientId;
     }

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { CanMatchFn, Route, Router, UrlSegment } from '@angular/router';
+import { CanMatchFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { map } from 'rxjs';
 import { Store } from '@ngrx/store';
@@ -23,7 +23,7 @@ import { CurrentUser, CurrentUserState } from '../../state/current-user';
 import { selectCurrentUser } from '../../state/current-user/current-user.selectors';
 
 export const authorizationGuard = (authorizationCheck: (user: CurrentUser) => boolean): CanMatchFn => {
-    return (route: Route, state: UrlSegment[]) => {
+    return () => {
         const router: Router = inject(Router);
         const store: Store<CurrentUserState> = inject(Store<CurrentUserState>);
 

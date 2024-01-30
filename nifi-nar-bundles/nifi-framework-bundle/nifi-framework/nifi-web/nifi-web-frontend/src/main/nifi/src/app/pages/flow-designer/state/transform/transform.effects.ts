@@ -66,7 +66,7 @@ export class TransformEffects {
             this.actions$.pipe(
                 ofType(TransformActions.restoreViewport),
                 concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
-                tap(([action, processGroupId]) => {
+                tap(([, processGroupId]) => {
                     try {
                         // see if we can restore the view position from storage
                         const name: string = TransformEffects.VIEW_PREFIX + processGroupId;

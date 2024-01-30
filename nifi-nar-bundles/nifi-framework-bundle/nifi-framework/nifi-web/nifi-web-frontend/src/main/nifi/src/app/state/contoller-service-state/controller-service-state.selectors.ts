@@ -16,8 +16,7 @@
  */
 
 import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { controllerServiceStateFeatureKey, ControllerServiceState } from './index';
-import { ControllerServiceEntity } from '../shared';
+import { ControllerServiceState, controllerServiceStateFeatureKey } from './index';
 
 export const selectEnableControllerServiceState = createFeatureSelector<ControllerServiceState>(
     controllerServiceStateFeatureKey

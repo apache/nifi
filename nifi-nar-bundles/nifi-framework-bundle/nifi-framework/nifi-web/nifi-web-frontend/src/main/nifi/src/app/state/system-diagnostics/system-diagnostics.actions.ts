@@ -16,9 +16,9 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { OpenSystemDiagnosticsDialogRequest, SystemDiagnosticsRequest, SystemDiagnosticsResponse } from './index';
+import { SystemDiagnosticsRequest, SystemDiagnosticsResponse } from './index';
 
-const SYSTEM_DIAGNOSTICS_PREFIX: string = '[System Diagnostics]';
+const SYSTEM_DIAGNOSTICS_PREFIX = '[System Diagnostics]';
 
 export const reloadSystemDiagnostics = createAction(
     `${SYSTEM_DIAGNOSTICS_PREFIX} Load System Diagnostics`,

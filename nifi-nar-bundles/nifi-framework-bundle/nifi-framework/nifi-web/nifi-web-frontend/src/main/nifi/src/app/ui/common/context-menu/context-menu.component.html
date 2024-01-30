@@ -16,7 +16,7 @@
   -->
 
 <ng-template #menu>
-    <div class="context-menu" [class.show-focused]="showFocused$ | async" (keydown)="keydown($event)" cdkMenu>
+    <div class="context-menu" [class.show-focused]="showFocused$ | async" (keydown)="keydown()" cdkMenu>
         <ng-container *ngFor="let item of getMenuItems(menuId)">
             <ng-container *ngIf="item.isSeparator; else menuItem">
                 <hr />

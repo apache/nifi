@@ -41,7 +41,7 @@ export const initialState: RegistryClientsState = {
 
 export const registryClientsReducer = createReducer(
     initialState,
-    on(resetRegistryClientsState, (state) => ({
+    on(resetRegistryClientsState, () => ({
         ...initialState
     })),
     on(loadRegistryClients, (state) => ({
@@ -61,7 +61,7 @@ export const registryClientsReducer = createReducer(
         error,
         status: 'error' as const
     })),
-    on(createRegistryClient, configureRegistryClient, deleteRegistryClient, (state, { request }) => ({
+    on(createRegistryClient, configureRegistryClient, deleteRegistryClient, (state) => ({
         ...state,
         saving: true
     })),

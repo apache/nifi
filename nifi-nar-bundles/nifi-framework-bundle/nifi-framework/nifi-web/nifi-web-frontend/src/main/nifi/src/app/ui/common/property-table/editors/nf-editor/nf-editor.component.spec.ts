@@ -39,7 +39,7 @@ describe('NfEditor', () => {
     });
 
     it('verify value set', () => {
-        const value: string = 'my-group-id';
+        const value = 'my-group-id';
         const item: PropertyItem = {
             property: 'group.id',
             value,
@@ -76,7 +76,7 @@ describe('NfEditor', () => {
     });
 
     it('verify empty value set', () => {
-        const value: string = '';
+        const value = '';
         const item: PropertyItem = {
             property: 'group.id',
             value,

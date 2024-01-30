@@ -31,8 +31,8 @@ import { AsyncPipe, NgIf } from '@angular/common';
 })
 export class Resizable {
     @Output() resized = new EventEmitter<DOMRect>();
-    @Input() minHeight: number = 0;
-    @Input() minWidth: number = 0;
+    @Input() minHeight = 0;
+    @Input() minWidth = 0;
 
     private startSize$ = new Subject<DOMRect>();
     private dragMove$ = new Subject<CdkDragMove>();
@@ -40,7 +40,7 @@ export class Resizable {
         withLatestFrom(this.startSize$),
         auditTime(25),
         tap(([{ distance }, rect]) => {
-            let resized: boolean = false;
+            let resized = false;
             if (rect.width + distance.x >= this.minWidth) {
                 this.el.nativeElement.style.width = `${rect.width + distance.x}px`;
                 resized = true;

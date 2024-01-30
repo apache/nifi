@@ -25,7 +25,6 @@ import { StatusHistoryRequest } from './index';
 import { catchError, from, map, of, switchMap, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { StatusHistory } from '../../ui/common/status-history/status-history.component';
-import { ComponentType } from '../shared';
 
 @Injectable()
 export class StatusHistoryEffects {

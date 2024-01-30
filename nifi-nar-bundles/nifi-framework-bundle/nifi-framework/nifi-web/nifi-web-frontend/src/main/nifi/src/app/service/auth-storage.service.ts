@@ -25,8 +25,6 @@ export class AuthStorage {
 
     private static readonly REQUEST_TOKEN_PATTERN: RegExp = new RegExp('Request-Token=([^;]+)');
 
-    constructor() {}
-
     /**
      * Get Request Token from document cookies
      *

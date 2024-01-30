@@ -51,7 +51,7 @@ export const policyComponentReducer = createReducer(
         error: error,
         status: 'error' as const
     })),
-    on(resetPolicyComponentState, (state) => ({
+    on(resetPolicyComponentState, () => ({
         ...initialState
     }))
 );

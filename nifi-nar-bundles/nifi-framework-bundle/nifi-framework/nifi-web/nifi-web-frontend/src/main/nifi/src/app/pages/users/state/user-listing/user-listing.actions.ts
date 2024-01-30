@@ -33,7 +33,7 @@ import {
     UpdateUserGroupResponse
 } from './index';
 
-const USER_PREFIX: string = '[User Listing]';
+const USER_PREFIX = '[User Listing]';
 
 export const resetUsersState = createAction(`${USER_PREFIX} Reset Users State`);
 

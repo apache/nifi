@@ -29,11 +29,11 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
     styleUrls: ['./counter-table.component.scss']
 })
 export class CounterTable implements AfterViewInit {
-    private _canModifyCounters: boolean = false;
-    filterTerm: string = '';
+    private _canModifyCounters = false;
+    filterTerm = '';
     filterColumn: 'context' | 'name' = 'name';
-    totalCount: number = 0;
-    filteredCount: number = 0;
+    totalCount = 0;
+    filteredCount = 0;
 
     displayedColumns: string[] = ['context', 'name', 'value'];
     dataSource: MatTableDataSource<CounterEntity> = new MatTableDataSource<CounterEntity>();

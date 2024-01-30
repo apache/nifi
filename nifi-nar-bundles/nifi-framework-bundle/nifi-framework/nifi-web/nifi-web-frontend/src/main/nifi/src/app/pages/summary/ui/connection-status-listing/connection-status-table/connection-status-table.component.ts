@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SummaryTableFilterModule } from '../../common/summary-table-filter/summary-table-filter.module';
 import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
@@ -40,7 +40,7 @@ export type SupportedColumns = 'name' | 'queue' | 'in' | 'out' | 'threshold' | '
     templateUrl: './connection-status-table.component.html',
     styleUrls: ['./connection-status-table.component.scss']
 })
-export class ConnectionStatusTable {
+export class ConnectionStatusTable implements AfterViewInit {
     private _initialSortColumn: SupportedColumns = 'sourceName';
     private _initialSortDirection: SortDirection = 'asc';
 

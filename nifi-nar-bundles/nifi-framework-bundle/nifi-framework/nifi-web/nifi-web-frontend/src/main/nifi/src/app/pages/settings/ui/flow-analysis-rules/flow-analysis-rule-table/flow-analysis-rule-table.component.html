@@ -121,12 +121,12 @@
                         <div
                             class="pointer fa icon icon-enable-false"
                             *ngIf="canDisable(item)"
-                            (click)="disableClicked(item, $event)"
+                            (click)="disableClicked(item)"
                             title="Disable"></div>
                         <div
                             class="pointer fa fa-flash"
                             *ngIf="canEnable(item)"
-                            (click)="enabledClicked(item, $event)"
+                            (click)="enabledClicked(item)"
                             title="Enable"></div>
                         <div class="pointer fa fa-exchange" *ngIf="canChangeVersion(item)" title="Change Version"></div>
                         <div

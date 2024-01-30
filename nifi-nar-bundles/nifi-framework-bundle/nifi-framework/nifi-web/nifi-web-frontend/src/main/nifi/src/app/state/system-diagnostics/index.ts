@@ -93,8 +93,6 @@ export interface SystemDiagnosticsRequest {
     nodewise: boolean;
 }
 
-export interface OpenSystemDiagnosticsDialogRequest {}
-
 export interface SystemDiagnosticsResponse {
     systemDiagnostics: SystemDiagnostics;
 }

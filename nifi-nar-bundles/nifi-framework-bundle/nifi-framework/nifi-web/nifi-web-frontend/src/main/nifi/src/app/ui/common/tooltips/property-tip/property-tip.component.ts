@@ -29,8 +29,8 @@ import { ControllerServiceApi } from '../../controller-service/controller-servic
     styleUrls: ['./property-tip.component.scss']
 })
 export class PropertyTip {
-    @Input() left: number = 0;
-    @Input() top: number = 0;
+    @Input() left = 0;
+    @Input() top = 0;
     @Input() data: PropertyTipInput | undefined;
 
     constructor(private nifiCommon: NiFiCommon) {}

@@ -25,10 +25,9 @@ import { CurrentUser } from '../../../../../state/current-user';
 import { FlowConfiguration } from '../../../../../state/flow-configuration';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { SummaryTableFilterModule } from '../../../../summary/ui/common/summary-table-filter/summary-table-filter.module';
-import { PortStatusSnapshotEntity } from '../../../../summary/state/summary-listing';
 import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
-import { ControllerServiceEntity, ValidationErrorsTipInput } from '../../../../../state/shared';
+import { ValidationErrorsTipInput } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
 
 export type SupportedColumns = 'name' | 'type' | 'bundle';

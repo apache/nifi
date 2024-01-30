@@ -51,7 +51,7 @@ export class ProvenanceEventListingEffects {
     loadProvenanceOptions$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ProvenanceEventListingActions.loadProvenanceOptions),
-            switchMap((request) =>
+            switchMap(() =>
                 from(this.provenanceService.getSearchOptions()).pipe(
                     map((response) =>
                         ProvenanceEventListingActions.loadProvenanceOptionsSuccess({
@@ -157,7 +157,7 @@ export class ProvenanceEventListingEffects {
         this.actions$.pipe(
             ofType(ProvenanceEventListingActions.pollProvenanceQuery),
             concatLatestFrom(() => [this.store.select(selectProvenanceId), this.store.select(selectClusterNodeId)]),
-            switchMap(([action, id, clusterNodeId]) => {
+            switchMap(([, id, clusterNodeId]) => {
                 if (id) {
                     return from(this.provenanceService.getProvenanceQuery(id, clusterNodeId)).pipe(
                         map((response) =>
@@ -201,7 +201,7 @@ export class ProvenanceEventListingEffects {
     stopPollingProvenanceQuery$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ProvenanceEventListingActions.stopPollingProvenanceQuery),
-            switchMap((response) => of(ProvenanceEventListingActions.deleteProvenanceQuery()))
+            switchMap(() => of(ProvenanceEventListingActions.deleteProvenanceQuery()))
         )
     );
 
@@ -210,7 +210,7 @@ export class ProvenanceEventListingEffects {
             this.actions$.pipe(
                 ofType(ProvenanceEventListingActions.deleteProvenanceQuery),
                 concatLatestFrom(() => [this.store.select(selectProvenanceId), this.store.select(selectClusterNodeId)]),
-                tap(([action, id, clusterNodeId]) => {
+                tap(([, id, clusterNodeId]) => {
                     if (id) {
                         this.provenanceService.deleteProvenanceQuery(id, clusterNodeId).subscribe();
                     }
@@ -229,7 +229,7 @@ export class ProvenanceEventListingEffects {
                     this.store.select(selectProvenanceRequest),
                     this.store.select(selectAbout)
                 ]),
-                tap(([request, timeOffset, options, currentRequest, about]) => {
+                tap(([, timeOffset, options, currentRequest, about]) => {
                     if (about) {
                         const dialogReference = this.dialog.open(ProvenanceSearchDialog, {
                             data: {
@@ -321,7 +321,7 @@ export class ProvenanceEventListingEffects {
                                     });
                                 });
                         },
-                        error: (error) => {
+                        error: () => {
                             // TODO - handle error
                         }
                     });

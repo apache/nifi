@@ -68,7 +68,7 @@ export class ComponentStateEffects {
         this.actions$.pipe(
             ofType(ComponentStateActions.loadComponentStateSuccess),
             map((action) => action.response),
-            switchMap((response) => of(ComponentStateActions.openComponentStateDialog()))
+            switchMap(() => of(ComponentStateActions.openComponentStateDialog()))
         )
     );
 
@@ -81,7 +81,7 @@ export class ComponentStateEffects {
                         panelClass: 'large-dialog'
                     });
 
-                    dialogReference.afterClosed().subscribe((response) => {
+                    dialogReference.afterClosed().subscribe(() => {
                         this.store.dispatch(resetComponentState());
                     });
                 })
@@ -93,10 +93,10 @@ export class ComponentStateEffects {
         this.actions$.pipe(
             ofType(ComponentStateActions.clearComponentState),
             concatLatestFrom(() => this.store.select(selectComponentUri).pipe(isDefinedAndNotNull())),
-            switchMap(([action, componentUri]) =>
+            switchMap(([, componentUri]) =>
                 from(
                     this.componentStateService.clearComponentState({ componentUri }).pipe(
-                        map((response: any) => ComponentStateActions.reloadComponentState()),
+                        map(() => ComponentStateActions.reloadComponentState()),
                         catchError((error) =>
                             of(
                                 ComponentStateActions.componentStateApiError({
@@ -114,7 +114,7 @@ export class ComponentStateEffects {
         this.actions$.pipe(
             ofType(ComponentStateActions.reloadComponentState),
             concatLatestFrom(() => this.store.select(selectComponentUri).pipe(isDefinedAndNotNull())),
-            switchMap(([action, componentUri]) =>
+            switchMap(([, componentUri]) =>
                 from(
                     this.componentStateService.getComponentState({ componentUri }).pipe(
                         map((response: any) =>

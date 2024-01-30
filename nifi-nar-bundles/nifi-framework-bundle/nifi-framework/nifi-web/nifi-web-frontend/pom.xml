@@ -147,6 +147,22 @@
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
+
+                    <!--
+                        Run the code linter
+                    -->
+                    <execution>
+                        <id>lint</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <arguments>run lint</arguments>
+                            <workingDirectory>${frontend.working.dir}</workingDirectory>
+                        </configuration>
+                    </execution>
+
                     <!--
                         Bundle, minify, and gzip compress all the javascript.
                     -->
@@ -176,7 +192,8 @@
                         <exclude>src/main/nifi/README.md</exclude>
                         <exclude>src/main/nifi/proxy.config.mjs</exclude>
                         <exclude>src/main/nifi/.prettierrc</exclude>
-                        <exclude>src/main/nifi/src/.eslintrc</exclude>
+                        <exclude>src/main/nifi/.prettierignore</exclude>
+                        <exclude>src/main/nifi/dist/**/*</exclude>
                     </excludes>
                 </configuration>
             </plugin>

@@ -370,7 +370,7 @@ export class ParameterContextListingEffects {
         this.actions$.pipe(
             ofType(ParameterContextListingActions.pollParameterContextUpdateRequest),
             concatLatestFrom(() => this.store.select(selectUpdateRequest)),
-            switchMap(([action, updateRequest]) => {
+            switchMap(([, updateRequest]) => {
                 if (updateRequest) {
                     return from(this.parameterContextService.pollParameterContextUpdate(updateRequest.request)).pipe(
                         map((response) =>
@@ -413,7 +413,7 @@ export class ParameterContextListingEffects {
     stopPollingParameterContextUpdateRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ParameterContextListingActions.stopPollingParameterContextUpdateRequest),
-            switchMap((response) => of(ParameterContextListingActions.deleteParameterContextUpdateRequest()))
+            switchMap(() => of(ParameterContextListingActions.deleteParameterContextUpdateRequest()))
         )
     );
 
@@ -422,7 +422,7 @@ export class ParameterContextListingEffects {
             this.actions$.pipe(
                 ofType(ParameterContextListingActions.deleteParameterContextUpdateRequest),
                 concatLatestFrom(() => this.store.select(selectUpdateRequest)),
-                tap(([action, updateRequest]) => {
+                tap(([, updateRequest]) => {
                     if (updateRequest) {
                         this.parameterContextService.deleteParameterContextUpdate(updateRequest.request).subscribe();
                     }

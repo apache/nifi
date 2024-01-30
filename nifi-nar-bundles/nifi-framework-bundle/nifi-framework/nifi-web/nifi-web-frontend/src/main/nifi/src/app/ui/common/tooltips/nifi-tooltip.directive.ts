@@ -24,19 +24,22 @@ import { ComponentRef, Directive, HostListener, Input, Type, ViewContainerRef } 
 export class NifiTooltipDirective<T> {
     @Input() tooltipComponentType!: Type<T>;
     @Input() tooltipInputData: any;
-    @Input() xOffset: number = 0; // TODO - replace pixel based offset with css transformY to support positioning above/below
-    @Input() yOffset: number = 0;
-    @Input() delayClose: boolean = true;
+    @Input() xOffset = 0; // TODO - replace pixel based offset with css transformY to support positioning above/below
+    @Input() yOffset = 0;
+    @Input() delayClose = true;
 
-    private closeTimer: number = -1;
+    private closeTimer = -1;
     private tooltipRef: ComponentRef<T> | undefined;
 
     constructor(private viewContainerRef: ViewContainerRef) {}
 
     @HostListener('mouseenter', ['$event'])
     mouseEnter(event: MouseEvent) {
-        // @ts-ignore
-        const { x, y, width, height } = event.currentTarget.getBoundingClientRect();
+        if (!event.currentTarget) {
+            return;
+        }
+        const target = event.currentTarget as HTMLElement;
+        const { x, y, width, height } = target.getBoundingClientRect();
 
         // clear any existing tooltips
         this.viewContainerRef.clear();
@@ -61,7 +64,7 @@ export class NifiTooltipDirective<T> {
     }
 
     @HostListener('mouseleave', ['$event'])
-    mouseLeave(event: MouseEvent) {
+    mouseLeave() {
         if (this.delayClose) {
             this.closeTimer = window.setTimeout(() => {
                 this.tooltipRef?.destroy();

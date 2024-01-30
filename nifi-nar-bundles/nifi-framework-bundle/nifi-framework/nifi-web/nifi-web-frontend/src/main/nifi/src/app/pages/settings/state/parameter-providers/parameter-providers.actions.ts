@@ -28,7 +28,7 @@ import {
     SelectParameterProviderRequest
 } from './index';
 
-const PARAMETER_PROVIDERS_PREFIX: string = '[Parameter Providers]';
+const PARAMETER_PROVIDERS_PREFIX = '[Parameter Providers]';
 
 export const resetParameterProvidersState = createAction(`${PARAMETER_PROVIDERS_PREFIX} Reset Parameter Providers`);
 

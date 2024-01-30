@@ -18,7 +18,7 @@
 import { Injectable } from '@angular/core';
 import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ReportingTaskActions from './reporting-tasks.actions';
-import { catchError, from, map, NEVER, Observable, of, switchMap, take, takeUntil, tap } from 'rxjs';
+import { catchError, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
@@ -28,20 +28,10 @@ import { ReportingTaskService } from '../../service/reporting-task.service';
 import { CreateReportingTask } from '../../ui/reporting-tasks/create-reporting-task/create-reporting-task.component';
 import { Router } from '@angular/router';
 import { selectSaving } from '../management-controller-services/management-controller-services.selectors';
-import {
-    InlineServiceCreationRequest,
-    InlineServiceCreationResponse,
-    NewPropertyDialogRequest,
-    NewPropertyDialogResponse,
-    Property,
-    PropertyDescriptor,
-    UpdateControllerServiceRequest
-} from '../../../../state/shared';
-import { NewPropertyDialog } from '../../../../ui/common/new-property-dialog/new-property-dialog.component';
+import { UpdateControllerServiceRequest } from '../../../../state/shared';
 import { EditReportingTask } from '../../ui/reporting-tasks/edit-reporting-task/edit-reporting-task.component';
 import { CreateReportingTaskSuccess } from './index';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
-import { CreateControllerService } from '../../../../ui/common/controller-service/create-controller-service/create-controller-service.component';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { Client } from '../../../../service/client.service';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
@@ -90,7 +80,7 @@ export class ReportingTasksEffects {
             this.actions$.pipe(
                 ofType(ReportingTaskActions.openNewReportingTaskDialog),
                 concatLatestFrom(() => this.store.select(selectReportingTaskTypes)),
-                tap(([action, reportingTaskTypes]) => {
+                tap(([, reportingTaskTypes]) => {
                     this.dialog.open(CreateReportingTask, {
                         data: {
                             reportingTaskTypes

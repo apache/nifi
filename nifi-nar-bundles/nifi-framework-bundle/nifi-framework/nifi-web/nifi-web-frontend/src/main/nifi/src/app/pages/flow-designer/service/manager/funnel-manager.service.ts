@@ -44,7 +44,7 @@ export class FunnelManager {
 
     private funnels: [] = [];
     private funnelContainer: any;
-    private transitionRequired: boolean = false;
+    private transitionRequired = false;
 
     constructor(
         private store: Store<CanvasState>,
