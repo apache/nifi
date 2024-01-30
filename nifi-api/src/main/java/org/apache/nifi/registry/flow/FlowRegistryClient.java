@@ -21,6 +21,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * <p>
@@ -146,7 +147,7 @@ public interface FlowRegistryClient extends ConfigurableComponent {
     FlowRegistryBucket getBucket(FlowRegistryClientConfigurationContext context, BucketLocation bucketLocation) throws FlowRegistryException, IOException;
 
     /**
-     * Registers the given RegisteredFlow into the the Flow Registry.
+     * Registers the given RegisteredFlow into the Flow Registry.
      *
      * @param context Configuration context.
      * @param flow The RegisteredFlow to add to the Registry.
@@ -252,4 +253,15 @@ public interface FlowRegistryClient extends ConfigurableComponent {
      * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
      */
     Optional<String> getLatestVersion(FlowRegistryClientConfigurationContext context, FlowLocation flowLocation) throws FlowRegistryException, IOException;
+
+    /**
+     * Generates the id for registering a flow.
+     *
+     * @param flowName the name of the flow
+     * @return the generated id
+     */
+    default String generateFlowId(final String flowName) {
+        return UUID.randomUUID().toString();
+    }
+
 }

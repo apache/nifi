@@ -1,0 +1,394 @@
+/*
+ *
+ *  * Licensed to the Apache Software Foundation (ASF) under one or more
+ *  * contributor license agreements.  See the NOTICE file distributed with
+ *  * this work for additional information regarding copyright ownership.
+ *  * The ASF licenses this file to You under the Apache License, Version 2.0
+ *  * (the "License"); you may not use this file except in compliance with
+ *  * the License.  You may obtain a copy of the License at
+ *  *
+ *  *     http://www.apache.org/licenses/LICENSE-2.0
+ *  *
+ *  * Unless required by applicable law or agreed to in writing, software
+ *  * distributed under the License is distributed on an "AS IS" BASIS,
+ *  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  * See the License for the specific language governing permissions and
+ *  * limitations under the License.
+ *
+ */
+
+package org.apache.nifi.github;
+
+import org.apache.nifi.registry.flow.FlowRegistryException;
+import org.kohsuke.github.GHCommit;
+import org.kohsuke.github.GHContent;
+import org.kohsuke.github.GHContentUpdateResponse;
+import org.kohsuke.github.GHRef;
+import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GitHub;
+import org.kohsuke.github.GitHubBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Client to encapsulate access to a GitHub Repository through the Hub4j GitHub client.
+ */
+public class GitHubRepositoryClient {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GitHubRepositoryClient.class);
+
+    private static final String BRANCH_REF_PATTERN = "refs/heads/%s";
+    private static final int COMMIT_PAGE_SIZE = 50;
+
+    private final GHRepository repository;
+    private final String repoPath;
+    private final boolean authenticationPresent;
+
+    private GitHubRepositoryClient(final Builder builder) throws IOException {
+        final GitHubBuilder gitHubBuilder = new GitHubBuilder().withEndpoint(builder.apiUrl);
+
+        final String accessToken = builder.accessToken;
+        if (accessToken != null) {
+            gitHubBuilder.withOAuthToken(accessToken);
+            authenticationPresent = true;
+        } else {
+            authenticationPresent = false;
+        }
+
+        final GitHub gitHub = gitHubBuilder.build();
+        try {
+            repository = gitHub.getRepository(builder.repoOwner + "/" + builder.repoName);
+        } catch (final IOException e) {
+            LOGGER.error("Unable to access GitHub repository [{}] due to: {}", builder.repoName, e.getMessage(), e);
+            throw e;
+        }
+        repoPath = builder.repoPath;
+    }
+
+    /**
+     * @return true if the client is configured with credentials to authenticate
+     */
+    public boolean isAuthenticationPresent() {
+        return authenticationPresent;
+    }
+
+    /**
+     * Creates the content specified by the given builder.
+     *
+     * @param request the request for the content to create
+     * @return the update response
+     *
+     * @throws IOException if an I/O error happens calling GitHub
+     * @throws FlowRegistryException if a non I/O error happens calling GitHub
+     */
+    public GHContentUpdateResponse createContent(final GitHubCreateContentRequest request) throws IOException, FlowRegistryException {
+        final String branch = request.getBranch();
+        final String resolvedPath = getResolvedPath(request.getPath());
+        LOGGER.debug("Creating content at path [{}] on branch [{}] in repo [{}] ", resolvedPath, branch, repository.getName());
+        return execute(() -> {
+            try {
+                return repository.createContent()
+                        .branch(branch)
+                        .path(resolvedPath)
+                        .content(request.getContent())
+                        .message(request.getMessage())
+                        .sha(request.getExistingContentSha())
+                        .commit();
+            } catch (final FileNotFoundException fnf) {
+                throwPathOrBranchNotFound(resolvedPath, branch);
+                return null;
+            }
+        });
+    }
+
+    /**
+     * Gets the names of all the branches in the repo.
+     *
+     * @return the set of all branches in the repo
+     *
+     * @throws IOException if an I/O error happens calling GitHub
+     * @throws FlowRegistryException if a non I/O error happens calling GitHub
+     */
+    public Set<String> getBranches() throws IOException, FlowRegistryException {
+        LOGGER.debug("Getting branches for repo [{}]", repository.getName());
+        return execute(() -> repository.getBranches().keySet());
+    }
+
+    /**
+     * Gets an InputStream to read the latest content of the given path from the given branch.
+     * The returned stream already contains the contents of the requested file.
+     *
+     * @param path the path to the content
+     * @param branch the branch
+     * @return an input stream containing the contents of the path
+     *
+     * @throws IOException if an I/O error happens calling GitHub
+     * @throws FlowRegistryException if a non I/O error happens calling GitHub
+     */
+    public InputStream getContentFromBranch(final String path, final String branch) throws IOException, FlowRegistryException {
+        final String resolvedPath = getResolvedPath(path);
+        final String branchRef = BRANCH_REF_PATTERN.formatted(branch);
+        LOGGER.debug("Getting content for [{}] from branch [{}] in repo [{}] ", resolvedPath, branch, repository.getName());
+
+        return execute(() -> {
+            try {
+                final GHContent ghContent = repository.getFileContent(resolvedPath, branchRef);
+                return ghContent.read();
+            } catch (final FileNotFoundException e) {
+                throwPathOrBranchNotFound(resolvedPath, branchRef);
+                return null;
+            }
+        });
+    }
+
+    /**
+     * Gets the content of the given path from the given commit.
+     * The returned stream already contains the contents of the requested file.
+     *
+     * @param path the path to the content
+     * @param commitSha the commit SHA
+     * @return an input stream containing the contents of the path
+     *
+     * @throws IOException if an I/O error happens calling GitHub
+     * @throws FlowRegistryException if a non I/O error happens calling GitHub
+     */
+    public InputStream getContentFromCommit(final String path, final String commitSha) throws IOException, FlowRegistryException {
+        final String resolvedPath = getResolvedPath(path);
+        LOGGER.debug("Getting content for [{}] from commit [{}] in repo [{}] ", resolvedPath, commitSha, repository.getName());
+
+        return execute(() -> {
+            try {
+                final GHContent ghContent = repository.getFileContent(resolvedPath, commitSha);
+                return ghContent.read();
+            } catch (final FileNotFoundException fnf) {
+                throw new FlowRegistryException("Path [" + resolvedPath + "] or Commit [" + commitSha + "] not found");
+            }
+        });
+    }
+
+    /**
+     * Gets the commits for a given path on a given branch.
+     *
+     * @param path the path
+     * @param branch the branch
+     * @return the list of commits for the given path
+     *
+     * @throws IOException if an I/O error happens calling GitHub
+     * @throws FlowRegistryException if a non I/O error happens calling GitHub
+     */
+    public List<GHCommit> getCommits(final String path, final String branch) throws IOException, FlowRegistryException {
+        final String resolvedPath = getResolvedPath(path);
+        final String branchRef = BRANCH_REF_PATTERN.formatted(branch);
+        LOGGER.debug("Getting commits for [{}] from branch [{}] in repo [{}]", resolvedPath, branch, repository.getName());
+
+        return execute(() -> {
+            try {
+                final GHRef branchGhRef = repository.getRef(branchRef);
+                return repository.queryCommits()
+                        .path(resolvedPath)
+                        .from(branchGhRef.getObject().getSha())
+                        .pageSize(COMMIT_PAGE_SIZE)
+                        .list()
+                        .toList();
+            } catch (final FileNotFoundException fnf) {
+                throwPathOrBranchNotFound(resolvedPath, branchRef);
+                return null;
+            }
+        });
+    }
+
+    /**
+     * Gets the names of the directories contained within the given directory.
+     *
+     * @param directory the directory to list
+     * @param branch the branch
+     * @return the set of directory names
+     *
+     * @throws IOException if an I/O error happens calling GitHub
+     * @throws FlowRegistryException if a non I/O error happens calling GitHub
+     */
+    public Set<String> getDirectoryNames(final String directory, final String branch) throws IOException, FlowRegistryException {
+        final String resolvedDirectory = getResolvedPath(directory);
+        final String branchRef = BRANCH_REF_PATTERN.formatted(branch);
+        LOGGER.debug("Getting directory names for [{}] from branch [{}] in repo [{}] ", resolvedDirectory, branch, repository.getName());
+
+        return execute(() -> {
+            try {
+                return repository.getDirectoryContent(resolvedDirectory, branchRef).stream()
+                        .filter(GHContent::isDirectory)
+                        .map(GHContent::getName)
+                        .collect(Collectors.toSet());
+            } catch (final FileNotFoundException e) {
+                throwPathOrBranchNotFound(resolvedDirectory, branchRef);
+                return null;
+            }
+        });
+    }
+
+    /**
+     * Gets the names of the directories container within the given directory.
+     *
+     * @param directory the directory to list
+     * @param branch the branch
+     * @return the set of file names
+     *
+     * @throws IOException if an I/O error happens calling GitHub
+     * @throws FlowRegistryException if a non I/O error happens calling GitHub
+     */
+    public Set<String> getFileNames(final String directory, final String branch) throws IOException, FlowRegistryException {
+        final String resolvedDirectory = getResolvedPath(directory);
+        final String branchRef = BRANCH_REF_PATTERN.formatted(branch);
+        LOGGER.debug("Getting file names for [{}] from branch [{}] in repo [{}] ", resolvedDirectory, branch, repository.getName());
+
+        return execute(() -> {
+            try {
+                return repository.getDirectoryContent(resolvedDirectory, branchRef).stream()
+                        .filter(GHContent::isFile)
+                        .map(GHContent::getName)
+                        .collect(Collectors.toSet());
+            } catch (final FileNotFoundException e) {
+                throwPathOrBranchNotFound(resolvedDirectory, branchRef);
+                return null;
+            }
+        });
+    }
+
+    /**
+     * Gets the current SHA for the given path from the given branch.
+     *
+     * @param path the path to the content
+     * @param branch the branch
+     * @return current sha for the given file, or empty optional
+     *
+     * @throws IOException if an I/O error happens calling GitHub
+     */
+    public Optional<String> getContentSha(final String path, final String branch) throws IOException, FlowRegistryException {
+        final String resolvedPath = getResolvedPath(path);
+        final String branchRef = BRANCH_REF_PATTERN.formatted(branch);
+        LOGGER.debug("Getting content SHA for [{}] from branch [{}] in repo [{}] ", resolvedPath, branch, repository.getName());
+
+        return execute(() -> {
+            try {
+                final GHContent ghContent = repository.getFileContent(resolvedPath, branchRef);
+                return Optional.of(ghContent.getSha());
+            } catch (final FileNotFoundException e) {
+                LOGGER.warn("Unable to get content SHA for [{}] from branch [{}] because content does not exist", resolvedPath, branch);
+                return Optional.empty();
+            }
+        });
+    }
+
+    /**
+     * Deletes the contents for the given file on the given branch.
+     *
+     * @param filePath the file path to delete
+     * @param commitMessage the commit message for the delete commit
+     * @param branch the branch to delete from
+     * @return the deleted content
+     *
+     * @throws IOException if an I/O error happens calling GitHub
+     * @throws FlowRegistryException if a non I/O error happens calling GitHub
+     */
+    public GHContent deleteContent(final String filePath, final String commitMessage, final String branch) throws FlowRegistryException, IOException {
+        final String resolvedPath = getResolvedPath(filePath);
+        LOGGER.debug("Deleting file [{}] in repo [{}] on branch [{}]", resolvedPath, repository.getName(), branch);
+        return execute(() -> {
+            try {
+                GHContent ghContent = repository.getFileContent(resolvedPath);
+                ghContent.delete(commitMessage, branch);
+                return ghContent;
+            } catch (final FileNotFoundException fnf) {
+                throwPathOrBranchNotFound(resolvedPath, branch);
+                return null;
+            }
+        });
+    }
+
+    private String getResolvedPath(final String path) {
+        return repoPath == null ? path : repoPath + "/" + path;
+    }
+
+    private void throwPathOrBranchNotFound(final String path, final String branch) throws FlowRegistryException {
+        throw new FlowRegistryException("Path [" + path + "] or Branch [" + branch + "] not found");
+    }
+
+    private <T> T execute(final GHRequest<T> action) throws FlowRegistryException, IOException {
+        try {
+            return action.execute();
+        } catch (final FlowRegistryException | IOException e) {
+            LOGGER.error(e.getMessage(), e);
+            throw e;
+        } catch (final Exception e) {
+            LOGGER.error(e.getMessage(), e);
+            throw new FlowRegistryException(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Functional interface for making a request to GitHub which may throw IOException.
+     *
+     * @param <T> the result of the request
+     */
+    private interface GHRequest<T> {
+
+        T execute() throws IOException, FlowRegistryException;
+
+    }
+
+    /**
+     * @return a new builder
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * Builder for the repository client.
+     */
+    public static class Builder {
+
+        private String apiUrl;
+        private String accessToken;
+        private String repoOwner;
+        private String repoName;
+        private String repoPath;
+
+        public Builder apiUrl(final String apiUrl) {
+            this.apiUrl = apiUrl;
+            return this;
+        }
+
+        public Builder accessToken(final String accessToken) {
+            this.accessToken = accessToken;
+            return this;
+        }
+
+        public Builder repoOwner(final String repoOwner) {
+            this.repoOwner = repoOwner;
+            return this;
+        }
+
+        public Builder repoName(final String repoName) {
+            this.repoName = repoName;
+            return this;
+        }
+
+        public Builder repoPath(final String repoPath) {
+            this.repoPath = repoPath;
+            return this;
+        }
+
+        public GitHubRepositoryClient build() throws IOException {
+            return new GitHubRepositoryClient(this);
+        }
+
+    }
+}

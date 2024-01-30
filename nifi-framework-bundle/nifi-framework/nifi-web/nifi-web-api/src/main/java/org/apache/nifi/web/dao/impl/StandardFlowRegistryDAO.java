@@ -198,7 +198,12 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
 
             final FlowLocation flowLocation = new FlowLocation(branch, bucketId, flowId);
             final Set<RegisteredFlowSnapshotMetadata> flowVersions = flowRegistry.getFlowVersions(context, flowLocation);
-            final Set<RegisteredFlowSnapshotMetadata> sortedFlowVersions = new TreeSet<>(Comparator.comparingLong(RegisteredFlowSnapshotMetadata::getTimestamp));
+
+            // if somehow the timestamp of two versions is exactly the same, then we use version as a secondary comparison,
+            // otherwise one of the objects won't be added to the set since compareTo returns 0 indicating it already exists
+            final Set<RegisteredFlowSnapshotMetadata> sortedFlowVersions = new TreeSet<>(
+                    Comparator.comparingLong(RegisteredFlowSnapshotMetadata::getTimestamp)
+                            .thenComparing(RegisteredFlowSnapshotMetadata::getVersion));
             sortedFlowVersions.addAll(flowVersions);
             return sortedFlowVersions;
         } catch (final IOException | FlowRegistryException ioe) {

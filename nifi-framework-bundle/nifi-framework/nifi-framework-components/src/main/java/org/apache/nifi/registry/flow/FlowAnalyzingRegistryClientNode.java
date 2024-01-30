@@ -462,6 +462,11 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
     }
 
     @Override
+    public String generateFlowId(final String flowName) throws IOException, FlowRegistryException {
+        return node.generateFlowId(flowName);
+    }
+
+    @Override
     public void setComponent(final LoggableComponent<FlowRegistryClient> component) {
         node.setComponent(component);
     }

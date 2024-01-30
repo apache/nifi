@@ -285,6 +285,11 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     }
 
     @Override
+    public String generateFlowId(final String flowName) throws IOException, FlowRegistryException {
+        return execute(() -> client.get().getComponent().generateFlowId(flowName));
+    }
+
+    @Override
     public void setComponent(final LoggableComponent<FlowRegistryClient> component) {
         client.set(component);
     }
@@ -299,7 +304,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
             }
 
             final List<String> validationProblems = validationResults.stream()
-                .map(e -> e.getExplanation())
+                .map(ValidationResult::getExplanation)
                 .collect(Collectors.toList());
 
             throw new FlowRegistryInvalidException(validationProblems);
