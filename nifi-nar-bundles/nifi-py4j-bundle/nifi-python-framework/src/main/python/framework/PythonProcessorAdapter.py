@@ -31,6 +31,7 @@ class PythonProcessorAdapter:
     class Java:
         implements = ['org.apache.nifi.python.processor.PythonProcessorAdapter']
 
+
     def __init__(self, gateway, processor, extension_manager, controller_service_type_lookup):
         self.processor = processor
         self.gateway = gateway
@@ -42,6 +43,7 @@ class PythonProcessorAdapter:
 
         if is_method_defined(processor, 'getRelationships'):
             self.relationships = None
+            self.cached_relationships = ([], None)
         else:
             self.relationships = gateway.jvm.java.util.HashSet()
             success = gateway.jvm.org.apache.nifi.processor.Relationship.Builder() \
@@ -63,7 +65,20 @@ class PythonProcessorAdapter:
         # to call the Processor's implementation. This allows for dynamically changing the Relationships based on
         # configuration, etc.
         if self.relationships is None:
-            return self.processor.getRelationships()
+            processor_rels = self.processor.getRelationships()
+
+            # If the relationships haven't changed, return the cached set
+            # This is to avoid creating a new HashSet and Java Relationship objects every time getRelationships is called, which is very expensive
+            if processor_rels == self.cached_relationships[0]:
+                return self.cached_relationships[1]
+
+            hash_set = self.gateway.jvm.java.util.HashSet()
+            for rel in processor_rels:
+                hash_set.add(rel.to_java_relationship(self.gateway))
+
+            # Cache and return the results
+            self.cached_relationships = (processor_rels, hash_set)
+            return hash_set
         else:
             return self.relationships
 
