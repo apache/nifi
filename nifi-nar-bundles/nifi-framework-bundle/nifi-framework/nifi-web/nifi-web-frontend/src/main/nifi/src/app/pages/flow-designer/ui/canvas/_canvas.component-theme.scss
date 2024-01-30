@@ -65,7 +65,7 @@
     .canvas-background {
         background-color: $canvas-primary-palette-600;
         background-image: linear-gradient(to right, $canvas-primary-palette-700 1px, transparent 1px),
-        linear-gradient(to bottom, $canvas-primary-palette-700 1px, transparent 1px);
+            linear-gradient(to bottom, $canvas-primary-palette-700 1px, transparent 1px);
     }
 
     /* svg styles */
@@ -79,7 +79,7 @@
           All components
       */
         .transparent {
-            fill: transparent
+            fill: transparent;
         }
 
         .warn-200 {
@@ -360,7 +360,7 @@
 
         g.connection rect.backpressure-object,
         g.connection rect.backpressure-data-size {
-            fill: $canvas-primary-palette-500
+            fill: $canvas-primary-palette-500;
         }
 
         g.connection rect.backpressure-object.not-configured,

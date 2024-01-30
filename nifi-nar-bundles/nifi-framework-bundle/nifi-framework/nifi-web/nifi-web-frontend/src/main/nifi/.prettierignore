@@ -31,6 +31,9 @@ npm-debug.log
 /connect.lock
 /coverage
 
+# Theme
+src/assets/themes/*
+
 # System files
 .DS_Store
 Thumbs.db

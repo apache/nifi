@@ -39,6 +39,7 @@ export class NewCanvasItem {
     @Input() type!: ComponentType;
     @Input() iconClass = '';
     @Input() iconHoverClass = '';
+    @Input() disabled = false;
 
     dragging = false;
 
@@ -68,11 +69,15 @@ export class NewCanvasItem {
     }
 
     mouseEnter() {
-        this.hovering = true;
+        if (!this.disabled) {
+            this.hovering = true;
+        }
     }
 
     mouseLeave() {
-        this.hovering = false;
+        if (!this.disabled) {
+            this.hovering = false;
+        }
     }
 
     isHovering(): boolean {
