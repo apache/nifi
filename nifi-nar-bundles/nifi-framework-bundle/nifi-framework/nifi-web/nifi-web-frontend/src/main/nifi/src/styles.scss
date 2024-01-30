@@ -177,9 +177,9 @@ $appFontPath: '~roboto-fontface/fonts';
 
     // Get the color palette from the color-config.
     $primary-palette: map.get($color-config, 'primary');
-    $accent-palette: map.get($color-config, 'accent');
     $warn-palette: map.get($color-config, 'warn');
     $canvas-primary-palette: map.get($canvas-color-config, 'primary');
+    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
 
     // Get hues from palette
     $primary-palette-50: mat.get-color-from-palette($primary-palette, 50);
@@ -192,9 +192,9 @@ $appFontPath: '~roboto-fontface/fonts';
     $canvas-primary-palette-200: mat.get-color-from-palette($canvas-primary-palette, 200);
     $canvas-primary-palette-400: mat.get-color-from-palette($canvas-primary-palette, 400);
     $canvas-primary-palette-900: mat.get-color-from-palette($canvas-primary-palette, 900);
-    $accent-palette-200: mat.get-color-from-palette($accent-palette, 200);
-    $accent-palette-400: mat.get-color-from-palette($accent-palette, 400);
-    $accent-palette-A200: mat.get-color-from-palette($accent-palette, 'A200');
+    $canvas-accent-palette-200: mat.get-color-from-palette($canvas-accent-palette, 200);
+    $canvas-accent-palette-400: mat.get-color-from-palette($canvas-accent-palette, 400);
+    $canvas-accent-palette-A200: mat.get-color-from-palette($canvas-accent-palette, 'A200');
     $warn-palette-200: mat.get-color-from-palette($warn-palette, 200);
     $warn-palette-300: mat.get-color-from-palette($warn-palette, 300);
     $warn-palette-A100: mat.get-color-from-palette($warn-palette, 'A100');
@@ -325,15 +325,15 @@ $appFontPath: '~roboto-fontface/fonts';
     }
 
     .running {
-        color: $accent-palette-200 !important;
-        fill: $accent-palette-200 !important;
+        color: $canvas-accent-palette-200 !important;
+        fill: $canvas-accent-palette-200 !important;
         text-shadow: 0 0 4px $canvas-primary-palette-900;
     }
 
     .has-errors,
     .invalid {
-        color: $accent-palette-A200 !important;
-        fill: $accent-palette-A200 !important;
+        color: $canvas-accent-palette-A200 !important;
+        fill: $canvas-accent-palette-A200 !important;
         text-shadow: 0 0 4px $canvas-primary-palette-900;
     }
 
@@ -356,8 +356,8 @@ $appFontPath: '~roboto-fontface/fonts';
     }
 
     .up-to-date {
-        color: $accent-palette-400 !important;
-        fill: $accent-palette-400 !important;
+        color: $canvas-accent-palette-400 !important;
+        fill: $canvas-accent-palette-400 !important;
         text-shadow: 0 0 4px $canvas-primary-palette-900;
     }
 
@@ -462,7 +462,7 @@ $nifi-canvas-theme-light: mat.define-light-theme(
 @include add-tenant-to-policy.theme($material-theme-light);
 @include component-access-policies.theme($material-theme-light, $nifi-canvas-theme-light);
 @include bulletins.theme($material-theme-light);
-@include bulletin-board-list.theme($material-theme-light);
+@include bulletin-board-list.theme($material-theme-light, $nifi-canvas-theme-light);
 @include counters.theme($material-theme-light);
 @include canvas.theme($material-theme-light, $nifi-canvas-theme-light);
 @include banner.theme($material-theme-light);
@@ -481,7 +481,7 @@ $nifi-canvas-theme-light: mat.define-light-theme(
 @include login-form.theme($material-theme-light);
 @include provenance-event-table.theme($material-theme-light, $nifi-canvas-theme-light);
 @include provenance.theme($material-theme-light, $nifi-canvas-theme-light);
-@include lineage.theme($material-theme-light);
+@include lineage.theme($material-theme-light, $nifi-canvas-theme-light);
 @include parameter-context-inheritance.theme($material-theme-light, $nifi-canvas-theme-light);
 @include parameter-contexts.theme($material-theme-light);
 @include flowfile-dialog.theme($material-theme-light);

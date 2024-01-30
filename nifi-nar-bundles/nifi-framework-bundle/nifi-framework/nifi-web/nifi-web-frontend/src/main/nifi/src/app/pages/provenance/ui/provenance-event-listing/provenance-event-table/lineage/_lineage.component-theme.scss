@@ -18,20 +18,21 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin theme($theme) {
+@mixin theme($material-theme, $canvas-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($theme);
+    $color-config: mat.get-color-config($material-theme);
+    $canvas-color-config: mat.get-color-config($canvas-theme);
 
     // Get the color palette from the color-config.
     $primary-palette: map.get($color-config, 'primary');
-    $accent-palette: map.get($color-config, 'accent');
     $warn-palette: map.get($color-config, 'warn');
+    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
 
     // Get hues from palette
     $primary-palette-A400: mat.get-color-from-palette($primary-palette, 'A400');
-    $accent-palette-A200: mat.get-color-from-palette($accent-palette, 'A200');
     $warn-palette-400: mat.get-color-from-palette($warn-palette, 400);
     $warn-palette-A200: mat.get-color-from-palette($warn-palette, 'A200');
+    $canvas-accent-palette-A200: mat.get-color-from-palette($canvas-accent-palette, 'A200');
 
     #lineage {
 
@@ -46,7 +47,7 @@
             }
 
             g.event circle.context {
-                fill: $accent-palette-A200;
+                fill: $canvas-accent-palette-A200;
             }
 
             g.flowfile circle.context,

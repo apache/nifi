@@ -18,17 +18,18 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin theme($theme) {
+@mixin theme($material-theme, $canvas-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($theme);
+    $color-config: mat.get-color-config($material-theme);
+    $canvas-color-config: mat.get-color-config($canvas-theme);
 
     // Get the color palette from the color-config.
-    $accent-palette: map.get($color-config, 'accent');
     $warn-palette: map.get($color-config, 'warn');
+    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
 
     // Get hues from palette
-    $accent-palette-700: mat.get-color-from-palette($accent-palette, 700);
-    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
+    $canvas-accent-palette-700: mat.get-color-from-palette($canvas-accent-palette, 700);
+    $canvas-accent-palette-A400: mat.get-color-from-palette($canvas-accent-palette, 'A400');
     $warn-palette-600: mat.get-color-from-palette($warn-palette, 600);
 
     .bulletin-error {
@@ -36,10 +37,10 @@
     }
 
     .bulletin-warn {
-        color: $accent-palette-A400;
+        color: $canvas-accent-palette-A400;
     }
 
     .bulletin-normal {
-        color: $accent-palette-700;
+        color: $canvas-accent-palette-700;
     }
 }

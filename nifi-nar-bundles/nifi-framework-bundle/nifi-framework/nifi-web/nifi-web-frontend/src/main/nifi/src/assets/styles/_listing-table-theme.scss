@@ -25,8 +25,8 @@
 
     // Get the color palette from the color-config.
     $primary-palette: map.get($color-config, 'primary');
-    $accent-palette: map.get($color-config, 'accent');
     $canvas-primary-palette: map.get($canvas-color-config, 'primary');
+    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
 
     // Get hues from palette
     $primary-palette-100: mat.get-color-from-palette($primary-palette, 100);
@@ -34,7 +34,7 @@
     $primary-palette-A400: mat.get-color-from-palette($primary-palette, 'A400');
     $canvas-primary-palette-800: mat.get-color-from-palette($canvas-primary-palette, 800);
     $canvas-primary-palette-900: mat.get-color-from-palette($canvas-primary-palette, 900);
-    $accent-palette-A100: mat.get-color-from-palette($accent-palette, 'A100');
+    $canvas-accent-palette-A100: mat.get-color-from-palette($canvas-accent-palette, 'A100');
 
     .listing-table {
         table {
@@ -60,7 +60,7 @@
             }
 
             .selected {
-                background-color: $accent-palette-A100 !important;
+                background-color: $canvas-accent-palette-A100 !important;
             }
 
             .even {
