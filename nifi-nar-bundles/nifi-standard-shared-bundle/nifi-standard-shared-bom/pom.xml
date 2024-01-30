@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-shared-bundle</artifactId>
-        <version>1.25.0-SNAPSHOT</version>
+        <version>1.26.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-shared-bom</artifactId>
     <packaging>pom</packaging>
