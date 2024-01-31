@@ -82,6 +82,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 
 @SideEffectFree
@@ -116,14 +118,15 @@ public class LookupRecord extends AbstractProcessor {
         "Records will be routed to a 'success' Relationship regardless of whether or not there is a match in the configured Lookup Service");
     static final AllowableValue ROUTE_TO_MATCHED_UNMATCHED = new AllowableValue("route-to-matched-unmatched", "Route to 'matched' or 'unmatched'",
         "Records will be routed to either a 'matched' or an 'unmatched' Relationship depending on whether or not there was a match in the configured Lookup Service. "
-            + "A single input FlowFile may result in two different output FlowFiles.");
+            + "A single input FlowFile may result in two different output FlowFiles. If the given Record Paths evaluate such that multiple sub-records are evaluated, the parent "
+            + "Record will be routed to 'unmatched' unless all sub-records match.");
 
     static final AllowableValue RESULT_ENTIRE_RECORD = new AllowableValue("insert-entire-record", "Insert Entire Record",
         "The entire Record that is retrieved from the Lookup Service will be inserted into the destination path.");
     static final AllowableValue RESULT_RECORD_FIELDS = new AllowableValue("record-fields", "Insert Record Fields",
         "All of the fields in the Record that is retrieved from the Lookup Service will be inserted into the destination path.");
 
-    static final AllowableValue USE_PROPERTY = new AllowableValue("use-property", "Use Property",
+    static final AllowableValue USE_PROPERTY = new AllowableValue("use-property", "Use \"Result RecordPath\" Property",
             "The \"Result RecordPath\" property will be used to determine which part of the record should be updated with the value returned by the Lookup Service");
     static final AllowableValue REPLACE_EXISTING_VALUES = new AllowableValue("replace-existing-values", "Replace Existing Values",
             "The \"Result RecordPath\" property will be ignored and the lookup service must be a single simple key lookup service. Every dynamic property value should "
@@ -155,15 +158,14 @@ public class LookupRecord extends AbstractProcessor {
         .required(true)
         .build();
 
-    static final PropertyDescriptor RESULT_RECORD_PATH = new PropertyDescriptor.Builder()
-        .name("result-record-path")
-        .displayName("Result RecordPath")
-        .description("A RecordPath that points to the field whose value should be updated with whatever value is returned from the Lookup Service. "
-            + "If not specified, the value that is returned from the Lookup Service will be ignored, except for determining whether the FlowFile should "
-            + "be routed to the 'matched' or 'unmatched' Relationship.")
+    static final PropertyDescriptor ROOT_RECORD_PATH = new PropertyDescriptor.Builder()
+        .name("Root Record Path")
+        .description("A RecordPath that points to a child Record within each of the top-level Records in the FlowFile. If specified, the additional RecordPath properties "
+                     + "will be evaluated against this child Record instead of the top-level Record. This allows for performing enrichment against multiple child Records within a single "
+                     + "top-level Record.")
         .addValidator(new RecordPathValidator())
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
     static final PropertyDescriptor RESULT_CONTENTS = new PropertyDescriptor.Builder()
@@ -194,6 +196,18 @@ public class LookupRecord extends AbstractProcessor {
         .allowableValues(REPLACE_EXISTING_VALUES, USE_PROPERTY)
         .defaultValue(USE_PROPERTY.getValue())
         .required(true)
+        .build();
+
+    static final PropertyDescriptor RESULT_RECORD_PATH = new PropertyDescriptor.Builder()
+        .name("result-record-path")
+        .displayName("Result RecordPath")
+        .description("A RecordPath that points to the field whose value should be updated with whatever value is returned from the Lookup Service. "
+                     + "If not specified, the value that is returned from the Lookup Service will be ignored, except for determining whether the FlowFile should "
+                     + "be routed to the 'matched' or 'unmatched' Relationship.")
+        .addValidator(new RecordPathValidator())
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .dependsOn(REPLACEMENT_STRATEGY, USE_PROPERTY)
+        .required(false)
         .build();
 
     static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
@@ -248,10 +262,11 @@ public class LookupRecord extends AbstractProcessor {
         properties.add(RECORD_READER);
         properties.add(RECORD_WRITER);
         properties.add(LOOKUP_SERVICE);
-        properties.add(RESULT_RECORD_PATH);
+        properties.add(ROOT_RECORD_PATH);
         properties.add(ROUTING_STRATEGY);
         properties.add(RESULT_CONTENTS);
         properties.add(REPLACEMENT_STRATEGY);
+        properties.add(RESULT_RECORD_PATH);
         properties.add(CACHE_SIZE);
         return properties;
     }
@@ -286,9 +301,9 @@ public class LookupRecord extends AbstractProcessor {
 
         final Set<String> requiredKeys = validationContext.getProperty(LOOKUP_SERVICE).asControllerService(LookupService.class).getRequiredKeys();
 
-        if(validationContext.getProperty(REPLACEMENT_STRATEGY).getValue().equals(REPLACE_EXISTING_VALUES.getValue())) {
+        if (validationContext.getProperty(REPLACEMENT_STRATEGY).getValue().equals(REPLACE_EXISTING_VALUES.getValue())) {
             // it must be a single key lookup service
-            if(requiredKeys.size() != 1) {
+            if (requiredKeys.size() != 1) {
                 return Collections.singleton(new ValidationResult.Builder()
                         .subject(LOOKUP_SERVICE.getDisplayName())
                         .valid(false)
@@ -360,9 +375,12 @@ public class LookupRecord extends AbstractProcessor {
         final LookupContext lookupContext = createLookupContext(flowFile, context, session, writerFactory);
         final ReplacementStrategy replacementStrategy = createReplacementStrategy(context);
 
+        final String rootPath = context.getProperty(ROOT_RECORD_PATH).evaluateAttributeExpressions(flowFile).getValue();
+        final RecordPath rootRecordPath = rootPath == null ? null : recordPathCache.getCompiled(rootPath);
+
         final RecordSchema enrichedSchema;
         try {
-            enrichedSchema = replacementStrategy.determineResultSchema(readerFactory, writerFactory, context, session, flowFile, lookupContext);
+            enrichedSchema = replacementStrategy.determineResultSchema(readerFactory, rootRecordPath, context, session, flowFile, lookupContext);
         } catch (final Exception e) {
             getLogger().error("Could not determine schema to use for enriched FlowFiles", e);
             session.transfer(original, REL_FAILURE);
@@ -379,7 +397,15 @@ public class LookupRecord extends AbstractProcessor {
 
                         Record record;
                         while ((record = reader.nextRecord()) != null) {
-                            final Set<Relationship> relationships = replacementStrategy.lookup(record, context, lookupContext);
+                            final List<Record> subRecords = getSubRecords(record, rootRecordPath);
+                            final Set<MatchResult> matchResults = new HashSet<>();
+                            for (final Record subRecord : subRecords) {
+                                final MatchResult matchResult = replacementStrategy.lookup(subRecord, context, lookupContext);
+                                matchResults.add(matchResult);
+                            }
+                            record.incorporateInactiveFields();
+
+                            final Set<Relationship> relationships = getRelationships(matchResults);
 
                             for (final Relationship relationship : relationships) {
                                 // Determine the Write Schema to use for each relationship
@@ -460,6 +486,35 @@ public class LookupRecord extends AbstractProcessor {
             flowFile, lookupContext.getRelationshipsUsed().size(), replacementStrategy.getLookupCount());
     }
 
+    private List<Record> getSubRecords(final Record record, final RecordPath rootRecordPath) {
+        if (rootRecordPath == null) {
+            return List.of(record);
+        } else {
+            // If RecordPath points to an array of Records or any Iterable value, flatMap that so that we have all of the Records.
+            // Filter out any non-records, and then return a List of Records.
+            return rootRecordPath.evaluate(record).getSelectedFields()
+                .map(FieldValue::getValue)
+                .flatMap(val -> switch (val) {
+                    case final Object[] recordArray -> Arrays.stream(recordArray);
+                    case Iterable<?> iterable -> StreamSupport.stream(iterable.spliterator(), false);
+                    case null, default -> Stream.of(val);
+                })
+                .filter(val -> val instanceof Record)
+                .map(Record.class::cast)
+                .toList();
+        }
+    }
+
+    private Set<Relationship> getRelationships(final Set<MatchResult> matchResults) {
+        if (matchResults.contains(MatchResult.SOME_MATCH) || (matchResults.contains(MatchResult.ALL_MATCH) && matchResults.contains(MatchResult.NONE_MATCH))) {
+            return routeToMatchedUnmatched ? UNMATCHED_COLLECTION : SUCCESS_COLLECTION;
+        } else if (matchResults.contains(MatchResult.ALL_MATCH)) {
+            return routeToMatchedUnmatched ? MATCHED_COLLECTION : SUCCESS_COLLECTION;
+        } else {
+            return routeToMatchedUnmatched ? UNMATCHED_COLLECTION : SUCCESS_COLLECTION;
+        }
+    }
+
     private ReplacementStrategy createReplacementStrategy(final ProcessContext context) {
         final boolean isInPlaceReplacement = context.getProperty(REPLACEMENT_STRATEGY).getValue().equals(REPLACE_EXISTING_VALUES.getValue());
 
@@ -475,7 +530,7 @@ public class LookupRecord extends AbstractProcessor {
         private int lookupCount = 0;
 
         @Override
-        public Set<Relationship> lookup(final Record record, final ProcessContext context, final LookupContext lookupContext) {
+        public MatchResult lookup(final Record record, final ProcessContext context, final LookupContext lookupContext) {
             lookupCount++;
 
             final Map<String, RecordPath> recordPaths = lookupContext.getRecordPathsByCoordinateKey();
@@ -484,6 +539,7 @@ public class LookupRecord extends AbstractProcessor {
             final FlowFile flowFile = lookupContext.getOriginalFlowFile();
 
             boolean hasUnmatchedValue = false;
+            boolean hasMatchedValue = false;
             for (final Map.Entry<String, RecordPath> entry : recordPaths.entrySet()) {
                 final RecordPath recordPath = entry.getValue();
 
@@ -494,7 +550,7 @@ public class LookupRecord extends AbstractProcessor {
                             selectedFieldsCount.incrementAndGet();
                             return fieldVal.getValue() != null;
                         })
-                        .collect(Collectors.toList());
+                        .toList();
 
                 if (selectedFieldsCount.get() == 0) {
                     // When selectedFieldsCount == 0; then an empty array was found which counts as a match.
@@ -504,12 +560,13 @@ public class LookupRecord extends AbstractProcessor {
 
                 if (lookupFieldValues.isEmpty()) {
                     final Set<Relationship> rels = routeToMatchedUnmatched ? UNMATCHED_COLLECTION : SUCCESS_COLLECTION;
-                    getLogger().debug("RecordPath for property '{}' did not match any fields in a record for {}; routing record to {}", new Object[] {coordinateKey, flowFile, rels});
-                    return rels;
+                    getLogger().debug("RecordPath for property '{}' did not match any fields in a record for {}; routing record to {}", coordinateKey, flowFile, rels);
+                    return MatchResult.NONE_MATCH;
                 }
 
                 for (final FieldValue fieldValue : lookupFieldValues) {
-                    final Object coordinateValue = DataTypeUtils.convertType(fieldValue.getValue(), fieldValue.getField().getDataType(), null, null, null, fieldValue.getField().getFieldName());
+                    final Object coordinateValue = DataTypeUtils.convertType(fieldValue.getValue(), fieldValue.getField().getDataType(),
+                        Optional.empty(), Optional.empty(), Optional.empty(), fieldValue.getField().getFieldName());
 
                     lookupCoordinates.clear();
                     lookupCoordinates.put(coordinateKey, coordinateValue);
@@ -521,9 +578,11 @@ public class LookupRecord extends AbstractProcessor {
                         throw new ProcessException("Failed to lookup coordinates " + lookupCoordinates + " in Lookup Service", e);
                     }
 
-                    if (!lookupValueOption.isPresent()) {
+                    if (lookupValueOption.isEmpty()) {
                         hasUnmatchedValue = true;
                         continue;
+                    } else {
+                        hasMatchedValue = true;
                     }
 
                     final Object lookupValue = lookupValueOption.get();
@@ -533,15 +592,17 @@ public class LookupRecord extends AbstractProcessor {
                 }
             }
 
-            if (hasUnmatchedValue) {
-                return routeToMatchedUnmatched ? UNMATCHED_COLLECTION : SUCCESS_COLLECTION;
+            if (hasUnmatchedValue && hasMatchedValue) {
+                return MatchResult.SOME_MATCH;
+            } else if (hasUnmatchedValue) {
+                return MatchResult.NONE_MATCH;
             } else {
-                return routeToMatchedUnmatched ? MATCHED_COLLECTION : SUCCESS_COLLECTION;
+                return MatchResult.ALL_MATCH;
             }
         }
 
         @Override
-        public RecordSchema determineResultSchema(final RecordReaderFactory readerFactory, final RecordSetWriterFactory writerFactory, final ProcessContext context, final ProcessSession session,
+        public RecordSchema determineResultSchema(final RecordReaderFactory readerFactory, final RecordPath rootRecordPath, final ProcessContext context, final ProcessSession session,
                                                   final FlowFile flowFile, final LookupContext lookupContext) throws IOException, SchemaNotFoundException, MalformedRecordException {
 
             try (final InputStream in = session.read(flowFile);
@@ -564,7 +625,6 @@ public class LookupRecord extends AbstractProcessor {
         private volatile Cache<Map<String, Object>, Optional<?>> cache;
 
         public RecordPathReplacementStrategy(ProcessContext context) {
-
             final int cacheSize = context.getProperty(CACHE_SIZE).evaluateAttributeExpressions().asInteger();
 
             if (this.cache == null || cacheSize > 0) {
@@ -575,13 +635,12 @@ public class LookupRecord extends AbstractProcessor {
         }
 
         @Override
-        public Set<Relationship> lookup(final Record record, final ProcessContext context, final LookupContext lookupContext) {
+        public MatchResult lookup(final Record record, final ProcessContext context, final LookupContext lookupContext) {
             lookupCount++;
 
             final Map<String, Object> lookupCoordinates = createLookupCoordinates(record, lookupContext, true);
             if (lookupCoordinates.isEmpty()) {
-                final Set<Relationship> rels = routeToMatchedUnmatched ? UNMATCHED_COLLECTION : SUCCESS_COLLECTION;
-                return rels;
+                return MatchResult.NONE_MATCH;
             }
 
             final FlowFile flowFile = lookupContext.getOriginalFlowFile();
@@ -599,15 +658,13 @@ public class LookupRecord extends AbstractProcessor {
                 throw new ProcessException("Failed to lookup coordinates " + lookupCoordinates + " in Lookup Service", e);
             }
 
-            if (!lookupValueOption.isPresent()) {
-                final Set<Relationship> rels = routeToMatchedUnmatched ? UNMATCHED_COLLECTION : SUCCESS_COLLECTION;
-                return rels;
+            if (lookupValueOption.isEmpty()) {
+                return MatchResult.NONE_MATCH;
             }
 
             applyLookupResult(record, context, lookupContext, lookupValueOption.get());
 
-            final Set<Relationship> rels = routeToMatchedUnmatched ? MATCHED_COLLECTION : SUCCESS_COLLECTION;
-            return rels;
+            return MatchResult.ALL_MATCH;
         }
 
         private void applyLookupResult(final Record record, final ProcessContext context, final LookupContext lookupContext, final Object lookupValue) {
@@ -628,9 +685,7 @@ public class LookupRecord extends AbstractProcessor {
                     resultPathResult.getSelectedFields().forEach(fieldVal -> {
                         final Object destinationValue = fieldVal.getValue();
 
-                        if (destinationValue instanceof Record) {
-                            final Record destinationRecord = (Record) destinationValue;
-
+                        if (destinationValue instanceof final Record destinationRecord) {
                             for (final String fieldName : lookupRecord.getRawFieldNames()) {
                                 final Object value = lookupRecord.getValue(fieldName);
 
@@ -663,7 +718,7 @@ public class LookupRecord extends AbstractProcessor {
         }
 
         @Override
-        public RecordSchema determineResultSchema(final RecordReaderFactory readerFactory, final RecordSetWriterFactory writerFactory, final ProcessContext context, final ProcessSession session,
+        public RecordSchema determineResultSchema(final RecordReaderFactory readerFactory, final RecordPath rootRecordPath, final ProcessContext context, final ProcessSession session,
                                                   final FlowFile flowFile, final LookupContext lookupContext)
                 throws IOException, SchemaNotFoundException, MalformedRecordException, LookupFailureException {
 
@@ -673,22 +728,26 @@ public class LookupRecord extends AbstractProcessor {
 
                 Record record;
                 while ((record = reader.nextRecord()) != null) {
-                    final Map<String, Object> lookupCoordinates = createLookupCoordinates(record, lookupContext, false);
-                    if (lookupCoordinates.isEmpty()) {
-                        continue;
+                    final List<Record> subRecords = getSubRecords(record, rootRecordPath);
+                    for (final Record subRecord : subRecords) {
+                        final Map<String, Object> lookupCoordinates = createLookupCoordinates(subRecord, lookupContext, false);
+                        if (lookupCoordinates.isEmpty()) {
+                            continue;
+                        }
+
+                        final Optional<?> lookupResult = lookupService.lookup(lookupCoordinates, flowFileAttributes);
+
+                        cache.put(lookupCoordinates, lookupResult);
+
+                        if (lookupResult.isEmpty()) {
+                            continue;
+                        }
+
+                        applyLookupResult(subRecord, context, lookupContext, lookupResult.get());
+                        getLogger().debug("Found a Record for {} that returned a result from the LookupService. Will provide the following schema to the Writer: {}", flowFile, record.getSchema());
+                        record.incorporateInactiveFields();
+                        return record.getSchema();
                     }
-
-                    final Optional<?> lookupResult = lookupService.lookup(lookupCoordinates, flowFileAttributes);
-
-                    cache.put(lookupCoordinates, lookupResult);
-
-                    if (!lookupResult.isPresent()) {
-                        continue;
-                    }
-
-                    applyLookupResult(record, context, lookupContext, lookupResult.get());
-                    getLogger().debug("Found a Record for {} that returned a result from the LookupService. Will provide the following schema to the Writer: {}", flowFile, record.getSchema());
-                    return record.getSchema();
                 }
 
                 getLogger().debug("Found no Record for {} that returned a result from the LookupService. Will provider Reader's schema to the Writer.", flowFile);
@@ -708,7 +767,7 @@ public class LookupRecord extends AbstractProcessor {
                 final RecordPathResult pathResult = recordPath.evaluate(record);
                 final List<FieldValue> lookupFieldValues = pathResult.getSelectedFields()
                     .filter(fieldVal -> fieldVal.getValue() != null)
-                    .collect(Collectors.toList());
+                    .toList();
 
                 if (lookupFieldValues.isEmpty()) {
                     if (logIfNotMatched) {
@@ -729,19 +788,14 @@ public class LookupRecord extends AbstractProcessor {
                     return Collections.emptyMap();
                 }
 
-                final FieldValue fieldValue = lookupFieldValues.get(0);
+                final FieldValue fieldValue = lookupFieldValues.getFirst();
+
+                final RecordField field = fieldValue.getField();
+                final DataType desiredType = field == null ? DataTypeUtils.inferDataType(fieldValue.getValue(), RecordFieldType.STRING.getDataType()) : field.getDataType();
+                final String fieldName = field == null ? coordinateKey : field.getFieldName();
+
                 final Object coordinateValue = DataTypeUtils.convertType(
-                        fieldValue.getValue(),
-                        Optional.ofNullable(fieldValue.getField())
-                                .map(RecordField::getDataType)
-                                .orElse(DataTypeUtils.inferDataType(fieldValue.getValue(), RecordFieldType.STRING.getDataType())),
-                        null,
-                        null,
-                        null,
-                        Optional.ofNullable(fieldValue.getField())
-                                .map(RecordField::getFieldName)
-                                .orElse(coordinateKey)
-                );
+                    fieldValue.getValue(), desiredType, Optional.empty(), Optional.empty(), Optional.empty(), fieldName);
                 lookupCoordinates.put(coordinateKey, coordinateValue);
             }
 
@@ -778,17 +832,23 @@ public class LookupRecord extends AbstractProcessor {
         return new LookupContext(recordPaths, resultRecordPath, session, flowFile, writerFactory, getLogger());
     }
 
-    private interface ReplacementStrategy {
-        Set<Relationship> lookup(Record record, ProcessContext context, LookupContext lookupContext);
+    enum MatchResult {
+        ALL_MATCH,
+        NONE_MATCH,
+        SOME_MATCH;
+    }
 
-        RecordSchema determineResultSchema(RecordReaderFactory readerFactory, RecordSetWriterFactory writerFactory, ProcessContext context, ProcessSession session, FlowFile flowFile,
+    private interface ReplacementStrategy {
+        MatchResult lookup(Record record, ProcessContext context, LookupContext lookupContext);
+
+        RecordSchema determineResultSchema(RecordReaderFactory readerFactory, RecordPath rootRecordPath, ProcessContext context, ProcessSession session, FlowFile flowFile,
                                            LookupContext lookupContext) throws IOException, SchemaNotFoundException, MalformedRecordException, LookupFailureException;
 
         int getLookupCount();
     }
 
 
-    private static class LookupContext {
+    protected static class LookupContext {
         private final Map<String, RecordPath> recordPathsByCoordinateKey;
         private final RecordPath resultRecordPath;
         private final ProcessSession session;

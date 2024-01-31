@@ -91,6 +91,303 @@ public class TestLookupRecord {
         recordReader.addRecord("Jimmy Doe", 14, null, null);
     }
 
+
+    private void setupForRootElement() throws InitializationException {
+        lookupService.addValue("file1.txt", "text/plain");
+        lookupService.addValue("file2.pdf", "application/pdf");
+        lookupService.addValue("file3.jpg", "image/jpeg");
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+        runner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", jsonWriter);
+        runner.setProperty(jsonWriter, JsonRecordSetWriter.PRETTY_PRINT_JSON, "true");
+        runner.enableControllerService(jsonWriter);
+
+        runner.setProperty(LookupRecord.RECORD_READER, "reader");
+        runner.setProperty(LookupRecord.RECORD_WRITER, "writer");
+        runner.setProperty(LookupRecord.ROOT_RECORD_PATH, "/fileSet/files[*]");
+        runner.setProperty(LookupRecord.RESULT_RECORD_PATH, "/mimeType");
+        runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_SUCCESS);
+        runner.setProperty("lookup", "/filename");
+    }
+
+    @Test
+    public void testRootRecordSuccessSomeMatches() throws InitializationException {
+        setupForRootElement();
+
+        runner.enqueue("""
+            {
+              "fileSet": {
+                "id": "11223344",
+                "source": "external",
+                "files": [{
+                    "filename": "file1.txt",
+                    "size": 4810
+                  }, {
+                    "filename": "file2.pdf",
+                    "size": 47203782
+                  }, {
+                    "filename": "unknown-file.unk",
+                    "size": 278102
+                  }
+                ]
+              }
+            }
+            """.trim());
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(LookupRecord.REL_SUCCESS, 1);
+
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).getFirst();
+        out.assertContentEquals("""
+            [ {
+              "fileSet" : {
+                "id" : "11223344",
+                "source" : "external",
+                "files" : [ {
+                  "filename" : "file1.txt",
+                  "size" : 4810,
+                  "mimeType" : "text/plain"
+                }, {
+                  "filename" : "file2.pdf",
+                  "size" : 47203782,
+                  "mimeType" : "application/pdf"
+                }, {
+                  "filename" : "unknown-file.unk",
+                  "size" : 278102,
+                  "mimeType" : null
+                } ]
+              }
+            } ]
+            """.trim());
+    }
+
+    @Test
+    public void testRootRecordSuccessAllMatch() throws InitializationException {
+        setupForRootElement();
+
+        runner.enqueue("""
+            {
+              "fileSet": {
+                "id": "11223344",
+                "source": "external",
+                "files": [{
+                    "filename": "file1.txt",
+                    "size": 4810
+                  }, {
+                    "filename": "file2.pdf",
+                    "size": 47203782
+                  }
+                ]
+              }
+            }
+            """.trim());
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(LookupRecord.REL_SUCCESS, 1);
+
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).getFirst();
+        out.assertContentEquals("""
+            [ {
+              "fileSet" : {
+                "id" : "11223344",
+                "source" : "external",
+                "files" : [ {
+                  "filename" : "file1.txt",
+                  "size" : 4810,
+                  "mimeType" : "text/plain"
+                }, {
+                  "filename" : "file2.pdf",
+                  "size" : 47203782,
+                  "mimeType" : "application/pdf"
+                } ]
+              }
+            } ]
+            """.trim());
+    }
+
+    @Test
+    public void testRootRecordSuccessNoneMatch() throws InitializationException {
+        setupForRootElement();
+
+        runner.enqueue("""
+            {
+              "fileSet": {
+                "id": "11223344",
+                "source": "external",
+                "files": [{
+                    "filename": "abc.abc",
+                    "size": 4810
+                  }, {
+                    "filename": "xyz.xyz",
+                    "size": 47203782
+                  }
+                ]
+              }
+            }
+            """.trim());
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(LookupRecord.REL_SUCCESS, 1);
+
+        // The output in this case will not even have a mimeType field because we never get a match in order to determine what the
+        // new record schema should look like. As a result, the schema remains unchanged and the mimeType field is not added.
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).getFirst();
+        out.assertContentEquals("""
+            [ {
+              "fileSet" : {
+                "id" : "11223344",
+                "source" : "external",
+                "files" : [ {
+                  "filename" : "abc.abc",
+                  "size" : 4810
+                }, {
+                  "filename" : "xyz.xyz",
+                  "size" : 47203782
+                } ]
+              }
+            } ]
+            """.trim());
+    }
+
+    @Test
+    public void testRootRecordRouteToMatchedUnmatchedAllMatch() throws InitializationException {
+        setupForRootElement();
+        runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_MATCHED_UNMATCHED);
+
+        runner.enqueue("""
+            {
+              "fileSet": {
+                "id": "11223344",
+                "source": "external",
+                "files": [{
+                    "filename": "file1.txt",
+                    "size": 4810
+                  }, {
+                    "filename": "file2.pdf",
+                    "size": 47203782
+                  }
+                ]
+              }
+            }
+            """.trim());
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(LookupRecord.REL_MATCHED, 1);
+
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).getFirst();
+        out.assertContentEquals("""
+            [ {
+              "fileSet" : {
+                "id" : "11223344",
+                "source" : "external",
+                "files" : [ {
+                  "filename" : "file1.txt",
+                  "size" : 4810,
+                  "mimeType" : "text/plain"
+                }, {
+                  "filename" : "file2.pdf",
+                  "size" : 47203782,
+                  "mimeType" : "application/pdf"
+                } ]
+              }
+            } ]
+            """.trim());
+    }
+
+    @Test
+    public void testRootRecordRouteToMatchedUnmatchedSomeMatch() throws InitializationException {
+        setupForRootElement();
+        runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_MATCHED_UNMATCHED);
+
+        runner.enqueue("""
+            {
+              "fileSet": {
+                "id": "11223344",
+                "source": "external",
+                "files": [{
+                    "filename": "file1.txt",
+                    "size": 4810
+                  }, {
+                    "filename": "xyz.xyz",
+                    "size": 47203782
+                  }
+                ]
+              }
+            }
+            """.trim());
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(LookupRecord.REL_UNMATCHED, 1);
+
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).getFirst();
+        out.assertContentEquals("""
+            [ {
+              "fileSet" : {
+                "id" : "11223344",
+                "source" : "external",
+                "files" : [ {
+                  "filename" : "file1.txt",
+                  "size" : 4810,
+                  "mimeType" : "text/plain"
+                }, {
+                  "filename" : "xyz.xyz",
+                  "size" : 47203782,
+                  "mimeType" : null
+                } ]
+              }
+            } ]
+            """.trim());
+    }
+
+    @Test
+    public void testRootRecordPointingToArray() throws InitializationException {
+        setupForRootElement();
+        runner.setProperty(LookupRecord.ROOT_RECORD_PATH, "/fileSet/files");
+
+        runner.enqueue("""
+            {
+              "fileSet": {
+                "id": "11223344",
+                "source": "external",
+                "files": [{
+                    "filename": "file1.txt",
+                    "size": 4810
+                  }, {
+                    "filename": "file2.pdf",
+                    "size": 47203782
+                  }
+                ]
+              }
+            }
+            """.trim());
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(LookupRecord.REL_SUCCESS, 1);
+
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).getFirst();
+        out.assertContentEquals("""
+            [ {
+              "fileSet" : {
+                "id" : "11223344",
+                "source" : "external",
+                "files" : [ {
+                  "filename" : "file1.txt",
+                  "size" : 4810,
+                  "mimeType" : "text/plain"
+                }, {
+                  "filename" : "file2.pdf",
+                  "size" : 47203782,
+                  "mimeType" : "application/pdf"
+                } ]
+              }
+            } ]
+            """.trim());
+    }
+
     @Test
     public void testFlowfileAttributesPassed() {
         Map<String, String> attrs = new HashMap<>();
