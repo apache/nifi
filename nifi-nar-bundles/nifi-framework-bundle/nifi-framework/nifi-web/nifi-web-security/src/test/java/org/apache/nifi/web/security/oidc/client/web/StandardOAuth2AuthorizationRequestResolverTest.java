@@ -30,11 +30,15 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 
 import javax.servlet.ServletContext;
+import org.springframework.security.oauth2.core.endpoint.PkceParameterNames;
+
 import java.net.URI;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -99,6 +103,7 @@ class StandardOAuth2AuthorizationRequestResolverTest {
 
         assertNotNull(authorizationRequest);
         assertEquals(REDIRECT_URI, authorizationRequest.getRedirectUri());
+        assertPkceParametersFound(authorizationRequest);
     }
 
     @Test
@@ -119,6 +124,15 @@ class StandardOAuth2AuthorizationRequestResolverTest {
 
         assertNotNull(authorizationRequest);
         assertEquals(FORWARDED_REDIRECT_URI, authorizationRequest.getRedirectUri());
+        assertPkceParametersFound(authorizationRequest);
+    }
+
+    private void assertPkceParametersFound(final OAuth2AuthorizationRequest authorizationRequest) {
+        assertNotNull(authorizationRequest.getAttribute(PkceParameterNames.CODE_VERIFIER));
+
+        final Map<String, Object> additionalParameters = authorizationRequest.getAdditionalParameters();
+        assertTrue(additionalParameters.containsKey(PkceParameterNames.CODE_CHALLENGE));
+        assertTrue(additionalParameters.containsKey(PkceParameterNames.CODE_CHALLENGE_METHOD));
     }
 
     ClientRegistration getClientRegistration() {
