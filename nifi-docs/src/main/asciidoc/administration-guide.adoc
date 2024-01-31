@@ -518,6 +518,9 @@ The implementation supports the Authorization Code Grant Type as described in
 link:https://www.rfc-editor.org/rfc/rfc6749#section-4.1[RFC 6749 Section 4.1^] and
 link:https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowSteps[OpenID Connect Core Section 3.1.1^].
 
+The Authorization Code Grant Type implementation supports link:https://www.rfc-editor.org/rfc/rfc7636[RFC 7636] Proof
+Key for Code Exchange as part of the authentication process. PKCE support uses the `S256` code challenge method.
+
 After successful authentication with the Authorization Server, NiFi generates an application Bearer Token with an
 expiration based on the OAuth2 Access Token expiration. NiFi stores authorized tokens using the local State
 Provider and encrypts serialized information using the application Sensitive Properties Key.
