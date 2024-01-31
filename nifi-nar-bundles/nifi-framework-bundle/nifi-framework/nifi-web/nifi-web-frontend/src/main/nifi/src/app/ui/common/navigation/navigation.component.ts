@@ -37,7 +37,17 @@ import { environment } from '../../../environments/environment';
 @Component({
     selector: 'navigation',
     standalone: true,
-    imports: [NgOptimizedImage, AsyncPipe, MatDividerModule, MatMenuModule, NgIf, RouterLink, MatButtonModule, MatSlideToggleModule, FormsModule],
+    imports: [
+        NgOptimizedImage,
+        AsyncPipe,
+        MatDividerModule,
+        MatMenuModule,
+        NgIf,
+        RouterLink,
+        MatButtonModule,
+        MatSlideToggleModule,
+        FormsModule
+    ],
     templateUrl: './navigation.component.html',
     styleUrls: ['./navigation.component.scss']
 })
