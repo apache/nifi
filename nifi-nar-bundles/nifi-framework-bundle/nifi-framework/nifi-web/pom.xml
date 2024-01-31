@@ -70,6 +70,7 @@
                                 <exclude>nifi-web-frontend/src/main/nifi/.editorconfig</exclude>
                                 <exclude>nifi-web-frontend/src/main/nifi/README.md</exclude>
                                 <exclude>nifi-web-frontend/src/main/nifi/proxy.config.mjs</exclude>
+                                <exclude>nifi-web-frontend/src/main/nifi/.prettierignore</exclude>
                                 <exclude>nifi-web-frontend/src/main/nifi/.prettierrc</exclude>
                                 <exclude>nifi-web-frontend/src/main/nifi/src/.eslintrc</exclude>
                                 <exclude>nifi-web-frontend/target/**/*</exclude>
