@@ -54,8 +54,8 @@ import { environment } from '../../../environments/environment';
 export class Navigation {
     currentUser$ = this.store.select(selectCurrentUser);
     flowConfiguration$ = this.store.select(selectFlowConfiguration);
-    isDarkMode: boolean = false;
-    isDevMode: boolean = !environment.production;
+    isDarkMode = false;
+    isDevMode = !environment.production;
 
     constructor(
         private store: Store<NiFiState>,
