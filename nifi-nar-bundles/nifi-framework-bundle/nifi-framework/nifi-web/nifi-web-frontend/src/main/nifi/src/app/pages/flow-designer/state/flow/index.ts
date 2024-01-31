@@ -510,6 +510,22 @@ export interface StartComponentResponse {
     component: ComponentEntity;
 }
 
+export interface StartProcessGroupResponse {
+    type: ComponentType;
+    component: {
+        id: string;
+        state: string;
+    };
+}
+
+export interface StopProcessGroupResponse {
+    type: ComponentType;
+    component: {
+        id: string;
+        state: string;
+    };
+}
+
 export interface StartComponentsResponse {
     components: StartComponentsResponse[];
 }

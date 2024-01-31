@@ -2039,7 +2039,7 @@ export class FlowEffects {
                             this.flowService.startRemoteProcessGroupsInProcessGroup(request)
                         ]).pipe(
                             map(([startPgResponse]) => {
-                                return FlowActions.startComponentSuccess({
+                                return FlowActions.startProcessGroupSuccess({
                                     response: {
                                         type: request.type,
                                         component: startPgResponse
@@ -2061,7 +2061,7 @@ export class FlowEffects {
      */
     startCurrentProcessGroupSuccess$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(FlowActions.startComponentSuccess),
+            ofType(FlowActions.startProcessGroupSuccess),
             map((action) => action.response),
             concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             filter(([response, currentPg]) => response.component.id === currentPg),
@@ -2074,10 +2074,9 @@ export class FlowEffects {
      */
     startProcessGroupSuccess$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(FlowActions.startComponentSuccess),
+            ofType(FlowActions.startProcessGroupSuccess),
             map((action) => action.response),
             concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
-            filter(([response]) => response.type === ComponentType.ProcessGroup),
             filter(([response, currentPg]) => response.component.id !== currentPg),
             switchMap(([response]) =>
                 of(
@@ -2156,7 +2155,7 @@ export class FlowEffects {
                             this.flowService.stopRemoteProcessGroupsInProcessGroup(request)
                         ]).pipe(
                             map(([stopPgResponse]) => {
-                                return FlowActions.stopComponentSuccess({
+                                return FlowActions.stopProcessGroupSuccess({
                                     response: {
                                         type: request.type,
                                         component: stopPgResponse
@@ -2178,7 +2177,7 @@ export class FlowEffects {
      */
     stopCurrentProcessGroupSuccess$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(FlowActions.stopComponentSuccess),
+            ofType(FlowActions.stopProcessGroupSuccess),
             map((action) => action.response),
             concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             filter(([response, currentPg]) => response.component.id === currentPg),
@@ -2191,10 +2190,9 @@ export class FlowEffects {
      */
     stopProcessGroupSuccess$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(FlowActions.stopComponentSuccess),
+            ofType(FlowActions.stopProcessGroupSuccess),
             map((action) => action.response),
             concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
-            filter(([response]) => response.type === ComponentType.ProcessGroup),
             filter(([response, currentPg]) => response.component.id !== currentPg),
             switchMap(([response]) =>
                 of(
