@@ -45,10 +45,7 @@ export const parameterReducer = createReducer(
         ...state,
         updateRequestEntity: response.requestEntity
     })),
-    on(editParameterContextComplete, (state) => ({
-        ...state,
-        saving: false,
-        updateRequestEntity: null,
-        error: null
+    on(editParameterContextComplete, () => ({
+        ...initialState
     }))
 );
