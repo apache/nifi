@@ -682,9 +682,20 @@
                         });
 
                         // rule menu bindings
-                        $('#rule-menu-more-info').on( "click", openRuleMoreInfoDialog);
                         $('#rule-menu-edit-rule').on('click', openRuleDetailsDialog);
+                        $('#rule-menu-view-documentation').on('click', viewRuleDocumentation);
                         $(document).on('click', closeRuleWindow);
+
+                        function viewRuleDocumentation(e) {
+                            nfShell.showPage('../nifi-docs/documentation?' + $.param({
+                                select: ruleInfo.type,
+                                group: ruleInfo.bundle.group,
+                                artifact: ruleInfo.bundle.artifact,
+                                version: ruleInfo.bundle.version
+                            })).done(function () {});
+                            $("#rule-menu").hide();
+                            unbindRuleMenuHandling();
+                        }
 
                         function closeRuleWindow(e) {
                             if ($(e.target).parents("#rule-menu").length === 0) {
@@ -701,30 +712,9 @@
                             unbindRuleMenuHandling()
                         }
 
-                        function openRuleMoreInfoDialog() {
-                            $('#rule-menu').hide();
-                            $('#rule-type-pill').empty()
-                                                .removeClass()
-                                                .addClass(ruleInfo.enforcementPolicy.toLowerCase() + ' rule-type-pill')
-                                                .append(ruleInfo.enforcementPolicy);
-                            $('#rule-display-name').empty().append(ruleInfo.name);
-                            $('#rule-description').empty().append(ruleInfo.descriptors['component-type'].description);
-                            $( "#rule-menu-more-info-dialog" ).modal( "show" );
-                            $('.rule-docs-link').click(function () {
-                                // open the documentation for this flow analysis rule
-                                nfShell.showPage('../nifi-docs/documentation?' + $.param({
-                                    select: ruleInfo.type,
-                                    group: ruleInfo.bundle.group,
-                                    artifact: ruleInfo.bundle.artifact,
-                                    version: ruleInfo.bundle.version
-                                })).done(function () {});
-                            });
-                            unbindRuleMenuHandling();
-                        };
-
                         function unbindRuleMenuHandling() {
-                            $('#rule-menu-more-info').unbind('click', openRuleMoreInfoDialog);
                             $('#rule-menu-edit-rule').unbind('click', openRuleDetailsDialog);
+                            $('#rule-menu-view-documentation').unbind('click', viewRuleDocumentation);
                             $(document).unbind('click', closeRuleWindow);
                         }
 
@@ -748,7 +738,6 @@
                         });
 
                         // violation menu bindings
-                        $('#violation-menu-more-info').on( "click", openRuleViolationMoreInfoDialog);
                         $('#violation-menu-go-to').on('click', goToComponent);
                         $(document).on('click', closeViolationWindow);
 
@@ -759,30 +748,6 @@
                             }
                         }
 
-                        function openRuleViolationMoreInfoDialog() {
-                            var rule = response.rules.find(function(rule){ 
-                                return rule.id === violationInfo.ruleId;
-                            })
-                            $('#violation-menu').hide();
-                            $('#violation-type-pill').empty()
-                                                    .removeClass()
-                                                    .addClass(violationInfo.enforcementPolicy.toLowerCase() + ' violation-type-pill')
-                                                    .append(violationInfo.enforcementPolicy);
-                            $('#violation-display-name').empty().append(violationInfo.violationMessage);
-                            $('#violation-description').empty().append(rule.descriptors['component-type'].description);
-                            $('#violation-menu-more-info-dialog').modal( "show" );
-                            $('.violation-docs-link').click(function () {
-                                // open the documentation for this flow analysis rule
-                                nfShell.showPage('../nifi-docs/documentation?' + $.param({
-                                    select: rule.type,
-                                    group: rule.bundle.group,
-                                    artifact: rule.bundle.artifact,
-                                    version: rule.bundle.version
-                                })).done(function () {});
-                            });
-                            unbindViolationMenuHandling();
-                        }
-
                         function goToComponent() {
                             $('#violation-menu').hide();
                             nfCanvasUtils.showComponent(groupId, violationInfo.subjectId);
@@ -791,7 +756,6 @@
 
                         function unbindViolationMenuHandling() {
                             $('#violation-menu-go-to').unbind('click', goToComponent);
-                            $('#violation-menu-more-info').unbind('click', openRuleViolationMoreInfoDialog);
                             $(document).unbind('click', closeViolationWindow);
                         }
                     });

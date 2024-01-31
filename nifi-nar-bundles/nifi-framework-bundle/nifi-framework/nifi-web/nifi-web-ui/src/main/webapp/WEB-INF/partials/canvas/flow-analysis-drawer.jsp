@@ -70,15 +70,13 @@
 
         <div class="rule-menu" id="rule-menu">
             <ul>
-                <li class="rule-menu-option" id="rule-menu-more-info"><i class="fa fa-info-circle rule-menu-option-icon" aria-hidden="true"></i>More
-                    Information</li>
+                <li class="rule-menu-option" id="rule-menu-view-documentation"><i class="fa fa-info-circle rule-menu-option-icon" aria-hidden="true"></i>View Documentation</li>
                 <li class="rule-menu-option" id="rule-menu-edit-rule"><i class="fa fa-pencil rule-menu-option-icon" aria-hidden="true"></i>Edit Rule</li>
             </ul>
         </div>
 
         <div class="violation-menu" id="violation-menu">
             <ul>
-                <li class="violation-menu-option" id="violation-menu-more-info"><i class="fa fa-info-circle violation-menu-option-icon" aria-hidden="true"></i>Violation details</li>
                 <li class="violation-menu-option" id="violation-menu-go-to"><i class="fa fa-pencil violation-menu-option-icon" aria-hidden="true"></i>Go to component</li>
             </ul>
         </div>

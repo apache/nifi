@@ -145,8 +145,6 @@
         <jsp:include page="/WEB-INF/partials/canvas/flow-analysis-rule-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/parameter-provider-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/processor-configuration.jsp"/>
-        <jsp:include page="/WEB-INF/partials/canvas/rule-description-dialog.jsp"/>
-        <jsp:include page="/WEB-INF/partials/canvas/violation-description-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/processor-details.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/process-group-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/override-policy-dialog.jsp"/>
