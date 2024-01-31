@@ -1722,6 +1722,10 @@ public class DataTypeUtils {
                 if (otherArrayType.getElementType() == null) {
                     return Optional.of(thisDataType);
                 } else {
+                    final Optional<DataType> widerElementType = getWiderType(thisArrayType.getElementType(), otherArrayType.getElementType());
+                    if (widerElementType.isPresent()) {
+                        return Optional.of(RecordFieldType.ARRAY.getArrayDataType(widerElementType.get()));
+                    }
                     return Optional.empty();
                 }
             }
@@ -1792,37 +1796,61 @@ public class DataTypeUtils {
                     return Optional.of(thisDataType);
                 }
                 break;
+            case RECORD:
+                if (otherFieldType != RecordFieldType.RECORD)  {
+                    return Optional.empty();
+                }
+
+                final RecordDataType thisRecordDataType = (RecordDataType) thisDataType;
+                final RecordDataType otherRecordDataType = (RecordDataType) otherDataType;
+                return getWiderRecordType(thisRecordDataType, otherRecordDataType);
+        }
+
+        return Optional.empty();
+    }
+
+    private static Optional<DataType> getWiderRecordType(final RecordDataType thisRecordDataType, final RecordDataType otherRecordDataType) {
+        final RecordSchema thisSchema = thisRecordDataType.getChildSchema();
+        final RecordSchema otherSchema = otherRecordDataType.getChildSchema();
+
+        if (thisSchema == null && otherSchema != null) {
+            return Optional.of(otherRecordDataType);
+        } else if (thisSchema != null && otherSchema == null) {
+            return Optional.of(thisRecordDataType);
+        } else if (thisSchema == null && otherSchema == null) {
+            return Optional.empty();
+        }
+
+        final Set<RecordField> thisFields = new HashSet<>(thisSchema.getFields());
+        final Set<RecordField> otherFields = new HashSet<>(otherSchema.getFields());
+
+        if (thisFields.containsAll(otherFields)) {
+            return Optional.of(thisRecordDataType);
+        }
+
+        if (otherFields.containsAll(thisFields)) {
+            return Optional.of(otherRecordDataType);
         }
 
         return Optional.empty();
     }
 
     private static boolean isDecimalType(final RecordFieldType fieldType) {
-        switch (fieldType) {
-            case FLOAT:
-            case DOUBLE:
-            case DECIMAL:
-                return true;
-            default:
-                return false;
-        }
+        return switch (fieldType) {
+            case FLOAT, DOUBLE, DECIMAL -> true;
+            default -> false;
+        };
     }
 
     private static int getIntegerTypeValue(final RecordFieldType fieldType) {
-        switch (fieldType) {
-            case BIGINT:
-                return 4;
-            case LONG:
-                return 3;
-            case INT:
-                return 2;
-            case SHORT:
-                return 1;
-            case BYTE:
-                return 0;
-            default:
-                return -1;
-        }
+        return switch (fieldType) {
+            case BIGINT -> 4;
+            case LONG -> 3;
+            case INT -> 2;
+            case SHORT -> 1;
+            case BYTE -> 0;
+            default -> -1;
+        };
     }
 
     /**

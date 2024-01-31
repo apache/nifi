@@ -18,6 +18,7 @@
 package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
@@ -72,6 +73,112 @@ public class TestDataTypeUtils {
         assertEquals(Optional.of(RecordFieldType.DOUBLE.getDataType()), DataTypeUtils.getWiderType(RecordFieldType.INT.getDataType(), RecordFieldType.DOUBLE.getDataType()));
         assertEquals(Optional.of(RecordFieldType.DOUBLE.getDataType()), DataTypeUtils.getWiderType(RecordFieldType.DOUBLE.getDataType(), RecordFieldType.INT.getDataType()));
     }
+
+    @Test
+    public void testWiderRecordWhenEqual() {
+        final Record smallRecord = DataTypeUtils.toRecord(Map.of(
+                "firstName", "John",
+                "lastName", "Doe",
+                "age", 30), "");
+
+        final Record duplicateRecord = DataTypeUtils.toRecord(Map.of(
+                "firstName", "John",
+                "lastName", "Doe",
+                "age", 30), "");
+
+        final Optional<DataType> widerType = DataTypeUtils.getWiderType(RecordFieldType.RECORD.getRecordDataType(smallRecord.getSchema()),
+            RecordFieldType.RECORD.getRecordDataType(duplicateRecord.getSchema()));
+        assertTrue(widerType.isPresent());
+        assertEquals(((RecordDataType) widerType.get()).getChildSchema(), smallRecord.getSchema());
+    }
+
+    @Test
+    public void testWiderRecordWhenAllFieldsContainedWithin() {
+        final Record smallRecord = DataTypeUtils.toRecord(Map.of(
+                "firstName", "John",
+                "lastName", "Doe",
+                "age", 30), "");
+
+        final Record widerRecord = DataTypeUtils.toRecord(Map.of(
+                "firstName", "John",
+                "lastName", "Doe",
+                "fullName", "John Doe",
+                "age", 30), "");
+
+        final Optional<DataType> widerType = DataTypeUtils.getWiderType(RecordFieldType.RECORD.getRecordDataType(smallRecord.getSchema()),
+            RecordFieldType.RECORD.getRecordDataType(widerRecord.getSchema()));
+        assertTrue(widerType.isPresent());
+        assertEquals(((RecordDataType) widerType.get()).getChildSchema(), widerRecord.getSchema());
+    }
+
+    @Test
+    public void testWiderRecordDifferingFields() {
+        final Record firstRecord = DataTypeUtils.toRecord(Map.of(
+                "firstName", "John",
+                "lastName", "Doe",
+                "address", "123 Main Street",
+                "age", 30), "");
+
+        final Record secondRecord = DataTypeUtils.toRecord(Map.of(
+                "firstName", "John",
+                "lastName", "Doe",
+                "fullName", "John Doe",
+                "age", 30), "");
+
+        final Optional<DataType> widerType = DataTypeUtils.getWiderType(RecordFieldType.RECORD.getRecordDataType(firstRecord.getSchema()),
+            RecordFieldType.RECORD.getRecordDataType(secondRecord.getSchema()));
+        assertFalse(widerType.isPresent());
+    }
+
+    @Test
+    public void testWiderRecordSameFieldNamesConflictingTypes() {
+        final Record firstRecord = DataTypeUtils.toRecord(Map.of(
+                "firstName", "John",
+                "lastName", "Doe",
+                "address", "123 Main Street",
+                "age", 30), "");
+
+        final Record secondRecord = DataTypeUtils.toRecord(Map.of(
+                "firstName", "John",
+                "lastName", "Doe",
+                "address", Map.of(
+                    "street", "123 Main Street",
+                    "city", "Main City",
+                    "state", "MS",
+                    "zip", 12345
+                    ),
+                "age", 30), "");
+
+        final Optional<DataType> widerType = DataTypeUtils.getWiderType(RecordFieldType.RECORD.getRecordDataType(firstRecord.getSchema()),
+            RecordFieldType.RECORD.getRecordDataType(secondRecord.getSchema()));
+        assertFalse(widerType.isPresent());
+    }
+
+    @Test
+    public void testWiderRecordArray() {
+        final Record smallRecord = DataTypeUtils.toRecord(Map.of(
+                "firstName", "John",
+                "lastName", "Doe",
+                "age", 30), "");
+
+        final Record widerRecord = DataTypeUtils.toRecord(Map.of(
+                "firstName", "John",
+                "lastName", "Doe",
+                "fullName", "John Doe",
+                "age", 30), "");
+
+        final DataType smallRecordArray = RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(smallRecord.getSchema()));
+        final DataType widerRecordArray = RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(widerRecord.getSchema()));
+
+        final Optional<DataType> widerType = DataTypeUtils.getWiderType(smallRecordArray, widerRecordArray);
+        assertTrue(widerType.isPresent());
+
+        final ArrayDataType widerArrayType = (ArrayDataType) widerType.get();
+        final DataType elementType = widerArrayType.getElementType();
+        assertEquals(RecordFieldType.RECORD, elementType.getFieldType());
+        assertEquals(widerRecord.getSchema(), ((RecordDataType) elementType).getChildSchema());
+    }
+
 
     @Test
     public void testConvertRecordMapToJavaMap() {
