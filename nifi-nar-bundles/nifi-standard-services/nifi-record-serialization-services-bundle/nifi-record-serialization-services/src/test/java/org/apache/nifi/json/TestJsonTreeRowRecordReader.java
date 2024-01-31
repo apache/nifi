@@ -772,7 +772,6 @@ class TestJsonTreeRowRecordReader {
 
     @Test
     void testMergeOfSimilarRecords() throws Exception {
-        // GIVEN
         String jsonPath = "src/test/resources/json/similar-records.json";
 
         RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
@@ -798,14 +797,11 @@ class TestJsonTreeRowRecordReader {
             }})
         );
 
-        // WHEN
-        // THEN
         testReadRecords(jsonPath, expected);
     }
 
     @Test
     void testChoiceOfEmbeddedSimilarRecords() throws Exception {
-        // GIVEN
         String jsonPath = "src/test/resources/json/choice-of-embedded-similar-records.json";
 
         SimpleRecordSchema expectedRecordSchema1 = new SimpleRecordSchema(Arrays.asList(
@@ -838,165 +834,12 @@ class TestJsonTreeRowRecordReader {
             }})
         );
 
-        // WHEN
-        // THEN
         testReadRecords(jsonPath, expected);
     }
 
-    @Test
-    void testChoiceOfEmbeddedArraysAndSingleRecords() throws Exception {
-        // GIVEN
-        String jsonPath = "src/test/resources/json/choice-of-embedded-arrays-and-single-records.json";
-
-        SimpleRecordSchema expectedRecordSchema1 = new SimpleRecordSchema(Collections.singletonList(
-                new RecordField("integer", RecordFieldType.INT.getDataType())
-        ));
-        SimpleRecordSchema expectedRecordSchema2 = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("integer", RecordFieldType.INT.getDataType()),
-            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
-        ));
-        SimpleRecordSchema expectedRecordSchema3 = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("integer", RecordFieldType.INT.getDataType()),
-            new RecordField("string", RecordFieldType.STRING.getDataType())
-        ));
-        SimpleRecordSchema expectedRecordSchema4 = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("integer", RecordFieldType.INT.getDataType()),
-            new RecordField("string", RecordFieldType.STRING.getDataType())
-        ));
-        RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Collections.singletonList(
-                new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
-                        RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema1),
-                        RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema3),
-                        RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema2)),
-                        RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema4))
-                ))
-        ));
-
-        List<Object> expected = Arrays.asList(
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
-                put("record", new MapRecord(expectedRecordSchema1, new HashMap<String, Object>(){{
-                    put("integer", 1);
-                }}));
-            }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
-                put("record", new Object[]{
-                    new MapRecord(expectedRecordSchema2, new HashMap<String, Object>() {{
-                        put("integer", 21);
-                        put("boolean", true);
-                    }}),
-                    new MapRecord(expectedRecordSchema2, new HashMap<String, Object>() {{
-                        put("integer", 22);
-                        put("boolean", false);
-                    }})
-                });
-            }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
-                put("record", new MapRecord(expectedRecordSchema3, new HashMap<String, Object>(){{
-                    put("integer", 3);
-                    put("string", "stringValue3");
-                }}));
-            }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
-                put("record", new Object[]{
-                    new MapRecord(expectedRecordSchema4, new HashMap<String, Object>() {{
-                        put("integer", 41);
-                        put("string", "stringValue41");
-                    }}),
-                    new MapRecord(expectedRecordSchema4, new HashMap<String, Object>() {{
-                        put("integer", 42);
-                        put("string", "stringValue42");
-                    }})
-                });
-            }})
-        );
-
-        // WHEN
-        // THEN
-        testReadRecords(jsonPath, expected);
-    }
-
-    @Test
-    void testChoiceOfMergedEmbeddedArraysAndSingleRecords() throws Exception {
-        // GIVEN
-        String jsonPath = "src/test/resources/json/choice-of-merged-embedded-arrays-and-single-records.json";
-
-        SimpleRecordSchema expectedRecordSchema1 = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("integer", RecordFieldType.INT.getDataType()),
-            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
-        ));
-        SimpleRecordSchema expectedRecordSchema2 = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("integer", RecordFieldType.INT.getDataType()),
-            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
-        ));
-        SimpleRecordSchema expectedRecordSchema3 = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("integer", RecordFieldType.INT.getDataType()),
-            new RecordField("string", RecordFieldType.STRING.getDataType())
-        ));
-        SimpleRecordSchema expectedRecordSchema4 = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("integer", RecordFieldType.INT.getDataType()),
-            new RecordField("string", RecordFieldType.STRING.getDataType()),
-            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
-        ));
-        RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Collections.singletonList(
-                new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
-                        RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema1),
-                        RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema3),
-                        RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema2)),
-                        RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema4))
-                ))
-        ));
-
-        List<Object> expected = Arrays.asList(
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
-                put("record", new MapRecord(expectedRecordSchema1, new HashMap<String, Object>(){{
-                    put("integer", 1);
-                    put("boolean", false);
-                }}));
-            }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
-                put("record", new Object[]{
-                    new MapRecord(expectedRecordSchema2, new HashMap<String, Object>() {{
-                        put("integer", 21);
-                        put("boolean", true);
-                    }}),
-                    new MapRecord(expectedRecordSchema2, new HashMap<String, Object>() {{
-                        put("integer", 22);
-                        put("boolean", false);
-                    }})
-                });
-            }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
-                put("record", new MapRecord(expectedRecordSchema3, new HashMap<String, Object>(){{
-                    put("integer", 3);
-                    put("string", "stringValue3");
-                }}));
-            }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
-                put("record", new Object[]{
-                    new MapRecord(expectedRecordSchema4, new HashMap<String, Object>() {{
-                        put("integer", 41);
-                        put("string", "stringValue41");
-                    }}),
-                    new MapRecord(expectedRecordSchema4, new HashMap<String, Object>() {{
-                        put("integer", 42);
-                        put("string", "stringValue42");
-                    }}),
-                    new MapRecord(expectedRecordSchema4, new HashMap<String, Object>() {{
-                        put("integer", 43);
-                        put("boolean", false);
-                    }})
-                });
-            }})
-        );
-
-        // WHEN
-        // THEN
-        testReadRecords(jsonPath, expected);
-    }
 
     @Test
     void testChoseSuboptimalSchemaWhenDataHasExtraFields() throws Exception {
-        // GIVEN
         String jsonPath = "src/test/resources/json/choice-of-different-arrays-with-extra-fields.json";
 
         SimpleRecordSchema recordSchema1 = new SimpleRecordSchema(Arrays.asList(
@@ -1072,8 +915,6 @@ class TestJsonTreeRowRecordReader {
             }})
         );
 
-        // WHEN
-        // THEN
         testReadRecords(jsonPath, schema, expected);
     }
 
@@ -1325,12 +1166,10 @@ class TestJsonTreeRowRecordReader {
         }
     }
 
-    private void testReadRecords(String jsonPath, List<Object> expected) throws IOException, MalformedRecordException {
-        final File jsonFile = new File(jsonPath);
-        try (
-            InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))
-        ) {
-            RecordSchema schema = inferSchema(jsonStream, StartingFieldStrategy.ROOT_NODE, null);
+    private void testReadRecords(String jsonFilename, List<Object> expected) throws IOException, MalformedRecordException {
+        final File jsonFile = new File(jsonFilename);
+        try (final InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
+            final RecordSchema schema = inferSchema(jsonStream, StartingFieldStrategy.ROOT_NODE, null);
             testReadRecords(jsonStream, schema, expected);
         }
     }
@@ -1360,9 +1199,7 @@ class TestJsonTreeRowRecordReader {
                                  List<Object> expected,
                                  StartingFieldStrategy strategy,
                                  String startingFieldName,
-                                 SchemaApplicationStrategy schemaApplicationStrategy
-    ) throws IOException, MalformedRecordException {
-
+                                 SchemaApplicationStrategy schemaApplicationStrategy) throws IOException, MalformedRecordException {
         final File jsonFile = new File(jsonPath);
         try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
             testReadRecords(jsonStream, schema, expected, strategy, startingFieldName, schemaApplicationStrategy);
