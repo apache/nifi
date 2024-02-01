@@ -38,16 +38,26 @@ ENV NIFI_TOOLKIT_HOME ${NIFI_BASE_DIR}/nifi-toolkit-current
 ENV NIFI_PID_DIR=${NIFI_HOME}/run
 ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 
-ADD sh/ ${NIFI_BASE_DIR}/scripts/
+# ADD sh/ ${NIFI_BASE_DIR}/scripts/
+ADD ${pwd}/nifi-docker/dockerhub/sh/ ${NIFI_BASE_DIR}/scripts/
 RUN chmod -R +x ${NIFI_BASE_DIR}/scripts/*.sh
 
 # Setup NiFi user and create necessary directories
 RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -f1` \
     && useradd --shell /bin/bash -u ${UID} -g ${GID} -m nifi \
     && mkdir -p ${NIFI_BASE_DIR} \
+    # # --------------------
+    # && mkdir -p $NIFI_HOME/bin \
+    # # --------------------
     && chown -R nifi:nifi ${NIFI_BASE_DIR} \
     && apt-get update \
-    && apt-get install -y jq xmlstarlet procps
+    && apt-get install -y jq xmlstarlet procps python3 python3-pip curl \
+    && pip install spacy==3.5.1 \
+    && python3 -m spacy download en_core_web_md \
+# ------------------------------------
+    && pip install chromedriver-autoinstaller
+
+# ------------------------------------
 
 USER nifi
 
