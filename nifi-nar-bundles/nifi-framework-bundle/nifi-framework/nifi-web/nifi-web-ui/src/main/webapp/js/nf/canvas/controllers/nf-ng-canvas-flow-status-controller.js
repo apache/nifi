@@ -656,10 +656,10 @@
                                 previousRulesResponse = response;
     
                                 // setup rule menu handling
-                                flowAnalysisCtrl.setRuleMenuHandling(response);
+                                flowAnalysisCtrl.setRuleMenuHandling();
 
                                 // setup violation menu handling
-                                flowAnalysisCtrl.setViolationMenuHandling(response, groupId);
+                                flowAnalysisCtrl.setViolationMenuHandling();
                             }
                         }).fail(nfErrorHandler.handleAjaxError);
                     }
@@ -727,7 +727,7 @@
                 /**
                  * Set event bindings for violation menus
                  */
-                setViolationMenuHandling: function(response, groupId) {
+                setViolationMenuHandling: function() {
                     $('.violation-menu-btn').click(function(event) {
                         // stop event from immediately bubbling up to document and triggering closeViolationWindow
                         event.stopPropagation();
@@ -753,7 +753,7 @@
 
                         function goToComponent() {
                             $('#violation-menu').hide();
-                            nfCanvasUtils.showComponent(groupId, violationInfo.subjectId);
+                            nfCanvasUtils.showComponent(violationInfo.groupId, violationInfo.subjectId);
                             unbindViolationMenuHandling();
                         }
 
