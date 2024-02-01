@@ -47,10 +47,6 @@
         }
     }
 
-    #status-history-chart-control-container {
-        background-color: $canvas-primary-palette-900;
-    }
-
     :host ::ng-deep #status-history-chart-container text,
     #status-history-chart-control-container text {
         fill: $primary-palette-700;

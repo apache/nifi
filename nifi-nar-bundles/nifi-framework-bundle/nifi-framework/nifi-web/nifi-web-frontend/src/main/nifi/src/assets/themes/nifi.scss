@@ -81,10 +81,10 @@ $material-primary-dark-palette: (
 
     // A100 -> A700 are the ACCENT color (mat.define-palette($material-primary-dark-palette, A400, A100, A700);). These color are the ANALOGOUS (or possibly the TRIADIC??) colors as defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #728e9b
     // These colors are also used by some custom canvas components that display the ANALOGOUS color for things like buttons, links, borders, info, etc.
-    A100: #2cd5d5, // .zero
-    A200: #009b9d, // .enabled, .transmitting, .load-balance-icon-active
-    A400: #44a3cf, // a, a:hover, button.nifi-button, button.nifi-button:hover, .add-tenant-to-policy-form.fa, .component.selected rect.border, .add-connect, .remote-process-group-uri, .remote-process-group-transmission-secure, .navigation-control.fa, .operation-control.fa, .new-canvas-item.icon, .upload-flow-definition, .lineage-controls.fa, .event circle.context, .nifi-navigation.icon, .listing-table.fa, .listing-table.icon, .context-menu
-    A700: rgba(139, 208, 229, 1),//#aabec7 // .hint-pattern
+    A100: #aabec7, // .zero
+    A200: #44a3cf, // .enabled, .transmitting, .load-balance-icon-active
+    A400: #009b9d, // a, a:hover, button.nifi-button, button.nifi-button:hover, .add-tenant-to-policy-form.fa, .component.selected rect.border, .add-connect, .remote-process-group-uri, .remote-process-group-transmission-secure, .navigation-control.fa, .operation-control.fa, .new-canvas-item.icon, .upload-flow-definition, .lineage-controls.fa, .event circle.context, .nifi-navigation.icon, .listing-table.fa, .listing-table.icon, .context-menu
+    A700: #2cd5d5,//rgba(139, 208, 229, 1),//#aabec7 // .hint-pattern
 
     // These are the $material-primary-dark-palette PRIMARY AND ACCENT contrast colors. These color do not really get defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors.
     // Instead if we look to the Angular Material provided palettes we see that these fields are typically rgba(black, 0.87) or white. These values are particularly important
@@ -347,16 +347,16 @@ $warn-light-palette: (
 // The $warn-dark-palette defines the WARN palette both for all Angular Material components used throughout Apache NiFi and for all flow designer canvas components that make up the NiFi canvas theme used throughout Apache NiFi
 $warn-dark-palette: (
     // 50 -> 900 are the PRIMARY colors defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #f64e4c
-    50: #f10000,
-    100: #ff0000, // "lighter" hue for this palette. Also .banner-error
-    200: #ff1507, //.stopped
-    300: #ec3030, //.stale
-    400: #fa3b30, // color="primary" Default hue for this palette. Also .unauthorized, .bulletin-background, .restricted, .connection-path.full, .connection-path.unauthorized, .backpressure-percent.error, .controller-bulletins.has-bulletins, .link.selected, circle.selected, .listing-message, .fa-shield
-    500: #f64e4c,
-    600: #eb7071, //.bulletin-error
-    700: #f49999, // "darker" hue for this palette
-    800: #ffccd2, //.connector, .startpoint
-    900: #ffebee,
+    50: #ffebee,
+    100: #ffccd2, // "lighter" hue for this palette. Also .banner-error
+    200: #f49999, //.stopped
+    300: #eb7071, //.stale
+    400: #f64e4c, // color="primary" Default hue for this palette. Also .unauthorized, .bulletin-background, .restricted, .connection-path.full, .connection-path.unauthorized, .backpressure-percent.error, .controller-bulletins.has-bulletins, .link.selected, circle.selected, .listing-message, .fa-shield
+    500: #fa3b30,
+    600: #ec3030, //.bulletin-error
+    700: #ff1507, // "darker" hue for this palette
+    800: #ff0000, //.connector, .startpoint
+    900: #f10000,
 
     // A100 - A700 are the COMPLEMENTARY colors defined by the PRIMARY colors defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #728e9b which is the primary color of the $material-primary-dark-palette.
     // These color are used for label values, stats, timestamps, counts, etc.
