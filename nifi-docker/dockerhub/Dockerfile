@@ -38,9 +38,13 @@ ENV NIFI_TOOLKIT_HOME ${NIFI_BASE_DIR}/nifi-toolkit-current
 ENV NIFI_PID_DIR=${NIFI_HOME}/run
 ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 
-ADD sh/ ${NIFI_BASE_DIR}/scripts/
-# ADD ${pwd}/nifi-docker/dockerhub/sh/ ${NIFI_BASE_DIR}/scripts/
+# ADD sh/ ${NIFI_BASE_DIR}/scripts/
+ADD ${pwd}/nifi-docker/dockerhub/sh/ ${NIFI_BASE_DIR}/scripts/
 RUN chmod -R +x ${NIFI_BASE_DIR}/scripts/*.sh
+
+# --------------------
+RUN sed -i 's/^#\s*\(deb.*universe\)$/\1/g' /etc/apt/sources.list
+# --------------------
 
 # Setup NiFi user and create necessary directories
 RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -f1` \
@@ -51,13 +55,28 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
     # # --------------------
     && chown -R nifi:nifi ${NIFI_BASE_DIR} \
     && apt-get update \
-    && apt-get install -y jq xmlstarlet procps python3 python3-pip curl \
+    && apt-get install -y jq xmlstarlet procps python3 python3-pip curl wget \
+    # --------------------
+    && pip3 install selenium webdriver-manager \
+    # && apt-get install -y selenium webdriver-manager \
+    # --------------------
     && pip install spacy==3.5.1 \
     && python3 -m spacy download en_core_web_md \
 # ------------------------------------
-    && pip install chromedriver-autoinstaller
+    && mkdir -p $NIFI_HOME/bin \
+    && chown nifi:nifi $NIFI_HOME/bin
+    # && pip install chromedriver-autoinstaller
 
+# Download and install ChromeDriver
+RUN wget https://chromedriver.storage.googleapis.com/99.0.4844.51/chromedriver_linux64.zip && \
+    unzip chromedriver_linux64.zip && \
+    mv chromedriver /usr/local/bin/chromedriver && \
+    chmod +x /usr/local/bin/chromedriver
+
+# (Optional) Set headless Chrome options
+ENV CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --ignore-certificate-errors --disable-gpu"
 # ------------------------------------
+
 
 USER nifi
 
