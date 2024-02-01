@@ -25,7 +25,7 @@
     <packaging>pom</packaging>
     <description>A bundle of processors that can store and retrieve data from Apache Solr</description>
     <properties>
-        <solr.version>9.4.0</solr.version>
+        <solr.version>9.4.1</solr.version>
         <jetty.version>10.0.18</jetty.version>
         <jersey.bom.version>2.41</jersey.bom.version>
         <jakarta.ws.rs-api.version>2.1.6</jakarta.ws.rs-api.version>
