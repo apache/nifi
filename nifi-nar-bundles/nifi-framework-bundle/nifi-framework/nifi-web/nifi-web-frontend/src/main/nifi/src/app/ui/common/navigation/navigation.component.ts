@@ -32,7 +32,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { NiFiState } from '../../../state';
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { environment } from '../../../environments/environment';
 
 @Component({
     selector: 'navigation',
@@ -55,7 +54,6 @@ export class Navigation {
     currentUser$ = this.store.select(selectCurrentUser);
     flowConfiguration$ = this.store.select(selectFlowConfiguration);
     isDarkMode = false;
-    isDevMode = !environment.production;
 
     constructor(
         private store: Store<NiFiState>,
