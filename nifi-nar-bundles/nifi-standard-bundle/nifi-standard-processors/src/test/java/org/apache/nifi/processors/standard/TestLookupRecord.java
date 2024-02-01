@@ -162,7 +162,7 @@ public class TestLookupRecord {
                 } ]
               }
             } ]
-            """.trim());
+            """.trim(), true);
     }
 
     @Test
@@ -206,7 +206,7 @@ public class TestLookupRecord {
                 } ]
               }
             } ]
-            """.trim());
+            """.trim(), true);
     }
 
     @Test
@@ -250,7 +250,7 @@ public class TestLookupRecord {
                 } ]
               }
             } ]
-            """.trim());
+            """.trim(), true);
     }
 
     @Test
@@ -295,7 +295,7 @@ public class TestLookupRecord {
                 } ]
               }
             } ]
-            """.trim());
+            """.trim(), true);
     }
 
     @Test
@@ -340,7 +340,7 @@ public class TestLookupRecord {
                 } ]
               }
             } ]
-            """.trim());
+            """.trim(), true);
     }
 
     @Test
@@ -385,7 +385,7 @@ public class TestLookupRecord {
                 } ]
               }
             } ]
-            """.trim());
+            """.trim(), true);
     }
 
     @Test

@@ -278,16 +278,29 @@ public class MockFlowFile implements FlowFileRecord {
     }
 
     public void assertContentEquals(final String data) {
-        assertContentEquals(data, StandardCharsets.UTF_8);
+        assertContentEquals(data, false);
+    }
+
+    public void assertContentEquals(final String data, final boolean ignoreLineEndings) {
+        assertContentEquals(data, StandardCharsets.UTF_8, ignoreLineEndings);
     }
 
     public void assertContentEquals(final String data, final String charset) {
-        assertContentEquals(data, Charset.forName(charset));
+        assertContentEquals(data, Charset.forName(charset), false);
     }
 
+
     public void assertContentEquals(final String data, final Charset charset) {
+        assertContentEquals(data, charset, false);
+    }
+
+    public void assertContentEquals(final String data, final Charset charset, final boolean ignoreLineEndings) {
         final String value = new String(this.data, charset);
-        Assertions.assertEquals(data, value);
+        if (ignoreLineEndings) {
+            Assertions.assertEquals(data.replace("\r\n", "\n"), value.replace("\r\n", "\n"));
+        } else {
+            Assertions.assertEquals(data, value);
+        }
     }
 
     /**
