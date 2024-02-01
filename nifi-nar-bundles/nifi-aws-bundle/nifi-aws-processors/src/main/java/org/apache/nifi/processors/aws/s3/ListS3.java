@@ -318,15 +318,25 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
     public static final Set<Relationship> relationships = Collections.singleton(REL_SUCCESS);
 
+    private static final Set<PropertyDescriptor> TRACKING_RESET_PROPERTIES = Set.of(
+            BUCKET_WITHOUT_DEFAULT_VALUE,
+            REGION,
+            PREFIX,
+            LISTING_STRATEGY
+    );
+
     public static final String CURRENT_TIMESTAMP = "currentTimestamp";
     public static final String CURRENT_KEY_PREFIX = "key-";
 
-    // State tracking
-    private final AtomicReference<ListingSnapshot> listing = new AtomicReference<>(new ListingSnapshot(0L, Collections.emptySet()));
+    // used by Tracking Timestamps tracking strategy
+    private final AtomicReference<ListingSnapshot> listing = new AtomicReference<>(ListingSnapshot.empty());
+
+    // used by Tracking Entities tracking strategy
+    private volatile ListedEntityTracker<ListableEntityWrapper<S3VersionSummary>> listedEntityTracker;
 
     private volatile boolean justElectedPrimaryNode = false;
-    private volatile boolean resetEntityTrackingState = false;
-    private volatile ListedEntityTracker<ListableEntityWrapper<S3VersionSummary>> listedEntityTracker;
+    private volatile boolean resetTracking = false;
+
     private volatile Long minObjectAgeMilliseconds;
     private volatile Long maxObjectAgeMilliseconds;
 
@@ -335,26 +345,41 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         justElectedPrimaryNode = (newState == PrimaryNodeState.ELECTED_PRIMARY_NODE);
     }
 
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if (isConfigurationRestored() && TRACKING_RESET_PROPERTIES.contains(descriptor)) {
+            resetTracking = true;
+        }
+    }
+
     @OnScheduled
-    public void initListedEntityTracker(ProcessContext context) {
+    public void initTrackingStrategy(ProcessContext context) throws IOException {
+        final boolean isTrackingTimestampsStrategy = BY_TIMESTAMPS.getValue().equals(context.getProperty(LISTING_STRATEGY).getValue());
         final boolean isTrackingEntityStrategy = BY_ENTITIES.getValue().equals(context.getProperty(LISTING_STRATEGY).getValue());
-        if (listedEntityTracker != null && (resetEntityTrackingState || !isTrackingEntityStrategy)) {
+
+        if (resetTracking || !isTrackingTimestampsStrategy) {
+            context.getStateManager().clear(Scope.CLUSTER);
+            listing.set(ListingSnapshot.empty());
+        }
+
+        if (listedEntityTracker != null && (resetTracking || !isTrackingEntityStrategy)) {
             try {
                 listedEntityTracker.clearListedEntities();
+                listedEntityTracker = null;
             } catch (IOException e) {
                 throw new RuntimeException("Failed to reset previously listed entities", e);
             }
         }
-        resetEntityTrackingState = false;
 
-        if (isTrackingEntityStrategy) {
-            if (listedEntityTracker == null) {
-                listedEntityTracker = createListedEntityTracker();
-            }
-        } else {
-            listedEntityTracker = null;
+        if (isTrackingEntityStrategy && listedEntityTracker == null) {
+            listedEntityTracker = createListedEntityTracker();
         }
 
+        resetTracking = false;
+    }
+
+    @OnScheduled
+    public void initObjectAgeThresholds(ProcessContext context) {
         minObjectAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         maxObjectAgeMilliseconds = context.getProperty(MAX_AGE) != null ? context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
     }
@@ -1167,7 +1192,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
     }
 
-    private static class ListingSnapshot {
+    static class ListingSnapshot {
         private final long timestamp;
         private final Set<String> keys;
 
@@ -1182,6 +1207,10 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
         public Set<String> getKeys() {
             return keys;
+        }
+
+        public static ListingSnapshot empty() {
+            return new ListingSnapshot(0L, Collections.emptySet());
         }
     }
 
@@ -1261,5 +1290,17 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         versionSummary.setStorageClass(objectSummary.getStorageClass());
         versionSummary.setIsLatest(true);
         return versionSummary;
+    }
+
+    ListingSnapshot getListingSnapshot() {
+        return listing.get();
+    }
+
+    ListedEntityTracker<ListableEntityWrapper<S3VersionSummary>> getListedEntityTracker() {
+        return listedEntityTracker;
+    }
+
+    boolean isResetTracking() {
+        return resetTracking;
     }
 }
