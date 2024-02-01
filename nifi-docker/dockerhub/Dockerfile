@@ -61,7 +61,7 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
     # && apt-get install -y selenium webdriver-manager \
     # --------------------
     && pip install spacy==3.5.1 \
-    && python3 -m spacy download en_core_web_md \
+    && python3 -m spacy download en_core_web_md 
 # ------------------------------------
     # && mkdir -p $NIFI_HOME/bin \
     # && chown nifi:nifi $NIFI_HOME/bin
