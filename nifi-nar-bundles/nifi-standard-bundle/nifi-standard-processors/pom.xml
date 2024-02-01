@@ -776,6 +776,7 @@
                         <exclude>src/test/resources/TestXml/xml-bundle-1</exclude>
                         <exclude>src/test/resources/xxe_from_report.xml</exclude>
                         <exclude>src/test/resources/xxe_template.xml</exclude>
+                        <exclude>src/test/resources/PutDatabaseRecordIT/create-person-table.sql</exclude>
                     </excludes>
                 </configuration>
             </plugin>
