@@ -1824,27 +1824,11 @@ public class DataTypeUtils {
         final Set<RecordField> thisFields = new HashSet<>(thisSchema.getFields());
         final Set<RecordField> otherFields = new HashSet<>(otherSchema.getFields());
 
-        boolean allFieldsPresent = true;
-        for (final RecordField otherField : otherFields) {
-            if (!thisFields.contains(otherField)) {
-                allFieldsPresent = false;
-                break;
-            }
-        }
-
-        if (allFieldsPresent) {
+        if (thisFields.containsAll(otherFields)) {
             return Optional.of(thisRecordDataType);
         }
 
-        allFieldsPresent = true;
-        for (final RecordField thisField : thisFields) {
-            if (!otherFields.contains(thisField)) {
-                allFieldsPresent = false;
-                break;
-            }
-        }
-
-        if (allFieldsPresent) {
+        if (otherFields.containsAll(thisFields)) {
             return Optional.of(otherRecordDataType);
         }
 
