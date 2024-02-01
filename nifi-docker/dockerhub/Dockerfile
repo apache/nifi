@@ -69,9 +69,10 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
 
 # Download and install ChromeDriver
 RUN wget https://chromedriver.storage.googleapis.com/99.0.4844.51/chromedriver_linux64.zip && \
-    unzip chromedriver_linux64.zip && \
-    mv chromedriver /usr/local/bin/chromedriver && \
-    chmod +x /usr/local/bin/chromedriver
+     unzip chromedriver_linux64.zip && \
+     mv chromedriver /usr/local/bin/chromedriver && \
+     chmod +x /usr/local/bin/chromedriver
+
 
 # (Optional) Set headless Chrome options
 ENV CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --ignore-certificate-errors --disable-gpu"
