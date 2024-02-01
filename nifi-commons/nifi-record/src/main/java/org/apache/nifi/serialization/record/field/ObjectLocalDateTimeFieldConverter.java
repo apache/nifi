@@ -51,10 +51,13 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
             final Instant instant = Instant.ofEpochMilli(date.getTime());
             return ofInstant(instant);
         }
-        if (field instanceof Number) {
-            final Number number = (Number) field;
-            final Instant instant = Instant.ofEpochMilli(number.longValue());
-            return ofInstant(instant);
+        if (field instanceof final Number number) {
+            // If value is a floating point number, we consider it as seconds since epoch plus a decimal part for fractions of a second.
+            if (field instanceof Double || field instanceof Float) {
+                // Use long value as seconds; use everything after it as fractions of a second and multiply by 1_000_000_000 to get nanoseconds.
+                return toLocalDateTime(number.longValue(), (long) ((number.doubleValue() - number.longValue()) * 1_000_000_000));
+            }
+            return toLocalDateTime(number.longValue());
         }
         if (field instanceof String) {
             final String string = field.toString().trim();
@@ -67,20 +70,47 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
                 try {
                     return LocalDateTime.parse(string, formatter);
                 } catch (final DateTimeParseException e) {
-                    throw new FieldConversionException(LocalDateTime.class, field, name, e);
+                    return tryParseAsNumber(string, name);
                 }
             } else {
-                try {
-                    final long number = Long.parseLong(string);
-                    final Instant instant = Instant.ofEpochMilli(number);
-                    return ofInstant(instant);
-                } catch (final NumberFormatException e) {
-                    throw new FieldConversionException(LocalDateTime.class, field, name, e);
-                }
+                return tryParseAsNumber(string, name);
             }
         }
 
         throw new FieldConversionException(LocalDateTime.class, field, name);
+    }
+
+    private LocalDateTime tryParseAsNumber(final String value, final String fieldName) {
+        // If decimal, treat as a double and convert to seconds and nanoseconds.
+        if (value.contains(".")) {
+            final double number = Double.parseDouble(value);
+            return toLocalDateTime((long) number, (long) ((number - (long) number) * 1_000_000_000));
+        }
+
+        // attempt to parse as a long value
+        try {
+            final long number = Long.parseLong(value);
+            return toLocalDateTime(number);
+        } catch (final NumberFormatException e) {
+            throw new FieldConversionException(LocalDateTime.class, value, fieldName, e);
+        }
+    }
+
+    private LocalDateTime toLocalDateTime(final long epochSeconds, final long nanosPastSecond) {
+        final Instant instant = Instant.ofEpochSecond(epochSeconds).plusNanos(nanosPastSecond);
+        return ofInstant(instant);
+    }
+
+    private LocalDateTime toLocalDateTime(final long value) {
+        final Instant instant = Instant.ofEpochMilli(value);
+        final LocalDateTime localDateTime = ofInstant(instant);
+        if (localDateTime.getYear() > 10_000) {
+            // Value is too large. Assume microseconds instead of milliseconds.
+            final Instant microsInstant = Instant.ofEpochSecond(value / 1_000_000, (value % 1_000_000) * 1_000);
+            return ofInstant(microsInstant);
+        }
+
+        return localDateTime;
     }
 
     private LocalDateTime ofInstant(final Instant instant) {
