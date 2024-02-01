@@ -359,7 +359,7 @@ public class RegexDateTimeMatcher implements DateTimeMatcher {
                     addSecondInMinute();
                     break;
                 case 'S':
-                    addMillisecond();
+                    addSubsecond();
                     break;
                 case 'z':
                     addGeneralTimeZone();
@@ -468,9 +468,9 @@ public class RegexDateTimeMatcher implements DateTimeMatcher {
             range = range.plus(1, 2);
         }
 
-        private void addMillisecond() {
-            patterns.add("\\d{1,3}");
-            range = range.plus(1, 3);
+        private void addSubsecond() {
+            patterns.add("\\d{1," + charCount + "}");
+            range = range.plus(1, charCount);
         }
 
         private void addGeneralTimeZone() {
