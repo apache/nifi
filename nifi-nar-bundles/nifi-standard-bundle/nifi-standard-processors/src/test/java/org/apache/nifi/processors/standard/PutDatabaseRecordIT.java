@@ -41,6 +41,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.Month;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -200,7 +201,7 @@ public class PutDatabaseRecordIT {
 
     @Test
     public void testWithNumericTimestampUsingMicros() throws SQLException {
-        final Instant now = Instant.now();
+        final Instant now = nowWithMicrosPrecision();
         final long epochSecond = now.getEpochSecond();
         final long epochMicros = (epochSecond * 1_000_000L) + (now.getNano() / 1000);
 
@@ -221,9 +222,16 @@ public class PutDatabaseRecordIT {
         assertEquals(now, lastTransactionTime.toInstant());
     }
 
+    // Depending on the operating system, the precision of Instant.now() may be microsecond precision, or it may be nanosecond precision.
+    // If nanosecond precision, the result that we retrieve from database will be inaccurate because it will be rounded down to microsecond precision.
+    // To adjust for this, we will use Instant.now().truncatedTo(ChronoUnit.MICROS) to ensure that the Instant is microsecond precision.
+    private Instant nowWithMicrosPrecision() {
+        return Instant.now().truncatedTo(ChronoUnit.MICROS);
+    }
+
     @Test
     public void testWithDecimalTimestampUsingMicros() throws SQLException {
-        final Instant now = Instant.now();
+        final Instant now = nowWithMicrosPrecision();
         final long epochSecond = now.getEpochSecond();
         final long microsPastSecond = now.getNano() / 1000;
 
@@ -246,7 +254,7 @@ public class PutDatabaseRecordIT {
 
     @Test
     public void testWithDecimalTimestampUsingMicrosAsString() throws SQLException {
-        final Instant now = Instant.now();
+        final Instant now = nowWithMicrosPrecision();
         final long epochSecond = now.getEpochSecond();
         final long microsPastSecond = now.getNano() / 1000;
 
