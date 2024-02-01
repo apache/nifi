@@ -113,7 +113,7 @@
             <dependency>
                 <groupId>com.aayushatharva.brotli4j</groupId>
                 <artifactId>brotli4j</artifactId>
-                <version>1.13.0</version>
+                <version>1.16.0</version>
             </dependency>
             <dependency>
                 <groupId>org.tukaani</groupId>
