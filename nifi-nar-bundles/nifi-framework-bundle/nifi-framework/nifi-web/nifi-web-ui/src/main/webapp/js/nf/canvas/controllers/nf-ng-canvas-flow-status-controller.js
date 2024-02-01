@@ -672,6 +672,9 @@
                     $('.rule-menu-btn').click(function(event) {
                         // stop event from immediately bubbling up to document and triggering closeRuleWindow
                         event.stopPropagation();
+                        // unbind previously bound rule data that may still exist
+                        unbindRuleMenuHandling();
+
                         var ruleInfo = $(this).data('ruleInfo');
                         $('#violation-menu').hide();
                         $('#rule-menu').show();
@@ -709,12 +712,12 @@
                             nfSettings.showSettings().done(function() {
                                 nfSettings.selectFlowAnalysisRule(ruleInfo.id);
                             });
-                            unbindRuleMenuHandling()
+                            unbindRuleMenuHandling();
                         }
 
                         function unbindRuleMenuHandling() {
-                            $('#rule-menu-edit-rule').unbind('click', openRuleDetailsDialog);
-                            $('#rule-menu-view-documentation').unbind('click', viewRuleDocumentation);
+                            $('#rule-menu-edit-rule').off("click");
+                            $('#rule-menu-view-documentation').off("click");
                             $(document).unbind('click', closeRuleWindow);
                         }
 
@@ -755,7 +758,7 @@
                         }
 
                         function unbindViolationMenuHandling() {
-                            $('#violation-menu-go-to').unbind('click', goToComponent);
+                            $('#violation-menu-go-to').off("click");
                             $(document).unbind('click', closeViolationWindow);
                         }
                     });
