@@ -38,6 +38,7 @@ import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_CONTAINER;
 
@@ -73,7 +74,7 @@ public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            STORAGE_CREDENTIALS_SERVICE,
+            BLOB_STORAGE_CREDENTIALS_SERVICE,
             CONTAINER,
             BLOB_NAME,
             DELETE_SNAPSHOTS_OPTION,
