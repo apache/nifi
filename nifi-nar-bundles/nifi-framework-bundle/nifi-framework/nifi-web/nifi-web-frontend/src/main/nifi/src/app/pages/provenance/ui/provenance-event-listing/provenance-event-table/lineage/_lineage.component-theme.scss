@@ -18,7 +18,7 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin theme($material-theme, $canvas-theme) {
+@mixin nifi-theme($material-theme, $canvas-theme) {
     // Get the color config from the theme.
     $color-config: mat.get-color-config($material-theme);
     $canvas-color-config: mat.get-color-config($canvas-theme);
@@ -26,17 +26,23 @@
     // Get the color palette from the color-config.
     $primary-palette: map.get($color-config, 'primary');
     $warn-palette: map.get($color-config, 'warn');
+    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
     $canvas-accent-palette: map.get($canvas-color-config, 'accent');
 
     // Get hues from palette
     $primary-palette-A400: mat.get-color-from-palette($primary-palette, 'A400');
     $warn-palette-400: mat.get-color-from-palette($warn-palette, 400);
     $warn-palette-A200: mat.get-color-from-palette($warn-palette, 'A200');
+    $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
     $canvas-accent-palette-A200: mat.get-color-from-palette($canvas-accent-palette, 'A200');
 
     #lineage {
         canvas,
         svg {
+            text.event-type {
+                fill: $canvas-primary-palette-A200;
+            }
+
             path.link.selected {
                 stroke: $warn-palette-400;
             }

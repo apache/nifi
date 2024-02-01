@@ -30,13 +30,25 @@ import {
 import { ComponentType } from '../../../../../../state/shared';
 import { NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 
 @Component({
     selector: 'search',
     standalone: true,
     templateUrl: './search.component.html',
     styleUrls: ['./search.component.scss'],
-    imports: [ReactiveFormsModule, CdkOverlayOrigin, CdkConnectedOverlay, NgIf, NgTemplateOutlet, RouterLink, NgForOf]
+    imports: [
+        ReactiveFormsModule,
+        CdkOverlayOrigin,
+        CdkConnectedOverlay,
+        NgIf,
+        NgTemplateOutlet,
+        RouterLink,
+        NgForOf,
+        MatFormFieldModule,
+        MatInputModule
+    ]
 })
 export class Search implements OnInit {
     protected readonly ComponentType = ComponentType;

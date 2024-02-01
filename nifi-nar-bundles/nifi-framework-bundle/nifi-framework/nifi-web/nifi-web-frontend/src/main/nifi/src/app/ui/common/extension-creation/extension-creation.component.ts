@@ -27,6 +27,9 @@ import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
 import { RestrictionsTip } from '../tooltips/restrictions-tip/restrictions-tip.component';
 import { ControllerServiceApiTip } from '../tooltips/controller-service-api-tip/controller-service-api-tip.component';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { ReactiveFormsModule } from '@angular/forms';
 
 @Component({
     selector: 'extension-creation',
@@ -39,7 +42,10 @@ import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
         MatSortModule,
         NgIf,
         NifiTooltipDirective,
-        NifiSpinnerDirective
+        NifiSpinnerDirective,
+        MatFormFieldModule,
+        MatInputModule,
+        ReactiveFormsModule
     ],
     styleUrls: ['./extension-creation.component.scss']
 })

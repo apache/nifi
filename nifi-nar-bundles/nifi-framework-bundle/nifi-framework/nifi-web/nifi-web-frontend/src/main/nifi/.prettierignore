@@ -33,6 +33,7 @@ npm-debug.log
 
 # Theme
 src/assets/themes/*
+src/styles.scss
 
 # System files
 .DS_Store

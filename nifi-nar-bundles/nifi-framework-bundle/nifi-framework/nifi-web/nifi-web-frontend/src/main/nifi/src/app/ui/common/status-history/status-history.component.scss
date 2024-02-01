@@ -65,10 +65,6 @@
         .mat-mdc-dialog-content {
             max-height: unset;
         }
-
-        .selected-descriptor-container {
-            height: 68px;
-        }
     }
 }
 
@@ -79,6 +75,7 @@
 
     .axis path,
     .axis line {
+        fill: none;
         shape-rendering: crispEdges;
     }
 
@@ -87,6 +84,7 @@
     }
 
     .chart-line {
+        fill: none;
         stroke-width: 1.5px;
     }
 
