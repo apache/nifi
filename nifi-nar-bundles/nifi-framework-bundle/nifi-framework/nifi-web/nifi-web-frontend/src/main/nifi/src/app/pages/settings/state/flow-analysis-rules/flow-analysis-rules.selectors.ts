@@ -30,6 +30,11 @@ export const selectSaving = createSelector(
     (state: FlowAnalysisRulesState) => state.saving
 );
 
+export const selectStatus = createSelector(
+    selectFlowAnalysisRulesState,
+    (state: FlowAnalysisRulesState) => state.status
+);
+
 export const selectFlowAnalysisRuleIdFromRoute = createSelector(selectCurrentRoute, (route) => {
     if (route) {
         // always select the rule from the route

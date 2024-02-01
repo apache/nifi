@@ -136,7 +136,11 @@ export class ManagementControllerServicesEffects {
                     ),
                     catchError((errorResponse: HttpErrorResponse) => {
                         this.dialog.closeAll();
-                        return of(ErrorActions.snackBarError({ error: errorResponse.error }));
+                        return of(
+                            ManagementControllerServicesActions.managementControllerServicesSnackbarApiError({
+                                error: errorResponse.error
+                            })
+                        );
                     })
                 )
             )
@@ -323,6 +327,14 @@ export class ManagementControllerServicesEffects {
         )
     );
 
+    managementControllerServicesSnackbarApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ManagementControllerServicesActions.managementControllerServicesSnackbarApiError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.snackBarError({ error })))
+        )
+    );
+
     configureControllerServiceSuccess$ = createEffect(
         () =>
             this.actions$.pipe(
@@ -442,7 +454,11 @@ export class ManagementControllerServicesEffects {
                         })
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(ErrorActions.snackBarError({ error: errorResponse.error }))
+                        of(
+                            ManagementControllerServicesActions.managementControllerServicesSnackbarApiError({
+                                error: errorResponse.error
+                            })
+                        )
                     )
                 )
             )

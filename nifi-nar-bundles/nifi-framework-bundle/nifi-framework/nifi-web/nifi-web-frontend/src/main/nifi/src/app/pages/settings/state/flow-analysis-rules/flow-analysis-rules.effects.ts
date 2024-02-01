@@ -25,7 +25,6 @@ import { NiFiState } from '../../../../state';
 import { selectFlowAnalysisRuleTypes } from '../../../../state/extension-types/extension-types.selectors';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { FlowAnalysisRuleService } from '../../service/flow-analysis-rule.service';
-import { Client } from '../../../../service/client.service';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { CreateFlowAnalysisRule } from '../../ui/flow-analysis-rules/create-flow-analysis-rule/create-flow-analysis-rule.component';
 import { Router } from '@angular/router';
@@ -33,18 +32,20 @@ import { selectSaving } from '../management-controller-services/management-contr
 import { UpdateControllerServiceRequest } from '../../../../state/shared';
 import { EditFlowAnalysisRule } from '../../ui/flow-analysis-rules/edit-flow-analysis-rule/edit-flow-analysis-rule.component';
 import { CreateFlowAnalysisRuleSuccess } from './index';
-import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
+import * as ErrorActions from '../../../../state/error/error.actions';
+import { ErrorHelper } from '../../../../service/error-helper.service';
+import { selectStatus } from './flow-analysis-rules.selectors';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class FlowAnalysisRulesEffects {
     constructor(
         private actions$: Actions,
         private store: Store<NiFiState>,
-        private client: Client,
         private managementControllerServiceService: ManagementControllerServiceService,
-        private extensionTypesService: ExtensionTypesService,
         private flowAnalysisRuleService: FlowAnalysisRuleService,
+        private errorHelper: ErrorHelper,
         private dialog: MatDialog,
         private router: Router,
         private propertyTableHelperService: PropertyTableHelperService
@@ -53,7 +54,8 @@ export class FlowAnalysisRulesEffects {
     loadFlowAnalysisRule$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowAnalysisRuleActions.loadFlowAnalysisRules),
-            switchMap(() =>
+            concatLatestFrom(() => this.store.select(selectStatus)),
+            switchMap(([, status]) =>
                 from(this.flowAnalysisRuleService.getFlowAnalysisRule()).pipe(
                     map((response) =>
                         FlowAnalysisRuleActions.loadFlowAnalysisRulesSuccess({
@@ -63,13 +65,17 @@ export class FlowAnalysisRulesEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            FlowAnalysisRuleActions.flowAnalysisRuleApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (status === 'success') {
+                            if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                                return of(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            } else {
+                                return of(this.errorHelper.fullScreenError(errorResponse));
+                            }
+                        } else {
+                            return of(this.errorHelper.fullScreenError(errorResponse));
+                        }
+                    })
                 )
             )
         )
@@ -105,13 +111,12 @@ export class FlowAnalysisRulesEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            FlowAnalysisRuleActions.flowAnalysisRuleApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        this.dialog.closeAll();
+                        return of(
+                            FlowAnalysisRuleActions.flowAnalysisRuleSnackbarApiError({ error: errorResponse.error })
+                        );
+                    })
                 )
             )
         )
@@ -133,6 +138,22 @@ export class FlowAnalysisRulesEffects {
                     })
                 )
             )
+        )
+    );
+
+    flowAnalysisRuleBannerApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowAnalysisRuleActions.flowAnalysisRuleBannerApiError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+        )
+    );
+
+    flowAnalysisRuleSnackbarApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowAnalysisRuleActions.flowAnalysisRuleSnackbarApiError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.snackBarError({ error })))
         )
     );
 
@@ -175,10 +196,10 @@ export class FlowAnalysisRulesEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            FlowAnalysisRuleActions.flowAnalysisRuleApiError({
-                                error: error.error
+                            FlowAnalysisRuleActions.flowAnalysisRuleSnackbarApiError({
+                                error: errorResponse.error
                             })
                         )
                     )
@@ -302,10 +323,10 @@ export class FlowAnalysisRulesEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            FlowAnalysisRuleActions.flowAnalysisRuleApiError({
-                                error: error.error
+                            FlowAnalysisRuleActions.flowAnalysisRuleBannerApiError({
+                                error: errorResponse.error
                             })
                         )
                     )
@@ -358,10 +379,10 @@ export class FlowAnalysisRulesEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            FlowAnalysisRuleActions.flowAnalysisRuleApiError({
-                                error: error.error
+                            FlowAnalysisRuleActions.flowAnalysisRuleSnackbarApiError({
+                                error: errorResponse.error
                             })
                         )
                     )
@@ -399,10 +420,10 @@ export class FlowAnalysisRulesEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            FlowAnalysisRuleActions.flowAnalysisRuleApiError({
-                                error: error.error
+                            FlowAnalysisRuleActions.flowAnalysisRuleSnackbarApiError({
+                                error: errorResponse.error
                             })
                         )
                     )

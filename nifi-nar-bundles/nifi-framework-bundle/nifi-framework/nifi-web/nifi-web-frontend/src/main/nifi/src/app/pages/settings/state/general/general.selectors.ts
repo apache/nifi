@@ -17,6 +17,10 @@
 
 import { createSelector } from '@ngrx/store';
 import { selectSettingsState, SettingsState } from '../index';
-import { generalFeatureKey } from './index';
+import { generalFeatureKey, GeneralState } from './index';
 
 export const selectGeneral = createSelector(selectSettingsState, (state: SettingsState) => state[generalFeatureKey]);
+
+export const selectSaving = createSelector(selectGeneral, (state: GeneralState) => state.saving);
+
+export const selectStatus = createSelector(selectGeneral, (state: GeneralState) => state.status);

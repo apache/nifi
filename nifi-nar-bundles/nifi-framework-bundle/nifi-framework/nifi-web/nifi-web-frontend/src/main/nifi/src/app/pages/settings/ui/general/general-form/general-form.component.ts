@@ -22,6 +22,8 @@ import { Store } from '@ngrx/store';
 import { updateControllerConfig } from '../../../state/general/general.actions';
 import { Client } from '../../../../../service/client.service';
 import { selectCurrentUser } from '../../../../../state/current-user/current-user.selectors';
+import { Observable } from 'rxjs';
+import { selectSaving } from '../../../state/general/general.selectors';
 
 @Component({
     selector: 'general-form',
@@ -36,6 +38,7 @@ export class GeneralForm {
         this.controllerForm.get('timerDrivenThreadCount')?.setValue(controller.component.maxTimerDrivenThreadCount);
     }
 
+    saving$ = this.store.select(selectSaving);
     currentUser$ = this.store.select(selectCurrentUser);
     controllerForm: FormGroup;
 

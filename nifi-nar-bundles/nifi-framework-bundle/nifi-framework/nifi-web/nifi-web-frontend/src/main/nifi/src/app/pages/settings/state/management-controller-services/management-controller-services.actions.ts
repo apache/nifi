@@ -50,6 +50,11 @@ export const managementControllerServicesBannerApiError = createAction(
     props<{ error: string }>()
 );
 
+export const managementControllerServicesSnackbarApiError = createAction(
+    '[Management Controller Services] Management Controller Services Snackbar Api Error',
+    props<{ error: string }>()
+);
+
 export const openNewControllerServiceDialog = createAction(
     '[Management Controller Services] Open New Controller Service Dialog'
 );

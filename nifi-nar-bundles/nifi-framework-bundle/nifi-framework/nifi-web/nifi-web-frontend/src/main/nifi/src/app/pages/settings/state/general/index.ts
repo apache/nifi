@@ -38,6 +38,6 @@ export interface ControllerEntity {
 
 export interface GeneralState {
     controller: ControllerEntity;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    saving: boolean;
+    status: 'pending' | 'loading' | 'success';
 }
