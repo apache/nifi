@@ -19,6 +19,7 @@ import { createReducer, on } from '@ngrx/store';
 import { ParameterState } from './index';
 import {
     editParameterContextComplete,
+    parameterApiError,
     pollParameterContextUpdateRequestSuccess,
     submitParameterContextUpdateRequest,
     submitParameterContextUpdateRequestSuccess
@@ -26,7 +27,8 @@ import {
 
 export const initialState: ParameterState = {
     updateRequestEntity: null,
-    saving: false
+    saving: false,
+    error: null
 };
 
 export const parameterReducer = createReducer(
@@ -35,13 +37,15 @@ export const parameterReducer = createReducer(
         ...state,
         saving: true
     })),
+    on(parameterApiError, (state, { error }) => ({
+        ...state,
+        error
+    })),
     on(submitParameterContextUpdateRequestSuccess, pollParameterContextUpdateRequestSuccess, (state, { response }) => ({
         ...state,
         updateRequestEntity: response.requestEntity
     })),
-    on(editParameterContextComplete, (state) => ({
-        ...state,
-        saving: false,
-        updateRequestEntity: null
+    on(editParameterContextComplete, () => ({
+        ...initialState
     }))
 );

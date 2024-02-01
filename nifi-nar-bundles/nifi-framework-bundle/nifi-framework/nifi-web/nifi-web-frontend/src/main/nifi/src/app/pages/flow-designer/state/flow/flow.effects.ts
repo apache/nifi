@@ -19,7 +19,6 @@ import { Injectable } from '@angular/core';
 import { FlowService } from '../../service/flow.service';
 import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as FlowActions from './flow.actions';
-import * as ParameterActions from '../parameter/parameter.actions';
 import * as StatusHistoryActions from '../../../../state/status-history/status-history.actions';
 import {
     asyncScheduler,
@@ -30,7 +29,6 @@ import {
     interval,
     map,
     mergeMap,
-    NEVER,
     Observable,
     of,
     switchMap,
@@ -65,13 +63,7 @@ import { ConnectionManager } from '../../service/manager/connection-manager.serv
 import { MatDialog } from '@angular/material/dialog';
 import { CreatePort } from '../../ui/canvas/items/port/create-port/create-port.component';
 import { EditPort } from '../../ui/canvas/items/port/edit-port/edit-port.component';
-import {
-    ComponentType,
-    EditParameterRequest,
-    EditParameterResponse,
-    Parameter,
-    ParameterEntity
-} from '../../../../state/shared';
+import { ComponentType } from '../../../../state/shared';
 import { Router } from '@angular/router';
 import { Client } from '../../../../service/client.service';
 import { CanvasUtils } from '../../service/canvas-utils.service';
@@ -87,13 +79,10 @@ import { EditConnectionComponent } from '../../ui/canvas/items/connection/edit-c
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { GroupComponents } from '../../ui/canvas/items/process-group/group-components/group-components.component';
 import { EditProcessGroup } from '../../ui/canvas/items/process-group/edit-process-group/edit-process-group.component';
-import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { ControllerServiceService } from '../../service/controller-service.service';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
-import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
-import { selectParameterSaving } from '../parameter/parameter.selectors';
-import { ParameterService } from '../../service/parameter.service';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
+import { ParameterHelperService } from '../../service/parameter-helper.service';
 
 @Injectable()
 export class FlowEffects {
@@ -101,9 +90,7 @@ export class FlowEffects {
         private actions$: Actions,
         private store: Store<NiFiState>,
         private flowService: FlowService,
-        private extensionTypesService: ExtensionTypesService,
         private controllerServiceService: ControllerServiceService,
-        private parameterService: ParameterService,
         private client: Client,
         private canvasUtils: CanvasUtils,
         private canvasView: CanvasView,
@@ -111,7 +98,8 @@ export class FlowEffects {
         private connectionManager: ConnectionManager,
         private router: Router,
         private dialog: MatDialog,
-        private propertyTableHelperService: PropertyTableHelperService
+        private propertyTableHelperService: PropertyTableHelperService,
+        private parameterHelperService: ParameterHelperService
     ) {}
 
     reloadFlow$ = createEffect(() =>
@@ -874,17 +862,9 @@ export class FlowEffects {
                     };
 
                     if (parameterContext != null) {
-                        editDialogReference.componentInstance.getParameters = (sensitive: boolean) => {
-                            return this.flowService.getParameterContext(parameterContext.id).pipe(
-                                take(1),
-                                map((response) => response.component.parameters),
-                                map((parameterEntities) => {
-                                    return parameterEntities
-                                        .map((parameterEntity: ParameterEntity) => parameterEntity.parameter)
-                                        .filter((parameter: Parameter) => parameter.sensitive == sensitive);
-                                })
-                            );
-                        };
+                        editDialogReference.componentInstance.getParameters = this.parameterHelperService.getParameters(
+                            parameterContext.id
+                        );
 
                         editDialogReference.componentInstance.parameterContext = parameterContext;
                         editDialogReference.componentInstance.goToParameter = () => {
@@ -892,74 +872,8 @@ export class FlowEffects {
                             goTo(commands, 'Parameter');
                         };
 
-                        editDialogReference.componentInstance.convertToParameter = (
-                            name: string,
-                            sensitive: boolean,
-                            value: string | null
-                        ) => {
-                            return this.parameterService.getParameterContext(parameterContext.id, false).pipe(
-                                switchMap((parameterContextEntity) => {
-                                    const existingParameters: string[] =
-                                        parameterContextEntity.component.parameters.map(
-                                            (parameterEntity: ParameterEntity) => parameterEntity.parameter.name
-                                        );
-                                    const convertToParameterDialogRequest: EditParameterRequest = {
-                                        parameter: {
-                                            name,
-                                            value,
-                                            sensitive,
-                                            description: ''
-                                        },
-                                        existingParameters
-                                    };
-                                    const convertToParameterDialogReference = this.dialog.open(EditParameterDialog, {
-                                        data: convertToParameterDialogRequest,
-                                        panelClass: 'medium-dialog'
-                                    });
-
-                                    convertToParameterDialogReference.componentInstance.saving$ =
-                                        this.store.select(selectParameterSaving);
-
-                                    convertToParameterDialogReference.componentInstance.cancel.pipe(
-                                        takeUntil(convertToParameterDialogReference.afterClosed()),
-                                        tap(() => ParameterActions.stopPollingParameterContextUpdateRequest())
-                                    );
-
-                                    return convertToParameterDialogReference.componentInstance.editParameter.pipe(
-                                        takeUntil(convertToParameterDialogReference.afterClosed()),
-                                        switchMap((dialogResponse: EditParameterResponse) => {
-                                            this.store.dispatch(
-                                                ParameterActions.submitParameterContextUpdateRequest({
-                                                    request: {
-                                                        id: parameterContext.id,
-                                                        payload: {
-                                                            revision: this.client.getRevision(parameterContextEntity),
-                                                            component: {
-                                                                id: parameterContextEntity.id,
-                                                                parameters: [{ parameter: dialogResponse.parameter }]
-                                                            }
-                                                        }
-                                                    }
-                                                })
-                                            );
-
-                                            return this.store.select(selectParameterSaving).pipe(
-                                                takeUntil(convertToParameterDialogReference.afterClosed()),
-                                                filter((parameterSaving) => parameterSaving === false),
-                                                map(() => {
-                                                    convertToParameterDialogReference.close();
-                                                    return `#{${dialogResponse.parameter.name}}`;
-                                                })
-                                            );
-                                        })
-                                    );
-                                }),
-                                catchError(() => {
-                                    // TODO handle error
-                                    return NEVER;
-                                })
-                            );
-                        };
+                        editDialogReference.componentInstance.convertToParameter =
+                            this.parameterHelperService.convertToParameter(parameterContext.id);
                     }
 
                     editDialogReference.componentInstance.goToService = (serviceId: string) => {

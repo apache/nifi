@@ -48,8 +48,8 @@ export class ControllerServiceService implements ControllerServiceCreator, Prope
         );
     }
 
-    getBreadcrumbs(processGroupId: string): Observable<any> {
-        return this.httpClient.get(`${ControllerServiceService.API}/flow/process-groups/${processGroupId}/breadcrumbs`);
+    getFlow(processGroupId: string): Observable<any> {
+        return this.httpClient.get(`${ControllerServiceService.API}/flow/process-groups/${processGroupId}`);
     }
 
     getControllerService(id: string): Observable<any> {

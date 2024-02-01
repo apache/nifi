@@ -87,42 +87,31 @@ export class ControllerServiceStateEffects {
         this.actions$.pipe(
             ofType(ControllerServiceActions.setEnableControllerService),
             concatLatestFrom(() => [
-                this.store.select(selectControllerService),
+                this.store.select(selectControllerService).pipe(isDefinedAndNotNull()),
                 this.store.select(selectControllerServiceSetEnableRequest)
             ]),
-            switchMap(([, controllerService, setEnableRequest]) => {
-                if (controllerService) {
-                    return from(
-                        this.controllerServiceStateService.setEnable(controllerService, setEnableRequest.enable)
-                    ).pipe(
-                        map((response) =>
-                            ControllerServiceActions.setEnableControllerServiceSuccess({
+            switchMap(([, controllerService, setEnableRequest]) =>
+                from(this.controllerServiceStateService.setEnable(controllerService, setEnableRequest.enable)).pipe(
+                    map((response) =>
+                        ControllerServiceActions.setEnableControllerServiceSuccess({
+                            response: {
+                                controllerService: response,
+                                currentStep: setEnableRequest.currentStep
+                            }
+                        })
+                    ),
+                    catchError((error) =>
+                        of(
+                            ControllerServiceActions.setEnableStepFailure({
                                 response: {
-                                    controllerService: response,
-                                    currentStep: setEnableRequest.currentStep
+                                    step: setEnableRequest.currentStep,
+                                    error: error.error
                                 }
                             })
-                        ),
-                        catchError((error) =>
-                            of(
-                                ControllerServiceActions.setEnableStepFailure({
-                                    response: {
-                                        step: setEnableRequest.currentStep,
-                                        error: error.error
-                                    }
-                                })
-                            )
                         )
-                    );
-                } else {
-                    return of(
-                        ControllerServiceActions.showOkDialog({
-                            title: 'Enable Service',
-                            message: 'Controller Service not initialized'
-                        })
-                    );
-                }
-            })
+                    )
+                )
+            )
         )
     );
 

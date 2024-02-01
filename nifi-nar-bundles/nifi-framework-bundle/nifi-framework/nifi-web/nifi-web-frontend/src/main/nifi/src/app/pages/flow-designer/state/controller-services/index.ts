@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { ControllerServiceEntity } from '../../../../state/shared';
+import { ControllerServiceEntity, ParameterContextReferenceEntity } from '../../../../state/shared';
 import { BreadcrumbEntity } from '../shared';
 
 export const controllerServicesFeatureKey = 'controllerServiceListing';
@@ -28,6 +28,7 @@ export interface LoadControllerServicesResponse {
     processGroupId: string;
     breadcrumb: BreadcrumbEntity;
     controllerServices: ControllerServiceEntity[];
+    parameterContext: ParameterContextReferenceEntity | null;
     loadedTimestamp: string;
 }
 
@@ -65,8 +66,8 @@ export interface ControllerServicesState {
     processGroupId: string;
     breadcrumb: BreadcrumbEntity;
     controllerServices: ControllerServiceEntity[];
+    parameterContext: ParameterContextReferenceEntity | null;
     saving: boolean;
     loadedTimestamp: string;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }

@@ -441,9 +441,9 @@ export class ManagementControllerServicesEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) => {
-                        return of(ErrorActions.snackBarError({ error: errorResponse.error }));
-                    })
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(ErrorActions.snackBarError({ error: errorResponse.error }))
+                    )
                 )
             )
         )

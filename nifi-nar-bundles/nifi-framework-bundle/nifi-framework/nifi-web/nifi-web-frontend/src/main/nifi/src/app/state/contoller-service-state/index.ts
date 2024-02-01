@@ -76,6 +76,5 @@ export interface SetEnableRequest {
 export interface ControllerServiceState {
     setEnableRequest: SetEnableRequest;
     controllerService: ControllerServiceEntity | null;
-    error: string | null;
     status: 'pending' | 'loading' | 'error' | 'success';
 }
