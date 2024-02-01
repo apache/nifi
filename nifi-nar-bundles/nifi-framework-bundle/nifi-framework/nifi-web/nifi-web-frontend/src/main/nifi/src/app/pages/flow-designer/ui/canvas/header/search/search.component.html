@@ -20,6 +20,7 @@
     <form [formGroup]="searchForm">
         <input
             type="text"
+            matInput
             placeholder="Search"
             class="search-input"
             [class.open]="searchInputVisible"
@@ -34,7 +35,7 @@
             [cdkConnectedOverlayHasBackdrop]="true"
             [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
             (backdropClick)="backdropClicked()">
-            <div class="search-results bg-white w-96 border p-2 text-sm max-h-96 overflow-y-auto">
+            <div class="search-results w-96 border p-2 text-sm max-h-96 overflow-y-auto">
                 <div *ngIf="searching; else renderAllResults" class="unset italic">Searching</div>
             </div>
         </ng-template>

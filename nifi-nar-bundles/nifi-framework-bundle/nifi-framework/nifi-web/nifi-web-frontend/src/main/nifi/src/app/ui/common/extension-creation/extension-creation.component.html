@@ -20,11 +20,15 @@
         <div class="flex justify-between items-center">
             <h3 class="text-lg">Add {{ componentType }}</h3>
             <div>
-                <input
-                    class="border px-1.5 py-1 w-64"
-                    type="text"
-                    (keyup)="filterTypes($event)"
-                    placeholder="Filter types..." />
+                <mat-form-field>
+                    <mat-label>Filter types</mat-label>
+                    <input
+                        matInput
+                        class="border px-1.5 py-1 w-64"
+                        type="text"
+                        (keyup)="filterTypes($event)"
+                        placeholder="Filter types..." />
+                </mat-form-field>
             </div>
         </div>
         <div class="type-table">

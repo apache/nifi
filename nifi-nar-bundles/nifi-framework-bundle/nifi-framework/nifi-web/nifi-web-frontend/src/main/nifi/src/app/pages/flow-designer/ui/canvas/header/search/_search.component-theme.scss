@@ -32,6 +32,7 @@
     $canvas-primary-palette-900: mat.get-color-from-palette($canvas-primary-palette, 900);
     $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
     $canvas-primary-palette-A700: mat.get-color-from-palette($canvas-primary-palette, 'A700');
+    $canvas-primary-palette-contrast-300: mat.get-color-from-palette($canvas-primary-palette, 'contrast-300');
 
     .search-container {
         border-left: 1px solid $primary-palette-300;
@@ -44,10 +45,15 @@
 
         .search-input {
             color: $canvas-primary-palette-A200;
+            background-color: $canvas-primary-palette-900;
         }
 
         .fa {
             color: $canvas-primary-palette-A700;
         }
+    }
+
+    .search-results {
+        background-color: $canvas-primary-palette-900;
     }
 }
