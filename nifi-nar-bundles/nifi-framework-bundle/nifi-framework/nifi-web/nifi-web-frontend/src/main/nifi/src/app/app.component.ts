@@ -15,9 +15,11 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, Inject } from '@angular/core';
 import { GuardsCheckEnd, GuardsCheckStart, NavigationCancel, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DOCUMENT } from '@angular/common';
+import { Storage } from './service/storage.service';
 
 @Component({
     selector: 'nifi',
@@ -28,13 +30,44 @@ export class AppComponent {
     title = 'nifi';
     guardLoading = true;
 
-    constructor(private router: Router) {
+    constructor(
+        private router: Router,
+        private storage: Storage,
+        @Inject(DOCUMENT) private _document: Document
+    ) {
         this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
             if (event instanceof GuardsCheckStart) {
                 this.guardLoading = true;
             }
             if (event instanceof GuardsCheckEnd || event instanceof NavigationCancel) {
                 this.guardLoading = false;
+            }
+        });
+
+        let overrideTheme = this.storage.getItem('override-theme');
+
+        // Initially check if dark mode is enabled on system
+        const darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        // If dark mode is enabled then directly switch to the dark-theme
+        if (darkModeOn) {
+            this._document.body.classList.toggle('dark-theme', !overrideTheme);
+        } else if (!darkModeOn) {
+            this._document.body.classList.toggle('dark-theme', overrideTheme);
+        }
+
+        // Watch for changes of the preference
+        window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
+            overrideTheme = this.storage.getItem('override-theme');
+            const newColorScheme = e.matches ? 'dark' : 'light';
+            if (newColorScheme === 'dark' && overrideTheme) {
+                this._document.body.classList.toggle('dark-theme', false);
+            } else if (newColorScheme === 'dark' && !overrideTheme) {
+                this._document.body.classList.toggle('dark-theme', true);
+            } else if (newColorScheme === 'light' && overrideTheme) {
+                this._document.body.classList.toggle('dark-theme', true);
+            } else {
+                this._document.body.classList.toggle('dark-theme', false);
             }
         });
     }

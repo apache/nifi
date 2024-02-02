@@ -30,7 +30,6 @@
             <ng-content></ng-content>
         </div>
         <div class="flex justify-between items-center gap-x-1" *ngIf="currentUser$ | async as user">
-            <mat-slide-toggle color="primary" (click)="toggleTheme()"></mat-slide-toggle>
             <div class="flex flex-col justify-between items-end gap-y-1">
                 <div class="current-user">{{ user.identity }}</div>
                 <a href="#" *ngIf="allowLogin(user)">log in</a>
@@ -139,6 +138,24 @@
                 <button mat-menu-item class="global-menu-item">
                     <i class="fa fa-fw fa-info-circle mr-2"></i>
                     About
+                </button>
+                <button mat-menu-item class="global-menu-item" (click)="toggleTheme()">
+                    <ng-container *ngIf="darkModeOn && !overrideTheme">
+                        <i class="fa fa-fw fa-ban mr-2"></i>
+                        Override Default Theme
+                    </ng-container>
+                    <ng-container *ngIf="darkModeOn && overrideTheme">
+                        <i class="fa fa-fw fa-check mr-2"></i>
+                        Use Default Theme (Dark)
+                    </ng-container>
+                    <ng-container *ngIf="!darkModeOn && !overrideTheme">
+                        <i class="fa fa-fw fa-ban mr-2"></i>
+                        Override Default Theme
+                    </ng-container>
+                    <ng-container *ngIf="!darkModeOn && overrideTheme">
+                        <i class="fa fa-fw fa-check mr-2"></i>
+                        Use Default Theme (Light)
+                    </ng-container>
                 </button>
             </mat-menu>
         </div>
