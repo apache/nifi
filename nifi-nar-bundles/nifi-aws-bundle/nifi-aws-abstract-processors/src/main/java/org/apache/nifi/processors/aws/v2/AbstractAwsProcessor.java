@@ -86,7 +86,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
     private static final String AUTH_SERVICE_ACCESS_KEY = "Access Key";
     private static final String AUTH_SERVICE_SECRET_KEY = "Secret Key";
     private static final String AUTH_SERVICE_CREDENTIALS_FILE = "Credentials File";
-    private static final String AUTH_SERVICE_DEFAULT_CREDENTIALS = "default-credentials";
+    private static final String AUTH_SERVICE_ANONYMOUS_CREDENTIALS = "anonymous-credentials";
     private static final String PROXY_SERVICE_HOST = "proxy-server-host";
     private static final String PROXY_SERVICE_PORT = "proxy-server-port";
     private static final String PROXY_SERVICE_USERNAME = "proxy-user-name";
@@ -200,21 +200,23 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
     }
 
     private void migrateAuthenticationProperties(final PropertyConfiguration config) {
-        if (config.isPropertySet(OBSOLETE_ACCESS_KEY) && config.isPropertySet(OBSOLETE_SECRET_KEY)) {
-            final String serviceId = config.createControllerService(CREDENTIALS_SERVICE_CLASSNAME, Map.of(
-                AUTH_SERVICE_ACCESS_KEY, config.getRawPropertyValue(OBSOLETE_ACCESS_KEY).get(),
-                AUTH_SERVICE_SECRET_KEY, config.getRawPropertyValue(OBSOLETE_SECRET_KEY).get()));
+        if (!config.isPropertySet(AWS_CREDENTIALS_PROVIDER_SERVICE)) {
+            if (config.isPropertySet(OBSOLETE_ACCESS_KEY) && config.isPropertySet(OBSOLETE_SECRET_KEY)) {
+                final String serviceId = config.createControllerService(CREDENTIALS_SERVICE_CLASSNAME, Map.of(
+                        AUTH_SERVICE_ACCESS_KEY, config.getRawPropertyValue(OBSOLETE_ACCESS_KEY).get(),
+                        AUTH_SERVICE_SECRET_KEY, config.getRawPropertyValue(OBSOLETE_SECRET_KEY).get()));
 
-            config.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE.getName(), serviceId);
-        } else if (config.isPropertySet(OBSOLETE_CREDENTIALS_FILE)) {
-            final String serviceId = config.createControllerService(CREDENTIALS_SERVICE_CLASSNAME, Map.of(
-                AUTH_SERVICE_CREDENTIALS_FILE, config.getRawPropertyValue(OBSOLETE_CREDENTIALS_FILE).get()));
+                config.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE.getName(), serviceId);
+            } else if (config.isPropertySet(OBSOLETE_CREDENTIALS_FILE)) {
+                final String serviceId = config.createControllerService(CREDENTIALS_SERVICE_CLASSNAME, Map.of(
+                        AUTH_SERVICE_CREDENTIALS_FILE, config.getRawPropertyValue(OBSOLETE_CREDENTIALS_FILE).get()));
 
-            config.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE, serviceId);
-        } else if (!config.isPropertySet(AWS_CREDENTIALS_PROVIDER_SERVICE)) {
-            final String serviceId = config.createControllerService(CREDENTIALS_SERVICE_CLASSNAME, Map.of(
-                AUTH_SERVICE_DEFAULT_CREDENTIALS, "true"));
-            config.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE, serviceId);
+                config.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE, serviceId);
+            } else {
+                final String serviceId = config.createControllerService(CREDENTIALS_SERVICE_CLASSNAME, Map.of(
+                        AUTH_SERVICE_ANONYMOUS_CREDENTIALS, "true"));
+                config.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE, serviceId);
+            }
         }
 
         config.removeProperty(OBSOLETE_ACCESS_KEY);
