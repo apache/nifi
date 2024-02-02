@@ -50,7 +50,7 @@ public class ColumnNameNormalizerUtilityTest {
     void testNormalizingColumnName_RemoveAllSpecialCharacters() {
         String inputColumnName = "Special!Characters@Here$";
         String expectedNormalized = "SPECIALCHARACTERSHERE";
-        String normalized = ColumnNameNormalizerUtility.getNormalizedName(inputColumnName,true, TranslationStrategy.REMOVE_ALL_SPECIAL_CHAR, null);
+        String normalized = ColumnNameNormalizerUtility.getNormalizedName(inputColumnName, true, TranslationStrategy.REMOVE_ALL_SPECIAL_CHAR, null);
 
         assertEquals(expectedNormalized, normalized);
     }
