@@ -386,7 +386,8 @@ export enum ComponentType {
     ReportingTask = 'ReportingTask',
     FlowAnalysisRule = 'FlowAnalysisRule',
     ParameterProvider = 'ParameterProvider',
-    FlowRegistryClient = 'FlowRegistryClient'
+    FlowRegistryClient = 'FlowRegistryClient',
+    Flow = 'Flow'
 }
 
 export interface ControllerServiceReferencingComponent {
@@ -479,6 +480,57 @@ export interface AllowableValue {
 export interface AllowableValueEntity {
     canRead: boolean;
     allowableValue: AllowableValue;
+}
+
+export interface RegistryClientEntity {
+    permissions: Permissions;
+    operatePermissions?: Permissions;
+    revision: Revision;
+    bulletins?: BulletinEntity[];
+    id: string;
+    uri: string;
+    component: any;
+}
+
+export interface BucketEntity {
+    id: string;
+    permissions: Permissions;
+    bucket: Bucket;
+}
+
+export interface Bucket {
+    created: number;
+    description: string;
+    id: string;
+    name: string;
+}
+
+export interface VersionedFlowEntity {
+    versionedFlow: VersionedFlow;
+}
+
+export interface VersionedFlow {
+    registryId: string;
+    bucketId: string;
+    flowId: string;
+    flowName: string;
+    description: string;
+    comments: string;
+    action: string;
+}
+
+export interface VersionedFlowSnapshotMetadataEntity {
+    registryId: string;
+    versionedFlowSnapshotMetadata: VersionedFlowSnapshotMetadata;
+}
+
+export interface VersionedFlowSnapshotMetadata {
+    bucketIdentifier: string;
+    flowIdentifier: string;
+    version: number;
+    timestamp: number;
+    author: string;
+    comments: string;
 }
 
 export interface SelectOption {

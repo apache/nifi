@@ -23,8 +23,7 @@ import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.com
 import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
-import { BulletinsTipInput, ValidationErrorsTipInput } from '../../../../../state/shared';
-import { RegistryClientEntity } from '../../../state/registry-clients';
+import { BulletinsTipInput, RegistryClientEntity, ValidationErrorsTipInput } from '../../../../../state/shared';
 
 @Component({
     selector: 'registry-client-table',

@@ -15,24 +15,27 @@
  * limitations under the License.
  */
 
-.new-canvas-item {
-    .icon {
-        font-size: 32px;
+@use '@angular/material' as mat;
 
-        &.hovering {
-            cursor: grab;
-        }
+.import-from-registry-form {
+    @include mat.button-density(-1);
 
-        &.dragging {
-            cursor: grabbing;
-        }
-
-        &:disabled {
-            box-shadow: none;
-        }
+    .mat-mdc-form-field {
+        width: 100%;
     }
 
-    .icon-import-from-registry-add:before {
-        margin-left: 1px;
+    .listing-table {
+        table {
+            width: auto;
+            table-layout: unset;
+
+            .mat-column-version {
+                width: 75px;
+            }
+
+            .mat-column-created {
+                width: 200px;
+            }
+        }
     }
 }

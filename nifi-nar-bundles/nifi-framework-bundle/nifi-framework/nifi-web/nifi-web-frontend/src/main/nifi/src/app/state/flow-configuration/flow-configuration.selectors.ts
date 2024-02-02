@@ -29,3 +29,8 @@ export const selectSupportsManagedAuthorizer = createSelector(
     selectFlowConfiguration,
     (flowConfiguration: FlowConfiguration | null) => flowConfiguration?.supportsManagedAuthorizer
 );
+
+export const selectTimeOffset = createSelector(
+    selectFlowConfiguration,
+    (flowConfiguration: FlowConfiguration | null) => flowConfiguration?.timeOffset
+);

@@ -49,6 +49,11 @@
                 iconClass="icon-funnel"
                 iconHoverClass="icon-funnel-add"></new-canvas-item>
             <new-canvas-item
+                [type]="ComponentType.Flow"
+                [disabled]="!canvasPermissions.canWrite"
+                iconClass="icon-import-from-registry"
+                iconHoverClass="icon-import-from-registry-add"></new-canvas-item>
+            <new-canvas-item
                 [type]="ComponentType.Label"
                 [disabled]="!canvasPermissions.canWrite"
                 iconClass="icon-label"
