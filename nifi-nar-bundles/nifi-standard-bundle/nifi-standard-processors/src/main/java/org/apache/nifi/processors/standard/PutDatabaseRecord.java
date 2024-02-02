@@ -1610,7 +1610,7 @@ public class PutDatabaseRecord extends AbstractProcessor implements ColumnNameNo
             translateFieldNames = context.getProperty(TRANSLATE_FIELD_NAMES).asBoolean();
             translationStrategy = TranslationStrategy.valueOf(context.getProperty(TRANSLATION_STRATEGY).getValue());
             final String translationRegex = context.getProperty(TRANSLATION_PATTERN).getValue();
-            translationPattern = translationRegex==null?null:Pattern.compile(translationRegex);
+            translationPattern = translationRegex == null ? null : Pattern.compile(translationRegex);
             ignoreUnmappedFields = IGNORE_UNMATCHED_FIELD.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_FIELD_BEHAVIOR).getValue());
 
             failUnmappedColumns = FAIL_UNMATCHED_COLUMN.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
