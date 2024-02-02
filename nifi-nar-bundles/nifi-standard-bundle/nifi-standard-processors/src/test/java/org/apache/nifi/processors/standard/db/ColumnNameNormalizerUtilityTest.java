@@ -60,7 +60,7 @@ public class ColumnNameNormalizerUtilityTest {
         String inputColumnName = "Your @Input -String Here";
         Pattern translationPattern = Pattern.compile("[@-]");
         String expectedNormalized = "YOUR INPUT STRING HERE";
-        String normalized = ColumnNameNormalizerUtility.getNormalizedName(inputColumnName,true, TranslationStrategy.PATTERN, translationPattern);
+        String normalized = ColumnNameNormalizerUtility.getNormalizedName(inputColumnName, true, TranslationStrategy.PATTERN, translationPattern);
 
         assertEquals(expectedNormalized, normalized);
     }
