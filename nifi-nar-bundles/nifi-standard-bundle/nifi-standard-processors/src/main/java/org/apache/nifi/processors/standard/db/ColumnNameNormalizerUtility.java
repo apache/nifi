@@ -48,7 +48,7 @@ public class ColumnNameNormalizerUtility {
         return switch (Objects.requireNonNull(strategy)) {
             case REMOVE_UNDERSCORE -> colName.toUpperCase().replace("_", "");
             case REMOVE_SPACE -> colName.toUpperCase().replace(" ", "");
-            case REMOVE_ALL_SPECIAL_CHAR -> REMOVE_ALL_SPECIAL_CHAR_REGEX .matcher(colName.toUpperCase()).replaceAll("");
+            case REMOVE_ALL_SPECIAL_CHAR -> REMOVE_ALL_SPECIAL_CHAR_REGEX.matcher(colName.toUpperCase()).replaceAll("");
             case PATTERN -> translationRegex.matcher(colName.toUpperCase()).replaceAll("");
         };
     }
