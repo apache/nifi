@@ -291,36 +291,33 @@ public class UnpackContent extends AbstractProcessor {
 
         // set the Unpacker to use for this FlowFile.  FlowFileUnpackager objects maintain state and are not reusable.
         final Unpacker unpacker;
-        final boolean addFragmentAttrs;
-        switch (packagingFormat) {
-            case TAR_FORMAT:
-            case X_TAR_FORMAT:
-                unpacker = tarUnpacker;
-                addFragmentAttrs = true;
-                break;
-            case ZIP_FORMAT:
-                unpacker = zipUnpacker;
-                addFragmentAttrs = true;
-                break;
-            case FLOWFILE_STREAM_FORMAT_V2:
-                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV2());
-                addFragmentAttrs = false;
-                break;
-            case FLOWFILE_STREAM_FORMAT_V3:
-                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV3());
-                addFragmentAttrs = false;
-                break;
-            case FLOWFILE_TAR_FORMAT:
-                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV1());
-                addFragmentAttrs = false;
-                break;
-            case AUTO_DETECT_FORMAT:
-            default:
-                // The format of the unpacker should be known before initialization
-                throw new ProcessException(packagingFormat + " is not a valid packaging format");
-        }
+        final boolean addFragmentAttrs = switch (packagingFormat) {
+          case TAR_FORMAT, X_TAR_FORMAT -> {
+            unpacker = tarUnpacker;
+            yield true;
+          }
+          case ZIP_FORMAT -> {
+            unpacker = zipUnpacker;
+            yield true;
+          }
+          case FLOWFILE_STREAM_FORMAT_V2 -> {
+            unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV2());
+            yield false;
+          }
+          case FLOWFILE_STREAM_FORMAT_V3 -> {
+            unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV3());
+            yield false;
+          }
+          case FLOWFILE_TAR_FORMAT -> {
+            unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV1());
+            yield false;
+          }
+          default ->
+            // The format of the unpacker should be known before initialization
+              throw new ProcessException(packagingFormat + " is not a valid packaging format");
+        };
 
-        final List<FlowFile> unpacked = new ArrayList<>();
+      final List<FlowFile> unpacked = new ArrayList<>();
         try {
             unpacker.unpack(session, flowFile, unpacked);
             if (unpacked.isEmpty()) {
@@ -333,7 +330,7 @@ public class UnpackContent extends AbstractProcessor {
                 finishFragmentAttributes(session, flowFile, unpacked);
             }
             session.transfer(unpacked, REL_SUCCESS);
-            final String fragmentId = unpacked.size() > 0 ? unpacked.get(0).getAttribute(FRAGMENT_ID) : null;
+            final String fragmentId = !unpacked.isEmpty() ? unpacked.getFirst().getAttribute(FRAGMENT_ID) : null;
             flowFile = FragmentAttributes.copyAttributesToOriginal(session, flowFile, fragmentId, unpacked.size());
             session.transfer(flowFile, REL_ORIGINAL);
             session.getProvenanceReporter().fork(flowFile, unpacked);
@@ -377,7 +374,7 @@ public class UnpackContent extends AbstractProcessor {
                 int fragmentCount = 0;
                 try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(new BufferedInputStream(inputStream))) {
                     TarArchiveEntry tarEntry;
-                    while ((tarEntry = tarIn.getNextTarEntry()) != null) {
+                    while ((tarEntry = tarIn.getNextEntry()) != null) {
                         if (tarEntry.isDirectory() || !fileMatches(tarEntry)) {
                             continue;
                         }
@@ -519,7 +516,7 @@ public class UnpackContent extends AbstractProcessor {
                 try (final ZipArchiveInputStream zipInputStream = new ZipArchiveInputStream(new BufferedInputStream(inputStream),
                     filenameEncoding.toString(), true, allowStoredEntriesWithDataDescriptor)) {
                     ZipArchiveEntry zipEntry;
-                    while ((zipEntry = zipInputStream.getNextZipEntry()) != null) {
+                    while ((zipEntry = zipInputStream.getNextEntry()) != null) {
                         processEntry(zipInputStream, zipEntry.isDirectory(), zipEntry.getName(), EncryptionMethod.NONE);
                     }
                 }
