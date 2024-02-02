@@ -38,8 +38,8 @@ ENV NIFI_TOOLKIT_HOME ${NIFI_BASE_DIR}/nifi-toolkit-current
 ENV NIFI_PID_DIR=${NIFI_HOME}/run
 ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 
-ADD sh/ ${NIFI_BASE_DIR}/scripts/
-# ADD ${pwd}/nifi-docker/dockerhub/sh/ ${NIFI_BASE_DIR}/scripts/
+# ADD sh/ ${NIFI_BASE_DIR}/scripts/
+ADD ${pwd}/nifi-docker/dockerhub/sh/ ${NIFI_BASE_DIR}/scripts/
 RUN chmod -R +x ${NIFI_BASE_DIR}/scripts/*.sh
 
 # --------------------
@@ -61,9 +61,9 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
     # && apt-get install -y selenium webdriver-manager \
     # --------------------
     && pip install spacy==3.5.1 \
-    && python3 -m spacy download en_core_web_md 
+    && python3 -m spacy download en_core_web_md \
 # ------------------------------------
-    # && mkdir -p $NIFI_HOME/bin \
+    && mkdir -p $NIFI_HOME/bin \
     # && chown nifi:nifi $NIFI_HOME/bin
     # && pip install chromedriver-autoinstaller
 
@@ -71,11 +71,25 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
 RUN wget https://chromedriver.storage.googleapis.com/99.0.4844.51/chromedriver_linux64.zip && \
      unzip chromedriver_linux64.zip && \
      mv chromedriver /usr/local/bin/chromedriver && \
-     chmod +x /usr/local/bin/chromedriver
+     chmod +x /usr/local/bin/chromedriver \
+     && ls -l /usr/local/bin/  # Add this line for debugging
 
+# Install Chrome dependencies
+RUN apt-get update && \
+    apt-get install -y gnupg ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Chrome
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
+    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list && \
+    apt-get update && \
+    apt-get install -y google-chrome-stable && \
+    which google-chrome && \
+    rm -rf /var/lib/apt/lists/*
 
 # (Optional) Set headless Chrome options
 ENV CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --ignore-certificate-errors --disable-gpu"
+
 # ------------------------------------
 
 
