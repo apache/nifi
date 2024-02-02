@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.hbase.scan;
 
+import java.io.IOException;
+
 /**
  * Handles a single row from an HBase scan.
  */
 public interface ResultHandler {
 
-    void handle(byte[] row, ResultCell[] resultCells);
+    void handle(byte[] row, ResultCell[] resultCells) throws IOException;
 
 }
