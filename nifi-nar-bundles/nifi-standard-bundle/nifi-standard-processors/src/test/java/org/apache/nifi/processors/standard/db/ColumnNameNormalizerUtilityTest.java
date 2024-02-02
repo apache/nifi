@@ -41,7 +41,7 @@ public class ColumnNameNormalizerUtilityTest {
     void testNormalizingColumnName_RemoveSpace() {
         String inputColumnName = "Column Name With Spaces";
         String expectedNormalized = "COLUMNNAMEWITHSPACES";
-        String normalized = ColumnNameNormalizerUtility.getNormalizedName(inputColumnName,true, TranslationStrategy.REMOVE_SPACE, null);
+        String normalized = ColumnNameNormalizerUtility.getNormalizedName(inputColumnName, true, TranslationStrategy.REMOVE_SPACE, null);
 
         assertEquals(expectedNormalized, normalized);
     }
