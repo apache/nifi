@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.nio.charset.Charset;
 import net.lingala.zip4j.io.inputstream.ZipInputStream;
 import net.lingala.zip4j.model.LocalFileHeader;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
@@ -24,6 +25,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
+import org.apache.commons.io.Charsets;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -34,6 +36,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -104,6 +107,13 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = "file.permissions", description = "The read/write/execute permissions of the unpacked file (tar only)"),
     @WritesAttribute(attribute = "file.encryptionMethod", description = "The encryption method for entries in Zip archives")})
 @SeeAlso(MergeContent.class)
+@UseCase(
+    description = "Unpack Zip containing filenames with special characters, created on Windows with filename charset 'Cp437' or 'IBM437'.",
+    configuration = """
+        Set "Packaging Format" value to "zip" or "use mime.type attribute".
+        Set "Filename Character Set" value to "Cp437" or "IBM437".
+        """
+)
 public class UnpackContent extends AbstractProcessor {
     // attribute keys
     public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
@@ -138,6 +148,21 @@ public class UnpackContent extends AbstractProcessor {
                     PackageFormat.ZIP_FORMAT.toString(), PackageFormat.FLOWFILE_STREAM_FORMAT_V3.toString(),
                     PackageFormat.FLOWFILE_STREAM_FORMAT_V2.toString(), PackageFormat.FLOWFILE_TAR_FORMAT.toString())
             .defaultValue(PackageFormat.AUTO_DETECT_FORMAT.toString())
+            .build();
+    public static final PropertyDescriptor ZIP_FILENAME_CHARSET = new PropertyDescriptor.Builder()
+            .name("Filename Character Set")
+            .displayName("Filename Character Set")
+            .description(
+                "If supplied this character set will be supplied to the Zip utility to attempt to decode filenames using the specific character set. "
+                    + "If not specified the default platform character set will be used. This is useful if a Zip was created with a different character "
+                    + "set than the platform default and the zip uses non standard values to specify.")
+            .required(false)
+            .dependsOn(
+                PACKAGING_FORMAT,
+                PackageFormat.ZIP_FORMAT.toString(),
+                PackageFormat.AUTO_DETECT_FORMAT.toString())
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .defaultValue(Charset.defaultCharset().toString())
             .build();
 
     public static final PropertyDescriptor FILE_FILTER = new PropertyDescriptor.Builder()
@@ -192,6 +217,7 @@ public class UnpackContent extends AbstractProcessor {
 
     private static final List<PropertyDescriptor> properties = List.of(
         PACKAGING_FORMAT,
+        ZIP_FILENAME_CHARSET,
         FILE_FILTER,
         PASSWORD,
         ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR
@@ -231,7 +257,10 @@ public class UnpackContent extends AbstractProcessor {
             }
             final PropertyValue allowStoredEntriesWithDataDescriptorVal = context.getProperty(ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR);
             final boolean allowStoredEntriesWithDataDescriptor = allowStoredEntriesWithDataDescriptorVal.isSet() ? allowStoredEntriesWithDataDescriptorVal.asBoolean() : false;
-            zipUnpacker = new ZipUnpacker(fileFilter, password, allowStoredEntriesWithDataDescriptor);
+
+            final String filenamesEncodingVal = context.getProperty(ZIP_FILENAME_CHARSET).getValue();
+            Charset filenamesEncoding =Charsets.toCharset(filenamesEncodingVal);
+            zipUnpacker = new ZipUnpacker(fileFilter, password, allowStoredEntriesWithDataDescriptor, filenamesEncoding);
         }
     }
 
@@ -267,36 +296,33 @@ public class UnpackContent extends AbstractProcessor {
 
         // set the Unpacker to use for this FlowFile.  FlowFileUnpackager objects maintain state and are not reusable.
         final Unpacker unpacker;
-        final boolean addFragmentAttrs;
-        switch (packagingFormat) {
-            case TAR_FORMAT:
-            case X_TAR_FORMAT:
-                unpacker = tarUnpacker;
-                addFragmentAttrs = true;
-                break;
-            case ZIP_FORMAT:
-                unpacker = zipUnpacker;
-                addFragmentAttrs = true;
-                break;
-            case FLOWFILE_STREAM_FORMAT_V2:
-                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV2());
-                addFragmentAttrs = false;
-                break;
-            case FLOWFILE_STREAM_FORMAT_V3:
-                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV3());
-                addFragmentAttrs = false;
-                break;
-            case FLOWFILE_TAR_FORMAT:
-                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV1());
-                addFragmentAttrs = false;
-                break;
-            case AUTO_DETECT_FORMAT:
-            default:
-                // The format of the unpacker should be known before initialization
-                throw new ProcessException(packagingFormat + " is not a valid packaging format");
-        }
+        final boolean addFragmentAttrs = switch (packagingFormat) {
+          case TAR_FORMAT, X_TAR_FORMAT -> {
+            unpacker = tarUnpacker;
+            yield true;
+          }
+          case ZIP_FORMAT -> {
+            unpacker = zipUnpacker;
+            yield true;
+          }
+          case FLOWFILE_STREAM_FORMAT_V2 -> {
+            unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV2());
+            yield false;
+          }
+          case FLOWFILE_STREAM_FORMAT_V3 -> {
+            unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV3());
+            yield false;
+          }
+          case FLOWFILE_TAR_FORMAT -> {
+            unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV1());
+            yield false;
+          }
+          default ->
+            // The format of the unpacker should be known before initialization
+            throw new ProcessException(packagingFormat + " is not a valid packaging format");
+        };
 
-        final List<FlowFile> unpacked = new ArrayList<>();
+      final List<FlowFile> unpacked = new ArrayList<>();
         try {
             unpacker.unpack(session, flowFile, unpacked);
             if (unpacked.isEmpty()) {
@@ -309,7 +335,7 @@ public class UnpackContent extends AbstractProcessor {
                 finishFragmentAttributes(session, flowFile, unpacked);
             }
             session.transfer(unpacked, REL_SUCCESS);
-            final String fragmentId = unpacked.size() > 0 ? unpacked.get(0).getAttribute(FRAGMENT_ID) : null;
+            final String fragmentId = !unpacked.isEmpty() ? unpacked.getFirst().getAttribute(FRAGMENT_ID) : null;
             flowFile = FragmentAttributes.copyAttributesToOriginal(session, flowFile, fragmentId, unpacked.size());
             session.transfer(flowFile, REL_ORIGINAL);
             session.getProvenanceReporter().fork(flowFile, unpacked);
@@ -395,20 +421,21 @@ public class UnpackContent extends AbstractProcessor {
     private static class ZipUnpacker extends Unpacker {
         private final char[] password;
         private final boolean allowStoredEntriesWithDataDescriptor;
-
-        public ZipUnpacker(final Pattern fileFilter, final char[] password, final boolean allowStoredEntriesWithDataDescriptor) {
+        private final Charset filenameEncoding;
+        public ZipUnpacker(final Pattern fileFilter, final char[] password, final boolean allowStoredEntriesWithDataDescriptor,final Charset filenameEncoding) {
             super(fileFilter);
             this.password = password;
             this.allowStoredEntriesWithDataDescriptor = allowStoredEntriesWithDataDescriptor;
+            this.filenameEncoding = filenameEncoding;
         }
 
         @Override
         public void unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
             final String fragmentId = UUID.randomUUID().toString();
             if (password == null) {
-                session.read(source, new CompressedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, allowStoredEntriesWithDataDescriptor));
+                session.read(source, new CompressedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, allowStoredEntriesWithDataDescriptor,filenameEncoding));
             } else {
-                session.read(source, new EncryptedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, password));
+                session.read(source, new EncryptedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, password,filenameEncoding));
             }
         }
 
@@ -473,6 +500,7 @@ public class UnpackContent extends AbstractProcessor {
         private static class CompressedZipInputStreamCallback extends ZipInputStreamCallback {
 
             private final boolean allowStoredEntriesWithDataDescriptor;
+            private final Charset filenameEncoding;
 
             private CompressedZipInputStreamCallback(
                     final Pattern fileFilter,
@@ -480,15 +508,18 @@ public class UnpackContent extends AbstractProcessor {
                     final FlowFile sourceFlowFile,
                     final List<FlowFile> unpacked,
                     final String fragmentId,
-                    final boolean allowStoredEntriesWithDataDescriptor
+                    final boolean allowStoredEntriesWithDataDescriptor,
+                    final Charset filenameEncoding
             ) {
                 super(fileFilter, session, sourceFlowFile, unpacked, fragmentId);
                 this.allowStoredEntriesWithDataDescriptor = allowStoredEntriesWithDataDescriptor;
+                this.filenameEncoding = filenameEncoding;
             }
 
             @Override
             public void process(final InputStream inputStream) throws IOException {
-                try (final ZipArchiveInputStream zipInputStream = new ZipArchiveInputStream(new BufferedInputStream(inputStream), null, true, allowStoredEntriesWithDataDescriptor)) {
+                try (final ZipArchiveInputStream zipInputStream = new ZipArchiveInputStream(new BufferedInputStream(inputStream),
+                    filenameEncoding.toString(), true, allowStoredEntriesWithDataDescriptor)) {
                     ZipArchiveEntry zipEntry;
                     while ((zipEntry = zipInputStream.getNextZipEntry()) != null) {
                         processEntry(zipInputStream, zipEntry.isDirectory(), zipEntry.getName(), EncryptionMethod.NONE);
@@ -499,6 +530,7 @@ public class UnpackContent extends AbstractProcessor {
 
         private static class EncryptedZipInputStreamCallback extends ZipInputStreamCallback {
             private final char[] password;
+            private final Charset filenameEncoding;
 
             private EncryptedZipInputStreamCallback(
                     final Pattern fileFilter,
@@ -506,15 +538,17 @@ public class UnpackContent extends AbstractProcessor {
                     final FlowFile sourceFlowFile,
                     final List<FlowFile> unpacked,
                     final String fragmentId,
-                    final char[] password
+                    final char[] password,
+                    final Charset filenameEncoding
             ) {
                 super(fileFilter, session, sourceFlowFile, unpacked, fragmentId);
                 this.password = password;
+                this.filenameEncoding = filenameEncoding;
             }
 
             @Override
             public void process(final InputStream inputStream) throws IOException {
-                try (final ZipInputStream zipInputStream = new ZipInputStream(new BufferedInputStream(inputStream), password)) {
+                try (final ZipInputStream zipInputStream = new ZipInputStream(new BufferedInputStream(inputStream), password,filenameEncoding)) {
                     LocalFileHeader zipEntry;
                     while ((zipEntry = zipInputStream.getNextEntry()) != null) {
                         processEntry(zipInputStream, zipEntry.isDirectory(), zipEntry.getFileName(), zipEntry.getEncryptionMethod());

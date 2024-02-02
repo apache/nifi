@@ -697,6 +697,7 @@
                         <exclude>src/test/resources/TestUnpackContent/folder/cal.txt</exclude>
                         <exclude>src/test/resources/TestUnpackContent/folder/date.txt</exclude>
                         <exclude>src/test/resources/TestUnpackContent/invalid_data.zip</exclude>
+                        <exclude>src/test/resources/TestUnpackContent/windows-with-cp437.zip</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/addresses.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/embedded-string.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/multi-arrays.json</exclude>
