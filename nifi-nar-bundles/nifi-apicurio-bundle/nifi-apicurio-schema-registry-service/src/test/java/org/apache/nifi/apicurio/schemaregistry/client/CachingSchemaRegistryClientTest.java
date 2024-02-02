@@ -29,6 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -60,35 +61,36 @@ class CachingSchemaRegistryClientTest {
 
     @Test
     void testGetSchemaWithNameInvokesClientAndCacheResult() throws IOException, SchemaNotFoundException {
-        when(mockClient.getSchema(SCHEMA_NAME)).thenReturn(TEST_SCHEMA);
+        final OptionalInt version = OptionalInt.empty();
 
-        RecordSchema actualSchema1 = cachingClient.getSchema(SCHEMA_NAME);
-        RecordSchema actualSchema2 = cachingClient.getSchema(SCHEMA_NAME);
+        when(mockClient.getSchema(SCHEMA_NAME, version)).thenReturn(TEST_SCHEMA);
+
+        RecordSchema actualSchema1 = cachingClient.getSchema(SCHEMA_NAME, version);
+        RecordSchema actualSchema2 = cachingClient.getSchema(SCHEMA_NAME, version);
 
         assertEquals(TEST_SCHEMA, actualSchema1);
         assertEquals(TEST_SCHEMA, actualSchema2);
-        verify(mockClient).getSchema(SCHEMA_NAME);
+        verify(mockClient).getSchema(SCHEMA_NAME, version);
     }
 
     @Test
     void testGetSchemaWithNameAndVersionInvokesClientAndCacheResult() throws IOException, SchemaNotFoundException {
-        String schemaName = "schema";
-        int version = 1;
+        final OptionalInt version = OptionalInt.of(1);
 
-        when(mockClient.getSchema(schemaName, version)).thenReturn(TEST_SCHEMA);
+        when(mockClient.getSchema(SCHEMA_NAME, version)).thenReturn(TEST_SCHEMA);
 
-        RecordSchema actualSchema1 = cachingClient.getSchema(schemaName, version);
-        RecordSchema actualSchema2 = cachingClient.getSchema(schemaName, version);
+        RecordSchema actualSchema1 = cachingClient.getSchema(SCHEMA_NAME, version);
+        RecordSchema actualSchema2 = cachingClient.getSchema(SCHEMA_NAME, version);
 
         assertEquals(TEST_SCHEMA, actualSchema1);
         assertEquals(TEST_SCHEMA, actualSchema2);
-        verify(mockClient).getSchema(schemaName, version);
+        verify(mockClient).getSchema(SCHEMA_NAME, version);
     }
 
     @Test
     void testGetSchemaWithNameAndVersionDoesNotCacheDifferentVersions() throws IOException, SchemaNotFoundException {
-        int version1 = 1;
-        int version2 = 2;
+        final OptionalInt version1 = OptionalInt.of(1);
+        final OptionalInt version2 = OptionalInt.of(2);
         RecordSchema expectedSchema1 = TEST_SCHEMA;
         RecordSchema expectedSchema2 = TEST_SCHEMA_2;
 
