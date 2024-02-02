@@ -37,8 +37,13 @@ export const loadRegistryClientsSuccess = createAction(
     props<{ response: LoadRegistryClientsResponse }>()
 );
 
-export const registryClientsApiError = createAction(
-    '[Registry Clients] Load Registry Clients Error',
+export const registryClientsBannerApiError = createAction(
+    '[Registry Clients] Load Registry Clients Banner Api Error',
+    props<{ error: string }>()
+);
+
+export const registryClientsSnackbarApiError = createAction(
+    '[Registry Clients] Load Registry Clients Snackbar Api Error',
     props<{ error: string }>()
 );
 

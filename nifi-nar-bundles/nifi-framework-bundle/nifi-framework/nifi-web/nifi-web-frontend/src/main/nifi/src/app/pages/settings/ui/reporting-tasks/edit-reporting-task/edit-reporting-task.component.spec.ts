@@ -21,6 +21,9 @@ import { EditReportingTask } from './edit-reporting-task.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { EditReportingTaskDialogRequest } from '../../../state/reporting-tasks';
+import { Component } from '@angular/core';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../../../state/error/error.reducer';
 
 describe('EditReportingTask', () => {
     let component: EditReportingTask;
@@ -382,10 +385,22 @@ describe('EditReportingTask', () => {
         }
     };
 
+    @Component({
+        selector: 'error-banner',
+        standalone: true,
+        template: ''
+    })
+    class MockErrorBanner {}
+
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditReportingTask, BrowserAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
+            imports: [EditReportingTask, MockErrorBanner, BrowserAnimationsModule],
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                provideMockStore({
+                    initialState
+                })
+            ]
         });
         fixture = TestBed.createComponent(EditReportingTask);
         component = fixture.componentInstance;

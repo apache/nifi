@@ -26,7 +26,8 @@ import {
     deleteReportingTaskSuccess,
     loadReportingTasks,
     loadReportingTasksSuccess,
-    reportingTasksApiError,
+    reportingTasksBannerApiError,
+    reportingTasksSnackbarApiError,
     resetReportingTasksState,
     startReportingTaskSuccess,
     stopReportingTaskSuccess
@@ -37,7 +38,6 @@ export const initialState: ReportingTasksState = {
     reportingTasks: [],
     saving: false,
     loadedTimestamp: '',
-    error: null,
     status: 'pending'
 };
 
@@ -54,14 +54,11 @@ export const reportingTasksReducer = createReducer(
         ...state,
         reportingTasks: response.reportingTasks,
         loadedTimestamp: response.loadedTimestamp,
-        error: null,
         status: 'success' as const
     })),
-    on(reportingTasksApiError, (state, { error }) => ({
+    on(reportingTasksBannerApiError, reportingTasksSnackbarApiError, (state) => ({
         ...state,
-        saving: false,
-        error,
-        status: 'error' as const
+        saving: false
     })),
     on(configureReportingTaskSuccess, (state, { response }) => {
         return produce(state, (draftState) => {

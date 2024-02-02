@@ -84,6 +84,5 @@ export interface RegistryClientsState {
     registryClients: RegistryClientEntity[];
     saving: boolean;
     loadedTimestamp: string;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }
