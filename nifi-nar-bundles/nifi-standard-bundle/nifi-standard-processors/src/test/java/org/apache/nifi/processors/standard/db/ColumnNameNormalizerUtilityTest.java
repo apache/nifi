@@ -70,7 +70,7 @@ public class ColumnNameNormalizerUtilityTest {
     void testNormalizingColumnName_NotEnabled() {
         String inputColumnName = "example_column_name";
 
-        String normalized = ColumnNameNormalizerUtility.getNormalizedName(inputColumnName,false, TranslationStrategy.REMOVE_UNDERSCORE, null);
+        String normalized = ColumnNameNormalizerUtility.getNormalizedName(inputColumnName, false, TranslationStrategy.REMOVE_UNDERSCORE, null);
 
         assertEquals(inputColumnName, normalized);
     }
