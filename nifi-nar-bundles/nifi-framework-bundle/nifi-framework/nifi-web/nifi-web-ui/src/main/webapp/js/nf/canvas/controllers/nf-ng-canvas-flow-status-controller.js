@@ -773,7 +773,7 @@
                     var requiredRulesEl = $('#required-rules');
                     var recommendedRulesEl = $('#recommended-rules');
                     var newFlowAnalsysisBtnEl = $('#flow-analysis-check-now-btn');
-                    var flowAnalysisRefreshIntervalSeconds = 5;
+                    var flowAnalysisRefreshIntervalSeconds = nfCommon.getAutoRefreshInterval();
 
                     $('#flow-analysis').click(function () {
                         drawer.toggleClass('opened');
