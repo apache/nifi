@@ -28,7 +28,7 @@ export const loadCountersSuccess = createAction(
 );
 
 export const counterListingApiError = createAction(
-    `${COUNTER_PREFIX} Load Counter Listing Errors`,
+    `${COUNTER_PREFIX} Load Counter Listing Error`,
     props<{ error: string }>()
 );
 

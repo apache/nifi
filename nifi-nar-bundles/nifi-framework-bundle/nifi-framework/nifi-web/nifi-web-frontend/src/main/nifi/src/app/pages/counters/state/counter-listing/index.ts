@@ -27,8 +27,7 @@ export interface CounterListingState {
     counters: CounterEntity[];
     saving: boolean;
     loadedTimestamp: string;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }
 
 export interface LoadCounterListingResponse {

@@ -16,30 +16,34 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import { NiFiState } from '../../../../state';
 import { Store } from '@ngrx/store';
-import { Router } from '@angular/router';
 import * as CounterListingActions from './counter-listing.actions';
 import { catchError, from, map, of, switchMap, take, tap } from 'rxjs';
 import { CountersService } from '../../service/counters.service';
 import { MatDialog } from '@angular/material/dialog';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
+import * as ErrorActions from '../../../../state/error/error.actions';
+import { ErrorHelper } from '../../../../service/error-helper.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { selectStatus } from './counter-listing.selectors';
 
 @Injectable()
 export class CounterListingEffects {
     constructor(
         private actions$: Actions,
         private store: Store<NiFiState>,
-        private router: Router,
         private countersService: CountersService,
+        private errorHelper: ErrorHelper,
         private dialog: MatDialog
     ) {}
 
     loadCounters$ = createEffect(() =>
         this.actions$.pipe(
             ofType(CounterListingActions.loadCounters),
-            switchMap(() =>
+            concatLatestFrom(() => this.store.select(selectStatus)),
+            switchMap(([, status]) =>
                 from(this.countersService.getCounters()).pipe(
                     map((response) =>
                         CounterListingActions.loadCountersSuccess({
@@ -49,13 +53,17 @@ export class CounterListingEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            CounterListingActions.counterListingApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (status === 'success') {
+                            if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                                return of(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            } else {
+                                return of(this.errorHelper.fullScreenError(errorResponse));
+                            }
+                        } else {
+                            return of(this.errorHelper.fullScreenError(errorResponse));
+                        }
+                    })
                 )
             )
         )
@@ -98,9 +106,19 @@ export class CounterListingEffects {
                             response
                         })
                     ),
-                    catchError((error) => of(CounterListingActions.counterListingApiError({ error: error.error })))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(CounterListingActions.counterListingApiError({ error: errorResponse.error }))
+                    )
                 )
             )
+        )
+    );
+
+    counterListingApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(CounterListingActions.counterListingApiError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.snackBarError({ error })))
         )
     );
 }

@@ -25,3 +25,5 @@ export const selectCounterListingState = createSelector(
 );
 
 export const selectCounters = createSelector(selectCounterListingState, (state: CounterListingState) => state.counters);
+
+export const selectStatus = createSelector(selectCounterListingState, (state: CounterListingState) => state.status);
