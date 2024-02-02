@@ -38,8 +38,8 @@ ENV NIFI_TOOLKIT_HOME ${NIFI_BASE_DIR}/nifi-toolkit-current
 ENV NIFI_PID_DIR=${NIFI_HOME}/run
 ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 
-# ADD sh/ ${NIFI_BASE_DIR}/scripts/
-ADD ${pwd}/nifi-docker/dockerhub/sh/ ${NIFI_BASE_DIR}/scripts/
+ADD sh/ ${NIFI_BASE_DIR}/scripts/
+# ADD ${pwd}/nifi-docker/dockerhub/sh/ ${NIFI_BASE_DIR}/scripts/
 RUN chmod -R +x ${NIFI_BASE_DIR}/scripts/*.sh
 
 # --------------------
@@ -61,9 +61,9 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
     # && apt-get install -y selenium webdriver-manager \
     # --------------------
     && pip install spacy==3.5.1 \
-    && python3 -m spacy download en_core_web_md \
+    && python3 -m spacy download en_core_web_md 
 # ------------------------------------
-    && mkdir -p $NIFI_HOME/bin \
+    # && mkdir -p $NIFI_HOME/bin \
     # && chown nifi:nifi $NIFI_HOME/bin
     # && pip install chromedriver-autoinstaller
 
