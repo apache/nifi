@@ -333,7 +333,7 @@
 
                     // get the auto refresh interval
                     var autoRefreshIntervalSeconds = parseInt(configDetails.autoRefreshIntervalSeconds, 10);
-
+                    nfCommon.setAutoRefreshInterval(autoRefreshIntervalSeconds);
                     // record whether we can configure the authorizer
                     nfCanvas.setManagedAuthorizer(configDetails.supportsManagedAuthorizer);
                     nfCanvas.setConfigurableAuthorizer(configDetails.supportsConfigurableAuthorizer);
