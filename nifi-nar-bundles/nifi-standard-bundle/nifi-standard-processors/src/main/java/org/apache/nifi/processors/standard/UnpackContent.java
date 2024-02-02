@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.nio.charset.Charset;
+import java.nio.charset.UnsupportedCharsetException;
 import net.lingala.zip4j.io.inputstream.ZipInputStream;
 import net.lingala.zip4j.model.LocalFileHeader;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
@@ -24,6 +26,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
+import org.apache.commons.io.Charsets;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -38,6 +41,9 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
@@ -139,6 +145,20 @@ public class UnpackContent extends AbstractProcessor {
                     PackageFormat.FLOWFILE_STREAM_FORMAT_V2.toString(), PackageFormat.FLOWFILE_TAR_FORMAT.toString())
             .defaultValue(PackageFormat.AUTO_DETECT_FORMAT.toString())
             .build();
+    public static final PropertyDescriptor ZIP_FILENAMES_ENCODING = new PropertyDescriptor.Builder()
+            .name("zip-filenames-encoding")
+            .displayName("Zip Filenames Encoding")
+            .description(
+                "The encoding used by zip creating utility, for the file names inside the zip. Processor will pass this encoding to Zip unpacker. For example 'Cp437', 'UTF8' etc. Default is to "
+                    + "use platform's encoding. This can be useful for example incase a zip was created on Windows with Cp437 and unpacked on Linux machine. Without correct encoding value special "
+                    + "characters in filenames will be outputted as `?`")
+            .required(false)
+            .dependsOn(
+                PACKAGING_FORMAT,
+                PackageFormat.ZIP_FORMAT.toString(),
+                PackageFormat.AUTO_DETECT_FORMAT.toString())
+            .addValidator(new CharsetStringValidator())
+            .build();
 
     public static final PropertyDescriptor FILE_FILTER = new PropertyDescriptor.Builder()
             .name("File Filter")
@@ -192,6 +212,7 @@ public class UnpackContent extends AbstractProcessor {
 
     private static final List<PropertyDescriptor> properties = List.of(
         PACKAGING_FORMAT,
+        ZIP_FILENAMES_ENCODING,
         FILE_FILTER,
         PASSWORD,
         ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR
@@ -231,7 +252,10 @@ public class UnpackContent extends AbstractProcessor {
             }
             final PropertyValue allowStoredEntriesWithDataDescriptorVal = context.getProperty(ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR);
             final boolean allowStoredEntriesWithDataDescriptor = allowStoredEntriesWithDataDescriptorVal.isSet() ? allowStoredEntriesWithDataDescriptorVal.asBoolean() : false;
-            zipUnpacker = new ZipUnpacker(fileFilter, password, allowStoredEntriesWithDataDescriptor);
+            final PropertyValue filenamesEncodingVal = context.getProperty(ZIP_FILENAMES_ENCODING);
+
+            Charset filenamesEncoding =filenamesEncodingVal.isSet() ? Charsets.toCharset(filenamesEncodingVal.getValue()) : Charset.defaultCharset();
+            zipUnpacker = new ZipUnpacker(fileFilter, password, allowStoredEntriesWithDataDescriptor, filenamesEncoding);
         }
     }
 
@@ -395,20 +419,21 @@ public class UnpackContent extends AbstractProcessor {
     private static class ZipUnpacker extends Unpacker {
         private final char[] password;
         private final boolean allowStoredEntriesWithDataDescriptor;
-
-        public ZipUnpacker(final Pattern fileFilter, final char[] password, final boolean allowStoredEntriesWithDataDescriptor) {
+        private final Charset filenameEncoding;
+        public ZipUnpacker(final Pattern fileFilter, final char[] password, final boolean allowStoredEntriesWithDataDescriptor,final Charset filenameEncoding) {
             super(fileFilter);
             this.password = password;
             this.allowStoredEntriesWithDataDescriptor = allowStoredEntriesWithDataDescriptor;
+            this.filenameEncoding = filenameEncoding;
         }
 
         @Override
         public void unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
             final String fragmentId = UUID.randomUUID().toString();
             if (password == null) {
-                session.read(source, new CompressedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, allowStoredEntriesWithDataDescriptor));
+                session.read(source, new CompressedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, allowStoredEntriesWithDataDescriptor,filenameEncoding));
             } else {
-                session.read(source, new EncryptedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, password));
+                session.read(source, new EncryptedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, password,filenameEncoding));
             }
         }
 
@@ -473,6 +498,7 @@ public class UnpackContent extends AbstractProcessor {
         private static class CompressedZipInputStreamCallback extends ZipInputStreamCallback {
 
             private final boolean allowStoredEntriesWithDataDescriptor;
+            private final Charset filenameEncoding;
 
             private CompressedZipInputStreamCallback(
                     final Pattern fileFilter,
@@ -480,15 +506,18 @@ public class UnpackContent extends AbstractProcessor {
                     final FlowFile sourceFlowFile,
                     final List<FlowFile> unpacked,
                     final String fragmentId,
-                    final boolean allowStoredEntriesWithDataDescriptor
+                    final boolean allowStoredEntriesWithDataDescriptor,
+                    final Charset filenameEncoding
             ) {
                 super(fileFilter, session, sourceFlowFile, unpacked, fragmentId);
                 this.allowStoredEntriesWithDataDescriptor = allowStoredEntriesWithDataDescriptor;
+                this.filenameEncoding = filenameEncoding;
             }
 
             @Override
             public void process(final InputStream inputStream) throws IOException {
-                try (final ZipArchiveInputStream zipInputStream = new ZipArchiveInputStream(new BufferedInputStream(inputStream), null, true, allowStoredEntriesWithDataDescriptor)) {
+                try (final ZipArchiveInputStream zipInputStream = new ZipArchiveInputStream(new BufferedInputStream(inputStream),
+                    filenameEncoding.toString(), true, allowStoredEntriesWithDataDescriptor)) {
                     ZipArchiveEntry zipEntry;
                     while ((zipEntry = zipInputStream.getNextZipEntry()) != null) {
                         processEntry(zipInputStream, zipEntry.isDirectory(), zipEntry.getName(), EncryptionMethod.NONE);
@@ -499,6 +528,7 @@ public class UnpackContent extends AbstractProcessor {
 
         private static class EncryptedZipInputStreamCallback extends ZipInputStreamCallback {
             private final char[] password;
+            private final Charset filenameEncoding;
 
             private EncryptedZipInputStreamCallback(
                     final Pattern fileFilter,
@@ -506,15 +536,17 @@ public class UnpackContent extends AbstractProcessor {
                     final FlowFile sourceFlowFile,
                     final List<FlowFile> unpacked,
                     final String fragmentId,
-                    final char[] password
+                    final char[] password,
+                    final Charset filenameEncoding
             ) {
                 super(fileFilter, session, sourceFlowFile, unpacked, fragmentId);
                 this.password = password;
+                this.filenameEncoding = filenameEncoding;
             }
 
             @Override
             public void process(final InputStream inputStream) throws IOException {
-                try (final ZipInputStream zipInputStream = new ZipInputStream(new BufferedInputStream(inputStream), password)) {
+                try (final ZipInputStream zipInputStream = new ZipInputStream(new BufferedInputStream(inputStream), password,filenameEncoding)) {
                     LocalFileHeader zipEntry;
                     while ((zipEntry = zipInputStream.getNextEntry()) != null) {
                         processEntry(zipInputStream, zipEntry.isDirectory(), zipEntry.getFileName(), zipEntry.getEncryptionMethod());
@@ -641,6 +673,22 @@ public class UnpackContent extends AbstractProcessor {
                 case FLOWFILE_TAR_FORMAT_NAME -> FLOWFILE_TAR_FORMAT;
                 default -> null;
             };
+        }
+    }
+
+  /**
+   * Validates if the given input string is a valid  {@link java.nio.charset.Charset} representation
+   */
+  private static class CharsetStringValidator implements Validator {
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            try {
+                Charsets.toCharset(input);
+                return new ValidationResult.Builder().subject(subject).input(input).valid(true).explanation("Valid charset").build();
+            } catch (UnsupportedCharsetException e) {
+                return new ValidationResult.Builder().subject(subject).input(input).valid(false)
+                    .explanation("Invalid encoding charset: "+e.getMessage()).build();
+            }
         }
     }
 }

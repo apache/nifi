@@ -16,9 +16,12 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.nio.charset.StandardCharsets;
 import net.lingala.zip4j.io.outputstream.ZipOutputStream;
 import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
+import org.apache.commons.io.Charsets;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -220,6 +223,88 @@ public class TestUnpackContent {
             assertTrue(Files.exists(path));
 
             flowFile.assertContentEquals(path.toFile());
+        }
+    }
+    @Test
+    public void testZipEncodingField() {
+        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
+        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        unpackRunner.setProperty(UnpackContent.ZIP_FILENAMES_ENCODING, "invalid-encoding");
+        unpackRunner.assertNotValid();
+        unpackRunner.setProperty(UnpackContent.ZIP_FILENAMES_ENCODING, "IBM437");
+        unpackRunner.assertValid();
+        unpackRunner.setProperty(UnpackContent.ZIP_FILENAMES_ENCODING, "Cp437");
+        unpackRunner.assertValid();
+        unpackRunner.setProperty(UnpackContent.ZIP_FILENAMES_ENCODING, StandardCharsets.ISO_8859_1.name());
+        unpackRunner.assertValid();
+        unpackRunner.setProperty(UnpackContent.ZIP_FILENAMES_ENCODING, StandardCharsets.UTF_8.name());
+        unpackRunner.assertValid();
+
+    }
+    @Test
+    public void testZipWithCp437Encoding() throws IOException {
+        String zipFilename = "windows-with-cp437.zip";
+        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
+        final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
+        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        unpackRunner.setProperty(UnpackContent.ZIP_FILENAMES_ENCODING, "Cp437");
+        unpackRunner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "true"); // just forces this to be exercised
+
+        autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
+        autoUnpackRunner.setProperty(UnpackContent.ZIP_FILENAMES_ENCODING, "Cp437");
+
+        unpackRunner.enqueue(dataPath.resolve(zipFilename));
+        unpackRunner.enqueue(dataPath.resolve(zipFilename));
+
+        Map<String, String> attributes = new HashMap<>(1);
+        attributes.put("mime.type", "application/zip");
+        autoUnpackRunner.enqueue(dataPath.resolve(zipFilename), attributes);
+        autoUnpackRunner.enqueue(dataPath.resolve(zipFilename), attributes);
+        unpackRunner.run(2);
+        autoUnpackRunner.run(2);
+
+        unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+        autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
+
+        final List<MockFlowFile> unpacked =
+            unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        for (final MockFlowFile flowFile : unpacked) {
+            final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+            assertTrue(StringUtils.containsNone(filename, "?"), "filename contains '?': " + filename);
+            assertTrue(StringUtils.containsNone(filename, "�"), "filename contains '�': " + filename);
+            final String path = flowFile.getAttribute(CoreAttributes.PATH.key());
+            assertTrue(StringUtils.containsNone(path, "?"), "path contains '?': " + path);
+            assertTrue(StringUtils.containsNone(path, "�"), "path contains '�': " + path);
+        }
+    }
+    @Test
+    public void testEncryptedZipWithCp437Encoding() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
+        runner.setProperty(UnpackContent.ZIP_FILENAMES_ENCODING, "Cp437");
+        final String password = String.class.getSimpleName();
+        runner.setProperty(UnpackContent.PASSWORD, password);
+
+        final char[] streamPassword = password.toCharArray();
+        final String contents = TestRunner.class.getCanonicalName();
+
+        final byte[] zipEncrypted = createZipEncryptedCp437(EncryptionMethod.AES, streamPassword, contents);
+        runner.enqueue(zipEncrypted);
+        runner.run();
+
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 1);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+
+        final List<MockFlowFile> unpacked =
+            runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        for (final MockFlowFile flowFile : unpacked) {
+            final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+            assertTrue(StringUtils.containsNone(filename, "?"), "filename contains '?': " + filename);
+            assertTrue(StringUtils.containsNone(filename, "�"), "filename contains '�': " + filename);
+            final String path = flowFile.getAttribute(CoreAttributes.PATH.key());
+            assertTrue(StringUtils.containsNone(path, "?"), "path contains '?': " + path);
+            assertTrue(StringUtils.containsNone(path, "�"), "path contains '�': " + path);
         }
     }
 
@@ -519,6 +604,24 @@ public class TestUnpackContent {
         zipParameters.setEncryptionMethod(encryptionMethod);
         zipParameters.setEncryptFiles(true);
         zipParameters.setFileNameInZip(name);
+        zipOutputStream.putNextEntry(zipParameters);
+        zipOutputStream.write(contents.getBytes());
+        zipOutputStream.closeEntry();
+        zipOutputStream.close();
+
+        return outputStream.toByteArray();
+    }
+
+    private byte[] createZipEncryptedCp437(final EncryptionMethod encryptionMethod, final char[] password, final String contents) throws IOException {
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream, password, Charsets.toCharset("Cp437"));
+
+        final String name = UUID.randomUUID().toString();
+
+        final ZipParameters zipParameters = new ZipParameters();
+        zipParameters.setEncryptionMethod(encryptionMethod);
+        zipParameters.setEncryptFiles(true);
+        zipParameters.setFileNameInZip("germän_filename.txt.txt");
         zipOutputStream.putNextEntry(zipParameters);
         zipOutputStream.write(contents.getBytes());
         zipOutputStream.closeEntry();
