@@ -229,15 +229,15 @@ public class TestUnpackContent {
     public void testZipEncodingField() {
         final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
         unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
-        unpackRunner.setProperty(UnpackContent.ZIP_FILENAMES_ENCODING, "invalid-encoding");
+        unpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "invalid-encoding");
         unpackRunner.assertNotValid();
-        unpackRunner.setProperty(UnpackContent.ZIP_FILENAMES_ENCODING, "IBM437");
+        unpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "IBM437");
         unpackRunner.assertValid();
-        unpackRunner.setProperty(UnpackContent.ZIP_FILENAMES_ENCODING, "Cp437");
+        unpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "Cp437");
         unpackRunner.assertValid();
-        unpackRunner.setProperty(UnpackContent.ZIP_FILENAMES_ENCODING, StandardCharsets.ISO_8859_1.name());
+        unpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, StandardCharsets.ISO_8859_1.name());
         unpackRunner.assertValid();
-        unpackRunner.setProperty(UnpackContent.ZIP_FILENAMES_ENCODING, StandardCharsets.UTF_8.name());
+        unpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, StandardCharsets.UTF_8.name());
         unpackRunner.assertValid();
 
     }
@@ -247,11 +247,11 @@ public class TestUnpackContent {
         final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
         final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
         unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
-        unpackRunner.setProperty(UnpackContent.ZIP_FILENAMES_ENCODING, "Cp437");
+        unpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "Cp437");
         unpackRunner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "true"); // just forces this to be exercised
 
         autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
-        autoUnpackRunner.setProperty(UnpackContent.ZIP_FILENAMES_ENCODING, "Cp437");
+        autoUnpackRunner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "Cp437");
 
         unpackRunner.enqueue(dataPath.resolve(zipFilename));
         unpackRunner.enqueue(dataPath.resolve(zipFilename));
@@ -282,7 +282,7 @@ public class TestUnpackContent {
         final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
         runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
-        runner.setProperty(UnpackContent.ZIP_FILENAMES_ENCODING, "Cp437");
+        runner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "Cp437");
         final String password = String.class.getSimpleName();
         runner.setProperty(UnpackContent.PASSWORD, password);
 

@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.standard;
 
 import java.nio.charset.Charset;
-import java.nio.charset.UnsupportedCharsetException;
 import net.lingala.zip4j.io.inputstream.ZipInputStream;
 import net.lingala.zip4j.model.LocalFileHeader;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
@@ -37,13 +36,11 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
@@ -110,6 +107,13 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = "file.permissions", description = "The read/write/execute permissions of the unpacked file (tar only)"),
     @WritesAttribute(attribute = "file.encryptionMethod", description = "The encryption method for entries in Zip archives")})
 @SeeAlso(MergeContent.class)
+@UseCase(
+    description = "Unpack Zip containing filenames with special characters, created on Windows with filename charset 'Cp437' or 'IBM437'.",
+    configuration = """
+        Set "Packaging Format" value to "zip" or "use mime.type attribute".
+        Set "Filename Character Set" value to "Cp437" or "IBM437".
+        """
+)
 public class UnpackContent extends AbstractProcessor {
     // attribute keys
     public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
@@ -145,19 +149,20 @@ public class UnpackContent extends AbstractProcessor {
                     PackageFormat.FLOWFILE_STREAM_FORMAT_V2.toString(), PackageFormat.FLOWFILE_TAR_FORMAT.toString())
             .defaultValue(PackageFormat.AUTO_DETECT_FORMAT.toString())
             .build();
-    public static final PropertyDescriptor ZIP_FILENAMES_ENCODING = new PropertyDescriptor.Builder()
-            .name("zip-filenames-encoding")
-            .displayName("Zip Filenames Encoding")
+    public static final PropertyDescriptor ZIP_FILENAME_CHARSET = new PropertyDescriptor.Builder()
+            .name("Filename Character Set")
+            .displayName("Filename Character Set")
             .description(
-                "The encoding used by zip creating utility, for the file names inside the zip. Processor will pass this encoding to Zip unpacker. For example 'Cp437', 'UTF8' etc. Default is to "
-                    + "use platform's encoding. This can be useful for example incase a zip was created on Windows with Cp437 and unpacked on Linux machine. Without correct encoding value special "
-                    + "characters in filenames will be outputted as `?`")
+                "If supplied this character set will be supplied to the Zip utility to attempt to decode filenames using the specific character set. "
+                    + "If not specified the default platform character set will be used. This is useful if a Zip was created with a different character "
+                    + "set than the platform default and the zip uses non standard values to specify.")
             .required(false)
             .dependsOn(
                 PACKAGING_FORMAT,
                 PackageFormat.ZIP_FORMAT.toString(),
                 PackageFormat.AUTO_DETECT_FORMAT.toString())
-            .addValidator(new CharsetStringValidator())
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .defaultValue(Charset.defaultCharset().toString())
             .build();
 
     public static final PropertyDescriptor FILE_FILTER = new PropertyDescriptor.Builder()
@@ -212,7 +217,7 @@ public class UnpackContent extends AbstractProcessor {
 
     private static final List<PropertyDescriptor> properties = List.of(
         PACKAGING_FORMAT,
-        ZIP_FILENAMES_ENCODING,
+        ZIP_FILENAME_CHARSET,
         FILE_FILTER,
         PASSWORD,
         ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR
@@ -252,9 +257,9 @@ public class UnpackContent extends AbstractProcessor {
             }
             final PropertyValue allowStoredEntriesWithDataDescriptorVal = context.getProperty(ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR);
             final boolean allowStoredEntriesWithDataDescriptor = allowStoredEntriesWithDataDescriptorVal.isSet() ? allowStoredEntriesWithDataDescriptorVal.asBoolean() : false;
-            final PropertyValue filenamesEncodingVal = context.getProperty(ZIP_FILENAMES_ENCODING);
 
-            Charset filenamesEncoding =filenamesEncodingVal.isSet() ? Charsets.toCharset(filenamesEncodingVal.getValue()) : Charset.defaultCharset();
+            final String filenamesEncodingVal = context.getProperty(ZIP_FILENAME_CHARSET).getValue();
+            Charset filenamesEncoding =Charsets.toCharset(filenamesEncodingVal);
             zipUnpacker = new ZipUnpacker(fileFilter, password, allowStoredEntriesWithDataDescriptor, filenamesEncoding);
         }
     }
@@ -314,7 +319,7 @@ public class UnpackContent extends AbstractProcessor {
           }
           default ->
             // The format of the unpacker should be known before initialization
-              throw new ProcessException(packagingFormat + " is not a valid packaging format");
+            throw new ProcessException(packagingFormat + " is not a valid packaging format");
         };
 
       final List<FlowFile> unpacked = new ArrayList<>();
@@ -374,7 +379,7 @@ public class UnpackContent extends AbstractProcessor {
                 int fragmentCount = 0;
                 try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(new BufferedInputStream(inputStream))) {
                     TarArchiveEntry tarEntry;
-                    while ((tarEntry = tarIn.getNextEntry()) != null) {
+                    while ((tarEntry = tarIn.getNextTarEntry()) != null) {
                         if (tarEntry.isDirectory() || !fileMatches(tarEntry)) {
                             continue;
                         }
@@ -516,7 +521,7 @@ public class UnpackContent extends AbstractProcessor {
                 try (final ZipArchiveInputStream zipInputStream = new ZipArchiveInputStream(new BufferedInputStream(inputStream),
                     filenameEncoding.toString(), true, allowStoredEntriesWithDataDescriptor)) {
                     ZipArchiveEntry zipEntry;
-                    while ((zipEntry = zipInputStream.getNextEntry()) != null) {
+                    while ((zipEntry = zipInputStream.getNextZipEntry()) != null) {
                         processEntry(zipInputStream, zipEntry.isDirectory(), zipEntry.getName(), EncryptionMethod.NONE);
                     }
                 }
@@ -670,22 +675,6 @@ public class UnpackContent extends AbstractProcessor {
                 case FLOWFILE_TAR_FORMAT_NAME -> FLOWFILE_TAR_FORMAT;
                 default -> null;
             };
-        }
-    }
-
-  /**
-   * Validates if the given input string is a valid  {@link java.nio.charset.Charset} representation
-   */
-  private static class CharsetStringValidator implements Validator {
-        @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            try {
-                Charsets.toCharset(input);
-                return new ValidationResult.Builder().subject(subject).input(input).valid(true).explanation("Valid charset").build();
-            } catch (UnsupportedCharsetException e) {
-                return new ValidationResult.Builder().subject(subject).input(input).valid(false)
-                    .explanation("Invalid encoding charset: "+e.getMessage()).build();
-            }
         }
     }
 }
