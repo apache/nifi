@@ -19,7 +19,6 @@ package org.apache.nifi.apicurio.schemaregistry.client;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -29,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.util.OptionalInt;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.doReturn;
@@ -39,55 +39,45 @@ import static org.mockito.Mockito.verify;
 class ApicurioSchemaRegistryClientTest {
 
     private static final String TEST_URL = "http://test.apicurio-schema-registry.com:8888";
-    private static final String SCHEMA_NAME = "schema1";
-    private static final int VERSION = 3;
-    private static final String SEARCH_URL = TEST_URL + "/search";
-    private static final String METADATA_URL = TEST_URL + "/meta";
-    private static final String SCHEMA_VERSION_URL = TEST_URL + "/schema/versions/" + VERSION;
-    private static final String GROUP_ID = "groupId1";
     private static final String ARTIFACT_ID = "artifactId1";
+    private static final int VERSION = 3;
+    private static final String SCHEMA_ARTIFACT_URL = TEST_URL + "/schema/" + ARTIFACT_ID;
+    private static final String SCHEMA_VERSION_URL = TEST_URL + "/schema/versions/" + VERSION;
     @Mock
     private SchemaRegistryApiClient apiClient;
     private ApicurioSchemaRegistryClient schemaRegistryClient;
 
-    @BeforeEach
-    void setup() {
-        doReturn(URI.create(SEARCH_URL)).when(apiClient).buildSearchUri(SCHEMA_NAME);
-        doReturn(URI.create(SCHEMA_VERSION_URL)).when(apiClient).buildSchemaVersionUri(GROUP_ID, ARTIFACT_ID, VERSION);
-        doReturn(getResource("search_response.json")).when(apiClient).retrieveResponse(URI.create(SEARCH_URL));
-        doReturn(getResource("schema_response.json")).when(apiClient).retrieveResponse(URI.create(SCHEMA_VERSION_URL));
-    }
-
     @Test
-    void testGetSchemaWithNameInvokesApiClientAndReturnsRecordSchema() throws IOException, SchemaNotFoundException {
-        doReturn(URI.create(METADATA_URL)).when(apiClient).buildMetaDataUri(GROUP_ID, ARTIFACT_ID);
-        doReturn(getResource("metadata_response.json")).when(apiClient).retrieveResponse(URI.create(METADATA_URL));
+    void testGetSchemaWithIdInvokesApiClientAndReturnsRecordSchema() throws IOException, SchemaNotFoundException {
+        doReturn(URI.create(SCHEMA_ARTIFACT_URL)).when(apiClient).buildSchemaArtifactUri(ARTIFACT_ID);
+        doReturn(getResource("schema_response_version_latest.json")).when(apiClient).retrieveResponse(URI.create(SCHEMA_ARTIFACT_URL));
 
         schemaRegistryClient = new ApicurioSchemaRegistryClient(apiClient);
 
-        final RecordSchema schema = schemaRegistryClient.getSchema(SCHEMA_NAME);
+        final RecordSchema schema = schemaRegistryClient.getSchema(ARTIFACT_ID, OptionalInt.empty());
 
-        verify(apiClient).buildSearchUri(SCHEMA_NAME);
-        verify(apiClient).buildMetaDataUri(GROUP_ID, ARTIFACT_ID);
-        verify(apiClient).buildSchemaVersionUri(GROUP_ID, ARTIFACT_ID, VERSION);
+        verify(apiClient).buildSchemaArtifactUri(ARTIFACT_ID);
+        verify(apiClient, never()).buildSchemaVersionUri(ARTIFACT_ID, VERSION);
 
-        final String expectedSchemaText = IOUtils.toString(getResource("schema_response.json"), Charset.defaultCharset())
+        final String expectedSchemaText = IOUtils.toString(getResource("schema_response_version_latest.json"), Charset.defaultCharset())
                 .replace("\n", "")
                 .replaceAll(" +", "");
         assertEquals(expectedSchemaText, schema.getSchemaText().orElseThrow(() -> new AssertionError("Schema Text is empty")));
     }
 
     @Test
-    void testGetSchemaWithNameAndVersionInvokesApiClientAndReturnsRecordSchema() throws IOException, SchemaNotFoundException {
+    void testGetSchemaWithIdAndVersionInvokesApiClientAndReturnsRecordSchema() throws IOException, SchemaNotFoundException {
+        doReturn(URI.create(SCHEMA_VERSION_URL)).when(apiClient).buildSchemaVersionUri(ARTIFACT_ID, VERSION);
+        doReturn(getResource("schema_response_version_3.json")).when(apiClient).retrieveResponse(URI.create(SCHEMA_VERSION_URL));
+
         schemaRegistryClient = new ApicurioSchemaRegistryClient(apiClient);
 
-        final RecordSchema schema = schemaRegistryClient.getSchema(SCHEMA_NAME, 3);
+        final RecordSchema schema = schemaRegistryClient.getSchema(ARTIFACT_ID, OptionalInt.of(VERSION));
 
-        verify(apiClient).buildSearchUri(SCHEMA_NAME);
-        verify(apiClient, never()).buildMetaDataUri(GROUP_ID, ARTIFACT_ID);
-        verify(apiClient).buildSchemaVersionUri(GROUP_ID, ARTIFACT_ID, VERSION);
+        verify(apiClient, never()).buildSchemaArtifactUri(ARTIFACT_ID);
+        verify(apiClient).buildSchemaVersionUri(ARTIFACT_ID, VERSION);
 
-        final String expectedSchemaText = IOUtils.toString(getResource("schema_response.json"), Charset.defaultCharset())
+        final String expectedSchemaText = IOUtils.toString(getResource("schema_response_version_3.json"), Charset.defaultCharset())
                 .replace("\n", "")
                 .replaceAll(" +", "");
         assertEquals(expectedSchemaText, schema.getSchemaText().orElseThrow(() -> new AssertionError("Schema Text is empty")));
