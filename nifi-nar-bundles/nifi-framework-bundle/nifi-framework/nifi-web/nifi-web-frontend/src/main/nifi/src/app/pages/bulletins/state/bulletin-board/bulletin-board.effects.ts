@@ -19,27 +19,30 @@ import { Injectable } from '@angular/core';
 import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
-import { Router } from '@angular/router';
 import * as BulletinBoardActions from './bulletin-board.actions';
-import { asyncScheduler, from, interval, map, of, switchMap, takeUntil } from 'rxjs';
+import { asyncScheduler, catchError, from, interval, map, of, switchMap, takeUntil } from 'rxjs';
 import { BulletinBoardService } from '../../service/bulletin-board.service';
-import { selectBulletinBoardFilter, selectLastBulletinId } from './bulletin-board.selectors';
+import { selectBulletinBoardFilter, selectLastBulletinId, selectStatus } from './bulletin-board.selectors';
 import { LoadBulletinBoardRequest } from './index';
+import * as ErrorActions from '../../../../state/error/error.actions';
+import { ErrorHelper } from '../../../../service/error-helper.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class BulletinBoardEffects {
     constructor(
         private actions$: Actions,
         private store: Store<NiFiState>,
-        private router: Router,
-        private bulletinBoardService: BulletinBoardService
+        private bulletinBoardService: BulletinBoardService,
+        private errorHelper: ErrorHelper
     ) {}
 
     loadBulletinBoard$ = createEffect(() =>
         this.actions$.pipe(
             ofType(BulletinBoardActions.loadBulletinBoard),
             map((action) => action.request),
-            switchMap((request) =>
+            concatLatestFrom(() => this.store.select(selectStatus)),
+            switchMap(([request, status]) =>
                 from(
                     this.bulletinBoardService.getBulletins(request).pipe(
                         map((response: any) =>
@@ -49,7 +52,18 @@ export class BulletinBoardEffects {
                                     loadedTimestamp: response.bulletinBoard.generated
                                 }
                             })
-                        )
+                        ),
+                        catchError((errorResponse: HttpErrorResponse) => {
+                            if (status === 'success') {
+                                if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                                    return of(ErrorActions.snackBarError({ error: errorResponse.error }));
+                                } else {
+                                    return of(this.errorHelper.fullScreenError(errorResponse));
+                                }
+                            } else {
+                                return of(this.errorHelper.fullScreenError(errorResponse));
+                            }
+                        })
                     )
                 )
             )

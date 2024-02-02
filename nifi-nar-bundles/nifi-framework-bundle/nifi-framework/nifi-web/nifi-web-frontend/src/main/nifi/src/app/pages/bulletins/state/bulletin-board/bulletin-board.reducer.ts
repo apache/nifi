@@ -18,7 +18,6 @@
 import { BulletinBoardEvent, BulletinBoardItem, BulletinBoardState } from './index';
 import { createReducer, on } from '@ngrx/store';
 import {
-    bulletinBoardApiError,
     clearBulletinBoard,
     loadBulletinBoard,
     loadBulletinBoardSuccess,
@@ -36,7 +35,6 @@ export const initialBulletinBoardState: BulletinBoardState = {
     autoRefresh: true,
     lastBulletinId: 0,
     status: 'pending',
-    error: null,
     loadedTimestamp: ''
 };
 
@@ -67,16 +65,9 @@ export const bulletinBoardReducer = createReducer(
             bulletinBoardItems: [...state.bulletinBoardItems, ...items],
             lastBulletinId: lastId,
             status: 'success' as const,
-            error: null,
             loadedTimestamp: response.loadedTimestamp
         };
     }),
-
-    on(bulletinBoardApiError, (state, { error }) => ({
-        ...state,
-        error,
-        status: 'error' as const
-    })),
 
     on(resetBulletinBoardState, () => ({ ...initialBulletinBoardState })),
 

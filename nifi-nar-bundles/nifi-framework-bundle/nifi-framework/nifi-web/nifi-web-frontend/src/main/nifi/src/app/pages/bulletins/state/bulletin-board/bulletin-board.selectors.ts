@@ -33,3 +33,8 @@ export const selectBulletinBoardFilter = createSelector(
     selectBulletinBoardState,
     (state: BulletinBoardState) => state.filter
 );
+
+export const selectStatus = createSelector(
+    selectBulletinBoardState,
+    (state: BulletinBoardState) => state.status
+);
