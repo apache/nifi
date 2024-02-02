@@ -19,7 +19,7 @@ package org.apache.nifi.processors.standard.db;
 import org.apache.nifi.components.DescribedValue;
 
 /**
- * Enumeration of supported Database column name Translation Strategy
+ * Enumeration of supported Database column name Translation Strategies
  */
 public enum TranslationStrategy implements DescribedValue {
    REMOVE_UNDERSCORE("Remove Underscore",
