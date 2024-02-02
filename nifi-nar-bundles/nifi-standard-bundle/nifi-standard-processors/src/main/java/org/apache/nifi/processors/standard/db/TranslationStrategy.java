@@ -22,55 +22,32 @@ import org.apache.nifi.components.DescribedValue;
  * Enumeration of supported Database column name Translation Strategy
  */
 public enum TranslationStrategy implements DescribedValue {
-    REMOVE_UNDERSCORE {
-        @Override
-        public String getDisplayName() {
-            return "Remove Underscore";
-        }
+   REMOVE_UNDERSCORE("Remove Underscore",
+            "Underscore(_) will be removed from column name with empty string Ex. Pics_1_11 become PICS111"),
+    REMOVE_SPACE("Remove Space", "Spaces will be removed from column name with empty string Ex. 'User Name' become 'USERNAME'"),
+    REMOVE_ALL_SPECIAL_CHAR("Remove All Special Character", "Remove All Special Character"),
+    PATTERN("Regular Expression", "Remove character matched Regular Expression from column name");
+    
+    private final String displayName;
+    private final String description;
 
-        @Override
-        public String getDescription() {
-            return "Underscore(_) will be removed from column name with empty string Ex. Pics_1_11 become PICS111";
-        }
-    },
-    REMOVE_SPACE {
-        @Override
-        public String getDisplayName() {
-            return "Remove Space";
-        }
-
-        @Override
-        public String getDescription() {
-            return "Spaces will be removed from column name with empty string Ex. 'User Name' become 'USERNAME'";
-        }
-    },
-    REMOVE_ALL_SPECIAL_CHAR {
-        @Override
-        public String getDisplayName() {
-            return "Remove All Special Character";
-        }
-
-        @Override
-        public String getDescription() {
-            return "Remove All Special Character";
-        }
-    },
-    PATTERN{
-    @Override
-    public String getDisplayName() {
-        return "Regular Expression";
+    TranslationStrategy(String displayName, String description) {
+        this.displayName = displayName;
+        this.description = description;
     }
-
-    @Override
-    public String getDescription() {
-        return "Remove character matched Regular Expression from column name";
-    }
-};
-
 
     @Override
     public String getValue() {
         return name();
     }
 
+    @Override
+    public String getDisplayName() {
+        return displayName;
     }
+
+    @Override
+    public String getDescription() {
+        return description;
+    }
+}
