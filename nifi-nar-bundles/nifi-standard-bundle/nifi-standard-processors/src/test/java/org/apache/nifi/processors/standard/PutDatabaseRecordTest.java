@@ -273,7 +273,7 @@ public class PutDatabaseRecordTest {
                         new ColumnDescription("name", 12, true, 255, true),
                         new ColumnDescription("code", 4, true, 10, true)
                 ),
-                false,null,null,
+                false, null, null,
                 new HashSet<>(Arrays.asList("id")),
                 ""
         );
