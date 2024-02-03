@@ -41,6 +41,7 @@ import {
     resetFlowState,
     runOnce,
     runOnceSuccess,
+    setAllowTransition,
     setDragging,
     setNavigationCollapsed,
     setOperationCollapsed,
@@ -137,6 +138,7 @@ export const initialState: FlowState = {
     saving: false,
     transitionRequired: false,
     skipTransform: false,
+    allowTransition: false,
     navigationCollapsed: false,
     operationCollapsed: false,
     error: null,
@@ -297,15 +299,19 @@ export const flowReducer = createReducer(
     }),
     on(setDragging, (state, { dragging }) => ({
         ...state,
-        dragging: dragging
+        dragging
     })),
     on(setTransitionRequired, (state, { transitionRequired }) => ({
         ...state,
-        transitionRequired: transitionRequired
+        transitionRequired
     })),
     on(setSkipTransform, (state, { skipTransform }) => ({
         ...state,
-        skipTransform: skipTransform
+        skipTransform
+    })),
+    on(setAllowTransition, (state, { allowTransition }) => ({
+        ...state,
+        allowTransition
     })),
     on(navigateWithoutTransform, (state) => ({
         ...state,
@@ -313,11 +319,11 @@ export const flowReducer = createReducer(
     })),
     on(setNavigationCollapsed, (state, { navigationCollapsed }) => ({
         ...state,
-        navigationCollapsed: navigationCollapsed
+        navigationCollapsed
     })),
     on(setOperationCollapsed, (state, { operationCollapsed }) => ({
         ...state,
-        operationCollapsed: operationCollapsed
+        operationCollapsed
     })),
     on(startComponentSuccess, stopComponentSuccess, (state, { response }) => {
         return produce(state, (draftState) => {

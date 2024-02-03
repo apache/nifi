@@ -51,6 +51,7 @@ export class CanvasView {
     private behavior: any;
 
     private birdseyeTranslateInProgress = false;
+    private allowTransition = false;
 
     constructor(
         private store: Store<CanvasState>,
@@ -85,6 +86,10 @@ export class CanvasView {
         this.svg = svg;
         this.canvas = canvas;
 
+        this.k = INITIAL_SCALE;
+        this.x = INITIAL_TRANSLATE.x;
+        this.y = INITIAL_TRANSLATE.y;
+
         this.labelManager.init();
         this.funnelManager.init();
         this.portManager.init(viewContainerRef);
@@ -118,7 +123,7 @@ export class CanvasView {
 
                 // refresh the canvas
                 refreshed = self.refresh({
-                    transition: self.shouldTransition(event.sourceEvent),
+                    transition: self.shouldTransition(event),
                     refreshComponents: false,
                     refreshBirdseye: false
                 });
@@ -170,18 +175,73 @@ export class CanvasView {
         return this.birdseyeTranslateInProgress;
     }
 
-    // see if the scale has changed during this zoom event,
-    // we want to only transition when zooming in/out as running
-    // the transitions during pan events is undesirable
     private shouldTransition(sourceEvent: any): boolean {
         if (this.birdseyeTranslateInProgress) {
             return false;
         }
 
-        if (sourceEvent) {
-            return sourceEvent.type === 'wheel' || sourceEvent.type === 'mousewheel';
+        return this.allowTransition;
+    }
+
+    public isSelectedComponentOnScreen(): boolean {
+        const canvasContainer: any = document.getElementById('canvas-container');
+
+        if (canvasContainer == null) {
+            return false;
+        }
+
+        const selection: any = this.canvasUtils.getSelection();
+        if (selection.size() !== 1) {
+            return false;
+        }
+        const d = selection.datum();
+
+        let translate = [this.x, this.y];
+        const scale = this.k;
+
+        // scale the translation
+        translate = [translate[0] / scale, translate[1] / scale];
+
+        // get the normalized screen width and height
+        const screenWidth = canvasContainer.offsetWidth / scale;
+        const screenHeight = canvasContainer.offsetHeight / scale;
+
+        // calculate the screen bounds one screens worth in each direction
+        const screenLeft = -translate[0];
+        const screenTop = -translate[1];
+        const screenRight = screenLeft + screenWidth;
+        const screenBottom = screenTop + screenHeight;
+
+        if (this.canvasUtils.isConnection(selection)) {
+            let connectionX, connectionY;
+            if (d.bends.length > 0) {
+                const i: number = Math.min(Math.max(0, d.labelIndex), d.bends.length - 1);
+                connectionX = d.bends[i].x;
+                connectionY = d.bends[i].y;
+            } else {
+                connectionX = (d.start.x + d.end.x) / 2;
+                connectionY = (d.start.y + d.end.y) / 2;
+            }
+
+            return (
+                screenLeft < connectionX &&
+                screenRight > connectionX &&
+                screenTop < connectionY &&
+                screenBottom > connectionY
+            );
         } else {
-            return true;
+            const componentLeft: number = d.position.x;
+            const componentTop: number = d.position.y;
+            const componentRight: number = componentLeft + d.dimensions.width;
+            const componentBottom: number = componentTop + d.dimensions.height;
+
+            // determine if the component is now visible
+            return (
+                screenLeft < componentRight &&
+                screenRight > componentLeft &&
+                screenTop < componentBottom &&
+                screenBottom > componentTop
+            );
         }
     }
 
@@ -293,7 +353,7 @@ export class CanvasView {
     }
 
     /**
-     * Whether or not a component should be rendered based solely on the current scale.
+     * Whether a component should be rendered based solely on the current scale.
      *
      * @returns {Boolean}
      */
@@ -301,45 +361,59 @@ export class CanvasView {
         return this.k >= CanvasView.MIN_SCALE_TO_RENDER;
     }
 
-    public centerSelectedComponent(): void {
-        const selection: any = this.canvasUtils.getSelection();
-        if (selection.size() === 1) {
-            let box;
-            if (this.canvasUtils.isConnection(selection)) {
-                let x, y;
-                const d = selection.datum();
-
-                // get the position of the connection label
-                if (d.bends.length > 0) {
-                    const i: number = Math.min(Math.max(0, d.labelIndex), d.bends.length - 1);
-                    x = d.bends[i].x;
-                    y = d.bends[i].y;
-                } else {
-                    x = (d.start.x + d.end.x) / 2;
-                    y = (d.start.y + d.end.y) / 2;
-                }
-
-                box = {
-                    x: x,
-                    y: y,
-                    width: 1,
-                    height: 1
-                };
-            } else {
-                const selectionData = selection.datum();
-                const selectionPosition = selectionData.position;
-
-                box = {
-                    x: selectionPosition.x,
-                    y: selectionPosition.y,
-                    width: selectionData.dimensions.width,
-                    height: selectionData.dimensions.height
-                };
-            }
-
-            // center on the component
-            this.centerBoundingBox(box);
+    public centerSelectedComponents(allowTransition: boolean): void {
+        const canvasContainer: any = document.getElementById('canvas-container');
+        if (canvasContainer == null) {
+            return;
         }
+
+        const selection: any = this.canvasUtils.getSelection();
+        if (selection.empty()) {
+            return;
+        }
+
+        const box = this.getSelectionBoundingClientRect(selection, canvasContainer);
+
+        this.allowTransition = allowTransition;
+        this.centerBoundingBox(box);
+        this.allowTransition = false;
+    }
+
+    /**
+     * Get a BoundingClientRect, normalized to the canvas, that encompasses all nodes in a given selection.
+     */
+    private getSelectionBoundingClientRect(selection: any, canvasContainer: any): any {
+        const canvasBoundingBox: any = canvasContainer.getBoundingClientRect();
+
+        const initialBBox: any = {
+            x: Number.MAX_VALUE,
+            y: Number.MAX_VALUE,
+            right: Number.MIN_VALUE,
+            bottom: Number.MIN_VALUE
+        };
+
+        const bbox = selection.nodes().reduce((aggregateBBox: any, node: any) => {
+            const rect = node.getBoundingClientRect();
+            aggregateBBox.x = Math.min(rect.x, aggregateBBox.x);
+            aggregateBBox.y = Math.min(rect.y, aggregateBBox.y);
+            aggregateBBox.right = Math.max(rect.right, aggregateBBox.right);
+            aggregateBBox.bottom = Math.max(rect.bottom, aggregateBBox.bottom);
+
+            return aggregateBBox;
+        }, initialBBox);
+
+        // normalize the bounding box with scale and translate
+        bbox.x = (bbox.x - this.x) / this.k;
+        bbox.y = (bbox.y - canvasBoundingBox.top - this.y) / this.k;
+        bbox.right = (bbox.right - this.x) / this.k;
+        bbox.bottom = (bbox.bottom - canvasBoundingBox.top - this.y) / this.k;
+
+        bbox.width = bbox.right - bbox.x;
+        bbox.height = bbox.bottom - bbox.y;
+        bbox.top = bbox.y;
+        bbox.left = bbox.x;
+
+        return bbox;
     }
 
     private centerBoundingBox(boundingBox: any): void {
@@ -430,14 +504,18 @@ export class CanvasView {
      * Zooms in a single zoom increment.
      */
     public zoomIn(): void {
+        this.allowTransition = true;
         this.scale(CanvasView.INCREMENT);
+        this.allowTransition = false;
     }
 
     /**
      * Zooms out a single zoom increment.
      */
     public zoomOut(): void {
+        this.allowTransition = true;
         this.scale(1 / CanvasView.INCREMENT);
+        this.allowTransition = false;
     }
 
     /**
@@ -476,7 +554,7 @@ export class CanvasView {
             graphTop -= 50;
         }
 
-        // center as appropriate
+        this.allowTransition = true;
         this.centerBoundingBox({
             x: graphLeft - translate[0] / scale,
             y: graphTop - translate[1] / scale,
@@ -484,6 +562,7 @@ export class CanvasView {
             height: canvasHeight / newScale,
             scale: newScale
         });
+        this.allowTransition = false;
     }
 
     /**
@@ -530,8 +609,9 @@ export class CanvasView {
             };
         }
 
-        // center as appropriate
+        this.allowTransition = true;
         this.centerBoundingBox(box);
+        this.allowTransition = false;
     }
 
     /**

@@ -32,6 +32,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { NiFiState } from '../../../state';
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { Storage } from '../../../service/storage.service';
 
 @Component({
     selector: 'navigation',
@@ -59,6 +60,7 @@ export class Navigation {
         private store: Store<NiFiState>,
         private authStorage: AuthStorage,
         private authService: AuthService,
+        private storage: Storage,
         @Inject(DOCUMENT) private _document: Document
     ) {}
 
@@ -92,6 +94,11 @@ export class Navigation {
                 }
             })
         );
+    }
+
+    getCanvasLink(): string {
+        const canvasRoute = this.storage.getItem('current-canvas-route');
+        return canvasRoute || '/';
     }
 
     toggleTheme(value = !this.isDarkMode) {

@@ -22,6 +22,8 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../../state/flow/flow.reducer';
 
 describe('Search', () => {
     let component: Search;
@@ -37,6 +39,11 @@ describe('Search', () => {
                 ReactiveFormsModule,
                 CdkConnectedOverlay,
                 MatAutocompleteModule
+            ],
+            providers: [
+                provideMockStore({
+                    initialState
+                })
             ]
         });
         fixture = TestBed.createComponent(Search);

@@ -43,7 +43,7 @@
                 <i class="fa fa-navicon"></i>
             </button>
             <mat-menu #globalMenu="matMenu" xPosition="before">
-                <button mat-menu-item class="global-menu-item" [routerLink]="['/']">
+                <button mat-menu-item class="global-menu-item" [routerLink]="getCanvasLink()">
                     <i class="icon icon-drop mr-2"></i>
                     Canvas
                 </button>

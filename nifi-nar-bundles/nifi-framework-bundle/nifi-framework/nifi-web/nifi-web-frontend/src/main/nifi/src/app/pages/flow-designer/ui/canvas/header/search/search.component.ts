@@ -32,6 +32,9 @@ import { NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { CanvasState } from '../../../../state';
+import { Store } from '@ngrx/store';
+import { setAllowTransition } from '../../../../state/flow/flow.actions';
 
 @Component({
     selector: 'search',
@@ -88,7 +91,8 @@ export class Search implements OnInit {
 
     constructor(
         private formBuilder: FormBuilder,
-        private searchService: SearchService
+        private searchService: SearchService,
+        private store: Store<CanvasState>
     ) {
         this.searchForm = this.formBuilder.group({ searchBar: '' });
     }
@@ -168,5 +172,9 @@ export class Search implements OnInit {
         this.parameterContextResults = [];
         this.parameterProviderNodeResults = [];
         this.parameterResults = [];
+    }
+
+    componentLinkClicked(): void {
+        this.store.dispatch(setAllowTransition({ allowTransition: true }));
     }
 }

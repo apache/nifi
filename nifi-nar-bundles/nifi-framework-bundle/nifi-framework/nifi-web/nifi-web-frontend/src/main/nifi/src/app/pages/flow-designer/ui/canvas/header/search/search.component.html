@@ -186,10 +186,21 @@
             </li>
             <!-- TODO - Consider showing more context of match like existing UI -->
             <li *ngFor="let result of results" class="ml-2 py-1">
-                <a *ngIf="!result.parentGroup; else resultLink" [routerLink]="['/process-groups', result.id]">
+                <a *ngIf="!result.parentGroup; else componentLink" [routerLink]="['/process-groups', result.id]">
                     {{ result.name }}
                 </a>
-                <ng-template #resultLink>
+                <ng-template #componentLink>
+                    <a
+                        *ngIf="
+                            result.parentGroup.id == currentProcessGroupId;
+                            else componentInDifferentProcessGroupLink
+                        "
+                        (click)="componentLinkClicked()"
+                        [routerLink]="['/process-groups', result.parentGroup.id, path, result.id]">
+                        {{ result.name ? result.name : result.id }}
+                    </a>
+                </ng-template>
+                <ng-template #componentInDifferentProcessGroupLink>
                     <a [routerLink]="['/process-groups', result.parentGroup.id, path, result.id]">
                         {{ result.name ? result.name : result.id }}
                     </a>
