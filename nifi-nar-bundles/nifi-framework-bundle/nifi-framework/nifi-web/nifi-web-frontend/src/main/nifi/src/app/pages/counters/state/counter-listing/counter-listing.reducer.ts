@@ -45,7 +45,7 @@ export const counterListingReducer = createReducer(
         loadedTimestamp: response.loadedTimestamp,
         status: 'success' as const
     })),
-    on(counterListingApiError, (state, { error }) => ({
+    on(counterListingApiError, (state) => ({
         ...state,
         saving: false
     })),

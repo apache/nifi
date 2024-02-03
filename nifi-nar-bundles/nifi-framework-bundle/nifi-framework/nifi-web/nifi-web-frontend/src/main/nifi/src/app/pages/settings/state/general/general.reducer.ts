@@ -63,7 +63,7 @@ export const generalReducer = createReducer(
         ...state,
         saving: true
     })),
-    on(controllerConfigApiError, (state, { error }) => ({
+    on(controllerConfigApiError, (state) => ({
         ...state,
         saving: false
     })),

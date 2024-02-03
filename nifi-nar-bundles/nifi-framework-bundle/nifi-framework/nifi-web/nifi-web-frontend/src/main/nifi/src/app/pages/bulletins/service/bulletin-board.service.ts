@@ -23,9 +23,7 @@ import { LoadBulletinBoardRequest } from '../state/bulletin-board';
 export class BulletinBoardService {
     private static readonly API: string = '../nifi-api';
 
-    constructor(
-        private httpClient: HttpClient
-    ) {}
+    constructor(private httpClient: HttpClient) {}
 
     getBulletins(request: LoadBulletinBoardRequest) {
         const params: HttpParams = request as HttpParams;

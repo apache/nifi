@@ -58,7 +58,7 @@ export const flowAnalysisRulesReducer = createReducer(
         loadedTimestamp: response.loadedTimestamp,
         status: 'success' as const
     })),
-    on(flowAnalysisRuleBannerApiError, flowAnalysisRuleSnackbarApiError, (state, { error }) => ({
+    on(flowAnalysisRuleBannerApiError, flowAnalysisRuleSnackbarApiError, (state) => ({
         ...state,
         saving: false
     })),

@@ -34,7 +34,4 @@ export const selectBulletinBoardFilter = createSelector(
     (state: BulletinBoardState) => state.filter
 );
 
-export const selectStatus = createSelector(
-    selectBulletinBoardState,
-    (state: BulletinBoardState) => state.status
-);
+export const selectStatus = createSelector(selectBulletinBoardState, (state: BulletinBoardState) => state.status);

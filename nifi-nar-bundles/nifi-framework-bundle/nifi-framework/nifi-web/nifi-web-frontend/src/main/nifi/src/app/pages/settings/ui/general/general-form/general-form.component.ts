@@ -22,7 +22,6 @@ import { Store } from '@ngrx/store';
 import { updateControllerConfig } from '../../../state/general/general.actions';
 import { Client } from '../../../../../service/client.service';
 import { selectCurrentUser } from '../../../../../state/current-user/current-user.selectors';
-import { Observable } from 'rxjs';
 import { selectSaving } from '../../../state/general/general.selectors';
 
 @Component({
