@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.nifi.python.PythonController;
 import org.apache.nifi.python.processor.PreserveJavaBinding;
 import org.apache.nifi.python.processor.PythonProcessor;
 import org.slf4j.Logger;
@@ -100,8 +102,30 @@ public class NiFiPythonGateway extends Gateway {
 
     @Override
     public void deleteObject(final String objectId) {
-        final Object unbound = objectBindings.unbind(objectId);
-        logger.debug("Unbound {}: {} because it was explicitly requested from Python side", objectId, unbound);
+        // When the python side no longer needs an object, its finalizer will notify the Java side that it's no longer needed and can be removed
+        // from the accessible objects on the Java heap. However, if we are making a call to the Python side, it's possible that even though the Python
+        // side no longer needs the object, the Java side still needs it bound. For instance, consider the following case:
+        //
+        // Java side calls PythonController.getProcessorTypes()
+        // Python side needs to return an ArrayList, so it calls back to the Java side (in a separate thread) to create this ArrayList with ID o54
+        // Python side adds several Processors to the ArrayList.
+        // Python side returns the ArrayList to the Java side.
+        // Python side no longer needs the ArrayList, so while the Java side is processing the response from the Python side, the Python side notifies the Java side that it's no longer needed.
+        // Java side unbinds the ArrayList.
+        // Java side parses the response from Python, indicating that the return value is the object with ID o54.
+        // Java side cannot access object with ID o54 because it was already removed.
+        //
+        // To avoid this, we check if there is an Invocation Binding (indicating that we are in the middle of a method invocation) and if so,
+        // we add the object to a list of objects to delete on completion.
+        // If there is no Invocation Binding, we unbind the object immediately.
+        final InvocationBindings invocationBindings = getInvocationBindings();
+        if (invocationBindings == null) {
+            final Object unbound = objectBindings.unbind(objectId);
+            logger.debug("Unbound {}: {} because it was explicitly requested from Python side", objectId, unbound);
+        } else {
+            invocationBindings.deleteOnCompletion(objectId);
+            logger.debug("Unbound {} because it was requested from Python side but in active method invocation so will not remove until invocation completed", objectId);
+        }
     }
 
     private InvocationBindings getInvocationBindings() {
@@ -163,6 +187,11 @@ public class NiFiPythonGateway extends Gateway {
                 }
             });
 
+            invocationBindings.getObjectsToDeleteOnCompletion().forEach(id -> {
+                final Object unbound = objectBindings.unbind(id);
+                logger.debug("Unbinding {}: {} because invocation of {} on {} with args {} has completed", id, unbound, methodName, objectId, Arrays.toString(args));
+            });
+
             if (Objects.equals(invocationBindings.getTargetObjectId(), objectId) && Objects.equals(invocationBindings.getMethod(), method) && Arrays.equals(invocationBindings.getArgs(), args)) {
                 break;
             }
@@ -171,7 +200,13 @@ public class NiFiPythonGateway extends Gateway {
 
     protected boolean isUnbind(final Method method) {
         final Class<?> declaringClass = method.getDeclaringClass();
-        if (PythonProcessor.class.isAssignableFrom(declaringClass) && method.getAnnotation(PreserveJavaBinding.class) == null) {
+
+        // The two main entry points into the Python side are the PythonController and PythonProcessor. When we call methods on these classes, we usually want to
+        // consider the method arguments ephemeral and unbind them after the invocation has completed. However, there are some exceptions to this rule. For example,
+        // when we provide an InitializationContext to a PythonProcessor, we want to keep the context bound to the Java heap until the Python side has notified us
+        // that it is no longer needed. We can do this by annotating the method with the PreserveJavaBinding annotation.
+        final boolean relevantClass = PythonController.class.isAssignableFrom(declaringClass) || PythonProcessor.class.isAssignableFrom(declaringClass);
+        if (relevantClass && method.getAnnotation(PreserveJavaBinding.class) == null) {
             return true;
         }
 
@@ -184,6 +219,7 @@ public class NiFiPythonGateway extends Gateway {
         private final Method method;
         private final Object[] args;
         private final List<String> objectIds = new ArrayList<>();
+        private final List<String> deleteOnCompletion = new ArrayList<>();
 
         public InvocationBindings(final String targetObjectId, final Method method, final Object[] args) {
             this.targetObjectId = targetObjectId;
@@ -195,8 +231,16 @@ public class NiFiPythonGateway extends Gateway {
             objectIds.add(objectId);
         }
 
+        public void deleteOnCompletion(final String objectId) {
+            deleteOnCompletion.add(objectId);
+        }
+
         public List<String> getObjectIds() {
             return objectIds;
+        }
+
+        public List<String> getObjectsToDeleteOnCompletion() {
+            return deleteOnCompletion;
         }
 
         public String getTargetObjectId() {
