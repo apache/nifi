@@ -270,11 +270,13 @@ public class TestUnpackContent {
             unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+            // In this test case only check for presence of `?` in filename and path for failure, since the zip was created on Windows,
+            // it will always output `?` if Cp437 encoding is not used during unpacking. The zip file also contains file and folder
+            // without special characters.
+            // As a result of these conditions, this test does not check for valid special character presence.
             assertTrue(StringUtils.containsNone(filename, "?"), "filename contains '?': " + filename);
-            assertTrue(StringUtils.containsNone(filename, "�"), "filename contains '�': " + filename);
             final String path = flowFile.getAttribute(CoreAttributes.PATH.key());
             assertTrue(StringUtils.containsNone(path, "?"), "path contains '?': " + path);
-            assertTrue(StringUtils.containsNone(path, "�"), "path contains '�': " + path);
         }
     }
     @Test
@@ -288,8 +290,10 @@ public class TestUnpackContent {
 
         final char[] streamPassword = password.toCharArray();
         final String contents = TestRunner.class.getCanonicalName();
-
-        final byte[] zipEncrypted = createZipEncryptedCp437(EncryptionMethod.AES, streamPassword, contents);
+        String specialChar = "\u00E4";
+        String pathInZip = "path_with_special_%s_char/".formatted(specialChar);
+        String filename = "filename_with_special_char%s.txt".formatted(specialChar);
+        final byte[] zipEncrypted = createZipEncryptedCp437(EncryptionMethod.AES, streamPassword, contents,pathInZip.concat(filename));
         runner.enqueue(zipEncrypted);
         runner.run();
 
@@ -299,12 +303,12 @@ public class TestUnpackContent {
         final List<MockFlowFile> unpacked =
             runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
-            final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
-            assertTrue(StringUtils.containsNone(filename, "?"), "filename contains '?': " + filename);
-            assertTrue(StringUtils.containsNone(filename, "�"), "filename contains '�': " + filename);
+            final String outputFilename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+            assertTrue(StringUtils.containsNone(outputFilename, "?"), "filename contains '?': " + outputFilename);
+            assertTrue(StringUtils.contains(outputFilename, specialChar), "filename missing '%s': %s".formatted(specialChar,outputFilename));
             final String path = flowFile.getAttribute(CoreAttributes.PATH.key());
             assertTrue(StringUtils.containsNone(path, "?"), "path contains '?': " + path);
-            assertTrue(StringUtils.containsNone(path, "�"), "path contains '�': " + path);
+            assertTrue(StringUtils.contains(path, specialChar), "path missing '%s': %s".formatted(specialChar,path));
         }
     }
 
@@ -612,7 +616,7 @@ public class TestUnpackContent {
         return outputStream.toByteArray();
     }
 
-    private byte[] createZipEncryptedCp437(final EncryptionMethod encryptionMethod, final char[] password, final String contents) throws IOException {
+    private byte[] createZipEncryptedCp437(final EncryptionMethod encryptionMethod, final char[] password, final String contents, String filename) throws IOException {
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         final ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream, password, Charsets.toCharset("Cp437"));
 
@@ -621,7 +625,8 @@ public class TestUnpackContent {
         final ZipParameters zipParameters = new ZipParameters();
         zipParameters.setEncryptionMethod(encryptionMethod);
         zipParameters.setEncryptFiles(true);
-        zipParameters.setFileNameInZip("germän_filename.txt.txt");
+        zipParameters.setFileNameInZip(filename);
+//        zipParameters.setFileNameInZip("germän_filename.txt.txt");
         zipOutputStream.putNextEntry(zipParameters);
         zipOutputStream.write(contents.getBytes());
         zipOutputStream.closeEntry();
