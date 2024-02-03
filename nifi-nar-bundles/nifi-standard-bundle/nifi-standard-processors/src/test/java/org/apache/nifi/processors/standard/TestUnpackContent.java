@@ -620,13 +620,10 @@ public class TestUnpackContent {
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         final ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream, password, Charsets.toCharset("Cp437"));
 
-        final String name = UUID.randomUUID().toString();
-
         final ZipParameters zipParameters = new ZipParameters();
         zipParameters.setEncryptionMethod(encryptionMethod);
         zipParameters.setEncryptFiles(true);
         zipParameters.setFileNameInZip(filename);
-//        zipParameters.setFileNameInZip("germän_filename.txt.txt");
         zipOutputStream.putNextEntry(zipParameters);
         zipOutputStream.write(contents.getBytes());
         zipOutputStream.closeEntry();
