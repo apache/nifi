@@ -90,7 +90,7 @@ MiNiFi can be installed as a service by executing the `install-service.bat`. By 
 ```
 install-service.bat "serviceName:minifi_java"
 ```
-The user, which should be used to run the service, can be specified. For that, the `serviceUser` and `serviceUserPassword` parameters need to be used. The username has to be in domain\username format, like `LOCAL\minifi`.  If the service user not provided, the `Local System` account will be used to install the service. If the `serviceUserPassword` parameter is provided, the terminal will be closed after the installation because of security reasons. Example command: 
+The user, which should be used to run the service, can be specified. For that, the `serviceUser` and `serviceUserPassword` parameters need to be used. The username has to be in domain\username format, like `LOCAL\minifi`.  If the service user not provided, the `Local System` account will be used to install the service. The service user has to has the `Log on as service` right. If the `serviceUserPassword` parameter is provided, the terminal will be closed after the installation because of security reasons. Please note that the `serviceUserPassword` parameter cannot contains special characters. Example command: 
 ```
 install-service.bat "serviceUser:AD\minifi_user" "serviceUserPassword:password"
 ```

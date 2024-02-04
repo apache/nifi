@@ -145,12 +145,13 @@ goto end
 --StopTimeout="%STOP_TIMEOUT%" ^
 --Classpath="%CLASS_PATH%" ^
 --JvmOptions9="%JAVA_ARGS%" ^
---LogLevel=ERROR ^
 --LogPath="%LOG_PATH%" ^
 --LogPrefix="%LOG_PREFIX%" ^
 --StdOutput= ^
 --StdError= ^
 --LogLevel=Error ^
+--User="%serviceUser%" ^
+--Password="%serviceUserPassword%" ^
 --ServiceUser="%serviceUser%" ^
 --ServicePassword="%serviceUserPassword%"
 goto end
