@@ -17,18 +17,18 @@
 
 package org.apache.nifi.web.api.dto.diagnostics;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 import org.apache.nifi.web.api.dto.BundleDTO;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @XmlType(name = "classLoaderDiagnostics")
 public class ClassLoaderDiagnosticsDTO {
     private BundleDTO bundle;
     private ClassLoaderDiagnosticsDTO parentClassLoader;
 
-    @ApiModelProperty("Information about the Bundle that the ClassLoader belongs to, if any")
+    @Schema(description = "Information about the Bundle that the ClassLoader belongs to, if any")
     public BundleDTO getBundle() {
         return bundle;
     }
@@ -37,7 +37,7 @@ public class ClassLoaderDiagnosticsDTO {
         this.bundle = bundle;
     }
 
-    @ApiModelProperty("A ClassLoaderDiagnosticsDTO that provides information about the parent ClassLoader")
+    @Schema(description = "A ClassLoaderDiagnosticsDTO that provides information about the parent ClassLoader")
     public ClassLoaderDiagnosticsDTO getParentClassLoader() {
         return parentClassLoader;
     }

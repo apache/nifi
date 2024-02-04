@@ -16,13 +16,11 @@
  */
 package org.apache.nifi.registry.extension.bundle;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
 
-@ApiModel
 public class BundleVersionDependency {
 
     @NotBlank
@@ -34,7 +32,7 @@ public class BundleVersionDependency {
     @NotBlank
     private String version;
 
-    @ApiModelProperty(value = "The group id of the bundle dependency")
+    @Schema(description = "The group id of the bundle dependency")
     public String getGroupId() {
         return groupId;
     }
@@ -43,7 +41,7 @@ public class BundleVersionDependency {
         this.groupId = groupId;
     }
 
-    @ApiModelProperty(value = "The artifact id of the bundle dependency")
+    @Schema(description = "The artifact id of the bundle dependency")
     public String getArtifactId() {
         return artifactId;
     }
@@ -52,7 +50,7 @@ public class BundleVersionDependency {
         this.artifactId = artifactId;
     }
 
-    @ApiModelProperty(value = "The version of the bundle dependency")
+    @Schema(description = "The version of the bundle dependency")
     public String getVersion() {
         return version;
     }

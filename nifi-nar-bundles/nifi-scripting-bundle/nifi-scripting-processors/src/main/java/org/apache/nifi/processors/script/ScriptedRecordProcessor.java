@@ -50,7 +50,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 abstract class ScriptedRecordProcessor extends AbstractProcessor implements Searchable {
-    protected static final String PYTHON_SCRIPT_LANGUAGE = "python";
     protected static final Set<String> SCRIPT_OPTIONS = ScriptingComponentUtils.getAvailableEngines();
 
     protected volatile String scriptToRun = null;
@@ -115,11 +114,6 @@ abstract class ScriptedRecordProcessor extends AbstractProcessor implements Sear
     }
 
     protected ScriptEvaluator createEvaluator(final ScriptEngine scriptEngine, final FlowFile flowFile) throws ScriptException {
-        if (PYTHON_SCRIPT_LANGUAGE.equalsIgnoreCase(scriptEngine.getFactory().getLanguageName())) {
-            final CompiledScript compiledScript = getOrCompileScript((Compilable) scriptEngine, scriptToRun);
-            return new PythonScriptEvaluator(scriptEngine, compiledScript, flowFile, getLogger());
-        }
-
         return new InterpretedScriptEvaluator(scriptEngine, scriptToRun, flowFile, getLogger());
     }
 

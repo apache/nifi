@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.registry.authorization;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -27,7 +27,7 @@ import org.apache.nifi.registry.revision.entity.RevisionInfo;
 /**
  * A tenant of this NiFi Registry
  */
-@ApiModel
+
 public class Tenant implements RevisableEntity {
 
     private String identifier;
@@ -47,9 +47,9 @@ public class Tenant implements RevisableEntity {
     /**
      * @return tenant's unique identifier
      */
-    @ApiModelProperty(
-        value = "The computer-generated identifier of the tenant.",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(
+        description = "The computer-generated identifier of the tenant.",
+        accessMode = Schema.AccessMode.READ_ONLY)
     @Override
     public String getIdentifier() {
         return identifier;
@@ -63,9 +63,9 @@ public class Tenant implements RevisableEntity {
     /**
      * @return tenant's identity
      */
-    @ApiModelProperty(
-        value = "The human-facing identity of the tenant. This can only be changed if the tenant is configurable.",
-        required = true)
+    @Schema(
+        description = "The human-facing identity of the tenant. This can only be changed if the tenant is configurable."
+    )
     public String getIdentity() {
         return identity;
     }
@@ -74,9 +74,9 @@ public class Tenant implements RevisableEntity {
         this.identity = identity;
     }
 
-    @ApiModelProperty(
-        value = "Indicates if this tenant is configurable, based on which UserGroupProvider has been configured to manage it.",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(
+        description = "Indicates if this tenant is configurable, based on which UserGroupProvider has been configured to manage it.",
+        accessMode = Schema.AccessMode.READ_ONLY)
     public Boolean getConfigurable() {
         return configurable;
     }
@@ -85,9 +85,9 @@ public class Tenant implements RevisableEntity {
         this.configurable = configurable;
     }
 
-    @ApiModelProperty(
-        value = "A summary top-level resource access policies granted to this tenant.",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(
+        description = "A summary top-level resource access policies granted to this tenant.",
+        accessMode = Schema.AccessMode.READ_ONLY
     )
     public ResourcePermissions getResourcePermissions() {
         return resourcePermissions;
@@ -97,9 +97,9 @@ public class Tenant implements RevisableEntity {
         this.resourcePermissions = resourcePermissions;
     }
 
-    @ApiModelProperty(
-        value = "The access policies granted to this tenant.",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(
+        description = "The access policies granted to this tenant.",
+        accessMode = Schema.AccessMode.READ_ONLY
     )
     public Set<AccessPolicySummary> getAccessPolicies() {
         return accessPolicies;
@@ -118,9 +118,9 @@ public class Tenant implements RevisableEntity {
         }
     }
 
-    @ApiModelProperty(
-        value = "The revision of this entity used for optimistic-locking during updates.",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(
+        description = "The revision of this entity used for optimistic-locking during updates.",
+        accessMode = Schema.AccessMode.READ_ONLY
     )
     @Override
     public RevisionInfo getRevision() {

@@ -126,7 +126,7 @@ import org.apache.nifi.web.search.query.SearchQueryParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.WebApplicationException;
+import jakarta.ws.rs.WebApplicationException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.Collator;

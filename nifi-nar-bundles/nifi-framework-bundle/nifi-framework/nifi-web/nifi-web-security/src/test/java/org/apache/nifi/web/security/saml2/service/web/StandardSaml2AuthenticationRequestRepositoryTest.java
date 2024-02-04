@@ -30,7 +30,7 @@ import org.springframework.security.saml2.provider.service.authentication.Abstra
 import org.springframework.security.saml2.provider.service.authentication.Saml2PostAuthenticationRequest;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 
-import javax.servlet.http.Cookie;
+import jakarta.servlet.http.Cookie;
 
 import java.util.UUID;
 

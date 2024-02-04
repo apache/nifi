@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ParameterProviderApplyParametersRequestDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "parameterProviderApplyParametersRequestEntity")
 public class ParameterProviderApplyParametersRequestEntity extends Entity {
     private ParameterProviderApplyParametersRequestDTO request;
 
-    @ApiModelProperty("The Apply Parameters Request")
+    @Schema(description = "The Apply Parameters Request")
     public ParameterProviderApplyParametersRequestDTO getRequest() {
         return request;
     }

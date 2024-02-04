@@ -49,7 +49,7 @@ final class CEFRecordSource implements RecordSource<CommonEvent> {
             return null;
         }
 
-        final CommonEvent event = parser.parse(line, true, acceptEmptyExtensions, locale);
+        final CommonEvent event = parser.parse(line, false, acceptEmptyExtensions, locale);
 
         if (event == null && failFast) {
             throw new IOException("Could not parse event");

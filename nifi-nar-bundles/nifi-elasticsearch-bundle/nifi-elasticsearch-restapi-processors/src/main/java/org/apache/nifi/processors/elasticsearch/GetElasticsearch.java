@@ -44,10 +44,7 @@ import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -123,12 +120,9 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
 
     public static final String VERIFICATION_STEP_DOCUMENT_EXISTS = "Elasticsearch Document Exists";
 
-    static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
-            ID, INDEX, TYPE, DESTINATION, ATTRIBUTE_NAME, CLIENT_SERVICE
-    ));
-    static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            REL_DOC, REL_FAILURE, REL_RETRY, REL_NOT_FOUND
-    )));
+    static final List<PropertyDescriptor> DESCRIPTORS =
+            List.of(ID, INDEX, TYPE, DESTINATION, ATTRIBUTE_NAME, CLIENT_SERVICE);
+    static final Set<Relationship> RELATIONSHIPS = Set.of(REL_DOC, REL_FAILURE, REL_RETRY, REL_NOT_FOUND);
 
     private final AtomicReference<ElasticSearchClientService> clientService = new AtomicReference<>(null);
 

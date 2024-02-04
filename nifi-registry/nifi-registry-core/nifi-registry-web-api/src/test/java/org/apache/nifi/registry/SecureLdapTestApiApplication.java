@@ -36,9 +36,6 @@ import org.springframework.context.annotation.FilterType;
                 @ComponentScan.Filter(
                         type = FilterType.ASSIGNABLE_TYPE,
                         value = AuthorizerFactory.class), // Avoid loading AuthorizerFactory.getAuthorizer(), as we need to add it again with test-specific @DependsOn annotation
-                @ComponentScan.Filter(
-                        type = FilterType.REGEX,
-                        pattern = "org\\.apache\\.nifi\\.registry\\.NiFiRegistryPropertiesFactory"), // Avoid loading NiFiRegistryPropertiesFactory
         })
 public class SecureLdapTestApiApplication extends SpringBootServletInitializer {
 

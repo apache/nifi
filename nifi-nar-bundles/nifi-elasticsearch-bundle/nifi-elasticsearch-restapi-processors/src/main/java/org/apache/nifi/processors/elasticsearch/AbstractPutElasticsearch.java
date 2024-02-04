@@ -42,7 +42,6 @@ import org.apache.nifi.record.path.validation.RecordPathValidator;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -53,6 +52,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public abstract class AbstractPutElasticsearch extends AbstractProcessor implements ElasticsearchRestProcessor {
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -66,14 +66,14 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
             .build();
 
     static final PropertyDescriptor INDEX_OP = new PropertyDescriptor.Builder()
-        .name("put-es-record-index-op")
-        .displayName("Index Operation")
-        .description("The type of the operation used to index (create, delete, index, update, upsert)")
-        .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .defaultValue(IndexOperationRequest.Operation.Index.getValue())
-        .required(true)
-        .build();
+            .name("put-es-record-index-op")
+            .displayName("Index Operation")
+            .description("The type of the operation used to index (create, delete, index, update, upsert)")
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .defaultValue(IndexOperationRequest.Operation.Index.getValue())
+            .required(true)
+            .build();
 
     static final PropertyDescriptor OUTPUT_ERROR_RESPONSES = new PropertyDescriptor.Builder()
             .name("put-es-output-error-responses")
@@ -98,13 +98,9 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
                     "(and optionally \"not_found\" when \"Treat \"Not Found\" as Error\" is \"true\").")
             .build();
 
-    static final List<String> ALLOWED_INDEX_OPERATIONS = Collections.unmodifiableList(Arrays.asList(
-            IndexOperationRequest.Operation.Create.getValue().toLowerCase(),
-            IndexOperationRequest.Operation.Delete.getValue().toLowerCase(),
-            IndexOperationRequest.Operation.Index.getValue().toLowerCase(),
-            IndexOperationRequest.Operation.Update.getValue().toLowerCase(),
-            IndexOperationRequest.Operation.Upsert.getValue().toLowerCase()
-    ));
+    static final List<String> ALLOWED_INDEX_OPERATIONS = Stream.of(IndexOperationRequest.Operation.values())
+            .map(operation -> operation.getValue().toLowerCase())
+            .toList();
 
     private final AtomicReference<Set<Relationship>> relationships = new AtomicReference<>(getBaseRelationships());
 
@@ -203,7 +199,7 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
 
     @Override
     public List<ConfigVerificationResult> verifyAfterIndex(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes,
-                                                            final ElasticSearchClientService verifyClientService, final String index, final boolean indexExists) {
+                                                           final ElasticSearchClientService verifyClientService, final String index, final boolean indexExists) {
         return Collections.emptyList();
     }
 

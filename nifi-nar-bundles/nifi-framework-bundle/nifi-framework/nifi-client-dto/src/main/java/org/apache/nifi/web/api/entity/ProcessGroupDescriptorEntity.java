@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
 /**
@@ -28,7 +28,7 @@ public abstract class ProcessGroupDescriptorEntity extends Entity {
     private RevisionDTO processGroupRevision;
     private Boolean disconnectedNodeAcknowledged;
 
-    @ApiModelProperty("The Revision for the Process Group")
+    @Schema(description = "The Revision for the Process Group")
     public RevisionDTO getProcessGroupRevision() {
         return processGroupRevision;
     }
@@ -37,8 +37,7 @@ public abstract class ProcessGroupDescriptorEntity extends Entity {
         this.processGroupRevision = revision;
     }
 
-    @ApiModelProperty(
-            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    @Schema(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
     )
     public Boolean isDisconnectedNodeAcknowledged() {
         return disconnectedNodeAcknowledged;

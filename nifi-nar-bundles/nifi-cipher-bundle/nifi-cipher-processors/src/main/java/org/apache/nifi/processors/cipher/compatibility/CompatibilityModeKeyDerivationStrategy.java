@@ -43,13 +43,9 @@ public enum CompatibilityModeKeyDerivationStrategy implements DescribedValue {
     );
 
     private final String description;
-
     private final int iterations;
-
     private final byte[] saltHeader;
-
     private final int saltStandardLength;
-
     private final int saltBufferLength;
 
     CompatibilityModeKeyDerivationStrategy(

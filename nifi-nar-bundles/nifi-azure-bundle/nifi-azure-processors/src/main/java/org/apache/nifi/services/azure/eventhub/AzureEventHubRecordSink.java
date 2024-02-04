@@ -20,7 +20,6 @@ import com.azure.core.amqp.AmqpTransportType;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.identity.DefaultAzureCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
-
 import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.EventDataBatch;
 import com.azure.messaging.eventhubs.EventHubClientBuilder;
@@ -46,11 +45,10 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
+import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,11 +58,8 @@ import java.util.Map;
 public class AzureEventHubRecordSink extends AbstractControllerService implements RecordSinkService, AzureEventHubComponent {
 
     static final AllowableValue AZURE_ENDPOINT = new AllowableValue(".servicebus.windows.net","Azure", "Default Service Bus Endpoint");
-
     static final AllowableValue AZURE_CHINA_ENDPOINT = new AllowableValue(".servicebus.chinacloudapi.cn", "Azure China", "China Service Bus Endpoint");
-
     static final AllowableValue AZURE_GERMANY_ENDPOINT = new AllowableValue(".servicebus.cloudapi.de", "Azure Germany", "Germany Service Bus Endpoint");
-
     static final AllowableValue AZURE_US_GOV_ENDPOINT = new AllowableValue(".servicebus.usgovcloudapi.net", "Azure US Government", "United States Government Endpoint");
 
     static final PropertyDescriptor SERVICE_BUS_ENDPOINT = new PropertyDescriptor.Builder()
@@ -78,7 +73,7 @@ public class AzureEventHubRecordSink extends AbstractControllerService implement
                     AZURE_GERMANY_ENDPOINT,
                     AZURE_US_GOV_ENDPOINT
             )
-            .defaultValue(AZURE_ENDPOINT.getValue())
+            .defaultValue(AZURE_ENDPOINT)
             .required(true)
             .build();
 
@@ -102,7 +97,7 @@ public class AzureEventHubRecordSink extends AbstractControllerService implement
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .allowableValues(AzureAuthenticationStrategy.class)
             .required(true)
-            .defaultValue(AzureAuthenticationStrategy.DEFAULT_AZURE_CREDENTIAL.getValue())
+            .defaultValue(AzureAuthenticationStrategy.DEFAULT_AZURE_CREDENTIAL)
             .build();
 
     static final PropertyDescriptor SHARED_ACCESS_POLICY = new PropertyDescriptor.Builder()
@@ -110,7 +105,7 @@ public class AzureEventHubRecordSink extends AbstractControllerService implement
             .description("The name of the shared access policy. This policy must have Send claims")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
-            .dependsOn(AUTHENTICATION_STRATEGY, AzureAuthenticationStrategy.SHARED_ACCESS_KEY.getValue())
+            .dependsOn(AUTHENTICATION_STRATEGY, AzureAuthenticationStrategy.SHARED_ACCESS_KEY)
             .build();
 
     static final PropertyDescriptor SHARED_ACCESS_POLICY_KEY = new PropertyDescriptor.Builder()
@@ -119,7 +114,7 @@ public class AzureEventHubRecordSink extends AbstractControllerService implement
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .required(false)
-            .dependsOn(AUTHENTICATION_STRATEGY, AzureAuthenticationStrategy.SHARED_ACCESS_KEY.getValue())
+            .dependsOn(AUTHENTICATION_STRATEGY, AzureAuthenticationStrategy.SHARED_ACCESS_KEY)
             .build();
 
     static final PropertyDescriptor PARTITION_KEY = new PropertyDescriptor.Builder()
@@ -130,18 +125,16 @@ public class AzureEventHubRecordSink extends AbstractControllerService implement
             .required(false)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(
-            Arrays.asList(
-                    SERVICE_BUS_ENDPOINT,
-                    EVENT_HUB_NAMESPACE,
-                    EVENT_HUB_NAME,
-                    TRANSPORT_TYPE,
-                    RECORD_WRITER_FACTORY,
-                    AUTHENTICATION_STRATEGY,
-                    SHARED_ACCESS_POLICY,
-                    SHARED_ACCESS_POLICY_KEY,
-                    PARTITION_KEY
-            )
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+            SERVICE_BUS_ENDPOINT,
+            EVENT_HUB_NAMESPACE,
+            EVENT_HUB_NAME,
+            TRANSPORT_TYPE,
+            RECORD_WRITER_FACTORY,
+            AUTHENTICATION_STRATEGY,
+            SHARED_ACCESS_POLICY,
+            SHARED_ACCESS_POLICY_KEY,
+            PARTITION_KEY
     );
 
     private volatile ConfigurationContext context;
@@ -184,9 +177,8 @@ public class AzureEventHubRecordSink extends AbstractControllerService implement
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).evaluateAttributeExpressions().getValue();
         final String policyName = context.getProperty(SHARED_ACCESS_POLICY).getValue();
         final String policyKey = context.getProperty(SHARED_ACCESS_POLICY_KEY).getValue();
-        final String authenticationStrategy = context.getProperty(AUTHENTICATION_STRATEGY).getValue();
-        final AzureAuthenticationStrategy azureAuthenticationStrategy = AzureAuthenticationStrategy.valueOf(authenticationStrategy);
-        final AmqpTransportType transportType = AmqpTransportType.fromString(context.getProperty(TRANSPORT_TYPE).getValue());
+        final AzureAuthenticationStrategy azureAuthenticationStrategy = context.getProperty(AUTHENTICATION_STRATEGY).asAllowableValue(AzureAuthenticationStrategy.class);
+        final AmqpTransportType transportType = context.getProperty(TRANSPORT_TYPE).asAllowableValue(AzureEventHubTransportType.class).asAmqpTransportType();
         client = createEventHubClient(namespace, serviceBusEndpoint, eventHubName, policyName, policyKey, azureAuthenticationStrategy, transportType);
     }
 

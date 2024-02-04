@@ -1,0 +1,117 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<h2 mat-dialog-title>Edit Controller Service</h2>
+<form class="controller-service-edit-form" [formGroup]="editControllerServiceForm">
+    <error-banner></error-banner>
+    <mat-dialog-content>
+        <mat-tab-group>
+            <mat-tab label="Settings">
+                <div class="tab-content py-4 flex gap-x-4">
+                    <div class="w-full">
+                        <div>
+                            <mat-form-field>
+                                <mat-label>Name</mat-label>
+                                <input matInput formControlName="name" type="text" />
+                            </mat-form-field>
+                        </div>
+                        <div class="flex flex-col mb-5">
+                            <div>Id</div>
+                            <div class="value">{{ request.controllerService.id }}</div>
+                        </div>
+                        <div class="flex flex-col mb-5">
+                            <div>Type</div>
+                            <div class="value">{{ formatType(request.controllerService) }}</div>
+                        </div>
+                        <div class="flex flex-col mb-5">
+                            <div>Bundle</div>
+                            <div class="value">{{ formatBundle(request.controllerService) }}</div>
+                        </div>
+                        <div class="supports-controller-services flex flex-col mb-5">
+                            <div>Supports Controller Service</div>
+                            <div class="value">
+                                <ul>
+                                    <li
+                                        *ngFor="
+                                            let serviceApi of request.controllerService.component.controllerServiceApis
+                                        ">
+                                        <controller-service-api
+                                            [type]="serviceApi.type"
+                                            [bundle]="serviceApi.bundle"></controller-service-api>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div>
+                            <mat-form-field>
+                                <mat-label>Bulletin Level</mat-label>
+                                <mat-select formControlName="bulletinLevel">
+                                    <mat-option *ngFor="let option of bulletinLevels" [value]="option.value">
+                                        {{ option.text }}
+                                    </mat-option>
+                                </mat-select>
+                            </mat-form-field>
+                        </div>
+                    </div>
+                    <div class="flex flex-col w-full">
+                        <div>Referencing Components</div>
+                        <div>
+                            <controller-service-references
+                                [serviceReferences]="request.controllerService.component.referencingComponents"
+                                [goToReferencingComponent]="goToReferencingComponent"></controller-service-references>
+                        </div>
+                    </div>
+                </div>
+            </mat-tab>
+            <mat-tab label="Properties">
+                <div class="tab-content py-4">
+                    <property-table
+                        formControlName="properties"
+                        [createNewProperty]="createNewProperty"
+                        [createNewService]="createNewService"
+                        [getParameters]="getParameters"
+                        [parameterContext]="parameterContext"
+                        [goToParameter]="goToParameter"
+                        [convertToParameter]="convertToParameter"
+                        [goToService]="goToService"
+                        [supportsSensitiveDynamicProperties]="
+                            request.controllerService.component.supportsSensitiveDynamicProperties
+                        "></property-table>
+                </div>
+            </mat-tab>
+            <mat-tab label="Comments">
+                <div class="tab-content py-4">
+                    <mat-form-field>
+                        <mat-label>Comments</mat-label>
+                        <textarea matInput formControlName="comments" type="text" rows="5"></textarea>
+                    </mat-form-field>
+                </div>
+            </mat-tab>
+        </mat-tab-group>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
+        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+        <button
+            [disabled]="!editControllerServiceForm.dirty || editControllerServiceForm.invalid || saving.value"
+            type="button"
+            color="primary"
+            (click)="submitForm()"
+            mat-raised-button>
+            <span *nifiSpinner="saving.value">Apply</span>
+        </button>
+    </mat-dialog-actions>
+</form>

@@ -18,7 +18,7 @@ package org.apache.nifi.jms.processors;
 
 import java.nio.channels.Channel;
 
-import javax.jms.Connection;
+import jakarta.jms.Connection;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.springframework.jms.connection.CachingConnectionFactory;

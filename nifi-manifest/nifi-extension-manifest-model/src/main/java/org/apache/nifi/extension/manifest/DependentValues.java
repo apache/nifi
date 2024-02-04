@@ -16,22 +16,20 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
 import java.util.List;
 
-@ApiModel
 @XmlAccessorType(XmlAccessType.FIELD)
 public class DependentValues {
 
     @XmlElement(name = "dependentValue")
     private List<String> values;
 
-    @ApiModelProperty(value = "The dependent values")
+    @Schema(description = "The dependent values")
     public List<String> getValues() {
         return values;
     }

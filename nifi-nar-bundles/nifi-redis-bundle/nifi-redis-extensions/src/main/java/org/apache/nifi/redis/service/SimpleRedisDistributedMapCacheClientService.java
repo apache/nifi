@@ -31,8 +31,6 @@ import org.apache.nifi.redis.util.RedisAction;
 import org.apache.nifi.util.Tuple;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisStringCommands;
-import org.springframework.data.redis.core.Cursor;
-import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.types.Expiration;
 
 import java.io.ByteArrayOutputStream;
@@ -192,7 +190,7 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         // nothing to do
     }
 
@@ -202,33 +200,6 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
             final byte[] k = serialize(key, keySerializer);
             final long numRemoved = redisConnection.del(k);
             return numRemoved > 0;
-        });
-    }
-
-    @Override
-    public long removeByPattern(final String regex) throws IOException {
-        return withConnection(redisConnection -> {
-            long deletedCount = 0;
-            final List<byte[]> batchKeys = new ArrayList<>();
-
-            // delete keys in batches of 1000 using the cursor
-            final Cursor<byte[]> cursor = redisConnection.scan(ScanOptions.scanOptions().count(100).match(regex).build());
-            while (cursor.hasNext()) {
-                batchKeys.add(cursor.next());
-
-                if (batchKeys.size() == 1000) {
-                    deletedCount += redisConnection.del(getKeys(batchKeys));
-                    batchKeys.clear();
-                }
-            }
-
-            // delete any left-over keys if some were added to the batch but never reached 1000
-            if (batchKeys.size() > 0) {
-                deletedCount += redisConnection.del(getKeys(batchKeys));
-                batchKeys.clear();
-            }
-
-            return deletedCount;
         });
     }
 

@@ -314,11 +314,7 @@ public class TestPublishKafkaRecordMockParameterized {
                 patternAttributeName,
                 UTF_8,
                 publishStrategy,
-                keyWriterFactory) {
-            @Override
-            protected long getTimestamp() {
-                return 1000000000000L;
-            }
-        };
+                keyWriterFactory
+        );
     }
 }

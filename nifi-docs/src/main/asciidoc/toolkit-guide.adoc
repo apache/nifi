@@ -73,12 +73,13 @@ The following are available commands:
  nifi update-reg-client
  nifi get-reg-client-id
  nifi pg-import
+ nifi pg-connect
  nifi pg-start
  nifi pg-stop
  nifi pg-create
- nifi pg-get-vars
- nifi pg-set-var
+ nifi pg-export
  nifi pg-get-version
+ nifi pg-stop-version-control
  nifi pg-change-version
  nifi pg-get-all-versions
  nifi pg-list
@@ -101,6 +102,9 @@ The following are available commands:
  nifi delete-reporting-task
  nifi start-reporting-tasks
  nifi stop-reporting-tasks
+ nifi export-reporting-tasks
+ nifi export-reporting-task
+ nifi import-reporting-tasks
  nifi list-users
  nifi create-user
  nifi list-user-groups
@@ -130,6 +134,7 @@ The following are available commands:
  nifi logout-access-token
  nifi get-controller-configuration
  nifi update-controller-configuration
+ nifi change-version-processor
  registry current-user
  registry list-buckets
  registry create-bucket
@@ -290,21 +295,21 @@ For example, typing tab at an empty prompt should display possible commands for 
 Typing "nifi " and then a tab will show the sub-commands for NiFi:
 
  #> nifi
- cluster-summary         export-param-context    list-users              pg-set-param-context
- connect-node            get-node                merge-param-context     pg-set-var
- create-param-context    get-nodes               offload-node            pg-start
- create-reg-client       get-param-context       pg-change-version       pg-status
- create-reporting-task   get-policy              pg-create-service       pg-stop
- create-service          get-reg-client-id       pg-create-service       set-param
- create-user             get-reporting-task      pg-disable-services     start-reporting-tasks
- create-user-group       get-reporting-tasks     pg-enable-services      stop-reporting-tasks
- current-user            get-root-id             pg-get-all-versions     update-policy
- delete-node             get-service             pg-get-param-context    update-reg-client
- delete-param            get-services            pg-get-services         update-user-group
- delete-param-context    import-param-context    pg-get-vars             delete-reporting-task
- disable-services        list-param-contexts     pg-get-version
- disconnect-node         list-reg-clients        pg-import
- enable-services         list-user-groups        pg-list
+ change-version-processor   delete-reporting-task           get-policy              merge-param-context     pg-replace                      update-user-group
+ cluster-summary            disable-services                get-reg-client-id       offload-node            pg-set-param-context
+ connect-node               disconnect-node                 get-reporting-task      pg-change-version       pg-start
+ create-param-context       enable-services                 get-reporting-tasks     pg-connect              pg-status
+ create-param-provider      export-param-context            get-root-id             pg-create               pg-stop
+ create-reg-client          export-reporting-task           get-service             pg-create-service       pg-stop-version-control
+ create-reporting-task      export-reporting-tasks          get-services            pg-disable-services     remove-inherited-param-contexts
+ create-service             fetch-params                    import-param-context    pg-enable-services      set-inherited-param-contexts
+ create-user                get-access-token                import-reporting-tasks  pg-export               set-param
+ create-user-group          get-access-token-spnego         list-param-contexts     pg-get-all-versions     set-param-provider-property
+ current-user               get-controller-configuration    list-param-providers    pg-get-param-context    start-reporting-tasks
+ delete-node                get-node                        list-reg-clients        pg-get-services         stop-reporting-tasks
+ delete-param               get-nodes                       list-user-groups        pg-get-version          update-controller-configuration
+ delete-param-context       get-param-context               list-users              pg-import               update-policy
+ delete-param-provider      get-param-provider              logout-access-token     pg-list                 update-reg-client
 
 Arguments that represent a path to a file, such as `-p` or when setting a properties file in the session, will auto-complete the path being typed:
 

@@ -16,31 +16,34 @@
  */
 package org.apache.nifi.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.security.cert.X509Certificate;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.FormParam;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.authentication.AuthenticationResponse;
@@ -92,13 +95,7 @@ import org.springframework.security.web.authentication.preauth.x509.X509Principa
  * RESTful endpoint for managing access.
  */
 @Path("/access")
-@Api(
-    value = "/access",
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Endpoints for obtaining an access token or checking access status.")
-})
+@Tag(name = "Access")
 public class AccessResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(AccessResource.class);
@@ -128,9 +125,9 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("config")
-    @ApiOperation(
-            value = "Retrieves the access configuration for this NiFi",
-            response = AccessConfigurationEntity.class
+    @Operation(
+            summary = "Retrieves the access configuration for this NiFi",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = AccessConfigurationEntity.class)))
     )
     public Response getLoginConfig(@Context HttpServletRequest httpServletRequest) {
 
@@ -151,20 +148,19 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("knox/request")
-    @ApiOperation(
-            value = "Initiates a request to authenticate through Apache Knox.",
-            notes = NON_GUARANTEED_ENDPOINT
+    @Operation(
+            summary = "Initiates a request to authenticate through Apache Knox."
     )
     public void knoxRequest(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
-            forwardToLoginMessagePage(httpServletRequest, httpServletResponse, AUTHENTICATION_NOT_ENABLED_MSG);
+            httpServletResponse.sendError(HttpURLConnection.HTTP_NOT_ACCEPTABLE, AUTHENTICATION_NOT_ENABLED_MSG);
             return;
         }
 
         // ensure knox is enabled
         if (!knoxService.isKnoxEnabled()) {
-            forwardToLoginMessagePage(httpServletRequest, httpServletResponse, "Apache Knox SSO support is not configured.");
+            httpServletResponse.sendError(HttpURLConnection.HTTP_NOT_ACCEPTABLE, "Apache Knox SSO support is not configured.");
             return;
         }
 
@@ -184,20 +180,19 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("knox/callback")
-    @ApiOperation(
-            value = "Redirect/callback URI for processing the result of the Apache Knox login sequence.",
-            notes = NON_GUARANTEED_ENDPOINT
+    @Operation(
+            summary = "Redirect/callback URI for processing the result of the Apache Knox login sequence."
     )
     public void knoxCallback(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
-            forwardToLoginMessagePage(httpServletRequest, httpServletResponse, AUTHENTICATION_NOT_ENABLED_MSG);
+            httpServletResponse.sendError(HttpURLConnection.HTTP_NOT_ACCEPTABLE, AUTHENTICATION_NOT_ENABLED_MSG);
             return;
         }
 
         // ensure knox is enabled
         if (!knoxService.isKnoxEnabled()) {
-            forwardToLoginMessagePage(httpServletRequest, httpServletResponse, "Apache Knox SSO support is not configured.");
+            httpServletResponse.sendError(HttpURLConnection.HTTP_NOT_ACCEPTABLE, "Apache Knox SSO support is not configured.");
             return;
         }
 
@@ -208,11 +203,11 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("knox/logout")
-    @ApiOperation(
-            value = "Performs a logout in the Apache Knox.",
-            notes = NON_GUARANTEED_ENDPOINT
+    @Operation(
+            summary = "Performs a logout in the Apache Knox.",
+            description = NON_GUARANTEED_ENDPOINT
     )
-    public void knoxLogout(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+    public void knoxLogout(@Context HttpServletResponse httpServletResponse) throws Exception {
         String redirectPath = generateResourceUri("..", "nifi", "login");
         httpServletResponse.sendRedirect(redirectPath);
     }
@@ -227,18 +222,18 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("")
-    @ApiOperation(
-            value = "Gets the status the client's access",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = AccessStatusEntity.class
+    @Operation(
+            summary = "Gets the status the client's access",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = AccessStatusEntity.class)))
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Unable to determine access status because the client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Unable to determine access status because the client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "Unable to determine access status because NiFi is not in the appropriate state."),
-                    @ApiResponse(code = 500, message = "Unable to determine access status because an unexpected error occurred.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Unable to determine access status because the client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Unable to determine access status because the client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it."),
+                    @ApiResponse(responseCode = "500", description = "Unable to determine access status because an unexpected error occurred.")
             }
     )
     public Response getAccessStatus(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
@@ -311,21 +306,23 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/kerberos")
-    @ApiOperation(
-            value = "Creates a token for accessing the REST API via Kerberos ticket exchange / SPNEGO negotiation",
-            notes = "The token returned is formatted as a JSON Web Token (JWT). The token is base64 encoded and comprised of three parts. The header, " +
+    @Operation(
+            summary = "Creates a token for accessing the REST API via Kerberos ticket exchange / SPNEGO negotiation",
+            description = "The token returned is formatted as a JSON Web Token (JWT). The token is base64 encoded and comprised of three parts. The header, " +
                     "the body, and the signature. The expiration of the token is a contained within the body. The token can be used in the Authorization header " +
                     "in the format 'Authorization: Bearer <token>'. It is also stored in the browser as a cookie.",
-            response = String.class
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = String.class)))
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "NiFi was unable to complete the request because it did not contain a valid Kerberos " +
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(
+                            responseCode = "401", description = "NiFi was unable to complete the request because it did not contain a valid Kerberos " +
                             "ticket in the Authorization header. Retry this request after initializing a ticket with kinit and " +
-                            "ensuring your browser is configured to support SPNEGO."),
-                    @ApiResponse(code = 409, message = "Unable to create access token because NiFi is not in the appropriate state. (i.e. may not be configured to support Kerberos login."),
-                    @ApiResponse(code = 500, message = "Unable to create access token because an unexpected error occurred.")
+                            "ensuring your browser is configured to support SPNEGO."
+                    ),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it."),
+                    @ApiResponse(responseCode = "500", description = "Unable to create access token because an unexpected error occurred.")
             }
     )
     public Response createAccessTokenFromTicket(@Context final HttpServletRequest httpServletRequest, @Context final HttpServletResponse httpServletResponse) {
@@ -356,11 +353,13 @@ public class AccessResource extends ApplicationResource {
                 }
 
                 final String expirationFromProperties = properties.getKerberosAuthenticationExpiration();
-                long expiration = Math.round(FormatUtils.getPreciseTimeDuration(expirationFromProperties, TimeUnit.MILLISECONDS));
+                final long expirationDuration = Math.round(FormatUtils.getPreciseTimeDuration(expirationFromProperties, TimeUnit.MILLISECONDS));
+                final Instant expiration = Instant.now().plusMillis(expirationDuration);
+
                 final String rawIdentity = authentication.getName();
                 final String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
 
-                final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, "KerberosService");
+                final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, Collections.emptySet());
                 final String token = bearerTokenProvider.getBearerToken(loginAuthenticationToken);
                 final URI uri = URI.create(generateResourceUri("access", "kerberos"));
                 setBearerToken(httpServletResponse, token);
@@ -375,27 +374,27 @@ public class AccessResource extends ApplicationResource {
      * Creates a token for accessing the REST API via username/password stored as a cookie in the browser.
      *
      * @param httpServletRequest the servlet request
-     * @param username           the username
-     * @param password           the password
+     * @param username the username
+     * @param password the password
      * @return A JWT (string) in a cookie and as the body
      */
     @POST
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_PLAIN)
     @Path("/token")
-    @ApiOperation(
-            value = "Creates a token for accessing the REST API via username/password",
-            notes = "The token returned is formatted as a JSON Web Token (JWT). The token is base64 encoded and comprised of three parts. The header, " +
+    @Operation(
+            summary = "Creates a token for accessing the REST API via username/password",
+            description = "The token returned is formatted as a JSON Web Token (JWT). The token is base64 encoded and comprised of three parts. The header, " +
                     "the body, and the signature. The expiration of the token is a contained within the body. It is stored in the browser as a cookie, but also returned in" +
                     "the response body to be stored/used by third party client scripts.",
-            response = String.class
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = String.class)))
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "Unable to create access token because NiFi is not in the appropriate state. (i.e. may not be configured to support username/password login."),
-                    @ApiResponse(code = 500, message = "Unable to create access token because an unexpected error occurred.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it."),
+                    @ApiResponse(responseCode = "500", description = "Unable to create access token because an unexpected error occurred.")
             }
     )
     public Response createAccessToken(
@@ -426,10 +425,11 @@ public class AccessResource extends ApplicationResource {
             final AuthenticationResponse authenticationResponse = loginIdentityProvider.authenticate(new LoginCredentials(username, password));
             final String rawIdentity = authenticationResponse.getIdentity();
             final String mappedIdentity = IdentityMappingUtil.mapIdentity(rawIdentity, IdentityMappingUtil.getIdentityMappings(properties));
-            final long expiration = authenticationResponse.getExpiration();
+            final long expirationDuration = authenticationResponse.getExpiration();
+            final Instant expiration = Instant.now().plusMillis(expirationDuration);
 
             // create the authentication token
-            loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, authenticationResponse.getIssuer());
+            loginAuthenticationToken = new LoginAuthenticationToken(mappedIdentity, expiration, Collections.emptySet());
         } catch (final InvalidLoginCredentialsException ilce) {
             throw new IllegalArgumentException("The supplied username and password are not valid.", ilce);
         } catch (final IdentityAccessException iae) {
@@ -445,16 +445,16 @@ public class AccessResource extends ApplicationResource {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/token/expiration")
-    @ApiOperation(
-            value = "Get expiration for current Access Token",
-            notes = NON_GUARANTEED_ENDPOINT,
-            response = AccessTokenExpirationEntity.class
+    @Operation(
+            summary = "Get expiration for current Access Token",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = AccessTokenExpirationEntity.class)))
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 200, message = "Access Token Expiration found"),
-                    @ApiResponse(code = 401, message = "Access Token not authorized"),
-                    @ApiResponse(code = 409, message = "Access Token not resolved"),
+                    @ApiResponse(responseCode = "200", description = "Access Token Expiration found"),
+                    @ApiResponse(responseCode = "401", description = "Access Token not authorized"),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response getAccessTokenExpiration() {
@@ -476,15 +476,15 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("/logout")
-    @ApiOperation(
-            value = "Performs a logout for other providers that have been issued a JWT.",
-            notes = NON_GUARANTEED_ENDPOINT
+    @Operation(
+            summary = "Performs a logout for other providers that have been issued a JWT.",
+            description = NON_GUARANTEED_ENDPOINT
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 200, message = "User was logged out successfully."),
-                    @ApiResponse(code = 401, message = "Authentication token provided was empty or not in the correct JWT format."),
-                    @ApiResponse(code = 500, message = "Client failed to log out."),
+                    @ApiResponse(responseCode = "200", description = "User was logged out successfully."),
+                    @ApiResponse(responseCode = "401", description = "Authentication token provided was empty or not in the correct JWT format."),
+                    @ApiResponse(responseCode = "500", description = "Client failed to log out."),
             }
     )
     public Response logOut(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
@@ -522,15 +522,15 @@ public class AccessResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("/logout/complete")
-    @ApiOperation(
-            value = "Completes the logout sequence by removing the cached Logout Request and Cookie if they existed and redirects to /nifi/login.",
-            notes = NON_GUARANTEED_ENDPOINT
+    @Operation(
+            summary = "Completes the logout sequence by removing the cached Logout Request and Cookie if they existed and redirects to /nifi/login.",
+            description = NON_GUARANTEED_ENDPOINT
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 200, message = "User was logged out successfully."),
-                    @ApiResponse(code = 401, message = "Authentication token provided was empty or not in the correct JWT format."),
-                    @ApiResponse(code = 500, message = "Client failed to log out."),
+                    @ApiResponse(responseCode = "200", description = "User was logged out successfully."),
+                    @ApiResponse(responseCode = "401", description = "Authentication token provided was empty or not in the correct JWT format."),
+                    @ApiResponse(responseCode = "500", description = "Client failed to log out."),
             }
     )
     public void logOutComplete(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {

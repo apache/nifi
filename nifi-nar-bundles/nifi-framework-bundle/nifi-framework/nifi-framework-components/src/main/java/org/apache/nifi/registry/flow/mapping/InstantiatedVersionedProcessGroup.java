@@ -20,7 +20,7 @@ package org.apache.nifi.registry.flow.mapping;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.VersionedProcessGroup;
 
-import javax.xml.bind.annotation.XmlTransient;
+import jakarta.xml.bind.annotation.XmlTransient;
 import java.util.Map;
 
 public class InstantiatedVersionedProcessGroup extends VersionedProcessGroup implements InstantiatedVersionedComponent {

@@ -17,21 +17,20 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.io.Serializable;
 
-@ApiModel
 public class NetworkInfo implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty("The device network interface ID")
+    @Schema(description = "The device network interface ID")
     private String deviceId;
 
-    @ApiModelProperty("The device network hostname")
+    @Schema(description = "The device network hostname")
     private String hostname;
 
-    @ApiModelProperty("The device network interface IP Address (v4 or v6)")
+    @Schema(description = "The device network interface IP Address (v4 or v6)")
     private String ipAddress;
 
     public String getDeviceId() {

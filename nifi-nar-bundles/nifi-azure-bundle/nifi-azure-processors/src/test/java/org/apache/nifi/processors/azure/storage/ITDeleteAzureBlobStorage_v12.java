@@ -172,7 +172,7 @@ public class ITDeleteAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT
     private void assertFlowFile(Relationship relationship) throws Exception {
         runner.assertAllFlowFilesTransferred(relationship, 1);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(relationship).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(relationship).getFirst();
 
         flowFile.assertContentEquals(EMPTY_CONTENT);
     }

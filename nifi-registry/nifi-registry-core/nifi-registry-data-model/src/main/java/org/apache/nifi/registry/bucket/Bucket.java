@@ -16,19 +16,17 @@
  */
 package org.apache.nifi.registry.bucket;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Objects;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotBlank;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.registry.authorization.Permissions;
 import org.apache.nifi.registry.link.LinkableEntity;
 import org.apache.nifi.registry.revision.entity.RevisableEntity;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
 
 @XmlRootElement
-@ApiModel
 public class Bucket extends LinkableEntity implements RevisableEntity {
 
     @NotBlank
@@ -50,7 +48,7 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
 
     private RevisionInfo revision;
 
-    @ApiModelProperty(value = "An ID to uniquely identify this object.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "An ID to uniquely identify this object.", accessMode = Schema.AccessMode.READ_ONLY)
     public String getIdentifier() {
         return identifier;
     }
@@ -59,7 +57,7 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
         this.identifier = identifier;
     }
 
-    @ApiModelProperty(value = "The name of the bucket.", required = true)
+    @Schema(description = "The name of the bucket.")
     public String getName() {
         return name;
     }
@@ -68,7 +66,7 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
         this.name = name;
     }
 
-    @ApiModelProperty(value = "The timestamp of when the bucket was first created. This is set by the server at creation time.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The timestamp of when the bucket was first created. This is set by the server at creation time.", accessMode = Schema.AccessMode.READ_ONLY)
     public long getCreatedTimestamp() {
         return createdTimestamp;
     }
@@ -77,7 +75,7 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
         this.createdTimestamp = createdTimestamp;
     }
 
-    @ApiModelProperty("A description of the bucket.")
+    @Schema(description = "A description of the bucket.")
     public String getDescription() {
         return description;
     }
@@ -86,7 +84,7 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
         this.description = description;
     }
 
-    @ApiModelProperty("Indicates if this bucket allows the same version of an extension bundle to be redeployed and thus overwrite the existing artifact. By default this is false.")
+    @Schema(description = "Indicates if this bucket allows the same version of an extension bundle to be redeployed and thus overwrite the existing artifact. By default this is false.")
     public Boolean isAllowBundleRedeploy() {
         return allowBundleRedeploy;
     }
@@ -95,7 +93,7 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
         this.allowBundleRedeploy = allowBundleRedeploy;
     }
 
-    @ApiModelProperty("Indicates if this bucket allows read access to unauthenticated anonymous users")
+    @Schema(description = "Indicates if this bucket allows read access to unauthenticated anonymous users")
     public Boolean isAllowPublicRead() {
         return allowPublicRead;
     }
@@ -104,7 +102,7 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
         this.allowPublicRead = allowPublicRead;
     }
 
-    @ApiModelProperty(value = "The access that the current user has to this bucket.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The access that the current user has to this bucket.", accessMode = Schema.AccessMode.READ_ONLY)
     public Permissions getPermissions() {
         return permissions;
     }
@@ -113,9 +111,9 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
         this.permissions = permissions;
     }
 
-    @ApiModelProperty(
-            value = "The revision of this entity used for optimistic-locking during updates.",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(
+            description = "The revision of this entity used for optimistic-locking during updates.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     @Override
     public RevisionInfo getRevision() {

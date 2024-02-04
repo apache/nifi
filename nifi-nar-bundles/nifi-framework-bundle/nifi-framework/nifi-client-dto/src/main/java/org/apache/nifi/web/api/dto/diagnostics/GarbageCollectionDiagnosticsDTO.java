@@ -20,16 +20,16 @@ package org.apache.nifi.web.api.dto.diagnostics;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @XmlType(name = "garbageCollectionDiagnostics")
 public class GarbageCollectionDiagnosticsDTO implements Cloneable {
     private String memoryManagerName;
     private List<GCDiagnosticsSnapshotDTO> snapshots;
 
-    @ApiModelProperty("The name of the Memory Manager that this Garbage Collection information pertains to")
+    @Schema(description = "The name of the Memory Manager that this Garbage Collection information pertains to")
     public String getMemoryManagerName() {
         return memoryManagerName;
     }
@@ -38,7 +38,7 @@ public class GarbageCollectionDiagnosticsDTO implements Cloneable {
         this.memoryManagerName = memoryManagerName;
     }
 
-    @ApiModelProperty("A list of snapshots that have been taken to determine the health of the JVM's heap")
+    @Schema(description = "A list of snapshots that have been taken to determine the health of the JVM's heap")
     public List<GCDiagnosticsSnapshotDTO> getSnapshots() {
         return snapshots;
     }

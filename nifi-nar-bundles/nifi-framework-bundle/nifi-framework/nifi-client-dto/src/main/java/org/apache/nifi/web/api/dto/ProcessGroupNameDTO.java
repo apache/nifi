@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 @XmlType(name="processGroupName")
 public class ProcessGroupNameDTO {
@@ -29,7 +29,7 @@ public class ProcessGroupNameDTO {
         this.id = id;
     }
 
-    @ApiModelProperty("The ID of the Process Group")
+    @Schema(description = "The ID of the Process Group")
     public String getId() {
         return id;
     }
@@ -38,7 +38,7 @@ public class ProcessGroupNameDTO {
         this.name = name;
     }
 
-    @ApiModelProperty("The name of the Process Group, or the ID of the Process Group if the user does not have the READ policy for the Process Group")
+    @Schema(description = "The name of the Process Group, or the ID of the Process Group if the user does not have the READ policy for the Process Group")
     public String getName() {
         return name;
     }

@@ -21,7 +21,7 @@ import org.apache.nifi.registry.security.authentication.exception.InvalidCredent
 import org.apache.nifi.registry.security.exception.SecurityProviderCreationException;
 import org.apache.nifi.registry.security.exception.SecurityProviderDestructionException;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * IdentityProvider is an interface for a class that is able to establish a client identity.

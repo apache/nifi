@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.dto.provenance.lineage;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimestampAdapter;
 
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 
 /**
@@ -38,8 +38,7 @@ public class ProvenanceLinkDTO {
     /**
      * @return source node id
      */
-    @ApiModelProperty(
-            value = "The source node id of the link."
+    @Schema(description = "The source node id of the link."
     )
     public String getSourceId() {
         return sourceId;
@@ -52,8 +51,7 @@ public class ProvenanceLinkDTO {
     /**
      * @return target node id
      */
-    @ApiModelProperty(
-            value = "The target node id of the link."
+    @Schema(description = "The target node id of the link."
     )
     public String getTargetId() {
         return targetId;
@@ -66,8 +64,7 @@ public class ProvenanceLinkDTO {
     /**
      * @return flowfile uuid that traversed this link
      */
-    @ApiModelProperty(
-            value = "The flowfile uuid that traversed the link."
+    @Schema(description = "The flowfile uuid that traversed the link."
     )
     public String getFlowFileUuid() {
         return flowFileUuid;
@@ -81,9 +78,8 @@ public class ProvenanceLinkDTO {
      * @return timestamp of this link (based on the destination)
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
-    @ApiModelProperty(
-            value = "The timestamp of the link (based on the destination).",
-            dataType = "string"
+    @Schema(description = "The timestamp of the link (based on the destination).",
+            type = "string"
     )
     public Date getTimestamp() {
         return timestamp;
@@ -96,8 +92,7 @@ public class ProvenanceLinkDTO {
     /**
      * @return number of millis since epoch
      */
-    @ApiModelProperty(
-            value = "The timestamp of this link in milliseconds."
+    @Schema(description = "The timestamp of this link in milliseconds."
     )
     public Long getMillis() {
         return millis;

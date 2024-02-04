@@ -16,20 +16,6 @@
  */
 package org.apache.nifi.kafka.shared.property.provider;
 
-import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SASL_MECHANISM;
-import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SECURITY_PROTOCOL;
-import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SSL_CONTEXT_SERVICE;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SASL_CLIENT_CALLBACK_HANDLER_CLASS;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SASL_JAAS_CONFIG;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SASL_LOGIN_CLASS;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEYSTORE_LOCATION;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEYSTORE_PASSWORD;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEYSTORE_TYPE;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEY_PASSWORD;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_TRUSTSTORE_LOCATION;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_TRUSTSTORE_PASSWORD;
-import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_TRUSTSTORE_TYPE;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.context.PropertyContext;
@@ -48,6 +34,20 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
+
+import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SASL_MECHANISM;
+import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SECURITY_PROTOCOL;
+import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SSL_CONTEXT_SERVICE;
+import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SASL_CLIENT_CALLBACK_HANDLER_CLASS;
+import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SASL_JAAS_CONFIG;
+import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SASL_LOGIN_CLASS;
+import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEYSTORE_LOCATION;
+import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEYSTORE_PASSWORD;
+import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEYSTORE_TYPE;
+import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEY_PASSWORD;
+import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_TRUSTSTORE_LOCATION;
+import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_TRUSTSTORE_PASSWORD;
+import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_TRUSTSTORE_TYPE;
 
 /**
  * Standard implementation of Kafka Property Provider based on shared Kafka Property Descriptors
@@ -86,10 +86,10 @@ public class StandardKafkaPropertyProvider implements KafkaPropertyProvider {
             final String loginConfig = LOGIN_CONFIG_PROVIDER.getConfiguration(context);
             properties.put(SASL_JAAS_CONFIG.getProperty(), loginConfig);
 
-            final SaslMechanism saslMechanism = SaslMechanism.getSaslMechanism(context.getProperty(SASL_MECHANISM).getValue());
-            if (SaslMechanism.GSSAPI == saslMechanism && isCustomKerberosLoginFound()) {
+            final SaslMechanism saslMechanism = context.getProperty(SASL_MECHANISM).asAllowableValue(SaslMechanism.class);
+            if (saslMechanism == SaslMechanism.GSSAPI && isCustomKerberosLoginFound()) {
                 properties.put(SASL_LOGIN_CLASS.getProperty(), SASL_GSSAPI_CUSTOM_LOGIN_CLASS);
-            } else if (SaslMechanism.AWS_MSK_IAM == saslMechanism && isAwsMskIamCallbackHandlerFound()) {
+            } else if (saslMechanism == SaslMechanism.AWS_MSK_IAM && isAwsMskIamCallbackHandlerFound()) {
                 properties.put(SASL_CLIENT_CALLBACK_HANDLER_CLASS.getProperty(), SASL_AWS_MSK_IAM_CLIENT_CALLBACK_HANDLER_CLASS);
             }
         }
@@ -138,17 +138,12 @@ public class StandardKafkaPropertyProvider implements KafkaPropertyProvider {
     }
 
     private Set<PropertyDescriptor> getPropertyDescriptors(final PropertyContext context) {
-        final Set<PropertyDescriptor> propertyDescriptors;
-        if (context instanceof ConfigurationContext) {
-            final ConfigurationContext configurationContext = (ConfigurationContext) context;
-            propertyDescriptors = configurationContext.getProperties().keySet();
-        } else if (context instanceof ProcessContext) {
-            final ProcessContext processContext = (ProcessContext) context;
-            propertyDescriptors = processContext.getProperties().keySet();
-        } else {
-            throw new IllegalArgumentException(String.format("Property Context [%s] not supported", context.getClass().getName()));
-        }
-        return propertyDescriptors;
+        return switch (context) {
+            case ConfigurationContext configurationContext -> configurationContext.getProperties().keySet();
+            case ProcessContext processContext -> processContext.getProperties().keySet();
+            default ->
+                    throw new IllegalArgumentException(String.format("Property Context [%s] not supported", context.getClass().getName()));
+        };
     }
 
     private void setProperty(final Map<String, Object> properties, final String propertyName, final String propertyValue) {

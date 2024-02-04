@@ -223,11 +223,6 @@ public class CassandraDistributedMapCache extends AbstractControllerService impl
         return true;
     }
 
-    @Override
-    public long removeByPattern(String s) throws IOException {
-        throw new UnsupportedOperationException();
-    }
-
     private <K> byte[] serializeKey(K k, Serializer<K> keySerializer) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         keySerializer.serialize(k, out);

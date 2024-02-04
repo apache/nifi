@@ -51,16 +51,13 @@ import org.apache.nifi.services.azure.storage.ADLSCredentialsDetails;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static org.apache.nifi.processor.util.list.ListedEntityTracker.INITIAL_LISTING_TARGET;
 import static org.apache.nifi.processor.util.list.ListedEntityTracker.TRACKING_STATE_CACHE;
@@ -144,7 +141,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
             .defaultValue(Boolean.FALSE.toString())
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             ADLS_CREDENTIALS_SERVICE,
             FILESYSTEM,
             DIRECTORY,
@@ -161,16 +158,18 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
             MAX_AGE,
             MIN_SIZE,
             MAX_SIZE,
-            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
+            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
+    );
 
-    private static final Set<PropertyDescriptor> LISTING_RESET_PROPERTIES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    private static final Set<PropertyDescriptor> LISTING_RESET_PROPERTIES = Set.of(
             ADLS_CREDENTIALS_SERVICE,
             FILESYSTEM,
             DIRECTORY,
             RECURSE_SUBDIRECTORIES,
             FILE_FILTER,
             PATH_FILTER,
-            LISTING_STRATEGY)));
+            LISTING_STRATEGY
+    );
 
     private volatile Pattern filePattern;
     private volatile Pattern pathPattern;
@@ -288,7 +287,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
             final boolean includeTempFiles = context.getProperty(INCLUDE_TEMPORARY_FILES).asBoolean();
             final long minimumTimestamp = minTimestamp == null ? 0 : minTimestamp;
 
-            final List<ADLSFileInfo> listing = fileSystemClient.listPaths(options, null).stream()
+            return fileSystemClient.listPaths(options, null).stream()
                     .filter(pathItem -> !pathItem.isDirectory())
                     .filter(pathItem -> includeTempFiles || !pathItem.getName().contains(TEMP_FILE_DIRECTORY))
                     .filter(pathItem -> isFileInfoMatchesWithAgeAndSize(context, minimumTimestamp, pathItem.getLastModified().toInstant().toEpochMilli(), pathItem.getContentLength()))
@@ -299,11 +298,10 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
                             .lastModified(pathItem.getLastModified().toInstant().toEpochMilli())
                             .etag(pathItem.getETag())
                             .build())
-                    .filter(fileInfo -> applyFilters && (filePattern == null || filePattern.matcher(fileInfo.getFilename()).matches()))
-                    .filter(fileInfo -> applyFilters && (pathPattern == null || pathPattern.matcher(RegExUtils.removeFirst(fileInfo.getDirectory(), baseDirectoryPattern)).matches()))
-                    .collect(Collectors.toList());
-
-            return listing;
+                    .filter(fileInfo -> applyFilters)
+                    .filter(fileInfo -> filePattern == null || filePattern.matcher(fileInfo.getFilename()).matches())
+                    .filter(fileInfo -> pathPattern == null || pathPattern.matcher(RegExUtils.removeFirst(fileInfo.getDirectory(), baseDirectoryPattern)).matches())
+                    .toList();
         } catch (final Exception e) {
             getLogger().error("Failed to list directory on Azure Data Lake Storage", e);
             throw new IOException(ExceptionUtils.getRootCause(e));

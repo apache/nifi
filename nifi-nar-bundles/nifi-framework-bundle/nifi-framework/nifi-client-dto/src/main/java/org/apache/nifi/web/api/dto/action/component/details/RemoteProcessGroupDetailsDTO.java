@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.action.component.details;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Remote process group details for an action.
@@ -31,8 +31,7 @@ public class RemoteProcessGroupDetailsDTO extends ComponentDetailsDTO {
     /**
      * @return URI of the remote process group
      */
-    @ApiModelProperty(
-            value = "The uri of the target of the remote process group."
+    @Schema(description = "The uri of the target of the remote process group."
     )
     public String getUri() {
         return uri;

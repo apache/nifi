@@ -18,7 +18,7 @@ package org.apache.nifi.web.api.entity;
 
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "runtimeManifestEntity")
 public class RuntimeManifestEntity extends Entity {

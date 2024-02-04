@@ -18,8 +18,8 @@ package org.apache.nifi.web.api.filter;
 
 import org.junit.jupiter.api.Test;
 
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.core.UriInfo;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.core.UriInfo;
 import java.net.URI;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

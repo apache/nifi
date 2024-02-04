@@ -37,12 +37,10 @@ import org.apache.nifi.util.StringUtils;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJsonQueryElasticsearch<PaginatedJsonQueryParameters> {
     public static final PropertyDescriptor SEARCH_RESULTS_SPLIT = new PropertyDescriptor.Builder()
@@ -58,7 +56,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
             .description("Pagination method to use. Not all types are available for all Elasticsearch versions, " +
                     "check the Elasticsearch docs to confirm which are applicable and recommended for your service.")
             .allowableValues(PaginationType.class)
-            .defaultValue(PaginationType.SCROLL.getValue())
+            .defaultValue(PaginationType.SCROLL)
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
@@ -75,18 +73,11 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
             .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.SECONDS, 24, TimeUnit.HOURS))
             .build();
 
-    static final List<PropertyDescriptor> paginatedPropertyDescriptors;
-
-    static {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>(
-                // replace SEARCH_RESULTS_SPLIT property to allow additional output strategies
-                queryPropertyDescriptors.stream().map(pd -> AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT.equals(pd) ? SEARCH_RESULTS_SPLIT : pd).collect(Collectors.toList())
-        );
-        descriptors.add(PAGINATION_TYPE);
-        descriptors.add(PAGINATION_KEEP_ALIVE);
-
-        paginatedPropertyDescriptors = Collections.unmodifiableList(descriptors);
-    }
+    static final List<PropertyDescriptor> paginatedPropertyDescriptors =         Stream.concat(
+            // replace SEARCH_RESULTS_SPLIT property to allow additional output strategies
+            queryPropertyDescriptors.stream().map(pd -> AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT.equals(pd) ? SEARCH_RESULTS_SPLIT : pd),
+            Stream.of(PAGINATION_TYPE, PAGINATION_KEEP_ALIVE)
+    ).toList();
 
     // output as newline delimited JSON (allows for multiple pages of results to be appended to existing FlowFiles without retaining all hits in memory)
     private final ObjectWriter writer = mapper.writer().withRootValueSeparator("\n");
@@ -98,7 +89,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
 
-        paginationType = PaginationType.fromValue(context.getProperty(PAGINATION_TYPE).getValue());
+        paginationType = context.getProperty(PAGINATION_TYPE).asAllowableValue(PaginationType.class);
     }
 
     @Override
@@ -242,7 +233,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
             final FlowFile hitFlowFile;
             final boolean append = !hitsFlowFiles.isEmpty();
             if (!hitsFlowFiles.isEmpty()) {
-                hitFlowFile = hitsFlowFiles.remove(0);
+                hitFlowFile = hitsFlowFiles.removeFirst();
             } else {
                 hitFlowFile = createChildFlowFile(session, parent);
             }

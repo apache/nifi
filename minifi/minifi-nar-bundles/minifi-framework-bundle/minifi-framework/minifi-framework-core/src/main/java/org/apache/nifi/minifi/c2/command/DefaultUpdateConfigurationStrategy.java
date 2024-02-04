@@ -47,9 +47,12 @@ import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.minifi.commons.service.FlowEnrichService;
+import org.apache.nifi.minifi.commons.service.FlowPropertyEncryptor;
+import org.apache.nifi.minifi.commons.service.FlowSerDeService;
 import org.apache.nifi.services.FlowService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,15 +69,20 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
     private final FlowController flowController;
     private final FlowService flowService;
     private final FlowEnrichService flowEnrichService;
+    private final FlowPropertyEncryptor flowPropertyEncryptor;
+    private final FlowSerDeService flowSerDeService;
     private final Path flowConfigurationFile;
     private final Path backupFlowConfigurationFile;
     private final Path rawFlowConfigurationFile;
     private final Path backupRawFlowConfigurationFile;
 
-    public DefaultUpdateConfigurationStrategy(FlowController flowController, FlowService flowService, FlowEnrichService flowEnrichService, String flowConfigurationFile) {
+    public DefaultUpdateConfigurationStrategy(FlowController flowController, FlowService flowService, FlowEnrichService flowEnrichService,
+                                              FlowPropertyEncryptor flowPropertyEncryptor, FlowSerDeService flowSerDeService, String flowConfigurationFile) {
         this.flowController = flowController;
         this.flowService = flowService;
         this.flowEnrichService = flowEnrichService;
+        this.flowPropertyEncryptor = flowPropertyEncryptor;
+        this.flowSerDeService = flowSerDeService;
         Path flowConfigurationFilePath = Path.of(flowConfigurationFile).toAbsolutePath();
         this.flowConfigurationFile = flowConfigurationFilePath;
         this.backupFlowConfigurationFile = Path.of(flowConfigurationFilePath + BACKUP_EXTENSION);
@@ -90,12 +98,21 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
         }
 
         try {
-            byte[] enrichedFlowCandidate = flowEnrichService.enrichFlow(rawFlow);
+            VersionedDataflow rawDataFlow = flowSerDeService.deserialize(rawFlow);
+
+            VersionedDataflow propertyEncryptedRawDataFlow = flowPropertyEncryptor.encryptSensitiveProperties(rawDataFlow);
+            byte[] serializedPropertyEncryptedRawDataFlow = flowSerDeService.serialize(propertyEncryptedRawDataFlow);
+            VersionedDataflow enrichedFlowCandidate = flowEnrichService.enrichFlow(propertyEncryptedRawDataFlow);
+            byte[] serializedEnrichedFlowCandidate = flowSerDeService.serialize(enrichedFlowCandidate);
+
             backup(flowConfigurationFile, backupFlowConfigurationFile);
             backup(rawFlowConfigurationFile, backupRawFlowConfigurationFile);
-            persist(enrichedFlowCandidate, flowConfigurationFile, true);
-            persist(rawFlow, rawFlowConfigurationFile, false);
+
+            persist(serializedPropertyEncryptedRawDataFlow, rawFlowConfigurationFile, false);
+            persist(serializedEnrichedFlowCandidate, flowConfigurationFile, true);
+
             reloadFlow();
+
             return true;
         } catch (IllegalStateException e) {
             LOGGER.error("Configuration update failed. Reverting and reloading previous flow", e);

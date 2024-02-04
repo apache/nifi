@@ -20,7 +20,6 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -29,15 +28,13 @@ import java.util.Map;
 public class DelegatingLoginConfigProvider implements LoginConfigProvider {
     private static final LoginConfigProvider SCRAM_PROVIDER = new ScramLoginConfigProvider();
 
-    private static final Map<SaslMechanism, LoginConfigProvider> PROVIDERS = new LinkedHashMap<>();
-
-    static {
-        PROVIDERS.put(SaslMechanism.GSSAPI, new KerberosDelegatingLoginConfigProvider());
-        PROVIDERS.put(SaslMechanism.PLAIN, new PlainLoginConfigProvider());
-        PROVIDERS.put(SaslMechanism.SCRAM_SHA_256, SCRAM_PROVIDER);
-        PROVIDERS.put(SaslMechanism.SCRAM_SHA_512, SCRAM_PROVIDER);
-        PROVIDERS.put(SaslMechanism.AWS_MSK_IAM, new AwsMskIamLoginConfigProvider());
-    }
+    private static final Map<SaslMechanism, LoginConfigProvider> PROVIDERS = Map.of(
+            SaslMechanism.GSSAPI, new KerberosDelegatingLoginConfigProvider(),
+            SaslMechanism.PLAIN, new PlainLoginConfigProvider(),
+            SaslMechanism.SCRAM_SHA_256, SCRAM_PROVIDER,
+            SaslMechanism.SCRAM_SHA_512, SCRAM_PROVIDER,
+            SaslMechanism.AWS_MSK_IAM, new AwsMskIamLoginConfigProvider()
+    );
 
     /**
      * Get JAAS configuration using configured username and password properties
@@ -47,8 +44,7 @@ public class DelegatingLoginConfigProvider implements LoginConfigProvider {
      */
     @Override
     public String getConfiguration(final PropertyContext context) {
-        final String saslMechanismProperty = context.getProperty(KafkaClientComponent.SASL_MECHANISM).getValue();
-        final SaslMechanism saslMechanism = SaslMechanism.getSaslMechanism(saslMechanismProperty);
+        final SaslMechanism saslMechanism = context.getProperty(KafkaClientComponent.SASL_MECHANISM).asAllowableValue(SaslMechanism.class);
         final LoginConfigProvider loginConfigProvider = PROVIDERS.getOrDefault(saslMechanism, SCRAM_PROVIDER);
         return loginConfigProvider.getConfiguration(context);
     }

@@ -37,7 +37,7 @@ import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusResponseMess
 import org.apache.nifi.web.Revision;
 import org.junit.jupiter.api.Test;
 
-import javax.xml.bind.JAXBException;
+import jakarta.xml.bind.JAXBException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Collections;

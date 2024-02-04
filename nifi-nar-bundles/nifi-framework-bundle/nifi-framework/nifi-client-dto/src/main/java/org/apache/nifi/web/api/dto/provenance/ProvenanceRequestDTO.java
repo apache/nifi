@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.dto.provenance;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 import java.util.Map;
 
@@ -44,8 +44,7 @@ public class ProvenanceRequestDTO {
     /**
      * @return the search terms to use for this search
      */
-    @ApiModelProperty(
-            value = "The search terms used to perform the search."
+    @Schema(description = "The search terms used to perform the search."
     )
     public Map<String, ProvenanceSearchValueDTO> getSearchTerms() {
         return searchTerms;
@@ -59,9 +58,8 @@ public class ProvenanceRequestDTO {
      * @return earliest event time to include in the query
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
-    @ApiModelProperty(
-            value = "The earliest event time to include in the query.",
-            dataType = "string"
+    @Schema(description = "The earliest event time to include in the query.",
+            type = "string"
     )
     public Date getStartDate() {
         return startDate;
@@ -75,9 +73,8 @@ public class ProvenanceRequestDTO {
      * @return latest event time to include in the query
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
-    @ApiModelProperty(
-            value = "The latest event time to include in the query.",
-            dataType = "string"
+    @Schema(description = "The latest event time to include in the query.",
+            type = "string"
     )
     public Date getEndDate() {
         return endDate;
@@ -90,8 +87,7 @@ public class ProvenanceRequestDTO {
     /**
      * @return minimum file size to include in the query
      */
-    @ApiModelProperty(
-            value = "The minimum file size to include in the query."
+    @Schema(description = "The minimum file size to include in the query."
     )
     public String getMinimumFileSize() {
         return minimumFileSize;
@@ -104,8 +100,7 @@ public class ProvenanceRequestDTO {
     /**
      * @return maximum file size to include in the query
      */
-    @ApiModelProperty(
-            value = "The maximum file size to include in the query."
+    @Schema(description = "The maximum file size to include in the query."
     )
     public String getMaximumFileSize() {
         return maximumFileSize;
@@ -118,8 +113,7 @@ public class ProvenanceRequestDTO {
     /**
      * @return number of max results
      */
-    @ApiModelProperty(
-            value = "The maximum number of results to include."
+    @Schema(description = "The maximum number of results to include."
     )
     public Integer getMaxResults() {
         return maxResults;
@@ -132,8 +126,7 @@ public class ProvenanceRequestDTO {
     /**
      * @return id of the node in the cluster where this provenance originated
      */
-    @ApiModelProperty(
-            value = "The id of the node in the cluster where this provenance originated."
+    @Schema(description = "The id of the node in the cluster where this provenance originated."
     )
     public String getClusterNodeId() {
         return clusterNodeId;
@@ -147,8 +140,7 @@ public class ProvenanceRequestDTO {
      * @return whether or not incremental results are returned. If false, provenance events
      * are only returned once the query completes. This property is true by default.
      */
-    @ApiModelProperty(
-            value = "Whether or not incremental results are returned. If false, provenance events"
+    @Schema(description = "Whether or not incremental results are returned. If false, provenance events"
                     + " are only returned once the query completes. This property is true by default."
     )
     public Boolean getIncrementalResults() {
@@ -162,8 +154,7 @@ public class ProvenanceRequestDTO {
     /**
      * @return whether or not to summarize provenance events returned. This property is false by default.
      */
-    @ApiModelProperty(
-            value = "Whether or not to summarize provenance events returned. This property is false by default."
+    @Schema(description = "Whether or not to summarize provenance events returned. This property is false by default."
     )
     public Boolean getSummarize() {
         return summarize;

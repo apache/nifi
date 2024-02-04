@@ -17,8 +17,8 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -33,16 +33,13 @@ import java.util.Objects;
  * some insight, but a pre-condition and post-condition failure may better indicate how to arrive at operational
  * success.
  */
-@ApiModel
 public class C2OperationState implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty(value = "State of the operation performed", required = true, example = "FULLY_APPLIED")
+    @Schema(description = "State of the operation performed", example = "FULLY_APPLIED")
     private OperationState state;
 
-    @ApiModelProperty(
-        value = "Additional details about the state",
-        example = "Operation failed due to missing processor(s)")
+    @Schema(description = "Additional details about the state")
     private String details;
 
     public String getDetails() {

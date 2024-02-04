@@ -17,7 +17,7 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public class VersionedFlowRegistryClient extends VersionedConfigurableExtension {
     private String description;
@@ -28,7 +28,7 @@ public class VersionedFlowRegistryClient extends VersionedConfigurableExtension 
         return ComponentType.FLOW_REGISTRY_CLIENT;
     }
 
-    @ApiModelProperty("The description of the registry")
+    @Schema(description = "The description of the registry")
     public String getDescription() {
         return description;
     }
@@ -37,7 +37,7 @@ public class VersionedFlowRegistryClient extends VersionedConfigurableExtension 
         this.description = description;
     }
 
-    @ApiModelProperty(value = "The annotation for the reporting task. This is how the custom UI relays configuration to the reporting task.")
+    @Schema(description = "The annotation for the reporting task. This is how the custom UI relays configuration to the reporting task.")
     public String getAnnotationData() {
         return annotationData;
     }

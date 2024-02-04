@@ -26,7 +26,6 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -35,7 +34,6 @@ import java.util.Objects;
 
 public class ADLSFileInfo implements Comparable<ADLSFileInfo>, Serializable, ListableEntity {
 
-    private static final RecordSchema SCHEMA;
     private static final String FILESYSTEM = "filesystem";
     private static final String FILE_PATH = "filePath";
     private static final String DIRECTORY = "directory";
@@ -44,17 +42,15 @@ public class ADLSFileInfo implements Comparable<ADLSFileInfo>, Serializable, Lis
     private static final String LAST_MODIFIED = "lastModified";
     private static final String ETAG = "etag";
 
-    static {
-        List<RecordField> recordFields = new ArrayList<>();
-        recordFields.add(new RecordField(FILESYSTEM, RecordFieldType.STRING.getDataType(), false));
-        recordFields.add(new RecordField(FILE_PATH, RecordFieldType.STRING.getDataType(), false));
-        recordFields.add(new RecordField(DIRECTORY, RecordFieldType.STRING.getDataType(), false));
-        recordFields.add(new RecordField(FILENAME, RecordFieldType.STRING.getDataType(), false));
-        recordFields.add(new RecordField(LENGTH, RecordFieldType.LONG.getDataType(), false));
-        recordFields.add(new RecordField(LAST_MODIFIED, RecordFieldType.TIMESTAMP.getDataType(), false));
-        recordFields.add(new RecordField(ETAG, RecordFieldType.STRING.getDataType()));
-        SCHEMA = new SimpleRecordSchema(recordFields);
-    }
+    private static final RecordSchema SCHEMA = new SimpleRecordSchema(List.of(
+            new RecordField(FILESYSTEM, RecordFieldType.STRING.getDataType(), false),
+            new RecordField(FILE_PATH, RecordFieldType.STRING.getDataType(), false),
+            new RecordField(DIRECTORY, RecordFieldType.STRING.getDataType(), false),
+            new RecordField(FILENAME, RecordFieldType.STRING.getDataType(), false),
+            new RecordField(LENGTH, RecordFieldType.LONG.getDataType(), false),
+            new RecordField(LAST_MODIFIED, RecordFieldType.TIMESTAMP.getDataType(), false),
+            new RecordField(ETAG, RecordFieldType.STRING.getDataType())
+    ));
 
     private static final Comparator<ADLSFileInfo> COMPARATOR = Comparator.comparing(ADLSFileInfo::getFileSystem).thenComparing(ADLSFileInfo::getFilePath);
 

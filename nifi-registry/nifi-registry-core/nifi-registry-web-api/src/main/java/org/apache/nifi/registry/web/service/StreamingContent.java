@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.registry.web.service;
 
-import javax.ws.rs.core.StreamingOutput;
+import jakarta.ws.rs.core.StreamingOutput;
 
 public class StreamingContent {
 

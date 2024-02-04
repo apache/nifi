@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.jetty.configuration.connector;
 
-import org.apache.nifi.jetty.configuration.connector.alpn.ALPNServerConnectionFactory;
+import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.http.HttpScheme;
 import org.eclipse.jetty.http2.server.HTTP2ServerConnectionFactory;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -71,7 +71,7 @@ class StandardServerConnectorFactoryTest {
         final HttpConnectionFactory httpConnectionFactory = assertHttpConnectionFactoryFound(serverConnector);
         assertHttpConnectionFactorySecured(httpConnectionFactory);
 
-        final SslContextFactory.Server sslContextFactory = (SslContextFactory.Server) sslConnectionFactory.getSslContextFactory();
+        final SslContextFactory.Server sslContextFactory = sslConnectionFactory.getSslContextFactory();
         assertFalse(sslContextFactory.getNeedClientAuth());
         assertFalse(sslContextFactory.getWantClientAuth());
         assertNotNull(sslContextFactory.getIncludeProtocols());
@@ -94,7 +94,7 @@ class StandardServerConnectorFactoryTest {
         final HttpConnectionFactory httpConnectionFactory = assertHttpConnectionFactoryFound(serverConnector);
         assertHttpConnectionFactorySecured(httpConnectionFactory);
 
-        final SslContextFactory.Server sslContextFactory = (SslContextFactory.Server) sslConnectionFactory.getSslContextFactory();
+        final SslContextFactory.Server sslContextFactory = sslConnectionFactory.getSslContextFactory();
         assertTrue(sslContextFactory.getNeedClientAuth());
         assertArrayEquals(INCLUDE_PROTOCOLS, sslContextFactory.getIncludeProtocols());
     }
@@ -110,7 +110,7 @@ class StandardServerConnectorFactoryTest {
         assertHttpConnectionFactorySecured(httpConnectionFactory);
 
         final SslConnectionFactory sslConnectionFactory = assertSslConnectionFactoryFound(serverConnector);
-        final SslContextFactory.Server sslContextFactory = (SslContextFactory.Server) sslConnectionFactory.getSslContextFactory();
+        final SslContextFactory.Server sslContextFactory = sslConnectionFactory.getSslContextFactory();
         assertFalse(sslContextFactory.getNeedClientAuth());
 
         assertHttp2ConnectionFactoriesFound(serverConnector);
@@ -127,7 +127,7 @@ class StandardServerConnectorFactoryTest {
         assertNull(connectionFactory);
 
         final SslConnectionFactory sslConnectionFactory = assertSslConnectionFactoryFound(serverConnector);
-        final SslContextFactory.Server sslContextFactory = (SslContextFactory.Server) sslConnectionFactory.getSslContextFactory();
+        final SslContextFactory.Server sslContextFactory = sslConnectionFactory.getSslContextFactory();
         assertFalse(sslContextFactory.getNeedClientAuth());
 
         assertHttp2ConnectionFactoriesFound(serverConnector);

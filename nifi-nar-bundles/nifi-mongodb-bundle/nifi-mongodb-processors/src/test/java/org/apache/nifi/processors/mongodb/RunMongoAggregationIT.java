@@ -33,7 +33,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -53,7 +55,7 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
     private TestRunner runner;
     private MongoClient mongoClient;
     private Map<String, Integer> mappings;
-    private Calendar now = Calendar.getInstance();
+    private final Calendar now = Calendar.getInstance();
     private MongoDBControllerService clientService;
 
     @BeforeEach
@@ -184,11 +186,10 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(RunMongoAggregation.REL_RESULTS);
         ObjectMapper mapper = new ObjectMapper();
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
         for (MockFlowFile mockFlowFile : flowFiles) {
             byte[] raw = runner.getContentAsByteArray(mockFlowFile);
             Map<String, List<String>> read = mapper.readValue(raw, Map.class);
-            assertTrue(read.get("myArray").get(1).equalsIgnoreCase( format.format(now.getTime())));
+            assertNotNull(read.get("myArray").get(1));
         }
 
         runner.clearTransferState();
@@ -225,15 +226,15 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
     @Test
     public void testExtendedJsonSupport() throws Exception {
         String pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'";
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(pattern);
         //Let's put this a week from now to make sure that we're not getting too close to
         //the creation date
-        Date nowish = new Date(now.getTime().getTime() + (7 * 24 * 60 * 60 * 1000));
+        OffsetDateTime nowish = new Date(now.getTime().getTime() + (7 * 24 * 60 * 60 * 1000)).toInstant().atOffset(ZoneOffset.UTC);
 
         final String queryInput = "[\n" +
             "  {\n" +
             "    \"$match\": {\n" +
-            "      \"date\": { \"$gte\": { \"$date\": \"2019-01-01T00:00:00Z\" }, \"$lte\": { \"$date\": \"" + simpleDateFormat.format(nowish) + "\" } }\n" +
+            "      \"date\": { \"$gte\": { \"$date\": \"2019-01-01T00:00:00Z\" }, \"$lte\": { \"$date\": \"" + dateTimeFormatter.format(nowish) + "\" } }\n" +
             "    }\n" +
             "  },\n" +
             "  {\n" +

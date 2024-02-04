@@ -17,18 +17,6 @@
 
 package org.apache.nifi.processors.cipher;
 
-import static org.apache.nifi.processors.cipher.VerifyContentMAC.FAILURE;
-import static org.apache.nifi.processors.cipher.VerifyContentMAC.HMAC_SHA256;
-import static org.apache.nifi.processors.cipher.VerifyContentMAC.HMAC_SHA512;
-import static org.apache.nifi.processors.cipher.VerifyContentMAC.MAC_ALGORITHM_ATTRIBUTE;
-import static org.apache.nifi.processors.cipher.VerifyContentMAC.MAC_CALCULATED_ATTRIBUTE;
-import static org.apache.nifi.processors.cipher.VerifyContentMAC.MAC_ENCODING_ATTRIBUTE;
-import static org.apache.nifi.processors.cipher.VerifyContentMAC.SUCCESS;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Stream;
 import org.apache.nifi.processors.cipher.VerifyContentMAC.Encoding;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -37,6 +25,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Stream;
+
+import static org.apache.nifi.processors.cipher.VerifyContentMAC.FAILURE;
+import static org.apache.nifi.processors.cipher.VerifyContentMAC.HMAC_SHA256;
+import static org.apache.nifi.processors.cipher.VerifyContentMAC.HMAC_SHA512;
+import static org.apache.nifi.processors.cipher.VerifyContentMAC.MAC_ALGORITHM_ATTRIBUTE;
+import static org.apache.nifi.processors.cipher.VerifyContentMAC.MAC_CALCULATED_ATTRIBUTE;
+import static org.apache.nifi.processors.cipher.VerifyContentMAC.MAC_ENCODING_ATTRIBUTE;
+import static org.apache.nifi.processors.cipher.VerifyContentMAC.SUCCESS;
 
 class VerifyContentMACTest {
 
@@ -175,5 +176,4 @@ class VerifyContentMACTest {
 
         runner.assertAllFlowFilesTransferred(FAILURE);
     }
-
 }

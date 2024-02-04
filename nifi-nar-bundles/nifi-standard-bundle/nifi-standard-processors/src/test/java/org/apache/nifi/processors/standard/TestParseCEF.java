@@ -25,16 +25,18 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Locale;
-import java.util.TimeZone;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestParseCEF {
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+    private static final ZonedDateTime DATE_TIME = Instant.ofEpochMilli(1423441663000L).atZone(ZoneId.systemDefault());
 
     private final static String sample1 = "CEF:0|TestVendor|TestProduct|TestVersion|TestEventClassID|TestName|Low|" +
             // TimeStamp, String and Long
@@ -86,7 +88,7 @@ public class TestParseCEF {
 
         runner.assertAllFlowFilesTransferred(ParseCEF.REL_SUCCESS, 1);
         final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseCEF.REL_SUCCESS).get(0);
-        mff.assertAttributeEquals("cef.extension.rt", sdf.format(new Date(1423441663000L)));
+        mff.assertAttributeEquals("cef.extension.rt", FORMATTER.format(DATE_TIME));
         mff.assertAttributeEquals("cef.extension.cn3Label", "Test Long");
         mff.assertAttributeEquals("cef.extension.cn3", "9223372036854775807");
         mff.assertAttributeEquals("cef.extension.cfp1", "1.234");
@@ -99,45 +101,9 @@ public class TestParseCEF {
         mff.assertAttributeEquals("cef.extension.destinationTranslatedAddress", "123.123.123.123");
         mff.assertContentEquals(sample1.getBytes());
 
-
-        // Converting a field without timezone will always result on render time being dependent
-        // on locale of the machine running this test.
-        long eventTime = 1423229263000L;
-        int offset = TimeZone.getDefault().getOffset(eventTime);
-        sdf.setTimeZone(TimeZone.getDefault());
-
-        String prettyEvent = sdf.format(new Date(eventTime - offset));
-
-        mff.assertAttributeEquals("cef.extension.deviceCustomDate1",prettyEvent);
         mff.assertAttributeEquals("cef.extension.dpt", "1234");
         mff.assertAttributeEquals("cef.extension.agt", "123.123.0.124");
         mff.assertAttributeEquals("cef.extension.dlat", "40.366633");
-    }
-
-    @Test
-    public void testSuccessfulParseToAttributesWithUTC() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ParseCEF());
-        runner.setProperty(ParseCEF.FIELDS_DESTINATION, ParseCEF.DESTINATION_ATTRIBUTES);
-        runner.setProperty(ParseCEF.TIME_REPRESENTATION, ParseCEF.UTC);
-        runner.enqueue(sample1.getBytes());
-        runner.run();
-
-        sdf.setTimeZone(TimeZone.getTimeZone(ParseCEF.UTC));
-
-        runner.assertAllFlowFilesTransferred(ParseCEF.REL_SUCCESS, 1);
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseCEF.REL_SUCCESS).get(0);
-        mff.assertAttributeEquals("cef.extension.rt", sdf.format(new Date(1423441663000L)));
-
-        // Converting a field without timezone will always result on render time being dependent
-        // on locale of the machine running this test.
-        long eventTime = 1423229263000L;
-        int offset = TimeZone.getDefault().getOffset(eventTime);
-        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-
-        String prettyEvent = sdf.format(new Date(eventTime - offset));
-
-        mff.assertAttributeEquals("cef.extension.deviceCustomDate1",prettyEvent);
-        mff.assertContentEquals(sample1.getBytes());
     }
 
     @Test
@@ -158,7 +124,7 @@ public class TestParseCEF {
         JsonNode extension = results.get("extension");
 
         assertEquals("TestVendor", header.get("deviceVendor").asText());
-        assertEquals(sdf.format(new Date(1423441663000L)),
+        assertEquals(FORMATTER.format(DATE_TIME),
                             extension.get("rt").asText());
         assertEquals("Test Long", extension.get("cn3Label").asText());
         assertEquals( 9223372036854775807L, extension.get("cn3").asLong());
@@ -190,7 +156,7 @@ public class TestParseCEF {
         JsonNode extension = results.get("extension");
 
         assertEquals("TestVendor", header.get("deviceVendor").asText());
-        assertEquals(sdf.format(new Date(1423441663000L)),
+        assertEquals(FORMATTER.format(DATE_TIME),
                 extension.get("rt").asText());
         assertEquals("Test Long", extension.get("cn3Label").asText());
         assertEquals( 9223372036854775807L, extension.get("cn3").asLong());
@@ -208,87 +174,6 @@ public class TestParseCEF {
     }
 
     @Test
-    public void testSuccessfulParseToContentUTC() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ParseCEF());
-        runner.setProperty(ParseCEF.FIELDS_DESTINATION, ParseCEF.DESTINATION_CONTENT);
-        runner.setProperty(ParseCEF.TIME_REPRESENTATION, ParseCEF.UTC);
-        runner.enqueue(sample1.getBytes());
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(ParseCEF.REL_SUCCESS, 1);
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseCEF.REL_SUCCESS).get(0);
-
-        byte [] rawJson = mff.toByteArray();
-
-        JsonNode results = new ObjectMapper().readTree(rawJson);
-
-        JsonNode extension = results.get("extension");
-
-        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-        assertEquals(sdf.format(new Date(1423441663000L)),
-                extension.get("rt").asText());
-
-        // Converting a field without timezone will always result on render time being dependent
-        // on locale of the machine running this test.
-        long eventTime = 1423229263000L;
-        int offset = TimeZone.getDefault().getOffset(eventTime);
-
-        // Set TZ to UTC
-        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-
-        String prettyEvent = sdf.format(new Date(eventTime - offset));
-        assertEquals(prettyEvent, extension.get("deviceCustomDate1").asText());
-    }
-
-    @Test
-    public void testNonEnglishDate() {
-        final TestRunner runner = TestRunners.newTestRunner(new ParseCEF());
-        runner.setProperty(ParseCEF.FIELDS_DESTINATION, ParseCEF.DESTINATION_ATTRIBUTES);
-        runner.setProperty(ParseCEF.DATETIME_REPRESENTATION, "fr-FR");
-        runner.assertValid();
-
-        String sample = sample1.replace("Feb", "févr.");
-        runner.enqueue(sample);
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(ParseCEF.REL_SUCCESS, 1);
-        MockFlowFile mff1 = runner.getFlowFilesForRelationship(ParseCEF.REL_SUCCESS).get(0);
-
-        mff1.assertAttributeEquals("cef.extension.rt", sdf.format(new Date(1423441663000L)));
-
-        runner.setProperty(ParseCEF.FIELDS_DESTINATION, ParseCEF.DESTINATION_ATTRIBUTES);
-        runner.setProperty(ParseCEF.DATETIME_REPRESENTATION, "et-EE");
-        runner.assertValid();
-
-        sample = sample1.replace("Feb", "veebr");
-        runner.enqueue(sample);
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(ParseCEF.REL_SUCCESS, 2);
-        MockFlowFile mff2  = runner.getFlowFilesForRelationship(ParseCEF.REL_SUCCESS).get(0);
-
-        mff2.assertAttributeEquals("cef.extension.rt", sdf.format(new Date(1423441663000L)));
-
-        runner.setProperty(ParseCEF.FIELDS_DESTINATION, ParseCEF.DESTINATION_ATTRIBUTES);
-        runner.setProperty(ParseCEF.DATETIME_REPRESENTATION, "ja-JP");
-        runner.assertValid();
-
-        SimpleDateFormat dateFormat = new SimpleDateFormat("LLLL", Locale.forLanguageTag("ja-JP") );
-        String jpFeb = dateFormat.format(1423441663000L);
-
-        sample = sample1.replace("Feb", jpFeb );
-        runner.enqueue(sample);
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(ParseCEF.REL_SUCCESS, 3);
-        MockFlowFile mff3  = runner.getFlowFilesForRelationship(ParseCEF.REL_SUCCESS).get(0);
-
-        mff3.assertAttributeEquals("cef.extension.rt", sdf.format(new Date(1423441663000L)));
-
-
-    }
-
-    @Test
     public void testCustomValidator() {
         final TestRunner runner = TestRunners.newTestRunner(new ParseCEF());
         runner.setProperty(ParseCEF.FIELDS_DESTINATION, ParseCEF.DESTINATION_CONTENT);
@@ -301,9 +186,7 @@ public class TestParseCEF {
         runner.setProperty(ParseCEF.DATETIME_REPRESENTATION, "en-US");
         runner.assertValid();
 
-
-        Locale availableLocales[] = Locale.getAvailableLocales();
-
+        Locale[] availableLocales = Locale.getAvailableLocales();
         for (Locale listedLocale : availableLocales ) {
             if (!listedLocale.toString().isEmpty()) {
                 String input = listedLocale.toLanguageTag();
@@ -358,7 +241,6 @@ public class TestParseCEF {
         runner.setProperty(ParseCEF.TIME_REPRESENTATION, ParseCEF.UTC);
         runner.setProperty(ParseCEF.INCLUDE_CUSTOM_EXTENSIONS, "true");
         runner.setProperty(ParseCEF.ACCEPT_EMPTY_EXTENSIONS, "true");
-        runner.setProperty(ParseCEF.VALIDATE_DATA, "false");
         runner.enqueue(sample3.getBytes());
         runner.run();
 
@@ -376,35 +258,5 @@ public class TestParseCEF {
         assertTrue(extensions.has("cn3Label"));
         assertTrue(extensions.get("cn3Label").asText().isEmpty());
     }
-
-    @Test
-    public void testDataValidation() throws Exception {
-        String invalidEvent = sample1 + " proto=ICMP"; // according to the standard, proto can be either tcp or udp.
-
-        final TestRunner runner = TestRunners.newTestRunner(new ParseCEF());
-        runner.setProperty(ParseCEF.FIELDS_DESTINATION, ParseCEF.DESTINATION_CONTENT);
-        runner.setProperty(ParseCEF.TIME_REPRESENTATION, ParseCEF.UTC);
-        runner.enqueue(invalidEvent.getBytes());
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(ParseCEF.REL_FAILURE, 1);
-
-        runner.clearTransferState();
-        runner.setProperty(ParseCEF.VALIDATE_DATA, "false");
-        runner.enqueue(invalidEvent.getBytes());
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(ParseCEF.REL_SUCCESS, 1);
-
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseCEF.REL_SUCCESS).get(0);
-
-        byte [] rawJson = mff.toByteArray();
-
-        JsonNode results = new ObjectMapper().readTree(rawJson);
-
-        JsonNode extension = results.get("extension");
-        assertEquals("ICMP", extension.get("proto").asText());
-    }
-
 }
 

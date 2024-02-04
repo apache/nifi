@@ -19,15 +19,17 @@ package org.apache.nifi.registry;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.web.context.ServletContextAware;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 
 /**
  * The JettyServer puts an instance of NiFiRegistryProperties into the ServletContext, this class
  * obtains that instance and makes it available to inject to all other places.
  *
  */
+@Profile("default")
 @Configuration
 public class NiFiRegistryPropertiesFactory implements ServletContextAware {
 

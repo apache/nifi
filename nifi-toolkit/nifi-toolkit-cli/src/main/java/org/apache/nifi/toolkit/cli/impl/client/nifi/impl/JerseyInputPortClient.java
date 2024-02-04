@@ -22,7 +22,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.entity.PortEntity;
 
-import javax.ws.rs.client.WebTarget;
+import jakarta.ws.rs.client.WebTarget;
 import java.io.IOException;
 
 public class JerseyInputPortClient extends CRUDJerseyClient<PortEntity> implements InputPortClient {

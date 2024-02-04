@@ -17,6 +17,7 @@
 
 package org.apache.nifi.cluster.coordination.http.replication.okhttp;
 
+import org.apache.nifi.cluster.coordination.http.replication.PreparedRequest;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
@@ -98,6 +99,25 @@ public class OkHttpReplicationClientTest {
             assertEquals(2, headers.size());
             assertEquals("123", headers.get("Content-Length"));
         }
+    }
+
+    @Test
+    void testShouldReadCasInsensitiveAcceptEncoding() {
+        final Map<String, String> headers = new HashMap<>();
+        headers.put("accept-encoding", "gzip");
+        headers.put("Other-Header", "arbitrary value");
+
+        final NiFiProperties mockProperties = mockNiFiProperties();
+
+        final OkHttpReplicationClient client = new OkHttpReplicationClient(mockProperties);
+
+
+        PreparedRequest request = client.prepareRequest("POST", headers, "TEST");
+
+        assertEquals(3, request.getHeaders().size());
+        assertEquals("gzip", request.getHeaders().get("accept-encoding"));
+        assertEquals("gzip", request.getHeaders().get("Content-Encoding"));
+        assertEquals("arbitrary value", request.getHeaders().get("Other-Header"));
     }
 
     @Test

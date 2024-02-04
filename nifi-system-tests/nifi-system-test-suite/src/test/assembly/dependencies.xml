@@ -30,10 +30,13 @@
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
                 <include>*:nifi-bootstrap</include>
-                <include>*:bcprov-jdk15on</include>
+                <include>*:bcutil-jdk18on</include>
+                <include>*:bcprov-jdk18on</include>
                 <include>*:commons-lang3</include>
                 <include>*:slf4j-api</include>
                 <include>*:nifi-api</include>
+                <include>*:nifi-property-encryptor</include>
+                <include>*:nifi-security-crypto-key</include>
             </includes>
         </dependencySet>
 
@@ -51,13 +54,18 @@
                 <exclude>*:bcrypt</exclude>
                 <exclude>*:commons-lang3</exclude>
                 <exclude>*:nifi-deprecation-log</exclude>
+                <exclude>*:nifi-expression-language</exclude>
+                <exclude>*:nifi-security-crypto-key</exclude>
                 <exclude>*:nifi-security-utils</exclude>
                 <exclude>*:nifi-security-utils-api</exclude>
                 <exclude>*:nifi-xml-processing</exclude>
                 <exclude>*:nifi-nar-provider-assembly</exclude>
+                <exclude>*:nifi-parameter</exclude>
+                <exclude>*:nifi-property-encryptor</exclude>
                 <exclude>*:nifi-python-framework</exclude>
                 <exclude>*:nifi-python-test-extensions</exclude>
                 <exclude>*:nifi-alternate-config-extensions-nar</exclude>
+                <exclude>*:nifi-uuid5</exclude>
             </excludes>
         </dependencySet>
 

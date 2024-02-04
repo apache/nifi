@@ -26,16 +26,14 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 
 import static org.apache.nifi.processors.azure.AzureServiceEndpoints.DEFAULT_BLOB_ENDPOINT_SUFFIX;
-import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12.ACCOUNT_NAME;
-import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12.CREDENTIALS_TYPE;
-import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12.ENDPOINT_SUFFIX;
-import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12.SERVICE_PRINCIPAL_CLIENT_ID;
-import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12.SERVICE_PRINCIPAL_CLIENT_SECRET;
-import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12.SERVICE_PRINCIPAL_TENANT_ID;
-import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsType.ACCOUNT_KEY;
-import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsType.MANAGED_IDENTITY;
-import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsType.SAS_TOKEN;
-import static org.apache.nifi.services.azure.storage.AzureStorageCredentialsType.SERVICE_PRINCIPAL;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ACCOUNT_KEY;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ACCOUNT_NAME;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.CREDENTIALS_TYPE;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ENDPOINT_SUFFIX;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SAS_TOKEN;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -63,7 +61,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
 
     @Test
     public void testNotValidBecauseAccountNameMissing() {
-        configureCredentialsType(ACCOUNT_KEY);
+        configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
         configureAccountKey();
 
         runner.assertNotValid(credentialsService);
@@ -72,7 +70,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     @Test
     public void testAccountKeyCredentialsTypeValid() {
         configureAccountName();
-        configureCredentialsType(ACCOUNT_KEY);
+        configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
         configureAccountKey();
 
         runner.assertValid(credentialsService);
@@ -81,7 +79,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     @Test
     public void testAccountKeyCredentialsTypeNotValidBecauseAccountKeyMissing() {
         configureAccountName();
-        configureCredentialsType(ACCOUNT_KEY);
+        configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
 
         runner.assertNotValid(credentialsService);
     }
@@ -89,7 +87,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     @Test
     public void testSasTokenCredentialsTypeValid() {
         configureAccountName();
-        configureCredentialsType(SAS_TOKEN);
+        configureCredentialsType(AzureStorageCredentialsType.SAS_TOKEN);
         configureSasToken();
 
         runner.assertValid(credentialsService);
@@ -98,7 +96,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     @Test
     public void testSasTokenCredentialsTypeNotValidBecauseSasTokenMissing() {
         configureAccountName();
-        configureCredentialsType(SAS_TOKEN);
+        configureCredentialsType(AzureStorageCredentialsType.SAS_TOKEN);
 
         runner.assertNotValid(credentialsService);
     }
@@ -106,7 +104,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     @Test
     public void testManagedIdentityCredentialsTypeValid() {
         configureAccountName();
-        configureCredentialsType(MANAGED_IDENTITY);
+        configureCredentialsType(AzureStorageCredentialsType.MANAGED_IDENTITY);
 
         runner.assertValid(credentialsService);
     }
@@ -114,7 +112,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     @Test
     public void testServicePrincipalCredentialsTypeValid() {
         configureAccountName();
-        configureCredentialsType(SERVICE_PRINCIPAL);
+        configureCredentialsType(AzureStorageCredentialsType.SERVICE_PRINCIPAL);
         configureServicePrincipalTenantId();
         configureServicePrincipalClientId();
         configureServicePrincipalClientSecret();
@@ -125,7 +123,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     @Test
     public void testServicePrincipalCredentialsTypeNotValidBecauseTenantIdMissing() {
         configureAccountName();
-        configureCredentialsType(SERVICE_PRINCIPAL);
+        configureCredentialsType(AzureStorageCredentialsType.SERVICE_PRINCIPAL);
         configureServicePrincipalClientId();
         configureServicePrincipalClientSecret();
 
@@ -135,7 +133,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     @Test
     public void testServicePrincipalCredentialsTypeNotValidBecauseClientIdMissing() {
         configureAccountName();
-        configureCredentialsType(SERVICE_PRINCIPAL);
+        configureCredentialsType(AzureStorageCredentialsType.SERVICE_PRINCIPAL);
         configureServicePrincipalTenantId();
         configureServicePrincipalClientSecret();
 
@@ -145,7 +143,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     @Test
     public void testServicePrincipalCredentialsTypeNotValidBecauseClientSecretMissing() {
         configureAccountName();
-        configureCredentialsType(SERVICE_PRINCIPAL);
+        configureCredentialsType(AzureStorageCredentialsType.SERVICE_PRINCIPAL);
         configureServicePrincipalTenantId();
         configureServicePrincipalClientId();
 
@@ -155,7 +153,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     @Test
     public void testGetCredentialsDetailsWithAccountKey() {
         configureAccountName();
-        configureCredentialsType(ACCOUNT_KEY);
+        configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
         configureAccountKey();
 
         runner.enableControllerService(credentialsService);
@@ -164,7 +162,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
 
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
         assertEquals(DEFAULT_BLOB_ENDPOINT_SUFFIX, actual.getEndpointSuffix());
-        assertEquals(ACCOUNT_KEY, actual.getCredentialsType());
+        assertEquals(AzureStorageCredentialsType.ACCOUNT_KEY, actual.getCredentialsType());
         assertEquals(ACCOUNT_KEY_VALUE, actual.getAccountKey());
         assertNull(actual.getSasToken());
         assertNull(actual.getServicePrincipalTenantId());
@@ -175,7 +173,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     @Test
     public void testGetCredentialsDetailsWithSasToken() {
         configureAccountName();
-        configureCredentialsType(SAS_TOKEN);
+        configureCredentialsType(AzureStorageCredentialsType.SAS_TOKEN);
         configureSasToken();
 
         runner.enableControllerService(credentialsService);
@@ -184,7 +182,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
 
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
         assertEquals(DEFAULT_BLOB_ENDPOINT_SUFFIX, actual.getEndpointSuffix());
-        assertEquals(SAS_TOKEN, actual.getCredentialsType());
+        assertEquals(AzureStorageCredentialsType.SAS_TOKEN, actual.getCredentialsType());
         assertNull(actual.getAccountKey());
         assertEquals(SAS_TOKEN_VALUE, actual.getSasToken());
         assertNull(actual.getServicePrincipalTenantId());
@@ -195,7 +193,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     @Test
     public void testGetCredentialsDetailsWithManagedIdentity() {
         configureAccountName();
-        configureCredentialsType(MANAGED_IDENTITY);
+        configureCredentialsType(AzureStorageCredentialsType.MANAGED_IDENTITY);
 
         runner.enableControllerService(credentialsService);
 
@@ -203,7 +201,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
 
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
         assertEquals(DEFAULT_BLOB_ENDPOINT_SUFFIX, actual.getEndpointSuffix());
-        assertEquals(MANAGED_IDENTITY, actual.getCredentialsType());
+        assertEquals(AzureStorageCredentialsType.MANAGED_IDENTITY, actual.getCredentialsType());
         assertNull(actual.getAccountKey());
         assertNull(actual.getSasToken());
         assertNull(actual.getServicePrincipalTenantId());
@@ -214,7 +212,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     @Test
     public void testGetCredentialsDetailsWithServicePrincipal() {
         configureAccountName();
-        configureCredentialsType(SERVICE_PRINCIPAL);
+        configureCredentialsType(AzureStorageCredentialsType.SERVICE_PRINCIPAL);
         configureServicePrincipalTenantId();
         configureServicePrincipalClientId();
         configureServicePrincipalClientSecret();
@@ -225,7 +223,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
 
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
         assertEquals(DEFAULT_BLOB_ENDPOINT_SUFFIX, actual.getEndpointSuffix());
-        assertEquals(SERVICE_PRINCIPAL, actual.getCredentialsType());
+        assertEquals(AzureStorageCredentialsType.SERVICE_PRINCIPAL, actual.getCredentialsType());
         assertNull(actual.getAccountKey());
         assertNull(actual.getSasToken());
         assertEquals(SERVICE_PRINCIPAL_TENANT_ID_VALUE, actual.getServicePrincipalTenantId());
@@ -237,7 +235,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     public void testGetCredentialsDetailsWithCustomEndpointSuffix() {
         configureAccountName();
         configureEndpointSuffix();
-        configureCredentialsType(ACCOUNT_KEY);
+        configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
         configureAccountKey();
 
         runner.enableControllerService(credentialsService);
@@ -256,15 +254,15 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     }
 
     private void configureCredentialsType(AzureStorageCredentialsType credentialsType) {
-        runner.setProperty(credentialsService, CREDENTIALS_TYPE, credentialsType.getAllowableValue());
+        runner.setProperty(credentialsService, CREDENTIALS_TYPE, credentialsType);
     }
 
     private void configureAccountKey() {
-        runner.setProperty(credentialsService, AzureStorageCredentialsControllerService_v12.ACCOUNT_KEY, ACCOUNT_KEY_VALUE);
+        runner.setProperty(credentialsService, ACCOUNT_KEY, ACCOUNT_KEY_VALUE);
     }
 
     private void configureSasToken() {
-        runner.setProperty(credentialsService, AzureStorageCredentialsControllerService_v12.SAS_TOKEN, SAS_TOKEN_VALUE);
+        runner.setProperty(credentialsService, SAS_TOKEN, SAS_TOKEN_VALUE);
     }
 
     private void configureServicePrincipalTenantId() {

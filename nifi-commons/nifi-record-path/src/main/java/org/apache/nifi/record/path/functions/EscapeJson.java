@@ -25,6 +25,7 @@ import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.exception.RecordPathException;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
@@ -43,23 +44,28 @@ public class EscapeJson extends RecordPathSegment {
     @Override
     public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
         final Stream<FieldValue> fieldValues = recordPath.evaluate(context);
-        return fieldValues.filter(fv -> fv.getValue() != null)
-                .map(fv -> {
-                    Object value = fv.getValue();
-                    if (value == null) {
-                        return new StandardFieldValue(null, fv.getField(), fv.getParent().orElse(null));
-                    } else {
-                        if (value instanceof Record) {
-                            value = DataTypeUtils.convertRecordFieldtoObject(value, RecordFieldType.RECORD.getDataType());
-                        }
-
-                        try {
-                            return new StandardFieldValue(objectMapper.writeValueAsString(value), fv.getField(), fv.getParent().orElse(null));
-                        } catch (JsonProcessingException e) {
-                            throw new RecordPathException("Unable to serialise Record Path value as JSON String", e);
-                        }
+        return fieldValues
+            .filter(fieldValue -> fieldValue.getValue() != null)
+            .map(fieldValue -> {
+                Object value = fieldValue.getValue();
+                if (value == null) {
+                    return new StandardFieldValue(null, fieldValue.getField(), fieldValue.getParent().orElse(null));
+                } else {
+                    if (value instanceof Record) {
+                        value = DataTypeUtils.convertRecordFieldtoObject(value, RecordFieldType.RECORD.getDataType());
                     }
-                });
+
+                    try {
+                        final RecordField originalField = fieldValue.getField();
+                        final RecordField escapedField = new RecordField(originalField.getFieldName(), RecordFieldType.STRING.getDataType(),
+                            null, originalField.getAliases(), originalField.isNullable());
+
+                        return new StandardFieldValue(objectMapper.writeValueAsString(value), escapedField, fieldValue.getParent().orElse(null));
+                    } catch (JsonProcessingException e) {
+                        throw new RecordPathException("Unable to serialise Record Path value as JSON String", e);
+                    }
+                }
+            });
     }
 
 }

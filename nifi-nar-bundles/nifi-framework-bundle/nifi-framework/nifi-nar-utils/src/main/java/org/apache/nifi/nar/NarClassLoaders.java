@@ -74,6 +74,12 @@ public final class NarClassLoaders {
             this.jettyBundle = jettyBundle;
             this.serverInstance = serverInstance;
             this.bundles = bundles;
+
+            // Set the nifi.framework.version system property to make the version available
+            // via expression language in data flows
+            if (frameworkBundle != null) {
+                System.setProperty("nifi.framework.version", frameworkBundle.getBundleDetails().getCoordinate().getVersion());
+            }
         }
     }
 

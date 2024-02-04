@@ -45,7 +45,6 @@ import org.apache.nifi.snowflake.service.util.ConnectionUrlFormatParameters;
 
 import java.sql.Driver;
 import java.sql.DriverManager;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -86,7 +85,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             .description("The format of the connection URL.")
             .allowableValues(ConnectionUrlFormat.class)
             .required(true)
-            .defaultValue(ConnectionUrlFormat.FULL_URL.getValue())
+            .defaultValue(ConnectionUrlFormat.FULL_URL)
             .build();
 
     public static final PropertyDescriptor SNOWFLAKE_URL = new PropertyDescriptor.Builder()
@@ -143,35 +142,30 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES;
-
-    static {
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(CONNECTION_URL_FORMAT);
-        props.add(SNOWFLAKE_URL);
-        props.add(SNOWFLAKE_ACCOUNT_LOCATOR);
-        props.add(SNOWFLAKE_CLOUD_REGION);
-        props.add(SNOWFLAKE_CLOUD_TYPE);
-        props.add(SNOWFLAKE_ORGANIZATION_NAME);
-        props.add(SNOWFLAKE_ACCOUNT_NAME);
-        props.add(SNOWFLAKE_USER);
-        props.add(SNOWFLAKE_PASSWORD);
-        props.add(SnowflakeProperties.DATABASE);
-        props.add(SnowflakeProperties.SCHEMA);
-        props.add(SNOWFLAKE_WAREHOUSE);
-        props.add(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE);
-        props.add(VALIDATION_QUERY);
-        props.add(MAX_WAIT_TIME);
-        props.add(MAX_TOTAL_CONNECTIONS);
-        props.add(MIN_IDLE);
-        props.add(MAX_IDLE);
-        props.add(MAX_CONN_LIFETIME);
-        props.add(EVICTION_RUN_PERIOD);
-        props.add(MIN_EVICTABLE_IDLE_TIME);
-        props.add(SOFT_MIN_EVICTABLE_IDLE_TIME);
-
-        PROPERTIES = Collections.unmodifiableList(props);
-    }
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            CONNECTION_URL_FORMAT,
+            SNOWFLAKE_URL,
+            SNOWFLAKE_ACCOUNT_LOCATOR,
+            SNOWFLAKE_CLOUD_REGION,
+            SNOWFLAKE_CLOUD_TYPE,
+            SNOWFLAKE_ORGANIZATION_NAME,
+            SNOWFLAKE_ACCOUNT_NAME,
+            SNOWFLAKE_USER,
+            SNOWFLAKE_PASSWORD,
+            SnowflakeProperties.DATABASE,
+            SnowflakeProperties.SCHEMA,
+            SNOWFLAKE_WAREHOUSE,
+            ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE,
+            VALIDATION_QUERY,
+            MAX_WAIT_TIME,
+            MAX_TOTAL_CONNECTIONS,
+            MIN_IDLE,
+            MAX_IDLE,
+            MAX_CONN_LIFETIME,
+            EVICTION_RUN_PERIOD,
+            MIN_EVICTABLE_IDLE_TIME,
+            SOFT_MIN_EVICTABLE_IDLE_TIME
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -226,8 +220,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
     }
 
     protected String getUrl(final ConfigurationContext context) {
-        final ConnectionUrlFormat connectionUrlFormat = ConnectionUrlFormat.forName(context.getProperty(CONNECTION_URL_FORMAT)
-                .getValue());
+        final ConnectionUrlFormat connectionUrlFormat = context.getProperty(CONNECTION_URL_FORMAT).asAllowableValue(ConnectionUrlFormat.class);
         final ConnectionUrlFormatParameters parameters = getConnectionUrlFormatParameters(context);
 
         return connectionUrlFormat.buildConnectionUrl(parameters);
@@ -291,28 +284,13 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
     }
 
     private ConnectionUrlFormatParameters getConnectionUrlFormatParameters(ConfigurationContext context) {
-        final String snowflakeUrl = context.getProperty(SNOWFLAKE_URL).evaluateAttributeExpressions().getValue();
-        final String organizationName = context.getProperty(SNOWFLAKE_ORGANIZATION_NAME)
-                .evaluateAttributeExpressions()
-                .getValue();
-        final String accountName = context.getProperty(SNOWFLAKE_ACCOUNT_NAME)
-                .evaluateAttributeExpressions()
-                .getValue();
-        final String accountLocator = context.getProperty(SNOWFLAKE_ACCOUNT_LOCATOR)
-                .evaluateAttributeExpressions()
-                .getValue();
-        final String cloudRegion = context.getProperty(SNOWFLAKE_CLOUD_REGION)
-                .evaluateAttributeExpressions()
-                .getValue();
-        final String cloudType = context.getProperty(SNOWFLAKE_CLOUD_TYPE)
-                .evaluateAttributeExpressions()
-                .getValue();
         return new ConnectionUrlFormatParameters(
-                snowflakeUrl,
-                organizationName,
-                accountName,
-                accountLocator,
-                cloudRegion,
-                cloudType);
+                context.getProperty(SNOWFLAKE_URL).evaluateAttributeExpressions().getValue(),
+                context.getProperty(SNOWFLAKE_ORGANIZATION_NAME).evaluateAttributeExpressions().getValue(),
+                context.getProperty(SNOWFLAKE_ACCOUNT_NAME).evaluateAttributeExpressions().getValue(),
+                context.getProperty(SNOWFLAKE_ACCOUNT_LOCATOR).evaluateAttributeExpressions().getValue(),
+                context.getProperty(SNOWFLAKE_CLOUD_REGION).evaluateAttributeExpressions().getValue(),
+                context.getProperty(SNOWFLAKE_CLOUD_TYPE).evaluateAttributeExpressions().getValue()
+        );
     }
 }

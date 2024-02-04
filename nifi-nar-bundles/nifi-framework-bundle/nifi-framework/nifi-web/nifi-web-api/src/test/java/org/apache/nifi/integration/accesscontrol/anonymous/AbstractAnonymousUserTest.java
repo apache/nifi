@@ -22,7 +22,7 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 public abstract class AbstractAnonymousUserTest {
 

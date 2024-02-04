@@ -66,8 +66,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -169,7 +167,7 @@ public class TestAbstractListProcessor {
         final String serviceState = proc.getPath(runner.getProcessContext()) + "={\"latestTimestamp\":1492,\"matchingIdentifiers\":[\"id\"]}";
 
         // Create a persistence file of the format anticipated
-        try (FileOutputStream fos = new FileOutputStream(persistenceFile);) {
+        try (FileOutputStream fos = new FileOutputStream(persistenceFile)) {
             fos.write(serviceState.getBytes(StandardCharsets.UTF_8));
         }
 
@@ -439,12 +437,12 @@ public class TestAbstractListProcessor {
         private int fetchCount = 0;
 
         @Override
-        public <K, V> boolean putIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+        public <K, V> boolean putIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
             return false;
         }
 
         @Override
-        public <K, V> V getAndPutIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, Deserializer<V> valueDeserializer) throws IOException {
+        public <K, V> V getAndPutIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, Deserializer<V> valueDeserializer) {
             return null;
         }
 
@@ -474,32 +472,16 @@ public class TestAbstractListProcessor {
             final Object value = stored.remove(key);
             return value != null;
         }
-
-        @Override
-        public long removeByPattern(String regex) throws IOException {
-            final List<Object> removedRecords = new ArrayList<>();
-            Pattern p = Pattern.compile(regex);
-            for (Object key : stored.keySet()) {
-                // Key must be backed by something that can be converted into a String
-                Matcher m = p.matcher(key.toString());
-                if (m.matches()) {
-                    removedRecords.add(stored.get(key));
-                }
-            }
-            final long numRemoved = removedRecords.size();
-            removedRecords.forEach(stored::remove);
-            return numRemoved;
-        }
     }
 
     static class ConcreteListProcessor extends AbstractListProcessor<ListableEntity> {
         final Map<String, ListableEntity> entities = new HashMap<>();
 
-        final String persistenceFilename = "ListProcessor-local-state-" + UUID.randomUUID().toString() + ".json";
+        final String persistenceFilename = "ListProcessor-local-state-" + UUID.randomUUID() + ".json";
         String persistenceFolder = "target/";
         File persistenceFile = new File(persistenceFolder + persistenceFilename);
 
-        private static PropertyDescriptor RESET_STATE = new PropertyDescriptor.Builder()
+        private static final PropertyDescriptor RESET_STATE = new PropertyDescriptor.Builder()
                 .name("reset-state")
                 .addValidator(Validator.VALID)
                 .build();
@@ -590,7 +572,7 @@ public class TestAbstractListProcessor {
         }
 
         @Override
-        protected List<ListableEntity> performListing(final ProcessContext context, final Long minTimestamp, ListingMode listingMode) throws IOException {
+        protected List<ListableEntity> performListing(final ProcessContext context, final Long minTimestamp, ListingMode listingMode) {
             final PropertyValue listingFilter = context.getProperty(LISTING_FILTER);
             Predicate<ListableEntity> filter = listingFilter.isSet()
                     ? entity -> entity.getName().matches(listingFilter.getValue())
@@ -599,7 +581,7 @@ public class TestAbstractListProcessor {
         }
 
         @Override
-        protected Integer countUnfilteredListing(final ProcessContext context) throws IOException {
+        protected Integer countUnfilteredListing(final ProcessContext context) {
             return entities.size();
         }
 

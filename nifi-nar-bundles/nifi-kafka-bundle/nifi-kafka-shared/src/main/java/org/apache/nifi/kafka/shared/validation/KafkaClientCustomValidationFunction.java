@@ -51,10 +51,10 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
 
     private static final String JND_LOGIN_MODULE_EXPLANATION = "The JndiLoginModule is not allowed in the JAAS configuration";
 
-    private static final List<String> USERNAME_PASSWORD_SASL_MECHANISMS = Arrays.asList(
-            SaslMechanism.PLAIN.getValue(),
-            SaslMechanism.SCRAM_SHA_256.getValue(),
-            SaslMechanism.SCRAM_SHA_512.getValue()
+    private static final List<SaslMechanism> USERNAME_PASSWORD_SASL_MECHANISMS = Arrays.asList(
+            SaslMechanism.PLAIN,
+            SaslMechanism.SCRAM_SHA_256,
+            SaslMechanism.SCRAM_SHA_512
     );
 
     private static final List<String> SASL_PROTOCOLS = Arrays.asList(
@@ -94,10 +94,10 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
     }
 
     private void validateKerberosCredentials(final ValidationContext validationContext, final Collection<ValidationResult> results) {
-        final String saslMechanism = validationContext.getProperty(SASL_MECHANISM).getValue();
+        final SaslMechanism saslMechanism = validationContext.getProperty(SASL_MECHANISM).asAllowableValue(SaslMechanism.class);
         final String securityProtocol = validationContext.getProperty(SECURITY_PROTOCOL).getValue();
 
-        if (SaslMechanism.GSSAPI.name().equals(saslMechanism) && SASL_PROTOCOLS.contains(securityProtocol)) {
+        if (saslMechanism == SaslMechanism.GSSAPI && SASL_PROTOCOLS.contains(securityProtocol)) {
             final String serviceName = validationContext.getProperty(KERBEROS_SERVICE_NAME).evaluateAttributeExpressions().getValue();
             if (isEmpty(serviceName)) {
                 final String explanation = String.format("[%s] required for [%s] value [%s]", KERBEROS_SERVICE_NAME.getDisplayName(), SASL_MECHANISM.getDisplayName(), SaslMechanism.GSSAPI);
@@ -123,7 +123,7 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
     }
 
     private void validateUsernamePassword(final ValidationContext validationContext, final Collection<ValidationResult> results) {
-        final String saslMechanism = validationContext.getProperty(SASL_MECHANISM).getValue();
+        final SaslMechanism saslMechanism = validationContext.getProperty(SASL_MECHANISM).asAllowableValue(SaslMechanism.class);
 
         if (USERNAME_PASSWORD_SASL_MECHANISMS.contains(saslMechanism)) {
             final String username = validationContext.getProperty(SASL_USERNAME).evaluateAttributeExpressions().getValue();
@@ -151,9 +151,9 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
     private void validateAwsMskIamMechanism(final ValidationContext validationContext, final Collection<ValidationResult> results) {
         final PropertyValue saslMechanismProperty = validationContext.getProperty(SASL_MECHANISM);
         if (saslMechanismProperty.isSet()) {
-            final SaslMechanism saslMechanism = SaslMechanism.getSaslMechanism(saslMechanismProperty.getValue());
+            final SaslMechanism saslMechanism = saslMechanismProperty.asAllowableValue(SaslMechanism.class);
 
-            if (SaslMechanism.AWS_MSK_IAM == saslMechanism && !StandardKafkaPropertyProvider.isAwsMskIamCallbackHandlerFound()) {
+            if (saslMechanism == SaslMechanism.AWS_MSK_IAM && !StandardKafkaPropertyProvider.isAwsMskIamCallbackHandlerFound()) {
                 final String explanation = String.format("[%s] required class not found: Kafka modules must be compiled with AWS MSK enabled",
                         StandardKafkaPropertyProvider.SASL_AWS_MSK_IAM_CLIENT_CALLBACK_HANDLER_CLASS);
 
@@ -170,7 +170,4 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
         return string == null || string.isEmpty();
     }
 
-    private boolean isNotEmpty(final String string) {
-        return string != null && !string.isEmpty();
-    }
 }

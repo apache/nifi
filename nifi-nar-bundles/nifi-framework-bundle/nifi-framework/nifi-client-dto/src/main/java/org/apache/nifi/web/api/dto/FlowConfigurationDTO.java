@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 
 /**
@@ -43,9 +43,8 @@ public class FlowConfigurationDTO {
     /**
      * @return interval in seconds between the automatic NiFi refresh requests. This value is read only
      */
-    @ApiModelProperty(
-            value = "The interval in seconds between the automatic NiFi refresh requests.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The interval in seconds between the automatic NiFi refresh requests.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public Long getAutoRefreshIntervalSeconds() {
         return autoRefreshIntervalSeconds;
@@ -59,9 +58,8 @@ public class FlowConfigurationDTO {
      * @return whether this NiFi supports a managed authorizer. Managed authorizers can visualize users, groups,
      * and policies in the UI. This value is read only
      */
-    @ApiModelProperty(
-            value = "Whether this NiFi supports a managed authorizer. Managed authorizers can visualize users, groups, and policies in the UI.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "Whether this NiFi supports a managed authorizer. Managed authorizers can visualize users, groups, and policies in the UI.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public Boolean getSupportsManagedAuthorizer() {
         return supportsManagedAuthorizer;
@@ -74,9 +72,8 @@ public class FlowConfigurationDTO {
     /**
      * @return whether this NiFi supports configurable users and groups. This value is read only
      */
-    @ApiModelProperty(
-            value = "Whether this NiFi supports configurable users and groups.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "Whether this NiFi supports configurable users and groups.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public Boolean getSupportsConfigurableUsersAndGroups() {
         return supportsConfigurableUsersAndGroups;
@@ -89,9 +86,8 @@ public class FlowConfigurationDTO {
     /**
      * @return whether this NiFi supports a configurable authorizer. This value is read only
      */
-    @ApiModelProperty(
-            value = "Whether this NiFi supports a configurable authorizer.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "Whether this NiFi supports a configurable authorizer.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public Boolean getSupportsConfigurableAuthorizer() {
         return supportsConfigurableAuthorizer;
@@ -105,9 +101,8 @@ public class FlowConfigurationDTO {
      * @return current time on the server
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-            value = "The current time on the system.",
-            dataType = "string"
+    @Schema(description = "The current time on the system.",
+            type = "string"
     )
     public Date getCurrentTime() {
         return currentTime;
@@ -120,8 +115,7 @@ public class FlowConfigurationDTO {
     /**
      * @return time offset of the server
      */
-    @ApiModelProperty(
-            value = "The time offset of the system."
+    @Schema(description = "The time offset of the system."
     )
     public Integer getTimeOffset() {
         return timeOffset;
@@ -134,8 +128,7 @@ public class FlowConfigurationDTO {
     /**
      * @return the default back pressure object threshold
      */
-    @ApiModelProperty(
-            value = "The default back pressure object threshold."
+    @Schema(description = "The default back pressure object threshold."
     )
     public Long getDefaultBackPressureObjectThreshold() {
         return defaultBackPressureObjectThreshold;
@@ -148,8 +141,7 @@ public class FlowConfigurationDTO {
     /**
      * @return the default back pressure data size threshold
      */
-    @ApiModelProperty(
-            value = "The default back pressure data size threshold."
+    @Schema(description = "The default back pressure data size threshold."
     )
     public String getDefaultBackPressureDataSizeThreshold() {
         return defaultBackPressureDataSizeThreshold;

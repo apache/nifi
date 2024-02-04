@@ -18,9 +18,7 @@ package org.apache.nifi.controller;
 
 import org.apache.nifi.util.FormatUtils;
 
-import java.text.DateFormat;
 import java.text.NumberFormat;
-import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -32,7 +30,6 @@ public class StandardGarbageCollectionEvent implements GarbageCollectionEvent {
     private final long startTime;
     private final long endTime;
     private final List<GarbageCollectionHeapSize> heapSizes;
-    private final DateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss.SSS");
 
     public StandardGarbageCollectionEvent(final String gcName, final String action, final String cause, final long startTime, final long endTime, final List<GarbageCollectionHeapSize> heapSizes) {
         this.gcName = gcName;
@@ -84,8 +81,8 @@ public class StandardGarbageCollectionEvent implements GarbageCollectionEvent {
         sb.append("GarbageCollectionEvent[collectorName=").append(gcName)
             .append(", action=").append(action)
             .append(", cause=").append(cause)
-            .append(", startTime=").append(dateFormat.format(new Date(startTime)))
-            .append(", endTime=").append(dateFormat.format(new Date(endTime)))
+            .append(", startTime=").append(new Date(startTime).toInstant())
+            .append(", endTime=").append(new Date(endTime).toInstant())
             .append(", duration=").append(NumberFormat.getInstance().format(endTime - startTime))
             .append(" ms, heap sizes={");
 

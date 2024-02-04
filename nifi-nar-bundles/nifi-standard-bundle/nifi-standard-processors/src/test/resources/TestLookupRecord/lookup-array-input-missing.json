@@ -1,0 +1,14 @@
+[
+  {
+    "foo" : {
+      "foo" : "original"
+    },
+    "unmentioned" : {
+      "foo" : "original"
+    }
+  }, {
+    "unmentioned" : {
+      "foo" : "original"
+    }
+  }
+]

@@ -45,9 +45,6 @@ import java.nio.file.Paths;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -59,7 +56,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class TestWriteJsonResult {
 
     @Test
-    void testDataTypes() throws IOException, ParseException {
+    void testDataTypes() throws IOException {
         final List<RecordField> fields = new ArrayList<>();
         for (final RecordFieldType fieldType : RecordFieldType.values()) {
             if (fieldType == RecordFieldType.CHOICE) {
@@ -77,8 +74,6 @@ class TestWriteJsonResult {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-        final long time = df.parse("2017/01/01 17:00:00.000").getTime();
 
         final Map<String, Object> map = new LinkedHashMap<>();
         map.put("height", 48);
@@ -97,8 +92,8 @@ class TestWriteJsonResult {
         valueMap.put("double", 8.0D);
         valueMap.put("decimal", BigDecimal.valueOf(8.1D));
         valueMap.put("date", Date.valueOf("2017-01-01"));
-        valueMap.put("time", new Time(time));
-        valueMap.put("timestamp", new Timestamp(time));
+        valueMap.put("time", Time.valueOf("17:00:00"));
+        valueMap.put("timestamp", Timestamp.valueOf("2017-01-01 17:00:00"));
         valueMap.put("record", null);
         valueMap.put("array", null);
         valueMap.put("enum", null);
@@ -133,14 +128,23 @@ class TestWriteJsonResult {
         final Map<String, Object> values1 = new HashMap<>();
         values1.put("name", "John Doe");
         values1.put("age", 42);
-        final String serialized1 = "{ \"name\": \"John Doe\",    \"age\": 42 }";
+        final String serialized1 = """
+            {
+              "name": "John Doe",
+              "age": 42
+            }""";
         final SerializedForm serializedForm1 = SerializedForm.of(serialized1, "application/json");
         final Record record1 = new MapRecord(schema, values1, serializedForm1);
 
         final Map<String, Object> values2 = new HashMap<>();
         values2.put("name", "Jane Doe");
         values2.put("age", 43);
-        final String serialized2 = "{ \"name\": \"Jane Doe\",    \"age\": 43 }";
+
+        final String serialized2 = """
+            {
+              "name": "Jane Doe",
+              "age": 43
+            }""";
         final SerializedForm serializedForm2 = SerializedForm.of(serialized2, "application/json");
         final Record record2 = new MapRecord(schema, values1, serializedForm2);
 
@@ -154,11 +158,9 @@ class TestWriteJsonResult {
             writer.write(rs);
         }
 
-        final byte[] data = baos.toByteArray();
-
         final String expected = "[ " + serialized1 + ", " + serialized2 + " ]";
 
-        final String output = new String(data, StandardCharsets.UTF_8);
+        final String output = baos.toString(StandardCharsets.UTF_8);
         assertEquals(expected, output);
     }
 

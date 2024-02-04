@@ -26,7 +26,7 @@
     <artifactId>nifi-poi-bundle</artifactId>
     <packaging>pom</packaging>
     <properties>
-        <poi.version>5.2.4</poi.version>
+        <poi.version>5.2.5</poi.version>
     </properties>
     <modules>
         <module>nifi-poi-nar</module>
@@ -47,7 +47,7 @@
             <dependency>
                 <groupId>com.github.pjfanning</groupId>
                 <artifactId>excel-streaming-reader</artifactId>
-                <version>4.2.0</version>
+                <version>4.2.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>

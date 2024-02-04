@@ -17,7 +17,7 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Set;
 
@@ -36,11 +36,9 @@ public class VersionedRemoteProcessGroup extends VersionedComponent {
     private Set<VersionedRemoteGroupPort> inputPorts;
     private Set<VersionedRemoteGroupPort> outputPorts;
 
-
-    @ApiModelProperty(
-            value = "The target URIs of the remote process group." +
-                    " If target uris is not set but target uri is set, then returns the single target uri." +
-                    " If neither target uris nor target uri is set, then returns null.")
+    @Schema(description = "The target URIs of the remote process group. " +
+            "If target uris is not set but target uri is set, then returns the single target uri. " +
+            "If neither target uris nor target uri is set, then returns null.")
     public String getTargetUris() {
         return !isEmpty(targetUris) ? targetUris : null;
 
@@ -54,7 +52,7 @@ public class VersionedRemoteProcessGroup extends VersionedComponent {
         this.targetUris = targetUris;
     }
 
-    @ApiModelProperty("The time period used for the timeout when communicating with the target.")
+    @Schema(description = "The time period used for the timeout when communicating with the target.")
     public String getCommunicationsTimeout() {
         return communicationsTimeout;
     }
@@ -63,7 +61,7 @@ public class VersionedRemoteProcessGroup extends VersionedComponent {
         this.communicationsTimeout = communicationsTimeout;
     }
 
-    @ApiModelProperty("When yielding, this amount of time must elapse before the remote process group is scheduled again.")
+    @Schema(description = "When yielding, this amount of time must elapse before the remote process group is scheduled again.")
     public String getYieldDuration() {
         return yieldDuration;
     }
@@ -72,7 +70,7 @@ public class VersionedRemoteProcessGroup extends VersionedComponent {
         this.yieldDuration = yieldDuration;
     }
 
-    @ApiModelProperty(value = "The Transport Protocol that is used for Site-to-Site communications", allowableValues = "RAW, HTTP")
+    @Schema(description = "The Transport Protocol that is used for Site-to-Site communications", allowableValues = "RAW, HTTP")
     public String getTransportProtocol() {
         return transportProtocol;
     }
@@ -81,7 +79,7 @@ public class VersionedRemoteProcessGroup extends VersionedComponent {
         this.transportProtocol = transportProtocol;
     }
 
-    @ApiModelProperty("A Set of Input Ports that can be connected to, in order to send data to the remote NiFi instance")
+    @Schema(description = "A Set of Input Ports that can be connected to, in order to send data to the remote NiFi instance")
     public Set<VersionedRemoteGroupPort> getInputPorts() {
         return inputPorts;
     }
@@ -90,7 +88,7 @@ public class VersionedRemoteProcessGroup extends VersionedComponent {
         this.inputPorts = inputPorts;
     }
 
-    @ApiModelProperty("A Set of Output Ports that can be connected to, in order to pull data from the remote NiFi instance")
+    @Schema(description = "A Set of Output Ports that can be connected to, in order to pull data from the remote NiFi instance")
     public Set<VersionedRemoteGroupPort> getOutputPorts() {
         return outputPorts;
     }
@@ -100,7 +98,7 @@ public class VersionedRemoteProcessGroup extends VersionedComponent {
     }
 
 
-    @ApiModelProperty("The local network interface to send/receive data. If not specified, any local address is used. If clustered, all nodes must have an interface with this identifier.")
+    @Schema(description = "The local network interface to send/receive data. If not specified, any local address is used. If clustered, all nodes must have an interface with this identifier.")
     public String getLocalNetworkInterface() {
         return localNetworkInterface;
     }

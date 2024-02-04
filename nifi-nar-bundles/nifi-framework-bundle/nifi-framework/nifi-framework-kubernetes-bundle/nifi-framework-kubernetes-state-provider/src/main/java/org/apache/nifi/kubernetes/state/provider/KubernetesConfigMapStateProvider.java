@@ -38,8 +38,10 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.apache.nifi.components.AbstractConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProvider;
@@ -52,14 +54,28 @@ import org.apache.nifi.logging.ComponentLog;
  * State Provider implementation based on Kubernetes ConfigMaps with Base64 encoded keys to meet Kubernetes constraints
  */
 public class KubernetesConfigMapStateProvider extends AbstractConfigurableComponent implements StateProvider {
+    static final PropertyDescriptor CONFIG_MAP_NAME_PREFIX = new PropertyDescriptor.Builder()
+        .name("ConfigMap Name Prefix")
+        .description("Optional prefix that the Provider will prepend to Kubernetes ConfigMap names. The resulting ConfigMap name will contain nifi-component and the component identifier.")
+        .addValidator(Validator.VALID)
+        .required(false)
+        .build();
+
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(CONFIG_MAP_NAME_PREFIX);
+
     private static final int MAX_UPDATE_ATTEMPTS = 5;
+
     private static final Scope[] SUPPORTED_SCOPES = { Scope.CLUSTER };
 
     private static final Charset KEY_CHARACTER_SET = StandardCharsets.UTF_8;
 
-    private static final String CONFIG_MAP_NAME_FORMAT = "nifi-component-%s";
+    private static final String CONFIG_MAP_NAME_FORMAT = "%snifi-component-%%s";
 
-    private static final Pattern CONFIG_MAP_NAME_PATTERN = Pattern.compile("^nifi-component-(.+)$");
+    private static final String CONFIG_MAP_NAME_PATTERN_FORMAT = "^%snifi-component-(.+)$";
+
+    private static final String PREFIX_SEPARATOR = "-";
+
+    private static final String EMPTY_PREFIX = "";
 
     private static final int COMPONENT_ID_GROUP = 1;
 
@@ -70,6 +86,10 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
 
     private final AtomicBoolean enabled = new AtomicBoolean();
 
+    private String configMapNameFormat;
+
+    private Pattern configMapNamePattern;
+
     private KubernetesClient kubernetesClient;
 
     private String namespace;
@@ -77,6 +97,11 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
     private String identifier;
 
     private ComponentLog logger;
+
+    @Override
+    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return PROPERTIES;
+    }
 
     /**
      * Get configured component identifier
@@ -99,6 +124,13 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
         this.logger = context.getLogger();
         this.kubernetesClient = getKubernetesClient();
         this.namespace = new ServiceAccountNamespaceProvider().getNamespace();
+
+        final PropertyValue configMapNamePrefixProperty = context.getProperty(CONFIG_MAP_NAME_PREFIX);
+        final String prefixPropertyValue = configMapNamePrefixProperty.getValue();
+
+        final String configMapNamePrefix = prefixPropertyValue == null || prefixPropertyValue.isBlank() ? EMPTY_PREFIX : prefixPropertyValue + PREFIX_SEPARATOR;
+        configMapNameFormat = String.format(CONFIG_MAP_NAME_FORMAT, configMapNamePrefix);
+        configMapNamePattern = Pattern.compile(String.format(CONFIG_MAP_NAME_PATTERN_FORMAT, configMapNamePrefix));
     }
 
     /**
@@ -331,10 +363,10 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
         return configMapList.getItems().stream()
                 .map(ConfigMap::getMetadata)
                 .map(ObjectMeta::getName)
-                .map(CONFIG_MAP_NAME_PATTERN::matcher)
+                .map(configMapNamePattern::matcher)
                 .filter(Matcher::matches)
                 .map(matcher -> matcher.group(COMPONENT_ID_GROUP))
-                .collect(Collectors.toUnmodifiableList());
+                .toList();
     }
 
     /**
@@ -363,7 +395,7 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
     }
 
     private String getConfigMapName(final String componentId) {
-        return String.format(CONFIG_MAP_NAME_FORMAT, componentId);
+        return String.format(configMapNameFormat, componentId);
     }
 
     private Optional<String> getVersion(final ConfigMap configMap) {

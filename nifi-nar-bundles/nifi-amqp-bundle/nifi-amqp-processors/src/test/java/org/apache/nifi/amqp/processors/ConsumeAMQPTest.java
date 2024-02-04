@@ -393,7 +393,9 @@ public class ConsumeAMQPTest {
                     throw new IllegalStateException("Consumer already created");
                 }
 
-                consumer = new AMQPConsumer(connection, context.getProperty(ConsumeAMQP.QUEUE).getValue(), context.getProperty(ConsumeAMQP.AUTO_ACKNOWLEDGE).asBoolean(), getLogger());
+                consumer = new AMQPConsumer(connection, context.getProperty(ConsumeAMQP.QUEUE).getValue(),
+                        context.getProperty(ConsumeAMQP.AUTO_ACKNOWLEDGE).asBoolean(), context.getProperty(ConsumeAMQP.PREFETCH_COUNT).asInteger(),
+                        getLogger());
                 return consumer;
             } catch (IOException e) {
                 throw new ProcessException(e);

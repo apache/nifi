@@ -66,16 +66,18 @@ public abstract class PythonProcessorProxy extends AbstractProcessor implements 
         REL_ORIGINAL,
         REL_FAILURE);
 
-    public PythonProcessorProxy(final String processorType, final Supplier<PythonProcessorBridge> bridgeFactory) {
+    public PythonProcessorProxy(final String processorType, final Supplier<PythonProcessorBridge> bridgeFactory, final boolean initialize) {
         this.processorType = processorType;
 
         Thread.ofVirtual().name("Initialize " + processorType).start(() -> {
             this.bridge = bridgeFactory.get();
 
-            // If initialization context has already been set, initialize bridge.
-            final PythonProcessorInitializationContext pythonInitContext = initContext;
-            if (pythonInitContext != null) {
-                this.bridge.initialize(pythonInitContext);
+            if (initialize) {
+                // If initialization context has already been set, initialize bridge.
+                final PythonProcessorInitializationContext pythonInitContext = initContext;
+                if (pythonInitContext != null) {
+                    this.bridge.initialize(pythonInitContext);
+                }
             }
         });
     }
@@ -124,7 +126,7 @@ public abstract class PythonProcessorProxy extends AbstractProcessor implements 
             return this.cachedPropertyDescriptors;
         }
 
-        if (bridge == null) {
+        if (getState() != LoadState.FINISHED_LOADING) {
             return Collections.emptyList();
         }
 
@@ -200,7 +202,7 @@ public abstract class PythonProcessorProxy extends AbstractProcessor implements 
             return cachedDynamicDescriptors.get(propertyDescriptorName);
         }
 
-        if (bridge == null) {
+        if (getState() != LoadState.FINISHED_LOADING) {
             return null;
         }
 
@@ -219,7 +221,7 @@ public abstract class PythonProcessorProxy extends AbstractProcessor implements 
             return supportsDynamicProperties;
         }
 
-        if (bridge == null) {
+        if (getState() != LoadState.FINISHED_LOADING) {
             return false;
         }
 
@@ -264,7 +266,7 @@ public abstract class PythonProcessorProxy extends AbstractProcessor implements 
     }
 
     private Set<Relationship> fetchRelationshipsFromPythonProcessor() {
-        if (bridge == null) {
+        if (getState() != LoadState.FINISHED_LOADING) {
             return Collections.emptySet();
         }
 

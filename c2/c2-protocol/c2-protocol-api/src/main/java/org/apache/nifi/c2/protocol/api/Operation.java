@@ -17,10 +17,8 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel
 public class Operation extends C2Operation {
     private static final long serialVersionUID = 1L;
 
@@ -32,7 +30,7 @@ public class Operation extends C2Operation {
     private Long created;
     private Long updated;
 
-    @ApiModelProperty("The identifier of the agent to which the operation applies")
+    @Schema(description = "The identifier of the agent to which the operation applies")
     public String getTargetAgentId() {
         return targetAgentId;
     }
@@ -41,9 +39,7 @@ public class Operation extends C2Operation {
         this.targetAgentId = targetAgentId;
     }
 
-    @ApiModelProperty(
-            value = "The current state of the operation",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The current state of the operation", accessMode = Schema.AccessMode.READ_ONLY)
     public OperationState getState() {
         return state;
     }
@@ -52,7 +48,7 @@ public class Operation extends C2Operation {
         this.state = state;
     }
 
-    @ApiModelProperty(hidden = true)
+    @Schema(hidden = true)
     public String getBulkOperationId() {
         return bulkOperationId;
     }
@@ -61,11 +57,8 @@ public class Operation extends C2Operation {
         this.bulkOperationId = bulkOperationId;
     }
 
-    @ApiModelProperty(value = "The verified identity of the C2 client that created the operation",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY,
-        notes = "This field is set by the server when an operation request is submitted to identify the origin. " +
-                    "When the C2 instance is secured, this is the client principal identity (e.g., certificate DN). " +
-                    "When the C2 instances is unsecured, this will be 'anonymous' as client identity can not be authenticated.")
+    @Schema(description = "The verified identity of the C2 client that created the operation",
+        accessMode = Schema.AccessMode.READ_ONLY)
     public String getCreatedBy() {
         return createdBy;
     }
@@ -74,7 +67,7 @@ public class Operation extends C2Operation {
         this.createdBy = createdBy;
     }
 
-    @ApiModelProperty("The time (in milliseconds since Epoch) that this operation was created")
+    @Schema(description = "The time (in milliseconds since Epoch) that this operation was created")
     public Long getCreated() {
         return created;
     }
@@ -83,7 +76,7 @@ public class Operation extends C2Operation {
         this.created = created;
     }
 
-    @ApiModelProperty("The time (in milliseconds since Epoch) that this operation was last updated")
+    @Schema(description = "The time (in milliseconds since Epoch) that this operation was last updated")
     public Long getUpdated() {
         return updated;
     }
@@ -92,7 +85,7 @@ public class Operation extends C2Operation {
         this.updated = updated;
     }
 
-    @ApiModelProperty(value = "Additional details about the state of this operation (such as an error message).")
+    @Schema(description = "Additional details about the state of this operation (such as an error message).")
     public String getDetails() {
         return details;
     }

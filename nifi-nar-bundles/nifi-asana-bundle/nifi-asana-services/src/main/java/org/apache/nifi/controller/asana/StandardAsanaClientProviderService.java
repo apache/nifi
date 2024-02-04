@@ -16,12 +16,7 @@
  */
 package org.apache.nifi.controller.asana;
 
-import static org.apache.nifi.controller.asana.StandardAsanaClient.ASANA_CLIENT_OPTION_BASE_URL;
-
 import com.asana.Client;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -29,6 +24,10 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import java.util.List;
+
+import static org.apache.nifi.controller.asana.StandardAsanaClient.ASANA_CLIENT_OPTION_BASE_URL;
 
 @CapabilityDescription("Common service to authenticate with Asana, and to work on a specified workspace.")
 @Tags({"asana", "service", "authentication"})
@@ -72,11 +71,11 @@ public class StandardAsanaClientProviderService extends AbstractControllerServic
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
-    protected static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
+    protected static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             PROP_ASANA_API_BASE_URL,
             PROP_ASANA_PERSONAL_ACCESS_TOKEN,
             PROP_ASANA_WORKSPACE_NAME
-    ));
+    );
 
     private volatile String personalAccessToken;
     private volatile String workspaceName;

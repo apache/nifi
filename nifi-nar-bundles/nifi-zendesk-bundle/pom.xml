@@ -29,5 +29,8 @@
     <modules>
         <module>nifi-zendesk-processors</module>
         <module>nifi-zendesk-nar</module>
+        <module>nifi-zendesk-common</module>
+        <module>nifi-zendesk-services</module>
+        <module>nifi-zendesk-services-nar</module>
     </modules>
 </project>

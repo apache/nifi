@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.processors.azure.storage.utils;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.nifi.processor.util.list.ListableEntity;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -30,10 +24,14 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEntity {
     private static final long serialVersionUID = 1L;
 
-    private static final RecordSchema SCHEMA;
     private static final String BLOB_NAME = "blobName";
     private static final String BLOB_TYPE = "blobType";
     private static final String FILENAME = "filename";
@@ -46,22 +44,19 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
     private static final String PRIMARY_URI = "primaryUri";
     private static final String SECONDARY_URI = "secondaryUri";
 
-    static {
-        final List<RecordField> recordFields = new ArrayList<>();
-        recordFields.add(new RecordField(BLOB_NAME, RecordFieldType.STRING.getDataType(), false));
-        recordFields.add(new RecordField(BLOB_TYPE, RecordFieldType.STRING.getDataType(), false));
-        recordFields.add(new RecordField(FILENAME, RecordFieldType.STRING.getDataType(), false));
-        recordFields.add(new RecordField(CONTAINER_NAME, RecordFieldType.BOOLEAN.getDataType(), false));
-        recordFields.add(new RecordField(LENGTH, RecordFieldType.LONG.getDataType(), false));
-        recordFields.add(new RecordField(LAST_MODIFIED, RecordFieldType.TIMESTAMP.getDataType(), false));
-        recordFields.add(new RecordField(ETAG, RecordFieldType.STRING.getDataType()));
-        recordFields.add(new RecordField(CONTENT_LANGUAGE, RecordFieldType.STRING.getDataType()));
-        recordFields.add(new RecordField(CONTENT_TYPE, RecordFieldType.STRING.getDataType()));
-        recordFields.add(new RecordField(PRIMARY_URI, RecordFieldType.STRING.getDataType()));
-        recordFields.add(new RecordField(SECONDARY_URI, RecordFieldType.STRING.getDataType()));
-        SCHEMA = new SimpleRecordSchema(recordFields);
-    }
-
+    private static final RecordSchema SCHEMA = new SimpleRecordSchema(List.of(
+            new RecordField(BLOB_NAME, RecordFieldType.STRING.getDataType(), false),
+            new RecordField(BLOB_TYPE, RecordFieldType.STRING.getDataType(), false),
+            new RecordField(FILENAME, RecordFieldType.STRING.getDataType(), false),
+            new RecordField(CONTAINER_NAME, RecordFieldType.BOOLEAN.getDataType(), false),
+            new RecordField(LENGTH, RecordFieldType.LONG.getDataType(), false),
+            new RecordField(LAST_MODIFIED, RecordFieldType.TIMESTAMP.getDataType(), false),
+            new RecordField(ETAG, RecordFieldType.STRING.getDataType()),
+            new RecordField(CONTENT_LANGUAGE, RecordFieldType.STRING.getDataType()),
+            new RecordField(CONTENT_TYPE, RecordFieldType.STRING.getDataType()),
+            new RecordField(PRIMARY_URI, RecordFieldType.STRING.getDataType()),
+            new RecordField(SECONDARY_URI, RecordFieldType.STRING.getDataType())
+    ));
 
     private final String primaryUri;
     private final String secondaryUri;

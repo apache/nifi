@@ -17,11 +17,11 @@
 
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "versionedFlowSnapshotEntity")
 public class VersionedFlowSnapshotEntity extends Entity {
@@ -31,7 +31,7 @@ public class VersionedFlowSnapshotEntity extends Entity {
     private Boolean updateDescendantVersionedFlows;
     private Boolean disconnectedNodeAcknowledged;
 
-    @ApiModelProperty("The versioned flow snapshot")
+    @Schema(description = "The versioned flow snapshot")
     public RegisteredFlowSnapshot getVersionedFlowSnapshot() {
         return versionedFlowSnapshot;
     }
@@ -40,7 +40,7 @@ public class VersionedFlowSnapshotEntity extends Entity {
         this.versionedFlowSnapshot = versionedFlowSnapshot;
     }
 
-    @ApiModelProperty("The Revision of the Process Group under Version Control")
+    @Schema(description = "The Revision of the Process Group under Version Control")
     public RevisionDTO getProcessGroupRevision() {
         return processGroupRevision;
     }
@@ -49,7 +49,7 @@ public class VersionedFlowSnapshotEntity extends Entity {
         this.processGroupRevision = revision;
     }
 
-    @ApiModelProperty("The ID of the Registry that this flow belongs to")
+    @Schema(description = "The ID of the Registry that this flow belongs to")
     public String getRegistryId() {
         return registryId;
     }
@@ -58,7 +58,7 @@ public class VersionedFlowSnapshotEntity extends Entity {
         this.registryId = registryId;
     }
 
-    @ApiModelProperty("If the Process Group to be updated has a child or descendant Process Group that is also under "
+    @Schema(description = "If the Process Group to be updated has a child or descendant Process Group that is also under "
         + "Version Control, this specifies whether or not the contents of that child/descendant Process Group should be updated.")
     public Boolean getUpdateDescendantVersionedFlows() {
         return updateDescendantVersionedFlows;
@@ -68,8 +68,7 @@ public class VersionedFlowSnapshotEntity extends Entity {
         this.updateDescendantVersionedFlows = update;
     }
 
-    @ApiModelProperty(
-            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    @Schema(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
     )
     public Boolean isDisconnectedNodeAcknowledged() {
         return disconnectedNodeAcknowledged;

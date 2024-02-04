@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Map;
 
@@ -30,7 +30,7 @@ public abstract class VersionedConfigurableExtension extends VersionedComponent
     private Map<String, VersionedPropertyDescriptor> propertyDescriptors;
 
     @Override
-    @ApiModelProperty("The type of the extension component")
+    @Schema(description = "The type of the extension component")
     public String getType() {
         return type;
     }
@@ -41,7 +41,7 @@ public abstract class VersionedConfigurableExtension extends VersionedComponent
     }
 
     @Override
-    @ApiModelProperty("Information about the bundle from which the component came")
+    @Schema(description = "Information about the bundle from which the component came")
     public Bundle getBundle() {
         return bundle;
     }
@@ -53,7 +53,7 @@ public abstract class VersionedConfigurableExtension extends VersionedComponent
 
 
     @Override
-    @ApiModelProperty("The properties for the component. Properties whose value is not set will only contain the property name.")
+    @Schema(description = "The properties for the component. Properties whose value is not set will only contain the property name.")
     public Map<String, String> getProperties() {
         return properties;
     }
@@ -64,7 +64,7 @@ public abstract class VersionedConfigurableExtension extends VersionedComponent
     }
 
     @Override
-    @ApiModelProperty("The property descriptors for the component.")
+    @Schema(description = "The property descriptors for the component.")
     public Map<String, VersionedPropertyDescriptor> getPropertyDescriptors() {
         return propertyDescriptors;
     }

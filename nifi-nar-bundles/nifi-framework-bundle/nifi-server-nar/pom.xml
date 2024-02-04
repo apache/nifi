@@ -100,10 +100,10 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-        <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-web-optimistic-locking</artifactId>
-        <scope>provided</scope>
-    </dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-web-optimistic-locking</artifactId>
+            <scope>provided</scope>
+        </dependency>
         <!-- Spring dependencies provided by nifi-framework-nar -->
         <dependency>
             <groupId>org.springframework</groupId>
@@ -188,4 +188,22 @@
             <scope>provided</scope>
         </dependency>
     </dependencies>
+    <profiles>
+        <profile>
+            <id>include-new-ui</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>include-new-ui</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-web-frontend</artifactId>
+                    <type>war</type>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 </project>

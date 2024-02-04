@@ -17,19 +17,11 @@
 package org.apache.nifi.snmp.factory.core;
 
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
-import org.apache.nifi.snmp.operations.SNMPResourceHandler;
 import org.snmp4j.Snmp;
 import org.snmp4j.Target;
 import org.snmp4j.smi.UdpAddress;
 
 public interface SNMPContext {
-
-    default SNMPResourceHandler createSNMPResourceHandler(final SNMPConfiguration snmpConfiguration) {
-        return new SNMPResourceHandler(
-                createSnmpManagerInstance(snmpConfiguration),
-                createTargetInstance(snmpConfiguration)
-        );
-    }
 
     default void setupTargetBasicProperties(final Target target, final SNMPConfiguration configuration) {
         final int snmpVersion = configuration.getVersion();

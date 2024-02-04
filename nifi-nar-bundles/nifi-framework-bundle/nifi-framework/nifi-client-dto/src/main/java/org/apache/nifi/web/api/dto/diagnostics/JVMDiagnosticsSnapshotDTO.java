@@ -17,9 +17,9 @@
 
 package org.apache.nifi.web.api.dto.diagnostics;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @XmlType(name = "jvmDiagnosticsSnapshot")
 public class JVMDiagnosticsSnapshotDTO implements Cloneable {
@@ -27,7 +27,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
     private JVMFlowDiagnosticsSnapshotDTO flowDiagnosticsDto;
     private JVMControllerDiagnosticsSnapshotDTO controllerDiagnosticsDto;
 
-    @ApiModelProperty("System-related diagnostics information")
+    @Schema(description = "System-related diagnostics information")
     public JVMSystemDiagnosticsSnapshotDTO getSystemDiagnosticsDto() {
         return systemDiagnosticsDto;
     }
@@ -36,7 +36,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
         this.systemDiagnosticsDto = systemDiagnosticsDto;
     }
 
-    @ApiModelProperty("Flow-related diagnostics information")
+    @Schema(description = "Flow-related diagnostics information")
     public JVMFlowDiagnosticsSnapshotDTO getFlowDiagnosticsDto() {
         return flowDiagnosticsDto;
     }
@@ -45,7 +45,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
         this.flowDiagnosticsDto = flowDiagnosticsDto;
     }
 
-    @ApiModelProperty("Controller-related diagnostics information")
+    @Schema(description = "Controller-related diagnostics information")
     public JVMControllerDiagnosticsSnapshotDTO getControllerDiagnostics() {
         return controllerDiagnosticsDto;
     }
@@ -78,7 +78,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
         private String osVersion;
         private String osArchitecture;
 
-        @ApiModelProperty("The version of this NiFi.")
+        @Schema(description = "The version of this NiFi.")
         public String getNiFiVersion() {
             return niFiVersion;
         }
@@ -87,7 +87,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
             this.niFiVersion = niFiVersion;
         }
 
-        @ApiModelProperty("Java vendor")
+        @Schema(description = "Java vendor")
         public String getJavaVendor() {
             return javaVendor;
         }
@@ -96,7 +96,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
             this.javaVendor = javaVendor;
         }
 
-        @ApiModelProperty("Java VM Vendor")
+        @Schema(description = "Java VM Vendor")
         public String getJavaVmVendor() {
             return javaVmVendor;
         }
@@ -105,7 +105,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
             this.javaVmVendor = javaVmVendor;
         }
 
-        @ApiModelProperty("Java version")
+        @Schema(description = "Java version")
         public String getJavaVersion() {
             return javaVersion;
         }
@@ -114,7 +114,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
             this.javaVersion = javaVersion;
         }
 
-        @ApiModelProperty("Host operating system name")
+        @Schema(description = "Host operating system name")
         public String getOsName() {
             return osName;
         }
@@ -123,7 +123,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
             this.osName = osName;
         }
 
-        @ApiModelProperty("Host operating system version")
+        @Schema(description = "Host operating system version")
         public String getOsVersion() {
             return osVersion;
         }
@@ -132,7 +132,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
             this.osVersion = osVersion;
         }
 
-        @ApiModelProperty("Host operating system architecture")
+        @Schema(description = "Host operating system architecture")
         public String getOsArchitecture() {
             return osArchitecture;
         }

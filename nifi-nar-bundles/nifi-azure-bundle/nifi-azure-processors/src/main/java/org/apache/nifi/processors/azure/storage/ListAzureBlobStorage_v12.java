@@ -54,10 +54,8 @@ import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -136,7 +134,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
             .dependsOn(LISTING_STRATEGY, BY_ENTITIES)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             STORAGE_CREDENTIALS_SERVICE,
             CONTAINER,
             BLOB_NAME_PREFIX,
@@ -150,7 +148,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
             MIN_SIZE,
             MAX_SIZE,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
-    ));
+    );
 
     private volatile BlobServiceClientFactory clientFactory;
 
@@ -228,10 +226,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
             final ListBlobsOptions options = new ListBlobsOptions()
                     .setPrefix(prefix);
 
-            final Iterator<BlobItem> result = containerClient.listBlobs(options, null).iterator();
-
-            while (result.hasNext()) {
-                final BlobItem blob = result.next();
+            for (BlobItem blob : containerClient.listBlobs(options, null)) {
                 final BlobItemProperties properties = blob.getProperties();
 
                 if (isFileInfoMatchesWithAgeAndSize(context, minimumTimestamp, properties.getLastModified().toInstant().toEpochMilli(), properties.getContentLength())) {

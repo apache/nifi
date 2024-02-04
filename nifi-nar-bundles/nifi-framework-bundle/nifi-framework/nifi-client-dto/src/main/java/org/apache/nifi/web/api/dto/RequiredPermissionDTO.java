@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Objects;
 
 /**
@@ -33,8 +33,7 @@ public class RequiredPermissionDTO {
     /**
      * @return The required sub-permission necessary for this restriction.
      */
-    @ApiModelProperty(
-            value = "The required sub-permission necessary for this restriction."
+    @Schema(description = "The required sub-permission necessary for this restriction."
     )
     public String getId() {
         return id;
@@ -47,8 +46,7 @@ public class RequiredPermissionDTO {
     /**
      * @return The label for the required sub-permission necessary for this restriction.
      */
-    @ApiModelProperty(
-            value = "The label for the required sub-permission necessary for this restriction."
+    @Schema(description = "The label for the required sub-permission necessary for this restriction."
     )
     public String getLabel() {
         return label;

@@ -16,12 +16,10 @@
  */
 package org.apache.nifi.registry;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
-import javax.xml.bind.annotation.XmlRootElement;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
-@ApiModel
 public class RegistryConfiguration {
 
     private Boolean supportsManagedAuthorizer;
@@ -32,9 +30,9 @@ public class RegistryConfiguration {
      * @return whether this NiFi Registry supports a managed authorizer. Managed authorizers can visualize users, groups,
      * and policies in the UI. This value is read only
      */
-    @ApiModelProperty(
-        value = "Whether this NiFi Registry supports a managed authorizer. Managed authorizers can visualize users, groups, and policies in the UI.",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(
+        description = "Whether this NiFi Registry supports a managed authorizer. Managed authorizers can visualize users, groups, and policies in the UI.",
+        accessMode = Schema.AccessMode.READ_ONLY
     )
     public Boolean getSupportsManagedAuthorizer() {
         return supportsManagedAuthorizer;
@@ -47,9 +45,9 @@ public class RegistryConfiguration {
     /**
      * @return whether this NiFi Registry supports configurable users and groups. This value is read only
      */
-    @ApiModelProperty(
-        value = "Whether this NiFi Registry supports configurable users and groups.",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(
+        description = "Whether this NiFi Registry supports configurable users and groups.",
+        accessMode = Schema.AccessMode.READ_ONLY
     )
     public Boolean getSupportsConfigurableUsersAndGroups() {
         return supportsConfigurableUsersAndGroups;
@@ -62,9 +60,9 @@ public class RegistryConfiguration {
     /**
      * @return whether this NiFi Registry supports a configurable authorizer. This value is read only
      */
-    @ApiModelProperty(
-        value = "Whether this NiFi Registry supports a configurable authorizer.",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(
+        description = "Whether this NiFi Registry supports a configurable authorizer.",
+        accessMode = Schema.AccessMode.READ_ONLY
     )
     public Boolean getSupportsConfigurableAuthorizer() {
         return supportsConfigurableAuthorizer;

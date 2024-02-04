@@ -26,7 +26,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
-import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -420,6 +420,11 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public boolean isValid() {
+        return context.isValid();
+    }
+
+    @Override
     public void assertNotValid() {
         Assertions.assertFalse(context.isValid(), "Processor appears to be valid but expected it to be invalid");
     }
@@ -579,7 +584,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public ValidationResult setProperty(final PropertyDescriptor descriptor, final AllowableValue value) {
+    public ValidationResult setProperty(final PropertyDescriptor descriptor, final DescribedValue value) {
         return context.setProperty(descriptor, value.getValue());
     }
 
@@ -827,7 +832,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public ValidationResult setProperty(final ControllerService service, final PropertyDescriptor property, final AllowableValue value) {
+    public ValidationResult setProperty(final ControllerService service, final PropertyDescriptor property, final DescribedValue value) {
         return setProperty(service, property, value.getValue());
     }
 

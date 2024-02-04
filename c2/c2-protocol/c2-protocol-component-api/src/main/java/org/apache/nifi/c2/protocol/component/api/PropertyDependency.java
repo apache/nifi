@@ -16,13 +16,11 @@
  */
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.io.Serializable;
 import java.util.List;
 
-@ApiModel
 public class PropertyDependency implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -30,7 +28,7 @@ public class PropertyDependency implements Serializable {
     private String propertyDisplayName;
     private List<String> dependentValues;
 
-    @ApiModelProperty("The name of the property that is depended upon")
+    @Schema(description = "The name of the property that is depended upon")
     public String getPropertyName() {
         return propertyName;
     }
@@ -39,7 +37,7 @@ public class PropertyDependency implements Serializable {
         this.propertyName = propertyName;
     }
 
-    @ApiModelProperty("The name of the property that is depended upon")
+    @Schema(description = "The name of the property that is depended upon")
     public String getPropertyDisplayName() {
         return propertyDisplayName;
     }
@@ -48,7 +46,7 @@ public class PropertyDependency implements Serializable {
         this.propertyDisplayName = propertyDisplayName;
     }
 
-    @ApiModelProperty("The values that satisfy the dependency")
+    @Schema(description = "The values that satisfy the dependency")
     public List<String> getDependentValues() {
         return dependentValues;
     }

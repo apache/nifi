@@ -17,18 +17,18 @@
 
 package org.apache.nifi.web.api.entity;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @XmlRootElement(name = "processorDiagnosticsEntity")
 public class ProcessorDiagnosticsEntity extends ComponentEntity implements Permissible<ProcessorDiagnosticsDTO> {
     private ProcessorDiagnosticsDTO processorDiagnostics;
 
     @Override
-    @ApiModelProperty("The Processor Diagnostics")
+    @Schema(description = "The Processor Diagnostics")
     public ProcessorDiagnosticsDTO getComponent() {
         return processorDiagnostics;
     }

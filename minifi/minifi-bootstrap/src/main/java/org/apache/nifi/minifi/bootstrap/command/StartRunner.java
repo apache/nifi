@@ -55,6 +55,7 @@ import org.apache.nifi.minifi.bootstrap.service.MiNiFiPropertiesGenerator;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiStdLogHandler;
 import org.apache.nifi.minifi.bootstrap.service.PeriodicStatusReporterManager;
 import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 
 public class StartRunner implements CommandRunner {
 
@@ -122,10 +123,10 @@ public class StartRunner implements CommandRunner {
             CMD_LOGGER.warn("Failed to delete previous lock file {}; this file should be cleaned up manually", prevLockFile);
         }
 
-        Properties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
+        BootstrapProperties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
         String confDir = bootstrapProperties.getProperty(CONF_DIR_KEY);
 
-        generateMiNiFiProperties(bootstrapProperties, confDir);
+        generateMiNiFiProperties(bootstrapFileProvider.getProtectedBootstrapProperties(), confDir);
         regenerateFlowConfiguration(bootstrapProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey()));
 
         Process process = startMiNiFi();
@@ -259,7 +260,7 @@ public class StartRunner implements CommandRunner {
         }
     }
 
-    private void generateMiNiFiProperties(Properties bootstrapProperties, String confDir) {
+    private void generateMiNiFiProperties(BootstrapProperties bootstrapProperties, String confDir) {
         DEFAULT_LOGGER.debug("Generating minifi.properties from bootstrap.conf");
         try {
             miNiFiPropertiesGenerator.generateMinifiProperties(confDir, bootstrapProperties);
@@ -317,7 +318,7 @@ public class StartRunner implements CommandRunner {
     }
 
     private File getWorkingDir() throws IOException {
-        Properties props = bootstrapFileProvider.getBootstrapProperties();
+        BootstrapProperties props = bootstrapFileProvider.getBootstrapProperties();
         File bootstrapConfigAbsoluteFile = bootstrapConfigFile.getAbsoluteFile();
         File binDir = bootstrapConfigAbsoluteFile.getParentFile();
 

@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<component>
+    <dependencySets>
+        <!-- Core libraries -->
+        <dependencySet>
+            <outputDirectory>lib</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useProjectArtifact>false</useProjectArtifact>
+            <includes>
+                <!-- Logging -->
+                <include>org.slf4j:slf4j-api</include>
+                <include>org.slf4j:log4j-over-slf4j</include>
+                <include>org.slf4j:jcl-over-slf4j</include>
+                <include>org.slf4j:jul-to-slf4j</include>
+                <include>ch.qos.logback:logback-classic</include>
+                <include>ch.qos.logback:logback-core</include>
+                <!-- Apache NiFi -->
+                <include>org.apache.nifi:nifi-api</include>
+                <include>org.apache.nifi:nifi-framework-api</include>
+                <include>org.apache.nifi:nifi-nar-utils</include>
+                <include>org.apache.nifi:nifi-per-process-group-logging</include>
+                <include>org.apache.nifi:nifi-properties</include>
+                <include>org.apache.nifi:nifi-property-utils</include>
+                <include>org.apache.nifi:nifi-python-framework-api</include>
+                <include>org.apache.nifi:nifi-runtime</include>
+                <include>org.apache.nifi:nifi-server-api</include>
+                <include>org.apache.nifi:nifi-stateless-api</include>
+                <include>org.apache.nifi:nifi-stateless-bootstrap</include>
+            </includes>
+        </dependencySet>
+    </dependencySets>
+</component>

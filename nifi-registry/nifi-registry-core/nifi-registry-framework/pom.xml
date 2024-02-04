@@ -125,20 +125,6 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.gmavenplus</groupId>
-                <artifactId>gmavenplus-plugin</artifactId>
-                <version>3.0.0</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>addTestSources</goal>
-                            <goal>generateTestStubs</goal>
-                            <goal>compileTests</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
@@ -218,9 +204,9 @@
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
-            <version>3.1.0</version>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <version>${servlet-api.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -292,11 +278,6 @@
                 <exclusion>
                     <groupId>org.hibernate</groupId>
                     <artifactId>hibernate-core</artifactId>
-                </exclusion>
-                <!-- JDK 8 will already have jaxb-api, and JDKs above 8 we activate a profile to include it -->
-                <exclusion>
-                    <groupId>javax.xml.bind</groupId>
-                    <artifactId>jaxb-api</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -388,7 +369,7 @@
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-jaxb-annotations</artifactId>
+            <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
         </dependency>
         <!-- Test Dependencies -->
         <dependency>
@@ -424,7 +405,7 @@
         <dependency>
             <groupId>com.unboundid</groupId>
             <artifactId>unboundid-ldapsdk</artifactId>
-            <version>6.0.9</version>
+            <version>6.0.11</version>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * DTO for serializing the status of a connection.
@@ -54,7 +54,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     /**
      * @return The connection id
      */
-    @ApiModelProperty("The id of the connection.")
+    @Schema(description = "The id of the connection.")
     public String getId() {
         return id;
     }
@@ -66,7 +66,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     /**
      * @return the ID of the Process Group to which this connection belongs.
      */
-    @ApiModelProperty("The id of the process group the connection belongs to.")
+    @Schema(description = "The id of the process group the connection belongs to.")
     public String getGroupId() {
         return groupId;
     }
@@ -78,7 +78,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     /**
      * @return name of this connection
      */
-    @ApiModelProperty("The name of the connection.")
+    @Schema(description = "The name of the connection.")
     public String getName() {
         return name;
     }
@@ -90,7 +90,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     /**
      * @return total count of flow files that are queued
      */
-    @ApiModelProperty("The number of flowfiles that are queued, pretty printed.")
+    @Schema(description = "The number of flowfiles that are queued, pretty printed.")
     public String getQueuedCount() {
         return queuedCount;
     }
@@ -103,7 +103,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     /**
      * @return total size of flow files that are queued
      */
-    @ApiModelProperty("The total size of flowfiles that are queued formatted.")
+    @Schema(description = "The total size of flowfiles that are queued formatted.")
     public String getQueuedSize() {
         return queuedSize;
     }
@@ -128,7 +128,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     /**
      * @return The total count and size of queued flow files
      */
-    @ApiModelProperty("The total count and size of queued flowfiles formatted.")
+    @Schema(description = "The total count and size of queued flowfiles formatted.")
     public String getQueued() {
         return queued;
     }
@@ -137,7 +137,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     /**
      * @return id of the source of this connection
      */
-    @ApiModelProperty("The id of the source of the connection.")
+    @Schema(description = "The id of the source of the connection.")
     public String getSourceId() {
         return sourceId;
     }
@@ -149,7 +149,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     /**
      * @return name of the source of this connection
      */
-    @ApiModelProperty("The name of the source of the connection.")
+    @Schema(description = "The name of the source of the connection.")
     public String getSourceName() {
         return sourceName;
     }
@@ -161,7 +161,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     /**
      * @return id of the destination of this connection
      */
-    @ApiModelProperty("The id of the destination of the connection.")
+    @Schema(description = "The id of the destination of the connection.")
     public String getDestinationId() {
         return destinationId;
     }
@@ -173,7 +173,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     /**
      * @return name of the destination of this connection
      */
-    @ApiModelProperty("The name of the destination of the connection.")
+    @Schema(description = "The name of the destination of the connection.")
     public String getDestinationName() {
         return destinationName;
     }
@@ -185,7 +185,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     /**
      * @return predictions for this connection
      */
-    @ApiModelProperty("Predictions, if available, for this connection (null if not available)")
+    @Schema(description = "Predictions, if available, for this connection (null if not available)")
     public ConnectionStatusPredictionsSnapshotDTO getPredictions() {
         return predictions;
     }
@@ -197,7 +197,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     /**
      * @return input for this connection
      */
-    @ApiModelProperty("The input count/size for the connection in the last 5 minutes, pretty printed.")
+    @Schema(description = "The input count/size for the connection in the last 5 minutes, pretty printed.")
     public String getInput() {
         return input;
     }
@@ -206,13 +206,13 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     /**
      * @return output for this connection
      */
-    @ApiModelProperty("The output count/sie for the connection in the last 5 minutes, pretty printed.")
+    @Schema(description = "The output count/sie for the connection in the last 5 minutes, pretty printed.")
     public String getOutput() {
         return output;
     }
 
 
-    @ApiModelProperty("The number of FlowFiles that have come into the connection in the last 5 minutes.")
+    @Schema(description = "The number of FlowFiles that have come into the connection in the last 5 minutes.")
     public Integer getFlowFilesIn() {
         return flowFilesIn;
     }
@@ -221,7 +221,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         this.flowFilesIn = flowFilesIn;
     }
 
-    @ApiModelProperty("The size of the FlowFiles that have come into the connection in the last 5 minutes.")
+    @Schema(description = "The size of the FlowFiles that have come into the connection in the last 5 minutes.")
     public Long getBytesIn() {
         return bytesIn;
     }
@@ -230,7 +230,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         this.bytesIn = bytesIn;
     }
 
-    @ApiModelProperty("The number of FlowFiles that have left the connection in the last 5 minutes.")
+    @Schema(description = "The number of FlowFiles that have left the connection in the last 5 minutes.")
     public Integer getFlowFilesOut() {
         return flowFilesOut;
     }
@@ -239,7 +239,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         this.flowFilesOut = flowFilesOut;
     }
 
-    @ApiModelProperty("The number of bytes that have left the connection in the last 5 minutes.")
+    @Schema(description = "The number of bytes that have left the connection in the last 5 minutes.")
     public Long getBytesOut() {
         return bytesOut;
     }
@@ -248,7 +248,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         this.bytesOut = bytesOut;
     }
 
-    @ApiModelProperty("The number of FlowFiles that are currently queued in the connection.")
+    @Schema(description = "The number of FlowFiles that are currently queued in the connection.")
     public Integer getFlowFilesQueued() {
         return flowFilesQueued;
     }
@@ -257,7 +257,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         this.flowFilesQueued = flowFilesQueued;
     }
 
-    @ApiModelProperty("The size of the FlowFiles that are currently queued in the connection.")
+    @Schema(description = "The size of the FlowFiles that are currently queued in the connection.")
     public Long getBytesQueued() {
         return bytesQueued;
     }
@@ -266,7 +266,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         this.bytesQueued = bytesQueued;
     }
 
-    @ApiModelProperty("Connection percent use regarding queued flow files count and backpressure threshold if configured.")
+    @Schema(description = "Connection percent use regarding queued flow files count and backpressure threshold if configured.")
     public Integer getPercentUseCount() {
         return percentUseCount;
     }
@@ -275,7 +275,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         this.percentUseCount = percentUseCount;
     }
 
-    @ApiModelProperty("Connection percent use regarding queued flow files size and backpressure threshold if configured.")
+    @Schema(description = "Connection percent use regarding queued flow files size and backpressure threshold if configured.")
     public Integer getPercentUseBytes() {
         return percentUseBytes;
     }
@@ -284,7 +284,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         this.percentUseBytes = percentUseBytes;
     }
 
-    @ApiModelProperty("The availability of FlowFiles in this connection")
+    @Schema(description = "The availability of FlowFiles in this connection")
     public String getFlowFileAvailability() {
         return flowFileAvailability;
     }

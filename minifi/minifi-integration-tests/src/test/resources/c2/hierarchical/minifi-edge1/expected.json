@@ -1,8 +1,0 @@
-[
-  {
-    "pattern": "ConfigurationChangeCoordinator Notifying Listeners of a change"
-  },
-  {
-    "pattern": "MiNiFi has finished reloading successfully and applied the new flow configuration"
-  }
-]

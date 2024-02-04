@@ -17,7 +17,7 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.flowanalysis.EnforcementPolicy;
 
 public class VersionedFlowAnalysisRule extends VersionedConfigurableExtension {
@@ -25,7 +25,7 @@ public class VersionedFlowAnalysisRule extends VersionedConfigurableExtension {
     private ScheduledState scheduledState;
     private EnforcementPolicy enforcementPolicy;
 
-    @ApiModelProperty("How to handle violations.")
+    @Schema(description = "How to handle violations.")
     public EnforcementPolicy getEnforcementPolicy() {
         return enforcementPolicy;
     }
@@ -39,7 +39,7 @@ public class VersionedFlowAnalysisRule extends VersionedConfigurableExtension {
         return ComponentType.FLOW_ANALYSIS_RULE;
     }
 
-    @ApiModelProperty("Indicates the scheduled state for the flow analysis rule")
+    @Schema(description = "Indicates the scheduled state for the flow analysis rule")
     public ScheduledState getScheduledState() {
         return scheduledState;
     }

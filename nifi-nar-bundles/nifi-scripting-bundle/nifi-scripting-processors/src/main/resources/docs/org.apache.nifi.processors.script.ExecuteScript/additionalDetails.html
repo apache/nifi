@@ -45,7 +45,6 @@ td {text-align: left}
 <p>
     <b>Notes:</b>
 <ul>
-    <li>The engine listed as "python" in the list of available script engines is actually Jython, not Python. When using Jython, you cannot import pure (CPython) modules such as pandas</li>
     <li>ExecuteScript uses the JSR-223 Script Engine API to evaluate scripts, so the use of idiomatic language structure is sometimes limited. For example, in the case of Groovy, there is a separate ExecuteGroovyScript processor that allows you to do many more idiomatic Groovy tasks. For example, it's easier to interact with Controller Services via ExecuteGroovyScript vs. ExecuteScript (see the ExecuteGroovyScript documentation for more details)</li>
 </ul>
 </p>
@@ -101,12 +100,6 @@ td {text-align: left}
 <pre>flowFile = session.get()
 if(!flowFile) return
 </pre>
-<p><em>Jython</em></p>
-<pre>flowFile = session.get()
-if (flowFile != None):
-    # All processing code starts at this indent
-# implicit return at the end
-</pre>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p><strong>Get multiple incoming FlowFiles from the session</strong>:</p>
@@ -121,12 +114,6 @@ if(!flowFileList.isEmpty()) {
    }
 }
 </pre>
-<p><em>Jython</em></p>
-<pre>flowFileList = session.get(100)
-if not flowFileList.isEmpty():
-    for flowFile in flowFileList:
-         # Process each FlowFile here
-</pre>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p><strong>Create a new FlowFile</strong></p>
@@ -136,10 +123,6 @@ if not flowFileList.isEmpty():
 <p><em>Groovy</em></p>
 <pre>flowFile = session.create()
 // Additional processing here
-</pre>
-<p><em>Jython</em></p>
-<pre>flowFile = session.create()
-# Additional processing here
 </pre>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
@@ -153,12 +136,6 @@ if(!flowFile) return
 newFlowFile = session.create(flowFile)
 // Additional processing here
 </pre>
-<p><em>Jython</em></p>
-<pre>flowFile = session.get()
-if (flowFile != None):
-    newFlowFile = session.create(flowFile)
-    # Additional processing here
-</pre>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p><strong>Add an attribute to a FlowFile</strong></p>
@@ -171,31 +148,17 @@ if (flowFile != None):
 if(!flowFile) return
 flowFile = session.putAttribute(flowFile, 'myAttr', 'myValue')
 </pre>
-<p><em>Jython</em></p>
-<pre>flowFile = session.get()
-if (flowFile != None):
-    flowFile = session.putAttribute(flowFile, 'myAttr', 'myValue')
-# implicit return at the end
-</pre>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p><strong>Add multiple attributes to a FlowFile</strong></p>
 <p><strong>Use Case</strong>: You have a FlowFile to which you'd like to add custom attributes.</p>
 <p><strong>Approach</strong>: Use the putAllAttributes(<em>flowFile</em>, <em>attributeMap</em>) method from the session object. This method updates the given FlowFile's attributes with the key/value pairs from the given Map. NOTE: The "uuid" attribute is fixed for a FlowFile and cannot be modified; if the key is named "uuid", it will be ignored.</p>
-<p>The technique here is to create a Map (aka dictionary in Jython) of the attribute key/value pairs you'd like to update, then call putAllAttributes() on it. This is much more efficient than calling putAttribute() for each key/value pair, as the latter case will cause the framework to create a temporary version of the FlowFile for each attribute added (see above recipe for discussion on FlowFile immutability). The examples show a map of two entries myAttr1 and myAttr2, set to '1' and the language-specific coercion of the number 2 as a String (to adhere to the method signature of requiring String values for both key and value). Note that a session.transfer() is not specified here (so the code snippets below do not work as-is), see the following recipe for that.</p>
 <p><strong>Examples</strong>:</p>
 <p><em>Groovy</em></p>
 <pre>attrMap = ['myAttr1': '1', 'myAttr2': Integer.toString(2)]
 flowFile = session.get()
 if(!flowFile) return
 flowFile = session.putAllAttributes(flowFile, attrMap)
-</pre>
-<p><em>Jython</em></p>
-<pre>attrMap = {'myAttr1':'1', 'myAttr2':str(2)}
-flowFile = session.get()
-if (flowFile != None):
-    flowFile = session.putAllAttributes(flowFile, attrMap)
-# implicit return at the end
 </pre>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
@@ -207,12 +170,6 @@ if (flowFile != None):
 <pre>flowFile = session.get()
 if(!flowFile) return
 myAttr = flowFile.getAttribute('filename')
-</pre>
-<p><em>Jython</em></p>
-<pre>flowFile = session.get()
-if (flowFile != None):
-    myAttr = flowFile.getAttribute('filename')
-# implicit return at the end
 </pre>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
@@ -226,13 +183,6 @@ if(!flowFile) return
 flowFile.getAttributes().each { key,value -&gt;
   // Do something with the key/value pair
 }
-</pre>
-<p><em>Jython</em></p>
-<pre>flowFile = session.get()
-if (flowFile != None):
-    for key,value in flowFile.getAttributes().iteritems():
-       # Do something with key and/or value
-# implicit return at the end
 </pre>
 <p>&nbsp;</p>
 <p><strong>Transfer a FlowFile to a relationship</strong></p>
@@ -251,16 +201,6 @@ else {
   session.transfer(flowFile, REL_SUCCESS)
 }
 </pre>
-<p><em>Jython</em></p>
-<pre>flowFile = session.get()
-if (flowFile != None):
-    # All processing code starts at this indent
-    if errorOccurred:
-        session.transfer(flowFile, REL_FAILURE)
-    else:
-        session.transfer(flowFile, REL_SUCCESS)
-# implicit return at the end
-</pre>
 <p>&nbsp;</p>
 <p><strong>Send a message to the log at a specified logging level</strong></p>
 <p><strong>Use Case</strong>: You want to report some event that has occurred during processing to the logging framework.</p>
@@ -268,13 +208,6 @@ if (flowFile != None):
 <p><strong>Examples</strong>:</p>
 <p><em>Groovy</em></p>
 <pre>log.info('Found these things: {} {} {}', ['Hello',1,true] as Object[])
-</pre>
-<p><em>Jython</em></p>
-<pre>from java.lang import Object
-from jarray import array
-objArray = ['Hello',1,True]
-javaArray = array(objArray, Object)
-log.info('Found these things: {} {} {}', javaArray)
 </pre>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
@@ -293,25 +226,6 @@ session.read(flowFile, {inputStream -&gt;
   text = IOUtils.toString(inputStream, StandardCharsets.UTF_8)
   // Do something with text here
 } as InputStreamCallback)</pre>
-<p><em>Jython</em></p>
-
-<pre>from org.apache.commons.io import IOUtils
-from java.nio.charset import StandardCharsets
-from org.apache.nifi.processor.io import InputStreamCallback
-
-# Define a subclass of InputStreamCallback for use in session.read()
-class PyInputStreamCallback(InputStreamCallback):
-  def __init__(self):
-        pass
-  def process(self, inputStream):
-    text = IOUtils.toString(inputStream, StandardCharsets.UTF_8)
-    # Do something with text here
-# end class
-flowFile = session.get()
-if(flowFile != None):
-    session.read(flowFile, PyInputStreamCallback())
-# implicit return at the end
-</pre>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p><strong>Write content to an outgoing FlowFile using a callback</strong></p>
@@ -330,24 +244,6 @@ def text = 'Hello world!'
 flowFile = session.write(flowFile, {outputStream -&gt;
   outputStream.write(text.getBytes(StandardCharsets.UTF_8))
 } as OutputStreamCallback)</pre>
-<p><em>Jython</em></p>
-
-<pre>from org.apache.commons.io import IOUtils
-from java.nio.charset import StandardCharsets
-from org.apache.nifi.processor.io import OutputStreamCallback
-
-# Define a subclass of OutputStreamCallback for use in session.write()
-class PyOutputStreamCallback(OutputStreamCallback):
-  def __init__(self):
-        pass
-  def process(self, outputStream):
-    outputStream.write(bytearray('Hello World!'.encode('utf-8')))
-# end class
-flowFile = session.get()
-if(flowFile != None):
-    flowFile = session.write(flowFile, PyOutputStreamCallback())
-# implicit return at the end
-</pre>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p><strong>Overwrite an incoming FlowFile with updated content using a callback</strong></p>
@@ -371,25 +267,6 @@ flowFile = session.write(flowFile, {inputStream, outputStream -&gt;
 } as StreamCallback)
 session.transfer(flowFile, REL_SUCCESS)</pre>
 
-<p><em>Jython</em></p>
-
-<pre>from org.apache.commons.io import IOUtils
-from java.nio.charset import StandardCharsets
-from org.apache.nifi.processor.io import StreamCallback
-
-# Define a subclass of StreamCallback for use in session.write()
-class PyStreamCallback(StreamCallback):
-  def __init__(self):
-        pass
-  def process(self, inputStream, outputStream):
-    text = IOUtils.toString(inputStream, StandardCharsets.UTF_8)
-    outputStream.write(bytearray('Hello World!'[::-1].encode('utf-8')))
-# end class
-flowFile = session.get()
-if(flowFile != None):
-    flowFile = session.write(flowFile, PyStreamCallback())
-# implicit return at the end
-</pre>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p><strong>Handle errors during script processing</strong></p>
@@ -411,19 +288,5 @@ try {
   session.transfer(flowFile, REL_FAILURE)
 }</pre>
 
-<p><em>Jython</em></p>
-
-<pre>flowFile = session.get()
-if(flowFile != None):
-    try:
-        # Something that might throw an exception here
-
-        # Last operation is transfer to success (failures handled in the catch block)
-        session.transfer(flowFile, REL_SUCCESS)
-    except:
-        log.error('Something went wrong', e)
-        session.transfer(flowFile, REL_FAILURE)
-# implicit return at the end
-</pre>
 </body>
 </html>

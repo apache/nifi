@@ -23,7 +23,6 @@ import org.apache.nifi.components.DescribedValue;
  */
 public enum KeySpecificationFormat implements DescribedValue {
     RAW("Raw secret key provided as a hexadecimal string"),
-
     PASSWORD("Password string for use with a Key Derivation Function to produce a secret key");
 
     private final String description;

@@ -16,17 +16,15 @@
  */
 package org.apache.nifi.registry.extension.bundle;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Set;
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlTransient;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.link.LinkableEntity;
 
-@ApiModel
 @XmlRootElement
 public class BundleVersion extends LinkableEntity {
 
@@ -44,7 +42,7 @@ public class BundleVersion extends LinkableEntity {
     private Bucket bucket;
 
 
-    @ApiModelProperty(value = "The metadata about this version of the extension bundle")
+    @Schema(description = "The metadata about this version of the extension bundle")
     public BundleVersionMetadata getVersionMetadata() {
         return versionMetadata;
     }
@@ -53,7 +51,7 @@ public class BundleVersion extends LinkableEntity {
         this.versionMetadata = versionMetadata;
     }
 
-    @ApiModelProperty(value = "The set of other bundle versions that this version is dependent on", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The set of other bundle versions that this version is dependent on", accessMode = Schema.AccessMode.READ_ONLY)
     public Set<BundleVersionDependency> getDependencies() {
         return dependencies;
     }
@@ -62,7 +60,7 @@ public class BundleVersion extends LinkableEntity {
         this.dependencies = dependencies;
     }
 
-    @ApiModelProperty(value = "The bundle this version is for", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The bundle this version is for", accessMode = Schema.AccessMode.READ_ONLY)
     public Bundle getBundle() {
         return bundle;
     }
@@ -71,7 +69,7 @@ public class BundleVersion extends LinkableEntity {
         this.bundle = bundle;
     }
 
-    @ApiModelProperty(value = "The bucket that the extension bundle belongs to")
+    @Schema(description = "The bucket that the extension bundle belongs to")
     public Bucket getBucket() {
         return bucket;
     }

@@ -21,7 +21,7 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.curator.shaded.com.google.common.collect.ComparisonChain;
+import com.google.common.collect.ComparisonChain;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.bucket.Bucket;

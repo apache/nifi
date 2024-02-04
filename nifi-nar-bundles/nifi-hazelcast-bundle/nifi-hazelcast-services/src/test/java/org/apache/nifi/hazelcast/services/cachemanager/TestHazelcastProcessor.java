@@ -17,7 +17,6 @@
 package org.apache.nifi.hazelcast.services.cachemanager;
 
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hazelcast.services.DummyStringSerializer;
 import org.apache.nifi.hazelcast.services.cacheclient.HazelcastMapCacheClient;
@@ -94,15 +93,10 @@ class TestHazelcastProcessor extends AbstractProcessor {
             assertTrue(testSubject.containsKey(KEY_1, SERIALIZER));
             assertTrue(testSubject.containsKey(KEY_2, SERIALIZER));
 
-            assertEquals(2, testSubject.removeByPattern("key.*"));
-
-            assertTrue(testSubject.replace(new AtomicCacheEntry<>(KEY_1, VALUE_1, 0L), SERIALIZER, SERIALIZER));
-            assertEquals(VALUE_1, testSubject.fetch(KEY_1, SERIALIZER, SERIALIZER).getValue());
-
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (final AssertionError| IOException e) {
+        } catch (final AssertionError | IOException e) {
             session.transfer(flowFile, REL_FAILURE);
-            e.printStackTrace();
+            getLogger().error("Processing failed", e);
         }
     }
 }

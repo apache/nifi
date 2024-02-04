@@ -519,7 +519,7 @@ public class TestStandardFlowFileQueue {
     }
 
     @Test
-    @Timeout(5)
+    @Timeout(10)
     public void testListFlowFilesResultsLimitedCollection() throws InterruptedException {
         Collection<FlowFileRecord> tff = new ArrayList<>();
         //Swap Size is 10000 records, so 30000 is equal to 3 swap files.

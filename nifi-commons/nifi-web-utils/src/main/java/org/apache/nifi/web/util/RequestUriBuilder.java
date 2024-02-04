@@ -18,8 +18,8 @@ package org.apache.nifi.web.util;
 
 import org.apache.commons.lang3.StringUtils;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
@@ -43,6 +43,8 @@ public class RequestUriBuilder {
     private final String contextPath;
 
     private String path;
+
+    private String fragment = null;
 
     private RequestUriBuilder(final String scheme, final String host, final int port, final String contextPath) {
         this.scheme = scheme;
@@ -90,6 +92,17 @@ public class RequestUriBuilder {
     }
 
     /**
+     * Set Fragment appended on build
+     *
+     * @param fragment Fragment may be null
+     * @return Request URI Builder
+     */
+    public RequestUriBuilder fragment(final String fragment) {
+        this.fragment = fragment;
+        return this;
+    }
+
+    /**
      * Build URI using configured properties
      *
      * @return URI
@@ -98,7 +111,7 @@ public class RequestUriBuilder {
     public URI build() {
         final String resourcePath = StringUtils.join(contextPath, path);
         try {
-            return new URI(scheme, null, host, port, resourcePath, null, null);
+            return new URI(scheme, null, host, port, resourcePath, null, fragment);
         } catch (final URISyntaxException e) {
             throw new IllegalArgumentException("Build URI Failed", e);
         }

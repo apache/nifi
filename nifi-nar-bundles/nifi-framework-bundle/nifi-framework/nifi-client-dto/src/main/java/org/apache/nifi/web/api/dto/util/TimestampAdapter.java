@@ -16,32 +16,31 @@
  */
 package org.apache.nifi.web.api.dto.util;
 
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
-import java.util.Locale;
-import java.util.TimeZone;
 
-import javax.xml.bind.annotation.adapters.XmlAdapter;
+import jakarta.xml.bind.annotation.adapters.XmlAdapter;
 
 /**
  * XmlAdapter for (un)marshalling a date/time.
  */
 public class TimestampAdapter extends XmlAdapter<String, Date> {
 
-    public static final String DEFAULT_DATE_TIME_FORMAT = "MM/dd/yyyy HH:mm:ss.SSS z";
+    private static final String DEFAULT_DATE_TIME_FORMAT = "MM/dd/yyyy HH:mm:ss.SSS z";
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(DEFAULT_DATE_TIME_FORMAT).withZone(ZoneId.systemDefault());
 
     @Override
     public String marshal(Date date) throws Exception {
-        final SimpleDateFormat formatter = new SimpleDateFormat(DEFAULT_DATE_TIME_FORMAT, Locale.US);
-        formatter.setTimeZone(TimeZone.getDefault());
-        return formatter.format(date);
+        return DATE_TIME_FORMATTER.format(date.toInstant());
     }
 
     @Override
     public Date unmarshal(String date) throws Exception {
-        final SimpleDateFormat parser = new SimpleDateFormat(DEFAULT_DATE_TIME_FORMAT, Locale.US);
-        parser.setTimeZone(TimeZone.getDefault());
-        return parser.parse(date);
+        final ZonedDateTime dateTime = LocalDateTime.parse(date, DATE_TIME_FORMATTER).atZone(ZoneId.systemDefault());
+        return Date.from(dateTime.toInstant());
     }
 
 }

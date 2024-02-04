@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.parameter.ParameterSensitivity;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Map;
 
 /**
@@ -33,8 +33,7 @@ public class ParameterGroupConfigurationEntity extends Entity implements Compara
     private Boolean isSynchronized;
     private Map<String, ParameterSensitivity> parameterSensitivities;
 
-    @ApiModelProperty(
-            value = "The name of the external parameter group to which the provided parameter names apply."
+    @Schema(description = "The name of the external parameter group to which the provided parameter names apply."
     )
     public String getGroupName() {
         return groupName;
@@ -44,8 +43,7 @@ public class ParameterGroupConfigurationEntity extends Entity implements Compara
         this.groupName = groupName;
     }
 
-    @ApiModelProperty(
-            value = "The name of the ParameterContext that receives the parameters in this group"
+    @Schema(description = "The name of the ParameterContext that receives the parameters in this group"
     )
     public String getParameterContextName() {
         return parameterContextName;
@@ -58,8 +56,7 @@ public class ParameterGroupConfigurationEntity extends Entity implements Compara
     /**
      * @return All fetched parameter names that should be applied.
      */
-    @ApiModelProperty(
-            value = "All fetched parameter names that should be applied."
+    @Schema(description = "All fetched parameter names that should be applied."
     )
     public Map<String, ParameterSensitivity> getParameterSensitivities() {
         return parameterSensitivities;
@@ -69,8 +66,7 @@ public class ParameterGroupConfigurationEntity extends Entity implements Compara
         this.parameterSensitivities = parameterSensitivities;
     }
 
-    @ApiModelProperty(
-            value = "True if this group should be synchronized to a ParameterContext, including creating one if it does not exist."
+    @Schema(description = "True if this group should be synchronized to a ParameterContext, including creating one if it does not exist."
     )
     public Boolean isSynchronized() {
         return isSynchronized;

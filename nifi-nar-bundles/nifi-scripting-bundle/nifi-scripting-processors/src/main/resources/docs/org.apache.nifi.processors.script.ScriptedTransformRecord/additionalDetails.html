@@ -33,7 +33,7 @@ td {text-align: left}
 <h3>Description</h3>
 
 <p>
-    The ScriptedTransformRecord provides the ability to use a scripting language, such as Groovy or Jython, to quickly and easily update the contents of a Record.
+    The ScriptedTransformRecord provides the ability to use a scripting language, such as Groovy, to quickly and easily update the contents of a Record.
     NiFi provides several different Processors that can be used to manipulate Records in different ways. Each of these processors has its pros and cons. The ScriptedTransformRecord is perhaps
     the most powerful and most versatile option. However, it is also the most error-prone, as it depends on writing custom scripts. It is also likely to yield the lowest performance,
     as processors and libraries written directly in Java are likely to perform better than interpreted scripts.
@@ -110,12 +110,6 @@ td {text-align: left}
 </p>
 
 <p>
-    Note that the Python language does not allow a script to use a <code>return</code> outside of a method. Additionally, when interpreted as a script,
-    the Java Python scripting engine does not provide a reliable way to easily obtain the last value referenced. As a result, any Python script must assign the value to be returned
-    to the <code>_</code> variable. See examples below.
-</p>
-
-<p>
     The Record that is provided to the script is mutable. Therefore, it is a common pattern to update the <code>record</code> object in the script and simply return that same
     <code>record</code> object.
 </p>
@@ -152,11 +146,6 @@ td {text-align: left}
 </p>
 
 <p>
-    It is important to note also, though, that not all scripting languages and script engines are equal. For example, Groovy scripts will typically run much faster than Jython scripts.
-    However, if those in your organization are more familiar with Python than Java or Groovy, then using Jython may still make more sense.
-</p>
-
-<p>
     A simple 5-minute benchmark was done to analyze the difference in performance. The script used simply modifies one field and return the Record otherwise unmodified.
     The results are shown below. Note that no specifics are given with regards to hardware, specifically because the results should not be used to garner expectations of
     absolute performance but rather to show relative performance between the different options.
@@ -181,15 +170,6 @@ record
 </code></pre>
         </td>
         <td>18.9 million</td>
-    </tr>
-    <tr>
-        <td>ScriptedTransformRecord - Using Language: python</td>
-        <td>
-<pre><code>record.setValue("num", 42)
-_ = record
-</code></pre>
-        </td>
-        <td>21.0 million</td>
     </tr>
 </table>
 
@@ -235,18 +215,6 @@ Monica, -3
 return recordIndex == 0 ? null : record
     </code>
 </pre>
-
-<p>
-    Example Script (Python):
-</p>
-<pre>
-    <code>
-_ = None if (recordIndex == 0) else record
-    </code>
-</pre>
-
-
-
 
 
 
@@ -362,17 +330,6 @@ return record
 record
     </code>
 </pre>
-
-<p>
-    Example Script (Python):
-</p>
-<pre>
-    <code>
-_ = record
-    </code>
-</pre>
-
-
 
 
 

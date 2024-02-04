@@ -35,8 +35,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -51,9 +49,7 @@ import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR
 public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
     public static final AllowableValue DELETE_SNAPSHOTS_NONE = new AllowableValue("NONE", "None", "Delete the blob only.");
-
     public static final AllowableValue DELETE_SNAPSHOTS_ALSO = new AllowableValue(DeleteSnapshotsOptionType.INCLUDE.name(), "Include Snapshots", "Delete the blob and its snapshots.");
-
     public static final AllowableValue DELETE_SNAPSHOTS_ONLY = new AllowableValue(DeleteSnapshotsOptionType.ONLY.name(), "Delete Snapshots Only", "Delete only the blob's snapshots.");
 
     public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder()
@@ -72,17 +68,17 @@ public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             .description("Specifies the snapshot deletion options to be used when deleting a blob.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .allowableValues(DELETE_SNAPSHOTS_NONE, DELETE_SNAPSHOTS_ALSO, DELETE_SNAPSHOTS_ONLY)
-            .defaultValue(DELETE_SNAPSHOTS_NONE.getValue())
+            .defaultValue(DELETE_SNAPSHOTS_NONE)
             .required(true)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             STORAGE_CREDENTIALS_SERVICE,
             CONTAINER,
             BLOB_NAME,
             DELETE_SNAPSHOTS_OPTION,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
-    ));
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -135,16 +131,10 @@ public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
     }
 
     private String getProvenanceMessage(DeleteSnapshotsOptionType deleteSnapshotsOptionType) {
-        if (deleteSnapshotsOptionType == null) {
-            return "Blob deleted";
-        }
-        switch (deleteSnapshotsOptionType) {
-            case INCLUDE:
-                return "Blob deleted along with its snapshots";
-            case ONLY:
-                return "Blob's snapshots deleted";
-            default:
-                throw new IllegalArgumentException("Unhandled DeleteSnapshotsOptionType: " + deleteSnapshotsOptionType);
-        }
+        return switch (deleteSnapshotsOptionType) {
+            case null -> "Blob deleted";
+            case INCLUDE -> "Blob deleted along with its snapshots";
+            case ONLY -> "Blob's snapshots deleted";
+        };
     }
 }

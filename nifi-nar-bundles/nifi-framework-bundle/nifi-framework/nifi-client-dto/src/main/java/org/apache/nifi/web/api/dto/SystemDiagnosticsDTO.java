@@ -17,9 +17,9 @@
 
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
 
 @XmlType(name = "systemDiagnostics")
@@ -28,7 +28,7 @@ public class SystemDiagnosticsDTO {
     private List<NodeSystemDiagnosticsSnapshotDTO> nodeSnapshots;
 
 
-    @ApiModelProperty("A systems diagnostic snapshot that represents the aggregate values of all nodes in the cluster. If the NiFi instance is "
+    @Schema(description = "A systems diagnostic snapshot that represents the aggregate values of all nodes in the cluster. If the NiFi instance is "
         + "a standalone instance, rather than a cluster, this represents the stats of the single instance.")
     public SystemDiagnosticsSnapshotDTO getAggregateSnapshot() {
         return aggregateSnapshot;
@@ -38,7 +38,7 @@ public class SystemDiagnosticsDTO {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    @ApiModelProperty("A systems diagnostics snapshot for each node in the cluster. If the NiFi instance is a standalone instance, rather than "
+    @Schema(description = "A systems diagnostics snapshot for each node in the cluster. If the NiFi instance is a standalone instance, rather than "
         + "a cluster, this may be null.")
     public List<NodeSystemDiagnosticsSnapshotDTO> getNodeSnapshots() {
         return nodeSnapshots;

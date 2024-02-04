@@ -111,6 +111,7 @@ public class TestValidateCsv {
         runner.setProperty(ValidateCsv.END_OF_LINE_CHARACTER, "\r\n");
         runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "\"");
         runner.setProperty(ValidateCsv.HEADER, "false");
+        runner.setProperty(ValidateCsv.INCLUDE_ALL_VIOLATIONS, "true");
 
         runner.setProperty(ValidateCsv.SCHEMA, "Null, ParseDate(\"dd/MM/yyyy\"), Optional(ParseDouble())");
 
@@ -118,11 +119,11 @@ public class TestValidateCsv {
         runner.run();
         runner.assertAllFlowFilesTransferred(ValidateCsv.REL_VALID, 1);
 
-        runner.enqueue("John,22/111954,63.2\r\nBob,01/03/2004,45.0");
+        runner.enqueue("John,22/111954,abc\r\nBob,01/03/2004,45.0");
         runner.run();
         runner.assertTransferCount(ValidateCsv.REL_INVALID, 1);
         runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).get(0).assertAttributeEquals("validation.error.message",
-                "'22/111954' could not be parsed as a Date");
+                "At {line=1, row=1}, '22/111954' could not be parsed as a Date at {column=2}, 'abc' could not be parsed as a Double at {column=3}");
     }
 
     @Test
@@ -200,7 +201,7 @@ public class TestValidateCsv {
         runner.run();
         runner.assertTransferCount(ValidateCsv.REL_INVALID, 1);
         runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).get(0).assertAttributeEquals("validation.error.message",
-                "'testapache.org' does not match the regular expression '[a-z0-9\\._]+@[a-z0-9\\.]+'");
+                "'testapache.org' does not match the regular expression '[a-z0-9\\._]+@[a-z0-9\\.]+' at {line=1, row=1, column=3}");
     }
 
     @Test

@@ -71,7 +71,6 @@
         <module>nifi-snmp-bundle</module>
         <module>nifi-datadog-bundle</module>
         <module>nifi-windows-event-log-bundle</module>
-        <module>nifi-influxdb-bundle</module>
         <module>nifi-graph-bundle</module>
         <module>nifi-email-bundle</module>
         <module>nifi-groovyx-bundle</module>
@@ -87,7 +86,6 @@
         <module>nifi-redis-bundle</module>
         <module>nifi-spark-bundle</module>
         <module>nifi-atlas-bundle</module>
-        <module>nifi-jolt-record-bundle</module>
         <module>nifi-network-bundle</module>
         <module>nifi-prometheus-bundle</module>
         <module>nifi-sql-reporting-bundle</module>
@@ -116,6 +114,7 @@
         <module>nifi-compress-bundle</module>
         <module>nifi-opentelemetry-bundle</module>
         <module>nifi-apicurio-bundle</module>
+        <module>nifi-jolt-bundle</module>
     </modules>
 
     <build>
@@ -267,7 +266,7 @@
             <dependency>
                 <groupId>com.maxmind.geoip2</groupId>
                 <artifactId>geoip2</artifactId>
-                <version>4.1.0</version>
+                <version>4.2.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

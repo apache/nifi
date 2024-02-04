@@ -43,6 +43,7 @@ import java.util.List;
         + "If an array is encountered, each element in that array will be treated as a separate record. "
         + "If the schema that is configured contains a field that is not present in the YAML, a null value will be used. If the YAML contains "
         + "a field that is not present in the schema, that field will be skipped. "
+        + "Please note this controller service does not support resolving the use of YAML aliases. Any alias present will be treated as a string. "
         + "See the Usage of the Controller Service for more information and examples.")
 public class YamlTreeReader extends JsonTreeReader {
 

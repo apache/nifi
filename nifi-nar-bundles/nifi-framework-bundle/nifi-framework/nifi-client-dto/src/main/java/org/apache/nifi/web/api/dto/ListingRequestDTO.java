@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 import org.apache.nifi.web.api.dto.util.TimestampAdapter;
 
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 import java.util.List;
 
@@ -50,8 +50,7 @@ public class ListingRequestDTO {
     /**
      * @return the id for this listing request.
      */
-    @ApiModelProperty(
-        value = "The id for this listing request."
+    @Schema(description = "The id for this listing request."
     )
     public String getId() {
         return id;
@@ -64,8 +63,7 @@ public class ListingRequestDTO {
     /**
      * @return the URI for this listing request.
      */
-    @ApiModelProperty(
-        value = "The URI for future requests to this listing request."
+    @Schema(description = "The URI for future requests to this listing request."
     )
     public String getUri() {
         return uri;
@@ -79,9 +77,8 @@ public class ListingRequestDTO {
      * @return time the query was submitted
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
-    @ApiModelProperty(
-        value = "The timestamp when the query was submitted.",
-        dataType = "string"
+    @Schema(description = "The timestamp when the query was submitted.",
+        type = "string"
     )
     public Date getSubmissionTime() {
         return submissionTime;
@@ -95,9 +92,8 @@ public class ListingRequestDTO {
      * @return the time this request was last updated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-        value = "The last time this listing request was updated.",
-        dataType = "string"
+    @Schema(description = "The last time this listing request was updated.",
+        type = "string"
     )
     public Date getLastUpdated() {
         return lastUpdated;
@@ -110,8 +106,7 @@ public class ListingRequestDTO {
     /**
      * @return percent completed
      */
-    @ApiModelProperty(
-        value = "The current percent complete."
+    @Schema(description = "The current percent complete."
     )
     public Integer getPercentCompleted() {
         return percentCompleted;
@@ -124,8 +119,7 @@ public class ListingRequestDTO {
     /**
      * @return whether the query has finished
      */
-    @ApiModelProperty(
-        value = "Whether the query has finished."
+    @Schema(description = "Whether the query has finished."
     )
     public Boolean getFinished() {
         return finished;
@@ -138,8 +132,7 @@ public class ListingRequestDTO {
     /**
      * @return the reason, if any, that this listing request failed
      */
-    @ApiModelProperty(
-        value = "The reason, if any, that this listing request failed."
+    @Schema(description = "The reason, if any, that this listing request failed."
     )
     public String getFailureReason() {
         return failureReason;
@@ -152,8 +145,7 @@ public class ListingRequestDTO {
     /**
      * @return the current state of the listing request.
      */
-    @ApiModelProperty(
-        value = "The current state of the listing request."
+    @Schema(description = "The current state of the listing request."
     )
     public String getState() {
         return state;
@@ -166,8 +158,7 @@ public class ListingRequestDTO {
     /**
      * @return the FlowFile summaries.
      */
-    @ApiModelProperty(
-        value = "The FlowFile summaries. The summaries will be populated once the request has completed."
+    @Schema(description = "The FlowFile summaries. The summaries will be populated once the request has completed."
     )
     public List<FlowFileSummaryDTO> getFlowFileSummaries() {
         return flowFileSummaries;
@@ -180,7 +171,7 @@ public class ListingRequestDTO {
     /**
      * @return the maximum number of FlowFileSummary objects to return
      */
-    @ApiModelProperty(value = "The maximum number of FlowFileSummary objects to return")
+    @Schema(description = "The maximum number of FlowFileSummary objects to return")
     public Integer getMaxResults() {
         return maxResults;
     }
@@ -192,7 +183,7 @@ public class ListingRequestDTO {
     /**
      * @return the size for the queue
      */
-    @ApiModelProperty(value = "The size of the queue")
+    @Schema(description = "The size of the queue")
     public QueueSizeDTO getQueueSize() {
         return queueSize;
     }
@@ -204,7 +195,7 @@ public class ListingRequestDTO {
     /**
      * @return whether the source is running
      */
-    @ApiModelProperty(value = "Whether the source of the connection is running")
+    @Schema(description = "Whether the source of the connection is running")
     public Boolean getSourceRunning() {
         return isSourceRunning;
     }
@@ -216,7 +207,7 @@ public class ListingRequestDTO {
     /**
      * @return whether the destination is running
      */
-    @ApiModelProperty(value = "Whether the destination of the connection is running")
+    @Schema(description = "Whether the destination of the connection is running")
     public Boolean getDestinationRunning() {
         return isDestinationRunning;
     }

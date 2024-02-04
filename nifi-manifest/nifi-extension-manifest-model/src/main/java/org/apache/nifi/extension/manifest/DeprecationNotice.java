@@ -16,16 +16,14 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlElementWrapper;
 import java.util.List;
 
-@ApiModel
 @XmlAccessorType(XmlAccessType.FIELD)
 public class DeprecationNotice {
 
@@ -35,7 +33,7 @@ public class DeprecationNotice {
     @XmlElement(name = "alternative")
     private List<String> alternatives;
 
-    @ApiModelProperty(value = "The reason for the deprecation")
+    @Schema(description = "The reason for the deprecation")
     public String getReason() {
         return reason;
     }
@@ -44,7 +42,7 @@ public class DeprecationNotice {
         this.reason = reason;
     }
 
-    @ApiModelProperty(value = "The alternatives to use")
+    @Schema(description = "The alternatives to use")
     public List<String> getAlternatives() {
         return alternatives;
     }

@@ -29,8 +29,6 @@ public enum MapOperation implements CacheOperation {
     PUT_IF_ABSENT("putIfAbsent"),
     REMOVE("remove"),
     REMOVE_AND_GET("removeAndGet"),
-    REMOVE_BY_PATTERN("removeByPattern"),
-    REMOVE_BY_PATTERN_AND_GET("removeByPatternAndGet"),
     REPLACE("replace"),
     SUBMAP("subMap"),
     CLOSE("close");

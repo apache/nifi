@@ -17,7 +17,7 @@
 
 package org.apache.nifi.web.api.dto;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 @XmlType(name = "processGroupReplaceRequest")
 public class ProcessGroupReplaceRequestDTO extends FlowUpdateRequestDTO {

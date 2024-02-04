@@ -26,8 +26,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -541,7 +539,7 @@ public class TestStandardValidators {
 
         ValidationResult vr = val.validate("foo", "invalid", vc);
         assertFalse(vr.isValid());
-        assertThat(vr.getExplanation(), containsString("Failed to evaluate the Attribute Expression Language"));
+        assertTrue(vr.getExplanation().contains("Failed to evaluate the Attribute Expression Language"));
     }
 
     @Test

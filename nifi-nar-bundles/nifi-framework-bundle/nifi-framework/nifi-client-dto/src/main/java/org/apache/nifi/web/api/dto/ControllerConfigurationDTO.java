@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Details for the controller configuration.
@@ -31,8 +31,7 @@ public class ControllerConfigurationDTO {
     /**
      * @return maximum number of timer driven threads this NiFi has available
      */
-    @ApiModelProperty(
-            value = "The maximum number of timer driven threads the NiFi has available."
+    @Schema(description = "The maximum number of timer driven threads the NiFi has available."
     )
     public Integer getMaxTimerDrivenThreadCount() {
         return maxTimerDrivenThreadCount;

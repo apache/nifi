@@ -17,9 +17,9 @@
 
 package org.apache.nifi.web.api.entity;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 
@@ -47,8 +47,7 @@ public class ControllerServiceReferencingComponentEntity extends ComponentEntity
     /**
      * @return The permissions for this component operations
      */
-    @ApiModelProperty(
-            value = "The permissions for this component operations."
+    @Schema(description = "The permissions for this component operations."
     )
     @Override
     public PermissionsDTO getOperatePermissions() {

@@ -248,7 +248,7 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
         List<Map<String, Object>> backendData = processor.getTestResults();
         assertEquals(1, backendData.size());
         //validate array data
-        final Map<?, ?> arrayTestResult = backendData.get(0);
+        final Map<?, ?> arrayTestResult = backendData.getFirst();
         Object[] check  = (Object []) arrayTestResult.get("arrayTest");
         assertArrayEquals(new Object[]{"a", "b", "c"}, check);
     }
@@ -265,7 +265,7 @@ class MockPutAzureCosmosDBRecord extends PutAzureCosmosDBRecord {
     private final List<Map<String, Object>> mockBackend = new ArrayList<>();
 
     @Override
-    protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel) {
+    protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel consistencyLevel) {
         this.setCosmosClient(mockClient);
     }
     @Override

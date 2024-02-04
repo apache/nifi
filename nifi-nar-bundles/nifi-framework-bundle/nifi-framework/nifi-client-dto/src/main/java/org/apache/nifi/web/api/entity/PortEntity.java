@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to an input PortDTO.
@@ -51,8 +51,7 @@ public class PortEntity extends ComponentEntity implements Permissible<PortDTO>,
     /**
      * @return the port status
      */
-    @ApiModelProperty(
-        value = "The status of the port."
+    @Schema(description = "The status of the port."
     )
     public PortStatusDTO getStatus() {
         return status;
@@ -73,8 +72,7 @@ public class PortEntity extends ComponentEntity implements Permissible<PortDTO>,
     /**
      * @return The permissions for this component operations
      */
-    @ApiModelProperty(
-            value = "The permissions for this component operations."
+    @Schema(description = "The permissions for this component operations."
     )
     @Override
     public PermissionsDTO getOperatePermissions() {
@@ -89,8 +87,7 @@ public class PortEntity extends ComponentEntity implements Permissible<PortDTO>,
     /**
      * @return whether this port can be accessed remotely via Site-to-Site protocol.
      */
-    @ApiModelProperty(
-        value = "Whether this port can be accessed remotely via Site-to-Site protocol."
+    @Schema(description = "Whether this port can be accessed remotely via Site-to-Site protocol."
     )
     public Boolean isAllowRemoteAccess() {
         return allowRemoteAccess;

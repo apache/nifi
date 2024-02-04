@@ -17,7 +17,7 @@
 package org.apache.nifi.web.server.filter;
 
 import org.apache.nifi.util.NiFiProperties;
-import org.eclipse.jetty.servlet.FilterHolder;
+import org.eclipse.jetty.ee10.servlet.FilterHolder;
 
 import java.util.List;
 

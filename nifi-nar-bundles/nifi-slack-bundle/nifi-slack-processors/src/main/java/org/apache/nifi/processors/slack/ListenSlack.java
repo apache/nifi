@@ -17,7 +17,9 @@
 package org.apache.nifi.processors.slack;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.slack.api.app_backend.events.payload.EventsApiPayload;
 import com.slack.api.bolt.App;
@@ -27,6 +29,8 @@ import com.slack.api.bolt.context.builtin.SlashCommandContext;
 import com.slack.api.bolt.request.builtin.SlashCommandRequest;
 import com.slack.api.bolt.response.Response;
 import com.slack.api.bolt.socket_mode.SocketModeApp;
+import com.slack.api.model.User;
+import com.slack.api.model.event.AppMentionEvent;
 import com.slack.api.model.event.FileSharedEvent;
 import com.slack.api.model.event.MessageEvent;
 import com.slack.api.model.event.MessageFileShareEvent;
@@ -50,6 +54,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.slack.consume.UserDetailsLookup;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -71,7 +76,7 @@ import java.util.regex.Pattern;
 @WritesAttributes({
     @WritesAttribute(attribute = "mime.type", description = "Set to application/json, as the output will always be in JSON format")
 })
-@SeeAlso({ConsumeSlack.class, PostSlack.class, PutSlack.class})
+@SeeAlso({ConsumeSlack.class})
 @Tags({"slack", "real-time", "event", "message", "command", "listen", "receive", "social media", "team", "text", "unstructured"})
 @CapabilityDescription("Retrieves real-time messages or Slack commands from one or more Slack conversations. The messages are written out in JSON format. " +
     "Note that this Processor should be used to obtain real-time messages and commands from Slack and does not provide a mechanism for obtaining historical messages. " +
@@ -87,6 +92,8 @@ public class ListenSlack extends AbstractProcessor {
 
     static final AllowableValue RECEIVE_MESSAGE_EVENTS = new AllowableValue("Receive Message Events", "Receive Message Events",
         "The Processor is to receive Slack Message Events");
+    static final AllowableValue RECEIVE_MENTION_EVENTS = new AllowableValue("Receive App Mention Events", "Receive App Mention Events",
+        "The Processor is to receive only slack messages that mention the bot user (App Mention Events)");
     static final AllowableValue RECEIVE_COMMANDS = new AllowableValue("Receive Commands", "Receive Commands",
         "The Processor is to receive Commands from Slack that are specific to your application. The Processor will not receive Message Events.");
 
@@ -109,12 +116,24 @@ public class ListenSlack extends AbstractProcessor {
 
     static final PropertyDescriptor EVENT_TYPE = new PropertyDescriptor.Builder()
         .name("Event Type to Receive")
-        .description("Specifies whether the Processor should receive Slack Message Events or commands issued by users (e.g., /nifi do something)")
+        .description("Specifies the type of Event that the Processor should respond to")
         .required(true)
-        .defaultValue(RECEIVE_MESSAGE_EVENTS.getValue())
-        .allowableValues(RECEIVE_MESSAGE_EVENTS, RECEIVE_COMMANDS)
+        .defaultValue(RECEIVE_MENTION_EVENTS.getValue())
+        .allowableValues(RECEIVE_MENTION_EVENTS, RECEIVE_MESSAGE_EVENTS, RECEIVE_COMMANDS)
         .build();
 
+    final PropertyDescriptor RESOLVE_USER_DETAILS = new PropertyDescriptor.Builder()
+        .name("Resolve User Details")
+        .description("Specifies whether the Processor should lookup details about the Slack User who sent the received message. " +
+            "If true, the output JSON will contain an additional field named 'userDetails'. " +
+            "The 'user' field will still contain the ID of the user. In order to enable this capability, the Bot Token must be granted the 'users:read' " +
+            "and optionally the 'users.profile:read' Bot Token Scope. " +
+            "If the rate limit is exceeded when retrieving this information, the received message will be rejected and must be re-delivered.")
+        .required(true)
+        .defaultValue("false")
+        .allowableValues("true", "false")
+        .dependsOn(EVENT_TYPE, RECEIVE_MESSAGE_EVENTS, RECEIVE_MENTION_EVENTS)
+        .build();
 
     static Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -123,13 +142,16 @@ public class ListenSlack extends AbstractProcessor {
 
     private final TransferQueue<EventWrapper> eventTransferQueue = new LinkedTransferQueue<>();
     private volatile SocketModeApp socketModeApp;
+    private volatile UserDetailsLookup userDetailsLookup;
+
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return Arrays.asList(
             APP_TOKEN,
             BOT_TOKEN,
-            EVENT_TYPE);
+            EVENT_TYPE,
+            RESOLVE_USER_DETAILS);
     }
 
     @Override
@@ -154,9 +176,16 @@ public class ListenSlack extends AbstractProcessor {
             slackApp.event(MessageEvent.class, this::handleEvent);
             slackApp.event(MessageFileShareEvent.class, this::handleEvent);
             slackApp.event(FileSharedEvent.class, this::handleEvent);
+        } else if (context.getProperty(EVENT_TYPE).getValue().equals(RECEIVE_MENTION_EVENTS.getValue())) {
+            slackApp.event(AppMentionEvent.class, this::handleEvent);
+            // When there's an AppMention, we'll also get a MessageEvent. We need to handle this event, or we'll get warnings in the logs
+            // that no Event Handler is registered, and it will respond back to Slack with a 404. To avoid this, we just acknowledge the event.
+            slackApp.event(MessageEvent.class, (payload, ctx) -> ctx.ack());
         } else {
             slackApp.command(Pattern.compile(".*"), this::handleCommand);
         }
+
+        userDetailsLookup = new UserDetailsLookup(userId -> slackApp.client().usersInfo(r -> r.user(userId)), getLogger());
 
         socketModeApp = new SocketModeApp(appToken, slackApp);
         socketModeApp.startAsync();
@@ -210,7 +239,26 @@ public class ListenSlack extends AbstractProcessor {
         try (final OutputStream out = session.write(flowFile);
              final JsonGenerator generator = objectMapper.createGenerator(out)) {
 
-            generator.writeObject(messageEvent);
+            // If we need to resolve user details, we need a way to inject it into the JSON. Since we have an object model at this point,
+            // we serialize it to a string, then deserialize it back into a JsonNode, and then inject it into the JSON.
+            if (context.getProperty(RESOLVE_USER_DETAILS).asBoolean()) {
+                final String stringRepresentation = objectMapper.writeValueAsString(messageEvent);
+                final JsonNode jsonNode = objectMapper.readTree(stringRepresentation);
+                if (jsonNode.hasNonNull("user")) {
+                    final String userId = jsonNode.get("user").asText();
+                    final User userDetails = userDetailsLookup.getUserDetails(userId);
+                    if (userDetails != null) {
+                        final ObjectNode objectNode = (ObjectNode) jsonNode;
+                        final String userDetailsJson = objectMapper.writeValueAsString(userDetails);
+                        final JsonNode userDetailsNode = objectMapper.readTree(userDetailsJson);
+                        objectNode.set("userDetails", userDetailsNode);
+                    }
+                }
+
+                generator.writeTree(jsonNode);
+            } else {
+                generator.writeObject(messageEvent);
+            }
         } catch (final IOException e) {
             getLogger().error("Failed to write out Slack message", e);
             session.remove(flowFile);

@@ -68,7 +68,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Tags({"script", "invoke", "groovy", "python", "jython"})
+@Tags({"script", "invoke", "groovy"})
 @CapabilityDescription("Experimental - Invokes a script engine for a Processor defined in the given script. The script must define "
         + "a valid class that implements the Processor interface, and it must set a variable 'processor' to an instance of "
         + "the class. Processor methods such as onTrigger() will be delegated to the scripted Processor instance. Also any "

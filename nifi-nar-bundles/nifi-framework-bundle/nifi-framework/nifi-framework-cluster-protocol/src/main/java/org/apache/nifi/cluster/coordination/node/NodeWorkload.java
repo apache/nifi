@@ -17,7 +17,7 @@
 
 package org.apache.nifi.cluster.coordination.node;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "nodeWorkload")
 public class NodeWorkload {

@@ -16,25 +16,26 @@
  */
 package org.apache.nifi.registry.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.Extension;
-import io.swagger.annotations.ExtensionProperty;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
 import java.util.Set;
 import java.util.SortedSet;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.extensions.Extension;
+import io.swagger.v3.oas.annotations.extensions.ExtensionProperty;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.apache.nifi.registry.event.EventService;
 import org.apache.nifi.registry.field.Fields;
 import org.apache.nifi.registry.flow.VersionedFlow;
@@ -46,14 +47,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Path("/flows")
-@Api(
-    value = "flows",
-    authorizations = {@Authorization("Authorization")},
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Endpoint for accessing metadata about flows.")
-})
+@Tag(name = "Flows")
 public class FlowResource extends ApplicationResource {
 
     @Autowired
@@ -65,10 +59,10 @@ public class FlowResource extends ApplicationResource {
     @Path("fields")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get flow fields",
-            notes = "Retrieves the flow field names that can be used for searching or sorting on flows.",
-            response = Fields.class
+    @Operation(
+            summary = "Get flow fields",
+            description = "Retrieves the flow field names that can be used for searching or sorting on flows.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = Fields.class)))
     )
     public Response getAvailableFlowFields() {
         final Set<String> flowFields = serviceFacade.getFlowFields();
@@ -80,27 +74,30 @@ public class FlowResource extends ApplicationResource {
     @Path("{flowId}")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get flow",
-            notes = "Gets a flow by id.",
-            nickname = "globalGetFlow",
-            response = VersionedFlow.class,
+    @Operation(
+            summary = "Get flow",
+            description = "Gets a flow by id.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = VersionedFlow.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getFlow(
             @PathParam("flowId")
-            @ApiParam("The flow identifier")
-                final String flowId) {
+            @Parameter(description = "The flow identifier") final String flowId) {
 
         final VersionedFlow flow = serviceFacade.getFlow(flowId);
         return Response.status(Response.Status.OK).entity(flow).build();
@@ -110,27 +107,29 @@ public class FlowResource extends ApplicationResource {
     @Path("{flowId}/versions")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get flow versions",
-            notes = "Gets summary information for all versions of a given flow. Versions are ordered newest->oldest.",
-            nickname = "globalGetFlowVersions",
-            response = VersionedFlowSnapshotMetadata.class,
-            responseContainer = "List",
+    @Operation(
+            summary = "Get flow versions",
+            description = "Gets summary information for all versions of a given flow. Versions are ordered newest->oldest.",
+            responses = @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = VersionedFlowSnapshotMetadata.class)))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getFlowVersions(
             @PathParam("flowId")
-            @ApiParam("The flow identifier")
-                final String flowId) {
+            @Parameter(description = "The flow identifier") final String flowId) {
 
         final SortedSet<VersionedFlowSnapshotMetadata> snapshots = serviceFacade.getFlowSnapshots(flowId);
         return Response.status(Response.Status.OK).entity(snapshots).build();
@@ -140,30 +139,32 @@ public class FlowResource extends ApplicationResource {
     @Path("{flowId}/versions/{versionNumber: \\d+}")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get flow version",
-            notes = "Gets the given version of a flow, including metadata and flow content.",
-            nickname = "globalGetFlowVersion",
-            response = VersionedFlowSnapshot.class,
+    @Operation(
+            summary = "Get flow version",
+            description = "Gets the given version of a flow, including metadata and flow content.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = VersionedFlowSnapshot.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "400", description = HttpStatusMessages.MESSAGE_400),
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getFlowVersion(
             @PathParam("flowId")
-            @ApiParam("The flow identifier")
-                final String flowId,
+            @Parameter(description = "The flow identifier") final String flowId,
             @PathParam("versionNumber")
-            @ApiParam("The version number")
-                final Integer versionNumber) {
+            @Parameter(description = "The version number") final Integer versionNumber) {
 
         final VersionedFlowSnapshot snapshot = serviceFacade.getFlowSnapshot(flowId, versionNumber);
         return Response.status(Response.Status.OK).entity(snapshot).build();
@@ -173,26 +174,29 @@ public class FlowResource extends ApplicationResource {
     @Path("{flowId}/versions/latest")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get latest flow version",
-            notes = "Gets the latest version of a flow, including metadata and flow content.",
-            nickname = "globalGetLatestFlowVersion",
-            response = VersionedFlowSnapshot.class,
+    @Operation(
+            summary = "Get latest flow version",
+            description = "Gets the latest version of a flow, including metadata and flow content.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = VersionedFlowSnapshot.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getLatestFlowVersion(
             @PathParam("flowId")
-            @ApiParam("The flow identifier")
-                final String flowId) {
+            @Parameter(description = "The flow identifier") final String flowId) {
 
         final VersionedFlowSnapshot lastSnapshot = serviceFacade.getLatestFlowSnapshot(flowId);
         return Response.status(Response.Status.OK).entity(lastSnapshot).build();
@@ -202,29 +206,31 @@ public class FlowResource extends ApplicationResource {
     @Path("{flowId}/versions/latest/metadata")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get latest flow version metadata",
-            notes = "Gets the metadata for the latest version of a flow.",
-            nickname = "globalGetLatestFlowVersionMetadata",
-            response = VersionedFlowSnapshotMetadata.class,
+    @Operation(
+            summary = "Get latest flow version metadata",
+            description = "Gets the metadata for the latest version of a flow.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = VersionedFlowSnapshotMetadata.class))),
             extensions = {
-                    @Extension(name = "access-policy", properties = {
+                    @Extension(
+                            name = "access-policy", properties = {
                             @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                    )
             }
     )
-    @ApiResponses({
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
-            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
-            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    @ApiResponses(
+            {
+                    @ApiResponse(responseCode = "401", description = HttpStatusMessages.MESSAGE_401),
+                    @ApiResponse(responseCode = "403", description = HttpStatusMessages.MESSAGE_403),
+                    @ApiResponse(responseCode = "404", description = HttpStatusMessages.MESSAGE_404),
+                    @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409)
+            }
+    )
     public Response getLatestFlowVersionMetadata(
             @PathParam("flowId")
-            @ApiParam("The flow identifier")
-                final String flowId) {
+            @Parameter(description = "The flow identifier") final String flowId) {
 
         final VersionedFlowSnapshotMetadata latestMetadata = serviceFacade.getLatestFlowSnapshotMetadata(flowId);
         return Response.status(Response.Status.OK).entity(latestMetadata).build();
     }
-
 }

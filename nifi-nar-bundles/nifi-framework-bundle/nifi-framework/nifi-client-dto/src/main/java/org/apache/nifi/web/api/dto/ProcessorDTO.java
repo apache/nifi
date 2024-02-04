@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -64,8 +64,7 @@ public class ProcessorDTO extends ComponentDTO {
      *
      * @return This processors name
      */
-    @ApiModelProperty(
-            value = "The name of the processor."
+    @Schema(description = "The name of the processor."
     )
     public String getName() {
         return name;
@@ -80,8 +79,7 @@ public class ProcessorDTO extends ComponentDTO {
      *
      * @return This processors type
      */
-    @ApiModelProperty(
-            value = "The type of the processor."
+    @Schema(description = "The type of the processor."
     )
     public String getType() {
         return type;
@@ -96,8 +94,7 @@ public class ProcessorDTO extends ComponentDTO {
      *
      * @return The bundle details
      */
-    @ApiModelProperty(
-            value = "The details of the artifact that bundled this processor type."
+    @Schema(description = "The details of the artifact that bundled this processor type."
     )
     public BundleDTO getBundle() {
         return bundle;
@@ -110,8 +107,7 @@ public class ProcessorDTO extends ComponentDTO {
     /**
      * @return The state of this processor. Possible states are 'RUNNING', 'STOPPED', and 'DISABLED'
      */
-    @ApiModelProperty(
-            value = "The state of the processor",
+    @Schema(description = "The state of the processor",
             allowableValues = "RUNNING, STOPPED, DISABLED"
     )
     public String getState() {
@@ -125,8 +121,7 @@ public class ProcessorDTO extends ComponentDTO {
     /**
      * @return The styles for this processor. (Currently only supports color)
      */
-    @ApiModelProperty(
-            value = "Styles for the processor (background-color : #eee)."
+    @Schema(description = "Styles for the processor (background-color : #eee)."
     )
     public Map<String, String> getStyle() {
         return style;
@@ -139,8 +134,7 @@ public class ProcessorDTO extends ComponentDTO {
     /**
      * @return whether this processor supports parallel processing
      */
-    @ApiModelProperty(
-            value = "Whether the processor supports parallel processing."
+    @Schema(description = "Whether the processor supports parallel processing."
     )
     public Boolean getSupportsParallelProcessing() {
         return supportsParallelProcessing;
@@ -153,8 +147,7 @@ public class ProcessorDTO extends ComponentDTO {
     /**
      * @return whether this processor supports sensitive dynamic properties
      */
-    @ApiModelProperty(
-            value = "Whether the processor supports sensitive dynamic properties."
+    @Schema(description = "Whether the processor supports sensitive dynamic properties."
     )
     public Boolean getSupportsSensitiveDynamicProperties() {
         return supportsSensitiveDynamicProperties;
@@ -167,8 +160,7 @@ public class ProcessorDTO extends ComponentDTO {
     /**
      * @return whether this processor persists state
      */
-    @ApiModelProperty(
-        value = "Whether the processor persists state."
+    @Schema(description = "Whether the processor persists state."
     )
     public Boolean getPersistsState() {
         return persistsState;
@@ -181,8 +173,7 @@ public class ProcessorDTO extends ComponentDTO {
     /**
      * @return whether this processor has multiple versions available
      */
-    @ApiModelProperty(
-            value = "Whether the processor has multiple versions available."
+    @Schema(description = "Whether the processor has multiple versions available."
     )
     public Boolean getMultipleVersionsAvailable() {
         return multipleVersionsAvailable;
@@ -195,8 +186,7 @@ public class ProcessorDTO extends ComponentDTO {
     /**
      * @return whether the underlying extension is missing
      */
-    @ApiModelProperty(
-            value = "Whether the underlying extension is missing."
+    @Schema(description = "Whether the underlying extension is missing."
     )
     public Boolean getExtensionMissing() {
         return isExtensionMissing;
@@ -209,8 +199,7 @@ public class ProcessorDTO extends ComponentDTO {
     /**
      * @return whether this processor requires elevated privileges
      */
-    @ApiModelProperty(
-            value = "Whether the processor requires elevated privileges."
+    @Schema(description = "Whether the processor requires elevated privileges."
     )
     public Boolean getRestricted() {
         return restricted;
@@ -223,8 +212,7 @@ public class ProcessorDTO extends ComponentDTO {
     /**
      * @return Whether the processor has been deprecated.
      */
-    @ApiModelProperty(
-            value = "Whether the processor has been deprecated."
+    @Schema(description = "Whether the processor has been deprecated."
     )
     public Boolean getDeprecated() {
         return deprecated;
@@ -237,8 +225,7 @@ public class ProcessorDTO extends ComponentDTO {
     /**
      * @return the input requirement of this processor
      */
-    @ApiModelProperty(
-            value = "The input requirement for this processor."
+    @Schema(description = "The input requirement for this processor."
     )
     public String getInputRequirement() {
         return inputRequirement;
@@ -251,8 +238,7 @@ public class ProcessorDTO extends ComponentDTO {
     /**
      * @return whether this processor supports batching
      */
-    @ApiModelProperty(
-        value = "Whether the processor supports batching. This makes the run duration settings available."
+    @Schema(description = "Whether the processor supports batching. This makes the run duration settings available."
     )
     public Boolean getSupportsBatching() {
         return supportsBatching;
@@ -267,9 +253,8 @@ public class ProcessorDTO extends ComponentDTO {
      *
      * @return The available relationships
      */
-    @ApiModelProperty(
-            value = "The available relationships that the processor currently supports.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The available relationships that the processor currently supports.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public List<RelationshipDTO> getRelationships() {
         return relationships;
@@ -284,8 +269,7 @@ public class ProcessorDTO extends ComponentDTO {
      *
      * @return The processor configuration details
      */
-    @ApiModelProperty(
-            value = "The configuration details for the processor. These details will be included in a response if the verbose flag is included in a request."
+    @Schema(description = "The configuration details for the processor. These details will be included in a response if the verbose flag is included in a request."
     )
     public ProcessorConfigDTO getConfig() {
         return config;
@@ -300,8 +284,7 @@ public class ProcessorDTO extends ComponentDTO {
      *
      * @return The validation errors
      */
-    @ApiModelProperty(
-            value = "The validation errors for the processor. These validation errors represent the problems with the processor that must be resolved before it can be started."
+    @Schema(description = "The validation errors for the processor. These validation errors represent the problems with the processor that must be resolved before it can be started."
     )
     public Collection<String> getValidationErrors() {
         return validationErrors;
@@ -311,8 +294,8 @@ public class ProcessorDTO extends ComponentDTO {
         this.validationErrors = validationErrors;
     }
 
-    @ApiModelProperty(value = "Indicates whether the Processor is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Processor is valid)",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY,
+    @Schema(description = "Indicates whether the Processor is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Processor is valid)",
+        accessMode = Schema.AccessMode.READ_ONLY,
         allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
     public String getValidationStatus() {
         return validationStatus;
@@ -325,8 +308,7 @@ public class ProcessorDTO extends ComponentDTO {
     /**
      * @return the description for this processor
      */
-    @ApiModelProperty(
-            value = "The description of the processor."
+    @Schema(description = "The description of the processor."
     )
     public String getDescription() {
         return description;
@@ -339,8 +321,7 @@ public class ProcessorDTO extends ComponentDTO {
     /**
      * @return whether or not this processor is restricted to run only in primary node
      */
-    @ApiModelProperty(
-            value = "Indicates if the execution node of a processor is restricted to run only on the primary node"
+    @Schema(description = "Indicates if the execution node of a processor is restricted to run only on the primary node"
     )
     public Boolean isExecutionNodeRestricted() {
         return executionNodeRestricted;

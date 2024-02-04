@@ -17,16 +17,17 @@
 
 package org.apache.nifi.processors.snowflake;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.apache.nifi.key.service.StandardPrivateKeyService;
 import org.apache.nifi.key.service.api.PrivateKeyService;
+import org.apache.nifi.processors.snowflake.util.SnowflakeProperties;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.snowflake.service.util.ConnectionUrlFormat;
 import org.apache.nifi.snowflake.service.SnowflakeComputingConnectionPool;
 import org.apache.nifi.snowflake.service.StandardSnowflakeIngestManagerProviderService;
-import org.apache.nifi.processors.snowflake.util.SnowflakeProperties;
+import org.apache.nifi.snowflake.service.util.ConnectionUrlFormat;
 import org.apache.nifi.util.TestRunner;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public interface SnowflakeConfigAware {
 
@@ -67,7 +68,7 @@ public interface SnowflakeConfigAware {
 
         runner.setProperty(connectionProviderService,
                 SnowflakeComputingConnectionPool.CONNECTION_URL_FORMAT,
-                ConnectionUrlFormat.ACCOUNT_NAME.getValue());
+                ConnectionUrlFormat.ACCOUNT_NAME);
         runner.setProperty(connectionProviderService,
                 SnowflakeComputingConnectionPool.SNOWFLAKE_ORGANIZATION_NAME,
                 organizationName);

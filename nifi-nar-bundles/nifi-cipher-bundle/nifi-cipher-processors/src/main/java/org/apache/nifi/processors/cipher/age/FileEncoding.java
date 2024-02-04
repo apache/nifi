@@ -23,7 +23,6 @@ import org.apache.nifi.components.DescribedValue;
  */
 public enum FileEncoding implements DescribedValue {
     BINARY("Binary encoding"),
-
     ASCII("ASCII Armor encoding");
 
     private final String description;

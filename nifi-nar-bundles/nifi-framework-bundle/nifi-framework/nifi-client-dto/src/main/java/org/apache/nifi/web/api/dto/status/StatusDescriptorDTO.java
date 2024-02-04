@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Objects;
 
 /**
@@ -51,8 +51,7 @@ public class StatusDescriptorDTO {
     /**
      * @return name of this status field
      */
-    @ApiModelProperty(
-            value = "The name of the status field."
+    @Schema(description = "The name of the status field."
     )
     public String getField() {
         return field;
@@ -65,8 +64,7 @@ public class StatusDescriptorDTO {
     /**
      * @return label of this status field
      */
-    @ApiModelProperty(
-            value = "The label for the status field."
+    @Schema(description = "The label for the status field."
     )
     public String getLabel() {
         return label;
@@ -79,8 +77,7 @@ public class StatusDescriptorDTO {
     /**
      * @return description of this status field
      */
-    @ApiModelProperty(
-            value = "The description of the status field."
+    @Schema(description = "The description of the status field."
     )
     public String getDescription() {
         return description;
@@ -93,8 +90,7 @@ public class StatusDescriptorDTO {
     /**
      * @return formatter for this descriptor
      */
-    @ApiModelProperty(
-            value = "The formatter for the status descriptor."
+    @Schema(description = "The formatter for the status descriptor."
     )
     public String getFormatter() {
         return formatter;

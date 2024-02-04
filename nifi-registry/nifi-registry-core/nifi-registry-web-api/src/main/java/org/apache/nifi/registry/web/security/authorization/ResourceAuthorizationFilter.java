@@ -29,12 +29,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.filter.GenericFilterBean;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -98,7 +98,7 @@ public class ResourceAuthorizationFilter extends GenericFilterBean {
                 final HttpMethodAuthorizationRules authorizationRules = resourceTypeAuthorizationRules.get(resourceType);
                 if (authorizationRules != null) {
                     final String httpMethodStr = httpServletRequest.getMethod().toUpperCase();
-                    HttpMethod httpMethod = HttpMethod.resolve(httpMethodStr);
+                    HttpMethod httpMethod = HttpMethod.valueOf(httpMethodStr);
 
                     // Only require authorization for HTTP methods included in this resource type's rule set
                     if (httpMethod != null && authorizationRules.requiresAuthorization(httpMethod)) {

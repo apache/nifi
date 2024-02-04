@@ -57,6 +57,11 @@ public class StandardPropertyConfiguration implements PropertyConfiguration {
             return false;
         }
 
+        if (Objects.equals(propertyName, newName)) {
+            logger.debug("Will not update property [{}] for [{}] because the new name and the current name are the same", propertyName, componentDescription);
+            return false;
+        }
+
         final String effectivePropertyValue = effectiveProperties.remove(propertyName);
         effectiveProperties.put(newName, effectivePropertyValue);
 

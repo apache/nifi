@@ -17,7 +17,7 @@ rem    limitations under the License.
 rem
 
 rem The java implementation to use
-rem set JAVA_MINIFI="C:\Java\jdk-21\"
+rem set JAVA_MINIFI="C:\Java\jdk\"
 
 set "currentDirectory=%~dp0"
 set "MINIFI_ROOT="

@@ -1,0 +1,412 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.canvas-background {
+    background-size: 14px 14px;
+    z-index: 1;
+    overflow: hidden;
+}
+
+/* svg styles */
+
+:host ::ng-deep svg.canvas-svg {
+    width: 100%;
+    height: 100%;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    text.unset {
+        font-style: italic;
+        font-weight: normal;
+    }
+
+    .moveable {
+        cursor: pointer;
+    }
+
+    /*
+      All components
+  */
+
+    g.component {
+        font-family: Roboto;
+    }
+
+    g.component rect.border {
+        stroke-width: 1;
+    }
+
+    g.component rect.border.unauthorized {
+        stroke-width: 3;
+        stroke-dasharray: 4;
+    }
+
+    g.component rect.border.ghost {
+        stroke-width: 3;
+        stroke-dasharray: 4;
+    }
+
+    g.component.selected rect.border {
+        stroke-width: 3;
+    }
+
+    text.stats-label {
+        font-size: 12px;
+        font-family: Roboto Slab;
+    }
+
+    text.stats-value {
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    text.stats-value tspan.size,
+    text.stats-value tspan.size,
+    text.stats-value tspan.public-ports {
+        font-weight: normal;
+    }
+
+    text.stats-info {
+        font-size: 12px;
+    }
+
+    text.bulletin-icon {
+        font-size: 13px;
+        font-family: FontAwesome;
+    }
+
+    text.active-thread-count-icon {
+        font-family: flowfont;
+        font-size: 12px;
+        text-anchor: end;
+    }
+
+    text.active-thread-count {
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    text.spin {
+        -webkit-animation-name: rotate;
+        -webkit-animation-duration: 2s;
+        -webkit-animation-iteration-count: infinite;
+        -webkit-animation-timing-function: linear;
+        -moz-animation-name: rotate;
+        -moz-animation-duration: 2s;
+        -moz-animation-iteration-count: infinite;
+        -moz-animation-timing-function: linear;
+        animation-name: rotate;
+        animation-duration: 2s;
+        animation-iteration-count: infinite;
+        animation-timing-function: linear;
+    }
+
+    @-webkit-keyframes rotate {
+        from {
+            -webkit-transform: rotate(0deg);
+        }
+        to {
+            -webkit-transform: rotate(360deg);
+        }
+    }
+
+    @-moz-keyframes rotate {
+        from {
+            -moz-transform: rotate(0deg);
+        }
+        to {
+            -moz-transform: rotate(360deg);
+        }
+    }
+
+    @keyframes rotate {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /*
+      Selection
+  */
+
+    g.component.connectable-destination rect.border {
+        stroke-width: 3;
+    }
+
+    rect.component-selection,
+    rect.drag-selection,
+    rect.label-drag {
+        stroke-opacity: 0.5;
+    }
+
+    text.add-connect {
+        cursor: pointer;
+        font-family: flowfont;
+        font-size: 28px;
+    }
+
+    /*
+      Processor
+  */
+
+    text.processor-name {
+        font-size: 14px;
+    }
+
+    text.processor-type {
+        font-size: 12px;
+    }
+
+    text.processor-bundle {
+        font-size: 10px;
+    }
+
+    text.processor-icon {
+        font-family: flowfont;
+        font-size: 30px;
+    }
+
+    circle.restricted-background,
+    circle.is-primary-background {
+        visibility: hidden;
+    }
+
+    text.restricted {
+        visibility: hidden;
+        font-family: FontAwesome;
+        font-size: 12px;
+    }
+
+    text.is-primary {
+        visibility: hidden;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    text.run-status-icon {
+        font-size: 14px;
+        transform-origin: 62px 18px 0;
+    }
+
+    /*
+      Connection
+  */
+
+    g.connection {
+        font-family: Roboto;
+    }
+
+    g.connection rect.border.unauthorized {
+        stroke-width: 1.5;
+        stroke-dasharray: 3, 3;
+    }
+
+    g.connection rect.border.full {
+        stroke-width: 1;
+    }
+
+    g.connection.selected rect.border {
+        stroke-width: 3;
+    }
+
+    path.connector {
+        fill: none;
+        pointer-events: none;
+        stroke-width: 3;
+        stroke-opacity: 0.5;
+        stroke-dasharray: 2;
+    }
+
+    path.connector.connectable {
+        stroke-width: 3;
+        stroke-dasharray: 4;
+    }
+
+    g.connection path.connection-path {
+        stroke-width: 2;
+        cursor: pointer;
+    }
+
+    g.connection path.connection-path.unauthorized {
+        stroke-dasharray: 3, 3;
+    }
+
+    text.connection-from-run-status,
+    text.connection-to-run-status,
+    text.expiration-icon,
+    text.load-balance-icon,
+    text.penalized-icon {
+        font-family: FontAwesome;
+        font-size: 12px;
+    }
+
+    text.load-balance-icon-184 {
+        transform-origin: 197px 10px 0;
+    }
+
+    text.load-balance-icon-200 {
+        transform-origin: 213px 10px 0;
+    }
+
+    g.connection rect.backpressure-object > title > tspan,
+    g.connection rect.backpressure-data-size > title > tspan {
+        display: block;
+    }
+
+    g.connection rect.backpressure-percent {
+        pointer-events: none;
+    }
+
+    /* grouped connection */
+
+    g.connection.grouped path.connection-path,
+    g.connection.grouped rect.connection-label {
+        stroke-width: 3;
+    }
+
+    /* ghost connection */
+
+    g.connection.ghost path.connection-path,
+    g.connection.ghost rect.connection-label {
+        stroke-dasharray: 4;
+    }
+
+    g.connection path.connection-selection-path {
+        visibility: hidden;
+        stroke-width: 1;
+    }
+
+    g.connection path.connection-path-selectable {
+        visibility: hidden;
+        stroke-width: 20;
+        cursor: pointer;
+    }
+
+    g.connection.selected path.connection-selection-path {
+        visibility: visible;
+    }
+
+    g.connection rect.linepoint {
+        visibility: hidden;
+        stroke-width: 1;
+    }
+
+    g.connection.selected rect.linepoint {
+        visibility: visible;
+    }
+
+    g.connection rect.midpoint {
+        cursor: pointer;
+    }
+
+    g.connection rect.endpoint {
+        cursor: pointer;
+    }
+
+    /* labels */
+
+    g.label rect.labelpoint {
+        display: none;
+        stroke-width: 1;
+        cursor: se-resize;
+    }
+
+    g.label.selected rect.labelpoint {
+        display: block;
+    }
+
+    /* funnels */
+
+    text.funnel-icon {
+        font-family: flowfont;
+        font-size: 30px;
+    }
+
+    /* ports */
+
+    text.port-name {
+        font-size: 14px;
+    }
+
+    text.port-icon {
+        font-family: flowfont;
+        font-size: 30px;
+    }
+
+    text.port-transmission-icon {
+        font-size: 15px;
+    }
+
+    /* active thread count */
+
+    text.active-thread-count {
+        font-size: 10px;
+    }
+
+    /* process groups */
+
+    text.process-group-name {
+        font-size: 14px;
+    }
+
+    text.version-control {
+        font-family: FontAwesome;
+        font-size: 18px;
+        visibility: hidden;
+    }
+
+    text.process-group-contents-count {
+        font-size: 15px;
+        font-weight: 500;
+        font-family: Roboto, sans-serif;
+    }
+
+    g.process-group.drop rect.border {
+        stroke-width: 3;
+    }
+
+    text.process-group-contents-icon {
+        font-size: 15px;
+    }
+
+    /* remote process group */
+
+    text.remote-process-group-name {
+        font-size: 14px;
+    }
+
+    text.remote-process-group-uri {
+        font-size: 12px;
+    }
+
+    text.remote-process-group-transmission-status {
+        font-size: 15px;
+    }
+
+    text.remote-process-group-transmission-secure {
+        font-family: FontAwesome;
+        font-size: 13px;
+    }
+
+    text.remote-process-group-last-refresh {
+        font-size: 10px;
+    }
+}

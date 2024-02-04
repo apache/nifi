@@ -14,7 +14,7 @@
           "name": "ProviderType",
           "fields": [{
             "name": "Guid",
-            "type": "string"
+            "type": "bytes"
           }, {
             "name": "Name",
             "type": "string"

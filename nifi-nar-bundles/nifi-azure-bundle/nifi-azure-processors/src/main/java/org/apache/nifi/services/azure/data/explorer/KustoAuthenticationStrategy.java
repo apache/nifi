@@ -18,9 +18,8 @@ package org.apache.nifi.services.azure.data.explorer;
 
 import org.apache.nifi.components.DescribedValue;
 
-enum KustoAuthenticationStrategy implements DescribedValue {
+public enum KustoAuthenticationStrategy implements DescribedValue {
     APPLICATION_CREDENTIALS("Application Credentials", "Azure Application Registration with Application Key"),
-
     MANAGED_IDENTITY("Managed Identity", "Azure Managed Identity");
 
     private final String displayName;

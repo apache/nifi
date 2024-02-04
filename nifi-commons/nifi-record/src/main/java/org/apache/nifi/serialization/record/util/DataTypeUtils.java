@@ -24,6 +24,8 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.field.FieldConverter;
+import org.apache.nifi.serialization.record.field.StandardFieldConverterRegistry;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.DecimalDataType;
@@ -48,14 +50,13 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -71,13 +72,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
-
 
 public class DataTypeUtils {
     private static final Logger logger = LoggerFactory.getLogger(DataTypeUtils.class);
@@ -113,9 +112,9 @@ public class DataTypeUtils {
     private static final Pattern FLOATING_POINT_PATTERN = Pattern.compile(doubleRegex);
     private static final Pattern DECIMAL_PATTERN = Pattern.compile(decimalRegex);
 
-    private static final Supplier<DateFormat> DEFAULT_DATE_FORMAT = () -> getDateFormat(RecordFieldType.DATE.getDefaultFormat());
-    private static final Supplier<DateFormat> DEFAULT_TIME_FORMAT = () -> getDateFormat(RecordFieldType.TIME.getDefaultFormat());
-    private static final Supplier<DateFormat> DEFAULT_TIMESTAMP_FORMAT = () -> getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat());
+    private static final Optional<String> DEFAULT_DATE_FORMAT = Optional.of(RecordFieldType.DATE.getDefaultFormat());
+    private static final Optional<String> DEFAULT_TIME_FORMAT = Optional.of(RecordFieldType.TIME.getDefaultFormat());
+    private static final Optional<String> DEFAULT_TIMESTAMP_FORMAT = Optional.of(RecordFieldType.TIMESTAMP.getDefaultFormat());
 
     private static final int FLOAT_SIGNIFICAND_PRECISION = 24; // As specified in IEEE 754 binary32
     private static final int DOUBLE_SIGNIFICAND_PRECISION = 53; // As specified in IEEE 754 binary64
@@ -154,27 +153,40 @@ public class DataTypeUtils {
         return convertType(value, dataType, DEFAULT_DATE_FORMAT, DEFAULT_TIME_FORMAT, DEFAULT_TIMESTAMP_FORMAT, fieldName, charset);
     }
 
-    public static DateFormat getDateFormat(final RecordFieldType fieldType, final Supplier<DateFormat> dateFormat,
-        final Supplier<DateFormat> timeFormat, final Supplier<DateFormat> timestampFormat) {
+    private static String getDateFormat(final RecordFieldType fieldType, final Optional<String> dateFormat,
+                                            final Optional<String> timeFormat, final Optional<String> timestampFormat) {
         switch (fieldType) {
             case DATE:
-                return dateFormat.get();
+                return dateFormat.orElse(null);
             case TIME:
-                return timeFormat.get();
+                return timeFormat.orElse(null);
             case TIMESTAMP:
-                return timestampFormat.get();
+                return timestampFormat.orElse(null);
         }
 
         return null;
     }
 
-    public static Object convertType(final Object value, final DataType dataType, final Supplier<DateFormat> dateFormat, final Supplier<DateFormat> timeFormat,
-                                     final Supplier<DateFormat> timestampFormat, final String fieldName) {
+    public static Object convertType(
+            final Object value,
+            final DataType dataType,
+            final Optional<String> dateFormat,
+            final Optional<String> timeFormat,
+            final Optional<String> timestampFormat,
+            final String fieldName
+    ) {
         return convertType(value, dataType, dateFormat, timeFormat, timestampFormat, fieldName, StandardCharsets.UTF_8);
     }
 
-    public static Object convertType(final Object value, final DataType dataType, final Supplier<DateFormat> dateFormat, final Supplier<DateFormat> timeFormat,
-        final Supplier<DateFormat> timestampFormat, final String fieldName, final Charset charset) {
+    public static Object convertType(
+            final Object value,
+            final DataType dataType,
+            final Optional<String> dateFormat,
+            final Optional<String> timeFormat,
+            final Optional<String> timestampFormat,
+            final String fieldName,
+            final Charset charset
+    ) {
 
         if (value == null) {
             return null;
@@ -190,7 +202,9 @@ public class DataTypeUtils {
             case CHAR:
                 return toCharacter(value, fieldName);
             case DATE:
-                return convertTypeToDate(value, dateFormat, fieldName);
+                final FieldConverter<Object, LocalDate> localDateConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDate.class);
+                final LocalDate localDate = localDateConverter.convertField(value, dateFormat, fieldName);
+                return localDate == null ? null : Date.valueOf(localDate);
             case DECIMAL:
                 return toBigDecimal(value, fieldName);
             case DOUBLE:
@@ -206,11 +220,15 @@ public class DataTypeUtils {
             case ENUM:
                 return toEnum(value, (EnumDataType) dataType, fieldName);
             case STRING:
-                return toString(value, () -> getDateFormat(dataType.getFieldType(), dateFormat, timeFormat, timestampFormat), charset);
+                final FieldConverter<Object, String> stringConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(String.class);
+                final String pattern = getDateFormat(dataType.getFieldType(), dateFormat, timeFormat, timestampFormat);
+                return stringConverter.convertField(value, Optional.ofNullable(pattern), fieldName);
             case TIME:
-                return toTime(value, timeFormat, fieldName);
+                final FieldConverter<Object, Time> timeConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(Time.class);
+                return timeConverter.convertField(value, timeFormat, fieldName);
             case TIMESTAMP:
-                return toTimestamp(value, timestampFormat, fieldName);
+                final FieldConverter<Object, Timestamp> timestampConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(Timestamp.class);
+                return timestampConverter.convertField(value, timestampFormat, fieldName);
             case UUID:
                 return toUUID(value);
             case ARRAY:
@@ -226,7 +244,7 @@ public class DataTypeUtils {
                 final DataType chosenDataType = chooseDataType(value, choiceDataType);
                 if (chosenDataType == null) {
                     throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass()
-                        + " for field " + fieldName + " to any of the following available Sub-Types for a Choice: " + choiceDataType.getPossibleSubTypes());
+                            + " for field " + fieldName + " to any of the following available Sub-Types for a Choice: " + choiceDataType.getPossibleSubTypes());
                 }
 
                 return convertType(value, chosenDataType, fieldName, charset);
@@ -938,12 +956,7 @@ public class DataTypeUtils {
         return value != null && (value instanceof Map || value instanceof MapRecord);
     }
 
-
-    public static String toString(final Object value, final Supplier<DateFormat> format) {
-        return toString(value, format, StandardCharsets.UTF_8);
-    }
-
-    public static String toString(final Object value, final Supplier<DateFormat> format, final Charset charset) {
+    private static String toString(final Object value, final Supplier<DateFormat> format, final Charset charset) {
         if (value == null) {
             return null;
         }
@@ -1029,17 +1042,18 @@ public class DataTypeUtils {
             return String.valueOf(((java.util.Date) value).getTime());
         }
 
+        final FieldConverter<Object, String> fieldConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(String.class);
         if (value instanceof java.sql.Date) {
-            return getDateFormat(format).format((java.util.Date) value);
+            return fieldConverter.convertField(value, Optional.of(format), null);
         }
         if (value instanceof java.sql.Time) {
-            return getDateFormat(format).format((java.util.Date) value);
+            return fieldConverter.convertField(value, Optional.of(format), null);
         }
         if (value instanceof java.sql.Timestamp) {
-            return getDateFormat(format).format((java.util.Date) value);
+            return fieldConverter.convertField(value, Optional.of(format), null);
         }
         if (value instanceof java.util.Date) {
-            return getDateFormat(format).format((java.util.Date) value);
+            return fieldConverter.convertField(value, Optional.of(format), null);
         }
         if (value instanceof Blob) {
             Blob blob = (Blob) value;
@@ -1096,178 +1110,6 @@ public class DataTypeUtils {
         throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + dataType + " for field " + fieldName);
     }
 
-    public static java.sql.Date toDate(final Object value, final Supplier<DateFormat> format, final String fieldName) {
-        if (value == null) {
-            return null;
-        }
-
-        if (value instanceof Date) {
-            return (Date) value;
-        }
-
-        if (value instanceof java.util.Date) {
-            java.util.Date _temp = (java.util.Date)value;
-            return new Date(_temp.getTime());
-        }
-
-        if (value instanceof Number) {
-            final long longValue = ((Number) value).longValue();
-            return new Date(longValue);
-        }
-
-        if (value instanceof String) {
-            try {
-                final String string = ((String) value).trim();
-                if (string.isEmpty()) {
-                    return null;
-                }
-
-                if (format == null) {
-                    return new Date(Long.parseLong(string));
-                }
-
-                final DateFormat dateFormat = format.get();
-                if (dateFormat == null) {
-                    return new Date(Long.parseLong(string));
-                }
-                final java.util.Date utilDate = dateFormat.parse(string);
-                return new Date(utilDate.getTime());
-            } catch (final ParseException | NumberFormatException e) {
-                throw new IllegalTypeConversionException("Could not convert value [" + value
-                    + "] of type java.lang.String to Date because the value is not in the expected date format: " + format + " for field " + fieldName);
-            }
-        }
-
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Date for field " + fieldName);
-    }
-
-    /**
-     * Get Date Time Formatter using Zone Identifier
-     *
-     * @param pattern Date Format Pattern
-     * @param zoneId Time Zone Identifier
-     * @return Date Time Formatter or null when provided pattern is null
-     */
-    public static DateTimeFormatter getDateTimeFormatter(final String pattern, final ZoneId zoneId) {
-        if (pattern == null || zoneId == null) {
-            return null;
-        }
-        return DateTimeFormatter.ofPattern(pattern).withZone(zoneId);
-    }
-
-    /**
-     * Convert value to Local Date with support for conversion from numbers or formatted strings
-     *
-     * @param value Value to be converted
-     * @param formatter Supplier for Date Time Formatter can be null when string parsing is not necessary
-     * @param fieldName Field Name for value to be converted
-     * @return Local Date or null when value to be converted is null
-     * @throws IllegalTypeConversionException Thrown when conversion from string fails or unsupported value provided
-     */
-    public static LocalDate toLocalDate(final Object value, final Supplier<DateTimeFormatter> formatter, final String fieldName) {
-        LocalDate localDate;
-
-        if (value == null) {
-            return null;
-        } else if (value instanceof LocalDate) {
-            localDate = (LocalDate) value;
-        } else if (value instanceof java.sql.Date) {
-            final java.sql.Date date = (java.sql.Date) value;
-            localDate = date.toLocalDate();
-        } else if (value instanceof java.util.Date) {
-            final java.util.Date date = (java.util.Date) value;
-            localDate = parseLocalDateEpochMillis(date.getTime());
-        } else if (value instanceof Number) {
-            final long epochMillis = ((Number) value).longValue();
-            localDate = parseLocalDateEpochMillis(epochMillis);
-        } else if (value instanceof String) {
-            try {
-                localDate = parseLocalDate((String) value, formatter);
-            } catch (final RuntimeException e) {
-                final String message = String.format("Failed Conversion of Field [%s] from String [%s] to LocalDate", fieldName, value);
-                throw new IllegalTypeConversionException(message, e);
-            }
-        } else {
-            final String message = String.format("Failed Conversion of Field [%s] from Value [%s] Type [%s] to LocalDate", fieldName, value, value.getClass());
-            throw new IllegalTypeConversionException(message);
-        }
-
-        return localDate;
-    }
-
-    /**
-     * Convert value to java.sql.Date using java.time.LocalDate parsing and conversion from DateFormat to DateTimeFormatter
-     *
-     * Transitional method supporting conversion from legacy java.text.DateFormat to java.time.DateTimeFormatter
-     *
-     * @param value Value object to be converted
-     * @param format Supplier function for java.text.DateFormat when necessary for parsing
-     * @param fieldName Field name being parsed
-     * @return java.sql.Date or null when value is null
-     */
-    private static Date convertTypeToDate(final Object value, final Supplier<DateFormat> format, final String fieldName) {
-        if (value == null) {
-            return null;
-        } else {
-            final LocalDate localDate = toLocalDate(value, () -> {
-                final SimpleDateFormat dateFormat = (SimpleDateFormat) format.get();
-                return dateFormat == null ? null : DateTimeFormatter.ofPattern(dateFormat.toPattern());
-            }, fieldName);
-            return Date.valueOf(localDate);
-        }
-    }
-
-    /**
-     * Parse Local Date from String using Date Time Formatter when supplied
-     *
-     * @param value String not null containing either formatted string or number of epoch milliseconds
-     * @param formatter Supplier for Date Time Formatter
-     * @return Local Date or null when provided value is empty
-     */
-    private static LocalDate parseLocalDate(final String value, final Supplier<DateTimeFormatter> formatter) {
-        LocalDate localDate = null;
-
-        final String normalized = value.trim();
-        if (!normalized.isEmpty()) {
-            if (formatter == null) {
-                localDate = parseLocalDateEpochMillis(normalized);
-            } else {
-                final DateTimeFormatter dateTimeFormatter = formatter.get();
-                if (dateTimeFormatter == null) {
-                    localDate = parseLocalDateEpochMillis(normalized);
-                } else {
-                    localDate = LocalDate.parse(normalized, dateTimeFormatter);
-                }
-            }
-        }
-
-        return localDate;
-    }
-
-
-    /**
-     * Parse Local Date from string expected to contain number of epoch milliseconds
-     *
-     * @param number Number string expected to contain epoch milliseconds
-     * @return Local Date converted from epoch milliseconds
-     */
-    private static LocalDate parseLocalDateEpochMillis(final String number) {
-        final long epochMillis = Long.parseLong(number);
-        return parseLocalDateEpochMillis(epochMillis);
-    }
-
-    /**
-     * Parse Local Date from epoch milliseconds using System Default Zone Offset
-     *
-     * @param epochMillis Epoch milliseconds
-     * @return Local Date converted from epoch milliseconds
-     */
-    private static LocalDate parseLocalDateEpochMillis(final long epochMillis) {
-        final Instant instant = Instant.ofEpochMilli(epochMillis);
-        final ZonedDateTime zonedDateTime = instant.atZone(ZoneOffset.systemDefault());
-        return zonedDateTime.toLocalDate();
-    }
-
     /**
      * Converts a java.sql.Date object in local time zone (typically coming from a java.sql.ResultSet and having 00:00:00 time part)
      * to UTC normalized form (storing the epoch corresponding to the UTC time with the same date/time as the input).
@@ -1296,9 +1138,9 @@ public class DataTypeUtils {
             }
 
             try {
-                getDateFormat(format).parse((String) value);
+                DateTimeFormatter.ofPattern(format).parse(value.toString());
                 return true;
-            } catch (final ParseException e) {
+            } catch (final DateTimeParseException e) {
                 return false;
             }
         }
@@ -1320,146 +1162,13 @@ public class DataTypeUtils {
         return true;
     }
 
-    public static Time toTime(final Object value, final Supplier<DateFormat> format, final String fieldName) {
-        if (value == null) {
-            return null;
-        }
-
-        if (value instanceof Time) {
-            return (Time) value;
-        }
-
-        if (value instanceof Number) {
-            final long longValue = ((Number) value).longValue();
-            return new Time(longValue);
-        }
-
-        if (value instanceof String) {
-            try {
-                final String string = ((String) value).trim();
-                if (string.isEmpty()) {
-                    return null;
-                }
-
-                if (format == null) {
-                    return new Time(Long.parseLong(string));
-                }
-
-                final DateFormat dateFormat = format.get();
-                if (dateFormat == null) {
-                    return new Time(Long.parseLong(string));
-                }
-                final java.util.Date utilDate = dateFormat.parse(string);
-                return new Time(utilDate.getTime());
-            } catch (final ParseException e) {
-                throw new IllegalTypeConversionException("Could not convert value [" + value
-                    + "] of type java.lang.String to Time for field " + fieldName + " because the value is not in the expected date format: " + format);
-            }
-        }
-
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Time for field " + fieldName);
-    }
-
-    /**
-     * Get Date Format using default Local Time Zone
-     *
-     * @param pattern Date Format Pattern used for new SimpleDateFormat()
-     * @return Date Format or null when pattern not provided
-     */
-    public static DateFormat getDateFormat(final String pattern) {
-        if (pattern == null) {
-            return null;
-        }
-        return getDateFormat(pattern, TimeZone.getDefault());
-    }
-
-    /**
-     * Get Date Format using specified Time Zone to adjust Date during processing
-     *
-     * @param pattern Date Format Pattern used for new SimpleDateFormat()
-     * @param timeZoneId Time Zone Identifier used for TimeZone.getTimeZone()
-     * @return Date Format or null when input parameters not provided
-     */
-    public static DateFormat getDateFormat(final String pattern, final String timeZoneId) {
-        if (pattern == null || timeZoneId == null) {
-            return null;
-        }
-        return getDateFormat(pattern, TimeZone.getTimeZone(timeZoneId));
-    }
-
-    private static DateFormat getDateFormat(final String pattern, final TimeZone timeZone) {
-        if (pattern == null) {
-            return null;
-        }
-        final DateFormat dateFormat = new SimpleDateFormat(pattern);
-        dateFormat.setTimeZone(timeZone);
-        return dateFormat;
-    }
-
     public static boolean isTimeTypeCompatible(final Object value, final String format) {
         return isDateTypeCompatible(value, format);
-    }
-
-    public static Timestamp toTimestamp(final Object value, final Supplier<DateFormat> format, final String fieldName) {
-        if (value == null) {
-            return null;
-        }
-
-        if (value instanceof Timestamp) {
-            return (Timestamp) value;
-        }
-
-        if (value instanceof java.util.Date) {
-            return new Timestamp(((java.util.Date)value).getTime());
-        }
-
-        if (value instanceof Number) {
-            final long longValue = ((Number) value).longValue();
-            return new Timestamp(longValue);
-        }
-
-        if (value instanceof String) {
-            final String string = ((String) value).trim();
-            if (string.isEmpty()) {
-                return null;
-            }
-
-            try {
-                if (format == null) {
-                    return new Timestamp(Long.parseLong(string));
-                }
-
-                final DateFormat dateFormat = format.get();
-                if (dateFormat == null) {
-                    return new Timestamp(Long.parseLong(string));
-                }
-
-                final java.util.Date utilDate = dateFormat.parse(string);
-                return new Timestamp(utilDate.getTime());
-            } catch (final ParseException e) {
-                final DateFormat dateFormat = format.get();
-                final String formatDescription;
-                if (dateFormat == null) {
-                    formatDescription = "Numeric";
-                } else if (dateFormat instanceof SimpleDateFormat) {
-                    formatDescription = ((SimpleDateFormat) dateFormat).toPattern();
-                } else {
-                    formatDescription = dateFormat.toString();
-                }
-
-                throw new IllegalTypeConversionException("Could not convert value [" + value
-                    + "] of type java.lang.String to Timestamp for field " + fieldName + " because the value is not in the expected date format: "
-                    + formatDescription);
-            }
-        }
-
-        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Timestamp for field " + fieldName);
     }
 
     public static boolean isTimestampTypeCompatible(final Object value, final String format) {
         return isDateTypeCompatible(value, format);
     }
-
 
     public static BigInteger toBigInt(final Object value, final String fieldName) {
         if (value == null) {
@@ -2013,6 +1722,10 @@ public class DataTypeUtils {
                 if (otherArrayType.getElementType() == null) {
                     return Optional.of(thisDataType);
                 } else {
+                    final Optional<DataType> widerElementType = getWiderType(thisArrayType.getElementType(), otherArrayType.getElementType());
+                    if (widerElementType.isPresent()) {
+                        return Optional.of(RecordFieldType.ARRAY.getArrayDataType(widerElementType.get()));
+                    }
                     return Optional.empty();
                 }
             }
@@ -2083,37 +1796,61 @@ public class DataTypeUtils {
                     return Optional.of(thisDataType);
                 }
                 break;
+            case RECORD:
+                if (otherFieldType != RecordFieldType.RECORD)  {
+                    return Optional.empty();
+                }
+
+                final RecordDataType thisRecordDataType = (RecordDataType) thisDataType;
+                final RecordDataType otherRecordDataType = (RecordDataType) otherDataType;
+                return getWiderRecordType(thisRecordDataType, otherRecordDataType);
+        }
+
+        return Optional.empty();
+    }
+
+    private static Optional<DataType> getWiderRecordType(final RecordDataType thisRecordDataType, final RecordDataType otherRecordDataType) {
+        final RecordSchema thisSchema = thisRecordDataType.getChildSchema();
+        final RecordSchema otherSchema = otherRecordDataType.getChildSchema();
+
+        if (thisSchema == null && otherSchema != null) {
+            return Optional.of(otherRecordDataType);
+        } else if (thisSchema != null && otherSchema == null) {
+            return Optional.of(thisRecordDataType);
+        } else if (thisSchema == null && otherSchema == null) {
+            return Optional.empty();
+        }
+
+        final Set<RecordField> thisFields = new HashSet<>(thisSchema.getFields());
+        final Set<RecordField> otherFields = new HashSet<>(otherSchema.getFields());
+
+        if (thisFields.containsAll(otherFields)) {
+            return Optional.of(thisRecordDataType);
+        }
+
+        if (otherFields.containsAll(thisFields)) {
+            return Optional.of(otherRecordDataType);
         }
 
         return Optional.empty();
     }
 
     private static boolean isDecimalType(final RecordFieldType fieldType) {
-        switch (fieldType) {
-            case FLOAT:
-            case DOUBLE:
-            case DECIMAL:
-                return true;
-            default:
-                return false;
-        }
+        return switch (fieldType) {
+            case FLOAT, DOUBLE, DECIMAL -> true;
+            default -> false;
+        };
     }
 
     private static int getIntegerTypeValue(final RecordFieldType fieldType) {
-        switch (fieldType) {
-            case BIGINT:
-                return 4;
-            case LONG:
-                return 3;
-            case INT:
-                return 2;
-            case SHORT:
-                return 1;
-            case BYTE:
-                return 0;
-            default:
-                return -1;
-        }
+        return switch (fieldType) {
+            case BIGINT -> 4;
+            case LONG -> 3;
+            case INT -> 2;
+            case SHORT -> 1;
+            case BYTE -> 0;
+            default -> -1;
+        };
     }
 
     /**

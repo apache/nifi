@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.Map;
 
 /**
@@ -40,8 +40,7 @@ public class ScheduleComponentsEntity extends Entity {
     /**
      * @return The id of the ProcessGroup
      */
-    @ApiModelProperty(
-        value = "The id of the ProcessGroup"
+    @Schema(description = "The id of the ProcessGroup"
     )
     public String getId() {
         return id;
@@ -54,8 +53,7 @@ public class ScheduleComponentsEntity extends Entity {
     /**
      * @return The desired state of the descendant components. Possible states are 'RUNNING', 'STOPPED', 'ENABLED', and 'DISABLED'
      */
-    @ApiModelProperty(
-        value = "The desired state of the descendant components",
+    @Schema(description = "The desired state of the descendant components",
         allowableValues = STATE_RUNNING + ", " + STATE_STOPPED + ", " + STATE_ENABLED + ", " + STATE_DISABLED
     )
     public String getState() {
@@ -69,8 +67,7 @@ public class ScheduleComponentsEntity extends Entity {
     /**
      * @return The components to schedule. If not specified, all authorized descendant components will be used.
      */
-    @ApiModelProperty(
-        value = "Optional components to schedule. If not specified, all authorized descendant components will be used."
+    @Schema(description = "Optional components to schedule. If not specified, all authorized descendant components will be used."
     )
     public Map<String, RevisionDTO> getComponents() {
         return components;
@@ -80,8 +77,7 @@ public class ScheduleComponentsEntity extends Entity {
         this.components = components;
     }
 
-    @ApiModelProperty(
-            value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+    @Schema(description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
     )
     public Boolean isDisconnectedNodeAcknowledged() {
         return disconnectedNodeAcknowledged;

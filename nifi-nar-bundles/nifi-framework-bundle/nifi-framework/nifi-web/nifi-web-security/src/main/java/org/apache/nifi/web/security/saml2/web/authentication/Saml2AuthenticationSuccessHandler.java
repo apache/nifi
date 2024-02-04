@@ -31,10 +31,11 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticatedPrincipal;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.net.URI;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -58,8 +59,6 @@ public class Saml2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSu
 
     private final Duration expiration;
 
-    private final String issuer;
-
     private Converter<Saml2AuthenticatedPrincipal, String> identityConverter = Saml2AuthenticatedPrincipal::getName;
 
     /**
@@ -69,20 +68,17 @@ public class Saml2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSu
      * @param userIdentityMappings User Identity Mappings
      * @param groupIdentityMappings Group Identity Mappings
      * @param expiration Expiration for generated tokens
-     * @param issuer Token Issuer
      */
     public Saml2AuthenticationSuccessHandler(
             final BearerTokenProvider bearerTokenProvider,
             final List<IdentityMapping> userIdentityMappings,
             final List<IdentityMapping> groupIdentityMappings,
-            final Duration expiration,
-            final String issuer
+            final Duration expiration
     ) {
         this.bearerTokenProvider = Objects.requireNonNull(bearerTokenProvider, "Bearer Token Provider required");
         this.userIdentityMappings = Objects.requireNonNull(userIdentityMappings, "User Identity Mappings required");
         this.groupIdentityMappings = Objects.requireNonNull(groupIdentityMappings, "Group Identity Mappings required");
         this.expiration = Objects.requireNonNull(expiration, "Expiration required");
-        this.issuer = Objects.requireNonNull(issuer, "Issuer required");
     }
 
     /**
@@ -121,7 +117,8 @@ public class Saml2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSu
 
     private String getBearerToken(final String identity, final Set<String> groups) {
         final Set<? extends GrantedAuthority> authorities = groups.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toSet());
-        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(identity, identity, expiration.toMillis(), issuer, authorities);
+        final Instant sessionExpiration = Instant.now().plus(expiration);
+        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(identity, sessionExpiration, authorities);
         return bearerTokenProvider.getBearerToken(loginAuthenticationToken);
     }
 

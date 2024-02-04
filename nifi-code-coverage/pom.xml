@@ -26,6 +26,108 @@
     <packaging>pom</packaging>
     <description>Apache NiFi reporting module for aggregating code coverage information</description>
 
+    <properties>
+        <ant.version>1.10.14</ant.version>
+        <calcite.avatica.version>1.6.0</calcite.avatica.version>
+        <avatica.version>1.24.0</avatica.version>
+        <org.apache.sshd.version>2.12.0</org.apache.sshd.version>
+    </properties>
+
+    <!-- Managed Dependency Versions for referenced modules required based on different parent bundle project -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- Apache Derby referenced in Hive and tests -->
+            <dependency>
+                <groupId>org.apache.derby</groupId>
+                <artifactId>derbynet</artifactId>
+                <version>${derby.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.derby</groupId>
+                <artifactId>derbytools</artifactId>
+                <version>${derby.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.derby</groupId>
+                <artifactId>derbyclient</artifactId>
+                <version>${derby.version}</version>
+            </dependency>
+            <!-- Apache Ant referenced in Groovy and Hive -->
+            <dependency>
+                <groupId>org.apache.ant</groupId>
+                <artifactId>ant</artifactId>
+                <version>${ant.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.ant</groupId>
+                <artifactId>ant-antlr</artifactId>
+                <version>${ant.version}</version>
+            </dependency>
+            <!-- Calcite Avatica referenced in Hive -->
+            <dependency>
+                <groupId>org.apache.calcite</groupId>
+                <artifactId>calcite-avatica</artifactId>
+                <version>${calcite.avatica.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.calcite.avatica</groupId>
+                <artifactId>avatica</artifactId>
+                <version>${avatica.version}</version>
+            </dependency>
+            <!-- Commons Compiler 3.1.9 from calcite-core -->
+            <dependency>
+                <groupId>org.codehaus.janino</groupId>
+                <artifactId>commons-compiler</artifactId>
+                <version>3.1.10</version>
+            </dependency>
+            <dependency>
+                <groupId>org.codehaus.janino</groupId>
+                <artifactId>janino</artifactId>
+                <version>3.1.10</version>
+            </dependency>
+            <!-- XML Security from spring-security-saml2-service-provider -->
+            <dependency>
+                <groupId>org.apache.santuario</groupId>
+                <artifactId>xmlsec</artifactId>
+                <version>2.3.4</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.fasterxml.woodstox</groupId>
+                        <artifactId>woodstox-core</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <!-- Reactor Netty client 1.0.34 from Azure Identity -->
+            <dependency>
+                <groupId>io.projectreactor.netty</groupId>
+                <artifactId>reactor-netty-http</artifactId>
+                <version>1.0.39</version>
+            </dependency>
+            <!-- core-io from Couchbase -->
+            <dependency>
+                <groupId>com.couchbase.client</groupId>
+                <artifactId>core-io</artifactId>
+                <version>1.7.24</version>
+            </dependency>
+            <!-- SSHD from Registry and other modules -->
+            <dependency>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-core</artifactId>
+                <version>${org.apache.sshd.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-sftp</artifactId>
+                <version>${org.apache.sshd.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-osgi</artifactId>
+                <version>${org.apache.sshd.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <!-- Command and Control modules -->
         <dependency>
@@ -64,47 +166,6 @@
             <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-bootstrap</artifactId>
             <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi.minifi</groupId>
-            <artifactId>minifi-c2-api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi.minifi</groupId>
-            <artifactId>minifi-c2-cache-filesystem</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi.minifi</groupId>
-            <artifactId>minifi-c2-cache-s3</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi.minifi</groupId>
-            <artifactId>minifi-c2-jetty</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi.minifi</groupId>
-            <artifactId>minifi-c2-provider-cache</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi.minifi</groupId>
-            <artifactId>minifi-c2-provider-delegating</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi.minifi</groupId>
-            <artifactId>minifi-c2-provider-util</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi.minifi</groupId>
-            <artifactId>minifi-c2-service</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>war</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
@@ -919,6 +980,11 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-file-transfer</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hadoop-utils</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
@@ -1139,11 +1205,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-influxdb-processors</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-iotdb-processors</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
@@ -1159,7 +1220,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-jolt-record-processors</artifactId>
+            <artifactId>nifi-jolt-processors</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
@@ -1467,7 +1528,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-utils</artifactId>
+            <artifactId>nifi-jolt-utils</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>

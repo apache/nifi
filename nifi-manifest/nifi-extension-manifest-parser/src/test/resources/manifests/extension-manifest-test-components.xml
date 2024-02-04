@@ -28,7 +28,6 @@
             <triggerWhenAnyDestinationAvailable>true</triggerWhenAnyDestinationAvailable>
             <primaryNodeOnly>true</primaryNodeOnly>
             <supportsBatching>true</supportsBatching>
-            <eventDriven>true</eventDriven>
             <sideEffectFree>true</sideEffectFree>
             <defaultSettings>
                 <yieldDuration>10 secs</yieldDuration>

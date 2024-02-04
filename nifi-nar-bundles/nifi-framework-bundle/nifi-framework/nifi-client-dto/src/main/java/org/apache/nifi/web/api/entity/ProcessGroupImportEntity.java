@@ -17,10 +17,10 @@
 
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * Entity for importing a process group that has been previously downloaded
@@ -29,7 +29,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class ProcessGroupImportEntity extends ProcessGroupDescriptorEntity {
     private RegisteredFlowSnapshot versionedFlowSnapshot;
 
-    @ApiModelProperty("The Versioned Flow Snapshot to import")
+    @Schema(description = "The Versioned Flow Snapshot to import")
     public RegisteredFlowSnapshot getVersionedFlowSnapshot() {
         return versionedFlowSnapshot;
     }

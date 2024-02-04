@@ -28,6 +28,8 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.file.transfer.FileInfo;
+import org.apache.nifi.processor.util.file.transfer.FileTransfer;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.jupiter.api.Test;

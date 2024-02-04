@@ -1,0 +1,1 @@
+[{"bar":"newValue","foo":{"foo":"updated"},"locales":[{"language":"French","region":"France"},{"language":"English","region":"United States"}],"currencies":[]},{"bar":"newValue2","foo":{"foo":"updated"},"locales":[{"language":"French","region":"Canada"},{"language":"Japanese","region":"Japan"}],"currencies":[{"currency":"Canadian dollar"},{"currency":"Japanese yen"}]}]

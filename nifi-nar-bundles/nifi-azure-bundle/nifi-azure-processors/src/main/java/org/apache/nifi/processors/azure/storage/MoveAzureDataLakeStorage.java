@@ -38,8 +38,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,7 +75,6 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
     public static final String FAIL_RESOLUTION = "fail";
     public static final String REPLACE_RESOLUTION = "replace";
     public static final String IGNORE_RESOLUTION = "ignore";
-
 
     public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
             .name("conflict-resolution-strategy")
@@ -125,7 +122,7 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
             .addValidator(new DirectoryValidator("Destination Directory"))
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             ADLS_CREDENTIALS_SERVICE,
             SOURCE_FILESYSTEM,
             SOURCE_DIRECTORY,
@@ -134,7 +131,7 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
             FILE,
             CONFLICT_RESOLUTION,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
-    ));
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

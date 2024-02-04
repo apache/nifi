@@ -33,9 +33,6 @@ import java.util.TimeZone;
                 @ComponentScan.Filter(
                         type = FilterType.ASSIGNABLE_TYPE,
                         value = DataSourceFactory.class), // Avoid loading DataSourceFactory
-                @ComponentScan.Filter(
-                        type = FilterType.REGEX,
-                        pattern = "org\\.apache\\.nifi\\.registry\\.NiFiRegistryPropertiesFactory"), // Avoid loading NiFiRegistryPropertiesFactory
         })
 public class NiFiRegistryTestApiApplication extends SpringBootServletInitializer {
 

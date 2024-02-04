@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Banners that should appear on the top and bottom of this NiFi.
@@ -35,8 +35,7 @@ public class BannerDTO {
      *
      * @return The footer text
      */
-    @ApiModelProperty(
-            value = "The footer text."
+    @Schema(description = "The footer text."
     )
     public String getFooterText() {
         return footerText;
@@ -51,8 +50,7 @@ public class BannerDTO {
      *
      * @return The header text
      */
-    @ApiModelProperty(
-            value = "The header text."
+    @Schema(description = "The header text."
     )
     public String getHeaderText() {
         return headerText;

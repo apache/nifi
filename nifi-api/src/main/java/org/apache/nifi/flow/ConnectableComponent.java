@@ -17,7 +17,7 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Objects;
 
 
@@ -29,7 +29,7 @@ public class ConnectableComponent {
     private String name;
     private String comments;
 
-    @ApiModelProperty(value = "The id of the connectable component.", required = true)
+    @Schema(description = "The id of the connectable component.")
     public String getId() {
         return id;
     }
@@ -38,7 +38,7 @@ public class ConnectableComponent {
         this.id = id;
     }
 
-    @ApiModelProperty("The instance ID of an existing component that is described by this VersionedComponent, or null if this is not mapped to an instantiated component")
+    @Schema(description = "The instance ID of an existing component that is described by this VersionedComponent, or null if this is not mapped to an instantiated component")
     public String getInstanceIdentifier() {
         return instanceId;
     }
@@ -47,7 +47,7 @@ public class ConnectableComponent {
         this.instanceId = instanceIdentifier;
     }
 
-    @ApiModelProperty(value = "The type of component the connectable is.", required = true)
+    @Schema(description = "The type of component the connectable is.")
     public ConnectableComponentType getType() {
         return type;
     }
@@ -56,7 +56,7 @@ public class ConnectableComponent {
         this.type = type;
     }
 
-    @ApiModelProperty(value = "The id of the group that the connectable component resides in", required = true)
+    @Schema(description = "The id of the group that the connectable component resides in")
     public String getGroupId() {
         return groupId;
     }
@@ -65,7 +65,7 @@ public class ConnectableComponent {
         this.groupId = groupId;
     }
 
-    @ApiModelProperty("The name of the connectable component")
+    @Schema(description = "The name of the connectable component")
     public String getName() {
         return name;
     }
@@ -74,7 +74,7 @@ public class ConnectableComponent {
         this.name = name;
     }
 
-    @ApiModelProperty("The comments for the connectable component.")
+    @Schema(description = "The comments for the connectable component.")
     public String getComments() {
         return comments;
     }

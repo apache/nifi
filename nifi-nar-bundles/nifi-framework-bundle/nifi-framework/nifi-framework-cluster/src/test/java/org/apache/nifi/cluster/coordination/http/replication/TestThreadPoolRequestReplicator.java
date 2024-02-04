@@ -44,10 +44,10 @@ import org.mockito.stubbing.Answer;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.ProcessingException;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
+import jakarta.ws.rs.HttpMethod;
+import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.util.Arrays;

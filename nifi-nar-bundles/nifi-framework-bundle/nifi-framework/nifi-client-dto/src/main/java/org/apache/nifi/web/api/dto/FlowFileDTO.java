@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Map;
 
 @XmlType(name = "flowFile")
@@ -36,8 +36,7 @@ public class FlowFileDTO extends FlowFileSummaryDTO {
     /**
      * @return the FlowFile attributes
      */
-    @ApiModelProperty(
-        value = "The FlowFile attributes."
+    @Schema(description = "The FlowFile attributes."
     )
     public Map<String, String> getAttributes() {
         return attributes;
@@ -50,8 +49,7 @@ public class FlowFileDTO extends FlowFileSummaryDTO {
     /**
      * @return the Section in which the Content Claim lives, or <code>null</code> if no Content Claim exists
      */
-    @ApiModelProperty(
-        value = "The section in which the content claim lives."
+    @Schema(description = "The section in which the content claim lives."
     )
     public String getContentClaimSection() {
         return contentClaimSection;
@@ -64,8 +62,7 @@ public class FlowFileDTO extends FlowFileSummaryDTO {
     /**
      * @return the Container in which the Content Claim lives, or <code>null</code> if no Content Claim exists
      */
-    @ApiModelProperty(
-        value = "The container in which the content claim lives."
+    @Schema(description = "The container in which the content claim lives."
     )
     public String getContentClaimContainer() {
         return contentClaimContainer;
@@ -78,8 +75,7 @@ public class FlowFileDTO extends FlowFileSummaryDTO {
     /**
      * @return the Identifier of the Content Claim, or <code>null</code> if no Content Claim exists
      */
-    @ApiModelProperty(
-        value = "The identifier of the content claim."
+    @Schema(description = "The identifier of the content claim."
     )
     public String getContentClaimIdentifier() {
         return contentClaimIdentifier;
@@ -92,8 +88,7 @@ public class FlowFileDTO extends FlowFileSummaryDTO {
     /**
      * @return the offset into the the Content Claim where the FlowFile's content begins, or <code>null</code> if no Content Claim exists
      */
-    @ApiModelProperty(
-        value = "The offset into the content claim where the flowfile's content begins."
+    @Schema(description = "The offset into the content claim where the flowfile's content begins."
     )
     public Long getContentClaimOffset() {
         return contentClaimOffset;
@@ -106,8 +101,7 @@ public class FlowFileDTO extends FlowFileSummaryDTO {
     /**
      * @return the formatted file size of the content claim
      */
-    @ApiModelProperty(
-        value = "The file size of the content claim formatted."
+    @Schema(description = "The file size of the content claim formatted."
     )
     public String getContentClaimFileSize() {
         return contentClaimFileSize;
@@ -120,8 +114,7 @@ public class FlowFileDTO extends FlowFileSummaryDTO {
     /**
      * @return the number of bytes of the content claim
      */
-    @ApiModelProperty(
-        value = "The file size of the content claim in bytes."
+    @Schema(description = "The file size of the content claim in bytes."
     )
     public Long getContentClaimFileSizeBytes() {
         return contentClaimFileSizeBytes;

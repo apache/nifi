@@ -41,9 +41,12 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -70,6 +73,8 @@ import static org.junit.jupiter.api.Assertions.fail;
  * @see ITListS3
  */
 public abstract class AbstractS3IT {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractS3IT.class);
+
     protected final static String SAMPLE_FILE_RESOURCE_NAME = "/hello.txt";
     protected final static String BUCKET_NAME = "test-bucket-" + System.currentTimeMillis();
 
@@ -81,7 +86,6 @@ public abstract class AbstractS3IT {
 
     private static final LocalStackContainer localstack = new LocalStackContainer(localstackImage)
             .withServices(LocalStackContainer.Service.S3, LocalStackContainer.Service.KMS);
-
 
     @BeforeAll
     public static void oneTimeSetup() {
@@ -99,6 +103,45 @@ public abstract class AbstractS3IT {
 
         final CreateBucketRequest request = new CreateBucketRequest(BUCKET_NAME);
         client.createBucket(request);
+    }
+
+    @BeforeEach
+    public void clearKeys() {
+        addedKeys.clear();
+    }
+
+    @AfterEach
+    public void emptyBucket() {
+        if (!client.doesBucketExistV2(BUCKET_NAME)) {
+            return;
+        }
+
+        ObjectListing objectListing = client.listObjects(BUCKET_NAME);
+        while (true) {
+            for (S3ObjectSummary objectSummary : objectListing.getObjectSummaries()) {
+                client.deleteObject(BUCKET_NAME, objectSummary.getKey());
+            }
+
+            if (objectListing.isTruncated()) {
+                objectListing = client.listNextBatchOfObjects(objectListing);
+            } else {
+                break;
+            }
+        }
+    }
+
+    @AfterAll
+    public static void oneTimeTearDown() {
+        try {
+            if (client == null || !client.doesBucketExistV2(BUCKET_NAME)) {
+                return;
+            }
+
+            DeleteBucketRequest dbr = new DeleteBucketRequest(BUCKET_NAME);
+            client.deleteBucket(dbr);
+        } catch (final AmazonS3Exception e) {
+            logger.error("Unable to delete bucket {}", BUCKET_NAME, e);
+        }
     }
 
     protected AmazonS3 getClient() {
@@ -119,44 +162,6 @@ public abstract class AbstractS3IT {
 
     protected static void setSecureProperties(final TestRunner runner) throws InitializationException {
         AuthUtils.enableAccessKey(runner, localstack.getAccessKey(), localstack.getSecretKey());
-    }
-
-    @BeforeEach
-    public void clearKeys() {
-        addedKeys.clear();
-    }
-
-    @AfterAll
-    public static void oneTimeTearDown() {
-        // Empty the bucket before deleting it.
-        try {
-            if (client == null) {
-                return;
-            }
-
-            ObjectListing objectListing = client.listObjects(BUCKET_NAME);
-
-            while (true) {
-                for (S3ObjectSummary objectSummary : objectListing.getObjectSummaries()) {
-                    client.deleteObject(BUCKET_NAME, objectSummary.getKey());
-                }
-
-                if (objectListing.isTruncated()) {
-                    objectListing = client.listNextBatchOfObjects(objectListing);
-                } else {
-                    break;
-                }
-            }
-
-            DeleteBucketRequest dbr = new DeleteBucketRequest(BUCKET_NAME);
-            client.deleteBucket(dbr);
-        } catch (final AmazonS3Exception e) {
-            System.err.println("Unable to delete bucket " + BUCKET_NAME + e.toString());
-        }
-
-        if (client.doesBucketExistV2(BUCKET_NAME)) {
-            fail("Incomplete teardown, subsequent tests might fail");
-        }
     }
 
     protected void putTestFile(String key, File file) throws AmazonS3Exception {

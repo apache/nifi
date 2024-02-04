@@ -14,11 +14,12 @@
 # limitations under the License.
 
 from langchain.vectorstores import Pinecone
-from langchain.embeddings.openai import OpenAIEmbeddings
 from nifiapi.flowfiletransform import FlowFileTransform, FlowFileTransformResult
-from nifiapi.properties import PropertyDescriptor, StandardValidators, ExpressionLanguageScope
+from nifiapi.properties import PropertyDescriptor, StandardValidators, ExpressionLanguageScope, PropertyDependency
 import QueryUtils
 import pinecone
+import json
+from EmbeddingUtils import OPENAI, HUGGING_FACE, EMBEDDING_MODEL, create_embedding_service
 
 
 class QueryPinecone(FlowFileTransform):
@@ -29,7 +30,6 @@ class QueryPinecone(FlowFileTransform):
         version = '2.0.0-SNAPSHOT'
         description = "Queries Pinecone in order to gather a specified number of documents that are most closely related to the given query."
         tags = ["pinecone", "vector", "vectordb", "vectorstore", "embeddings", "ai", "artificial intelligence", "ml", "machine learning", "text", "LLM"]
-
 
     PINECONE_API_KEY = PropertyDescriptor(
         name="Pinecone API Key",
@@ -43,7 +43,32 @@ class QueryPinecone(FlowFileTransform):
         description="The API Key for OpenAI in order to create embeddings",
         sensitive=True,
         required=True,
-        validators=[StandardValidators.NON_EMPTY_VALIDATOR]
+        validators=[StandardValidators.NON_EMPTY_VALIDATOR],
+        dependencies=[PropertyDependency(EMBEDDING_MODEL, OPENAI)]
+    )
+    HUGGING_FACE_API_KEY = PropertyDescriptor(
+        name="HuggingFace API Key",
+        description="The API Key for interacting with HuggingFace",
+        validators=[StandardValidators.NON_EMPTY_VALIDATOR],
+        required=True,
+        sensitive=True,
+        dependencies=[PropertyDependency(EMBEDDING_MODEL, HUGGING_FACE)]
+    )
+    OPENAI_MODEL = PropertyDescriptor(
+        name="OpenAI Model",
+        description="The API Key for OpenAI in order to create embeddings",
+        required=True,
+        validators=[StandardValidators.NON_EMPTY_VALIDATOR],
+        default_value="text-embedding-ada-002",
+        dependencies=[PropertyDependency(EMBEDDING_MODEL, OPENAI)]
+    )
+    HUGGING_FACE_MODEL = PropertyDescriptor(
+        name="HuggingFace Model",
+        description="The name of the HuggingFace model to use",
+        validators=[StandardValidators.NON_EMPTY_VALIDATOR],
+        required=True,
+        default_value="sentence-transformers/all-MiniLM-L6-v2",
+        dependencies=[PropertyDependency(EMBEDDING_MODEL, HUGGING_FACE)]
     )
     PINECONE_ENV = PropertyDescriptor(
         name="Pinecone Environment",
@@ -85,18 +110,29 @@ class QueryPinecone(FlowFileTransform):
     )
     NAMESPACE = PropertyDescriptor(
         name="Namespace",
-        description="The name of the Pinecone Namespace to put the documents to.",
+        description="The name of the Pinecone Namespace to query into.",
+        required=False,
+        validators=[StandardValidators.NON_EMPTY_VALIDATOR],
+        expression_language_scope=ExpressionLanguageScope.FLOWFILE_ATTRIBUTES
+    )
+    FILTER = PropertyDescriptor(
+        name="Metadata Filter",
+        description="Optional metadata filter to apply with the query. For example: { \"author\": {\"$eq\": \"john.doe\"} }",
         required=False,
         validators=[StandardValidators.NON_EMPTY_VALIDATOR],
         expression_language_scope=ExpressionLanguageScope.FLOWFILE_ATTRIBUTES
     )
 
-
     properties = [PINECONE_API_KEY,
+                  EMBEDDING_MODEL,
                   OPENAI_API_KEY,
+                  OPENAI_MODEL,
+                  HUGGING_FACE_API_KEY,
+                  HUGGING_FACE_MODEL,
                   PINECONE_ENV,
                   INDEX_NAME,
                   QUERY,
+                  FILTER,
                   NUMBER_OF_RESULTS,
                   NAMESPACE,
                   TEXT_KEY,
@@ -123,8 +159,7 @@ class QueryPinecone(FlowFileTransform):
             api_key=api_key,
             environment=pinecone_env,
         )
-        openai_api_key = context.getProperty(self.OPENAI_API_KEY).getValue()
-        self.embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
+        self.embeddings =  create_embedding_service(context)
         self.query_utils = QueryUtils.QueryUtils(context)
 
 
@@ -138,8 +173,9 @@ class QueryPinecone(FlowFileTransform):
         index = pinecone.Index(index_name)
 
         text_key = context.getProperty(self.TEXT_KEY).evaluateAttributeExpressions().getValue()
+        filter = context.getProperty(self.FILTER).evaluateAttributeExpressions(flowfile).getValue()
         vectorstore = Pinecone(index, self.embeddings.embed_query, text_key, namespace=namespace)
-        results = vectorstore.similarity_search_with_score(query, num_results)
+        results = vectorstore.similarity_search_with_score(query, num_results, filter=None if filter is None else json.loads(filter))
 
         documents = []
         for result in results:

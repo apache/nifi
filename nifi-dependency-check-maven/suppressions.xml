@@ -439,4 +439,24 @@
         <packageUrl regex="true">^pkg:javascript/jquery\.datatables@.*$</packageUrl>
         <vulnerabilityName>possible XSS</vulnerabilityName>
     </suppress>
+    <suppress>
+        <notes>Picocli misidentified as LINE library from Android so CVE-2015-0897 does not apply</notes>
+        <packageUrl regex="true">^pkg:maven/info\.picocli/picocli@.*$</packageUrl>
+        <cve>CVE-2015-0897</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-36052 applies to Azure CLI not Azure Java libraries</notes>
+        <packageUrl regex="true">^pkg:maven/com\.azure/.*$</packageUrl>
+        <cve>CVE-2023-36052</cve>
+    </suppress>
+    <suppress>
+        <notes>software.amazon.ion:ion-java is newer than com.amazonaws.ion:ion-java and does not share the same vulnerabilities</notes>
+        <packageUrl regex="true">^pkg:maven/software\.amazon\.ion/ion\-java@.*$</packageUrl>
+        <cpe>cpe:/a:amazon:ion</cpe>
+    </suppress>
+    <suppress>
+        <notes>JSON Path 2.9.0 resolves CVE-2023-51074</notes>
+        <packageUrl regex="true">^pkg:maven/com\.jayway\.jsonpath/json\-path@2.9.0$</packageUrl>
+        <vulnerabilityName>CVE-2023-51074</vulnerabilityName>
+    </suppress>
 </suppressions>

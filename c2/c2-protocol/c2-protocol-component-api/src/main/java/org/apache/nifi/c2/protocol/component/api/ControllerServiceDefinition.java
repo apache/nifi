@@ -17,9 +17,6 @@
 
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-
-@ApiModel
 public class ControllerServiceDefinition extends ConfigurableExtensionDefinition {
     private static final long serialVersionUID = 1L;
 

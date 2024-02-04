@@ -1,0 +1,51 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="login-background pt-24 pl-24 h-screen">
+    <ng-container *ngIf="access$ | async; let access">
+        <div class="w-96" *ngIf="access.status === 'pending' || access.status === 'loading'; else loaded">
+            <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+        </div>
+
+        <ng-template #loaded>
+            <ng-container *ngIf="access.error; else noErrors">
+                <page-content [title]="access.error.title">
+                    <div class="text-sm">{{ access.error.message }}</div>
+                </page-content>
+            </ng-container>
+
+            <ng-template #noErrors>
+                <ng-container *ngIf="access.accessStatus.status === 'ACTIVE'; else needsLogin">
+                    <page-content [title]="'Success'">
+                        <div class="text-sm">{{ access.accessStatus.message }}</div>
+                    </page-content>
+                </ng-container>
+                <ng-template #needsLogin>
+                    <ng-container *ngIf="access.accessConfig.supportsLogin; else loginNotSupported">
+                        <login-form></login-form>
+                    </ng-container>
+
+                    <ng-template #loginNotSupported>
+                        <page-content [title]="'Access Denied'">
+                            <div class="text-sm">This NiFi is not configured to support username/password logins.</div>
+                        </page-content>
+                    </ng-template>
+                </ng-template>
+            </ng-template>
+        </ng-template>
+    </ng-container>
+</div>

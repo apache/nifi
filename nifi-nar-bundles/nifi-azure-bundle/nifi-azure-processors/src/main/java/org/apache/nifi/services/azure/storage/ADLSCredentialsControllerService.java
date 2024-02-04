@@ -16,29 +16,28 @@
  */
 package org.apache.nifi.services.azure.storage;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.CREDENTIALS_TYPE;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID;
 
 /**
  * Provides credentials details for ADLS
@@ -52,51 +51,44 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
     public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.ACCOUNT_NAME)
             .description(AzureStorageUtils.ACCOUNT_NAME_BASE_DESCRIPTION + AzureStorageUtils.ACCOUNT_NAME_SECURITY_DESCRIPTION)
-            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    public static final PropertyDescriptor ACCOUNT_KEY = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AzureStorageUtils.ACCOUNT_KEY)
+            .description(AzureStorageUtils.ACCOUNT_KEY_BASE_DESCRIPTION + AzureStorageUtils.ACCOUNT_KEY_SECURITY_DESCRIPTION)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    public static final PropertyDescriptor SAS_TOKEN = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AzureStorageUtils.SAS_TOKEN)
+            .description(AzureStorageUtils.SAS_TOKEN_BASE_DESCRIPTION + AzureStorageUtils.SAS_TOKEN_SECURITY_DESCRIPTION)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.ENDPOINT_SUFFIX)
-            .displayName("Endpoint Suffix")
-            .description("Storage accounts in public Azure always use a common FQDN suffix. " +
-                    "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions).")
-            .required(true)
             .defaultValue(AzureServiceEndpoints.DEFAULT_ADLS_ENDPOINT_SUFFIX)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    public static final PropertyDescriptor USE_MANAGED_IDENTITY = new PropertyDescriptor.Builder()
-            .name("storage-use-managed-identity")
-            .displayName("Use Azure Managed Identity")
-            .description("Choose whether or not to use the managed identity of Azure VM/VMSS")
-            .required(false)
-            .defaultValue("false")
-            .allowableValues("true", "false")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AzureStorageUtils.PROXY_CONFIGURATION_SERVICE)
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL, AzureStorageCredentialsType.MANAGED_IDENTITY)
             .build();
 
-    public static final PropertyDescriptor MANAGED_IDENTITY_CLIENT_ID = AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID;
-
-    public static final PropertyDescriptor SERVICE_PRINCIPAL_TENANT_ID = AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID;
-
-    public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_ID = AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID;
-
-    public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_SECRET = AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET;
-
-    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = AzureStorageUtils.PROXY_CONFIGURATION_SERVICE;
-
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             ACCOUNT_NAME,
             ENDPOINT_SUFFIX,
-            AzureStorageUtils.ACCOUNT_KEY,
-            AzureStorageUtils.PROP_SAS_TOKEN,
-            USE_MANAGED_IDENTITY,
+            CREDENTIALS_TYPE,
+            ACCOUNT_KEY,
+            SAS_TOKEN,
             MANAGED_IDENTITY_CLIENT_ID,
             SERVICE_PRINCIPAL_TENANT_ID,
             SERVICE_PRINCIPAL_CLIENT_ID,
             SERVICE_PRINCIPAL_CLIENT_SECRET,
             PROXY_CONFIGURATION_SERVICE
-    ));
+    );
 
     private ConfigurationContext context;
 
@@ -106,66 +98,26 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final List<ValidationResult> results = new ArrayList<>();
+    public void migrateProperties(PropertyConfiguration config) {
+        if (!config.hasProperty(CREDENTIALS_TYPE)) {
+            final String propNameUseManagedIdentity = "storage-use-managed-identity";
 
-        final boolean accountKeySet = StringUtils.isNotBlank(validationContext.getProperty(AzureStorageUtils.ACCOUNT_KEY).getValue());
-        final boolean sasTokenSet = StringUtils.isNotBlank(validationContext.getProperty(AzureStorageUtils.PROP_SAS_TOKEN).getValue());
-        final boolean useManagedIdentitySet = validationContext.getProperty(USE_MANAGED_IDENTITY).asBoolean();
-
-        final boolean servicePrincipalTenantIdSet = StringUtils.isNotBlank(validationContext.getProperty(SERVICE_PRINCIPAL_TENANT_ID).getValue());
-        final boolean servicePrincipalClientIdSet = StringUtils.isNotBlank(validationContext.getProperty(SERVICE_PRINCIPAL_CLIENT_ID).getValue());
-        final boolean servicePrincipalClientSecretSet = StringUtils.isNotBlank(validationContext.getProperty(SERVICE_PRINCIPAL_CLIENT_SECRET).getValue());
-
-        final boolean servicePrincipalSet = servicePrincipalTenantIdSet || servicePrincipalClientIdSet || servicePrincipalClientSecretSet;
-
-        final String managedIdentityClientId = validationContext.getProperty(MANAGED_IDENTITY_CLIENT_ID).getValue();
-
-        if (!onlyOneSet(accountKeySet, sasTokenSet, useManagedIdentitySet, servicePrincipalSet)) {
-            results.add(new ValidationResult.Builder().subject(this.getClass().getSimpleName())
-                .valid(false)
-                .explanation("one and only one authentication method of [Account Key, SAS Token, Managed Identity, Service Principal] should be used")
-                .build());
-        } else {
-            if (servicePrincipalSet) {
-                final String template = "'%s' must be set when Service Principal authentication is being configured";
-                if (!servicePrincipalTenantIdSet) {
-                    results.add(new ValidationResult.Builder().subject(this.getClass().getSimpleName())
-                            .valid(false)
-                            .explanation(String.format(template, SERVICE_PRINCIPAL_TENANT_ID.getDisplayName()))
-                            .build());
-                }
-                if (!servicePrincipalClientIdSet) {
-                    results.add(new ValidationResult.Builder().subject(this.getClass().getSimpleName())
-                            .valid(false)
-                            .explanation(String.format(template, SERVICE_PRINCIPAL_CLIENT_ID.getDisplayName()))
-                            .build());
-                }
-                if (!servicePrincipalClientSecretSet) {
-                    results.add(new ValidationResult.Builder().subject(this.getClass().getSimpleName())
-                            .valid(false)
-                            .explanation(String.format(template, SERVICE_PRINCIPAL_CLIENT_SECRET.getDisplayName()))
-                            .build());
-                }
+            if (config.isPropertySet(ACCOUNT_KEY)) {
+                config.setProperty(CREDENTIALS_TYPE, AzureStorageCredentialsType.ACCOUNT_KEY.getValue());
+            } else if (config.isPropertySet(SAS_TOKEN)) {
+                config.setProperty(CREDENTIALS_TYPE, AzureStorageCredentialsType.SAS_TOKEN.getValue());
+            } else if (config.isPropertySet(SERVICE_PRINCIPAL_TENANT_ID)) {
+                config.setProperty(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL.getValue());
+            } else {
+                config.getPropertyValue(propNameUseManagedIdentity).ifPresent(value -> {
+                    if ("true".equals(value)) {
+                        config.setProperty(CREDENTIALS_TYPE, AzureStorageCredentialsType.MANAGED_IDENTITY.getValue());
+                    }
+                });
             }
 
-            if (!useManagedIdentitySet && StringUtils.isNotEmpty(managedIdentityClientId)) {
-                results.add(new ValidationResult.Builder().subject(this.getClass().getSimpleName())
-                        .valid(false)
-                        .explanation(String.format("'%s' can only be configured when '%s' is set to true", MANAGED_IDENTITY_CLIENT_ID.getDisplayName(), USE_MANAGED_IDENTITY.getDisplayName()))
-                        .build());
-            }
+            config.removeProperty(propNameUseManagedIdentity);
         }
-
-        return results;
-    }
-
-    private boolean onlyOneSet(Boolean... checks) {
-        long nrOfSet = Arrays.stream(checks)
-            .filter(check -> check)
-            .count();
-
-        return nrOfSet == 1;
     }
 
     @OnEnabled
@@ -178,10 +130,11 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
         ADLSCredentialsDetails.Builder credentialsBuilder = ADLSCredentialsDetails.Builder.newBuilder();
 
         setValue(credentialsBuilder, ACCOUNT_NAME, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountName, attributes);
-        setValue(credentialsBuilder, AzureStorageUtils.ACCOUNT_KEY, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountKey, attributes);
-        setValue(credentialsBuilder, AzureStorageUtils.PROP_SAS_TOKEN, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setSasToken, attributes);
+        setValue(credentialsBuilder, ACCOUNT_KEY, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountKey, attributes);
+        setValue(credentialsBuilder, SAS_TOKEN, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setSasToken, attributes);
         setValue(credentialsBuilder, ENDPOINT_SUFFIX, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setEndpointSuffix, attributes);
-        setValue(credentialsBuilder, USE_MANAGED_IDENTITY, PropertyValue::asBoolean, ADLSCredentialsDetails.Builder::setUseManagedIdentity, attributes);
+        setValue(credentialsBuilder, CREDENTIALS_TYPE, property -> property.asAllowableValue(AzureStorageCredentialsType.class) == AzureStorageCredentialsType.MANAGED_IDENTITY,
+                ADLSCredentialsDetails.Builder::setUseManagedIdentity, attributes);
         setValue(credentialsBuilder, MANAGED_IDENTITY_CLIENT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setManagedIdentityClientId, attributes);
         setValue(credentialsBuilder, SERVICE_PRINCIPAL_TENANT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalTenantId, attributes);
         setValue(credentialsBuilder, SERVICE_PRINCIPAL_CLIENT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalClientId, attributes);

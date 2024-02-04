@@ -28,9 +28,12 @@
                 <include>*:slf4j-api</include>
                 <include>*:logback-classic</include>
                 <include>*:logback-core</include>
+                <include>*:commons-lang3</include>
                 <include>*:nifi-api</include>
                 <include>*:nifi-property-protection-api</include>
                 <include>*:nifi-per-process-group-logging</include>
+                <include>*:nifi-single-user-utils</include>
+                <include>*:nifi-flow-encryptor</include>
             </includes>
         </dependencySet>
 
@@ -167,6 +170,35 @@
             </unpackOptions>
         </dependencySet>
 
+        <!-- Unpack Python extensions -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>./python/extensions</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>*:nifi-python-extensions-bundle</include>
+            </includes>
+            <unpack>true</unpack>
+            <unpackOptions>
+                <excludes>
+                    <exclude>META-INF/</exclude>
+                    <exclude>META-INF/**</exclude>
+                </excludes>
+            </unpackOptions>
+        </dependencySet>
+
+        <!-- NAR bundles -->
+        <dependencySet>
+            <outputDirectory>lib</outputDirectory>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>false</useTransitiveDependencies>
+            <includes>
+                <include>org.apache.nifi:*:nar</include>
+            </includes>
+        </dependencySet>
     </dependencySets>
     <fileSets>
         <fileSet>

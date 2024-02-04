@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import jakarta.servlet.http.HttpServlet;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -50,22 +51,22 @@ import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee10.servlet.ServletContextRequest;
 import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import javax.net.ssl.SSLContext;
-import javax.servlet.AsyncContext;
-import javax.servlet.DispatcherType;
-import javax.servlet.MultipartConfigElement;
-import javax.servlet.ServletException;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.Part;
+import jakarta.servlet.AsyncContext;
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.MultipartConfigElement;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -89,10 +90,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
-import static javax.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
-import static javax.servlet.http.HttpServletResponse.SC_METHOD_NOT_ALLOWED;
-import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
-import static javax.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
+import static jakarta.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
+import static jakarta.servlet.http.HttpServletResponse.SC_METHOD_NOT_ALLOWED;
+import static jakarta.servlet.http.HttpServletResponse.SC_NOT_FOUND;
+import static jakarta.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"http", "https", "request", "listen", "ingress", "web service"})
@@ -443,9 +444,10 @@ public class HandleHttpRequest extends AbstractProcessor {
         final String pathRegex = context.getProperty(PATH_REGEX).getValue();
         final Pattern pathPattern = (pathRegex == null) ? null : Pattern.compile(pathRegex);
 
-        server.setHandler(new AbstractHandler() {
+
+        final HttpServlet standardServlet = new HttpServlet() {
             @Override
-            public void handle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) {
+            protected void service(final HttpServletRequest request, final HttpServletResponse response) {
                 final String requestUri = request.getRequestURI();
                 final String method = request.getMethod().toUpperCase();
                 if (!allowedMethods.contains(method)) {
@@ -469,7 +471,7 @@ public class HandleHttpRequest extends AbstractProcessor {
                     return;
                 }
 
-                final AsyncContext async = baseRequest.startAsync();
+                final AsyncContext async = request.startAsync();
                 // disable timeout handling on AsyncContext, timeout will be handled in HttpContextMap
                 async.setTimeout(0);
 
@@ -481,7 +483,10 @@ public class HandleHttpRequest extends AbstractProcessor {
                     sendError(SC_SERVICE_UNAVAILABLE, "Request Queue Full", container);
                 }
             }
-        });
+        };
+        final ServletContextHandler handler = new ServletContextHandler();
+        handler.addServlet(standardServlet, "/");
+        server.setHandler(handler);
 
         this.server = server;
         server.start();
@@ -598,7 +603,7 @@ public class HandleHttpRequest extends AbstractProcessor {
           final long requestMaxSize = context.getProperty(MULTIPART_REQUEST_MAX_SIZE).asDataSize(DataUnit.B).longValue();
           final int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
           String tempDir = System.getProperty("java.io.tmpdir");
-          request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, requestMaxSize, requestMaxSize, readBufferSize));
+          request.setAttribute(ServletContextRequest.MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, requestMaxSize, requestMaxSize, readBufferSize));
           List<Part> parts = null;
           try {
             parts = Collections.unmodifiableList(new ArrayList<>(request.getParts()));
@@ -721,7 +726,6 @@ public class HandleHttpRequest extends AbstractProcessor {
                   attributes.put(cookiePrefix + "domain", cookie.getDomain());
                   attributes.put(cookiePrefix + "path", cookie.getPath());
                   attributes.put(cookiePrefix + "max.age", String.valueOf(cookie.getMaxAge()));
-                  attributes.put(cookiePrefix + "version", String.valueOf(cookie.getVersion()));
                   attributes.put(cookiePrefix + "secure", String.valueOf(cookie.getSecure()));
               }
           }

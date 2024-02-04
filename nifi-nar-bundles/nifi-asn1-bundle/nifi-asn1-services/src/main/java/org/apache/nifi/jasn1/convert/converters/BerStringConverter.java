@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.jasn1.convert.converters;
 
+import com.beanit.asn1bean.ber.types.BerObjectIdentifier;
 import com.beanit.asn1bean.ber.types.BerType;
 import com.beanit.asn1bean.ber.types.string.BerBMPString;
 import com.beanit.asn1bean.ber.types.string.BerGeneralString;
@@ -46,7 +47,8 @@ public class BerStringConverter implements JASN1TypeAndValueConverter {
             BerVisibleString.class,
             BerVideotexString.class,
             BerBMPString.class,
-            BerUTF8String.class
+            BerUTF8String.class,
+            BerObjectIdentifier.class
     );
 
     @Override
