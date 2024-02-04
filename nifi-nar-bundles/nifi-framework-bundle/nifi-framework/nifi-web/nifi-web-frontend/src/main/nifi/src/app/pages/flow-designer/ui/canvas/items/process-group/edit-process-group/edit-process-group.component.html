@@ -52,6 +52,7 @@
                         </div>
                         <div class="-mt-6 mb-4">
                             <mat-checkbox
+                                color="primary"
                                 formControlName="applyParameterContextRecursively"
                                 name="applyParameterContextRecursively">
                                 Apply Recursively
@@ -148,7 +149,7 @@
         </mat-tab-group>
     </mat-dialog-content>
     <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
+        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
         <button
             [disabled]="!editProcessGroupForm.dirty || editProcessGroupForm.invalid || saving.value"
             class="h-8"

@@ -18,6 +18,7 @@ from nifiapi.flowfiletransform import FlowFileTransform, FlowFileTransformResult
 from nifiapi.properties import PropertyDescriptor, StandardValidators, ExpressionLanguageScope, PropertyDependency
 import QueryUtils
 import pinecone
+import json
 from EmbeddingUtils import OPENAI, HUGGING_FACE, EMBEDDING_MODEL, create_embedding_service
 
 
@@ -109,7 +110,14 @@ class QueryPinecone(FlowFileTransform):
     )
     NAMESPACE = PropertyDescriptor(
         name="Namespace",
-        description="The name of the Pinecone Namespace to put the documents to.",
+        description="The name of the Pinecone Namespace to query into.",
+        required=False,
+        validators=[StandardValidators.NON_EMPTY_VALIDATOR],
+        expression_language_scope=ExpressionLanguageScope.FLOWFILE_ATTRIBUTES
+    )
+    FILTER = PropertyDescriptor(
+        name="Metadata Filter",
+        description="Optional metadata filter to apply with the query. For example: { \"author\": {\"$eq\": \"john.doe\"} }",
         required=False,
         validators=[StandardValidators.NON_EMPTY_VALIDATOR],
         expression_language_scope=ExpressionLanguageScope.FLOWFILE_ATTRIBUTES
@@ -124,6 +132,7 @@ class QueryPinecone(FlowFileTransform):
                   PINECONE_ENV,
                   INDEX_NAME,
                   QUERY,
+                  FILTER,
                   NUMBER_OF_RESULTS,
                   NAMESPACE,
                   TEXT_KEY,
@@ -164,8 +173,9 @@ class QueryPinecone(FlowFileTransform):
         index = pinecone.Index(index_name)
 
         text_key = context.getProperty(self.TEXT_KEY).evaluateAttributeExpressions().getValue()
+        filter = context.getProperty(self.FILTER).evaluateAttributeExpressions(flowfile).getValue()
         vectorstore = Pinecone(index, self.embeddings.embed_query, text_key, namespace=namespace)
-        results = vectorstore.similarity_search_with_score(query, num_results)
+        results = vectorstore.similarity_search_with_score(query, num_results, filter=None if filter is None else json.loads(filter))
 
         documents = []
         for result in results:

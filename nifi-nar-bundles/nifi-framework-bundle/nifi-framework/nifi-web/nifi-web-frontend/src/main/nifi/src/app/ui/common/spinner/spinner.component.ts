@@ -22,6 +22,4 @@ import { Component } from '@angular/core';
     standalone: true,
     template: '<i class="fa fa-circle-o-notch fa-spin"></i>'
 })
-export class Spinner {
-    constructor() {}
-}
+export class Spinner {}

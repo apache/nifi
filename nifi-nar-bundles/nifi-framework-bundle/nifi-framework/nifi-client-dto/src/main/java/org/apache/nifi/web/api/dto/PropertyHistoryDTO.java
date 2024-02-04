@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
 
 /**
@@ -32,8 +32,7 @@ public class PropertyHistoryDTO {
     /**
      * @return previous values
      */
-    @ApiModelProperty(
-            value = "Previous values for a given property."
+    @Schema(description = "Previous values for a given property."
     )
     public List<PreviousValueDTO> getPreviousValues() {
         return previousValues;

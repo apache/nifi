@@ -44,27 +44,24 @@ import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @WritesAttributes({
-    @WritesAttribute(attribute = "mime.type", description = "application/json"),
-    @WritesAttribute(attribute = "aggregation.name", description = "The name of the aggregation whose results are in the output flowfile"),
-    @WritesAttribute(attribute = "aggregation.number", description = "The number of the aggregation whose results are in the output flowfile"),
-    @WritesAttribute(attribute = "page.number", description = "The number of the page (request), starting from 1, in which the results were returned that are in the output flowfile"),
-    @WritesAttribute(attribute = "hit.count", description = "The number of hits that are in the output flowfile"),
-    @WritesAttribute(attribute = "elasticsearch.query.error", description = "The error message provided by Elasticsearch if there is an error querying the index.")
+        @WritesAttribute(attribute = "mime.type", description = "application/json"),
+        @WritesAttribute(attribute = "aggregation.name", description = "The name of the aggregation whose results are in the output flowfile"),
+        @WritesAttribute(attribute = "aggregation.number", description = "The number of the aggregation whose results are in the output flowfile"),
+        @WritesAttribute(attribute = "page.number", description = "The number of the page (request), starting from 1, in which the results were returned that are in the output flowfile"),
+        @WritesAttribute(attribute = "hit.count", description = "The number of hits that are in the output flowfile"),
+        @WritesAttribute(attribute = "elasticsearch.query.error", description = "The error message provided by Elasticsearch if there is an error querying the index.")
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @TriggerSerially
 @PrimaryNodeOnly
-@DefaultSchedule(period="1 min")
+@DefaultSchedule(period = "1 min")
 @Tags({"elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "query", "scroll", "page", "search", "json"})
 @CapabilityDescription("A processor that allows the user to repeatedly run a paginated query (with aggregations) written with the Elasticsearch JSON DSL. " +
         "Search After/Point in Time queries must include a valid \"sort\" field. The processor will retrieve multiple pages of results " +
@@ -97,26 +94,19 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
                     "If the query is empty, a default JSON Object will be used, which will result in a \"match_all\" query in Elasticsearch.")
             .build();
 
-    private static final Set<Relationship> relationships;
+    private static final Set<Relationship> relationships = Set.of(REL_HITS, REL_AGGREGATIONS);
 
-    static final List<PropertyDescriptor> scrollPropertyDescriptors;
-
-    static {
-        final Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_HITS);
-        rels.add(REL_AGGREGATIONS);
-        relationships = Collections.unmodifiableSet(rels);
-
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        // ensure QUERY_DEFINITION_STYLE first for consistency between Elasticsearch processors
-        descriptors.add(QUERY_DEFINITION_STYLE);
-        descriptors.add(QUERY);
-        descriptors.addAll(paginatedPropertyDescriptors.stream().filter(
-                // override QUERY to change description (no FlowFile content used by SearchElasticsearch)
-                pd -> !ElasticsearchRestProcessor.QUERY.equals(pd) && !QUERY_DEFINITION_STYLE.equals(pd)
-        ).collect(Collectors.toList()));
-        scrollPropertyDescriptors = descriptors;
-    }
+    static final List<PropertyDescriptor> scrollPropertyDescriptors = Stream.concat(
+            Stream.of(
+                    // ensure QUERY_DEFINITION_STYLE first for consistency between Elasticsearch processors
+                    QUERY_DEFINITION_STYLE,
+                    QUERY
+            ),
+            paginatedPropertyDescriptors.stream().filter(
+                    // override QUERY to change description (no FlowFile content used by SearchElasticsearch)
+                    pd -> !ElasticsearchRestProcessor.QUERY.equals(pd) && !QUERY_DEFINITION_STYLE.equals(pd)
+            )
+    ).toList();
 
     @Override
     public Set<Relationship> getRelationships() {

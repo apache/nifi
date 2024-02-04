@@ -200,7 +200,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
         ).orElse(sourceBlobName);
 
         final boolean createContainer = context.getProperty(AzureStorageUtils.CREATE_CONTAINER).asBoolean();
-        final AzureStorageConflictResolutionStrategy conflictResolution = AzureStorageConflictResolutionStrategy.valueOf(context.getProperty(AzureStorageUtils.CONFLICT_RESOLUTION).getValue());
+        final AzureStorageConflictResolutionStrategy conflictResolution = context.getProperty(AzureStorageUtils.CONFLICT_RESOLUTION).asAllowableValue(AzureStorageConflictResolutionStrategy.class);
 
         final long startNanos = System.nanoTime();
         try {

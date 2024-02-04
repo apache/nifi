@@ -15,19 +15,13 @@
  * limitations under the License.
  */
 
-import { Bundle, ControllerServiceEntity, Revision } from '../../../../state/shared';
+import { ControllerServiceEntity } from '../../../../state/shared';
 
 export const managementControllerServicesFeatureKey = 'managementControllerServices';
 
 export interface LoadManagementControllerServicesResponse {
     controllerServices: ControllerServiceEntity[];
     loadedTimestamp: string;
-}
-
-export interface CreateControllerServiceRequest {
-    controllerServiceType: string;
-    controllerServiceBundle: Bundle;
-    revision: Revision;
 }
 
 export interface CreateControllerServiceSuccess {
@@ -38,11 +32,13 @@ export interface ConfigureControllerServiceRequest {
     id: string;
     uri: string;
     payload: any;
+    postUpdateNavigation?: string[];
 }
 
 export interface ConfigureControllerServiceSuccess {
     id: string;
     controllerService: ControllerServiceEntity;
+    postUpdateNavigation?: string[];
 }
 
 export interface DeleteControllerServiceRequest {
@@ -61,6 +57,5 @@ export interface ManagementControllerServicesState {
     controllerServices: ControllerServiceEntity[];
     saving: boolean;
     loadedTimestamp: string;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }

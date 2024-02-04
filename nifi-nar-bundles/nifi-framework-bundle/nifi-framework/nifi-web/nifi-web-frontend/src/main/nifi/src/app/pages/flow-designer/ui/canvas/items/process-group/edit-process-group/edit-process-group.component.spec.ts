@@ -25,7 +25,7 @@ describe('EditProcessGroup', () => {
     let component: EditProcessGroup;
     let fixture: ComponentFixture<EditProcessGroup>;
 
-    const parameterContextId: string = '95d509b9-018b-1000-daff-b7957ea7934f';
+    const parameterContextId = '95d509b9-018b-1000-daff-b7957ea7934f';
     const data: any = {
         type: 'ProcessGroup',
         uri: 'https://localhost:4200/nifi-api/process-groups/162380af-018c-1000-a7eb-f5d06f77168b',

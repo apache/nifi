@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Objects;
 
 /**
@@ -33,8 +33,7 @@ public class ComponentRestrictionPermissionDTO {
     /**
      * @return The required permission necessary for this restriction.
      */
-    @ApiModelProperty(
-            value = "The required permission necessary for this restriction."
+    @Schema(description = "The required permission necessary for this restriction."
     )
     public RequiredPermissionDTO getRequiredPermission() {
         return requiredPermission;
@@ -47,8 +46,7 @@ public class ComponentRestrictionPermissionDTO {
     /**
      * @return The permissions for this component restriction.
      */
-    @ApiModelProperty(
-            value = "The permissions for this component restriction. Note: the read permission are not used and will always be false."
+    @Schema(description = "The permissions for this component restriction. Note: the read permission are not used and will always be false."
     )
     public PermissionsDTO getPermissions() {
         return permissions;

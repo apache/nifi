@@ -18,8 +18,8 @@ package org.apache.nifi.web.util;
 
 import org.apache.commons.lang3.StringUtils;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;

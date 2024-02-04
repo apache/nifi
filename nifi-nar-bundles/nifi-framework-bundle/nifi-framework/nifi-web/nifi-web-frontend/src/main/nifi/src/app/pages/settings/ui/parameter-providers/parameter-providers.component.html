@@ -15,4 +15,39 @@
   ~ limitations under the License.
   -->
 
-<p>parameter-providers works!</p>
+<ng-container *ngIf="parameterProvidersState$ | async; let parameterProvidersState">
+    <div *ngIf="isInitialLoading(parameterProvidersState); else loaded">
+        <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+    </div>
+    <ng-template #loaded>
+        <div class="flex flex-col h-full gap-y-2" *ngIf="currentUser$ | async; let currentUser">
+            <div class="flex justify-end" *ngIf="currentUser.controllerPermissions.canWrite">
+                <button
+                    class="nifi-button"
+                    (click)="openNewParameterProviderDialog()"
+                    title="Add a new parameter provider">
+                    <i class="fa fa-plus"></i>
+                </button>
+            </div>
+            <div class="flex-1">
+                <parameter-providers-table
+                    [currentUser]="currentUser"
+                    [flowConfiguration]="(flowConfiguration$ | async)!"
+                    [parameterProviders]="parameterProvidersState.parameterProviders"
+                    [selectedParameterProviderId]="selectedParameterProviderId$ | async"
+                    (deleteParameterProvider)="deleteParameterProvider($event)"
+                    (configureParameterProvider)="openConfigureParameterProviderDialog($event)"
+                    (selectParameterProvider)="selectParameterProvider($event)"></parameter-providers-table>
+            </div>
+            <div class="flex justify-between">
+                <div class="refresh-container flex items-center gap-x-2">
+                    <button class="nifi-button" (click)="refreshParameterProvidersListing()">
+                        <i class="fa fa-refresh" [class.fa-spin]="parameterProvidersState.status === 'loading'"></i>
+                    </button>
+                    <div>Last updated:</div>
+                    <div class="refresh-timestamp">{{ parameterProvidersState.loadedTimestamp }}</div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+</ng-container>

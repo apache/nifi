@@ -322,6 +322,11 @@ public class MockPropertyValue implements PropertyValue {
         return new StandardResourceReferenceFactory().createResourceReferences(rawValue, propertyDescriptor.getResourceDefinition());
     }
 
+    @Override
+    public <E extends Enum<E>> E asAllowableValue(Class<E> enumType) throws IllegalArgumentException {
+        ensureExpressionsEvaluated();
+        return stdPropValue.asAllowableValue(enumType);
+    }
 
     @Override
     public boolean isSet() {

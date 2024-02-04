@@ -43,8 +43,8 @@ abstract class AbstractElasticsearch_IT extends AbstractElasticsearchITBase {
         runner.setProperty(service, ElasticSearchClientService.HTTP_HOSTS, elasticsearchHost);
         runner.setProperty(service, ElasticSearchClientService.CONNECT_TIMEOUT, "10000");
         runner.setProperty(service, ElasticSearchClientService.SOCKET_TIMEOUT, "60000");
-        runner.setProperty(service, ElasticSearchClientService.SUPPRESS_NULLS, ElasticSearchClientService.ALWAYS_SUPPRESS.getValue());
-        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC.getValue());
+        runner.setProperty(service, ElasticSearchClientService.SUPPRESS_NULLS, ElasticSearchClientService.ALWAYS_SUPPRESS);
+        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC);
         runner.setProperty(service, ElasticSearchClientService.USERNAME, "elastic");
         runner.setProperty(service, ElasticSearchClientService.PASSWORD, ELASTIC_USER_PASSWORD);
         runner.removeProperty(service, ElasticSearchClientService.API_KEY);
@@ -55,7 +55,7 @@ abstract class AbstractElasticsearch_IT extends AbstractElasticsearchITBase {
         runner.setProperty(service, ElasticSearchClientService.SNIFF_CLUSTER_NODES, "false");
         runner.setProperty(service, ElasticSearchClientService.SNIFF_ON_FAILURE, "false");
         runner.removeProperty(service, ElasticSearchClientService.PATH_PREFIX);
-        runner.setProperty(service, ElasticSearchClientService.NODE_SELECTOR, ElasticSearchClientService.NODE_SELECTOR_ANY.getValue());
+        runner.setProperty(service, ElasticSearchClientService.NODE_SELECTOR, ElasticSearchClientService.NODE_SELECTOR_ANY);
 
         runner.enableControllerService(service);
 

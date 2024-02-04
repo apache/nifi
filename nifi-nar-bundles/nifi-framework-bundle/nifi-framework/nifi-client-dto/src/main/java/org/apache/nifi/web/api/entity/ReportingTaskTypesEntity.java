@@ -17,7 +17,7 @@
 package org.apache.nifi.web.api.entity;
 
 import java.util.Set;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 
 /**

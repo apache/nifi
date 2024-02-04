@@ -23,7 +23,7 @@
 # this script.
 
 # The java implementation to use.
-#export JAVA_HOME=/usr/java/jdk1.8.0/
+#export JAVA_HOME=/usr/java/jdk/
 
 setOrDefault() {
   envvar="$1"

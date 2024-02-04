@@ -21,11 +21,14 @@ import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModu
 import { Client } from '../../../../service/client.service';
 import {
     ControllerServiceEntity,
+    ControllerServiceReferencingComponent,
     EditControllerServiceDialogRequest,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     Parameter,
-    Property
+    ParameterContextReferenceEntity,
+    Property,
+    UpdateControllerServiceRequest
 } from '../../../../state/shared';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -40,6 +43,7 @@ import { ControllerServiceApi } from '../controller-service-api/controller-servi
 import { Observable } from 'rxjs';
 import { ControllerServiceReferences } from '../controller-service-references/controller-service-references.component';
 import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
+import { ErrorBanner } from '../../error-banner/error-banner.component';
 
 @Component({
     selector: 'edit-controller-service',
@@ -60,7 +64,8 @@ import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
         ControllerServiceApi,
         ControllerServiceReferences,
         AsyncPipe,
-        NifiSpinnerDirective
+        NifiSpinnerDirective,
+        ErrorBanner
     ],
     styleUrls: ['./edit-controller-service.component.scss']
 })
@@ -68,9 +73,14 @@ export class EditControllerService {
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() getParameters!: (sensitive: boolean) => Observable<Parameter[]>;
-    @Input() getServiceLink!: (serviceId: string) => Observable<string[]>;
+    @Input() parameterContext: ParameterContextReferenceEntity | undefined;
+    @Input() goToParameter!: (parameter: string) => void;
+    @Input() convertToParameter!: (name: string, sensitive: boolean, value: string | null) => Observable<string>;
+    @Input() goToService!: (serviceId: string) => void;
+    @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
     @Input() saving$!: Observable<boolean>;
-    @Output() editControllerService: EventEmitter<any> = new EventEmitter<any>();
+    @Output() editControllerService: EventEmitter<UpdateControllerServiceRequest> =
+        new EventEmitter<UpdateControllerServiceRequest>();
 
     editControllerServiceForm: FormGroup;
 
@@ -130,7 +140,7 @@ export class EditControllerService {
         return this.nifiCommon.formatBundle(entity.component.bundle);
     }
 
-    submitForm() {
+    submitForm(postUpdateNavigation?: string[]) {
         const payload: any = {
             revision: this.client.getRevision(this.request.controllerService),
             component: {
@@ -151,6 +161,9 @@ export class EditControllerService {
                 .map((property) => property.descriptor.name);
         }
 
-        this.editControllerService.next(payload);
+        this.editControllerService.next({
+            payload,
+            postUpdateNavigation
+        });
     }
 }

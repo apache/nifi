@@ -20,16 +20,27 @@
         <div class="flex justify-between items-center">
             <h3 class="text-lg">Add {{ componentType }}</h3>
             <div>
-                <input
-                    class="border px-1.5 py-1 w-64"
-                    type="text"
-                    (keyup)="filterTypes($event)"
-                    placeholder="Filter types..." />
+                <mat-form-field>
+                    <mat-label>Filter types</mat-label>
+                    <input
+                        matInput
+                        class="border px-1.5 py-1 w-64"
+                        type="text"
+                        (keyup)="filterTypes($event)"
+                        placeholder="Filter types..." />
+                </mat-form-field>
             </div>
         </div>
         <div class="type-table">
             <div class="h-96 overflow-y-auto overflow-x-hidden border">
-                <table mat-table [dataSource]="dataSource" matSort matSortDisableClear>
+                <table
+                    mat-table
+                    [dataSource]="dataSource"
+                    matSort
+                    matSortDisableClear
+                    (matSortChange)="sortData($event)"
+                    [matSortActive]="initialSortColumn"
+                    [matSortDirection]="initialSortDirection">
                     <!-- Type Column -->
                     <ng-container matColumnDef="type">
                         <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
@@ -90,10 +101,9 @@
             </ng-template>
         </div>
         <div class="flex justify-end gap-x-2">
-            <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
+            <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
             <button
                 [disabled]="selectedType == null || saving"
-                type="submit"
                 color="primary"
                 (click)="createExtension(selectedType)"
                 mat-raised-button>

@@ -43,9 +43,8 @@ public class AllowableValue implements DescribedValue {
      * Constructs a new AllowableValue with the given value and display name and
      * no description
      *
-     * @param value that is allowed
+     * @param value       that is allowed
      * @param displayName to display for the value
-     *
      * @throws NullPointerException if either argument is null
      */
     public AllowableValue(final String value, final String displayName) {
@@ -56,16 +55,23 @@ public class AllowableValue implements DescribedValue {
      * Constructs a new AllowableValue with the given value, display name, and
      * description
      *
-     * @param value that is valid
+     * @param value       that is valid
      * @param displayName to show for the value
      * @param description of the value
-     *
      * @throws NullPointerException if identifier or value is null
      */
     public AllowableValue(final String value, final String displayName, final String description) {
         this.value = Objects.requireNonNull(value);
         this.displayName = Objects.requireNonNull(displayName);
         this.description = description;
+    }
+
+    public static AllowableValue fromDescribedValue(final DescribedValue describedValue) {
+        if (describedValue instanceof AllowableValue allowableValue) {
+            return allowableValue;
+        }
+
+        return new AllowableValue(describedValue.getValue(), describedValue.getDisplayName(), describedValue.getDescription());
     }
 
     /**
@@ -106,8 +112,7 @@ public class AllowableValue implements DescribedValue {
             return true;
         }
 
-        if (obj instanceof AllowableValue) {
-            final AllowableValue other = (AllowableValue) obj;
+        if (obj instanceof AllowableValue other) {
             return (this.value.equals(other.getValue()));
         } else if (obj instanceof String) {
             return this.value.equals(obj);

@@ -19,7 +19,7 @@
     <fd-header></fd-header>
     <div class="flex-1">
         <div id="canvas-container" class="canvas-background h-full" [cdkContextMenuTriggerFor]="contextMenu.menu"></div>
-        <fd-context-menu #contextMenu menuId="root"></fd-context-menu>
+        <fd-context-menu #contextMenu [menuProvider]="canvasContextMenu" menuId="root"></fd-context-menu>
         <graph-controls></graph-controls>
     </div>
     <fd-footer></fd-footer>

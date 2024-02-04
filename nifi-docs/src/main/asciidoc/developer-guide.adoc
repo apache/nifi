@@ -1804,10 +1804,6 @@ help the framework understand how to interact with the Processor in terms of sch
 The following annotations from the `org.apache.nifi.annotation.behavior` package can be used to modify how the framework
 will handle your Processor:
 
-  - `EventDriven`: Instructs the framework that the Processor can be scheduled using the Event-Driven scheduling
-    strategy. This strategy is still experimental at this point, but can result in reduced resource utilization
-    on dataflows that do not handle extremely high data rates.
-
   - `SideEffectFree`: Indicates that the Processor does not have any side effects external to NiFi. As a result, the
     framework is free to invoke the Processor many times with the same input without causing any unexpected
     results to occur. This implies idempotent behavior. This can be used by the framework to improve efficiency by
@@ -2714,6 +2710,7 @@ deprecationLogger.warn(
 | Contribution Check     | contrib-check         | Runs various quality checks that are required to be accepted before a contribution can be accepted into the core NiFi code base.
 | Graph Database Bundle  | include-graph         | Adds support for various common graph database scenarios. Support is currently for https://neo4j.com/developer/cypher[Cypher] and https://tinkerpop.apache.org/gremlin.html[Gremlin]-compatible databases such as Neo4J and JanusGraph. Includes controller services that provide driver functionality and a suite of processors for ingestion and querying.
 | Media Bundle           | include-media         | The media bundle provides functionality based on https://tika.apache.org[Apache Tika] for extracting content and metadata from various types of binary formats supported by Apache Tika (ex. PDF, Microsoft Office).
+| QuestDB Bundle         | include-questdb       | Adds support for persistent Status History using QuestDB
 | Snowflake Bundle       | include-snowflake     | Adds support for integration with the https://www.snowflake.com[Snowflake platform].
 | SQL Reporting Bundle   | include-sql-reporting | Adds reporting tasks that are designed to use SQL to update a RDBMS with metrics and other related data from Apache NiFi.
 |==================================================================================================================================================

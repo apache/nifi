@@ -38,7 +38,7 @@ export class NfPr {
                 return {
                     copy: function () {
                         const copy: any[] = [];
-                        for (let i: number = 0; i < states.length; i++) {
+                        for (let i = 0; i < states.length; i++) {
                             copy.push({
                                 context: states[i].context
                             });
@@ -183,13 +183,13 @@ export class NfPr {
         });
     }
 
-    private parameterKeyRegex: RegExp = /^[a-zA-Z0-9-_. ]+/;
+    private parameterKeyRegex = /^[a-zA-Z0-9-_. ]+/;
 
     private parameters: string[] = [];
-    private parameterRegex: RegExp = new RegExp('^$');
+    private parameterRegex = new RegExp('^$');
 
     private parameterDetails: { [key: string]: Parameter } = {};
-    private parametersSupported: boolean = false;
+    private parametersSupported = false;
 
     // valid context states
     private static readonly PARAMETER: string = 'parameter';
@@ -203,7 +203,7 @@ export class NfPr {
      */
     private handlePound(stream: StringStream, states: any): string | null {
         // determine the number of sequential pounds
-        let poundCount: number = 0;
+        let poundCount = 0;
         stream.eatWhile(function (ch: string): boolean {
             if (ch === '#') {
                 poundCount++;
@@ -260,7 +260,7 @@ export class NfPr {
                 // Find the token at the cursor
                 const cursor: CodeMirror.Position = editor.getCursor();
                 const token: CodeMirror.Token = editor.getTokenAt(cursor);
-                let includeAll: boolean = false;
+                let includeAll = false;
                 const state = token.state.get();
 
                 // whether the current context is within a function

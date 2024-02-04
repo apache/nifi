@@ -15,7 +15,7 @@
   ~ limitations under the License.
   -->
 
-<div class="property-editor p-4" cdkDrag resizable (resized)="resized($event)">
+<div class="property-editor p-4" [style.width.px]="width" cdkDrag resizable (resized)="resized()">
     <form class="h-full" [formGroup]="nfEditorForm" cdkTrapFocus cdkTrapFocusAutoCapture>
         <div class="flex flex-col gap-y-3 h-full">
             <div class="flex justify-end">
@@ -51,6 +51,7 @@
                         (codeMirrorLoaded)="codeMirrorLoaded($event)"></ngx-codemirror>
                 </div>
                 <mat-checkbox
+                    color="primary"
                     formControlName="setEmptyString"
                     (mousedown)="preventDrag($event)"
                     (change)="setEmptyStringChanged()"
@@ -59,8 +60,8 @@
             </div>
             <div class="flex justify-end items-center gap-x-2">
                 <button
-                    color="accent"
-                    mat-raised-button
+                    color="primary"
+                    mat-stroked-button
                     type="button"
                     (mousedown)="preventDrag($event)"
                     (click)="cancelClicked()">

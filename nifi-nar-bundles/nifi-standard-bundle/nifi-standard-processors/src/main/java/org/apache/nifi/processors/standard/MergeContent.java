@@ -325,7 +325,6 @@ public class MergeContent extends BinFiles {
         .required(false)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
-        .defaultValue(null)
         .dependsOn(MERGE_STRATEGY, MERGE_STRATEGY_BIN_PACK)
         .build();
 
@@ -727,8 +726,10 @@ public class MergeContent extends BinFiles {
             final String delimiterStrategyValue = context.getProperty(DELIMITER_STRATEGY).getValue();
             if (DELIMITER_STRATEGY_FILENAME.getValue().equals(delimiterStrategyValue)) {
                 return getDelimiterFileContent(context, wrappers, descriptor);
-            } else {
+            } else if (DELIMITER_STRATEGY_TEXT.getValue().equals(delimiterStrategyValue)) {
                 return getDelimiterTextContent(context, wrappers, descriptor);
+            } else {
+                return null;
             }
         }
 

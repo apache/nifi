@@ -19,7 +19,6 @@ import { createAction, props } from '@ngrx/store';
 import {
     ConfigureControllerServiceRequest,
     ConfigureControllerServiceSuccess,
-    CreateControllerServiceRequest,
     CreateControllerServiceSuccess,
     DeleteControllerServiceRequest,
     DeleteControllerServiceSuccess,
@@ -27,7 +26,14 @@ import {
     LoadControllerServicesResponse,
     SelectControllerServiceRequest
 } from './index';
-import { EditControllerServiceDialogRequest } from '../../../../state/shared';
+import {
+    CreateControllerServiceRequest,
+    DisableControllerServiceDialogRequest,
+    EditControllerServiceDialogRequest,
+    SetEnableControllerServiceDialogRequest
+} from '../../../../state/shared';
+
+export const resetControllerServicesState = createAction('[Controller Services] Reset Controller Services State');
 
 export const loadControllerServices = createAction(
     '[Controller Services] Load Controller Services',
@@ -39,8 +45,8 @@ export const loadControllerServicesSuccess = createAction(
     props<{ response: LoadControllerServicesResponse }>()
 );
 
-export const controllerServicesApiError = createAction(
-    '[Controller Services] Load Controller Service Error',
+export const controllerServicesBannerApiError = createAction(
+    '[Controller Services] Controller Services Banner Api Error',
     props<{ error: string }>()
 );
 
@@ -79,6 +85,16 @@ export const configureControllerService = createAction(
 export const configureControllerServiceSuccess = createAction(
     '[Controller Services] Configure Controller Service Success',
     props<{ response: ConfigureControllerServiceSuccess }>()
+);
+
+export const openEnableControllerServiceDialog = createAction(
+    '[Controller Services] Open Enable Controller Service Dialog',
+    props<{ request: SetEnableControllerServiceDialogRequest }>()
+);
+
+export const openDisableControllerServiceDialog = createAction(
+    '[Controller Services] Open Disable Controller Service Dialog',
+    props<{ request: DisableControllerServiceDialogRequest }>()
 );
 
 export const promptControllerServiceDeletion = createAction(

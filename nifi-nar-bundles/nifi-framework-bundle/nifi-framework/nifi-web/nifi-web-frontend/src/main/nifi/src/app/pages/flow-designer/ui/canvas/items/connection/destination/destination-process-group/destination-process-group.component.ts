@@ -83,8 +83,8 @@ export class DestinationProcessGroup implements ControlValueAccessor {
 
     protected readonly TextTip = TextTip;
 
-    isDisabled: boolean = false;
-    isTouched: boolean = false;
+    isDisabled = false;
+    isTouched = false;
     onTouched!: () => void;
     onChange!: (outputPort: string) => void;
 
@@ -92,10 +92,8 @@ export class DestinationProcessGroup implements ControlValueAccessor {
     inputPortItems!: SelectOption[];
     selectedInputPort!: string;
 
-    noPorts: boolean = false;
-    hasUnauthorizedPorts: boolean = false;
-
-    constructor() {}
+    noPorts = false;
+    hasUnauthorizedPorts = false;
 
     registerOnChange(onChange: (selectedInputPort: string) => void): void {
         this.onChange = onChange;

@@ -128,32 +128,93 @@
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-property-utils</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <scope>compile</scope>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-jslt-nar</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <scope>compile</scope>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-compress-nar</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <scope>compile</scope>
+            <type>nar</type>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <finalName>nifi-stateless-processors-test-assembly</finalName>
-                    <attach>true</attach>
-                    <appendAssemblyId>false</appendAssemblyId>
-                </configuration>
                 <executions>
                     <execution>
-                        <id>make shared resource</id>
+                        <id>stateless-core-dependencies</id>
                         <goals>
                             <goal>single</goal>
                         </goals>
                         <phase>process-test-resources</phase>
                         <configuration>
+                            <finalName>nifi-stateless-processors-test-assembly</finalName>
                             <archiverConfig>
                                 <defaultDirectoryMode>0775</defaultDirectoryMode>
                                 <directoryMode>0775</directoryMode>
                                 <fileMode>0664</fileMode>
                             </archiverConfig>
                             <descriptors>
-                                <descriptor>src/test/assembly/dependencies.xml</descriptor>
+                                <descriptor>src/test/assembly/dependencies-core.xml</descriptor>
+                            </descriptors>
+                            <tarLongFileMode>posix</tarLongFileMode>
+                            <formats>
+                                <format>dir</format>
+                            </formats>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>jslt-dependency</id>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <phase>process-test-resources</phase>
+                        <configuration>
+                            <finalName>nifi-stateless-processors-test-assembly</finalName>
+                            <archiverConfig>
+                                <defaultDirectoryMode>0775</defaultDirectoryMode>
+                                <directoryMode>0775</directoryMode>
+                                <fileMode>0664</fileMode>
+                            </archiverConfig>
+                            <descriptors>
+                                <descriptor>src/test/assembly/dependencies-jslt.xml</descriptor>
+                            </descriptors>
+                            <tarLongFileMode>posix</tarLongFileMode>
+                            <formats>
+                                <format>dir</format>
+                            </formats>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>compression-dependency</id>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <phase>process-test-resources</phase>
+                        <configuration>
+                            <finalName>nifi-stateless-processors-test-assembly</finalName>
+                            <archiverConfig>
+                                <defaultDirectoryMode>0775</defaultDirectoryMode>
+                                <directoryMode>0775</directoryMode>
+                                <fileMode>0664</fileMode>
+                            </archiverConfig>
+                            <descriptors>
+                                <descriptor>src/test/assembly/dependencies-compress.xml</descriptor>
                             </descriptors>
                             <tarLongFileMode>posix</tarLongFileMode>
                             <formats>
@@ -176,6 +237,8 @@
                         <exclude>src/test/resources/sleep.json</exclude>
                         <exclude>src/test/resources/throw-exception.json</exclude>
                         <exclude>src/test/resources/log-message.json</exclude>
+                        <exclude>src/test/resources/jslt-flow.json</exclude>
+                        <exclude>src/test/resources/jslt-compress-flow.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>

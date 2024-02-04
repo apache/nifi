@@ -17,10 +17,6 @@
 
 package org.apache.nifi.processors.snowflake;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 import net.snowflake.ingest.utils.StagedFileWrapper;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -29,6 +25,11 @@ import org.apache.nifi.processors.snowflake.util.SnowflakeInternalStageType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 class SnowflakePipeIT implements SnowflakeConfigAware {
 
@@ -40,7 +41,7 @@ class SnowflakePipeIT implements SnowflakeConfigAware {
         final SnowflakeConnectionProviderService connectionProviderService = createConnectionProviderService(runner);
 
         runner.setProperty(PutSnowflakeInternalStage.SNOWFLAKE_CONNECTION_PROVIDER, connectionProviderService.getIdentifier());
-        runner.setProperty(PutSnowflakeInternalStage.INTERNAL_STAGE_TYPE, SnowflakeInternalStageType.NAMED.getValue());
+        runner.setProperty(PutSnowflakeInternalStage.INTERNAL_STAGE_TYPE, SnowflakeInternalStageType.NAMED);
         runner.setProperty(PutSnowflakeInternalStage.INTERNAL_STAGE, internalStageName);
 
         final String uuid = UUID.randomUUID().toString();

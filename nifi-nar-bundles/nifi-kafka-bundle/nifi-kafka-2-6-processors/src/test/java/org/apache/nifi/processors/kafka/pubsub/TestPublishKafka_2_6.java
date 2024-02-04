@@ -140,7 +140,7 @@ public class TestPublishKafka_2_6 {
 
     @Test
     public void testSingleFailureWithRollback() throws IOException {
-        runner.setProperty(PublishKafka_2_6.FAILURE_STRATEGY, FailureStrategy.ROLLBACK.getValue());
+        runner.setProperty(PublishKafka_2_6.FAILURE_STRATEGY, FailureStrategy.ROLLBACK);
         final MockFlowFile flowFile = runner.enqueue("hello world");
 
         when(mockLease.complete()).thenReturn(createFailurePublishResult(flowFile));
@@ -156,7 +156,7 @@ public class TestPublishKafka_2_6 {
 
     @Test
     public void testMultipleFailuresWithRollback() throws IOException {
-        runner.setProperty(PublishKafka_2_6.FAILURE_STRATEGY, FailureStrategy.ROLLBACK.getValue());
+        runner.setProperty(PublishKafka_2_6.FAILURE_STRATEGY, FailureStrategy.ROLLBACK);
 
         final Set<FlowFile> flowFiles = new HashSet<>();
         flowFiles.add(runner.enqueue("hello world"));
@@ -294,7 +294,7 @@ public class TestPublishKafka_2_6 {
             @Override
             public int getSuccessfulMessageCount(FlowFile flowFile) {
                 Integer count = msgCounts.get(flowFile);
-                return count == null ? 0 : count.intValue();
+                return count == null ? 0 : count;
             }
 
             @Override

@@ -17,29 +17,28 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.io.Serializable;
 import java.util.Objects;
 
-@ApiModel
 public class C2OperationAck implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    @ApiModelProperty("The id of the requested operation that is being acknowledged")
+    @Schema(description = "The id of the requested operation that is being acknowledged")
     private String operationId;
 
-    @ApiModelProperty("The agent's status response for this operation ID")
+    @Schema(description = "The agent's status response for this operation ID")
     private C2OperationState operationState;
 
     // Optional, additional details that can be included in an ACK
-    @ApiModelProperty("Optionally, an ack can include device info that is relevant to the operation being acknowledged")
+    @Schema(description = "Optionally, an ack can include device info that is relevant to the operation being acknowledged")
     private DeviceInfo deviceInfo;
 
-    @ApiModelProperty("Optionally, an ack can include agent info that is relevant to the operation being acknowledged")
+    @Schema(description = "Optionally, an ack can include agent info that is relevant to the operation being acknowledged")
     private AgentInfo agentInfo;
 
-    @ApiModelProperty("Optionally, an ack can include flow info that is relevant to the operation being acknowledged")
+    @Schema(description = "Optionally, an ack can include flow info that is relevant to the operation being acknowledged")
     private FlowInfo flowInfo;
 
 

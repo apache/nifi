@@ -16,7 +16,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 
 export interface SearchResultGroup {
@@ -51,6 +51,7 @@ export interface SearchResults {
 export interface SearchResultsEntity {
     searchResultsDTO: SearchResults;
 }
+
 @Injectable({ providedIn: 'root' })
 export class SearchService {
     private static readonly API: string = '../nifi-api';

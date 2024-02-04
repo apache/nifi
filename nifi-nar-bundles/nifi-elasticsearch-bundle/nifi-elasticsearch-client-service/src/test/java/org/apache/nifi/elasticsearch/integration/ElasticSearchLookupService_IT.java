@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -121,7 +122,7 @@ class ElasticSearchLookupService_IT extends AbstractElasticsearch_IT {
             }
 
             assertNotNull(exception);
-            assertTrue(exception instanceof LookupFailureException);
+            assertInstanceOf(LookupFailureException.class, exception);
         }
     }
 

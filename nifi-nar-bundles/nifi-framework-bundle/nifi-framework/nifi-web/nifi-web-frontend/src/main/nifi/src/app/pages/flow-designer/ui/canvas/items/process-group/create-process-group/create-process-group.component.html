@@ -17,6 +17,7 @@
 
 <h2 mat-dialog-title>Create Process Group</h2>
 <form class="create-process-group-form" [formGroup]="createProcessGroupForm">
+    <error-banner></error-banner>
     <mat-dialog-content>
         <mat-form-field>
             <mat-label>Name</mat-label>
@@ -67,7 +68,7 @@
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
+        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
         <button
             [disabled]="!createProcessGroupForm.dirty || createProcessGroupForm.invalid || saving.value"
             type="button"

@@ -21,6 +21,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.file.transfer.FileInfo;
 import org.apache.nifi.util.MockPropertyContext;
 import org.apache.sshd.common.file.virtualfs.VirtualFileSystemFactory;
 import org.apache.sshd.server.SshServer;
@@ -41,13 +42,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -615,12 +612,10 @@ public class TestServerSFTPTransfer {
     }
 
     @Test
-    public void testPutWithLastModifiedTime() throws IOException, ParseException {
+    public void testPutWithLastModifiedTime() throws IOException {
         final String permissions = "rw-rw-rw-";
         final String lastModifiedTime = "2019-09-01T11:11:11-0500";
-
-        final DateFormat formatter = new SimpleDateFormat(SFTPTransfer.FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-        final long expectedLastModifiedTime = formatter.parse(lastModifiedTime).getTime();
+        final long expectedLastModifiedTime = 1567354271000L;
 
         final Map<PropertyDescriptor, String> properties = createBaseProperties();
         properties.put(SFTPTransfer.PERMISSIONS, permissions);
@@ -713,7 +708,6 @@ public class TestServerSFTPTransfer {
         final Path path = Paths.get(serverDirectory.getAbsolutePath(), pathElements);
         final File parentFile = path.toFile().getParentFile();
         FileUtils.forceMkdir(parentFile);
-        final byte[] contents = path.toFile().getAbsolutePath().getBytes(StandardCharsets.UTF_8);
-        Files.write(path, contents);
+        Files.writeString(path, path.toFile().getAbsolutePath());
     }
 }

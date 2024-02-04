@@ -17,7 +17,7 @@
 
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { authGuard } from './service/guard/auth.guard';
+import { authenticationGuard } from './service/guard/authentication.guard';
 
 const routes: Routes = [
     {
@@ -25,13 +25,22 @@ const routes: Routes = [
         loadChildren: () => import('./pages/login/feature/login.module').then((m) => m.LoginModule)
     },
     {
+        path: 'error',
+        loadChildren: () => import('./pages/error/feature/error.module').then((m) => m.ErrorModule)
+    },
+    {
         path: 'settings',
-        canMatch: [authGuard],
+        canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/settings/feature/settings.module').then((m) => m.SettingsModule)
     },
     {
+        path: 'provenance',
+        canMatch: [authenticationGuard],
+        loadChildren: () => import('./pages/provenance/feature/provenance.module').then((m) => m.ProvenanceModule)
+    },
+    {
         path: 'parameter-contexts',
-        canMatch: [authGuard],
+        canMatch: [authenticationGuard],
         loadChildren: () =>
             import('./pages/parameter-contexts/feature/parameter-contexts.module').then(
                 (m) => m.ParameterContextsModule
@@ -39,12 +48,38 @@ const routes: Routes = [
     },
     {
         path: 'counters',
-        canMatch: [authGuard],
+        canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/counters/feature/counters.module').then((m) => m.CountersModule)
     },
     {
+        path: 'users',
+        canMatch: [authenticationGuard],
+        loadChildren: () => import('./pages/users/feature/users.module').then((m) => m.UsersModule)
+    },
+    {
+        path: 'access-policies',
+        canMatch: [authenticationGuard],
+        loadChildren: () =>
+            import('./pages/access-policies/feature/access-policies.module').then((m) => m.AccessPoliciesModule)
+    },
+    {
+        path: 'summary',
+        canMatch: [authenticationGuard],
+        loadChildren: () => import('./pages/summary/feature/summary.module').then((m) => m.SummaryModule)
+    },
+    {
+        path: 'bulletins',
+        canMatch: [authenticationGuard],
+        loadChildren: () => import('./pages/bulletins/feature/bulletins.module').then((m) => m.BulletinsModule)
+    },
+    {
+        path: 'queue',
+        canMatch: [authenticationGuard],
+        loadChildren: () => import('./pages/queue/feature/queue.module').then((m) => m.QueueModule)
+    },
+    {
         path: '',
-        canMatch: [authGuard],
+        canMatch: [authenticationGuard],
         loadChildren: () =>
             import('./pages/flow-designer/feature/flow-designer.module').then((m) => m.FlowDesignerModule)
     }

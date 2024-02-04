@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.registry.web.api;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.Authorization;
-import io.swagger.annotations.SwaggerDefinition;
-import io.swagger.annotations.Tag;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -34,14 +34,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Path("/about")
-@Api(
-    value = "about",
-    authorizations = {@Authorization("Authorization")},
-    tags = {"Swagger Resource"}
-)
-@SwaggerDefinition(tags = {
-    @Tag(name = "Swagger Resource", description = "Retrieves the version information for this NiFi Registry.")
-})
+@Tag(name = "About")
 public class RegistryAboutResource extends ApplicationResource {
 
     @Autowired
@@ -53,10 +46,10 @@ public class RegistryAboutResource extends ApplicationResource {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Get version",
-            notes = "Gets the NiFi Registry version.",
-            response = RegistryAbout.class
+    @Operation(
+            summary = "Get version",
+            description = "Gets the NiFi Registry version.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = RegistryAbout.class)))
     )
     public Response getVersion() {
         final String implVersion = RegistryAbout.class.getPackage().getImplementationVersion();

@@ -16,19 +16,17 @@
  */
 package org.apache.nifi.extension;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Comparator;
 import java.util.Objects;
 
-@ApiModel
 public class TagCount implements Comparable<TagCount> {
 
     private String tag;
     private int count;
 
-    @ApiModelProperty("The tag label")
+    @Schema(description = "The tag label")
     public String getTag() {
         return tag;
     }
@@ -37,7 +35,7 @@ public class TagCount implements Comparable<TagCount> {
         this.tag = tag;
     }
 
-    @ApiModelProperty("The number of occurrences of the given tag")
+    @Schema(description = "The number of occurrences of the given tag")
     public int getCount() {
         return count;
     }

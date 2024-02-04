@@ -16,8 +16,14 @@
  */
 package org.apache.nifi.minifi;
 
+import static org.apache.nifi.minifi.commons.utils.SensitivePropertyUtils.getFormattedKey;
+import static org.apache.nifi.minifi.util.BootstrapClassLoaderUtils.createBootstrapClassLoader;
+
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -30,7 +36,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.minifi.util.MultiSourceMinifiProperties;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarClassLoadersHolder;
@@ -46,6 +51,7 @@ import org.slf4j.bridge.SLF4JBridgeHandler;
 public class MiNiFi {
 
     private static final Logger logger = LoggerFactory.getLogger(MiNiFi.class);
+
     private final MiNiFiServer minifiServer;
     private volatile boolean shutdown = false;
 
@@ -155,7 +161,7 @@ public class MiNiFi {
 
             logger.info("MiNiFi server shutdown completed (nicely or otherwise).");
         } catch (final Throwable t) {
-            logger.warn("Problem occurred ensuring MiNiFi server was properly terminated due to " + t);
+            logger.warn("Problem occurred ensuring MiNiFi server was properly terminated due to {}", t.getMessage());
         }
     }
 
@@ -218,10 +224,41 @@ public class MiNiFi {
     public static void main(String[] args) {
         logger.info("Launching MiNiFi...");
         try {
-            NiFiProperties niFiProperties = MultiSourceMinifiProperties.getInstance();
-            new MiNiFi(niFiProperties);
+            NiFiProperties properties = getValidatedMiNifiProperties();
+            new MiNiFi(properties);
         } catch (final Throwable t) {
             logger.error("Failure to launch MiNiFi due to " + t, t);
+        }
+    }
+
+    protected static NiFiProperties getValidatedMiNifiProperties() {
+        NiFiProperties properties = initializeProperties(createBootstrapClassLoader());
+        properties.validate();
+        return properties;
+    }
+
+    private static NiFiProperties initializeProperties(ClassLoader boostrapLoader) {
+        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        String key = getFormattedKey();
+
+        Thread.currentThread().setContextClassLoader(boostrapLoader);
+
+        try {
+            Class<?> propsLoaderClass = Class.forName("org.apache.nifi.minifi.properties.MiNiFiPropertiesLoader", true, boostrapLoader);
+            Constructor<?> constructor = propsLoaderClass.getDeclaredConstructor(String.class);
+            Object loaderInstance = constructor.newInstance(key);
+            Method getMethod = propsLoaderClass.getMethod("get");
+            NiFiProperties properties = (NiFiProperties) getMethod.invoke(loaderInstance);
+            logger.info("Application Properties loaded [{}]", properties.size());
+            return properties;
+        } catch (InvocationTargetException wrappedException) {
+            throw new IllegalArgumentException("There was an issue decrypting protected properties", wrappedException.getCause() == null ? wrappedException : wrappedException.getCause());
+        } catch (final IllegalAccessException | NoSuchMethodException | ClassNotFoundException | InstantiationException reex) {
+            throw new IllegalArgumentException("Unable to access properties loader in the expected manner - apparent classpath or build issue", reex);
+        } catch (final RuntimeException e) {
+            throw new IllegalArgumentException("There was an issue decrypting protected properties", e);
+        } finally {
+            Thread.currentThread().setContextClassLoader(contextClassLoader);
         }
     }
 }

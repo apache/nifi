@@ -217,7 +217,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             case UUID:
             case TIMESTAMP: {
                 final Object rawValue = getRawNodeValue(fieldNode, fieldName);
-                return DataTypeUtils.convertType(rawValue, desiredType, getLazyDateFormat(), getLazyTimeFormat(), getLazyTimestampFormat(), fieldName);
+                return DataTypeUtils.convertType(rawValue, desiredType, getDateFormat(), getTimeFormat(), getTimestampFormat(), fieldName);
             }
             case MAP: {
                 final DataType valueType = ((MapDataType) desiredType).getValueType();

@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.search;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * The result's group level of a performed search.
@@ -31,9 +31,8 @@ public class SearchResultGroupDTO {
     /**
      * @return id of this group
      */
-    @ApiModelProperty(
-            value = "The id of the group.",
-            required = true
+    @Schema(description = "The id of the group.",
+            requiredMode = Schema.RequiredMode.REQUIRED
     )
     public String getId() {
         return id;
@@ -46,8 +45,7 @@ public class SearchResultGroupDTO {
     /**
      * @return name of this group
      */
-    @ApiModelProperty(
-            value = "The name of the group."
+    @Schema(description = "The name of the group."
     )
     public String getName() {
         return name;

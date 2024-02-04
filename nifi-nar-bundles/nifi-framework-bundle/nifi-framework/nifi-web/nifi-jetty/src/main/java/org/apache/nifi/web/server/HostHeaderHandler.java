@@ -20,16 +20,16 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.http.conn.util.InetAddressUtils;
 import org.apache.nifi.util.NiFiProperties;
+import org.eclipse.jetty.http.HttpHeader;
+import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.ScopedHandler;
+import org.eclipse.jetty.server.Response;
+import org.eclipse.jetty.util.Callback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -41,7 +41,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class HostHeaderHandler extends ScopedHandler {
+public class HostHeaderHandler extends Handler.Abstract {
     private static final Logger logger = LoggerFactory.getLogger(HostHeaderHandler.class);
 
     private final String serverName;
@@ -153,11 +153,6 @@ public class HostHeaderHandler extends ScopedHandler {
         }
     }
 
-    @Override
-    public void doScope(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-        nextScope(target, baseRequest, request, response);
-    }
-
     /**
      * Host Header Valid status checks against valid hosts
      *
@@ -177,34 +172,35 @@ public class HostHeaderHandler extends ScopedHandler {
      * Returns an error message to the response and marks the request as handled if the host header is not valid.
      * Otherwise passes the request on to the next scoped handler.
      *
-     * @param target      the target (not relevant here)
-     * @param baseRequest the original request object
      * @param request     the request as an HttpServletRequest
      * @param response    the current response
      */
     @Override
-    public void doHandle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        final String hostHeader = request.getHeader("Host");
-        final String requestUri = request.getRequestURI();
+    public boolean handle(final Request request, Response response, Callback callback) {
+        final String hostHeader = request.getHeaders().get(HttpHeader.HOST);
+        final String requestUri = request.getHttpURI().asString();
         logger.debug("Request URI [{}] Host Header [{}]", requestUri, hostHeader);
 
         if (!hostHeaderIsValid(hostHeader)) {
             logger.warn("Request URI [{}] Host Header [{}] not valid", requestUri, hostHeader);
 
-            response.setContentType("text/html; charset=utf-8");
-            response.setStatus(HttpServletResponse.SC_OK);
+            response.getHeaders().put(HttpHeader.CONTENT_TYPE, "text/html; charset=utf-8");
+            response.setStatus(HttpURLConnection.HTTP_OK);
 
-            final PrintWriter out = response.getWriter();
+            try (PrintWriter out = Response.as(response, PrintWriter.class)) {
 
-            out.println("<h1>System Error</h1>");
-            out.println("<h2>The request contained an invalid host header [<code>" + StringEscapeUtils.escapeHtml4(hostHeader) +
-                    "</code>] in the request [<code>" + StringEscapeUtils.escapeHtml4(request.getRequestURI()) +
-                    "</code>]. Check for request manipulation or third-party intercept.</h2>");
-            out.println("<h3>Valid host headers are [<code>empty</code>] or: <br/><code>");
-            out.println(printValidHosts());
-            out.println("</code></h3>");
+                out.println("<h1>System Error</h1>");
+                out.println("<h2>The request contained an invalid host header [<code>" + StringEscapeUtils.escapeHtml4(hostHeader) +
+                        "</code>] in the request [<code>" + StringEscapeUtils.escapeHtml4(request.getHttpURI().asString()) +
+                        "</code>]. Check for request manipulation or third-party intercept.</h2>");
+                out.println("<h3>Valid host headers are [<code>empty</code>] or: <br/><code>");
+                out.println(printValidHosts());
+                out.println("</code></h3>");
+            }
 
-            baseRequest.setHandled(true);
+            return true;
+        } else {
+            return false;
         }
     }
 

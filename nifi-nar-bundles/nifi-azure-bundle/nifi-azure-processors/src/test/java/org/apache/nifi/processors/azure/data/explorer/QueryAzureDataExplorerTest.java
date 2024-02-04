@@ -89,7 +89,7 @@ public class QueryAzureDataExplorerTest {
 
         runner.assertAllFlowFilesTransferred(QueryAzureDataExplorer.FAILURE);
 
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryAzureDataExplorer.FAILURE).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryAzureDataExplorer.FAILURE).getFirst();
         flowFile.assertAttributeEquals(QueryAzureDataExplorer.QUERY_ERROR_MESSAGE, ERROR_MESSAGE);
         flowFile.assertAttributeEquals(QueryAzureDataExplorer.QUERY_EXECUTED, QUERY);
     }
@@ -110,7 +110,7 @@ public class QueryAzureDataExplorerTest {
 
         runner.assertAllFlowFilesTransferred(QueryAzureDataExplorer.SUCCESS);
 
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryAzureDataExplorer.SUCCESS).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryAzureDataExplorer.SUCCESS).getFirst();
         flowFile.assertAttributeEquals(QueryAzureDataExplorer.QUERY_EXECUTED, QUERY);
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), QueryAzureDataExplorer.APPLICATION_JSON);
         flowFile.assertContentEquals(EMPTY_ARRAY);

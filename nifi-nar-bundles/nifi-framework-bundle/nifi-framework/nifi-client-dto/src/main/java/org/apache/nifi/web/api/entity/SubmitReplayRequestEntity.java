@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request to the API.
@@ -29,8 +29,7 @@ public class SubmitReplayRequestEntity extends Entity {
     private Long eventId;
     private String clusterNodeId;
 
-    @ApiModelProperty(
-        value = "The event identifier"
+    @Schema(description = "The event identifier"
     )
     public Long getEventId() {
         return eventId;
@@ -40,8 +39,7 @@ public class SubmitReplayRequestEntity extends Entity {
         this.eventId = eventId;
     }
 
-    @ApiModelProperty(
-        value = "The identifier of the node where to submit the replay request."
+    @Schema(description = "The identifier of the node where to submit the replay request."
     )
     public String getClusterNodeId() {
         return clusterNodeId;

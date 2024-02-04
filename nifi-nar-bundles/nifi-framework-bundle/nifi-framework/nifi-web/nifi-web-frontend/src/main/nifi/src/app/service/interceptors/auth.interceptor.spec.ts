@@ -18,12 +18,20 @@
 import { TestBed } from '@angular/core/testing';
 
 import { AuthInterceptor } from './auth.interceptor';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../state/error/error.reducer';
 
 describe('AuthInterceptor', () => {
     let service: AuthInterceptor;
 
     beforeEach(() => {
-        TestBed.configureTestingModule({});
+        TestBed.configureTestingModule({
+            providers: [
+                provideMockStore({
+                    initialState
+                })
+            ]
+        });
         service = TestBed.inject(AuthInterceptor);
     });
 

@@ -18,12 +18,16 @@
 import { createReducer, on } from '@ngrx/store';
 import { ReportingTasksState } from './index';
 import {
+    configureReportingTask,
+    configureReportingTaskSuccess,
     createReportingTask,
     createReportingTaskSuccess,
+    deleteReportingTask,
     deleteReportingTaskSuccess,
     loadReportingTasks,
     loadReportingTasksSuccess,
     reportingTasksApiError,
+    resetReportingTasksState,
     startReportingTaskSuccess,
     stopReportingTaskSuccess
 } from './reporting-tasks.actions';
@@ -39,6 +43,9 @@ export const initialState: ReportingTasksState = {
 
 export const reportingTasksReducer = createReducer(
     initialState,
+    on(resetReportingTasksState, () => ({
+        ...initialState
+    })),
     on(loadReportingTasks, (state) => ({
         ...state,
         status: 'loading' as const
@@ -56,7 +63,16 @@ export const reportingTasksReducer = createReducer(
         error,
         status: 'error' as const
     })),
-    on(createReportingTask, (state, { request }) => ({
+    on(configureReportingTaskSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const componentIndex: number = draftState.reportingTasks.findIndex((f: any) => response.id === f.id);
+            if (componentIndex > -1) {
+                draftState.reportingTasks[componentIndex] = response.reportingTask;
+            }
+            draftState.saving = false;
+        });
+    }),
+    on(createReportingTask, deleteReportingTask, configureReportingTask, (state) => ({
         ...state,
         saving: true
     })),
@@ -94,6 +110,7 @@ export const reportingTasksReducer = createReducer(
             if (componentIndex > -1) {
                 draftState.reportingTasks.splice(componentIndex, 1);
             }
+            draftState.saving = false;
         });
     })
 );

@@ -68,7 +68,7 @@ If you have questions, you can reach out to our mailing list: dev@nifi.apache.or
 - IRC: #nifi on [irc.freenode.net](http://webchat.freenode.net/?channels=#nifi)
 
 ## Requirements
-* JDK 1.8 or higher
+* Java 21
 
 ## License
 

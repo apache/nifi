@@ -20,11 +20,11 @@ package org.apache.nifi.web.api.dto.diagnostics;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 import org.apache.nifi.web.api.dto.BundleDTO;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @XmlType(name = "jvmFlowDiagnosticsSnapshot")
 public class JVMFlowDiagnosticsSnapshotDTO implements Cloneable {
@@ -33,7 +33,7 @@ public class JVMFlowDiagnosticsSnapshotDTO implements Cloneable {
     private Integer activeTimerDrivenThreads;
     private Set<BundleDTO> bundlesLoaded;
 
-    @ApiModelProperty("How long this node has been running, formatted as hours:minutes:seconds.milliseconds")
+    @Schema(description = "How long this node has been running, formatted as hours:minutes:seconds.milliseconds")
     public String getUptime() {
         return uptime;
     }
@@ -42,7 +42,7 @@ public class JVMFlowDiagnosticsSnapshotDTO implements Cloneable {
         this.uptime = uptime;
     }
 
-    @ApiModelProperty("The name of the Time Zone that is configured, if available")
+    @Schema(description = "The name of the Time Zone that is configured, if available")
     public String getTimeZone() {
         return timeZone;
     }
@@ -52,7 +52,7 @@ public class JVMFlowDiagnosticsSnapshotDTO implements Cloneable {
     }
 
 
-    @ApiModelProperty("The number of timer-driven threads that are active")
+    @Schema(description = "The number of timer-driven threads that are active")
     public Integer getActiveTimerDrivenThreads() {
         return activeTimerDrivenThreads;
     }
@@ -61,7 +61,7 @@ public class JVMFlowDiagnosticsSnapshotDTO implements Cloneable {
         this.activeTimerDrivenThreads = activeTimerDrivenThreads;
     }
 
-    @ApiModelProperty("The NiFi Bundles (NARs) that are loaded by NiFi")
+    @Schema(description = "The NiFi Bundles (NARs) that are loaded by NiFi")
     public Set<BundleDTO> getBundlesLoaded() {
         return bundlesLoaded;
     }

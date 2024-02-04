@@ -162,7 +162,7 @@
         </mat-tab-group>
     </mat-dialog-content>
     <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="accent" mat-raised-button mat-dialog-close="CANCELLED">Cancel</button>
+        <button color="primary" mat-stroked-button mat-dialog-close="CANCELLED">Cancel</button>
         <button
             [disabled]="!editConnectionForm.dirty || editConnectionForm.invalid || saving.value"
             type="button"

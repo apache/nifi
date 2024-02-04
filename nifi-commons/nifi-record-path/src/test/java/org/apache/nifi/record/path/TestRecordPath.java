@@ -20,8 +20,6 @@ package org.apache.nifi.record.path;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
-import java.text.DateFormat;
-import java.text.ParseException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -55,6 +53,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -86,10 +85,10 @@ public class TestRecordPath {
 
     @Test
     public void testCompile() {
-        System.out.println(RecordPath.compile("/person/name/last"));
-        System.out.println(RecordPath.compile("/person[2]"));
-        System.out.println(RecordPath.compile("//person[2]"));
-        System.out.println(RecordPath.compile("/person/child[1]//sibling/name"));
+        RecordPath.compile("/person/name/last");
+        RecordPath.compile("/person[2]");
+        RecordPath.compile("//person[2]");
+        RecordPath.compile("/person/child[1]//sibling/name");
 
         // contains is a 'filter function' so can be used as the predicate
         RecordPath.compile("/name[contains(., 'hello')]");
@@ -1242,6 +1241,26 @@ public class TestRecordPath {
         assertEquals("John Doe: 48", RecordPath.compile("concat(/firstName, ' ', /lastName, ': ', 48)").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
+    @Test
+    public void testMapOf() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("fullName", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("firstName", RecordFieldType.LONG.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("lastName", "Doe");
+        values.put("firstName", "John");
+        final Record record = new MapRecord(schema, values);
+        final FieldValue fv = RecordPath.compile("mapOf('firstName', /firstName, 'lastName', /lastName)").evaluate(record).getSelectedFields().findFirst().get();
+        assertTrue(fv.getField().getDataType().getFieldType().equals(RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()).getFieldType()));
+        assertEquals("MapRecord[{firstName=John, lastName=Doe}]", fv.getValue().toString());
+
+        assertThrows(RecordPathException.class, () -> RecordPath.compile("mapOf('firstName', /firstName, 'lastName')").evaluate(record));
+    }
+
 
     @Test
     public void testCoalesce() {
@@ -1441,20 +1460,22 @@ public class TestRecordPath {
         values.put("date", "2017-10-20T11:00:00Z");
         final Record record = new MapRecord(schema, values);
 
-        assertTrue(RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")").evaluate(record).getSelectedFields().findFirst().get().getValue() instanceof Date);
-        assertTrue(RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"GMT+8:00\")").evaluate(record).getSelectedFields().findFirst().get().getValue() instanceof Date);
+        final Object evaluated = RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")").evaluate(record).getSelectedFields().findFirst().get().getValue();
+        assertInstanceOf(java.util.Date.class, evaluated);
+
+        final Object evaluatedTimeZone = RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"GMT+8:00\")").evaluate(record).getSelectedFields().findFirst().get().getValue();
+        assertInstanceOf(java.util.Date.class, evaluatedTimeZone);
     }
 
     @Test
-    public void testToDateFromLong() throws ParseException {
+    public void testToDateFromLong() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         fields.add(new RecordField("date", RecordFieldType.LONG.getDataType()));
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        final DateFormat dateFormat = DataTypeUtils.getDateFormat("yyyy-MM-dd");
-        final long dateValue = dateFormat.parse("2017-10-20T11:00:00Z").getTime();
+        final long dateValue = 0L;
 
         final Map<String, Object> values = new HashMap<>();
         values.put("id", 48);
@@ -1520,10 +1541,10 @@ public class TestRecordPath {
         assertEquals(adjustedDateTime, fieldValue3.getValue());
 
         final FieldValue fieldValueUnchanged = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals(localDateFormatted, fieldValueUnchanged.getValue().toString());
+        assertInstanceOf(java.util.Date.class, fieldValueUnchanged.getValue());
         final FieldValue fieldValueUnchanged2 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'INVALID' , 'INVALID')")
             .evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals(localDateFormatted, fieldValueUnchanged2.getValue().toString());
+        assertInstanceOf(java.util.Date.class, fieldValueUnchanged2.getValue());
     }
 
     @Test

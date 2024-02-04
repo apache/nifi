@@ -36,6 +36,4 @@ export class DestinationProcessor {
     @Input() groupName!: string;
 
     processorName!: string;
-
-    constructor() {}
 }

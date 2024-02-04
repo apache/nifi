@@ -1,0 +1,40 @@
+[
+  {
+    "bar" : "orgValue",
+    "foo" : {
+      "foo" : "original"
+    },
+    "locales": [
+      {
+        "language": "fr",
+        "region": "FR"
+      }, {
+        "language": "en",
+        "region": "US"
+      }
+    ],
+    "currencies": []
+  }, {
+    "bar" : "orgValue2",
+    "foo" : {
+      "foo" : "original"
+    },
+    "locales": [
+      {
+        "language": "fr",
+        "region": "CA"
+      },
+      {
+        "language": "ja",
+        "region": "JP"
+      }
+    ],
+    "currencies": [
+      {
+        "currency": "CAD"
+      }, {
+        "currency": "JPY"
+      }
+    ]
+  }
+]

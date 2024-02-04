@@ -19,9 +19,9 @@ package org.apache.nifi.web.api.dto.diagnostics;
 
 import java.util.List;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @XmlType(name = "jvmDiagnostics")
 public class JVMDiagnosticsDTO {
@@ -30,7 +30,7 @@ public class JVMDiagnosticsDTO {
     private JVMDiagnosticsSnapshotDTO aggregateSnapshot;
     private List<NodeJVMDiagnosticsSnapshotDTO> nodeSnapshots;
 
-    @ApiModelProperty("Whether or not the NiFi instance is clustered")
+    @Schema(description = "Whether or not the NiFi instance is clustered")
     public Boolean getClustered() {
         return clustered;
     }
@@ -39,7 +39,7 @@ public class JVMDiagnosticsDTO {
         this.clustered = clustered;
     }
 
-    @ApiModelProperty("Whether or not the node is connected to the cluster")
+    @Schema(description = "Whether or not the node is connected to the cluster")
     public Boolean getConnected() {
         return connected;
     }
@@ -48,7 +48,7 @@ public class JVMDiagnosticsDTO {
         this.connected = connected;
     }
 
-    @ApiModelProperty("Aggregate JVM diagnostic information about the entire cluster")
+    @Schema(description = "Aggregate JVM diagnostic information about the entire cluster")
     public JVMDiagnosticsSnapshotDTO getAggregateSnapshot() {
         return aggregateSnapshot;
     }
@@ -57,7 +57,7 @@ public class JVMDiagnosticsDTO {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    @ApiModelProperty("Node-wise breakdown of JVM diagnostic information")
+    @Schema(description = "Node-wise breakdown of JVM diagnostic information")
     public List<NodeJVMDiagnosticsSnapshotDTO> getNodeSnapshots() {
         return nodeSnapshots;
     }

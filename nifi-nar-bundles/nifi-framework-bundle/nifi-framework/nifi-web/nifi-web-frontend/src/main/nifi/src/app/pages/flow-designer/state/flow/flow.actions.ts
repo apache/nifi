@@ -17,24 +17,24 @@
 
 import { createAction, props } from '@ngrx/store';
 import {
+    ComponentEntity,
     CreateComponentRequest,
     CreateComponentResponse,
     CreateConnection,
     CreateConnectionDialogRequest,
     CreateConnectionRequest,
     CreatePortRequest,
-    CreateProcessGroupRequest,
     CreateProcessGroupDialogRequest,
+    CreateProcessGroupRequest,
     CreateProcessorRequest,
     DeleteComponentRequest,
     DeleteComponentResponse,
     EditComponentDialogRequest,
-    OpenComponentDialogRequest,
     EditConnectionDialogRequest,
+    EditCurrentProcessGroupRequest,
     EnterProcessGroupRequest,
-    GroupComponentsRequest,
     GroupComponentsDialogRequest,
-    OpenGroupComponentsDialogRequest,
+    GroupComponentsRequest,
     GroupComponentsSuccess,
     LoadConnectionSuccess,
     LoadInputPortSuccess,
@@ -44,89 +44,124 @@ import {
     LoadRemoteProcessGroupSuccess,
     MoveComponentsRequest,
     NavigateToComponentRequest,
+    NavigateToControllerServicesRequest,
+    NavigateToManageComponentPoliciesRequest,
+    OpenComponentDialogRequest,
+    OpenGroupComponentsDialogRequest,
+    LoadChildProcessGroupRequest,
+    ReplayLastProvenanceEventRequest,
+    RunOnceRequest,
+    RunOnceResponse,
     SelectComponentsRequest,
-    UpdateComponentRequest,
+    StartComponentRequest,
+    StartComponentResponse,
+    StartComponentsRequest,
+    StartProcessGroupRequest,
+    StopComponentRequest,
+    StopComponentResponse,
+    StopComponentsRequest,
+    StopProcessGroupRequest,
     UpdateComponentFailure,
+    UpdateComponentRequest,
     UpdateComponentResponse,
     UpdateConnectionRequest,
     UpdateConnectionSuccess,
     UpdatePositionsRequest,
     UploadProcessGroupRequest,
-    EditCurrentProcessGroupRequest,
-    NavigateToControllerServicesRequest
+    NavigateToQueueListing,
+    StartProcessGroupResponse,
+    StopProcessGroupResponse
 } from './index';
+import { StatusHistoryRequest } from '../../../../state/status-history';
+
+const CANVAS_PREFIX = '[Canvas]';
 
 /*
     Loading Flow
  */
 
-export const reloadFlow = createAction('[Canvas] Reload Flow');
+export const resetFlowState = createAction(`${CANVAS_PREFIX} Reset Flow State`);
 
-export const leaveProcessGroup = createAction('[Canvas] Leave Process Group');
+export const reloadFlow = createAction(`${CANVAS_PREFIX} Reload Flow`);
+
+export const leaveProcessGroup = createAction(`${CANVAS_PREFIX} Leave Process Group`);
 
 export const enterProcessGroup = createAction(
-    '[Canvas] Enter Process Group',
+    `${CANVAS_PREFIX} Enter Process Group`,
     props<{ request: EnterProcessGroupRequest }>()
 );
 
 export const loadProcessGroup = createAction(
-    '[Canvas] Load Process Group',
+    `${CANVAS_PREFIX} Load Process Group`,
     props<{ request: LoadProcessGroupRequest }>()
 );
 
 export const loadProcessGroupSuccess = createAction(
-    '[Canvas] Load Process Group Success',
+    `${CANVAS_PREFIX} Load Process Group Success`,
     props<{ response: LoadProcessGroupResponse }>()
 );
 
 export const loadProcessGroupComplete = createAction(
-    '[Canvas] Load Process Group Complete',
+    `${CANVAS_PREFIX} Load Process Group Complete`,
     props<{ response: LoadProcessGroupResponse }>()
 );
 
-export const flowApiError = createAction('[Canvas] Flow Api Error', props<{ error: string }>());
+export const loadChildProcessGroup = createAction(
+    `${CANVAS_PREFIX} Load Child Process Group`,
+    props<{ request: LoadChildProcessGroupRequest }>()
+);
 
-export const clearFlowApiError = createAction('[Canvas] Clear Flow Api Error');
+export const loadChildProcessGroupSuccess = createAction(
+    `${CANVAS_PREFIX} Load Child Process Group Success`,
+    props<{ response: ComponentEntity }>()
+);
 
-export const startProcessGroupPolling = createAction('[Canvas] Start Process Group Polling');
+export const flowApiError = createAction(`${CANVAS_PREFIX} Flow Api Error`, props<{ error: string }>());
 
-export const stopProcessGroupPolling = createAction('[Canvas] Stop Process Group Polling');
+export const clearFlowApiError = createAction(`${CANVAS_PREFIX} Clear Flow Api Error`);
+
+export const startProcessGroupPolling = createAction(`${CANVAS_PREFIX} Start Process Group Polling`);
+
+export const stopProcessGroupPolling = createAction(`${CANVAS_PREFIX} Stop Process Group Polling`);
 
 export const loadConnectionsForComponent = createAction(
-    '[Canvas] Load Connections For Component',
+    `${CANVAS_PREFIX} Load Connections For Component`,
     props<{ id: string }>()
 );
 
-export const loadConnection = createAction('[Canvas] Load Connection', props<{ id: string }>());
+export const loadConnection = createAction(`${CANVAS_PREFIX} Load Connection`, props<{ id: string }>());
 
 export const loadConnectionSuccess = createAction(
-    '[Canvas] Load Connection Success',
+    `${CANVAS_PREFIX} Load Connection Success`,
     props<{ response: LoadConnectionSuccess }>()
 );
 
 export const loadComponentsForConnection = createAction(
-    '[Canvas] Load Components For Connection',
+    `${CANVAS_PREFIX} Load Components For Connection`,
     props<{ connection: any }>()
 );
 
-export const loadProcessor = createAction('[Canvas] Load Processor', props<{ id: string }>());
+export const loadProcessor = createAction(`${CANVAS_PREFIX} Load Processor`, props<{ id: string }>());
 
 export const loadProcessorSuccess = createAction(
-    '[Canvas] Load Processor Success',
+    `${CANVAS_PREFIX} Load Processor Success`,
     props<{ response: LoadProcessorSuccess }>()
 );
 
-export const loadInputPort = createAction('[Canvas] Load Input Port', props<{ id: string }>());
+export const loadInputPort = createAction(`${CANVAS_PREFIX} Load Input Port`, props<{ id: string }>());
 
 export const loadInputPortSuccess = createAction(
-    '[Canvas] Load Input Port Success',
+    `${CANVAS_PREFIX} Load Input Port Success`,
     props<{ response: LoadInputPortSuccess }>()
 );
 
-export const loadRemoteProcessGroup = createAction('[Canvas] Load Remote Process Group', props<{ id: string }>());
+export const loadRemoteProcessGroup = createAction(
+    `${CANVAS_PREFIX} Load Remote Process Group`,
+    props<{ id: string }>()
+);
 
 export const loadRemoteProcessGroupSuccess = createAction(
-    '[Canvas] Load Remote Process Group Success',
+    `${CANVAS_PREFIX} Load Remote Process Group Success`,
     props<{ response: LoadRemoteProcessGroupSuccess }>()
 );
 
@@ -135,199 +170,247 @@ export const loadRemoteProcessGroupSuccess = createAction(
  */
 
 export const addSelectedComponents = createAction(
-    '[Canvas] Add Selected Component',
+    `${CANVAS_PREFIX} Add Selected Component`,
     props<{ request: SelectComponentsRequest }>()
 );
 
 export const selectComponents = createAction(
-    '[Canvas] Select Components',
+    `${CANVAS_PREFIX} Select Components`,
     props<{ request: SelectComponentsRequest }>()
 );
 
-export const deselectAllComponents = createAction('[Canvas] Deselect All Components');
+export const deselectAllComponents = createAction(`${CANVAS_PREFIX} Deselect All Components`);
 
 export const removeSelectedComponents = createAction(
-    '[Canvas] Remove Selected Components',
+    `${CANVAS_PREFIX} Remove Selected Components`,
     props<{ request: SelectComponentsRequest }>()
 );
 
-export const centerSelectedComponent = createAction('[Canvas] Center Selected Components');
+export const centerSelectedComponent = createAction(`${CANVAS_PREFIX} Center Selected Component`);
 
 /*
     Create Component Actions
  */
 
 export const createComponentRequest = createAction(
-    '[Canvas] Create Component Request',
+    `${CANVAS_PREFIX} Create Component Request`,
     props<{ request: CreateComponentRequest }>()
 );
 
-export const createFunnel = createAction('[Canvas] Create Funnel', props<{ request: CreateComponentRequest }>());
+export const createFunnel = createAction(
+    `${CANVAS_PREFIX} Create Funnel`,
+    props<{ request: CreateComponentRequest }>()
+);
 
-export const createLabel = createAction('[Canvas] Create Label', props<{ request: CreateComponentRequest }>());
+export const createLabel = createAction(`${CANVAS_PREFIX} Create Label`, props<{ request: CreateComponentRequest }>());
 
 export const openNewProcessGroupDialog = createAction(
-    '[Canvas] Open New Process Group Dialog',
+    `${CANVAS_PREFIX} Open New Process Group Dialog`,
     props<{ request: CreateProcessGroupDialogRequest }>()
 );
 
 export const createProcessGroup = createAction(
-    '[Canvas] Create Process Group',
+    `${CANVAS_PREFIX} Create Process Group`,
     props<{ request: CreateProcessGroupRequest }>()
 );
 
 export const uploadProcessGroup = createAction(
-    '[Canvas] Upload Process Group',
+    `${CANVAS_PREFIX} Upload Process Group`,
     props<{ request: UploadProcessGroupRequest }>()
 );
 
 export const getParameterContextsAndOpenGroupComponentsDialog = createAction(
-    '[Canvas] Get Parameter Contexts And Open Group Components Dialog',
+    `${CANVAS_PREFIX} Get Parameter Contexts And Open Group Components Dialog`,
     props<{ request: OpenGroupComponentsDialogRequest }>()
 );
 
 export const openGroupComponentsDialog = createAction(
-    '[Canvas] Open Group Components Dialog',
+    `${CANVAS_PREFIX} Open Group Components Dialog`,
     props<{ request: GroupComponentsDialogRequest }>()
 );
 
-export const groupComponents = createAction('[Canvas] Group Components', props<{ request: GroupComponentsRequest }>());
+export const groupComponents = createAction(
+    `${CANVAS_PREFIX} Group Components`,
+    props<{ request: GroupComponentsRequest }>()
+);
 
 export const groupComponentsSuccess = createAction(
-    '[Canvas] Group Components Success',
+    `${CANVAS_PREFIX} Group Components Success`,
     props<{ response: GroupComponentsSuccess }>()
 );
 
 export const openNewProcessorDialog = createAction(
-    '[Canvas] Open New Processor Dialog',
+    `${CANVAS_PREFIX} Open New Processor Dialog`,
     props<{ request: CreateComponentRequest }>()
 );
 
-export const createProcessor = createAction('[Canvas] Create Processor', props<{ request: CreateProcessorRequest }>());
+export const createProcessor = createAction(
+    `${CANVAS_PREFIX} Create Processor`,
+    props<{ request: CreateProcessorRequest }>()
+);
 
 export const getDefaultsAndOpenNewConnectionDialog = createAction(
-    '[Canvas] Get Defaults And Open New Connection Dialog',
+    `${CANVAS_PREFIX} Get Defaults And Open New Connection Dialog`,
     props<{ request: CreateConnectionRequest }>()
 );
 
 export const openNewConnectionDialog = createAction(
-    '[Canvas] Open New Connection Dialog',
+    `${CANVAS_PREFIX} Open New Connection Dialog`,
     props<{ request: CreateConnectionDialogRequest }>()
 );
 
-export const createConnection = createAction('[Canvas] Create Connection', props<{ request: CreateConnection }>());
+export const createConnection = createAction(
+    `${CANVAS_PREFIX} Create Connection`,
+    props<{ request: CreateConnection }>()
+);
 
 export const openNewPortDialog = createAction(
-    '[Canvas] Open New Port Dialog',
+    `${CANVAS_PREFIX} Open New Port Dialog`,
     props<{ request: CreateComponentRequest }>()
 );
 
-export const createPort = createAction('[Canvas] Create Port', props<{ request: CreatePortRequest }>());
+export const createPort = createAction(`${CANVAS_PREFIX} Create Port`, props<{ request: CreatePortRequest }>());
 
 export const createComponentSuccess = createAction(
-    '[Canvas] Create Component Success',
+    `${CANVAS_PREFIX} Create Component Success`,
     props<{ response: CreateComponentResponse }>()
 );
 
 export const createComponentComplete = createAction(
-    '[Canvas] Create Component Complete',
+    `${CANVAS_PREFIX} Create Component Complete`,
     props<{ response: CreateComponentResponse }>()
 );
 
+export const navigateToViewStatusHistoryForComponent = createAction(
+    `${CANVAS_PREFIX} Navigate To Status History For Component`,
+    props<{ request: OpenComponentDialogRequest }>()
+);
+
+export const viewStatusHistoryForComponent = createAction(
+    `${CANVAS_PREFIX} View Status History for Component`,
+    props<{ request: StatusHistoryRequest }>()
+);
 /*
     Update Component Actions
  */
 
 export const navigateToEditComponent = createAction(
-    '[Canvas] Navigate To Edit Component',
+    `${CANVAS_PREFIX} Navigate To Edit Component`,
     props<{ request: OpenComponentDialogRequest }>()
 );
 
-export const editComponent = createAction('[Canvas] Edit Component', props<{ request: EditComponentDialogRequest }>());
+export const navigateToManageComponentPolicies = createAction(
+    `${CANVAS_PREFIX} Navigate To Manage Component Policies`,
+    props<{ request: NavigateToManageComponentPoliciesRequest }>()
+);
 
-export const navigateToEditCurrentProcessGroup = createAction('[Canvas] Navigate To Edit Current Process Group');
+export const editComponent = createAction(
+    `${CANVAS_PREFIX} Edit Component`,
+    props<{ request: EditComponentDialogRequest }>()
+);
+
+export const navigateToEditCurrentProcessGroup = createAction(
+    `${CANVAS_PREFIX} Navigate To Edit Current Process Group`
+);
 
 export const navigateToControllerServicesForProcessGroup = createAction(
-    '[Canvas] Navigate To Controller Services For Process Group',
+    `${CANVAS_PREFIX} Navigate To Controller Services For Process Group`,
     props<{ request: NavigateToControllerServicesRequest }>()
 );
 
+export const navigateToQueueListing = createAction(
+    `${CANVAS_PREFIX} Navigate To Queue Listing`,
+    props<{ request: NavigateToQueueListing }>()
+);
+
 export const editCurrentProcessGroup = createAction(
-    '[Canvas] Edit Current Process Group',
+    `${CANVAS_PREFIX} Edit Current Process Group`,
     props<{
         request: EditCurrentProcessGroupRequest;
     }>()
 );
 
 export const openEditPortDialog = createAction(
-    '[Canvas] Open Edit Port Dialog',
+    `${CANVAS_PREFIX} Open Edit Port Dialog`,
     props<{ request: EditComponentDialogRequest }>()
 );
 
 export const openEditProcessorDialog = createAction(
-    '[Canvas] Open Edit Processor Dialog',
+    `${CANVAS_PREFIX} Open Edit Processor Dialog`,
     props<{ request: EditComponentDialogRequest }>()
 );
 
 export const openEditConnectionDialog = createAction(
-    '[Canvas] Open Edit Connection Dialog',
+    `${CANVAS_PREFIX} Open Edit Connection Dialog`,
     props<{ request: EditConnectionDialogRequest }>()
 );
 
 export const openEditProcessGroupDialog = createAction(
-    '[Canvas] Open Edit Process Group Dialog',
+    `${CANVAS_PREFIX} Open Edit Process Group Dialog`,
     props<{ request: EditComponentDialogRequest }>()
 );
 
-export const updateComponent = createAction('[Canvas] Update Component', props<{ request: UpdateComponentRequest }>());
+export const updateComponent = createAction(
+    `${CANVAS_PREFIX} Update Component`,
+    props<{ request: UpdateComponentRequest }>()
+);
 
 export const updateComponentSuccess = createAction(
-    '[Canvas] Update Component Success',
+    `${CANVAS_PREFIX} Update Component Success`,
     props<{ response: UpdateComponentResponse }>()
 );
 
 export const updateComponentFailure = createAction(
-    '[Canvas] Update Component Failure',
+    `${CANVAS_PREFIX} Update Component Failure`,
     props<{ response: UpdateComponentFailure }>()
 );
 
-export const updateProcessor = createAction('[Canvas] Update Processor', props<{ request: UpdateComponentRequest }>());
+export const updateProcessor = createAction(
+    `${CANVAS_PREFIX} Update Processor`,
+    props<{ request: UpdateComponentRequest }>()
+);
 
 export const updateProcessorSuccess = createAction(
-    '[Canvas] Update Processor Success',
+    `${CANVAS_PREFIX} Update Processor Success`,
     props<{ response: UpdateComponentResponse }>()
 );
 
 export const updateConnection = createAction(
-    '[Canvas] Update Connection',
+    `${CANVAS_PREFIX} Update Connection`,
     props<{ request: UpdateConnectionRequest }>()
 );
 
 export const updateConnectionSuccess = createAction(
-    '[Canvas] Update Connection Success',
+    `${CANVAS_PREFIX} Update Connection Success`,
     props<{ response: UpdateConnectionSuccess }>()
 );
 
-export const updatePositions = createAction('[Canvas] Update Positions', props<{ request: UpdatePositionsRequest }>());
+export const updatePositions = createAction(
+    `${CANVAS_PREFIX} Update Positions`,
+    props<{ request: UpdatePositionsRequest }>()
+);
 
 export const updatePositionComplete = createAction(
-    '[Canvas] Update Position Complete',
+    `${CANVAS_PREFIX} Update Position Complete`,
     props<{ response: UpdateComponentResponse }>()
 );
 
-export const moveComponents = createAction('[Canvas] Move Components', props<{ request: MoveComponentsRequest }>());
+export const moveComponents = createAction(
+    `${CANVAS_PREFIX} Move Components`,
+    props<{ request: MoveComponentsRequest }>()
+);
 
 /*
     Delete Component Actions
  */
 
 export const deleteComponents = createAction(
-    '[Canvas] Delete Components',
+    `${CANVAS_PREFIX} Delete Components`,
     props<{ request: DeleteComponentRequest[] }>()
 );
 
 export const deleteComponentsSuccess = createAction(
-    '[Canvas] Delete Components Success',
+    `${CANVAS_PREFIX} Delete Components Success`,
     props<{ response: DeleteComponentResponse[] }>()
 );
 
@@ -335,33 +418,39 @@ export const deleteComponentsSuccess = createAction(
     Transition
  */
 
-export const setDragging = createAction('[Canvas] Set Dragging', props<{ dragging: boolean }>());
+export const setDragging = createAction(`${CANVAS_PREFIX} Set Dragging`, props<{ dragging: boolean }>());
 
 export const setTransitionRequired = createAction(
-    '[Canvas] Set Transition Required',
+    `${CANVAS_PREFIX} Set Transition Required`,
     props<{ transitionRequired: boolean }>()
 );
 
-export const setSkipTransform = createAction('[Canvas] Set Skip Transform', props<{ skipTransform: boolean }>());
+export const setSkipTransform = createAction(
+    `${CANVAS_PREFIX} Set Skip Transform`,
+    props<{ skipTransform: boolean }>()
+);
 
 export const navigateToComponent = createAction(
-    '[Canvas] Navigate To Component',
+    `${CANVAS_PREFIX} Navigate To Component`,
     props<{ request: NavigateToComponentRequest }>()
 );
 
-export const navigateWithoutTransform = createAction('[Canvas] Navigate Without Transform', props<{ url: string[] }>());
+export const navigateWithoutTransform = createAction(
+    `${CANVAS_PREFIX} Navigate Without Transform`,
+    props<{ url: string[] }>()
+);
 
 /*
     Palette actions
  */
 
 export const setNavigationCollapsed = createAction(
-    '[Canvas] Set Navigation Collapsed',
+    `${CANVAS_PREFIX} Set Navigation Collapsed`,
     props<{ navigationCollapsed: boolean }>()
 );
 
 export const setOperationCollapsed = createAction(
-    '[Canvas] Set Operation Collapsed',
+    `${CANVAS_PREFIX} Set Operation Collapsed`,
     props<{ operationCollapsed: boolean }>()
 );
 
@@ -369,9 +458,70 @@ export const setOperationCollapsed = createAction(
     General
  */
 
-export const showOkDialog = createAction('[Canvas] Show Ok Dialog', props<{ title: string; message: string }>());
+export const showOkDialog = createAction(
+    `${CANVAS_PREFIX} Show Ok Dialog`,
+    props<{ title: string; message: string }>()
+);
 
 export const renderConnectionsForComponent = createAction(
-    '[Canvas] Render Connections For Component',
+    `${CANVAS_PREFIX} Render Connections For Component`,
     props<{ id: string; updatePath: boolean; updateLabel: boolean }>()
 );
+
+export const navigateToProvenanceForComponent = createAction(
+    `${CANVAS_PREFIX} Navigate To Provenance For Component`,
+    props<{ id: string }>()
+);
+
+export const replayLastProvenanceEvent = createAction(
+    `${CANVAS_PREFIX} Replay Last Provenance Event`,
+    props<{ request: ReplayLastProvenanceEventRequest }>()
+);
+
+export const runOnce = createAction(`${CANVAS_PREFIX} Run Once`, props<{ request: RunOnceRequest }>());
+
+export const runOnceSuccess = createAction(`${CANVAS_PREFIX} Run Once Success`, props<{ response: RunOnceResponse }>());
+
+export const startComponent = createAction(
+    `${CANVAS_PREFIX} Start Component`,
+    props<{ request: StartComponentRequest | StartProcessGroupRequest }>()
+);
+
+export const startComponents = createAction(
+    `${CANVAS_PREFIX} Start Components`,
+    props<{ request: StartComponentsRequest }>()
+);
+
+export const startComponentSuccess = createAction(
+    `${CANVAS_PREFIX} Start Component Success`,
+    props<{ response: StartComponentResponse }>()
+);
+
+export const startProcessGroupSuccess = createAction(
+    `${CANVAS_PREFIX} Start Process Group Success`,
+    props<{ response: StartProcessGroupResponse }>()
+);
+
+export const stopComponent = createAction(
+    `${CANVAS_PREFIX} Stop Component`,
+    props<{ request: StopComponentRequest | StopProcessGroupRequest }>()
+);
+
+export const stopComponents = createAction(
+    `${CANVAS_PREFIX} Stop Components`,
+    props<{ request: StopComponentsRequest }>()
+);
+
+export const stopComponentSuccess = createAction(
+    `${CANVAS_PREFIX} Stop Component Success`,
+    props<{ response: StopComponentResponse }>()
+);
+
+export const stopProcessGroupSuccess = createAction(
+    `${CANVAS_PREFIX} Stop Process Group Success`,
+    props<{ response: StopProcessGroupResponse }>()
+);
+
+export const startCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Start Current Process Group`);
+
+export const stopCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Stop Current Process Group`);

@@ -29,6 +29,6 @@ public interface KafkaPublishComponent extends KafkaClientComponent {
             .description("Specifies how the processor handles a FlowFile if it is unable to publish the data to Kafka")
             .required(true)
             .allowableValues(FailureStrategy.class)
-            .defaultValue(FailureStrategy.ROUTE_TO_FAILURE.getValue())
+            .defaultValue(FailureStrategy.ROUTE_TO_FAILURE)
             .build();
 }

@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.search;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,8 +44,7 @@ public class SearchResultsDTO {
     /**
      * @return The processors that matched the search
      */
-    @ApiModelProperty(
-            value = "The processors that matched the search."
+    @Schema(description = "The processors that matched the search."
     )
     public List<ComponentSearchResultDTO> getProcessorResults() {
         return processorResults;
@@ -58,8 +57,7 @@ public class SearchResultsDTO {
     /**
      * @return connections that matched the search
      */
-    @ApiModelProperty(
-            value = "The connections that matched the search."
+    @Schema(description = "The connections that matched the search."
     )
     public List<ComponentSearchResultDTO> getConnectionResults() {
         return connectionResults;
@@ -72,8 +70,7 @@ public class SearchResultsDTO {
     /**
      * @return process group that matched the search
      */
-    @ApiModelProperty(
-            value = "The process groups that matched the search."
+    @Schema(description = "The process groups that matched the search."
     )
     public List<ComponentSearchResultDTO> getProcessGroupResults() {
         return processGroupResults;
@@ -86,8 +83,7 @@ public class SearchResultsDTO {
     /**
      * @return input ports that matched the search
      */
-    @ApiModelProperty(
-            value = "The input ports that matched the search."
+    @Schema(description = "The input ports that matched the search."
     )
     public List<ComponentSearchResultDTO> getInputPortResults() {
         return inputPortResults;
@@ -96,8 +92,7 @@ public class SearchResultsDTO {
     /**
      * @return output ports that matched the search
      */
-    @ApiModelProperty(
-            value = "The output ports that matched the search."
+    @Schema(description = "The output ports that matched the search."
     )
     public List<ComponentSearchResultDTO> getOutputPortResults() {
         return outputPortResults;
@@ -114,8 +109,7 @@ public class SearchResultsDTO {
     /**
      * @return remote process groups that matched the search
      */
-    @ApiModelProperty(
-            value = "The remote process groups that matched the search."
+    @Schema(description = "The remote process groups that matched the search."
     )
     public List<ComponentSearchResultDTO> getRemoteProcessGroupResults() {
         return remoteProcessGroupResults;
@@ -128,8 +122,7 @@ public class SearchResultsDTO {
     /**
      * @return funnels that matched the search
      */
-    @ApiModelProperty(
-            value = "The funnels that matched the search."
+    @Schema(description = "The funnels that matched the search."
     )
     public List<ComponentSearchResultDTO> getFunnelResults() {
         return funnelResults;
@@ -142,8 +135,7 @@ public class SearchResultsDTO {
     /**
      * @return labels that matched the search
      */
-    @ApiModelProperty(
-            value = "The labels that matched the search."
+    @Schema(description = "The labels that matched the search."
     )
     public List<ComponentSearchResultDTO> getLabelResults() {
         return labelResults;
@@ -156,8 +148,7 @@ public class SearchResultsDTO {
     /**
      * @return the controller service nodes that matched the search
      */
-    @ApiModelProperty(
-        value = "The controller service nodes that matched the search"
+    @Schema(description = "The controller service nodes that matched the search"
     )
     public List<ComponentSearchResultDTO> getControllerServiceNodeResults() {
         return controllerServiceNodeResults;
@@ -170,8 +161,7 @@ public class SearchResultsDTO {
     /**
      * @return the parameter provider nodes that matched the search
      */
-    @ApiModelProperty(
-        value = "The parameter provider nodes that matched the search"
+    @Schema(description = "The parameter provider nodes that matched the search"
     )
     public List<ComponentSearchResultDTO> getParameterProviderNodeResults() {
         return parameterProviderNodeResults;
@@ -184,8 +174,7 @@ public class SearchResultsDTO {
     /**
      * @return parameter contexts that matched the search.
      */
-    @ApiModelProperty(
-        value = "The parameter contexts that matched the search."
+    @Schema(description = "The parameter contexts that matched the search."
     )
     public List<ComponentSearchResultDTO> getParameterContextResults() {
         return parameterContextResults;
@@ -198,8 +187,7 @@ public class SearchResultsDTO {
     /**
      * @return parameters that matched the search.
      */
-    @ApiModelProperty(
-            value = "The parameters that matched the search."
+    @Schema(description = "The parameters that matched the search."
     )
     public List<ComponentSearchResultDTO> getParameterResults() {
         return parameterResults;

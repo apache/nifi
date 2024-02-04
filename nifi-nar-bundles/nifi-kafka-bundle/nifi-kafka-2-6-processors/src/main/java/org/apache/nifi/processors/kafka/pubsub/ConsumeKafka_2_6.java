@@ -29,21 +29,21 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
-import org.apache.nifi.kafka.shared.property.KeyEncoding;
-import org.apache.nifi.kafka.shared.validation.KafkaClientCustomValidationFunction;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
+import org.apache.nifi.kafka.shared.property.KeyEncoding;
 import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
+import org.apache.nifi.kafka.shared.validation.KafkaClientCustomValidationFunction;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -74,7 +74,8 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_OFFSET, description = "The offset of the message in the partition of the topic."),
     @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TIMESTAMP, description = "The timestamp of the message in the partition of the topic."),
     @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_PARTITION, description = "The partition of the topic the message or message bundle is from"),
-    @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TOPIC, description = "The topic the message or message bundle is from")
+    @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TOPIC, description = "The topic the message or message bundle is from"),
+    @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TOMBSTONE, description = "Set to true if the consumed message is a tombstone message")
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
@@ -85,13 +86,10 @@ import java.util.regex.Pattern;
 public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientComponent, VerifiableProcessor {
 
     static final AllowableValue OFFSET_EARLIEST = new AllowableValue("earliest", "earliest", "Automatically reset the offset to the earliest offset");
-
     static final AllowableValue OFFSET_LATEST = new AllowableValue("latest", "latest", "Automatically reset the offset to the latest offset");
-
     static final AllowableValue OFFSET_NONE = new AllowableValue("none", "none", "Throw exception to the consumer if no previous offset is found for the consumer's group");
 
     static final AllowableValue TOPIC_NAME = new AllowableValue("names", "names", "Topic is a full topic name or comma separated list of names");
-
     static final AllowableValue TOPIC_PATTERN = new AllowableValue("pattern", "pattern", "Topic is a regex using the Java Pattern syntax");
 
     static final PropertyDescriptor TOPICS = new PropertyDescriptor.Builder()
@@ -109,7 +107,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
             .description("Specifies whether the Topic(s) provided are a comma separated list of names or a single regular expression")
             .required(true)
             .allowableValues(TOPIC_NAME, TOPIC_PATTERN)
-            .defaultValue(TOPIC_NAME.getValue())
+            .defaultValue(TOPIC_NAME)
             .build();
 
     static final PropertyDescriptor GROUP_ID = new PropertyDescriptor.Builder()
@@ -128,7 +126,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
                     + "more on the server (e.g. because that data has been deleted). Corresponds to Kafka's 'auto.offset.reset' property.")
             .required(true)
             .allowableValues(OFFSET_EARLIEST, OFFSET_LATEST, OFFSET_NONE)
-            .defaultValue(OFFSET_LATEST.getValue())
+            .defaultValue(OFFSET_LATEST)
             .build();
 
     static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new PropertyDescriptor.Builder()
@@ -136,7 +134,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
             .displayName("Key Attribute Encoding")
             .description("FlowFiles that are emitted have an attribute named '" + KafkaFlowFileAttribute.KAFKA_KEY + "'. This property dictates how the value of the attribute should be encoded.")
             .required(true)
-            .defaultValue(KeyEncoding.UTF8.getValue())
+            .defaultValue(KeyEncoding.UTF8)
             .allowableValues(KeyEncoding.class)
             .build();
 
@@ -247,42 +245,36 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
         .description("FlowFiles received from Kafka. Depending on demarcation strategy it is a flow file per message or a bundle of messages grouped by topic and partition.")
         .build();
 
-    static final List<PropertyDescriptor> DESCRIPTORS;
-    static final Set<Relationship> RELATIONSHIPS;
+    static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+            BOOTSTRAP_SERVERS,
+            TOPICS,
+            TOPIC_TYPE,
+            GROUP_ID,
+            COMMIT_OFFSETS,
+            MAX_UNCOMMITTED_TIME,
+            HONOR_TRANSACTIONS,
+            MESSAGE_DEMARCATOR,
+            SEPARATE_BY_KEY,
+            SECURITY_PROTOCOL,
+            SASL_MECHANISM,
+            SELF_CONTAINED_KERBEROS_USER_SERVICE,
+            KERBEROS_SERVICE_NAME,
+            SASL_USERNAME,
+            SASL_PASSWORD,
+            TOKEN_AUTHENTICATION,
+            AWS_PROFILE_NAME,
+            SSL_CONTEXT_SERVICE,
+            KEY_ATTRIBUTE_ENCODING,
+            AUTO_OFFSET_RESET,
+            MESSAGE_HEADER_ENCODING,
+            HEADER_NAME_REGEX,
+            MAX_POLL_RECORDS,
+            COMMS_TIMEOUT
+    );
+    static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
     private volatile ConsumerPool consumerPool = null;
     private final Set<ConsumerLease> activeLeases = Collections.synchronizedSet(new HashSet<>());
-
-    static {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(BOOTSTRAP_SERVERS);
-        descriptors.add(TOPICS);
-        descriptors.add(TOPIC_TYPE);
-        descriptors.add(GROUP_ID);
-        descriptors.add(COMMIT_OFFSETS);
-        descriptors.add(MAX_UNCOMMITTED_TIME);
-        descriptors.add(HONOR_TRANSACTIONS);
-        descriptors.add(MESSAGE_DEMARCATOR);
-        descriptors.add(SEPARATE_BY_KEY);
-        descriptors.add(SECURITY_PROTOCOL);
-        descriptors.add(SASL_MECHANISM);
-        descriptors.add(SELF_CONTAINED_KERBEROS_USER_SERVICE);
-        descriptors.add(KERBEROS_SERVICE_NAME);
-        descriptors.add(SASL_USERNAME);
-        descriptors.add(SASL_PASSWORD);
-        descriptors.add(TOKEN_AUTHENTICATION);
-        descriptors.add(AWS_PROFILE_NAME);
-        descriptors.add(SSL_CONTEXT_SERVICE);
-        descriptors.add(KEY_ATTRIBUTE_ENCODING);
-        descriptors.add(AUTO_OFFSET_RESET);
-        descriptors.add(MESSAGE_HEADER_ENCODING);
-        descriptors.add(HEADER_NAME_REGEX);
-        descriptors.add(MAX_POLL_RECORDS);
-        descriptors.add(COMMS_TIMEOUT);
-
-        DESCRIPTORS = Collections.unmodifiableList(descriptors);
-        RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
-    }
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -368,7 +360,6 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
     }
 
     protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
-        final int maxLeases = context.getMaxConcurrentTasks();
         final Long maxUncommittedTime = context.getProperty(MAX_UNCOMMITTED_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
         final boolean commitOffsets = context.getProperty(COMMIT_OFFSETS).asBoolean();
 
@@ -383,7 +374,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
         final String topicListing = context.getProperty(ConsumeKafka_2_6.TOPICS).evaluateAttributeExpressions().getValue();
         final String topicType = context.getProperty(ConsumeKafka_2_6.TOPIC_TYPE).evaluateAttributeExpressions().getValue();
         final List<String> topics = new ArrayList<>();
-        final String keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
+        final KeyEncoding keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).asAllowableValue(KeyEncoding.class);
         final String securityProtocol = context.getProperty(SECURITY_PROTOCOL).getValue();
         final String bootstrapServers = context.getProperty(BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
         final boolean honorTransactions = context.getProperty(HONOR_TRANSACTIONS).asBoolean();
@@ -413,11 +404,11 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
                 }
             }
 
-            return new ConsumerPool(maxLeases, demarcator, separateByKey, props, topics, maxUncommittedTime, keyEncoding, securityProtocol,
+            return new ConsumerPool(demarcator, separateByKey, props, topics, maxUncommittedTime, keyEncoding, securityProtocol,
                 bootstrapServers, log, honorTransactions, charset, headerNamePattern, partitionsToConsume, commitOffsets);
         } else if (topicType.equals(TOPIC_PATTERN.getValue())) {
             final Pattern topicPattern = Pattern.compile(topicListing.trim());
-            return new ConsumerPool(maxLeases, demarcator, separateByKey, props, topicPattern, maxUncommittedTime, keyEncoding, securityProtocol,
+            return new ConsumerPool(demarcator, separateByKey, props, topicPattern, maxUncommittedTime, keyEncoding, securityProtocol,
                 bootstrapServers, log, honorTransactions, charset, headerNamePattern, partitionsToConsume, commitOffsets);
         } else {
             getLogger().error("Subscription type has an unknown value {}", topicType);

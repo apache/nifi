@@ -16,17 +16,16 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import {
-    SubmitParameterContextUpdate,
     CreateParameterContextRequest,
     DeleteParameterContextRequest,
-    ParameterContextEntity,
-    ParameterContextUpdateRequest
+    ParameterContextEntity
 } from '../state/parameter-context-listing';
+import { ParameterContextUpdateRequest, SubmitParameterContextUpdate } from '../../../state/shared';
 
 @Injectable({ providedIn: 'root' })
 export class ParameterContextService {
@@ -37,19 +36,6 @@ export class ParameterContextService {
         private client: Client,
         private nifiCommon: NiFiCommon
     ) {}
-
-    /**
-     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
-     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
-     *
-     * https://stackoverflow.com/a/59586462
-     *
-     * @param url
-     * @private
-     */
-    private stripProtocol(url: string): string {
-        return this.nifiCommon.substringAfterFirst(url, ':');
-    }
 
     getParameterContexts(): Observable<any> {
         return this.httpClient.get(`${ParameterContextService.API}/flow/parameter-contexts`);
@@ -78,11 +64,11 @@ export class ParameterContextService {
     }
 
     pollParameterContextUpdate(updateRequest: ParameterContextUpdateRequest): Observable<any> {
-        return this.httpClient.get(this.stripProtocol(updateRequest.uri));
+        return this.httpClient.get(this.nifiCommon.stripProtocol(updateRequest.uri));
     }
 
     deleteParameterContextUpdate(updateRequest: ParameterContextUpdateRequest): Observable<any> {
-        return this.httpClient.delete(this.stripProtocol(updateRequest.uri));
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(updateRequest.uri));
     }
 
     deleteParameterContext(deleteParameterContext: DeleteParameterContextRequest): Observable<any> {
@@ -92,8 +78,4 @@ export class ParameterContextService {
             params: revision
         });
     }
-
-    // updateControllerConfig(controllerEntity: ControllerEntity): Observable<any> {
-    //     return this.httpClient.put(`${ControllerServiceService.API}/controller/config`, controllerEntity);
-    // }
 }

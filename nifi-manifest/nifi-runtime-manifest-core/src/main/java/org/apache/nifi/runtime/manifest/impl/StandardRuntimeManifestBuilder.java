@@ -23,6 +23,8 @@ import org.apache.nifi.c2.protocol.component.api.ConfigurableComponentDefinition
 import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
 import org.apache.nifi.c2.protocol.component.api.DefinedType;
 import org.apache.nifi.c2.protocol.component.api.ExtensionComponent;
+import org.apache.nifi.c2.protocol.component.api.MultiProcessorUseCase;
+import org.apache.nifi.c2.protocol.component.api.ProcessorConfiguration;
 import org.apache.nifi.c2.protocol.component.api.ProcessorDefinition;
 import org.apache.nifi.c2.protocol.component.api.PropertyAllowableValue;
 import org.apache.nifi.c2.protocol.component.api.PropertyDependency;
@@ -33,6 +35,7 @@ import org.apache.nifi.c2.protocol.component.api.ReportingTaskDefinition;
 import org.apache.nifi.c2.protocol.component.api.Restriction;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.c2.protocol.component.api.SchedulingDefaults;
+import org.apache.nifi.c2.protocol.component.api.UseCase;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.components.state.Scope;
@@ -151,7 +154,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
 
     @Override
     public RuntimeManifestBuilder addBundles(final Iterable<ExtensionManifestContainer> extensionManifests) {
-        extensionManifests.forEach(em -> addBundle(em));
+        extensionManifests.forEach(this::addBundle);
         return this;
     }
 
@@ -277,7 +280,43 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
             );
         }
 
+        final List<UseCase> useCases = extension.getUseCases() == null ? List.of() : extension.getUseCases().stream()
+            .map(StandardRuntimeManifestBuilder::createUseCase)
+            .toList();
+        processorDefinition.setUseCases(useCases);
+
+        final List<MultiProcessorUseCase> multiProcessorUseCases = extension.getMultiProcessorUseCases() == null ? List.of() : extension.getMultiProcessorUseCases().stream()
+            .map(StandardRuntimeManifestBuilder::createMultiProcessorUseCase)
+            .toList();
+        processorDefinition.setMultiProcessorUseCases(multiProcessorUseCases);
+
         componentManifestBuilder.addProcessor(processorDefinition);
+    }
+
+    private static UseCase createUseCase(final org.apache.nifi.extension.manifest.UseCase extensionUseCase) {
+        final UseCase useCase = new UseCase();
+        useCase.setDescription(extensionUseCase.getDescription());
+        useCase.setConfiguration(extensionUseCase.getConfiguration());
+        useCase.setKeywords(extensionUseCase.getKeywords());
+        useCase.setNotes(extensionUseCase.getNotes());
+        return useCase;
+    }
+
+    private static MultiProcessorUseCase createMultiProcessorUseCase(final org.apache.nifi.extension.manifest.MultiProcessorUseCase extensionUseCase) {
+        final MultiProcessorUseCase useCase = new MultiProcessorUseCase();
+        useCase.setDescription(extensionUseCase.getDescription());
+        useCase.setKeywords(extensionUseCase.getKeywords());
+        useCase.setNotes(extensionUseCase.getNotes());
+
+        final List<ProcessorConfiguration> processorConfigs = new ArrayList<>();
+        for (final org.apache.nifi.extension.manifest.ProcessorConfiguration extensionConfig : extensionUseCase.getProcessorConfigurations()) {
+            final ProcessorConfiguration processorConfig = new ProcessorConfiguration();
+            processorConfig.setConfiguration(extensionConfig.getConfiguration());
+            processorConfig.setProcessorClassName(extensionConfig.getProcessorClassName());
+            processorConfigs.add(processorConfig);
+        }
+        useCase.setConfigurations(processorConfigs);
+        return useCase;
     }
 
     private org.apache.nifi.c2.protocol.component.api.Attribute getAttribute(final Attribute attribute) {
@@ -299,16 +338,11 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
             return null;
         }
 
-        switch (inputRequirement) {
-            case INPUT_ALLOWED:
-                return InputRequirement.Requirement.INPUT_ALLOWED;
-            case INPUT_REQUIRED:
-                return InputRequirement.Requirement.INPUT_REQUIRED;
-            case INPUT_FORBIDDEN:
-                return InputRequirement.Requirement.INPUT_FORBIDDEN;
-            default:
-                throw new IllegalArgumentException("Unknown input requirement: " + inputRequirement.name());
-        }
+        return switch (inputRequirement) {
+            case INPUT_ALLOWED -> InputRequirement.Requirement.INPUT_ALLOWED;
+            case INPUT_REQUIRED -> InputRequirement.Requirement.INPUT_REQUIRED;
+            case INPUT_FORBIDDEN -> InputRequirement.Requirement.INPUT_FORBIDDEN;
+        };
     }
 
     private List<Relationship> getSupportedRelationships(final List<org.apache.nifi.extension.manifest.Relationship> relationships) {
@@ -460,14 +494,10 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
     }
 
     private Scope getScope(final org.apache.nifi.extension.manifest.Scope sourceScope) {
-        switch (sourceScope) {
-            case LOCAL:
-                return Scope.LOCAL;
-            case CLUSTER:
-                return Scope.CLUSTER;
-            default:
-                throw new IllegalArgumentException("Unknown scope: " + sourceScope);
-        }
+        return switch (sourceScope) {
+            case LOCAL -> Scope.LOCAL;
+            case CLUSTER -> Scope.CLUSTER;
+        };
     }
 
     private Restriction createRestriction(final org.apache.nifi.extension.manifest.Restriction extensionRestriction) {
@@ -550,8 +580,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
 
             final DependentValues dependentValues = dependency.getDependentValues();
             if (dependentValues != null && dependentValues.getValues() != null) {
-                final List<String> values = new ArrayList<String>();
-                values.addAll(dependentValues.getValues());
+                final List<String> values = new ArrayList<>(dependentValues.getValues());
                 propertyDependency.setDependentValues(values);
             }
             propertyDependencies.add(propertyDependency);
@@ -565,18 +594,15 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         }
 
         final PropertyResourceDefinition propertyResourceDefinition = new PropertyResourceDefinition();
-        switch (resourceDefinition.getCardinality()) {
-            case SINGLE:
-                propertyResourceDefinition.setCardinality(ResourceCardinality.SINGLE);
-                break;
-            case MULTIPLE:
-                propertyResourceDefinition.setCardinality(ResourceCardinality.MULTIPLE);
-                break;
-        }
+        final ResourceCardinality cardinality = switch (resourceDefinition.getCardinality()) {
+            case SINGLE -> ResourceCardinality.SINGLE;
+            case MULTIPLE -> ResourceCardinality.MULTIPLE;
+        };
+        propertyResourceDefinition.setCardinality(cardinality);
 
         propertyResourceDefinition.setResourceTypes(
                 resourceDefinition.getResourceTypes().stream()
-                        .map(rt -> getResourceType(rt))
+                        .map(this::getResourceType)
                         .collect(Collectors.toSet())
         );
 
@@ -584,18 +610,12 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
     }
 
     private ResourceType getResourceType(final org.apache.nifi.extension.manifest.ResourceType resourceType) {
-        switch (resourceType) {
-            case URL:
-                return ResourceType.URL;
-            case FILE:
-                return ResourceType.FILE;
-            case TEXT:
-                return ResourceType.TEXT;
-            case DIRECTORY:
-                return ResourceType.DIRECTORY;
-            default:
-                throw new IllegalArgumentException("Unknown resource type: " + resourceType);
-        }
+        return switch (resourceType) {
+            case URL -> ResourceType.URL;
+            case FILE -> ResourceType.FILE;
+            case TEXT -> ResourceType.TEXT;
+            case DIRECTORY -> ResourceType.DIRECTORY;
+        };
     }
 
     private ExpressionLanguageScope getELScope(final org.apache.nifi.extension.manifest.ExpressionLanguageScope elScope) {
@@ -603,16 +623,11 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
             return null;
         }
 
-        switch (elScope) {
-            case NONE:
-                return ExpressionLanguageScope.NONE;
-            case FLOWFILE_ATTRIBUTES:
-                return ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
-            case ENVIRONMENT:
-                return ExpressionLanguageScope.ENVIRONMENT;
-            default:
-                throw new IllegalArgumentException("Unknown Expression Language Scope: " + elScope.name());
-        }
+        return switch (elScope) {
+            case NONE -> ExpressionLanguageScope.NONE;
+            case FLOWFILE_ATTRIBUTES -> ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
+            case ENVIRONMENT -> ExpressionLanguageScope.ENVIRONMENT;
+        };
     }
 
     private List<PropertyAllowableValue> getPropertyAllowableValues(final List<AllowableValue> allowableValues) {

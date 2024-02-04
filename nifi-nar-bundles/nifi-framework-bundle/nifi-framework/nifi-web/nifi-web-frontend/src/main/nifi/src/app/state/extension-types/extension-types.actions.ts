@@ -16,7 +16,11 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { LoadExtensionTypesForCanvasResponse, LoadExtensionTypesForSettingsResponse } from './index';
+import {
+    LoadExtensionTypesForCanvasResponse,
+    LoadExtensionTypesForPoliciesResponse,
+    LoadExtensionTypesForSettingsResponse
+} from './index';
 
 export const loadExtensionTypesForCanvas = createAction('[Extension Types] Load Extension Types For Canvas');
 
@@ -30,6 +34,13 @@ export const loadExtensionTypesForSettings = createAction('[Extension Types] Loa
 export const loadExtensionTypesForSettingsSuccess = createAction(
     '[Extension Types] Load Extension Types For Settings Success',
     props<{ response: LoadExtensionTypesForSettingsResponse }>()
+);
+
+export const loadExtensionTypesForPolicies = createAction('[Extension Types] Load Extension Types For Policies');
+
+export const loadExtensionTypesForPoliciesSuccess = createAction(
+    '[Extension Types] Load Extension Types For Canvas Success',
+    props<{ response: LoadExtensionTypesForPoliciesResponse }>()
 );
 
 export const extensionTypesApiError = createAction(

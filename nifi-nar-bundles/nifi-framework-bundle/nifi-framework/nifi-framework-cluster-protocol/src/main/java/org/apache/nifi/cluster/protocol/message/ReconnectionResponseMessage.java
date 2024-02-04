@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.cluster.protocol.message;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * This message is used an "ACK" for a ReconnectionRequestMessage

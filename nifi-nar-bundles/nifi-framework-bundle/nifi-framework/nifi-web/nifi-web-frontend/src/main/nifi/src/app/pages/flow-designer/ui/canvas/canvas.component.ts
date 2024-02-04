@@ -25,6 +25,7 @@ import {
     editComponent,
     editCurrentProcessGroup,
     loadProcessGroup,
+    resetFlowState,
     selectComponents,
     setSkipTransform,
     startProcessGroupPolling,
@@ -52,12 +53,17 @@ import {
     selectRemoteProcessGroup,
     selectSingleEditedComponent,
     selectSingleSelectedComponent,
-    selectSkipTransform
+    selectSkipTransform,
+    selectViewStatusHistoryComponent
 } from '../../state/flow/flow.selectors';
-import { filter, map, switchMap, take, withLatestFrom } from 'rxjs';
+import { filter, map, switchMap, take } from 'rxjs';
 import { restoreViewport, zoomFit } from '../../state/transform/transform.actions';
-import { ComponentType } from '../../../../state/shared';
+import { ComponentType, isDefinedAndNotNull } from '../../../../state/shared';
 import { initialState } from '../../state/flow/flow.reducer';
+import { CanvasContextMenu } from '../../service/canvas-context-menu.service';
+import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
+import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
+import { concatLatestFrom } from '@ngrx/effects';
 
 @Component({
     selector: 'fd-canvas',
@@ -69,12 +75,13 @@ export class Canvas implements OnInit, OnDestroy {
     private canvas: any;
 
     private scale: number = INITIAL_SCALE;
-    private canvasClicked: boolean = false;
+    private canvasClicked = false;
 
     constructor(
         private viewContainerRef: ViewContainerRef,
         private store: Store<CanvasState>,
-        private canvasView: CanvasView
+        private canvasView: CanvasView,
+        public canvasContextMenu: CanvasContextMenu
     ) {
         this.store
             .select(selectTransform)
@@ -108,10 +115,10 @@ export class Canvas implements OnInit, OnDestroy {
                 filter((processGroupId) => processGroupId != initialState.id),
                 switchMap(() => this.store.select(selectProcessGroupRoute)),
                 filter((processGroupRoute) => processGroupRoute != null),
-                withLatestFrom(this.store.select(selectSkipTransform)),
+                concatLatestFrom(() => this.store.select(selectSkipTransform)),
                 takeUntilDestroyed()
             )
-            .subscribe(([status, skipTransform]) => {
+            .subscribe(([, skipTransform]) => {
                 if (skipTransform) {
                     this.store.dispatch(setSkipTransform({ skipTransform: false }));
                 } else {
@@ -126,10 +133,10 @@ export class Canvas implements OnInit, OnDestroy {
                 filter((processGroupId) => processGroupId != initialState.id),
                 switchMap(() => this.store.select(selectSingleSelectedComponent)),
                 filter((selectedComponent) => selectedComponent != null),
-                withLatestFrom(this.store.select(selectSkipTransform)),
+                concatLatestFrom(() => this.store.select(selectSkipTransform)),
                 takeUntilDestroyed()
             )
-            .subscribe(([selectedComponent, skipTransform]) => {
+            .subscribe(([, skipTransform]) => {
                 if (skipTransform) {
                     this.store.dispatch(setSkipTransform({ skipTransform: false }));
                 } else {
@@ -144,10 +151,10 @@ export class Canvas implements OnInit, OnDestroy {
                 filter((processGroupId) => processGroupId != initialState.id),
                 switchMap(() => this.store.select(selectBulkSelectedComponentIds)),
                 filter((ids) => ids.length > 0),
-                withLatestFrom(this.store.select(selectSkipTransform)),
+                concatLatestFrom(() => this.store.select(selectSkipTransform)),
                 takeUntilDestroyed()
             )
-            .subscribe(([ids, skipTransform]) => {
+            .subscribe(([, skipTransform]) => {
                 if (skipTransform) {
                     this.store.dispatch(setSkipTransform({ skipTransform: false }));
                 } else {
@@ -161,37 +168,33 @@ export class Canvas implements OnInit, OnDestroy {
             .pipe(
                 filter((processGroupId) => processGroupId != initialState.id),
                 switchMap(() => this.store.select(selectSingleEditedComponent)),
-                // ensure there is a selected component
-                filter((selectedComponent) => selectedComponent != null),
+                isDefinedAndNotNull(),
                 switchMap((selectedComponent) => {
-                    // @ts-ignore
-                    const component: SelectedComponent = selectedComponent;
-
                     let component$;
-                    switch (component.componentType) {
+                    switch (selectedComponent.componentType) {
                         case ComponentType.Processor:
-                            component$ = this.store.select(selectProcessor(component.id));
+                            component$ = this.store.select(selectProcessor(selectedComponent.id));
                             break;
                         case ComponentType.InputPort:
-                            component$ = this.store.select(selectInputPort(component.id));
+                            component$ = this.store.select(selectInputPort(selectedComponent.id));
                             break;
                         case ComponentType.OutputPort:
-                            component$ = this.store.select(selectOutputPort(component.id));
+                            component$ = this.store.select(selectOutputPort(selectedComponent.id));
                             break;
                         case ComponentType.ProcessGroup:
-                            component$ = this.store.select(selectProcessGroup(component.id));
+                            component$ = this.store.select(selectProcessGroup(selectedComponent.id));
                             break;
                         case ComponentType.RemoteProcessGroup:
-                            component$ = this.store.select(selectRemoteProcessGroup(component.id));
+                            component$ = this.store.select(selectRemoteProcessGroup(selectedComponent.id));
                             break;
                         case ComponentType.Connection:
-                            component$ = this.store.select(selectConnection(component.id));
+                            component$ = this.store.select(selectConnection(selectedComponent.id));
                             break;
                         case ComponentType.Funnel:
-                            component$ = this.store.select(selectFunnel(component.id));
+                            component$ = this.store.select(selectFunnel(selectedComponent.id));
                             break;
                         case ComponentType.Label:
-                            component$ = this.store.select(selectLabel(component.id));
+                            component$ = this.store.select(selectLabel(selectedComponent.id));
                             break;
                         default:
                             throw 'Unrecognized Component Type';
@@ -235,6 +238,28 @@ export class Canvas implements OnInit, OnDestroy {
                     })
                 );
             });
+
+        this.store
+            .select(selectCurrentProcessGroupId)
+            .pipe(
+                filter((processGroupId) => processGroupId != initialState.id),
+                switchMap(() => this.store.select(selectViewStatusHistoryComponent)),
+                filter((selectedComponent) => selectedComponent != null),
+                takeUntilDestroyed()
+            )
+            .subscribe((component) => {
+                if (component) {
+                    this.store.dispatch(
+                        getStatusHistoryAndOpenDialog({
+                            request: {
+                                source: 'canvas',
+                                componentType: component.componentType,
+                                componentId: component.id
+                            }
+                        })
+                    );
+                }
+            });
     }
 
     ngOnInit(): void {
@@ -242,6 +267,7 @@ export class Canvas implements OnInit, OnDestroy {
         this.createSvg();
         this.canvasView.init(this.viewContainerRef, this.svg, this.canvas);
 
+        this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(startProcessGroupPolling());
     }
 
@@ -287,15 +313,15 @@ export class Canvas implements OnInit, OnDestroy {
             .attr('markerWidth', 6)
             .attr('markerHeight', 6)
             .attr('orient', 'auto')
-            .attr('fill', function (d: string) {
+            .attr('class', function (d: string) {
                 if (d === 'ghost') {
-                    return '#aaaaaa';
+                    return 'primary-contrast-300';
                 } else if (d === 'unauthorized') {
-                    return '#ba554a';
+                    return 'warn-400';
                 } else if (d === 'full') {
-                    return '#ba554a';
+                    return 'warn-400';
                 } else {
-                    return '#000000';
+                    return 'primary-contrast-200';
                 }
             })
             .append('path')
@@ -324,11 +350,7 @@ export class Canvas implements OnInit, OnDestroy {
             .attr('result', 'offsetBlur');
 
         // color/opacity
-        componentDropShadowFilter
-            .append('feFlood')
-            .attr('flood-color', '#000000')
-            .attr('flood-opacity', 0.4)
-            .attr('result', 'offsetColor');
+        componentDropShadowFilter.append('feFlood').attr('flood-opacity', 0.4).attr('result', 'offsetColor');
 
         // combine
         componentDropShadowFilter
@@ -366,11 +388,7 @@ export class Canvas implements OnInit, OnDestroy {
             .attr('result', 'offsetBlur');
 
         // color/opacity
-        connectionFullDropShadowFilter
-            .append('feFlood')
-            .attr('flood-color', '#ba554a')
-            .attr('flood-opacity', 1)
-            .attr('result', 'offsetColor');
+        connectionFullDropShadowFilter.append('feFlood').attr('flood-opacity', 1).attr('result', 'offsetColor');
 
         // combine
         connectionFullDropShadowFilter
@@ -558,6 +576,7 @@ export class Canvas implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.store.dispatch(resetFlowState());
         this.store.dispatch(stopProcessGroupPolling());
     }
 }

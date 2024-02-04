@@ -40,9 +40,7 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -98,20 +96,17 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
             .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.SOCKS};
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(
-            Arrays.asList(
-                    QUEUE_NAME,
-                    ENDPOINT_SUFFIX,
-                    STORAGE_CREDENTIALS_SERVICE,
-                    AUTO_DELETE,
-                    MESSAGE_BATCH_SIZE,
-                    VISIBILITY_TIMEOUT,
-                    REQUEST_TIMEOUT,
-                    ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS)
-            )
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            QUEUE_NAME,
+            ENDPOINT_SUFFIX,
+            STORAGE_CREDENTIALS_SERVICE,
+            AUTO_DELETE,
+            MESSAGE_BATCH_SIZE,
+            VISIBILITY_TIMEOUT,
+            REQUEST_TIMEOUT,
+            ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS)
     );
-
-    private static final Set<Relationship> RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
     // 7 days is the maximum timeout as per https://learn.microsoft.com/en-us/rest/api/storageservices/get-messages
     private static final Duration MAX_VISIBILITY_TIMEOUT = Duration.ofDays(7);
@@ -194,7 +189,7 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
             flowFile = session.write(flowFile, out -> out.write(message.getBody().toString().getBytes()));
 
             session.transfer(flowFile, REL_SUCCESS);
-            session.getProvenanceReporter().receive(flowFile, queueClient.getQueueUrl().toString());
+            session.getProvenanceReporter().receive(flowFile, queueClient.getQueueUrl());
         }
 
         if (autoDelete) {

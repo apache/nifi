@@ -52,8 +52,6 @@ export class ProcessGroupReferences {
     authorizedProcessGroupReferences: BoundProcessGroup[] = [];
     unauthorizedProcessGroupReferences: BoundProcessGroup[] = [];
 
-    constructor() {}
-
     private getUnauthorized(references: BoundProcessGroup[] | undefined) {
         if (references) {
             return references.filter((reference) => !reference.permissions.canRead);

@@ -31,11 +31,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -46,6 +49,13 @@ import org.apache.nifi.reporting.InitializationException;
 @Tags({"lookup", "cache", "enrich", "join", "csv", "reloadable", "key", "value"})
 @CapabilityDescription("A reloadable CSV file-based lookup service. The first line of the csv file is considered as " +
         "header.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+                        explanation = "Provides operator the ability to read from any file that NiFi has access to.")
+        }
+)
 public class SimpleCsvFileLookupService extends AbstractCSVLookupService implements StringLookupService {
 
     private static final Set<String> REQUIRED_KEYS = Collections.unmodifiableSet(Stream.of(KEY).collect(Collectors.toSet()));
@@ -109,6 +119,7 @@ public class SimpleCsvFileLookupService extends AbstractCSVLookupService impleme
         properties.add(LOOKUP_VALUE_COLUMN);
     }
 
+    @Override
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws IOException, InitializationException {
         super.onEnabled(context);

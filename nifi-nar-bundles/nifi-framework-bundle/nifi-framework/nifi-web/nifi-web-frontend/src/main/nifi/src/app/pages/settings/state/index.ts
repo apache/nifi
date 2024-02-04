@@ -15,10 +15,6 @@
  * limitations under the License.
  */
 
-/*
-  Canvas Positioning/Transforms
- */
-
 import { Action, combineReducers, createFeatureSelector } from '@ngrx/store';
 import { GeneralState, generalFeatureKey } from './general';
 import { generalReducer } from './general/general.reducer';
@@ -29,6 +25,12 @@ import {
 import { managementControllerServicesReducer } from './management-controller-services/management-controller-services.reducer';
 import { reportingTasksFeatureKey, ReportingTasksState } from './reporting-tasks';
 import { reportingTasksReducer } from './reporting-tasks/reporting-tasks.reducer';
+import { registryClientsFeatureKey, RegistryClientsState } from './registry-clients';
+import { registryClientsReducer } from './registry-clients/registry-clients.reducer';
+import { flowAnalysisRulesFeatureKey, FlowAnalysisRulesState } from './flow-analysis-rules';
+import { flowAnalysisRulesReducer } from './flow-analysis-rules/flow-analysis-rules.reducer';
+import { parameterProvidersFeatureKey, ParameterProvidersState } from './parameter-providers';
+import { parameterProvidersReducer } from './parameter-providers/parameter-providers.reducer';
 
 export const settingsFeatureKey = 'settings';
 
@@ -36,13 +38,19 @@ export interface SettingsState {
     [generalFeatureKey]: GeneralState;
     [managementControllerServicesFeatureKey]: ManagementControllerServicesState;
     [reportingTasksFeatureKey]: ReportingTasksState;
+    [flowAnalysisRulesFeatureKey]: FlowAnalysisRulesState;
+    [registryClientsFeatureKey]: RegistryClientsState;
+    [parameterProvidersFeatureKey]: ParameterProvidersState;
 }
 
 export function reducers(state: SettingsState | undefined, action: Action) {
     return combineReducers({
         [generalFeatureKey]: generalReducer,
         [managementControllerServicesFeatureKey]: managementControllerServicesReducer,
-        [reportingTasksFeatureKey]: reportingTasksReducer
+        [reportingTasksFeatureKey]: reportingTasksReducer,
+        [flowAnalysisRulesFeatureKey]: flowAnalysisRulesReducer,
+        [registryClientsFeatureKey]: registryClientsReducer,
+        [parameterProvidersFeatureKey]: parameterProvidersReducer
     })(state, action);
 }
 

@@ -26,25 +26,20 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
-import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hbase.io.JsonRowSerializer;
 import org.apache.nifi.hbase.io.RowSerializer;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
-import org.apache.nifi.hbase.util.ObjectSerDe;
-import org.apache.nifi.hbase.util.StringSerDe;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -52,11 +47,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -102,13 +93,6 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             .description("Specifies the Controller Service to use for accessing HBase.")
             .required(true)
             .identifiesControllerService(HBaseClientService.class)
-            .build();
-    static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
-            .name("Distributed Cache Service")
-            .description("Specifies the Controller Service that should be used to maintain state about what has been pulled from HBase" +
-                    " so that if a new node begins pulling data, it won't duplicate all of the work that has been done.")
-            .required(false)
-            .identifiesControllerService(DistributedMapCacheClient.class)
             .build();
     static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("Character Set")
@@ -156,8 +140,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             .build();
 
     private final AtomicReference<ScanResult> lastResult = new AtomicReference<>();
-    private volatile List<Column> columns = new ArrayList<>();
-    private volatile boolean justElectedPrimaryNode = false;
+    private final List<Column> columns = new ArrayList<>();
     private volatile String previousTable = null;
 
     @Override
@@ -169,7 +152,6 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(HBASE_CLIENT_SERVICE);
-        properties.add(DISTRIBUTED_CACHE_SERVICE);
         properties.add(TABLE_NAME);
         properties.add(COLUMNS);
         properties.add(AUTHORIZATIONS);
@@ -204,21 +186,14 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
         }
     }
 
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.removeProperty("Distributed Cache Service");
+    }
+
     @OnScheduled
     public void parseColumns(final ProcessContext context) throws IOException {
-        final StateMap stateMap = context.getStateManager().getState(Scope.CLUSTER);
-        if (!stateMap.getStateVersion().isPresent()) {
-            // no state has been stored in the State Manager - check if we have state stored in the
-            // DistributedMapCacheClient service and migrate it if so
-            final DistributedMapCacheClient client = context.getProperty(DISTRIBUTED_CACHE_SERVICE).asControllerService(DistributedMapCacheClient.class);
-            final ScanResult scanResult = getState(client);
-            if (scanResult != null) {
-                context.getStateManager().setState(scanResult.toFlatMap(), Scope.CLUSTER);
-            }
-
-            clearState(client);
-        }
-
         final String columnsValue = context.getProperty(COLUMNS).evaluateAttributeExpressions().getValue();
         final String[] columns = (columnsValue == null || columnsValue.isEmpty() ? new String[0] : columnsValue.split(","));
 
@@ -226,26 +201,13 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
         for (final String column : columns) {
             if (column.contains(":"))  {
                 final String[] parts = column.split(":");
-                final byte[] cf = parts[0].getBytes(Charset.forName("UTF-8"));
-                final byte[] cq = parts[1].getBytes(Charset.forName("UTF-8"));
+                final byte[] cf = parts[0].getBytes(StandardCharsets.UTF_8);
+                final byte[] cq = parts[1].getBytes(StandardCharsets.UTF_8);
                 this.columns.add(new Column(cf, cq));
             } else {
-                final byte[] cf = column.getBytes(Charset.forName("UTF-8"));
+                final byte[] cf = column.getBytes(StandardCharsets.UTF_8);
                 this.columns.add(new Column(cf, null));
             }
-        }
-    }
-
-    @OnPrimaryNodeStateChange
-    public void onPrimaryNodeChange(final PrimaryNodeState newState) {
-        justElectedPrimaryNode = (newState == PrimaryNodeState.ELECTED_PRIMARY_NODE);
-    }
-
-    @OnRemoved
-    public void onRemoved(final ProcessContext context) {
-        final DistributedMapCacheClient client = context.getProperty(DISTRIBUTED_CACHE_SERVICE).asControllerService(DistributedMapCacheClient.class);
-        if (client != null) {
-            clearState(client);
         }
     }
 
@@ -345,11 +307,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
                             final byte[] cellValue = Arrays.copyOfRange(cell.getValueArray(), cell.getValueOffset(), cell.getValueLength() + cell.getValueOffset());
 
                             final String rowHash = new String(rowValue, StandardCharsets.UTF_8);
-                            Set<String> cellHashes = cellsMatchingTimestamp.get(rowHash);
-                            if (cellHashes == null) {
-                                cellHashes = new HashSet<>();
-                                cellsMatchingTimestamp.put(rowHash, cellHashes);
-                            }
+                            Set<String> cellHashes = cellsMatchingTimestamp.computeIfAbsent(rowHash, k -> new HashSet<>());
                             cellHashes.add(new String(cellValue, StandardCharsets.UTF_8));
                         }
                     }
@@ -374,40 +332,11 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
                 rowsPulledHolder.set(++rowsPulled);
 
                 if (++rowsPulled % getBatchSize() == 0) {
-                    session.commitAsync();
+                    updateStateAndCommit(session, latestTimestampHolder.get(), cellsMatchingTimestamp);
                 }
             });
 
-            final ScanResult scanResults = new ScanResult(latestTimestampHolder.get(), cellsMatchingTimestamp);
-
-            final ScanResult latestResult = lastResult.get();
-            if (latestResult == null || scanResults.getTimestamp() > latestResult.getTimestamp()) {
-                session.setState(scanResults.toFlatMap(), Scope.CLUSTER);
-                session.commitAsync(() -> updateScanResultsIfNewer(scanResults));
-            } else if (scanResults.getTimestamp() == latestResult.getTimestamp()) {
-                final Map<String, Set<String>> combinedResults = new HashMap<>(scanResults.getMatchingCells());
-
-                // copy the results of result.getMatchingCells() to combinedResults.
-                // do a deep copy because the Set may be modified below.
-                for (final Map.Entry<String, Set<String>> entry : scanResults.getMatchingCells().entrySet()) {
-                    combinedResults.put(entry.getKey(), new HashSet<>(entry.getValue()));
-                }
-
-                // combined the results from 'lastResult'
-                for (final Map.Entry<String, Set<String>> entry : latestResult.getMatchingCells().entrySet()) {
-                    final Set<String> existing = combinedResults.get(entry.getKey());
-                    if (existing == null) {
-                        combinedResults.put(entry.getKey(), new HashSet<>(entry.getValue()));
-                    } else {
-                        existing.addAll(entry.getValue());
-                    }
-                }
-
-                final ScanResult scanResult = new ScanResult(scanResults.getTimestamp(), combinedResults);
-                session.setState(scanResult.toFlatMap(), Scope.CLUSTER);
-
-                session.commitAsync(() -> updateScanResultsIfNewer(scanResult));
-            }
+            updateStateAndCommit(session, latestTimestampHolder.get(), cellsMatchingTimestamp);
         } catch (final IOException e) {
             getLogger().error("Failed to receive data from HBase due to {}", e);
             session.rollback();
@@ -415,6 +344,39 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             // if we failed, we want to yield so that we don't hammer hbase. If we succeed, then we have
             // pulled all of the records, so we want to wait a bit before hitting hbase again anyway.
             context.yield();
+        }
+    }
+
+    private void updateStateAndCommit(final ProcessSession session, final long latestTimestamp, final Map<String, Set<String>> cellsMatchingTimestamp) throws IOException {
+        final ScanResult scanResults = new ScanResult(latestTimestamp, cellsMatchingTimestamp);
+
+        final ScanResult latestResult = lastResult.get();
+        if (latestResult == null || scanResults.getTimestamp() > latestResult.getTimestamp()) {
+            session.setState(scanResults.toFlatMap(), Scope.CLUSTER);
+            session.commitAsync(() -> updateScanResultsIfNewer(scanResults));
+        } else if (scanResults.getTimestamp() == latestResult.getTimestamp()) {
+            final Map<String, Set<String>> combinedResults = new HashMap<>(scanResults.getMatchingCells());
+
+            // copy the results of result.getMatchingCells() to combinedResults.
+            // do a deep copy because the Set may be modified below.
+            for (final Map.Entry<String, Set<String>> entry : scanResults.getMatchingCells().entrySet()) {
+                combinedResults.put(entry.getKey(), new HashSet<>(entry.getValue()));
+            }
+
+            // combined the results from 'lastResult'
+            for (final Map.Entry<String, Set<String>> entry : latestResult.getMatchingCells().entrySet()) {
+                final Set<String> existing = combinedResults.get(entry.getKey());
+                if (existing == null) {
+                    combinedResults.put(entry.getKey(), new HashSet<>(entry.getValue()));
+                } else {
+                    existing.addAll(entry.getValue());
+                }
+            }
+
+            final ScanResult scanResult = new ScanResult(scanResults.getTimestamp(), combinedResults);
+            session.setState(scanResult.toFlatMap(), Scope.CLUSTER);
+
+            session.commitAsync(() -> updateScanResultsIfNewer(scanResult));
         }
     }
 
@@ -427,89 +389,16 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
         return 500;
     }
 
-    protected File getStateDir() {
-        return new File("conf/state");
-    }
-
-    protected File getStateFile() {
-        return new File(getStateDir(), "getHBase-" + getIdentifier());
-    }
-
-    protected String getKey() {
-        return "getHBase-" + getIdentifier() + "-state";
-    }
-
     protected List<Column> getColumns() {
         return columns;
     }
-
-    private void clearState(final DistributedMapCacheClient client) {
-        final File localState = getStateFile();
-        if (localState.exists()) {
-            localState.delete();
-        }
-
-        if (client != null) {
-            try {
-                client.remove(getKey(), new StringSerDe());
-            } catch (IOException e) {
-                getLogger().warn("Processor state was not cleared from distributed cache due to {}", new Object[]{e});
-            }
-        }
-    }
-
 
     private ScanResult getState(final ProcessSession session) throws IOException {
         final StateMap stateMap = session.getState(Scope.CLUSTER);
         if (!stateMap.getStateVersion().isPresent()) {
             return null;
         }
-
         return ScanResult.fromFlatMap(stateMap.toMap());
-    }
-
-    private ScanResult getState(final DistributedMapCacheClient client) throws IOException {
-        final StringSerDe stringSerDe = new StringSerDe();
-        final ObjectSerDe objectSerDe = new ObjectSerDe();
-
-        ScanResult scanResult = lastResult.get();
-        // if we have no previous result, or we just became primary, pull from distributed cache
-        if (scanResult == null || justElectedPrimaryNode) {
-            if (client != null) {
-                final Object obj = client.get(getKey(), stringSerDe, objectSerDe);
-                if (obj == null || !(obj instanceof ScanResult)) {
-                    scanResult = null;
-                } else {
-                    scanResult = (ScanResult) obj;
-                    getLogger().debug("Retrieved state from the distributed cache, previous timestamp was {}", new Object[] {scanResult.getTimestamp()});
-                }
-            }
-
-            // no requirement to pull an update from the distributed cache anymore.
-            justElectedPrimaryNode = false;
-        }
-
-        // Check the persistence file. We want to use the latest timestamp that we have so that
-        // we don't duplicate data.
-        final File file = getStateFile();
-        if (file.exists()) {
-            try (final InputStream fis = new FileInputStream(file);
-                 final ObjectInputStream ois = new ObjectInputStream(fis)) {
-
-                final Object obj = ois.readObject();
-                if (obj != null && (obj instanceof ScanResult)) {
-                    final ScanResult localScanResult = (ScanResult) obj;
-                    if (scanResult == null || localScanResult.getTimestamp() > scanResult.getTimestamp()) {
-                        scanResult = localScanResult;
-                        getLogger().debug("Using last timestamp from local state because it was newer than the distributed cache, or no value existed in the cache");
-                    }
-                }
-            } catch (final IOException | ClassNotFoundException ioe) {
-                getLogger().warn("Failed to recover persisted state from {} due to {}. Assuming that state from distributed cache is correct.", new Object[]{file, ioe});
-            }
-        }
-
-        return scanResult;
     }
 
     public static class ScanResult implements Serializable {
@@ -606,11 +495,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
                 final String rowIndex = matcher.group(1);
                 final String cellIndex = matcher.group(3);
 
-                Set<String> cellHashes = rowIndexToMatchingCellHashes.get(rowIndex);
-                if (cellHashes == null) {
-                    cellHashes = new HashSet<>();
-                    rowIndexToMatchingCellHashes.put(rowIndex, cellHashes);
-                }
+                Set<String> cellHashes = rowIndexToMatchingCellHashes.computeIfAbsent(rowIndex, k -> new HashSet<>());
 
                 if (cellIndex == null) {
                     // this provides a Row ID.

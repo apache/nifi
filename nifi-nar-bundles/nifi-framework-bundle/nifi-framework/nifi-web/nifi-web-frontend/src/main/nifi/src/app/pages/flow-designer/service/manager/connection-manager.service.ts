@@ -77,7 +77,7 @@ export class ConnectionManager {
 
     private connections: [] = [];
     private connectionContainer: any;
-    private transitionRequired: boolean = false;
+    private transitionRequired = false;
     private currentProcessGroupId: string = initialState.id;
     private scale: number = INITIAL_SCALE;
 
@@ -87,7 +87,7 @@ export class ConnectionManager {
     private endpointDrag: any;
     private labelDrag: any;
 
-    private snapEnabled: boolean = true;
+    private snapEnabled = true;
 
     private viewContainerRef: ViewContainerRef | undefined;
 
@@ -190,7 +190,7 @@ export class ConnectionManager {
         }
 
         let minimumDistance: number;
-        let index: number = 0;
+        let index = 0;
 
         // line is comprised of start -> [bends] -> end
         const line = [connectionData.start].concat(connectionData.bends, [connectionData.end]);
@@ -567,7 +567,7 @@ export class ConnectionManager {
         if (updatePath) {
             updated
                 .classed('grouped', function (d: any) {
-                    let grouped: boolean = false;
+                    let grouped = false;
 
                     if (d.permissions.canRead) {
                         // if there are more than one selected relationship, mark this as grouped
@@ -579,7 +579,7 @@ export class ConnectionManager {
                     return grouped;
                 })
                 .classed('ghost', function (d: any) {
-                    let ghost: boolean = false;
+                    let ghost = false;
 
                     if (d.permissions.canRead) {
                         // if the connection has a relationship that is unavailable, mark it a ghost relationship
@@ -799,7 +799,7 @@ export class ConnectionManager {
                             }
 
                             const newBends: any[] = [];
-                            let bendIndex: number = -1;
+                            let bendIndex = -1;
 
                             // create a new array of bends without the selected one
                             connectionData.component.bends.forEach((bend: any, i: number) => {
@@ -890,8 +890,8 @@ export class ConnectionManager {
                             .attr('stroke', 'transparent');
                     }
 
-                    let labelCount: number = 0;
-                    const rowHeight: number = 19;
+                    let labelCount = 0;
+                    const rowHeight = 19;
                     const backgrounds: any[] = [];
                     const borders: any[] = [];
 
@@ -964,7 +964,7 @@ export class ConnectionManager {
                             connectionFrom
                                 .select('text.connection-from')
                                 .each(function (this: any) {
-                                    let connectionFromLabel = d3.select(this);
+                                    const connectionFromLabel = d3.select(this);
 
                                     // reset the label name to handle any previous state
                                     connectionFromLabel.text(null).selectAll('title').remove();
@@ -1079,7 +1079,7 @@ export class ConnectionManager {
                             connectionTo
                                 .select('text.connection-to')
                                 .each(function (this: any, d: any) {
-                                    let connectionToLabel = d3.select(this);
+                                    const connectionToLabel = d3.select(this);
 
                                     // reset the label name to handle any previous state
                                     connectionToLabel.text(null).selectAll('title').remove();
@@ -1191,7 +1191,7 @@ export class ConnectionManager {
                             connectionName
                                 .select('text.connection-name')
                                 .each(function (this: any) {
-                                    let connectionToLabel = d3.select(this);
+                                    const connectionToLabel = d3.select(this);
 
                                     // reset the label name to handle any previous state
                                     connectionToLabel.text(null).selectAll('title').remove();
@@ -1432,18 +1432,18 @@ export class ConnectionManager {
                     // update the coloring of the backgrounds
                     backgrounds.forEach((background, i) => {
                         if (i % 2 === 0) {
-                            background.attr('fill', '#f4f6f7');
+                            background.attr('class', 'primary-contrast-800');
                         } else {
-                            background.attr('fill', '#ffffff');
+                            background.attr('class', 'primary-contrast-900');
                         }
                     });
 
                     // update the coloring of the label borders
                     borders.forEach((border, i) => {
                         if (i > 0) {
-                            border.attr('fill', '#c7d2d7');
+                            border.attr('class', 'primary-200');
                         } else {
-                            border.attr('fill', 'transparent');
+                            border.attr('class', 'transparent');
                         }
                     });
 
@@ -1472,7 +1472,7 @@ export class ConnectionManager {
                         .select('title')
                         .text(function () {
                             if (d.permissions.canRead) {
-                                let loadBalanceStrategyText: string = '';
+                                let loadBalanceStrategyText = '';
 
                                 const loadBalanceStrategyOption: SelectOption | undefined = loadBalanceStrategies.find(
                                     (option) => option.value == d.component.loadBalanceStrategy
@@ -1485,7 +1485,7 @@ export class ConnectionManager {
                                     loadBalanceStrategyText += ' (' + d.component.loadBalancePartitionAttribute + ')';
                                 }
 
-                                let loadBalanceCompression: string = 'no compression';
+                                let loadBalanceCompression = 'no compression';
                                 switch (d.component.loadBalanceCompression) {
                                     case 'COMPRESS_ATTRIBUTES_ONLY':
                                         loadBalanceCompression = "'Attribute' compression";
@@ -1619,7 +1619,7 @@ export class ConnectionManager {
                 return flowFileAvailability !== 'HEAD_OF_QUEUE_PENALIZED';
             })
             .attr('x', function () {
-                let offset: number = 0;
+                let offset = 0;
                 if (!connectionLabelContainer.select('text.expiration-icon').classed('hidden')) {
                     offset += 16;
                 }
@@ -1878,8 +1878,8 @@ export class ConnectionManager {
                 // ensure the bend lengths are the same
                 if (bends.length === connectionData.component.bends.length) {
                     // determine if the bend points have moved
-                    let different: boolean = false;
-                    for (let i: number = 0; i < bends.length && !different; i++) {
+                    let different = false;
+                    for (let i = 0; i < bends.length && !different; i++) {
                         if (
                             bends[i].x !== connectionData.component.bends[i].x ||
                             bends[i].y !== connectionData.component.bends[i].y
@@ -2088,7 +2088,7 @@ export class ConnectionManager {
                         y: datum.y + datum.height / 2
                     };
 
-                    let closestBendIndex: number = -1;
+                    let closestBendIndex = -1;
                     let minDistance: number;
                     d.bends.forEach((bend: Position, i: number) => {
                         const bendPoint: Position = {

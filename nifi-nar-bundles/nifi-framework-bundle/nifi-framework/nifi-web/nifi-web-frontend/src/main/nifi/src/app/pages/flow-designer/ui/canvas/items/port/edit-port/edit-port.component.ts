@@ -24,7 +24,7 @@ import { updateComponent } from '../../../../../state/flow/flow.actions';
 import { Client } from '../../../../../../../service/client.service';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { ComponentType } from '../../../../../../../state/shared';
-import { Banner } from '../../../../common/banner/banner.component';
+import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
@@ -38,7 +38,7 @@ import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nif
     templateUrl: './edit-port.component.html',
     imports: [
         ReactiveFormsModule,
-        Banner,
+        ErrorBanner,
         MatDialogModule,
         MatInputModule,
         MatCheckboxModule,
@@ -67,10 +67,6 @@ export class EditPort {
         } else {
             this.portTypeLabel = 'Output Port';
         }
-
-        // TODO - consider updating the request to only provide the id of the port and selecting that item
-        // from the store. this would also allow us to be informed when another client has submitted an
-        // update to the same port which this editing is happening
 
         // build the form
         this.editPortForm = this.formBuilder.group({

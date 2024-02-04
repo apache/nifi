@@ -20,8 +20,8 @@
         <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
     </div>
     <ng-template #loaded>
-        <div class="flex flex-col h-full gap-y-2">
-            <div class="flex justify-end">
+        <div class="flex flex-col h-full gap-y-2" *ngIf="currentUser$ | async; let currentUser">
+            <div class="flex justify-end" *ngIf="currentUser.controllerPermissions.canWrite">
                 <button class="nifi-button" (click)="openNewControllerServiceDialog()">
                     <i class="fa fa-plus"></i>
                 </button>
@@ -32,8 +32,14 @@
                     [controllerServices]="serviceState.controllerServices"
                     [formatScope]="formatScope"
                     [definedByCurrentGroup]="definedByCurrentGroup"
+                    [currentUser]="currentUser"
+                    [canModifyParent]="canModifyParent(currentUser)"
+                    [flowConfiguration]="(flowConfiguration$ | async)!"
                     (selectControllerService)="selectControllerService($event)"
                     (configureControllerService)="configureControllerService($event)"
+                    (enableControllerService)="enableControllerService($event)"
+                    (disableControllerService)="disableControllerService($event)"
+                    (viewStateControllerService)="viewStateControllerService($event)"
                     (deleteControllerService)="deleteControllerService($event)"></controller-service-table>
             </div>
             <div class="flex justify-between">

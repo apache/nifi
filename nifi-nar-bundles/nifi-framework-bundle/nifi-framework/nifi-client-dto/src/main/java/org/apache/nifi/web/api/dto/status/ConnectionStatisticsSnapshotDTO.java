@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * DTO for serializing the statistics of a connection.
@@ -40,7 +40,7 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
     /**
      * @return The connection id
      */
-    @ApiModelProperty("The id of the connection.")
+    @Schema(description = "The id of the connection.")
     public String getId() {
         return id;
     }
@@ -49,7 +49,7 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         this.id = id;
     }
 
-    @ApiModelProperty("The predicted number of milliseconds before the connection will have backpressure applied, based on the queued count.")
+    @Schema(description = "The predicted number of milliseconds before the connection will have backpressure applied, based on the queued count.")
     public Long getPredictedMillisUntilCountBackpressure() {
         return predictedMillisUntilCountBackpressure;
     }
@@ -58,7 +58,7 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         this.predictedMillisUntilCountBackpressure = predictedMillisUntilCountBackpressure;
     }
 
-    @ApiModelProperty("The predicted number of milliseconds before the connection will have backpressure applied, based on the total number of bytes in the queue.")
+    @Schema(description = "The predicted number of milliseconds before the connection will have backpressure applied, based on the total number of bytes in the queue.")
     public Long getPredictedMillisUntilBytesBackpressure() {
         return predictedMillisUntilBytesBackpressure;
     }
@@ -67,7 +67,7 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         this.predictedMillisUntilBytesBackpressure = predictedMillisUntilBytesBackpressure;
     }
 
-    @ApiModelProperty("The predicted number of queued objects at the next configured interval.")
+    @Schema(description = "The predicted number of queued objects at the next configured interval.")
     public Integer getPredictedCountAtNextInterval() {
         return predictedCountAtNextInterval;
     }
@@ -76,7 +76,7 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         this.predictedCountAtNextInterval = predictedCountAtNextInterval;
     }
 
-    @ApiModelProperty("The predicted total number of bytes in the queue at the next configured interval.")
+    @Schema(description = "The predicted total number of bytes in the queue at the next configured interval.")
     public Long getPredictedBytesAtNextInterval() {
         return predictedBytesAtNextInterval;
     }
@@ -85,7 +85,7 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         this.predictedBytesAtNextInterval = predictedBytesAtNextInterval;
     }
 
-    @ApiModelProperty("The predicted percentage of queued objects at the next configured interval.")
+    @Schema(description = "The predicted percentage of queued objects at the next configured interval.")
     public Integer getPredictedPercentCount() {
         return predictedPercentCount;
     }
@@ -94,7 +94,7 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         this.predictedPercentCount = predictedPercentCount;
     }
 
-    @ApiModelProperty("The predicted percentage of bytes in the queue against current threshold at the next configured interval.")
+    @Schema(description = "The predicted percentage of bytes in the queue against current threshold at the next configured interval.")
     public Integer getPredictedPercentBytes() {
         return predictedPercentBytes;
     }
@@ -103,7 +103,7 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         this.predictedPercentBytes = predictedPercentBytes;
     }
 
-    @ApiModelProperty("The prediction interval in seconds")
+    @Schema(description = "The prediction interval in seconds")
     public Long getPredictionIntervalMillis() {
         return predictionIntervalMillis;
     }

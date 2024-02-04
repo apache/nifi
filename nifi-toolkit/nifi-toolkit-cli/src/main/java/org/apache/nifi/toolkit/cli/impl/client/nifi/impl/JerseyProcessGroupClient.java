@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
+import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
+import org.apache.nifi.toolkit.cli.impl.util.FileUtils;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
@@ -31,6 +33,8 @@ import org.apache.nifi.web.api.entity.ProcessGroupReplaceRequestEntity;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.MediaType;
+
+import java.io.File;
 import java.io.IOException;
 
 /**
@@ -239,5 +243,24 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
            return getRequestBuilder(target).get(FlowComparisonEntity.class);
        });
    }
+
+    @Override
+    public File exportProcessGroup(final String processGroupId, final boolean includeReferencedServices, final File outputFile) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        return executeAction("Error getting process group", () -> {
+            final WebTarget target = processGroupsTarget
+                    .path("{id}/download")
+                    .resolveTemplate("id", processGroupId)
+                    .queryParam("includeReferencedServices", includeReferencedServices);
+
+            final Response response = getRequestBuilder(target)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .get();
+            return FileUtils.getFileContent(response, outputFile);
+        });
+    }
 
 }

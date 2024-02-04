@@ -25,8 +25,8 @@
     <artifactId>nifi-email-processors</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <spring.integration.version>5.5.18</spring.integration.version>
-        <poi.version>5.2.4</poi.version>
+        <spring.integration.version>5.5.20</spring.integration.version>
+        <poi.version>5.2.5</poi.version>
     </properties>
 
     <dependencies>
@@ -57,7 +57,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-email</artifactId>
-            <version>1.5</version>
+            <version>1.6.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.sun.mail</groupId>
@@ -133,7 +133,7 @@
         <dependency>
             <groupId>com.icegreen</groupId>
             <artifactId>greenmail</artifactId>
-            <version>1.6.14</version>
+            <version>1.6.15</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

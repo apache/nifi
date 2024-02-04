@@ -59,7 +59,7 @@ class ElasticSearchClientServiceImplTest {
         final String index = "test";
         final String type = "no-type";
 
-        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.NONE.getValue());
+        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.NONE);
         runner.assertValid(service);
         runner.enableControllerService(service);
 
@@ -69,7 +69,7 @@ class ElasticSearchClientServiceImplTest {
 
     @Test
     void testValidateBasicAuth() {
-        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC.getValue());
+        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC);
         runner.setProperty(service, ElasticSearchClientService.USERNAME, "elastic");
         runner.setProperty(service, ElasticSearchClientService.PASSWORD, "password");
         runner.assertValid(service);
@@ -87,7 +87,7 @@ class ElasticSearchClientServiceImplTest {
 
     @Test
     void testValidateApiKeyAuth() {
-        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY.getValue());
+        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY);
         runner.setProperty(service, ElasticSearchClientService.API_KEY_ID, "api-key-id");
         runner.setProperty(service, ElasticSearchClientService.API_KEY, "api-key");
         runner.assertValid(service);
@@ -105,7 +105,7 @@ class ElasticSearchClientServiceImplTest {
 
     @Test
     void testValidatePkiAuth() throws InitializationException {
-        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.PKI.getValue());
+        runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.PKI);
 
         final SSLContextService sslService = mock(SSLContextService.class);
         when(sslService.getIdentifier()).thenReturn("ssl-context");

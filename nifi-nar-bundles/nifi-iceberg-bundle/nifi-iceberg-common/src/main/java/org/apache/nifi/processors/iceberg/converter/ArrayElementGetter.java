@@ -18,6 +18,8 @@
 package org.apache.nifi.processors.iceberg.converter;
 
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.field.FieldConverter;
+import org.apache.nifi.serialization.record.field.StandardFieldConverterRegistry;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
@@ -25,7 +27,10 @@ import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
 import javax.annotation.Nullable;
 import java.io.Serializable;
-import java.time.ZoneId;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.util.Optional;
 
 public class ArrayElementGetter {
 
@@ -62,10 +67,16 @@ public class ArrayElementGetter {
                 elementGetter = element -> DataTypeUtils.toInteger(element, ARRAY_FIELD_NAME);
                 break;
             case DATE:
-                elementGetter = element -> DataTypeUtils.toLocalDate(element, () -> DataTypeUtils.getDateTimeFormatter(dataType.getFormat(), ZoneId.systemDefault()), ARRAY_FIELD_NAME);
+                elementGetter = element -> {
+                    final FieldConverter<Object, LocalDate> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDate.class);
+                    return converter.convertField(element, Optional.ofNullable(dataType.getFormat()), ARRAY_FIELD_NAME);
+                };
                 break;
             case TIME:
-                elementGetter = element -> DataTypeUtils.toTime(element, () -> DataTypeUtils.getDateFormat(dataType.getFormat()), ARRAY_FIELD_NAME);
+                elementGetter = element -> {
+                    final FieldConverter<Object, Time> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(Time.class);
+                    return converter.convertField(element, Optional.ofNullable(dataType.getFormat()), ARRAY_FIELD_NAME);
+                };
                 break;
             case LONG:
                 elementGetter = element -> DataTypeUtils.toLong(element, ARRAY_FIELD_NAME);
@@ -80,7 +91,10 @@ public class ArrayElementGetter {
                 elementGetter = element -> DataTypeUtils.toDouble(element, ARRAY_FIELD_NAME);
                 break;
             case TIMESTAMP:
-                elementGetter = element -> DataTypeUtils.toTimestamp(element, () -> DataTypeUtils.getDateFormat(dataType.getFormat()), ARRAY_FIELD_NAME);
+                elementGetter = element -> {
+                    final FieldConverter<Object, Timestamp> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(Timestamp.class);
+                    return converter.convertField(element, Optional.ofNullable(dataType.getFormat()), ARRAY_FIELD_NAME);
+                };
                 break;
             case UUID:
                 elementGetter = DataTypeUtils::toUUID;

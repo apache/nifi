@@ -16,15 +16,14 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
-import io.swagger.annotations.ApiModelProperty.AccessMode;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -87,7 +86,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The id for the process group
      */
-    @ApiModelProperty("The id of the process group.")
+    @Schema(description = "The id of the process group.")
     public String getId() {
         return id;
     }
@@ -99,7 +98,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
     /**
      * @return name of this process group
      */
-    @ApiModelProperty("The name of this process group.")
+    @Schema(description = "The name of this process group.")
     public String getName() {
         return name;
     }
@@ -108,8 +107,8 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.name = name;
     }
 
-    @ApiModelProperty(accessMode = ApiModelProperty.AccessMode.READ_ONLY,
-            value = "The current state of the Process Group, as it relates to the Versioned Flow",
+    @Schema(description = "The current state of the Process Group, as it relates to the Versioned Flow",
+            accessMode = Schema.AccessMode.READ_ONLY,
             allowableValues = "LOCALLY_MODIFIED, STALE, LOCALLY_MODIFIED_AND_STALE, UP_TO_DATE, SYNC_FAILURE")
     public String getVersionedFlowState() {
         return versionedFlowState;
@@ -119,8 +118,10 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.versionedFlowState = versionedFlowState;
     }
 
-    @ApiModelProperty(accessMode = AccessMode.READ_ONLY,
-        value = "The current number of active threads for the Process Group, when running in Stateless mode.")
+    @Schema(
+            description = "The current number of active threads for the Process Group, when running in Stateless mode.",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
     public int getStatelessActiveThreadCount() {
         return statelessActiveThreadCount;
     }
@@ -132,7 +133,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
     /**
      * @return active thread count for this process group
      */
-    @ApiModelProperty("The active thread count for this process group.")
+    @Schema(description = "The active thread count for this process group.")
     public Integer getActiveThreadCount() {
         return activeThreadCount;
     }
@@ -144,7 +145,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
     /**
      * @return number of threads currently terminated for this process group
      */
-    @ApiModelProperty("The number of threads currently terminated for the process group.")
+    @Schema(description = "The number of threads currently terminated for the process group.")
     public Integer getTerminatedThreadCount() {
         return terminatedThreadCount;
     }
@@ -158,7 +159,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The status of all connections
      */
-    @ApiModelProperty("The status of all connections in the process group.")
+    @Schema(description = "The status of all connections in the process group.")
     public Collection<ConnectionStatusSnapshotEntity> getConnectionStatusSnapshots() {
         return connectionStatusSnapshots;
     }
@@ -172,7 +173,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The status of all process groups
      */
-    @ApiModelProperty("The status of all process groups in the process group.")
+    @Schema(description = "The status of all process groups in the process group.")
     public Collection<ProcessGroupStatusSnapshotEntity> getProcessGroupStatusSnapshots() {
         return processGroupStatusSnapshots;
     }
@@ -186,7 +187,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The status of all remote process groups
      */
-    @ApiModelProperty("The status of all remote process groups in the process group.")
+    @Schema(description = "The status of all remote process groups in the process group.")
     public Collection<RemoteProcessGroupStatusSnapshotEntity> getRemoteProcessGroupStatusSnapshots() {
         return remoteProcessGroupStatusSnapshots;
     }
@@ -200,7 +201,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The status of all processors
      */
-    @ApiModelProperty("The status of all processors in the process group.")
+    @Schema(description = "The status of all processors in the process group.")
     public Collection<ProcessorStatusSnapshotEntity> getProcessorStatusSnapshots() {
         return processorStatusSnapshots;
     }
@@ -214,7 +215,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The status of all input ports
      */
-    @ApiModelProperty("The status of all input ports in the process group.")
+    @Schema(description = "The status of all input ports in the process group.")
     public Collection<PortStatusSnapshotEntity> getInputPortStatusSnapshots() {
         return inputPortStatusSnapshots;
     }
@@ -228,7 +229,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The status of all output ports
      */
-    @ApiModelProperty("The status of all output ports in the process group.")
+    @Schema(description = "The status of all output ports in the process group.")
     public Collection<PortStatusSnapshotEntity> getOutputPortStatusSnapshots() {
         return outputPortStatusSnapshots;
     }
@@ -242,7 +243,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The output stats
      */
-    @ApiModelProperty("The output count/size for the process group in the last 5 minutes.")
+    @Schema(description = "The output count/size for the process group in the last 5 minutes.")
     public String getOutput() {
         return output;
     }
@@ -252,7 +253,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The transferred status for this process group
      */
-    @ApiModelProperty("The count/size transferred to/from queues in the process group in the last 5 minutes.")
+    @Schema(description = "The count/size transferred to/from queues in the process group in the last 5 minutes.")
     public String getTransferred() {
         return transferred;
     }
@@ -262,7 +263,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The received stats for this process group
      */
-    @ApiModelProperty("The count/size sent to the process group in the last 5 minutes.")
+    @Schema(description = "The count/size sent to the process group in the last 5 minutes.")
     public String getReceived() {
         return received;
     }
@@ -273,7 +274,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The sent stats for this process group
      */
-    @ApiModelProperty("The count/size sent from this process group in the last 5 minutes.")
+    @Schema(description = "The count/size sent from this process group in the last 5 minutes.")
     public String getSent() {
         return sent;
     }
@@ -284,7 +285,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The queued count for this process group
      */
-    @ApiModelProperty("The count that is queued for the process group.")
+    @Schema(description = "The count that is queued for the process group.")
     public String getQueuedCount() {
         return queuedCount;
     }
@@ -295,7 +296,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The queued size for this process group
      */
-    @ApiModelProperty("The size that is queued for the process group.")
+    @Schema(description = "The size that is queued for the process group.")
     public String getQueuedSize() {
         return queuedSize;
     }
@@ -306,7 +307,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The queued stats
      */
-    @ApiModelProperty("The count/size that is queued in the the process group.")
+    @Schema(description = "The count/size that is queued in the the process group.")
     public String getQueued() {
         return queued;
     }
@@ -317,7 +318,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The read stats
      */
-    @ApiModelProperty("The number of bytes read in the last 5 minutes.")
+    @Schema(description = "The number of bytes read in the last 5 minutes.")
     public String getRead() {
         return read;
     }
@@ -328,7 +329,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The written stats
      */
-    @ApiModelProperty("The number of bytes written in the last 5 minutes.")
+    @Schema(description = "The number of bytes written in the last 5 minutes.")
     public String getWritten() {
         return written;
     }
@@ -339,13 +340,13 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The input stats
      */
-    @ApiModelProperty("The input count/size for the process group in the last 5 minutes (pretty printed).")
+    @Schema(description = "The input count/size for the process group in the last 5 minutes (pretty printed).")
     public String getInput() {
         return input;
     }
 
 
-    @ApiModelProperty("The number of FlowFiles that have come into this ProcessGroup in the last 5 minutes")
+    @Schema(description = "The number of FlowFiles that have come into this ProcessGroup in the last 5 minutes")
     public Integer getFlowFilesIn() {
         return flowFilesIn;
     }
@@ -354,7 +355,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.flowFilesIn = flowFilesIn;
     }
 
-    @ApiModelProperty("The number of bytes that have come into this ProcessGroup in the last 5 minutes")
+    @Schema(description = "The number of bytes that have come into this ProcessGroup in the last 5 minutes")
     public Long getBytesIn() {
         return bytesIn;
     }
@@ -363,7 +364,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.bytesIn = bytesIn;
     }
 
-    @ApiModelProperty("The number of FlowFiles that are queued up in this ProcessGroup right now")
+    @Schema(description = "The number of FlowFiles that are queued up in this ProcessGroup right now")
     public Integer getFlowFilesQueued() {
         return flowFilesQueued;
     }
@@ -372,7 +373,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.flowFilesQueued = flowFilesQueued;
     }
 
-    @ApiModelProperty("The number of bytes that are queued up in this ProcessGroup right now")
+    @Schema(description = "The number of bytes that are queued up in this ProcessGroup right now")
     public Long getBytesQueued() {
         return bytesQueued;
     }
@@ -381,7 +382,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.bytesQueued = bytesQueued;
     }
 
-    @ApiModelProperty("The number of bytes read by components in this ProcessGroup in the last 5 minutes")
+    @Schema(description = "The number of bytes read by components in this ProcessGroup in the last 5 minutes")
     public Long getBytesRead() {
         return bytesRead;
     }
@@ -390,7 +391,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.bytesRead = bytesRead;
     }
 
-    @ApiModelProperty("The number of bytes written by components in this ProcessGroup in the last 5 minutes")
+    @Schema(description = "The number of bytes written by components in this ProcessGroup in the last 5 minutes")
     public Long getBytesWritten() {
         return bytesWritten;
     }
@@ -399,7 +400,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.bytesWritten = bytesWritten;
     }
 
-    @ApiModelProperty("The number of FlowFiles transferred out of this ProcessGroup in the last 5 minutes")
+    @Schema(description = "The number of FlowFiles transferred out of this ProcessGroup in the last 5 minutes")
     public Integer getFlowFilesOut() {
         return flowFilesOut;
     }
@@ -408,7 +409,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.flowFilesOut = flowFilesOut;
     }
 
-    @ApiModelProperty("The number of bytes transferred out of this ProcessGroup in the last 5 minutes")
+    @Schema(description = "The number of bytes transferred out of this ProcessGroup in the last 5 minutes")
     public Long getBytesOut() {
         return bytesOut;
     }
@@ -417,7 +418,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.bytesOut = bytesOut;
     }
 
-    @ApiModelProperty("The number of FlowFiles transferred in this ProcessGroup in the last 5 minutes")
+    @Schema(description = "The number of FlowFiles transferred in this ProcessGroup in the last 5 minutes")
     public Integer getFlowFilesTransferred() {
         return flowFilesTransferred;
     }
@@ -426,7 +427,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.flowFilesTransferred = flowFilesTransferred;
     }
 
-    @ApiModelProperty("The number of bytes transferred in this ProcessGroup in the last 5 minutes")
+    @Schema(description = "The number of bytes transferred in this ProcessGroup in the last 5 minutes")
     public Long getBytesTransferred() {
         return bytesTransferred;
     }
@@ -435,7 +436,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.bytesTransferred = bytesTransferred;
     }
 
-    @ApiModelProperty("The number of bytes received from external sources by components within this ProcessGroup in the last 5 minutes")
+    @Schema(description = "The number of bytes received from external sources by components within this ProcessGroup in the last 5 minutes")
     public Long getBytesReceived() {
         return bytesReceived;
     }
@@ -444,7 +445,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.bytesReceived = bytesReceived;
     }
 
-    @ApiModelProperty("The number of bytes sent to an external sink by components within this ProcessGroup in the last 5 minutes")
+    @Schema(description = "The number of bytes sent to an external sink by components within this ProcessGroup in the last 5 minutes")
     public Long getBytesSent() {
         return bytesSent;
     }
@@ -453,7 +454,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.bytesSent = bytesSent;
     }
 
-    @ApiModelProperty("The number of FlowFiles sent to an external sink by components within this ProcessGroup in the last 5 minutes")
+    @Schema(description = "The number of FlowFiles sent to an external sink by components within this ProcessGroup in the last 5 minutes")
     public Integer getFlowFilesSent() {
         return flowFilesSent;
     }
@@ -462,7 +463,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.flowFilesSent = flowFilesSent;
     }
 
-    @ApiModelProperty("The number of FlowFiles received from external sources by components within this ProcessGroup in the last 5 minutes")
+    @Schema(description = "The number of FlowFiles received from external sources by components within this ProcessGroup in the last 5 minutes")
     public Integer getFlowFilesReceived() {
         return flowFilesReceived;
     }

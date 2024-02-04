@@ -20,7 +20,6 @@ import com.exceptionfactory.jagged.EncryptingChannelFactory;
 import com.exceptionfactory.jagged.RecipientStanzaWriter;
 import com.exceptionfactory.jagged.framework.armor.ArmoredEncryptingChannelFactory;
 import com.exceptionfactory.jagged.framework.stream.StandardEncryptingChannelFactory;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -31,7 +30,6 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceReference;
-import org.apache.nifi.components.resource.ResourceReferences;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.flowfile.FlowFile;
@@ -45,11 +43,11 @@ import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processors.cipher.age.AgeKeyIndicator;
 import org.apache.nifi.processors.cipher.age.AgeKeyReader;
 import org.apache.nifi.processors.cipher.age.AgeKeyValidator;
+import org.apache.nifi.processors.cipher.age.AgeProviderResolver;
 import org.apache.nifi.processors.cipher.age.AgePublicKeyReader;
+import org.apache.nifi.processors.cipher.age.FileEncoding;
 import org.apache.nifi.processors.cipher.age.KeySource;
 import org.apache.nifi.processors.cipher.io.ChannelStreamCallback;
-import org.apache.nifi.processors.cipher.age.FileEncoding;
-import org.apache.nifi.processors.cipher.age.AgeProviderResolver;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,9 +56,7 @@ import java.nio.channels.WritableByteChannel;
 import java.security.GeneralSecurityException;
 import java.security.Provider;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -92,7 +88,7 @@ public class EncryptContentAge extends AbstractProcessor implements VerifiablePr
             .displayName("File Encoding")
             .description("Output encoding for encrypted files. Binary encoding provides optimal processing performance.")
             .required(true)
-            .defaultValue(FileEncoding.BINARY.getValue())
+            .defaultValue(FileEncoding.BINARY)
             .allowableValues(FileEncoding.class)
             .build();
 
@@ -101,7 +97,7 @@ public class EncryptContentAge extends AbstractProcessor implements VerifiablePr
             .displayName("Public Key Source")
             .description("Source of information determines the loading strategy for X25519 Public Key Recipients")
             .required(true)
-            .defaultValue(KeySource.PROPERTIES.getValue())
+            .defaultValue(KeySource.PROPERTIES)
             .allowableValues(KeySource.class)
             .build();
 
@@ -126,9 +122,9 @@ public class EncryptContentAge extends AbstractProcessor implements VerifiablePr
             .dependsOn(PUBLIC_KEY_SOURCE, KeySource.RESOURCES)
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = new LinkedHashSet<>(Arrays.asList(SUCCESS, FAILURE));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(SUCCESS, FAILURE);
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = Arrays.asList(
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             FILE_ENCODING,
             PUBLIC_KEY_SOURCE,
             PUBLIC_KEY_RECIPIENTS,
@@ -218,8 +214,7 @@ public class EncryptContentAge extends AbstractProcessor implements VerifiablePr
         }
 
         try {
-            final String fileEncodingValue = context.getProperty(FILE_ENCODING).getValue();
-            final FileEncoding fileEncoding = FileEncoding.valueOf(fileEncodingValue);
+            final FileEncoding fileEncoding = context.getProperty(FILE_ENCODING).asAllowableValue(FileEncoding.class);
             final EncryptingChannelFactory encryptingChannelFactory = getEncryptingChannelFactory(fileEncoding);
             final StreamCallback streamCallback = new EncryptingStreamCallback(configuredRecipientStanzaWriters, encryptingChannelFactory);
             flowFile = session.write(flowFile, streamCallback);
@@ -232,32 +227,20 @@ public class EncryptContentAge extends AbstractProcessor implements VerifiablePr
     }
 
     private EncryptingChannelFactory getEncryptingChannelFactory(final FileEncoding fileEncoding) {
-        final EncryptingChannelFactory encryptingChannelFactory;
-
-        if (FileEncoding.ASCII == fileEncoding) {
-            encryptingChannelFactory = new ArmoredEncryptingChannelFactory(CIPHER_PROVIDER);
-        } else {
-            encryptingChannelFactory = new StandardEncryptingChannelFactory(CIPHER_PROVIDER);
-        }
-
-        return encryptingChannelFactory;
+        return switch (fileEncoding) {
+            case ASCII -> new ArmoredEncryptingChannelFactory(CIPHER_PROVIDER);
+            case BINARY -> new StandardEncryptingChannelFactory(CIPHER_PROVIDER);
+        };
     }
 
     private List<RecipientStanzaWriter> getRecipientStanzaWriters(final PropertyContext context) throws IOException {
-        final KeySource keySource = KeySource.valueOf(context.getProperty(PUBLIC_KEY_SOURCE).getValue());
-
-        final List<ResourceReference> resources = new ArrayList<>();
-
-        if (KeySource.PROPERTIES == keySource) {
-            final ResourceReference resource = context.getProperty(PUBLIC_KEY_RECIPIENTS).asResource();
-            resources.add(resource);
-        } else {
-            final ResourceReferences resourceReferences = context.getProperty(PUBLIC_KEY_RECIPIENT_RESOURCES).asResources();
-            resources.addAll(resourceReferences.asList());
-        }
+        final KeySource keySource = context.getProperty(PUBLIC_KEY_SOURCE).asAllowableValue(KeySource.class);
+        final List<ResourceReference> resources = switch (keySource) {
+            case PROPERTIES -> List.of(context.getProperty(PUBLIC_KEY_RECIPIENTS).asResource());
+            case RESOURCES -> context.getProperty(PUBLIC_KEY_RECIPIENT_RESOURCES).asResources().asList();
+        };
 
         final List<RecipientStanzaWriter> recipientStanzaWriters = new ArrayList<>();
-
         for (final ResourceReference resource : resources) {
             try (final InputStream inputStream = resource.read()) {
                 final List<RecipientStanzaWriter> writers = PUBLIC_KEY_READER.read(inputStream);

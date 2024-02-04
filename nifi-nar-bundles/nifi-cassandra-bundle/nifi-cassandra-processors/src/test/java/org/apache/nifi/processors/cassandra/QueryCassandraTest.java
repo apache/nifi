@@ -19,7 +19,6 @@ package org.apache.nifi.processors.cassandra;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Configuration;
 import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.EndPoint;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
@@ -42,13 +41,12 @@ import javax.net.ssl.SSLContext;
 import java.io.ByteArrayOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -62,14 +60,13 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-
 public class QueryCassandraTest {
 
     private TestRunner testRunner;
     private MockQueryCassandra processor;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         processor = new MockQueryCassandra();
         testRunner = TestRunners.newTestRunner(processor);
     }
@@ -113,7 +110,7 @@ public class QueryCassandraTest {
         testRunner.clearTransferState();
 
         // Test exceptions
-        processor.setExceptionToThrow(new NoHostAvailableException(new HashMap<EndPoint, Throwable>()));
+        processor.setExceptionToThrow(new NoHostAvailableException(new HashMap<>()));
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_RETRY, 1);
         testRunner.clearTransferState();
@@ -161,6 +158,34 @@ public class QueryCassandraTest {
                         + "\"todo\":{\"2016-02-03 05:00:00+0000\":\"Get milk and bread\"},"
                         + "\"registered\":\"true\",\"scale\":3.0,\"metric\":4.0}]}",
                 new String(files.get(0).toByteArray()));
+    }
+
+    @Test
+    public void testProcessorJsonOutputFragmentAttributes() {
+        processor = new MockQueryCassandraTwoRounds();
+        testRunner = TestRunners.newTestRunner(processor);
+        setUpStandardProcessorConfig();
+        testRunner.setIncomingConnection(false);
+        testRunner.setProperty(QueryCassandra.MAX_ROWS_PER_FLOW_FILE, "1");
+
+        // Test JSON output
+        testRunner.setProperty(QueryCassandra.OUTPUT_FORMAT, QueryCassandra.JSON_FORMAT);
+        testRunner.run(1, true, true);
+        testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 2);
+        List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
+        assertNotNull(files);
+        assertEquals(2, files.size(), "Two files should be transferred to success");
+        String indexIdentifier = null;
+        for (int i = 0; i < files.size(); i++) {
+            MockFlowFile flowFile = files.get(i);
+            flowFile.assertAttributeEquals(QueryCassandra.FRAGMENT_INDEX, String.valueOf(i));
+            if (indexIdentifier == null) {
+                indexIdentifier = flowFile.getAttribute(QueryCassandra.FRAGMENT_ID);
+            } else {
+                flowFile.assertAttributeEquals(QueryCassandra.FRAGMENT_ID, indexIdentifier);
+            }
+            flowFile.assertAttributeEquals(QueryCassandra.FRAGMENT_COUNT, String.valueOf(files.size()));
+        }
     }
 
     @Test
@@ -254,7 +279,7 @@ public class QueryCassandraTest {
         setUpStandardProcessorConfig();
 
         // Test exceptions
-        processor.setExceptionToThrow(new NoHostAvailableException(new HashMap<EndPoint, Throwable>()));
+        processor.setExceptionToThrow(new NoHostAvailableException(new HashMap<>()));
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
         testRunner.assertTransferCount(QueryCassandra.REL_RETRY, 1);
@@ -294,8 +319,6 @@ public class QueryCassandraTest {
         testRunner.run(1, true, true);
         testRunner.assertTransferCount(QueryCassandra.REL_FAILURE, 1);
     }
-
-    // --
 
     @Test
     public void testCreateSchemaOneColumn() throws Exception {
@@ -412,8 +435,10 @@ public class QueryCassandraTest {
 
     @Test
     public void testConvertToAvroStream() throws Exception {
+        processor = new MockQueryCassandraTwoRounds();
+        testRunner = TestRunners.newTestRunner(processor);
         setUpStandardProcessorConfig();
-        ResultSet rs = CassandraQueryTestUtil.createMockResultSet();
+        ResultSet rs = CassandraQueryTestUtil.createMockResultSet(false);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         long numberOfRows = QueryCassandra.convertToAvroStream(rs, 0, baos, 0, null);
         assertEquals(2, numberOfRows);
@@ -434,8 +459,7 @@ public class QueryCassandraTest {
         ResultSet rs = CassandraQueryTestUtil.createMockDateResultSet();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        DateFormat df = new SimpleDateFormat(QueryCassandra.TIMESTAMP_FORMAT_PATTERN.getDefaultValue());
-        df.setTimeZone(TimeZone.getTimeZone("UTC"));
+        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern(QueryCassandra.TIMESTAMP_FORMAT_PATTERN.getDefaultValue());
 
         long numberOfRows = QueryCassandra.convertToJsonStream(Optional.of(testRunner.getProcessContext()), rs, 0, baos,
             StandardCharsets.UTF_8, 0, null);
@@ -443,7 +467,7 @@ public class QueryCassandraTest {
 
         Map<String, List<Map<String, String>>> map = new ObjectMapper().readValue(baos.toByteArray(), HashMap.class);
         String date = map.get("results").get(0).get("date");
-        assertEquals(df.format(CassandraQueryTestUtil.TEST_DATE), date);
+        assertEquals(formatter.format(CassandraQueryTestUtil.TEST_DATE.toInstant().atOffset(ZoneOffset.UTC)), date);
     }
 
     @Test
@@ -454,15 +478,14 @@ public class QueryCassandraTest {
 
         final String customDateFormat = "yyyy-MM-dd HH:mm:ss.SSSZ";
         context.setProperty(QueryCassandra.TIMESTAMP_FORMAT_PATTERN, customDateFormat);
-        DateFormat df = new SimpleDateFormat(customDateFormat);
-        df.setTimeZone(TimeZone.getTimeZone("UTC"));
+        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern(customDateFormat);
 
         long numberOfRows = QueryCassandra.convertToJsonStream(Optional.of(context), rs, 0, baos, StandardCharsets.UTF_8, 0, null);
         assertEquals(1, numberOfRows);
 
         Map<String, List<Map<String, String>>> map = new ObjectMapper().readValue(baos.toByteArray(), HashMap.class);
         String date = map.get("results").get(0).get("date");
-        assertEquals(df.format(CassandraQueryTestUtil.TEST_DATE), date);
+        assertEquals(formatter.format(CassandraQueryTestUtil.TEST_DATE.toInstant().atOffset(ZoneOffset.UTC)), date);
     }
 
     private void setUpStandardProcessorConfig() {

@@ -16,30 +16,17 @@
  */
 
 .search-container {
-    border-left: 1px solid #aabbc3;
-
-    &:hover,
-    &.open {
-        background-color: #ffffff;
-        border-left: 1px solid #004849;
-    }
-
     .search-input {
         width: 0;
         height: 32px;
         outline: none;
         font-size: 13px;
         line-height: 13px;
-        color: #262626;
         transition: width 400ms ease-in-out;
     }
 
     .search-input.open {
         width: 200px;
         transition: width 400ms ease-in-out;
-    }
-
-    .fa {
-        color: #004849;
     }
 }

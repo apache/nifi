@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Details about a connectable component.
@@ -39,9 +39,8 @@ public class ConnectableDTO {
     /**
      * @return id of this connectable component
      */
-    @ApiModelProperty(
-            value = "The id of the connectable component.",
-            required = true
+    @Schema(description = "The id of the connectable component.",
+            requiredMode = Schema.RequiredMode.REQUIRED
     )
     public String getId() {
         return id;
@@ -51,7 +50,7 @@ public class ConnectableDTO {
         this.id = id;
     }
 
-    @ApiModelProperty("The ID of the corresponding component that is under version control")
+    @Schema(description = "The ID of the corresponding component that is under version control")
     public String getVersionedComponentId() {
         return versionedComponentId;
     }
@@ -64,9 +63,8 @@ public class ConnectableDTO {
     /**
      * @return type of this connectable component
      */
-    @ApiModelProperty(
-            value = "The type of component the connectable is.",
-            required = true,
+    @Schema(description = "The type of component the connectable is.",
+            requiredMode = Schema.RequiredMode.REQUIRED,
             allowableValues = "PROCESSOR, REMOTE_INPUT_PORT, REMOTE_OUTPUT_PORT, INPUT_PORT, OUTPUT_PORT, FUNNEL"
     )
     public String getType() {
@@ -80,9 +78,8 @@ public class ConnectableDTO {
     /**
      * @return id of the group that this connectable component resides in
      */
-    @ApiModelProperty(
-            value = "The id of the group that the connectable component resides in",
-            required = true
+    @Schema(description = "The id of the group that the connectable component resides in",
+            requiredMode = Schema.RequiredMode.REQUIRED
     )
     public String getGroupId() {
         return groupId;
@@ -95,8 +92,7 @@ public class ConnectableDTO {
     /**
      * @return name of this connectable component
      */
-    @ApiModelProperty(
-            value = "The name of the connectable component"
+    @Schema(description = "The name of the connectable component"
     )
     public String getName() {
         return name;
@@ -109,8 +105,7 @@ public class ConnectableDTO {
     /**
      * @return Used to reflect the current state of this Connectable
      */
-    @ApiModelProperty(
-            value = "Reflects the current state of the connectable component."
+    @Schema(description = "Reflects the current state of the connectable component."
     )
     public Boolean isRunning() {
         return running;
@@ -123,8 +118,7 @@ public class ConnectableDTO {
     /**
      * @return If this represents a remote port it is used to indicate whether the target exists
      */
-    @ApiModelProperty(
-            value = "If the connectable component represents a remote port, indicates if the target exists."
+    @Schema(description = "If the connectable component represents a remote port, indicates if the target exists."
     )
     public Boolean getExists() {
         return exists;
@@ -137,8 +131,7 @@ public class ConnectableDTO {
     /**
      * @return If this represents a remote port it is used to indicate whether is it configured to transmit
      */
-    @ApiModelProperty(
-            value = "If the connectable component represents a remote port, indicates if the target is configured to transmit."
+    @Schema(description = "If the connectable component represents a remote port, indicates if the target is configured to transmit."
     )
     public Boolean getTransmitting() {
         return transmitting;
@@ -151,8 +144,7 @@ public class ConnectableDTO {
     /**
      * @return The comments from this Connectable
      */
-    @ApiModelProperty(
-            value = "The comments for the connectable component."
+    @Schema(description = "The comments for the connectable component."
     )
     public String getComments() {
         return comments;

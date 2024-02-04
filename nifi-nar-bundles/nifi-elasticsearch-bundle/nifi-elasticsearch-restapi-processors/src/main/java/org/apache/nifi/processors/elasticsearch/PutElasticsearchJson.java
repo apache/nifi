@@ -48,9 +48,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -173,13 +171,12 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         .dependsOn(OUTPUT_ERROR_DOCUMENTS, "true")
         .build();
 
-    static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
+    static final List<PropertyDescriptor> DESCRIPTORS = List.of(
         ID_ATTRIBUTE, INDEX_OP, INDEX, TYPE, SCRIPT, SCRIPTED_UPSERT, DYNAMIC_TEMPLATES, BATCH_SIZE, CHARSET, CLIENT_SERVICE,
         LOG_ERROR_RESPONSES, OUTPUT_ERROR_RESPONSES, OUTPUT_ERROR_DOCUMENTS, NOT_FOUND_IS_SUCCESSFUL
-    ));
-    static final Set<Relationship> BASE_RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-        REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_DOCUMENTS
-    )));
+    );
+    static final Set<Relationship> BASE_RELATIONSHIPS =
+            Set.of(REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_DOCUMENTS);
 
     private boolean outputErrors;
 
@@ -293,7 +290,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
     }
 
     private List<FlowFile> indexDocuments(final List<IndexOperationRequest> operations, final List<FlowFile> originals, final ProcessContext context, final ProcessSession session) throws IOException {
-        final Map<String, String> dynamicProperties = getDynamicProperties(context, originals.get(0));
+        final Map<String, String> dynamicProperties = getDynamicProperties(context, originals.getFirst());
         final IndexOperationResponse response = clientService.get().bulk(operations, getRequestURLParameters(dynamicProperties));
 
         final Map<Integer, Map<String, Object>> errors = findElasticsearchResponseErrors(response);

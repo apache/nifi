@@ -22,36 +22,31 @@ import org.apache.nifi.processors.evtx.parser.ChunkHeader;
 import org.apache.nifi.processors.evtx.parser.bxml.BxmlNode;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.TimeZone;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Node containing a system timestamp
  */
 public class SystemtimeTypeNode extends VariantTypeNode {
+    public static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+
     private final String value;
 
     public SystemtimeTypeNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent, int length) throws IOException {
         super(binaryReader, chunkHeader, parent, length);
         int year = binaryReader.readWord();
         int month = binaryReader.readWord();
+        final int monthOfYear = month + 1;
         int dayOfWeek = binaryReader.readWord();
         int day = binaryReader.readWord();
         int hour = binaryReader.readWord();
         int minute = binaryReader.readWord();
         int second = binaryReader.readWord();
         int millisecond = binaryReader.readWord();
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(year, month, day, hour, minute, second);
-        calendar.set(Calendar.MILLISECOND, millisecond);
-        value = getFormat().format(calendar.getTime());
-    }
-
-    public static final SimpleDateFormat getFormat() {
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-        return simpleDateFormat;
+        final int nanosecond = millisecond * 1000000;
+        final LocalDateTime localDateTime = LocalDateTime.of(year, monthOfYear, day, hour, minute, second, nanosecond);
+        value = FORMATTER.format(localDateTime);
     }
 
     @Override

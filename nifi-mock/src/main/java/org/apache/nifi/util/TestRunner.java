@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.util;
 
-import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ControllerService;
@@ -247,7 +247,7 @@ public interface TestRunner {
      * @param value allowable valu
      * @return result
      */
-    ValidationResult setProperty(PropertyDescriptor descriptor, AllowableValue value);
+    ValidationResult setProperty(PropertyDescriptor descriptor, DescribedValue value);
 
     /**
      * Sets the annotation data.
@@ -393,6 +393,8 @@ public interface TestRunner {
      * are valid
      */
     void assertValid();
+
+    boolean isValid();
 
     /**
      * Assert that the currently configured set of properties/annotation data
@@ -776,7 +778,7 @@ public interface TestRunner {
      *             {@link #removeControllerService(ControllerService)} method.
      *
      */
-    ValidationResult setProperty(ControllerService service, PropertyDescriptor property, AllowableValue value);
+    ValidationResult setProperty(ControllerService service, PropertyDescriptor property, DescribedValue value);
 
     /**
      * Sets the property with the given name on the given ControllerService

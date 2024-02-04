@@ -20,8 +20,8 @@
         <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
     </div>
     <ng-template #loaded>
-        <div class="flex flex-col h-full gap-y-2">
-            <div class="flex justify-end">
+        <div class="flex flex-col h-full gap-y-2" *ngIf="currentUser$ | async; let currentUser">
+            <div class="flex justify-end" *ngIf="currentUser.controllerPermissions.canWrite">
                 <button class="nifi-button" (click)="openNewReportingTaskDialog()">
                     <i class="fa fa-plus"></i>
                 </button>
@@ -30,6 +30,10 @@
                 <reporting-task-table
                     [selectedReportingTaskId]="selectedReportingTaskId$ | async"
                     [reportingTasks]="reportingTaskState.reportingTasks"
+                    [currentUser]="currentUser"
+                    [flowConfiguration]="(flowConfiguration$ | async)!"
+                    (configureReportingTask)="configureReportingTask($event)"
+                    (viewStateReportingTask)="viewStateReportingTask($event)"
                     (selectReportingTask)="selectReportingTask($event)"
                     (deleteReportingTask)="deleteReportingTask($event)"
                     (stopReportingTask)="stopReportingTask($event)"

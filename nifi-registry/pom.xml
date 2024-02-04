@@ -35,23 +35,17 @@
         <module>nifi-registry-docker-maven</module>
     </modules>
     <properties>
-        <jakarta.rs.api.version>3.1.0</jakarta.rs.api.version>
-        <jersey.bom.version>3.1.3</jersey.bom.version>
-        <spring.boot.version>3.2.0</spring.boot.version>
-        <spring.version>6.1.1</spring.version>
-        <spring.security.version>6.2.0</spring.security.version>
-        <servlet-api.version>6.0.0</servlet-api.version>
-        <jetty.version>12.0.3</jetty.version>
+        <spring.version>6.1.3</spring.version>
+        <spring.boot.version>3.2.2</spring.boot.version>
         <flyway.version>9.22.3</flyway.version>
         <flyway.tests.version>9.5.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
-        <jgit.version>6.7.0.202309050840-r</jgit.version>
-        <org.apache.sshd.version>2.11.0</org.apache.sshd.version>
+        <jgit.version>6.8.0.202311291450-r</jgit.version>
+        <org.apache.sshd.version>2.12.0</org.apache.sshd.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
-            <!-- Logging dependencies that will be directly in lib -->
             <dependency>
                 <groupId>jakarta.servlet</groupId>
                 <artifactId>jakarta.servlet-api</artifactId>
@@ -71,6 +65,50 @@
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-alpn-server</artifactId>
+                <version>${jetty.version}</version>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-alpn-java-server</artifactId>
+                <version>${jetty.version}</version>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.ee10</groupId>
+                <artifactId>jetty-ee10-glassfish-jstl</artifactId>
+                <version>${jetty.version}</version>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.ee10</groupId>
+                <artifactId>jetty-ee10-annotations</artifactId>
+                <version>${jetty.version}</version>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.ee10</groupId>
+                <artifactId>jetty-ee10-webapp</artifactId>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.ee10</groupId>
+                <artifactId>jetty-ee10-servlet</artifactId>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.ee10</groupId>
+                <artifactId>jetty-ee10-servlets</artifactId>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.ee10</groupId>
+                <artifactId>jetty-ee10-apache-jsp</artifactId>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.http2</groupId>
+                <artifactId>jetty-http2-server</artifactId>
                 <version>${jetty.version}</version>
                 <scope>compile</scope>
             </dependency>
@@ -208,7 +246,7 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>jaxb2-maven-plugin</artifactId>
-                    <version>2.5.0</version>
+                    <version>3.1.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

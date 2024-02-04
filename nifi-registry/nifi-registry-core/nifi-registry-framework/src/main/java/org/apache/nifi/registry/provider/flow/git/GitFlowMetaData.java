@@ -24,6 +24,8 @@ import org.eclipse.jgit.api.PushCommand;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
+import org.eclipse.jgit.lib.Config;
+import org.eclipse.jgit.lib.GpgConfig;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectStream;
 import org.eclipse.jgit.lib.Ref;
@@ -475,9 +477,16 @@ class GitFlowMetaData {
 
             final String commitMessage = isEmpty(author) ? message
                     : format("%s\n\nBy NiFi Registry user: %s", message, author);
+
+            // Ensure that we are providing a valid GPG Format to jgit, even though
+            // it is not used for signing. This avoids an error if the system's
+            // git config for gpg.format is "ssh".
+            final Config unusedConfig = new Config();
+            unusedConfig.setEnum("gpg", null, "format", GpgConfig.GpgFormat.OPENPGP);
             final RevCommit commit = git.commit()
                     .setMessage(commitMessage)
                     .setSign(false)
+                    .setGpgConfig(new GpgConfig(unusedConfig))
                     .call();
 
             if (flowPointer != null) {

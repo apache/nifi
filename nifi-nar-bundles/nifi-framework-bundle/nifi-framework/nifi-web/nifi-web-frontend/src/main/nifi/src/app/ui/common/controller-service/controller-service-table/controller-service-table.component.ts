@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
-import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { NgClass, NgIf } from '@angular/common';
 import {
     BulletinsTipInput,
@@ -33,6 +33,8 @@ import { TextTip } from '../../tooltips/text-tip/text-tip.component';
 import { BulletinsTip } from '../../tooltips/bulletins-tip/bulletins-tip.component';
 import { ValidationErrorsTip } from '../../tooltips/validation-errors-tip/validation-errors-tip.component';
 import { RouterLink } from '@angular/router';
+import { FlowConfiguration } from '../../../../state/flow-configuration';
+import { CurrentUser } from '../../../../state/current-user';
 
 @Component({
     selector: 'controller-service-table',
@@ -48,36 +50,38 @@ import { RouterLink } from '@angular/router';
         NifiTooltipDirective,
         RouterLink
     ],
-    styleUrls: ['./controller-service-table.component.scss', '../../../../../assets/styles/listing-table.scss']
+    styleUrls: ['./controller-service-table.component.scss']
 })
-export class ControllerServiceTable implements AfterViewInit {
+export class ControllerServiceTable {
+    @Input() initialSortColumn: 'name' | 'type' | 'bundle' | 'state' | 'scope' = 'name';
+    @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
+    activeSort: Sort = {
+        active: this.initialSortColumn,
+        direction: this.initialSortDirection
+    };
+
     @Input() set controllerServices(controllerServiceEntities: ControllerServiceEntity[]) {
-        this.dataSource = new MatTableDataSource<ControllerServiceEntity>(controllerServiceEntities);
-        this.dataSource.sort = this.sort;
-        this.dataSource.sortingDataAccessor = (data: ControllerServiceEntity, displayColumn: string) => {
-            if (displayColumn == 'name') {
-                return this.formatType(data);
-            } else if (displayColumn == 'type') {
-                return this.formatType(data);
-            } else if (displayColumn == 'bundle') {
-                return this.formatBundle(data);
-            } else if (displayColumn == 'state') {
-                return this.formatState(data);
-            } else if (displayColumn == 'scope') {
-                return this.formatScope(data);
-            }
-            return '';
-        };
+        this.dataSource.data = this.sortEntities(controllerServiceEntities, this.activeSort);
     }
+
     @Input() selectedServiceId!: string;
     @Input() formatScope!: (entity: ControllerServiceEntity) => string;
     @Input() definedByCurrentGroup!: (entity: ControllerServiceEntity) => boolean;
+    @Input() flowConfiguration!: FlowConfiguration;
+    @Input() currentUser!: CurrentUser;
+    @Input() canModifyParent!: (entity: ControllerServiceEntity) => boolean;
 
     @Output() selectControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
     @Output() deleteControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
     @Output() configureControllerService: EventEmitter<ControllerServiceEntity> =
+        new EventEmitter<ControllerServiceEntity>();
+    @Output() enableControllerService: EventEmitter<ControllerServiceEntity> =
+        new EventEmitter<ControllerServiceEntity>();
+    @Output() disableControllerService: EventEmitter<ControllerServiceEntity> =
+        new EventEmitter<ControllerServiceEntity>();
+    @Output() viewStateControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
 
     protected readonly TextTip = TextTip;
@@ -87,13 +91,7 @@ export class ControllerServiceTable implements AfterViewInit {
     displayedColumns: string[] = ['moreDetails', 'name', 'type', 'bundle', 'state', 'scope', 'actions'];
     dataSource: MatTableDataSource<ControllerServiceEntity> = new MatTableDataSource<ControllerServiceEntity>();
 
-    @ViewChild(MatSort) sort!: MatSort;
-
     constructor(private nifiCommon: NiFiCommon) {}
-
-    ngAfterViewInit(): void {
-        this.dataSource.sort = this.sort;
-    }
 
     canRead(entity: ControllerServiceEntity): boolean {
         return entity.permissions.canRead;
@@ -179,12 +177,16 @@ export class ControllerServiceTable implements AfterViewInit {
         return '';
     }
 
+    formatName(entity: ControllerServiceEntity): string {
+        return this.canRead(entity) ? entity.component.name : entity.id;
+    }
+
     formatType(entity: ControllerServiceEntity): string {
-        return this.nifiCommon.formatType(entity.component);
+        return this.canRead(entity) ? this.nifiCommon.formatType(entity.component) : '';
     }
 
     formatBundle(entity: ControllerServiceEntity): string {
-        return this.nifiCommon.formatBundle(entity.component.bundle);
+        return this.canRead(entity) ? this.nifiCommon.formatBundle(entity.component.bundle) : '';
     }
 
     getServiceLink(entity: ControllerServiceEntity): string[] {
@@ -213,11 +215,21 @@ export class ControllerServiceTable implements AfterViewInit {
     }
 
     canEnable(entity: ControllerServiceEntity): boolean {
-        return this.canOperate(entity) && this.isDisabled(entity) && entity.status.validationStatus === 'VALID';
+        const userAuthorized: boolean = this.canRead(entity) && this.canOperate(entity);
+        return userAuthorized && this.isDisabled(entity) && entity.status.validationStatus === 'VALID';
+    }
+
+    enabledClicked(entity: ControllerServiceEntity): void {
+        this.enableControllerService.next(entity);
     }
 
     canDisable(entity: ControllerServiceEntity): boolean {
-        return this.canOperate(entity) && this.isEnabledOrEnabling(entity);
+        const userAuthorized: boolean = this.canRead(entity) && this.canOperate(entity);
+        return userAuthorized && this.isEnabledOrEnabling(entity);
+    }
+
+    disableClicked(entity: ControllerServiceEntity): void {
+        this.disableControllerService.next(entity);
     }
 
     canChangeVersion(entity: ControllerServiceEntity): boolean {
@@ -230,8 +242,7 @@ export class ControllerServiceTable implements AfterViewInit {
     }
 
     canDelete(entity: ControllerServiceEntity): boolean {
-        const canWriteParent: boolean = true; // TODO canWriteControllerServiceParent(dataContext)
-        return this.isDisabled(entity) && this.canRead(entity) && this.canWrite(entity) && canWriteParent;
+        return this.isDisabled(entity) && this.canRead(entity) && this.canWrite(entity) && this.canModifyParent(entity);
     }
 
     deleteClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
@@ -243,9 +254,16 @@ export class ControllerServiceTable implements AfterViewInit {
         return this.canRead(entity) && this.canWrite(entity) && entity.component.persistsState === true;
     }
 
+    viewStateClicked(entity: ControllerServiceEntity): void {
+        this.viewStateControllerService.next(entity);
+    }
+
     canManageAccessPolicies(): boolean {
-        // TODO
-        return false;
+        return this.flowConfiguration.supportsManagedAuthorizer && this.currentUser.tenantsPermissions.canRead;
+    }
+
+    getPolicyLink(entity: ControllerServiceEntity): string[] {
+        return ['/access-policies', 'read', 'component', 'controller-services', entity.id];
     }
 
     select(entity: ControllerServiceEntity): void {
@@ -257,5 +275,41 @@ export class ControllerServiceTable implements AfterViewInit {
             return entity.id == this.selectedServiceId;
         }
         return false;
+    }
+
+    sortData(sort: Sort) {
+        this.activeSort = sort;
+        this.dataSource.data = this.sortEntities(this.dataSource.data, sort);
+    }
+
+    private sortEntities(data: ControllerServiceEntity[], sort: Sort): ControllerServiceEntity[] {
+        if (!data) {
+            return [];
+        }
+        return data.slice().sort((a, b) => {
+            const isAsc = sort.direction === 'asc';
+            let retVal = 0;
+
+            switch (sort.active) {
+                case 'name':
+                    retVal = this.nifiCommon.compareString(this.formatName(a), this.formatName(b));
+                    break;
+                case 'type':
+                    retVal = this.nifiCommon.compareString(this.formatType(a), this.formatType(b));
+                    break;
+                case 'bundle':
+                    retVal = this.nifiCommon.compareString(this.formatBundle(a), this.formatBundle(b));
+                    break;
+                case 'state':
+                    retVal = this.nifiCommon.compareString(this.formatState(a), this.formatState(b));
+                    break;
+                case 'scope':
+                    retVal = this.nifiCommon.compareString(this.formatScope(a), this.formatScope(b));
+                    break;
+                default:
+                    return 0;
+            }
+            return retVal * (isAsc ? 1 : -1);
+        });
     }
 }

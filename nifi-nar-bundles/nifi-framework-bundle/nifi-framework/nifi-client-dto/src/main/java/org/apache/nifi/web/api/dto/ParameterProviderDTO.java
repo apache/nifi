@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -61,8 +61,7 @@ public class ParameterProviderDTO extends ComponentDTO {
     /**
      * @return user-defined name of the parameter provider
      */
-    @ApiModelProperty(
-            value = "The name of the parameter provider."
+    @Schema(description = "The name of the parameter provider."
     )
     public String getName() {
         return name;
@@ -72,7 +71,7 @@ public class ParameterProviderDTO extends ComponentDTO {
         this.name = name;
     }
 
-    @ApiModelProperty("The set of all components in the flow that are referencing Parameters provided by this provider")
+    @Schema(description = "The set of all components in the flow that are referencing Parameters provided by this provider")
     public Set<AffectedComponentEntity> getAffectedComponents() {
         return affectedComponents;
     }
@@ -85,7 +84,7 @@ public class ParameterProviderDTO extends ComponentDTO {
         this.referencingParameterContexts = referencingParameterContexts;
     }
 
-    @ApiModelProperty("The status of all provided parameters for this parameter provider")
+    @Schema(description = "The status of all provided parameters for this parameter provider")
     public Set<ParameterStatusDTO> getParameterStatus() {
         return parameterStatus;
     }
@@ -94,13 +93,12 @@ public class ParameterProviderDTO extends ComponentDTO {
         this.parameterStatus = parameterStatus;
     }
 
-    @ApiModelProperty(value = "The Parameter Contexts that reference this Parameter Provider", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The Parameter Contexts that reference this Parameter Provider", accessMode = Schema.AccessMode.READ_ONLY)
     public Set<ParameterProviderReferencingComponentEntity> getReferencingParameterContexts() {
         return referencingParameterContexts;
     }
 
-    @ApiModelProperty(
-            value = "Configuration for any fetched parameter groups."
+    @Schema(description = "Configuration for any fetched parameter groups."
     )
     public Collection<ParameterGroupConfigurationEntity> getParameterGroupConfigurations() {
         return parameterGroupConfigurations;
@@ -113,8 +111,7 @@ public class ParameterProviderDTO extends ComponentDTO {
     /**
      * @return user-defined comments for the parameter provider
      */
-    @ApiModelProperty(
-            value = "The comments of the parameter provider."
+    @Schema(description = "The comments of the parameter provider."
     )
     public String getComments() {
         return comments;
@@ -127,8 +124,7 @@ public class ParameterProviderDTO extends ComponentDTO {
     /**
      * @return type of parameter provider
      */
-    @ApiModelProperty(
-            value = "The fully qualified type of the parameter provider."
+    @Schema(description = "The fully qualified type of the parameter provider."
     )
     public String getType() {
         return type;
@@ -143,8 +139,7 @@ public class ParameterProviderDTO extends ComponentDTO {
      *
      * @return The bundle details
      */
-    @ApiModelProperty(
-            value = "The details of the artifact that bundled this parameter provider type."
+    @Schema(description = "The details of the artifact that bundled this parameter provider type."
     )
     public BundleDTO getBundle() {
         return bundle;
@@ -157,8 +152,7 @@ public class ParameterProviderDTO extends ComponentDTO {
     /**
      * @return whether this parameter provider persists state
      */
-    @ApiModelProperty(
-        value = "Whether the parameter provider persists state."
+    @Schema(description = "Whether the parameter provider persists state."
     )
     public Boolean getPersistsState() {
         return persistsState;
@@ -171,8 +165,7 @@ public class ParameterProviderDTO extends ComponentDTO {
     /**
      * @return whether this parameter provider requires elevated privileges
      */
-    @ApiModelProperty(
-            value = "Whether the parameter provider requires elevated privileges."
+    @Schema(description = "Whether the parameter provider requires elevated privileges."
     )
     public Boolean getRestricted() {
         return restricted;
@@ -185,8 +178,7 @@ public class ParameterProviderDTO extends ComponentDTO {
     /**
      * @return Whether the parameter provider has been deprecated.
      */
-    @ApiModelProperty(
-            value = "Whether the parameter provider has been deprecated."
+    @Schema(description = "Whether the parameter provider has been deprecated."
     )
     public Boolean getDeprecated() {
         return deprecated;
@@ -199,8 +191,7 @@ public class ParameterProviderDTO extends ComponentDTO {
     /**
      * @return whether the underlying extension is missing
      */
-    @ApiModelProperty(
-            value = "Whether the underlying extension is missing."
+    @Schema(description = "Whether the underlying extension is missing."
     )
     public Boolean getExtensionMissing() {
         return isExtensionMissing;
@@ -213,8 +204,7 @@ public class ParameterProviderDTO extends ComponentDTO {
     /**
      * @return whether this parameter provider has multiple versions available
      */
-    @ApiModelProperty(
-            value = "Whether the parameter provider has multiple versions available."
+    @Schema(description = "Whether the parameter provider has multiple versions available."
     )
     public Boolean getMultipleVersionsAvailable() {
         return multipleVersionsAvailable;
@@ -227,8 +217,7 @@ public class ParameterProviderDTO extends ComponentDTO {
     /**
      * @return parameter provider's properties
      */
-    @ApiModelProperty(
-            value = "The properties of the parameter provider."
+    @Schema(description = "The properties of the parameter provider."
     )
     public Map<String, String> getProperties() {
         return properties;
@@ -241,8 +230,7 @@ public class ParameterProviderDTO extends ComponentDTO {
     /**
      * @return Map of property name to descriptor
      */
-    @ApiModelProperty(
-            value = "The descriptors for the parameter providers properties."
+    @Schema(description = "The descriptors for the parameter providers properties."
     )
     public Map<String, PropertyDescriptorDTO> getDescriptors() {
         return descriptors;
@@ -255,8 +243,7 @@ public class ParameterProviderDTO extends ComponentDTO {
     /**
      * @return the URL for this parameter provider custom configuration UI if applicable. Null otherwise
      */
-    @ApiModelProperty(
-            value = "The URL for the custom configuration UI for the parameter provider."
+    @Schema(description = "The URL for the custom configuration UI for the parameter provider."
     )
     public String getCustomUiUrl() {
         return customUiUrl;
@@ -269,8 +256,7 @@ public class ParameterProviderDTO extends ComponentDTO {
     /**
      * @return currently configured annotation data for the parameter provider
      */
-    @ApiModelProperty(
-            value = "The annotation data for the parameter provider. This is how the custom UI relays configuration to the parameter provider."
+    @Schema(description = "The annotation data for the parameter provider. This is how the custom UI relays configuration to the parameter provider."
     )
     public String getAnnotationData() {
         return annotationData;
@@ -285,8 +271,7 @@ public class ParameterProviderDTO extends ComponentDTO {
      *
      * @return The validation errors
      */
-    @ApiModelProperty(
-            value = "Gets the validation errors from the parameter provider. These validation errors represent the problems with the parameter provider that must be resolved before "
+    @Schema(description = "Gets the validation errors from the parameter provider. These validation errors represent the problems with the parameter provider that must be resolved before "
                     + "it can be scheduled to run."
     )
     public Collection<String> getValidationErrors() {
@@ -297,8 +282,8 @@ public class ParameterProviderDTO extends ComponentDTO {
         this.validationErrors = validationErrors;
     }
 
-    @ApiModelProperty(value = "Indicates whether the Parameter Provider is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Parameter Provider is valid)",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY,
+    @Schema(description = "Indicates whether the Parameter Provider is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Parameter Provider is valid)",
+        accessMode = Schema.AccessMode.READ_ONLY,
         allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
     public String getValidationStatus() {
         return validationStatus;

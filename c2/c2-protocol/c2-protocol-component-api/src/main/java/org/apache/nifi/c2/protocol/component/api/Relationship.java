@@ -17,18 +17,17 @@
 
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.io.Serializable;
 
-@ApiModel
 public class Relationship implements Serializable {
 
     private static final long serialVersionUID = 1L;
     private String name;
     private String description;
 
-    @ApiModelProperty("The name of the relationship")
+    @Schema(description = "The name of the relationship")
     public String getName() {
         return name;
     }
@@ -37,7 +36,7 @@ public class Relationship implements Serializable {
         this.name = name;
     }
 
-    @ApiModelProperty("The description of the relationship")
+    @Schema(description = "The description of the relationship")
     public String getDescription() {
         return description;
     }

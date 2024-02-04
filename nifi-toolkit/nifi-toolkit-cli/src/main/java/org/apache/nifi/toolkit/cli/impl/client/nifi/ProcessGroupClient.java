@@ -24,6 +24,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupImportEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupReplaceRequestEntity;
 
+import java.io.File;
 import java.io.IOException;
 
 /**
@@ -57,4 +58,6 @@ public interface ProcessGroupClient {
        throws NiFiClientException, IOException;
 
    FlowComparisonEntity getLocalModifications(String processGroupId) throws NiFiClientException, IOException;
+
+   File exportProcessGroup(String processGroupId, boolean includeReferencedServices, File outputFile) throws NiFiClientException, IOException;
 }

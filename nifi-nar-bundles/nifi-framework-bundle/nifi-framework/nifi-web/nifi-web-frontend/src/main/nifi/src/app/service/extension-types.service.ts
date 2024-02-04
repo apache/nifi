@@ -16,7 +16,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Bundle } from '../state/shared';
 
@@ -46,6 +46,10 @@ export class ExtensionTypesService {
 
     getReportingTaskTypes(): Observable<any> {
         return this.httpClient.get(`${ExtensionTypesService.API}/flow/reporting-task-types`);
+    }
+
+    getRegistryClientTypes(): Observable<any> {
+        return this.httpClient.get(`${ExtensionTypesService.API}/controller/registry-types`);
     }
 
     getPrioritizers(): Observable<any> {

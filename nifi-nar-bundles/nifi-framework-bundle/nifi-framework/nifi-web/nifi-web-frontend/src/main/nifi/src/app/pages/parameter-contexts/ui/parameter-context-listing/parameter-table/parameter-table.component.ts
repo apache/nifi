@@ -57,7 +57,7 @@ export interface ParameterItem {
         NifiTooltipDirective,
         ParameterReferences
     ],
-    styleUrls: ['./parameter-table.component.scss', '../../../../../../assets/styles/listing-table.scss'],
+    styleUrls: ['./parameter-table.component.scss'],
     providers: [
         {
             provide: NG_VALUE_ACCESSOR,
@@ -74,10 +74,10 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
 
     displayedColumns: string[] = ['name', 'value', 'actions'];
     dataSource: MatTableDataSource<ParameterItem> = new MatTableDataSource<ParameterItem>();
-    selectedItem!: ParameterItem;
+    selectedItem: ParameterItem | null = null;
 
-    isDisabled: boolean = false;
-    isTouched: boolean = false;
+    isDisabled = false;
+    isTouched = false;
     onTouched!: () => void;
     onChange!: (parameters: ParameterEntity[]) => void;
 
@@ -92,7 +92,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     }
 
     initFilter(): void {
-        this.dataSource.filterPredicate = (data: ParameterItem, filter: string) => this.isVisible(data);
+        this.dataSource.filterPredicate = (data: ParameterItem) => this.isVisible(data);
         this.dataSource.filter = ' ';
     }
 
@@ -280,7 +280,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
             item.entity.parameter.valueRemoved = true;
             item.deleted = true;
             item.dirty = true;
-
+            this.selectParameter(null);
             this.handleChanged();
         }
     }
@@ -327,7 +327,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
             });
     }
 
-    selectParameter(item: ParameterItem): void {
+    selectParameter(item: ParameterItem | null): void {
         this.selectedItem = item;
     }
 

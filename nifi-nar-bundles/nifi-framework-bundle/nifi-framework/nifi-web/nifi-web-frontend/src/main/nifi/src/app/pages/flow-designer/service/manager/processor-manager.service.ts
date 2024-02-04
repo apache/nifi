@@ -53,7 +53,7 @@ export class ProcessorManager {
 
     private processors: [] = [];
     private processorContainer: any;
-    private transitionRequired: boolean = false;
+    private transitionRequired = false;
 
     private viewContainerRef: ViewContainerRef | undefined;
 
@@ -228,79 +228,79 @@ export class ProcessorManager {
                     // in
                     details
                         .append('rect')
+                        .attr('class', 'processor-stats-in-out')
                         .attr('width', function () {
                             return processorData.dimensions.width;
                         })
                         .attr('height', 19)
                         .attr('x', 0)
-                        .attr('y', 50)
-                        .attr('fill', '#f4f6f7');
+                        .attr('y', 50);
 
                     // border
                     details
                         .append('rect')
+                        .attr('class', 'processor-stats-border')
                         .attr('width', function () {
                             return processorData.dimensions.width;
                         })
                         .attr('height', 1)
                         .attr('x', 0)
-                        .attr('y', 68)
-                        .attr('fill', '#c7d2d7');
+                        .attr('y', 68);
 
                     // read/write
                     details
                         .append('rect')
+                        .attr('class', 'processor-read-write-stats')
                         .attr('width', function () {
                             return processorData.dimensions.width;
                         })
                         .attr('height', 19)
                         .attr('x', 0)
-                        .attr('y', 69)
-                        .attr('fill', '#ffffff');
+                        .attr('y', 69);
 
                     // border
                     details
                         .append('rect')
+                        .attr('class', 'processor-stats-border')
                         .attr('width', function () {
                             return processorData.dimensions.width;
                         })
                         .attr('height', 1)
                         .attr('x', 0)
-                        .attr('y', 87)
-                        .attr('fill', '#c7d2d7');
+                        .attr('y', 87);
 
                     // out
                     details
                         .append('rect')
+                        .attr('class', 'processor-stats-in-out')
                         .attr('width', function () {
                             return processorData.dimensions.width;
                         })
                         .attr('height', 20)
                         .attr('x', 0)
-                        .attr('y', 88)
-                        .attr('fill', '#f4f6f7');
+                        .attr('y', 88);
 
                     // border
                     details
                         .append('rect')
+                        .attr('class', 'processor-stats-border')
                         .attr('width', function () {
                             return processorData.dimensions.width;
                         })
                         .attr('height', 1)
                         .attr('x', 0)
-                        .attr('y', 106)
-                        .attr('fill', '#c7d2d7');
+                        .attr('y', 106);
 
                     // tasks/time
                     details
                         .append('rect')
+                        .attr('class', 'processor-read-write-stats')
                         .attr('width', function () {
                             return processorData.dimensions.width;
                         })
                         .attr('height', 19)
                         .attr('x', 0)
-                        .attr('y', 107)
-                        .attr('fill', '#ffffff');
+                        .attr('y', 107);
 
                     // stats label container
                     const processorStatsLabel = details.append('g').attr('transform', 'translate(10, 55)');
@@ -669,23 +669,23 @@ export class ProcessorManager {
         // update the run status
         updated
             .select('text.run-status-icon')
-            .attr('fill', function (d: any) {
-                let fill: string = '#728e9b';
+            .attr('class', function (d: any) {
+                let clazz = 'primary-500';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Validating') {
-                    fill = '#a8a8a8';
+                    clazz = 'warn-contrast-300';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
-                    fill = '#cf9f5d';
+                    clazz = 'canvas-accent-A400';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
-                    fill = '#7dc7a0';
+                    clazz = 'canvas-accent-200';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                    fill = '#d18686';
+                    clazz = 'warn-200';
                 }
 
-                return fill;
+                return `run-status-icon ${clazz}`;
             })
             .attr('font-family', function (d: any) {
-                let family: string = 'FontAwesome';
+                let family = 'FontAwesome';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     family = 'flowfont';
                 }
@@ -695,7 +695,7 @@ export class ProcessorManager {
                 return d.status.aggregateSnapshot.runStatus === 'Validating';
             })
             .text(function (d: any) {
-                let img: string = '';
+                let img = '';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     img = '\ue802';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Validating') {

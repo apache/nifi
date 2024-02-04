@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.registry.bucket;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Objects;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -25,7 +24,6 @@ import jakarta.validation.constraints.NotNull;
 import org.apache.nifi.registry.authorization.Permissions;
 import org.apache.nifi.registry.link.LinkableEntity;
 
-@ApiModel
 public abstract class BucketItem extends LinkableEntity {
 
     @NotBlank
@@ -58,7 +56,7 @@ public abstract class BucketItem extends LinkableEntity {
         this.type = type;
     }
 
-    @ApiModelProperty(value = "An ID to uniquely identify this object.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "An ID to uniquely identify this object.", accessMode = Schema.AccessMode.READ_ONLY)
     public String getIdentifier() {
         return identifier;
     }
@@ -67,7 +65,7 @@ public abstract class BucketItem extends LinkableEntity {
         this.identifier = identifier;
     }
 
-    @ApiModelProperty(value = "The name of the item.", required = true)
+    @Schema(description = "The name of the item.")
     public String getName() {
         return name;
     }
@@ -76,7 +74,7 @@ public abstract class BucketItem extends LinkableEntity {
         this.name = name;
     }
 
-    @ApiModelProperty("A description of the item.")
+    @Schema(description = "A description of the item.")
     public String getDescription() {
         return description;
     }
@@ -85,7 +83,7 @@ public abstract class BucketItem extends LinkableEntity {
         this.description = description;
     }
 
-    @ApiModelProperty(value = "The identifier of the bucket this items belongs to. This cannot be changed after the item is created.", required = true)
+    @Schema(description = "The identifier of the bucket this items belongs to. This cannot be changed after the item is created.")
     public String getBucketIdentifier() {
         return bucketIdentifier;
     }
@@ -94,7 +92,7 @@ public abstract class BucketItem extends LinkableEntity {
         this.bucketIdentifier = bucketIdentifier;
     }
 
-    @ApiModelProperty(value = "The name of the bucket this items belongs to.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The name of the bucket this items belongs to.", accessMode = Schema.AccessMode.READ_ONLY)
     public String getBucketName() {
         return bucketName;
     }
@@ -103,7 +101,7 @@ public abstract class BucketItem extends LinkableEntity {
         this.bucketName = bucketName;
     }
 
-    @ApiModelProperty(value = "The timestamp of when the item was created, as milliseconds since epoch.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The timestamp of when the item was created, as milliseconds since epoch.", accessMode = Schema.AccessMode.READ_ONLY)
     public long getCreatedTimestamp() {
         return createdTimestamp;
     }
@@ -112,7 +110,7 @@ public abstract class BucketItem extends LinkableEntity {
         this.createdTimestamp = createdTimestamp;
     }
 
-    @ApiModelProperty(value = "The timestamp of when the item was last modified, as milliseconds since epoch.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The timestamp of when the item was last modified, as milliseconds since epoch.", accessMode = Schema.AccessMode.READ_ONLY)
     public long getModifiedTimestamp() {
         return modifiedTimestamp;
     }
@@ -121,12 +119,12 @@ public abstract class BucketItem extends LinkableEntity {
         this.modifiedTimestamp = modifiedTimestamp;
     }
 
-    @ApiModelProperty(value = "The type of item.", required = true)
+    @Schema(description = "The type of item.")
     public BucketItemType getType() {
         return type;
     }
 
-    @ApiModelProperty(value = "The access that the current user has to the bucket containing this item.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The access that the current user has to the bucket containing this item.", accessMode = Schema.AccessMode.READ_ONLY)
     public Permissions getPermissions() {
         return permissions;
     }

@@ -276,14 +276,16 @@ class TestYamlTreeRowRecordReader {
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        final String expectedMap = "{id=1, name=John Doe, address=123 My Street, city=My City, state=MS, zipCode=11111, country=USA, account=MapRecord[{id=42, balance=4750.89}]}";
-        final String expectedRecord = String.format("MapRecord[%s]", expectedMap);
+        final String expectedRecordToString = """
+            {"id":1,"name":"John Doe","address":"123 My Street","city":"My City","state":"MS","zipCode":"11111","country":"USA","account":{"id":42,"balance":4750.89}}""";
+
+        final String expectedMap = "{id=1, name=John Doe, address=123 My Street, city=My City, state=MS, zipCode=11111, country=USA, account={\"id\":42,\"balance\":4750.89}}";
+
         try (final InputStream in = Files.newInputStream(Paths.get("src/test/resources/yaml/single-element-nested.yaml"));
              final YamlTreeRowRecordReader reader = new YamlTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final Record rawRecord = reader.nextRecord(false, false);
-
-            assertEquals(expectedRecord, rawRecord.toString());
+            assertEquals(expectedRecordToString, rawRecord.toString());
 
             final Map<String, Object> map = rawRecord.toMap();
             assertEquals(expectedMap, map.toString());
@@ -660,150 +662,6 @@ class TestYamlTreeRowRecordReader {
         testReadRecords(yamlPath, expected);
     }
 
-    @Test
-    void testChoiceOfEmbeddedArraysAndSingleRecords() throws Exception {
-        String yamlPath = "src/test/resources/yaml/choice-of-embedded-arrays-and-single-records.yaml";
-
-        final SimpleRecordSchema expectedRecordSchema1 = new SimpleRecordSchema(Collections.singletonList(
-                new RecordField("integer", RecordFieldType.INT.getDataType())
-        ));
-        final SimpleRecordSchema expectedRecordSchema2 = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("integer", RecordFieldType.INT.getDataType()),
-            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
-        ));
-        final SimpleRecordSchema expectedRecordSchema3 = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("integer", RecordFieldType.INT.getDataType()),
-            new RecordField("string", RecordFieldType.STRING.getDataType())
-        ));
-        final SimpleRecordSchema expectedRecordSchema4 = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("integer", RecordFieldType.INT.getDataType()),
-            new RecordField("string", RecordFieldType.STRING.getDataType())
-        ));
-        RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Collections.singletonList(
-                new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
-                        RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema1),
-                        RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema3),
-                        RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema2)),
-                        RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema4))
-                ))
-        ));
-
-        List<Object> expected = Arrays.asList(
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<>() {{
-                put("record", new MapRecord(expectedRecordSchema1, new HashMap<>() {{
-                    put("integer", 1);
-                }}));
-            }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<>() {{
-                put("record", new Object[]{
-                        new MapRecord(expectedRecordSchema2, new HashMap<>() {{
-                            put("integer", 21);
-                            put("boolean", true);
-                        }}),
-                        new MapRecord(expectedRecordSchema2, new HashMap<>() {{
-                            put("integer", 22);
-                            put("boolean", false);
-                        }})
-                });
-            }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<>() {{
-                put("record", new MapRecord(expectedRecordSchema3, new HashMap<>() {{
-                    put("integer", 3);
-                    put("string", "stringValue3");
-                }}));
-            }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<>() {{
-                put("record", new Object[]{
-                        new MapRecord(expectedRecordSchema4, new HashMap<>() {{
-                            put("integer", 41);
-                            put("string", "stringValue41");
-                        }}),
-                        new MapRecord(expectedRecordSchema4, new HashMap<>() {{
-                            put("integer", 42);
-                            put("string", "stringValue42");
-                        }})
-                });
-            }})
-        );
-
-        testReadRecords(yamlPath, expected);
-    }
-
-    @Test
-    void testChoiceOfMergedEmbeddedArraysAndSingleRecords() throws Exception {
-        String yamlPath = "src/test/resources/yaml/choice-of-merged-embedded-arrays-and-single-records.yaml";
-
-        final SimpleRecordSchema expectedRecordSchema1 = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("integer", RecordFieldType.INT.getDataType()),
-            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
-        ));
-        final SimpleRecordSchema expectedRecordSchema2 = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("integer", RecordFieldType.INT.getDataType()),
-            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
-        ));
-        final SimpleRecordSchema expectedRecordSchema3 = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("integer", RecordFieldType.INT.getDataType()),
-            new RecordField("string", RecordFieldType.STRING.getDataType())
-        ));
-        final SimpleRecordSchema expectedRecordSchema4 = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("integer", RecordFieldType.INT.getDataType()),
-            new RecordField("string", RecordFieldType.STRING.getDataType()),
-            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
-        ));
-        RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Collections.singletonList(
-                new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
-                        RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema1),
-                        RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema3),
-                        RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema2)),
-                        RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema4))
-                ))
-        ));
-
-        List<Object> expected = Arrays.asList(
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<>() {{
-                put("record", new MapRecord(expectedRecordSchema1, new HashMap<>() {{
-                    put("integer", 1);
-                    put("boolean", false);
-                }}));
-            }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<>() {{
-                put("record", new Object[]{
-                        new MapRecord(expectedRecordSchema2, new HashMap<>() {{
-                            put("integer", 21);
-                            put("boolean", true);
-                        }}),
-                        new MapRecord(expectedRecordSchema2, new HashMap<>() {{
-                            put("integer", 22);
-                            put("boolean", false);
-                        }})
-                });
-            }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<>() {{
-                put("record", new MapRecord(expectedRecordSchema3, new HashMap<>() {{
-                    put("integer", 3);
-                    put("string", "stringValue3");
-                }}));
-            }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<>() {{
-                put("record", new Object[]{
-                        new MapRecord(expectedRecordSchema4, new HashMap<>() {{
-                            put("integer", 41);
-                            put("string", "stringValue41");
-                        }}),
-                        new MapRecord(expectedRecordSchema4, new HashMap<>() {{
-                            put("integer", 42);
-                            put("string", "stringValue42");
-                        }}),
-                        new MapRecord(expectedRecordSchema4, new HashMap<>() {{
-                            put("integer", 43);
-                            put("boolean", false);
-                        }})
-                });
-            }})
-        );
-
-        testReadRecords(yamlPath, expected);
-    }
 
     @Test
     void testChoseSuboptimalSchemaWhenDataHasExtraFields() throws Exception {

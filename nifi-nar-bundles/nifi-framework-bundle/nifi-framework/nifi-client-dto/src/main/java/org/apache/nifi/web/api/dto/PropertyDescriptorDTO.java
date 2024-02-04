@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
 
 /**
@@ -45,8 +45,7 @@ public class PropertyDescriptorDTO {
     /**
      * @return set of allowable values for this property. If empty then the allowable values are not constrained
      */
-    @ApiModelProperty(
-            value = "Allowable values for the property. If empty then the allowed values are not constrained."
+    @Schema(description = "Allowable values for the property. If empty then the allowed values are not constrained."
     )
     public List<AllowableValueEntity> getAllowableValues() {
         return allowableValues;
@@ -59,8 +58,7 @@ public class PropertyDescriptorDTO {
     /**
      * @return default value for this property
      */
-    @ApiModelProperty(
-            value = "The default value for the property."
+    @Schema(description = "The default value for the property."
     )
     public String getDefaultValue() {
         return defaultValue;
@@ -73,8 +71,7 @@ public class PropertyDescriptorDTO {
     /**
      * @return An explanation of the meaning of the given property. This description is meant to be displayed to a user or simply provide a mechanism of documenting intent
      */
-    @ApiModelProperty(
-            value = "The description for the property. Used to relay additional details to a user or provide a mechanism of documenting intent."
+    @Schema(description = "The description for the property. Used to relay additional details to a user or provide a mechanism of documenting intent."
     )
     public String getDescription() {
         return description;
@@ -87,8 +84,7 @@ public class PropertyDescriptorDTO {
     /**
      * @return property name
      */
-    @ApiModelProperty(
-            value = "The name for the property."
+    @Schema(description = "The name for the property."
     )
     public String getName() {
         return name;
@@ -101,8 +97,7 @@ public class PropertyDescriptorDTO {
     /**
      * @return human-readable name to display to users
      */
-    @ApiModelProperty(
-            value = "The human readable name for the property."
+    @Schema(description = "The human readable name for the property."
     )
     public String getDisplayName() {
         return displayName;
@@ -115,8 +110,7 @@ public class PropertyDescriptorDTO {
     /**
      * @return whether the property is required for this processor
      */
-    @ApiModelProperty(
-            value = "Whether the property is required."
+    @Schema(description = "Whether the property is required."
     )
     public Boolean isRequired() {
         return required;
@@ -129,8 +123,7 @@ public class PropertyDescriptorDTO {
     /**
      * @return indicates that the value for this property should be considered sensitive and protected whenever stored or represented
      */
-    @ApiModelProperty(
-            value = "Whether the property is sensitive and protected whenever stored or represented."
+    @Schema(description = "Whether the property is sensitive and protected whenever stored or represented."
     )
     public Boolean isSensitive() {
         return sensitive;
@@ -143,8 +136,7 @@ public class PropertyDescriptorDTO {
     /**
      * @return indicates whether this property is dynamic
      */
-    @ApiModelProperty(
-            value = "Whether the property is dynamic (user-defined)."
+    @Schema(description = "Whether the property is dynamic (user-defined)."
     )
     public Boolean isDynamic() {
         return dynamic;
@@ -157,8 +149,7 @@ public class PropertyDescriptorDTO {
     /**
      * @return specifies whether or not this property support expression language
      */
-    @ApiModelProperty(
-            value = "Whether the property supports expression language."
+    @Schema(description = "Whether the property supports expression language."
     )
     public Boolean getSupportsEl() {
         return supportsEl;
@@ -171,8 +162,7 @@ public class PropertyDescriptorDTO {
     /**
      * @return specifies the scope of expression language evaluation
      */
-    @ApiModelProperty(
-            value = "Scope of the Expression Language evaluation for the property."
+    @Schema(description = "Scope of the Expression Language evaluation for the property."
     )
     public String getExpressionLanguageScope() {
         return expressionLanguageScope;
@@ -185,8 +175,7 @@ public class PropertyDescriptorDTO {
     /**
      * @return if this property identifies a controller service this returns the fully qualified type, null otherwise
      */
-    @ApiModelProperty(
-            value = "If the property identifies a controller service this returns the fully qualified type."
+    @Schema(description = "If the property identifies a controller service this returns the fully qualified type."
     )
     public String getIdentifiesControllerService() {
         return identifiesControllerService;
@@ -199,8 +188,7 @@ public class PropertyDescriptorDTO {
     /**
      * @return if this property identifies a controller service this returns the bundle of the type, null otherwise
      */
-    @ApiModelProperty(
-            value = "If the property identifies a controller service this returns the bundle of the type, null otherwise."
+    @Schema(description = "If the property identifies a controller service this returns the bundle of the type, null otherwise."
     )
     public BundleDTO getIdentifiesControllerServiceBundle() {
         return identifiesControllerServiceBundle;
@@ -210,7 +198,7 @@ public class PropertyDescriptorDTO {
         this.identifiesControllerServiceBundle = identifiesControllerServiceBundle;
     }
 
-    @ApiModelProperty(value="A list of dependencies that must be met in order for this Property to be relevant. If any of these dependencies is not met, the property described by this " +
+    @Schema(description = "A list of dependencies that must be met in order for this Property to be relevant. If any of these dependencies is not met, the property described by this " +
         "Property Descriptor is not relevant.")
     public List<PropertyDependencyDTO> getDependencies() {
         return dependencies;

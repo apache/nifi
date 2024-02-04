@@ -15,7 +15,23 @@
  * limitations under the License.
  */
 
+import { filter, Observable } from 'rxjs';
+
+export function isDefinedAndNotNull<T>() {
+    return (source$: Observable<null | undefined | T>) =>
+        source$.pipe(
+            filter((input: null | undefined | T): input is T => {
+                return input !== null && typeof input !== undefined;
+            })
+        );
+}
+
 export interface OkDialogRequest {
+    title: string;
+    message: string;
+}
+
+export interface CancelDialogRequest {
     title: string;
     message: string;
 }
@@ -44,13 +60,139 @@ export interface EditParameterResponse {
     parameter: Parameter;
 }
 
-export interface CreateControllerServiceRequest {
+export interface UserEntity {
+    id: string;
+    permissions: Permissions;
+    component: User;
+    revision: Revision;
+    uri: string;
+}
+
+export interface User extends Tenant {
+    userGroups: TenantEntity[];
+    accessPolicies: AccessPolicySummaryEntity[];
+}
+
+export interface UserGroupEntity {
+    id: string;
+    permissions: Permissions;
+    component: UserGroup;
+    revision: Revision;
+    uri: string;
+}
+
+export interface UserGroup extends Tenant {
+    users: TenantEntity[];
+    accessPolicies: AccessPolicySummaryEntity[];
+}
+
+export interface TenantEntity {
+    id: string;
+    revision: Revision;
+    permissions: Permissions;
+    component: Tenant;
+}
+
+export interface Tenant {
+    id: string;
+    identity: string;
+    configurable: boolean;
+}
+
+export interface EditTenantRequest {
+    user?: UserEntity;
+    userGroup?: UserGroupEntity;
+    existingUsers: UserEntity[];
+    existingUserGroups: UserGroupEntity[];
+}
+
+export interface EditTenantResponse {
+    revision: Revision;
+    user?: any;
+    userGroup?: any;
+}
+
+export interface CreateControllerServiceDialogRequest {
     controllerServiceTypes: DocumentedType[];
 }
 
 export interface EditControllerServiceDialogRequest {
     id: string;
     controllerService: ControllerServiceEntity;
+}
+
+export interface UpdateControllerServiceRequest {
+    payload: any;
+    postUpdateNavigation?: string[];
+}
+
+export interface SetEnableControllerServiceDialogRequest {
+    id: string;
+    controllerService: ControllerServiceEntity;
+}
+
+export interface DisableControllerServiceDialogRequest {
+    id: string;
+    controllerService: ControllerServiceEntity;
+}
+
+export interface ProvenanceEventSummary {
+    id: string;
+    eventId: number;
+    eventTime: string;
+    eventType: string;
+    flowFileUuid: string;
+    fileSize: string;
+    fileSizeBytes: number;
+    clusterNodeId?: string;
+    clusterNodeAddress?: string;
+    groupId: string;
+    componentId: string;
+    componentType: string;
+    componentName: string;
+}
+
+export interface Attribute {
+    name: string;
+    value: string;
+    previousValue: string;
+}
+
+export interface ProvenanceEvent extends ProvenanceEventSummary {
+    eventDuration: string;
+    lineageDuration: number;
+    clusterNodeId: string;
+    clusterNodeAddress: string;
+    sourceSystemFlowFileId: string;
+    alternateIdentifierUri: string;
+    attributes: Attribute[];
+    parentUuids: string[];
+    childUuids: string[];
+    transitUri: string;
+    relationship: string;
+    details: string;
+    contentEqual: boolean;
+    inputContentAvailable: boolean;
+    inputContentClaimSection: string;
+    inputContentClaimContainer: string;
+    inputContentClaimIdentifier: string;
+    inputContentClaimOffset: number;
+    inputContentClaimFileSize: string;
+    inputContentClaimFileSizeBytes: number;
+    outputContentAvailable: boolean;
+    outputContentClaimSection: string;
+    outputContentClaimContainer: string;
+    outputContentClaimIdentifier: string;
+    outputContentClaimOffset: string;
+    outputContentClaimFileSize: string;
+    outputContentClaimFileSizeBytes: number;
+    replayAvailable: boolean;
+    replayExplanation: string;
+    sourceConnectionIdentifier: string;
+}
+
+export interface ProvenanceEventDialogRequest {
+    event: ProvenanceEvent;
 }
 
 export interface TextTipInput {
@@ -119,6 +261,7 @@ export interface RequiredPermission {
 export interface Revision {
     version: number;
     clientId?: string;
+    lastModifier?: string;
 }
 
 export interface BulletinEntity {
@@ -138,6 +281,7 @@ export interface BulletinEntity {
         sourceName: string;
         timestamp: string;
         nodeAddress?: string;
+        sourceType: string;
     };
 }
 
@@ -162,6 +306,7 @@ export interface ParameterContextReferenceEntity {
     permissions: Permissions;
     id: string;
     component?: ParameterContextReference;
+    bulletins?: BulletinEntity[];
 }
 
 export interface ParameterContextReference {
@@ -189,6 +334,32 @@ export interface AffectedComponent {
     validationErrors: string[];
 }
 
+export interface SubmitParameterContextUpdate {
+    id: string;
+    payload: any;
+}
+
+export interface PollParameterContextUpdateSuccess {
+    requestEntity: ParameterContextUpdateRequestEntity;
+}
+
+export interface ParameterContextUpdateRequest {
+    complete: boolean;
+    lastUpdated: string;
+    percentComponent: number;
+    referencingComponents: AffectedComponentEntity[];
+    requestId: string;
+    state: string;
+    updateSteps: any[];
+    uri: string;
+    parameterContext?: any;
+}
+
+export interface ParameterContextUpdateRequestEntity {
+    parameterContextRevision: Revision;
+    request: ParameterContextUpdateRequest;
+}
+
 export interface ElFunction {
     name: string;
     description: string;
@@ -210,7 +381,12 @@ export enum ComponentType {
     OutputPort = 'OutputPort',
     Label = 'Label',
     Funnel = 'Funnel',
-    Connection = 'Connection'
+    Connection = 'Connection',
+    ControllerService = 'ControllerService',
+    ReportingTask = 'ReportingTask',
+    FlowAnalysisRule = 'FlowAnalysisRule',
+    ParameterProvider = 'ParameterProvider',
+    FlowRegistryClient = 'FlowRegistryClient'
 }
 
 export interface ControllerServiceReferencingComponent {
@@ -245,6 +421,35 @@ export interface ControllerServiceEntity {
     uri: string;
     status: any;
     component: any;
+}
+
+export interface AccessPolicySummaryEntity {
+    id: string;
+    component: AccessPolicySummary;
+    revision: Revision;
+    permissions: Permissions;
+}
+
+export interface AccessPolicySummary {
+    id: string;
+    resource: string;
+    action: string;
+    componentReference?: ComponentReferenceEntity;
+    configurable: boolean;
+}
+
+export interface ComponentReferenceEntity {
+    id: string;
+    parentGroupId?: string;
+    component: ComponentReference;
+    revision: Revision;
+    permissions: Permissions;
+}
+
+export interface ComponentReference {
+    id: string;
+    parentGroupId?: string;
+    name: string;
 }
 
 export interface DocumentedType {
@@ -304,6 +509,10 @@ export interface PropertyDescriptor {
     identifiesControllerServiceBundle?: Bundle;
 }
 
+export interface PropertyDescriptorEntity {
+    propertyDescriptor: PropertyDescriptor;
+}
+
 export interface Property {
     property: string;
     value: string | null;
@@ -317,4 +526,19 @@ export interface InlineServiceCreationRequest {
 export interface InlineServiceCreationResponse {
     value: string;
     descriptor: PropertyDescriptor;
+}
+
+export interface PropertyDescriptorRetriever {
+    getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<PropertyDescriptorEntity>;
+}
+
+export interface CreateControllerServiceRequest {
+    processGroupId?: string;
+    controllerServiceType: string;
+    controllerServiceBundle: Bundle;
+    revision: Revision;
+}
+
+export interface ControllerServiceCreator {
+    createControllerService(createControllerService: CreateControllerServiceRequest): Observable<any>;
 }

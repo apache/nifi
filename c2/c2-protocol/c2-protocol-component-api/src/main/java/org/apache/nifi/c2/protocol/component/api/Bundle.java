@@ -17,13 +17,11 @@
 
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.io.Serializable;
 import java.util.Objects;
 
-@ApiModel
 public class Bundle implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -49,10 +47,7 @@ public class Bundle implements Serializable {
         return new Bundle(DEFAULT_GROUP, DEFAULT_ARTIFACT, DEFAULT_VERSION);
     }
 
-    @ApiModelProperty(
-        value = "The group id of the bundle",
-        notes = "A globally unique group namespace, e.g., org.apache.nifi",
-        required = true)
+    @Schema(description = "The group id of the bundle")
     public String getGroup() {
         return group;
     }
@@ -61,10 +56,7 @@ public class Bundle implements Serializable {
         this.group = group;
     }
 
-    @ApiModelProperty(
-        value = "The artifact id of the bundle",
-        notes = "Unique within the group",
-        required = true)
+    @Schema(description = "The artifact id of the bundle")
     public String getArtifact() {
         return artifact;
     }
@@ -73,7 +65,7 @@ public class Bundle implements Serializable {
         this.artifact = artifact;
     }
 
-    @ApiModelProperty("The version of the bundle artifact")
+    @Schema(description = "The version of the bundle artifact")
     public String getVersion() {
         return version;
     }
@@ -82,10 +74,7 @@ public class Bundle implements Serializable {
         this.version = version;
     }
 
-    @ApiModelProperty(value = "The full specification of the bundle contents",
-        notes = "This is optional, as the group, artifact, and version are " +
-            "also enough to reference a bundle in the case the bundle " +
-            "specification has been published to a registry.")
+    @Schema(description = "The full specification of the bundle contents")
     public ComponentManifest getComponentManifest() {
         return componentManifest;
     }

@@ -44,6 +44,7 @@
                 [dataSource]="dataSource"
                 matSort
                 matSortDisableClear
+                (matSortChange)="sortData($event)"
                 [matSortActive]="initialSortColumn"
                 [matSortDirection]="initialSortDirection">
                 <!-- Context column -->

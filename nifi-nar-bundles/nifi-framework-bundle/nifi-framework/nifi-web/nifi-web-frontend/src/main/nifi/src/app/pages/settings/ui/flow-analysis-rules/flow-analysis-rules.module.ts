@@ -18,10 +18,24 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FlowAnalysisRules } from './flow-analysis-rules.component';
+import { FlowAnalysisRuleTable } from './flow-analysis-rule-table/flow-analysis-rule-table.component';
+import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { MatSortModule } from '@angular/material/sort';
+import { MatTableModule } from '@angular/material/table';
+import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { PropertyTable } from '../../../../ui/common/property-table/property-table.component';
 
 @NgModule({
     declarations: [FlowAnalysisRules],
     exports: [FlowAnalysisRules],
-    imports: [CommonModule]
+    imports: [
+        CommonModule,
+        NgxSkeletonLoaderModule,
+        MatSortModule,
+        MatTableModule,
+        NifiTooltipDirective,
+        FlowAnalysisRuleTable,
+        PropertyTable
+    ]
 })
 export class FlowAnalysisRulesModule {}

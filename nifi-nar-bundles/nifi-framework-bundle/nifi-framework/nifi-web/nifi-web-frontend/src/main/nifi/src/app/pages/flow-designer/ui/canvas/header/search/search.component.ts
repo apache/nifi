@@ -27,18 +27,28 @@ import {
     OriginConnectionPosition,
     OverlayConnectionPosition
 } from '@angular/cdk/overlay';
-import { Store } from '@ngrx/store';
-import { CanvasState } from '../../../../state';
 import { ComponentType } from '../../../../../../state/shared';
 import { NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 
 @Component({
     selector: 'search',
     standalone: true,
     templateUrl: './search.component.html',
-    imports: [ReactiveFormsModule, CdkOverlayOrigin, CdkConnectedOverlay, NgIf, NgTemplateOutlet, RouterLink, NgForOf],
-    styleUrls: ['./search.component.scss']
+    styleUrls: ['./search.component.scss'],
+    imports: [
+        ReactiveFormsModule,
+        CdkOverlayOrigin,
+        CdkConnectedOverlay,
+        NgIf,
+        NgTemplateOutlet,
+        RouterLink,
+        NgForOf,
+        MatFormFieldModule,
+        MatInputModule
+    ]
 })
 export class Search implements OnInit {
     protected readonly ComponentType = ComponentType;
@@ -58,10 +68,10 @@ export class Search implements OnInit {
     public positions: ConnectionPositionPair[] = [this.position];
 
     searchForm: FormGroup;
-    searchInputVisible: boolean = false;
+    searchInputVisible = false;
 
-    searching: boolean = false;
-    searchingResultsVisible: boolean = false;
+    searching = false;
+    searchingResultsVisible = false;
 
     processorResults: ComponentSearchResult[] = [];
     connectionResults: ComponentSearchResult[] = [];

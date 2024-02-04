@@ -16,16 +16,15 @@
  */
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel
+@Schema
 public class ExternalControllerServiceReference {
 
     private String identifier;
     private String name;
 
-    @ApiModelProperty("The identifier of the controller service")
+    @Schema(description = "The identifier of the controller service")
     public String getIdentifier() {
         return identifier;
     }
@@ -34,7 +33,7 @@ public class ExternalControllerServiceReference {
         this.identifier = identifier;
     }
 
-    @ApiModelProperty("The name of the controller service")
+    @Schema(description = "The name of the controller service")
     public String getName() {
         return name;
     }

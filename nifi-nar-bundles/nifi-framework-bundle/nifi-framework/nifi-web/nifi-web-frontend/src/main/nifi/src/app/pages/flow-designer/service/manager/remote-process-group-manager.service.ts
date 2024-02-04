@@ -53,7 +53,7 @@ export class RemoteProcessGroupManager {
 
     private remoteProcessGroups: [] = [];
     private remoteProcessGroupContainer: any;
-    private transitionRequired: boolean = false;
+    private transitionRequired = false;
 
     private viewContainerRef: ViewContainerRef | undefined;
 
@@ -120,11 +120,11 @@ export class RemoteProcessGroupManager {
         // remote process group name background
         remoteProcessGroup
             .append('rect')
+            .attr('class', 'remote-process-group-banner')
             .attr('width', function (d: any) {
                 return d.dimensions.width;
             })
-            .attr('height', 32)
-            .attr('fill', '#b8c6cd');
+            .attr('height', 32);
 
         // remote process group name
         remoteProcessGroup
@@ -182,13 +182,13 @@ export class RemoteProcessGroupManager {
 
                     details
                         .append('rect')
+                        .attr('class', 'remote-process-group-details-banner')
                         .attr('x', 0)
                         .attr('y', 32)
                         .attr('width', function () {
                             return remoteProcessGroupData.dimensions.width;
                         })
-                        .attr('height', 24)
-                        .attr('fill', '#e3e8eb');
+                        .attr('height', 24);
 
                     // -------
                     // details
@@ -217,35 +217,35 @@ export class RemoteProcessGroupManager {
                     // sent
                     details
                         .append('rect')
+                        .attr('class', 'remote-process-group-sent-stats')
                         .attr('width', function () {
                             return remoteProcessGroupData.dimensions.width;
                         })
                         .attr('height', 19)
                         .attr('x', 0)
-                        .attr('y', 66)
-                        .attr('fill', '#f4f6f7');
+                        .attr('y', 66);
 
                     // border
                     details
                         .append('rect')
+                        .attr('class', 'remote-process-group-stats-border')
                         .attr('width', function () {
                             return remoteProcessGroupData.dimensions.width;
                         })
                         .attr('height', 1)
                         .attr('x', 0)
-                        .attr('y', 84)
-                        .attr('fill', '#c7d2d7');
+                        .attr('y', 84);
 
                     // received
                     details
                         .append('rect')
+                        .attr('class', 'remote-process-group-received-stats')
                         .attr('width', function () {
                             return remoteProcessGroupData.dimensions.width;
                         })
                         .attr('height', 19)
                         .attr('x', 0)
-                        .attr('y', 85)
-                        .attr('fill', '#ffffff');
+                        .attr('y', 85);
 
                     // -----
                     // stats
@@ -342,6 +342,7 @@ export class RemoteProcessGroupManager {
 
                     details
                         .append('rect')
+                        .attr('class', 'remote-process-group-last-refresh-rect')
                         .attr('x', 0)
                         .attr('y', function () {
                             return remoteProcessGroupData.dimensions.height - 24;
@@ -349,8 +350,7 @@ export class RemoteProcessGroupManager {
                         .attr('width', function () {
                             return remoteProcessGroupData.dimensions.width;
                         })
-                        .attr('height', 24)
-                        .attr('fill', '#e3e8eb');
+                        .attr('height', 24);
 
                     details
                         .append('text')

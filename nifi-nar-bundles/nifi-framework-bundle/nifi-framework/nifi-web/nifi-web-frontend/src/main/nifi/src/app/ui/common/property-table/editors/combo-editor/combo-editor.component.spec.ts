@@ -21,13 +21,14 @@ import { ComboEditor } from './combo-editor.component';
 import { PropertyItem } from '../../property-table.component';
 import { Parameter } from '../../../../../state/shared';
 import { of } from 'rxjs';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('ComboEditor', () => {
     let component: ComboEditor;
     let fixture: ComponentFixture<ComboEditor>;
 
     let item: PropertyItem | null = null;
-    let parameters: Parameter[] = [
+    const parameters: Parameter[] = [
         {
             name: 'one',
             description: 'Description for one.',
@@ -72,7 +73,7 @@ describe('ComboEditor', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [ComboEditor]
+            imports: [ComboEditor, BrowserAnimationsModule]
         });
         fixture = TestBed.createComponent(ComboEditor);
         component = fixture.componentInstance;
@@ -185,7 +186,7 @@ describe('ComboEditor', () => {
             item.value = '#{one}';
 
             component.item = item;
-            component.getParameters = (sensitive: boolean) => {
+            component.getParameters = () => {
                 return of(parameters);
             };
             fixture.detectChanges();
@@ -209,7 +210,7 @@ describe('ComboEditor', () => {
             item.value = '#{three}';
 
             component.item = item;
-            component.getParameters = (sensitive: boolean) => {
+            component.getParameters = () => {
                 return of(parameters);
             };
             fixture.detectChanges();

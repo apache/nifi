@@ -26,7 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 final class MockCacheService extends AbstractControllerService implements DistributedMapCacheClient {
-    private Map<Object, Object> storage;
+    private final Map<Object, Object> storage;
 
     public MockCacheService() {
         storage = new HashMap<>();
@@ -41,12 +41,12 @@ final class MockCacheService extends AbstractControllerService implements Distri
      * @return true if the value was added to the cache, false if it already exists
      */
     @Override
-    public <K, V> boolean putIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+    public <K, V> boolean putIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
         return storage.putIfAbsent(key, value) == null;
     }
 
     @Override
-    public <K, V> V getAndPutIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, Deserializer<V> valueDeserializer) throws IOException {
+    public <K, V> V getAndPutIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, Deserializer<V> valueDeserializer) {
         if (storage.containsKey(key)) {
             return (V) storage.get(key);
         } else {
@@ -83,10 +83,5 @@ final class MockCacheService extends AbstractControllerService implements Distri
         } else {
             return false;
         }
-    }
-
-    @Override
-    public long removeByPattern(String regex) throws IOException {
-        return 0;
     }
 }

@@ -37,37 +37,15 @@
                 cursor: default;
             }
 
-            th {
-                background-color: #728e9b;
-                color: #fff;
-            }
-
-            tr:hover {
-                background-color: #dce3e6 !important;
-            }
-
-            .selected {
-                background-color: #ffef85 !important;
-            }
-
-            .even {
-                background-color: #f4f6f7;
-            }
-
             .fa {
                 width: 10px;
                 height: 14px;
                 margin-right: 2px;
             }
-
-            .fa.fa-shield {
-                color: #ba554a;
-            }
         }
     }
 
     .selected-type-name {
-        color: #775351;
         font-size: 16px;
         font-weight: 500;
         overflow: hidden;
@@ -83,7 +61,6 @@
         text-overflow: ellipsis;
         font-size: 14px;
         line-height: 16px;
-        color: #666;
         letter-spacing: 0.25px;
     }
 
@@ -101,8 +78,4 @@
     .no-selected-type {
         height: 74px;
     }
-}
-
-::ng-deep .mat-sort-header-arrow {
-    color: #fff;
 }

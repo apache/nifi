@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.web.api.dto.action;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.action.component.details.ComponentDetailsDTO;
 import org.apache.nifi.web.api.dto.action.details.ActionDetailsDTO;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 
 /**
@@ -46,8 +46,7 @@ public class ActionDTO {
     /**
      * @return action id
      */
-    @ApiModelProperty(
-            value = "The action id."
+    @Schema(description = "The action id."
     )
     public Integer getId() {
         return id;
@@ -60,8 +59,7 @@ public class ActionDTO {
     /**
      * @return user identity who perform this action
      */
-    @ApiModelProperty(
-            value = "The identity of the user that performed the action."
+    @Schema(description = "The identity of the user that performed the action."
     )
     public String getUserIdentity() {
         return userIdentity;
@@ -75,9 +73,8 @@ public class ActionDTO {
      * @return action's timestamp
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
-    @ApiModelProperty(
-            value = "The timestamp of the action.",
-            dataType = "string"
+    @Schema(description = "The timestamp of the action.",
+            type = "string"
     )
     public Date getTimestamp() {
         return timestamp;
@@ -90,8 +87,7 @@ public class ActionDTO {
     /**
      * @return id of the source component of this action
      */
-    @ApiModelProperty(
-            value = "The id of the source component."
+    @Schema(description = "The id of the source component."
     )
     public String getSourceId() {
         return sourceId;
@@ -104,8 +100,7 @@ public class ActionDTO {
     /**
      * @return name of the source component of this action
      */
-    @ApiModelProperty(
-            value = "The name of the source component."
+    @Schema(description = "The name of the source component."
     )
     public String getSourceName() {
         return sourceName;
@@ -118,8 +113,7 @@ public class ActionDTO {
     /**
      * @return type of the source component of this action
      */
-    @ApiModelProperty(
-            value = "The type of the source component."
+    @Schema(description = "The type of the source component."
     )
     public String getSourceType() {
         return sourceType;
@@ -132,8 +126,7 @@ public class ActionDTO {
     /**
      * @return component details (if any) for this action
      */
-    @ApiModelProperty(
-            value = "The details of the source component."
+    @Schema(description = "The details of the source component."
     )
     public ComponentDetailsDTO getComponentDetails() {
         return componentDetails;
@@ -146,8 +139,7 @@ public class ActionDTO {
     /**
      * @return operation being performed in this action
      */
-    @ApiModelProperty(
-            value = "The operation that was performed."
+    @Schema(description = "The operation that was performed."
     )
     public String getOperation() {
         return operation;
@@ -160,8 +152,7 @@ public class ActionDTO {
     /**
      * @return action details (if any) for this action
      */
-    @ApiModelProperty(
-            value = "The details of the action."
+    @Schema(description = "The details of the action."
     )
     public ActionDetailsDTO getActionDetails() {
         return actionDetails;

@@ -100,7 +100,6 @@ import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
-import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.history.ProcessGroupStatusDescriptor;
 import org.apache.nifi.diagnostics.DiagnosticLevel;
 import org.apache.nifi.diagnostics.StorageUsage;
@@ -366,12 +365,13 @@ import org.apache.nifi.web.revision.RevisionUpdate;
 import org.apache.nifi.web.revision.StandardRevisionClaim;
 import org.apache.nifi.web.revision.StandardRevisionUpdate;
 import org.apache.nifi.web.revision.UpdateRevisionTask;
+import org.apache.nifi.web.util.PredictionBasedParallelProcessingService;
 import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -456,6 +456,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private final ClusterMetricsRegistry clusterMetricsRegistry = new ClusterMetricsRegistry();
 
     private RuleViolationsManager ruleViolationsManager;
+
+    private PredictionBasedParallelProcessingService parallelProcessingService;
 
     // -----------------------------------------
     // Synchronization methods
@@ -6232,28 +6234,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         PrometheusMetricsUtil.createAggregatedNifiMetrics(nifiMetricsRegistry, aggregatedMetrics, instanceId,ROOT_PROCESS_GROUP, rootPGName, rootPGId);
 
         // Get Connection Status Analytics (predictions, e.g.)
-        Set<Connection> connections = controllerFacade.getFlowManager().findAllConnections();
-        for (Connection c : connections) {
-            // If a ResourceNotFoundException is thrown, analytics hasn't been enabled
-            try {
-                final StatusAnalytics statusAnalytics = controllerFacade.getConnectionStatusAnalytics(c.getIdentifier());
-                PrometheusMetricsUtil.createConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry,
-                        statusAnalytics,
-                        instanceId,
-                        "Connection",
-                        c.getName(),
-                        c.getIdentifier(),
-                        c.getProcessGroup().getIdentifier(),
-                        c.getSource().getName(),
-                        c.getSource().getIdentifier(),
-                        c.getDestination().getName(),
-                        c.getDestination().getIdentifier()
-                );
-                PrometheusMetricsUtil.aggregateConnectionPredictionMetrics(aggregatedMetrics, statusAnalytics.getPredictions());
-            } catch (ResourceNotFoundException rnfe) {
-                break;
-            }
-        }
+        Collection<Map<String, Long>> predictions = parallelProcessingService.createConnectionStatusAnalyticsMetricsAndCollectPredictions(
+                controllerFacade, connectionAnalyticsMetricsRegistry, instanceId);
+
+        predictions.forEach((prediction) -> PrometheusMetricsUtil.aggregateConnectionPredictionMetrics(aggregatedMetrics, prediction));
         PrometheusMetricsUtil.createAggregatedConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry, aggregatedMetrics, instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId);
 
         // Create a query to get all bulletins
@@ -6763,5 +6747,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     public void setRuleViolationsManager(RuleViolationsManager ruleViolationsManager) {
         this.ruleViolationsManager = ruleViolationsManager;
+    }
+
+    public void setParallelProcessingService(PredictionBasedParallelProcessingService parallelProcessingService) {
+        this.parallelProcessingService = parallelProcessingService;
     }
 }

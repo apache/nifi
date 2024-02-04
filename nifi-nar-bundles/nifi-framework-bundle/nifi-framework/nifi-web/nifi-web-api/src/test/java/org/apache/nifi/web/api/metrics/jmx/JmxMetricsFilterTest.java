@@ -35,6 +35,7 @@ class JmxMetricsFilterTest {
     private static final String INVALID_REGEX = "(";
     private static final String TEST_BEAN_NAME_ONE = "testBean1";
     private static final String TEST_BEAN_NAME_TWO = "testBean2";
+    private static final String BEGIN_END_PATTERN = "^test.*$";
     private static final JmxMetricsResultDTO RESULT_ONE = new JmxMetricsResultDTO(TEST_BEAN_NAME_ONE, null, null);
     private static final JmxMetricsResultDTO RESULT_TWO = new JmxMetricsResultDTO(TEST_BEAN_NAME_TWO, null, null);
     private static List<JmxMetricsResultDTO> results;
@@ -49,6 +50,16 @@ class JmxMetricsFilterTest {
     @Test
     public void testNotProvidingFiltersReturnsAllMBeans() {
         final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(ALLOW_ALL_PATTERN, EMPTY_STRING_PATTERN);
+
+        final Collection<JmxMetricsResultDTO> actual = metricsFilter.filter(results);
+
+        assertEquals(actual.size(), 2);
+        assertTrue(actual.containsAll(results));
+    }
+
+    @Test
+    public void testBeginEndPatternMatches() {
+        final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(ALLOW_ALL_PATTERN, BEGIN_END_PATTERN);
 
         final Collection<JmxMetricsResultDTO> actual = metricsFilter.filter(results);
 

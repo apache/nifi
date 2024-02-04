@@ -16,9 +16,9 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as TransformActions from './transform.actions';
-import { map, tap, withLatestFrom } from 'rxjs';
+import { map, tap } from 'rxjs';
 import { Storage } from '../../../../service/storage.service';
 import { selectCurrentProcessGroupId } from '../flow/flow.selectors';
 import { Store } from '@ngrx/store';
@@ -43,7 +43,7 @@ export class TransformEffects {
             this.actions$.pipe(
                 ofType(TransformActions.transformComplete),
                 map((action) => action.transform),
-                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([transform, processGroupId]) => {
                     const name: string = TransformEffects.VIEW_PREFIX + processGroupId;
 
@@ -65,8 +65,8 @@ export class TransformEffects {
         () =>
             this.actions$.pipe(
                 ofType(TransformActions.restoreViewport),
-                withLatestFrom(this.store.select(selectCurrentProcessGroupId)),
-                tap(([action, processGroupId]) => {
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([, processGroupId]) => {
                     try {
                         // see if we can restore the view position from storage
                         const name: string = TransformEffects.VIEW_PREFIX + processGroupId;

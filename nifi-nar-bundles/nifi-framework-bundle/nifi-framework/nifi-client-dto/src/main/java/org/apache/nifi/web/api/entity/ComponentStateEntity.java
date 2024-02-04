@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to an ComponentStateDTO.
@@ -34,8 +34,7 @@ public class ComponentStateEntity extends Entity {
      *
      * @return The ComponentStateDTO object
      */
-    @ApiModelProperty(
-        value = "The component state."
+    @Schema(description = "The component state."
     )
     public ComponentStateDTO getComponentState() {
         return componentState;

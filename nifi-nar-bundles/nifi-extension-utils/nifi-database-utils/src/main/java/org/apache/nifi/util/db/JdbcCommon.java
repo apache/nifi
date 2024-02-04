@@ -60,7 +60,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -125,6 +124,9 @@ public class JdbcCommon {
 
     public static final String MIME_TYPE_AVRO_BINARY = "application/avro-binary";
     public static final String MASKED_LOG_VALUE = "MASKED VALUE";
+
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
     public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, boolean convertNames) throws SQLException, IOException {
         return convertToAvroStream(rs, outStream, null, null, convertNames);
@@ -751,7 +753,7 @@ public class JdbcCommon {
      */
     public static void setParameter(final PreparedStatement stmt, final int parameterIndex, final String parameterValue, final int jdbcType,
                               final String valueFormat)
-            throws SQLException, ParseException, UnsupportedEncodingException {
+            throws SQLException, UnsupportedEncodingException, ParseException {
         if (parameterValue == null) {
             stmt.setNull(parameterIndex, jdbcType);
         } else {
@@ -789,13 +791,11 @@ public class JdbcCommon {
                     java.sql.Date date;
 
                     if (valueFormat.equals("")) {
-                        if(LONG_PATTERN.matcher(parameterValue).matches()){
+                        if (LONG_PATTERN.matcher(parameterValue).matches()){
                             date = new java.sql.Date(Long.parseLong(parameterValue));
-                        }else {
-                            String dateFormatString = "yyyy-MM-dd";
-                            SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatString);
-                            java.util.Date parsedDate = dateFormat.parse(parameterValue);
-                            date = new java.sql.Date(parsedDate.getTime());
+                        } else {
+                            final LocalDate localDate = LocalDate.parse(parameterValue);
+                            date = java.sql.Date.valueOf(localDate);
                         }
                     } else {
                         final DateTimeFormatter dtFormatter = getDateTimeFormatter(valueFormat);
@@ -812,10 +812,8 @@ public class JdbcCommon {
                         if (LONG_PATTERN.matcher(parameterValue).matches()) {
                             time = new Time(Long.parseLong(parameterValue));
                         } else {
-                            String timeFormatString = "HH:mm:ss.SSS";
-                            SimpleDateFormat dateFormat = new SimpleDateFormat(timeFormatString);
-                            java.util.Date parsedDate = dateFormat.parse(parameterValue);
-                            time = new Time(parsedDate.getTime());
+                            final LocalTime localTime = LocalTime.parse(parameterValue, TIME_FORMATTER);
+                            time = Time.valueOf(localTime);
                         }
                     } else {
                         final DateTimeFormatter dtFormatter = getDateTimeFormatter(valueFormat);
@@ -833,12 +831,11 @@ public class JdbcCommon {
                     // Backwards compatibility note: Format was unsupported for a timestamp field.
                     if (valueFormat.equals("")) {
                         long lTimestamp = 0L;
-                        if(LONG_PATTERN.matcher(parameterValue).matches()){
+                        if (LONG_PATTERN.matcher(parameterValue).matches()){
                             lTimestamp = Long.parseLong(parameterValue);
                         } else {
-                            final SimpleDateFormat dateFormat  = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-                            java.util.Date parsedDate = dateFormat.parse(parameterValue);
-                            lTimestamp = parsedDate.getTime();
+                            final LocalDateTime localDateTime = LocalDateTime.parse(parameterValue, TIMESTAMP_FORMATTER);
+                            lTimestamp = Timestamp.valueOf(localDateTime).getTime();
                         }
                         ts = new Timestamp(lTimestamp);
                     } else {

@@ -156,7 +156,7 @@ public class TestPublishKafkaRecord_2_6 {
 
     @Test
     public void testSingleFailureWithRollback() throws IOException {
-        runner.setProperty(PublishKafkaRecord_2_6.FAILURE_STRATEGY, FailureStrategy.ROLLBACK.getValue());
+        runner.setProperty(PublishKafkaRecord_2_6.FAILURE_STRATEGY, FailureStrategy.ROLLBACK);
 
         final MockFlowFile flowFile = runner.enqueue("John Doe, 48");
 
@@ -190,7 +190,7 @@ public class TestPublishKafkaRecord_2_6 {
 
     @Test
     public void testFailureWhenCreatingTransactionWithRollback() {
-        runner.setProperty(PublishKafkaRecord_2_6.FAILURE_STRATEGY, FailureStrategy.ROLLBACK.getValue());
+        runner.setProperty(PublishKafkaRecord_2_6.FAILURE_STRATEGY, FailureStrategy.ROLLBACK);
         runner.enqueue("John Doe, 48");
 
         doAnswer((Answer<Object>) invocationOnMock -> {
@@ -225,7 +225,7 @@ public class TestPublishKafkaRecord_2_6 {
 
     @Test
     public void testMultipleFailuresWithRollback() throws IOException {
-        runner.setProperty(PublishKafkaRecord_2_6.FAILURE_STRATEGY, FailureStrategy.ROLLBACK.getValue());
+        runner.setProperty(PublishKafkaRecord_2_6.FAILURE_STRATEGY, FailureStrategy.ROLLBACK);
         final Set<FlowFile> flowFiles = new HashSet<>();
         flowFiles.add(runner.enqueue("John Doe, 48"));
         flowFiles.add(runner.enqueue("John Doe, 48"));
@@ -299,7 +299,7 @@ public class TestPublishKafkaRecord_2_6 {
         verify(mockLease, times(0)).poison();
         verify(mockLease, times(1)).close();
 
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(PublishKafkaRecord_2_6.REL_SUCCESS).get(0);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(PublishKafkaRecord_2_6.REL_SUCCESS).getFirst();
         mff.assertAttributeEquals("msg.count", "0");
     }
 
@@ -424,7 +424,7 @@ public class TestPublishKafkaRecord_2_6 {
             @Override
             public int getSuccessfulMessageCount(FlowFile flowFile) {
                 Integer count = msgCounts.get(flowFile);
-                return count == null ? 0 : count.intValue();
+                return count == null ? 0 : count;
             }
 
             @Override

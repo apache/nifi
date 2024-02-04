@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * A result of a rule violation produced during a flow analysis

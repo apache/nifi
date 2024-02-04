@@ -56,7 +56,7 @@ export class ProcessGroupManager {
 
     private processGroups: [] = [];
     private processGroupContainer: any;
-    private transitionRequired: boolean = false;
+    private transitionRequired = false;
 
     private viewContainerRef: ViewContainerRef | undefined;
 
@@ -121,11 +121,11 @@ export class ProcessGroupManager {
         // process group name background
         processGroup
             .append('rect')
+            .attr('class', 'process-group-banner')
             .attr('width', function (d: any) {
                 return d.dimensions.width;
             })
-            .attr('height', 32)
-            .attr('fill', '#b8c6cd');
+            .attr('height', 32);
 
         // process group name
         processGroup
@@ -227,16 +227,17 @@ export class ProcessGroupManager {
 
                     details
                         .append('rect')
+                        .attr('class', 'process-group-details-banner')
                         .attr('x', 0)
                         .attr('y', 32)
                         .attr('width', function () {
                             return processGroupData.dimensions.width;
                         })
-                        .attr('height', 24)
-                        .attr('fill', '#e3e8eb');
+                        .attr('height', 24);
 
                     details
                         .append('rect')
+                        .attr('class', 'process-group-details-banner')
                         .attr('x', 0)
                         .attr('y', function () {
                             return processGroupData.dimensions.height - 24;
@@ -244,8 +245,7 @@ export class ProcessGroupManager {
                         .attr('width', function () {
                             return processGroupData.dimensions.width;
                         })
-                        .attr('height', 24)
-                        .attr('fill', '#e3e8eb');
+                        .attr('height', 24);
 
                     // --------
                     // contents
@@ -456,79 +456,79 @@ export class ProcessGroupManager {
                     // queued
                     details
                         .append('rect')
+                        .attr('class', 'process-group-queued-stats')
                         .attr('width', function () {
                             return processGroupData.dimensions.width;
                         })
                         .attr('height', 19)
                         .attr('x', 0)
-                        .attr('y', 66)
-                        .attr('fill', '#f4f6f7');
+                        .attr('y', 66);
 
                     // border
                     details
                         .append('rect')
+                        .attr('class', 'process-group-stats-border')
                         .attr('width', function () {
                             return processGroupData.dimensions.width;
                         })
                         .attr('height', 1)
                         .attr('x', 0)
-                        .attr('y', 84)
-                        .attr('fill', '#c7d2d7');
+                        .attr('y', 84);
 
                     // in
                     details
                         .append('rect')
+                        .attr('class', 'process-group-stats-in-out')
                         .attr('width', function () {
                             return processGroupData.dimensions.width;
                         })
                         .attr('height', 19)
                         .attr('x', 0)
-                        .attr('y', 85)
-                        .attr('fill', '#ffffff');
+                        .attr('y', 85);
 
                     // border
                     details
                         .append('rect')
+                        .attr('class', 'process-group-stats-border')
                         .attr('width', function () {
                             return processGroupData.dimensions.width;
                         })
                         .attr('height', 1)
                         .attr('x', 0)
-                        .attr('y', 103)
-                        .attr('fill', '#c7d2d7');
+                        .attr('y', 103);
 
                     // read/write
                     details
                         .append('rect')
+                        .attr('class', 'process-group-read-write-stats')
                         .attr('width', function () {
                             return processGroupData.dimensions.width;
                         })
                         .attr('height', 19)
                         .attr('x', 0)
-                        .attr('y', 104)
-                        .attr('fill', '#f4f6f7');
+                        .attr('y', 104);
 
                     // border
                     details
                         .append('rect')
+                        .attr('class', 'process-group-stats-border')
                         .attr('width', function () {
                             return processGroupData.dimensions.width;
                         })
                         .attr('height', 1)
                         .attr('x', 0)
-                        .attr('y', 122)
-                        .attr('fill', '#c7d2d7');
+                        .attr('y', 122);
 
                     // out
                     details
                         .append('rect')
+                        .attr('class', 'process-group-stats-in-out')
                         .attr('width', function () {
                             return processGroupData.dimensions.width;
                         })
                         .attr('height', 19)
                         .attr('x', 0)
-                        .attr('y', 123)
-                        .attr('fill', '#ffffff');
+                        .attr('y', 123);
 
                     // -----
                     // stats
@@ -1075,22 +1075,22 @@ export class ProcessGroupManager {
                 const versionControl = processGroup
                     .select('text.version-control')
                     .style('visibility', self.isUnderVersionControl(processGroupData) ? 'visible' : 'hidden')
-                    .style('fill', function () {
+                    .attr('class', function () {
                         if (self.isUnderVersionControl(processGroupData)) {
                             const vciState = processGroupData.versionedFlowState;
                             if (vciState === 'SYNC_FAILURE') {
-                                return '#666666';
+                                return `version-control primary-contrast-A700`;
                             } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
-                                return '#BA554A';
+                                return `version-control warn-400`;
                             } else if (vciState === 'STALE') {
-                                return '#BA554A';
+                                return `version-control warn-400`;
                             } else if (vciState === 'LOCALLY_MODIFIED') {
-                                return '#666666';
+                                return `version-control primary-contrast-A700`;
                             } else {
-                                return '#1A9964';
+                                return `version-control canvas-accent-600`;
                             }
                         } else {
-                            return '#000';
+                            return 'version-control primary-contrast-200';
                         }
                     })
                     .text(function () {

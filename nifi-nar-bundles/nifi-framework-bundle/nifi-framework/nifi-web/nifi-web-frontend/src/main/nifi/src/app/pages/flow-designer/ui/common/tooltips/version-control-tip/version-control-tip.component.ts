@@ -24,8 +24,8 @@ import { VersionControlInformation, VersionControlTipInput } from '../../../../s
     styleUrls: ['./version-control-tip.component.scss']
 })
 export class VersionControlTip {
-    @Input() left: number = 0;
-    @Input() top: number = 0;
+    @Input() left = 0;
+    @Input() top = 0;
     @Input() data: VersionControlTipInput | undefined;
 
     getTrackingMessage(): string {

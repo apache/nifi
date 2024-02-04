@@ -16,33 +16,21 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
+import { EMPTY, Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
-import { ControllerServiceEntity } from '../../../state/shared';
 import {
-    ConfigureControllerServiceRequest,
+    ControllerServiceCreator,
+    ControllerServiceEntity,
     CreateControllerServiceRequest,
-    DeleteControllerServiceRequest
-} from '../state/controller-services';
+    PropertyDescriptorRetriever
+} from '../../../state/shared';
+import { ConfigureControllerServiceRequest, DeleteControllerServiceRequest } from '../state/controller-services';
 
 @Injectable({ providedIn: 'root' })
-export class ControllerServiceService {
+export class ControllerServiceService implements ControllerServiceCreator, PropertyDescriptorRetriever {
     private static readonly API: string = '../nifi-api';
-
-    /**
-     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
-     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
-     *
-     * https://stackoverflow.com/a/59586462
-     *
-     * @param url
-     * @private
-     */
-    private stripProtocol(url: string): string {
-        return this.nifiCommon.substringAfterFirst(url, ':');
-    }
 
     constructor(
         private httpClient: HttpClient,
@@ -60,8 +48,8 @@ export class ControllerServiceService {
         );
     }
 
-    getBreadcrumbs(processGroupId: string): Observable<any> {
-        return this.httpClient.get(`${ControllerServiceService.API}/flow/process-groups/${processGroupId}/breadcrumbs`);
+    getFlow(processGroupId: string): Observable<any> {
+        return this.httpClient.get(`${ControllerServiceService.API}/flow/process-groups/${processGroupId}`);
     }
 
     getControllerService(id: string): Observable<any> {
@@ -69,17 +57,20 @@ export class ControllerServiceService {
     }
 
     createControllerService(createControllerService: CreateControllerServiceRequest): Observable<any> {
-        const processGroupId: string = createControllerService.processGroupId;
-        return this.httpClient.post(
-            `${ControllerServiceService.API}/process-groups/${processGroupId}/controller-services`,
-            {
-                revision: createControllerService.revision,
-                component: {
-                    bundle: createControllerService.controllerServiceBundle,
-                    type: createControllerService.controllerServiceType
+        if (createControllerService.processGroupId) {
+            const processGroupId: string = createControllerService.processGroupId;
+            return this.httpClient.post(
+                `${ControllerServiceService.API}/process-groups/${processGroupId}/controller-services`,
+                {
+                    revision: createControllerService.revision,
+                    component: {
+                        bundle: createControllerService.controllerServiceBundle,
+                        type: createControllerService.controllerServiceType
+                    }
                 }
-            }
-        );
+            );
+        }
+        return EMPTY;
     }
 
     getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<any> {
@@ -94,7 +85,7 @@ export class ControllerServiceService {
 
     updateControllerService(configureControllerService: ConfigureControllerServiceRequest): Observable<any> {
         return this.httpClient.put(
-            this.stripProtocol(configureControllerService.uri),
+            this.nifiCommon.stripProtocol(configureControllerService.uri),
             configureControllerService.payload
         );
     }
@@ -102,6 +93,6 @@ export class ControllerServiceService {
     deleteControllerService(deleteControllerService: DeleteControllerServiceRequest): Observable<any> {
         const entity: ControllerServiceEntity = deleteControllerService.controllerService;
         const revision: any = this.client.getRevision(entity);
-        return this.httpClient.delete(this.stripProtocol(entity.uri), { params: revision });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(entity.uri), { params: revision });
     }
 }

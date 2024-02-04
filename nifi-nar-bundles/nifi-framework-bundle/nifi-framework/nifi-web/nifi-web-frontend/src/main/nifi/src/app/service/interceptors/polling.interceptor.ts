@@ -20,7 +20,7 @@ import { HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpRequest
 import { Observable, tap } from 'rxjs';
 import { NiFiState } from '../../state';
 import { Store } from '@ngrx/store';
-import { stopUserPolling } from '../../state/user/user.actions';
+import { stopCurrentUserPolling } from '../../state/current-user/current-user.actions';
 import { stopProcessGroupPolling } from '../../pages/flow-designer/state/flow/flow.actions';
 
 @Injectable({
@@ -34,7 +34,7 @@ export class PollingInterceptor implements HttpInterceptor {
             tap({
                 error: (error) => {
                     if (error instanceof HttpErrorResponse && error.status === 0) {
-                        this.store.dispatch(stopUserPolling());
+                        this.store.dispatch(stopCurrentUserPolling());
                         this.store.dispatch(stopProcessGroupPolling());
                     }
                 }

@@ -15,119 +15,46 @@
   ~ limitations under the License.
   -->
 
-<header>
-    <nav class="bg-nifi-primary nifi-header">
-        <div class="flex justify-between items-center h-16 pl-4">
-            <div class="flex">
-                <div class="h-16 w-28 mr-6 relative">
-                    <img ngSrc="assets/icons/nifi-logo.svg" fill priority alt="NiFi Logo" />
-                </div>
-                <new-canvas-item
-                    [type]="ComponentType.Processor"
-                    iconClass="icon-processor"
-                    iconHoverClass="icon-processor-add"></new-canvas-item>
-                <new-canvas-item
-                    [type]="ComponentType.InputPort"
-                    iconClass="icon-port-in"
-                    iconHoverClass="icon-port-in-add"></new-canvas-item>
-                <new-canvas-item
-                    [type]="ComponentType.OutputPort"
-                    iconClass="icon-port-out"
-                    iconHoverClass="icon-port-out-add"></new-canvas-item>
-                <new-canvas-item
-                    [type]="ComponentType.ProcessGroup"
-                    iconClass="icon-group"
-                    iconHoverClass="icon-group-add"></new-canvas-item>
-                <new-canvas-item
-                    [type]="ComponentType.RemoteProcessGroup"
-                    iconClass="icon-group-remote"
-                    iconHoverClass="icon-group-remote-add"></new-canvas-item>
-                <new-canvas-item
-                    [type]="ComponentType.Funnel"
-                    iconClass="icon-funnel"
-                    iconHoverClass="icon-funnel-add"></new-canvas-item>
-                <new-canvas-item
-                    [type]="ComponentType.Label"
-                    iconClass="icon-label"
-                    iconHoverClass="icon-label-add"></new-canvas-item>
-            </div>
-            <div class="flex justify-between items-center gap-x-1" *ngIf="currentUser$ | async as user">
-                <div class="flex flex-col justify-between items-end gap-y-1">
-                    <div class="current-user">{{ user.identity }}</div>
-                    <a href="#" *ngIf="allowLogin(user)">log in</a>
-                    <a (click)="logout()" *ngIf="hasToken()">log out</a>
-                </div>
-                <button
-                    mat-button
-                    [matMenuTriggerFor]="globalMenu"
-                    class="h-16 w-16 flex items-center justify-center icon global-menu">
-                    <i class="fa fa-navicon"></i>
-                </button>
-                <mat-menu #globalMenu="matMenu" xPosition="before">
-                    <button mat-menu-item class="global-menu-item">
-                        <i class="fa fa-fw fa-table mr-2"></i>
-                        Summary
-                    </button>
-                    <button
-                        mat-menu-item
-                        class="global-menu-item"
-                        [routerLink]="['/counters']"
-                        [disabled]="!user.countersPermissions.canRead">
-                        <i class="icon fa-fw icon-counter mr-2"></i>
-                        Counter
-                    </button>
-                    <button mat-menu-item class="global-menu-item">
-                        <i class="fa fa-fw fa-sticky-note-o mr-2"></i>
-                        Bulletin Board
-                    </button>
-                    <mat-divider></mat-divider>
-                    <button mat-menu-item class="global-menu-item">
-                        <i class="icon fa-fw icon-provenance mr-2"></i>
-                        Data Provenance
-                    </button>
-                    <mat-divider></mat-divider>
-                    <button mat-menu-item class="global-menu-item" [routerLink]="['/settings']">
-                        <i class="fa fa-fw fa-wrench mr-2"></i>
-                        Controller Settings
-                    </button>
-                    <button mat-menu-item class="global-menu-item" [routerLink]="['/parameter-contexts']">
-                        <i class="fa fa-fw mr-2"></i>
-                        Parameter Contexts
-                    </button>
-                    <button mat-menu-item class="global-menu-item">
-                        <i class="fa fa-fw fa-cubes mr-2"></i>
-                        Cluster
-                    </button>
-                    <button mat-menu-item class="global-menu-item">
-                        <i class="fa fa-fw fa-history mr-2"></i>
-                        Flow Configuration History
-                    </button>
-                    <button mat-menu-item class="global-menu-item">
-                        <i class="fa fa-fw fa-area-chart mr-2"></i>
-                        Node Status History
-                    </button>
-                    <mat-divider></mat-divider>
-                    <button mat-menu-item class="global-menu-item">
-                        <i class="fa fa-fw fa-users mr-2"></i>
-                        Users
-                    </button>
-                    <button mat-menu-item class="global-menu-item">
-                        <i class="fa fa-fw fa-key mr-2"></i>
-                        Policies
-                    </button>
-                    <mat-divider></mat-divider>
-                    <button mat-menu-item class="global-menu-item">
-                        <i class="fa fa-fw fa-question-circle mr-2"></i>
-                        Help
-                    </button>
-                    <button mat-menu-item class="global-menu-item">
-                        <i class="fa fa-fw fa-info-circle mr-2"></i>
-                        About
-                    </button>
-                </mat-menu>
-            </div>
-        </div>
-    </nav>
+<header class="nifi-header">
+    <navigation>
+        <ng-container *ngIf="canvasPermissions$ | async; let canvasPermissions">
+            <new-canvas-item
+                [type]="ComponentType.Processor"
+                [disabled]="!canvasPermissions.canWrite"
+                iconClass="icon-processor"
+                iconHoverClass="icon-processor-add"></new-canvas-item>
+            <new-canvas-item
+                [type]="ComponentType.InputPort"
+                [disabled]="!canvasPermissions.canWrite"
+                iconClass="icon-port-in"
+                iconHoverClass="icon-port-in-add"></new-canvas-item>
+            <new-canvas-item
+                [type]="ComponentType.OutputPort"
+                [disabled]="!canvasPermissions.canWrite"
+                iconClass="icon-port-out"
+                iconHoverClass="icon-port-out-add"></new-canvas-item>
+            <new-canvas-item
+                [type]="ComponentType.ProcessGroup"
+                [disabled]="!canvasPermissions.canWrite"
+                iconClass="icon-group"
+                iconHoverClass="icon-group-add"></new-canvas-item>
+            <new-canvas-item
+                [type]="ComponentType.RemoteProcessGroup"
+                [disabled]="!canvasPermissions.canWrite"
+                iconClass="icon-group-remote"
+                iconHoverClass="icon-group-remote-add"></new-canvas-item>
+            <new-canvas-item
+                [type]="ComponentType.Funnel"
+                [disabled]="!canvasPermissions.canWrite"
+                iconClass="icon-funnel"
+                iconHoverClass="icon-funnel-add"></new-canvas-item>
+            <new-canvas-item
+                [type]="ComponentType.Label"
+                [disabled]="!canvasPermissions.canWrite"
+                iconClass="icon-label"
+                iconHoverClass="icon-label-add"></new-canvas-item>
+        </ng-container>
+    </navigation>
     <flow-status
         [controllerStatus]="(controllerStatus$ | async)!"
         [lastRefreshed]="(lastRefreshed$ | async)!"

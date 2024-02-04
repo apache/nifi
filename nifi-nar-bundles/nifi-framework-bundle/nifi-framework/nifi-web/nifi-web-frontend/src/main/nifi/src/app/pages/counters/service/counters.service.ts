@@ -19,7 +19,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { Observable } from 'rxjs';
-import { CounterEntity, ResetCounterRequest } from '../state/counter-listing';
+import { ResetCounterRequest } from '../state/counter-listing';
 
 @Injectable({ providedIn: 'root' })
 export class CountersService {

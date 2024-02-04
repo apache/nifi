@@ -27,6 +27,7 @@ import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -40,13 +41,13 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.kafka.shared.attribute.StandardTransitUriProvider;
-import org.apache.nifi.kafka.shared.transaction.TransactionIdSupplier;
-import org.apache.nifi.kafka.shared.validation.KafkaClientCustomValidationFunction;
+import org.apache.nifi.kafka.shared.component.KafkaPublishComponent;
 import org.apache.nifi.kafka.shared.property.FailureStrategy;
 import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
-import org.apache.nifi.kafka.shared.component.KafkaPublishComponent;
 import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
+import org.apache.nifi.kafka.shared.transaction.TransactionIdSupplier;
 import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
+import org.apache.nifi.kafka.shared.validation.KafkaClientCustomValidationFunction;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -61,10 +62,7 @@ import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -87,6 +85,8 @@ import static org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute.KAFK
         + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."
         + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration. ",
         expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT)
+@ReadsAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TOMBSTONE, description = "If this attribute is set to 'true', if the processor is not configured "
+        + "with a demarcator and if the FlowFile's content is null, then a tombstone message with zero bytes will be sent to Kafka.")
 @WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Kafka for this FlowFile. This attribute is added only to "
     + "FlowFiles that are routed to success. If the <Message Demarcator> Property is not set, this will always be 1, but if the Property is set, it may "
     + "be greater than 1.")
@@ -125,7 +125,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
         .description("The name of the Kafka Topic to publish to.")
         .required(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
         .build();
 
     static final PropertyDescriptor DELIVERY_GUARANTEE = new PropertyDescriptor.Builder()
@@ -135,7 +135,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
         .required(true)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues(DELIVERY_BEST_EFFORT, DELIVERY_ONE_NODE, DELIVERY_REPLICATED)
-        .defaultValue(DELIVERY_REPLICATED.getValue())
+        .defaultValue(DELIVERY_REPLICATED)
         .build();
 
     static final PropertyDescriptor METADATA_WAIT_TIME = new PropertyDescriptor.Builder()
@@ -179,7 +179,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
             + "data loss on Kafka. During a topic compaction on Kafka, messages will be deduplicated based on this key.")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
         .build();
 
     static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new PropertyDescriptor.Builder()
@@ -187,7 +187,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
         .displayName("Key Attribute Encoding")
         .description("FlowFiles that are emitted have an attribute named '" + KafkaFlowFileAttribute.KAFKA_KEY + "'. This property dictates how the value of the attribute should be encoded.")
         .required(true)
-        .defaultValue(UTF8_ENCODING.getValue())
+        .defaultValue(UTF8_ENCODING)
         .allowableValues(UTF8_ENCODING, HEX_ENCODING)
         .build();
 
@@ -196,7 +196,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
         .displayName("Message Demarcator")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
         .description("Specifies the string (interpreted as UTF-8) to use for demarcating multiple messages within "
             + "a single FlowFile. If not specified, the entire content of the FlowFile will be used as a single message. If specified, the "
             + "contents of the FlowFile will be split on this delimiter and each section sent as a separate Kafka message. "
@@ -208,7 +208,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
         .displayName("Partitioner class")
         .description("Specifies which class to use to compute a partition id for a message. Corresponds to Kafka's 'partitioner.class' property.")
         .allowableValues(ROUND_ROBIN_PARTITIONING, RANDOM_PARTITIONING, EXPRESSION_LANGUAGE_PARTITIONING)
-        .defaultValue(RANDOM_PARTITIONING.getValue())
+        .defaultValue(RANDOM_PARTITIONING)
         .required(false)
         .build();
 
@@ -282,47 +282,37 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
         .description("Any FlowFile that cannot be sent to Kafka will be routed to this Relationship")
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES;
-    private static final Set<Relationship> RELATIONSHIPS;
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            BOOTSTRAP_SERVERS,
+            TOPIC,
+            USE_TRANSACTIONS,
+            TRANSACTIONAL_ID_PREFIX,
+            MESSAGE_DEMARCATOR,
+            FAILURE_STRATEGY,
+            DELIVERY_GUARANTEE,
+            ATTRIBUTE_NAME_REGEX,
+            MESSAGE_HEADER_ENCODING,
+            SECURITY_PROTOCOL,
+            SASL_MECHANISM,
+            SELF_CONTAINED_KERBEROS_USER_SERVICE,
+            KERBEROS_SERVICE_NAME,
+            SASL_USERNAME,
+            SASL_PASSWORD,
+            AWS_PROFILE_NAME,
+            TOKEN_AUTHENTICATION,
+            SSL_CONTEXT_SERVICE,
+            KEY,
+            KEY_ATTRIBUTE_ENCODING,
+            MAX_REQUEST_SIZE,
+            ACK_WAIT_TIME,
+            METADATA_WAIT_TIME,
+            PARTITION_CLASS,
+            PARTITION,
+            COMPRESSION_CODEC
+    );
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
 
     private volatile PublisherPool publisherPool = null;
-
-    static {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(BOOTSTRAP_SERVERS);
-        properties.add(TOPIC);
-        properties.add(USE_TRANSACTIONS);
-        properties.add(TRANSACTIONAL_ID_PREFIX);
-        properties.add(MESSAGE_DEMARCATOR);
-        properties.add(FAILURE_STRATEGY);
-        properties.add(DELIVERY_GUARANTEE);
-        properties.add(ATTRIBUTE_NAME_REGEX);
-        properties.add(MESSAGE_HEADER_ENCODING);
-        properties.add(SECURITY_PROTOCOL);
-        properties.add(SASL_MECHANISM);
-        properties.add(SELF_CONTAINED_KERBEROS_USER_SERVICE);
-        properties.add(KERBEROS_SERVICE_NAME);
-        properties.add(SASL_USERNAME);
-        properties.add(SASL_PASSWORD);
-        properties.add(AWS_PROFILE_NAME);
-        properties.add(TOKEN_AUTHENTICATION);
-        properties.add(SSL_CONTEXT_SERVICE);
-        properties.add(KEY);
-        properties.add(KEY_ATTRIBUTE_ENCODING);
-        properties.add(MAX_REQUEST_SIZE);
-        properties.add(ACK_WAIT_TIME);
-        properties.add(METADATA_WAIT_TIME);
-        properties.add(PARTITION_CLASS);
-        properties.add(PARTITION);
-        properties.add(COMPRESSION_CODEC);
-
-        PROPERTIES = Collections.unmodifiableList(properties);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        RELATIONSHIPS = Collections.unmodifiableSet(relationships);
-    }
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -524,12 +514,10 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
     }
 
     private PublishFailureStrategy getFailureStrategy(final ProcessContext context) {
-        final String strategy = context.getProperty(FAILURE_STRATEGY).getValue();
-        if (FailureStrategy.ROLLBACK.getValue().equals(strategy)) {
-            return (session, flowFiles) -> session.rollback();
-        } else {
-            return (session, flowFiles) -> session.transfer(flowFiles, REL_FAILURE);
-        }
+        return switch (context.getProperty(FAILURE_STRATEGY).asAllowableValue(FailureStrategy.class)) {
+            case ROUTE_TO_FAILURE -> (session, flowFiles) -> session.transfer(flowFiles, REL_FAILURE);
+            case ROLLBACK -> (session, flowFiles) -> session.rollback();
+        };
     }
 
     private byte[] getMessageKey(final FlowFile flowFile, final ProcessContext context) {

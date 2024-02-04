@@ -70,10 +70,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,6 +93,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.condition.OS.WINDOWS;
 
 public class TestIcebergRecordConverter {
+
+    private static final LocalDateTime LOCAL_DATE_TIME = LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000);
 
     private OutputFile tempFile;
 
@@ -131,6 +134,22 @@ public class TestIcebergRecordConverter {
                             3, 4, Types.StringType.get(), Types.LongType.get()
                     )
             ))
+    );
+
+    private static final Schema RECORD_IN_LIST_SCHEMA = new Schema(
+            Types.NestedField.required(0, "list", Types.ListType.ofRequired(
+                    1, Types.StructType.of(
+                            Types.NestedField.required(2, "string", Types.StringType.get()),
+                            Types.NestedField.required(3, "integer", Types.IntegerType.get())))
+            )
+    );
+
+    private static final Schema RECORD_IN_MAP_SCHEMA = new Schema(
+            Types.NestedField.required(0, "map", Types.MapType.ofRequired(
+                    1, 2, Types.StringType.get(), Types.StructType.of(
+                            Types.NestedField.required(3, "string", Types.StringType.get()),
+                            Types.NestedField.required(4, "integer", Types.IntegerType.get())))
+            )
     );
 
     private static final Schema PRIMITIVES_SCHEMA = new Schema(
@@ -243,6 +262,22 @@ public class TestIcebergRecordConverter {
         return new SimpleRecordSchema(fields);
     }
 
+    private static RecordSchema getRecordInListSchema() {
+        List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("list", new ArrayDataType(
+                new RecordDataType(getNestedStructSchema2()))));
+
+        return new SimpleRecordSchema(fields);
+    }
+
+    private static RecordSchema getRecordInMapSchema() {
+        List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("map", new MapDataType(
+                new RecordDataType(getNestedStructSchema2()))));
+
+        return new SimpleRecordSchema(fields);
+    }
+
     private static RecordSchema getPrimitivesSchema() {
         List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("string", RecordFieldType.STRING.getDataType()));
@@ -293,9 +328,9 @@ public class TestIcebergRecordConverter {
         fields.add(new RecordField("fixed", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType())));
         fields.add(new RecordField("binary", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType())));
         fields.add(new RecordField("date", RecordFieldType.STRING.getDataType("yyyy-MM-dd")));
-        fields.add(new RecordField("time", RecordFieldType.STRING.getDataType("hh:mm:ss.SSS")));
-        fields.add(new RecordField("timestamp", RecordFieldType.STRING.getDataType("yyyy-MM-dd hh:mm:ss.SSSZ")));
-        fields.add(new RecordField("timestampTz", RecordFieldType.STRING.getDataType("yyyy-MM-dd hh:mm:ss.SSSZ")));
+        fields.add(new RecordField("time", RecordFieldType.STRING.getDataType("HH:mm:ss.SSS")));
+        fields.add(new RecordField("timestamp", RecordFieldType.STRING.getDataType("yyyy-MM-dd HH:mm:ss.SSSZ")));
+        fields.add(new RecordField("timestampTz", RecordFieldType.STRING.getDataType("yyyy-MM-dd HH:mm:ss.SSSZ")));
         fields.add(new RecordField("uuid", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("choice", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.STRING.getDataType(), RecordFieldType.INT.getDataType())));
 
@@ -386,11 +421,38 @@ public class TestIcebergRecordConverter {
         return new MapRecord(getMapSchema(), values);
     }
 
+    private static Record setupRecordInListTestRecord() {
+        Map<String, Object> struct1 = new HashMap<>();
+        struct1.put("string", "Test String 1");
+        struct1.put("integer", 10);
+
+        Map<String, Object> struct2 = new HashMap<>();
+        struct2.put("string", "Test String 2");
+        struct2.put("integer", 20);
+
+        return new MapRecord(getRecordInListSchema(), Collections.singletonMap("list", Arrays.asList(struct1, struct2)));
+    }
+
+    private static Record setupRecordInMapTestRecord() {
+        Map<String, Object> struct1 = new HashMap<>();
+        struct1.put("string", "Test String 1");
+        struct1.put("integer", 10);
+
+        Map<String, Object> struct2 = new HashMap<>();
+        struct2.put("string", "Test String 2");
+        struct2.put("integer", 20);
+
+        Map<String, Map<String, Object>> map = new HashMap<>();
+        map.put("key1", struct1);
+        map.put("key2", struct2);
+
+        return new MapRecord(getMapSchema(), Collections.singletonMap("map", map));
+    }
+
     private static Record setupPrimitivesTestRecord() {
         LocalDate localDate = LocalDate.of(2017, 4, 4);
         LocalTime localTime = LocalTime.of(14, 20, 33);
-        LocalDateTime localDateTime = LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000);
-        OffsetDateTime offsetDateTime = OffsetDateTime.of(localDateTime, ZoneOffset.ofHours(-5));
+        OffsetDateTime offsetDateTime = OffsetDateTime.of(LOCAL_DATE_TIME, ZoneOffset.ofHours(-5));
 
         Map<String, Object> values = new HashMap<>();
         values.put("string", "Test String");
@@ -405,7 +467,7 @@ public class TestIcebergRecordConverter {
         values.put("date", localDate);
         values.put("time", Time.valueOf(localTime));
         values.put("timestamp", Timestamp.from(offsetDateTime.toInstant()));
-        values.put("timestampTz", Timestamp.valueOf(localDateTime));
+        values.put("timestampTz", Timestamp.valueOf(LOCAL_DATE_TIME));
         values.put("uuid", UUID.fromString("0000-00-00-00-000000"));
         values.put("choice", "10");
 
@@ -415,8 +477,7 @@ public class TestIcebergRecordConverter {
     private static Record setupPrimitivesTestRecordMissingFields() {
         LocalDate localDate = LocalDate.of(2017, 4, 4);
         LocalTime localTime = LocalTime.of(14, 20, 33);
-        LocalDateTime localDateTime = LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000);
-        OffsetDateTime offsetDateTime = OffsetDateTime.of(localDateTime, ZoneOffset.ofHours(-5));
+        OffsetDateTime offsetDateTime = OffsetDateTime.of(LOCAL_DATE_TIME, ZoneOffset.ofHours(-5));
 
         Map<String, Object> values = new HashMap<>();
         values.put("string", "Test String");
@@ -428,7 +489,7 @@ public class TestIcebergRecordConverter {
         values.put("date", localDate);
         values.put("time", Time.valueOf(localTime));
         values.put("timestamp", Timestamp.from(offsetDateTime.toInstant()));
-        values.put("timestampTz", Timestamp.valueOf(localDateTime));
+        values.put("timestampTz", Timestamp.valueOf(LOCAL_DATE_TIME));
         values.put("uuid", UUID.fromString("0000-00-00-00-000000"));
         values.put("choice", "10");
 
@@ -512,10 +573,9 @@ public class TestIcebergRecordConverter {
         List<GenericRecord> results = readFrom(format, PRIMITIVES_SCHEMA, tempFile.toInputFile());
 
         assertEquals(results.size(), 1);
-        GenericRecord resultRecord = results.get(0);
+        GenericRecord resultRecord = results.getFirst();
 
-        LocalDateTime localDateTime = LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000);
-        OffsetDateTime offsetDateTime = OffsetDateTime.of(localDateTime, ZoneOffset.ofHours(-5));
+        OffsetDateTime offsetDateTime = OffsetDateTime.of(LOCAL_DATE_TIME, ZoneOffset.ofHours(-5));
 
         assertEquals("Test String", resultRecord.get(0, String.class));
         assertEquals(Integer.valueOf(8), resultRecord.get(1, Integer.class));
@@ -529,7 +589,7 @@ public class TestIcebergRecordConverter {
         assertEquals(LocalDate.of(2017, 4, 4), resultRecord.get(9, LocalDate.class));
         assertEquals(LocalTime.of(14, 20, 33), resultRecord.get(10, LocalTime.class));
         assertEquals(offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC), resultRecord.get(11, OffsetDateTime.class));
-        assertEquals(LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000), resultRecord.get(12, LocalDateTime.class));
+        assertEquals(LOCAL_DATE_TIME, resultRecord.get(12, LocalDateTime.class));
         assertEquals(Integer.valueOf(10), resultRecord.get(14, Integer.class));
 
         if (format.equals(PARQUET)) {
@@ -555,10 +615,9 @@ public class TestIcebergRecordConverter {
         List<GenericRecord> results = readFrom(format, PRIMITIVES_SCHEMA, tempFile.toInputFile());
 
         assertEquals(results.size(), 1);
-        GenericRecord resultRecord = results.get(0);
+        GenericRecord resultRecord = results.getFirst();
 
-        LocalDateTime localDateTime = LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000);
-        OffsetDateTime offsetDateTime = OffsetDateTime.of(localDateTime, ZoneOffset.ofHours(-5));
+        OffsetDateTime offsetDateTime = OffsetDateTime.of(LOCAL_DATE_TIME, ZoneOffset.ofHours(-5));
 
         assertEquals("Test String", resultRecord.get(0, String.class));
         assertNull(resultRecord.get(1, Integer.class));
@@ -572,7 +631,7 @@ public class TestIcebergRecordConverter {
         assertEquals(LocalDate.of(2017, 4, 4), resultRecord.get(9, LocalDate.class));
         assertEquals(LocalTime.of(14, 20, 33), resultRecord.get(10, LocalTime.class));
         assertEquals(offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC), resultRecord.get(11, OffsetDateTime.class));
-        assertEquals(LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000), resultRecord.get(12, LocalDateTime.class));
+        assertEquals(LOCAL_DATE_TIME, resultRecord.get(12, LocalDateTime.class));
         assertEquals(Integer.valueOf(10), resultRecord.get(14, Integer.class));
 
         if (format.equals(FileFormat.PARQUET)) {
@@ -598,7 +657,7 @@ public class TestIcebergRecordConverter {
         results = readFrom(format, PRIMITIVES_SCHEMA, tempFile.toInputFile());
 
         assertEquals(results.size(), 1);
-        resultRecord = results.get(0);
+        resultRecord = results.getFirst();
         assertNull(resultRecord.get(0, String.class));
         assertNull(resultRecord.get(1, Integer.class));
         assertNull(resultRecord.get(2, Float.class));
@@ -641,10 +700,9 @@ public class TestIcebergRecordConverter {
         List<GenericRecord> results = readFrom(format, PRIMITIVES_SCHEMA, tempFile.toInputFile());
 
         assertEquals(results.size(), 1);
-        GenericRecord resultRecord = results.get(0);
+        GenericRecord resultRecord = results.getFirst();
 
-        LocalDateTime localDateTime = LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000);
-        OffsetDateTime offsetDateTime = OffsetDateTime.of(localDateTime, ZoneOffset.ofHours(-5));
+        OffsetDateTime offsetDateTime = OffsetDateTime.of(LOCAL_DATE_TIME, ZoneOffset.ofHours(-5));
 
         assertEquals("Test String", resultRecord.get(0, String.class));
         assertNull(resultRecord.get(1, Integer.class));
@@ -658,7 +716,7 @@ public class TestIcebergRecordConverter {
         assertEquals(LocalDate.of(2017, 4, 4), resultRecord.get(9, LocalDate.class));
         assertEquals(LocalTime.of(14, 20, 33), resultRecord.get(10, LocalTime.class));
         assertEquals(offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC), resultRecord.get(11, OffsetDateTime.class));
-        assertEquals(LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000), resultRecord.get(12, LocalDateTime.class));
+        assertEquals(LOCAL_DATE_TIME, resultRecord.get(12, LocalDateTime.class));
         assertEquals(Integer.valueOf(10), resultRecord.get(14, Integer.class));
 
         if (format.equals(FileFormat.PARQUET)) {
@@ -676,7 +734,7 @@ public class TestIcebergRecordConverter {
     @DisabledOnOs(WINDOWS)
     @ParameterizedTest
     @EnumSource(value = FileFormat.class, names = {"AVRO", "ORC", "PARQUET"})
-    public void testPrimitivesFailMissingFields(FileFormat format) throws IOException {
+    public void testPrimitivesFailMissingFields(FileFormat format) {
         RecordSchema nifiSchema = getPrimitivesSchemaMissingFields();
         MockComponentLogger mockComponentLogger = new MockComponentLogger();
 
@@ -699,11 +757,9 @@ public class TestIcebergRecordConverter {
         List<GenericRecord> results = readFrom(format, COMPATIBLE_PRIMITIVES_SCHEMA, tempFile.toInputFile());
 
         assertEquals(results.size(), 1);
-        GenericRecord resultRecord = results.get(0);
+        GenericRecord resultRecord = results.getFirst();
 
-        LocalDateTime localDateTime = LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000);
-        OffsetDateTime offsetDateTime = OffsetDateTime.of(localDateTime, ZoneOffset.ofHours(-5));
-        LocalDateTime expectedLocalDateTimestamp = offsetDateTime.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
+        OffsetDateTime offsetDateTime = OffsetDateTime.of(LOCAL_DATE_TIME, ZoneOffset.ofHours(-5));
 
         assertEquals("123", resultRecord.get(0, String.class));
         assertEquals(Integer.valueOf(8), resultRecord.get(1, Integer.class));
@@ -716,7 +772,7 @@ public class TestIcebergRecordConverter {
         assertEquals(LocalDate.of(2017, 4, 4), resultRecord.get(8, LocalDate.class));
         assertEquals(LocalTime.of(14, 20, 33), resultRecord.get(9, LocalTime.class));
         assertEquals(offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC), resultRecord.get(10, OffsetDateTime.class));
-        assertEquals(expectedLocalDateTimestamp, resultRecord.get(11, LocalDateTime.class));
+        assertEquals(LOCAL_DATE_TIME, resultRecord.get(11, LocalDateTime.class));
         assertEquals(Integer.valueOf(10), resultRecord.get(13, Integer.class));
 
         assertArrayEquals(new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, resultRecord.get(12, byte[].class));
@@ -737,8 +793,7 @@ public class TestIcebergRecordConverter {
         List<GenericRecord> results = readFrom(format, STRUCT_SCHEMA, tempFile.toInputFile());
 
         assertEquals(1, results.size());
-        assertInstanceOf(GenericRecord.class, results.get(0));
-        GenericRecord resultRecord = results.get(0);
+        GenericRecord resultRecord = results.getFirst();
 
         assertEquals(1, resultRecord.size());
         assertInstanceOf(GenericRecord.class, resultRecord.get(0));
@@ -767,8 +822,7 @@ public class TestIcebergRecordConverter {
         List<GenericRecord> results = readFrom(format, LIST_SCHEMA, tempFile.toInputFile());
 
         assertEquals(1, results.size());
-        assertInstanceOf(GenericRecord.class, results.get(0));
-        GenericRecord resultRecord = results.get(0);
+        GenericRecord resultRecord = results.getFirst();
 
         assertEquals(1, resultRecord.size());
         assertInstanceOf(List.class, resultRecord.get(0));
@@ -797,8 +851,7 @@ public class TestIcebergRecordConverter {
         List<GenericRecord> results = readFrom(format, MAP_SCHEMA, tempFile.toInputFile());
 
         assertEquals(1, results.size());
-        assertInstanceOf(GenericRecord.class, results.get(0));
-        GenericRecord resultRecord = results.get(0);
+        GenericRecord resultRecord = results.getFirst();
 
         assertEquals(1, resultRecord.size());
         assertInstanceOf(Map.class, resultRecord.get(0));
@@ -809,6 +862,78 @@ public class TestIcebergRecordConverter {
         Map baseMap = (Map) nestedMap.get("key");
 
         assertEquals(42L, baseMap.get("nested_key"));
+    }
+
+    @DisabledOnOs(WINDOWS)
+    @Test
+    public void testRecordInList() throws IOException {
+        RecordSchema nifiSchema = getRecordInListSchema();
+        Record record = setupRecordInListTestRecord();
+        final FileFormat format = FileFormat.AVRO;
+
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(RECORD_IN_LIST_SCHEMA, nifiSchema, format, UnmatchedColumnBehavior.IGNORE_UNMATCHED_COLUMN, logger);
+        GenericRecord genericRecord = recordConverter.convert(record);
+
+        writeTo(format, RECORD_IN_LIST_SCHEMA, genericRecord, tempFile);
+
+        List<GenericRecord> results = readFrom(format, RECORD_IN_LIST_SCHEMA, tempFile.toInputFile());
+
+        assertEquals(1, results.size());
+        assertInstanceOf(GenericRecord.class, results.get(0));
+        GenericRecord resultRecord = results.get(0);
+
+        assertEquals(1, resultRecord.size());
+        assertInstanceOf(List.class, resultRecord.get(0));
+        List<?> fieldList = resultRecord.get(0, List.class);
+
+        assertEquals(2, fieldList.size());
+        assertInstanceOf(GenericRecord.class, fieldList.get(0));
+        assertInstanceOf(GenericRecord.class, fieldList.get(1));
+
+        GenericRecord record1 = (GenericRecord) fieldList.get(0);
+        GenericRecord record2 = (GenericRecord) fieldList.get(1);
+
+        assertEquals("Test String 1", record1.get(0, String.class));
+        assertEquals(Integer.valueOf(10), record1.get(1, Integer.class));
+
+        assertEquals("Test String 2", record2.get(0, String.class));
+        assertEquals(Integer.valueOf(20), record2.get(1, Integer.class));
+    }
+
+    @DisabledOnOs(WINDOWS)
+    @Test
+    public void testRecordInMap() throws IOException {
+        RecordSchema nifiSchema = getRecordInMapSchema();
+        Record record = setupRecordInMapTestRecord();
+        final FileFormat format = FileFormat.ORC;
+
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(RECORD_IN_MAP_SCHEMA, nifiSchema, format, UnmatchedColumnBehavior.IGNORE_UNMATCHED_COLUMN, logger);
+        GenericRecord genericRecord = recordConverter.convert(record);
+
+        writeTo(format, RECORD_IN_MAP_SCHEMA, genericRecord, tempFile);
+
+        List<GenericRecord> results = readFrom(format, RECORD_IN_MAP_SCHEMA, tempFile.toInputFile());
+
+        assertEquals(1, results.size());
+        assertInstanceOf(GenericRecord.class, results.get(0));
+        GenericRecord resultRecord = results.get(0);
+
+        assertEquals(1, resultRecord.size());
+        assertInstanceOf(Map.class, resultRecord.get(0));
+        Map recordMap = resultRecord.get(0, Map.class);
+
+        assertEquals(2, recordMap.size());
+        assertInstanceOf(GenericRecord.class, recordMap.get("key1"));
+        assertInstanceOf(GenericRecord.class, recordMap.get("key2"));
+
+        GenericRecord record1 = (GenericRecord) recordMap.get("key1");
+        GenericRecord record2 = (GenericRecord) recordMap.get("key2");
+
+        assertEquals("Test String 1", record1.get(0, String.class));
+        assertEquals(Integer.valueOf(10), record1.get(1, Integer.class));
+
+        assertEquals("Test String 2", record2.get(0, String.class));
+        assertEquals(Integer.valueOf(20), record2.get(1, Integer.class));
     }
 
     @DisabledOnOs(WINDOWS)
@@ -837,8 +962,7 @@ public class TestIcebergRecordConverter {
         List<GenericRecord> results = readFrom(format, CASE_INSENSITIVE_SCHEMA, tempFile.toInputFile());
 
         assertEquals(1, results.size());
-        assertInstanceOf(GenericRecord.class, results.get(0));
-        GenericRecord resultRecord = results.get(0);
+        GenericRecord resultRecord = results.getFirst();
 
         assertEquals("Text1", resultRecord.get(0, String.class));
         assertEquals("Text2", resultRecord.get(1, String.class));
@@ -861,8 +985,7 @@ public class TestIcebergRecordConverter {
         List<GenericRecord> results = readFrom(format, UNORDERED_SCHEMA, tempFile.toInputFile());
 
         assertEquals(1, results.size());
-        assertInstanceOf(GenericRecord.class, results.get(0));
-        GenericRecord resultRecord = results.get(0);
+        GenericRecord resultRecord = results.getFirst();
 
         assertEquals("value1", resultRecord.get(0, String.class));
 
@@ -926,15 +1049,12 @@ public class TestIcebergRecordConverter {
     }
 
     private ArrayList<GenericRecord> readFrom(FileFormat format, Schema schema, InputFile inputFile) throws IOException {
-        switch (format) {
-            case AVRO:
-                return readFromAvro(schema, inputFile);
-            case ORC:
-                return readFromOrc(schema, inputFile);
-            case PARQUET:
-                return readFromParquet(schema, inputFile);
-        }
-        throw new IOException("Unknown file format: " + format);
+        return switch (format) {
+            case AVRO -> readFromAvro(schema, inputFile);
+            case ORC -> readFromOrc(schema, inputFile);
+            case PARQUET -> readFromParquet(schema, inputFile);
+            default -> throw new IOException("Unknown file format: " + format);
+        };
     }
 
     private void writeToAvro(Schema schema, GenericRecord record, OutputFile outputFile) throws IOException {

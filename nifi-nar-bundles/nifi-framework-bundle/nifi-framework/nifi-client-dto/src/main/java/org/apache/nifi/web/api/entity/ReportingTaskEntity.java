@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.status.ReportingTaskStatusDTO;
@@ -50,8 +50,7 @@ public class ReportingTaskEntity extends ComponentEntity implements Permissible<
     /**
      * @return The permissions for this component operations
      */
-    @ApiModelProperty(
-            value = "The permissions for this component operations."
+    @Schema(description = "The permissions for this component operations."
     )
     @Override
     public PermissionsDTO getOperatePermissions() {
@@ -66,9 +65,8 @@ public class ReportingTaskEntity extends ComponentEntity implements Permissible<
     /**
      * @return The status for this ReportingTask
      */
-    @ApiModelProperty(
-            value = "The status for this ReportingTask.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "The status for this ReportingTask.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public ReportingTaskStatusDTO getStatus() {
         return status;

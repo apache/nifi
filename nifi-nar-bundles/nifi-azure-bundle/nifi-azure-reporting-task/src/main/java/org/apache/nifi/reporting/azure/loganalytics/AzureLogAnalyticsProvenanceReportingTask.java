@@ -16,29 +16,6 @@
  */
 package org.apache.nifi.reporting.azure.loganalytics;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
-import java.text.DateFormat;
-import java.text.MessageFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
-import java.util.UUID;
-
-import javax.json.Json;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonBuilderFactory;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonValue;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -54,6 +31,26 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer;
 
+import javax.json.Json;
+import javax.json.JsonArrayBuilder;
+import javax.json.JsonBuilderFactory;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+import javax.json.JsonValue;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.text.MessageFormat;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 @Tags({ "azure", "provenace", "reporting", "log analytics" })
 @CapabilityDescription("Publishes Provenance events to to a Azure Log Analytics workspace.")
 public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAnalyticsReportingTask {
@@ -61,6 +58,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
         protected static final String LAST_EVENT_ID_KEY = "last_event_id";
         protected static final String DESTINATION_URL_PATH = "/nifi";
         protected static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+        private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(TIMESTAMP_FORMAT);
 
         static final PropertyDescriptor LOG_ANALYTICS_CUSTOM_LOG_NAME = new PropertyDescriptor.Builder()
                         .name("Log Analytics Custom Log Name").description("Log Analytics Custom Log Name").required(false)
@@ -145,7 +143,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                         .description("If the Reporting Task has never been run, or if its state has been reset by a user, "
                                         + "specifies where in the stream of Provenance Events the Reporting Task should start")
                         .allowableValues(BEGINNING_OF_STREAM, END_OF_STREAM)
-                        .defaultValue(BEGINNING_OF_STREAM.getValue()).required(true).build();
+                        .defaultValue(BEGINNING_OF_STREAM).required(true).build();
 
         static final PropertyDescriptor ALLOW_NULL_VALUES = new PropertyDescriptor.Builder().name("include-null-values")
                         .displayName("Include Null Values")
@@ -169,32 +167,34 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                         .description("Specifies how many records to send in a single batch, at most.").required(true)
                         .defaultValue("1000").addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).build();
 
+        private static final List<PropertyDescriptor> PROPERTIES = List.of(
+                LOG_ANALYTICS_WORKSPACE_ID,
+                LOG_ANALYTICS_CUSTOM_LOG_NAME,
+                LOG_ANALYTICS_WORKSPACE_KEY,
+                APPLICATION_ID,
+                INSTANCE_ID,
+                JOB_NAME,
+                LOG_ANALYTICS_URL_ENDPOINT_FORMAT,
+                FILTER_EVENT_TYPE,
+                FILTER_EVENT_TYPE_EXCLUDE,
+                FILTER_COMPONENT_TYPE,
+                FILTER_COMPONENT_TYPE_EXCLUDE,
+                FILTER_COMPONENT_ID,
+                FILTER_COMPONENT_ID_EXCLUDE,
+                FILTER_COMPONENT_NAME,
+                FILTER_COMPONENT_NAME_EXCLUDE,
+                START_POSITION,
+                ALLOW_NULL_VALUES,
+                PLATFORM,
+                INSTANCE_URL,
+                BATCH_SIZE
+        );
+
         private volatile ProvenanceEventConsumer consumer;
 
         @Override
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-                final List<PropertyDescriptor> properties = new ArrayList<>();
-                properties.add(LOG_ANALYTICS_WORKSPACE_ID);
-                properties.add(LOG_ANALYTICS_CUSTOM_LOG_NAME);
-                properties.add(LOG_ANALYTICS_WORKSPACE_KEY);
-                properties.add(APPLICATION_ID);
-                properties.add(INSTANCE_ID);
-                properties.add(JOB_NAME);
-                properties.add(LOG_ANALYTICS_URL_ENDPOINT_FORMAT);
-                properties.add(FILTER_EVENT_TYPE);
-                properties.add(FILTER_EVENT_TYPE_EXCLUDE);
-                properties.add(FILTER_COMPONENT_TYPE);
-                properties.add(FILTER_COMPONENT_TYPE_EXCLUDE);
-                properties.add(FILTER_COMPONENT_ID);
-                properties.add(FILTER_COMPONENT_ID_EXCLUDE);
-                properties.add(FILTER_COMPONENT_NAME);
-                properties.add(FILTER_COMPONENT_NAME_EXCLUDE);
-                properties.add(START_POSITION);
-                properties.add(ALLOW_NULL_VALUES);
-                properties.add(PLATFORM);
-                properties.add(INSTANCE_URL);
-                properties.add(BATCH_SIZE);
-                return properties;
+                return PROPERTIES;
         }
 
         public void CreateConsumer(final ReportingContext context) {
@@ -278,7 +278,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                 }
         }
 
-        public void processProvenanceData(final ReportingContext context) throws IOException {
+        public void processProvenanceData(final ReportingContext context) {
                 getLogger().debug("Starting to process provenance data");
                 final String workspaceId = context.getProperty(LOG_ANALYTICS_WORKSPACE_ID)
                                 .evaluateAttributeExpressions().getValue();
@@ -307,8 +307,6 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                 final Map<String, Object> config = Collections.emptyMap();
                 final JsonBuilderFactory factory = Json.createBuilderFactory(config);
                 final JsonObjectBuilder builder = factory.createObjectBuilder();
-                final DateFormat df = new SimpleDateFormat(TIMESTAMP_FORMAT);
-                df.setTimeZone(TimeZone.getTimeZone("Z"));
                 CreateConsumer(context);
                 consumer.consumeEvents(context, (mapHolder, events) -> {
                         StringBuilder stringBuilder = new StringBuilder();
@@ -318,7 +316,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                                 final String processGroupId = mapHolder.getProcessGroupId(event.getComponentId(),
                                                 event.getComponentType());
                                 final String processGroupName = mapHolder.getComponentName(processGroupId);
-                                final JsonObject jo = serialize(factory, builder, event, df, componentName,
+                                final JsonObject jo = serialize(factory, builder, event, componentName,
                                                 processGroupId, processGroupName, hostname, url, rootGroupName,
                                                 platform, nodeId, allowNullValues);
                                 stringBuilder.append(jo.toString());
@@ -345,7 +343,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
         }
 
         private JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder,
-                        final ProvenanceEventRecord event, final DateFormat df, final String componentName,
+                        final ProvenanceEventRecord event, final String componentName,
                         final String processGroupId, final String processGroupName, final String hostname,
                         final URL nifiUrl, final String applicationName, final String platform,
                         final String nodeIdentifier, Boolean allowNullValues) {
@@ -353,7 +351,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                 addField(builder, "eventOrdinal", event.getEventId(), allowNullValues);
                 addField(builder, "eventType", event.getEventType().name(), allowNullValues);
                 addField(builder, "timestampMillis", event.getEventTime(), allowNullValues);
-                addField(builder, "timestamp", df.format(event.getEventTime()), allowNullValues);
+                addField(builder, "timestamp", DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(event.getEventTime()).atOffset(ZoneOffset.UTC)), allowNullValues);
                 addField(builder, "durationMillis", event.getEventDuration(), allowNullValues);
                 addField(builder, "lineageStart", event.getLineageStartDate(), allowNullValues);
                 addField(builder, "details", event.getDetails(), allowNullValues);
@@ -406,20 +404,15 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
 
         public static void addField(final JsonObjectBuilder builder, final String key, final Object value,
                         boolean allowNullValues) {
-                if (value != null) {
-                        if (value instanceof String) {
-                                builder.add(key, (String) value);
-                        } else if (value instanceof Integer) {
-                                builder.add(key, (Integer) value);
-                        } else if (value instanceof Boolean) {
-                                builder.add(key, (Boolean) value);
-                        } else if (value instanceof Long) {
-                                builder.add(key, (Long) value);
-                        } else {
-                                builder.add(key, value.toString());
+                switch (value) {
+                        case String s -> builder.add(key, s);
+                        case Integer i -> builder.add(key, i);
+                        case Boolean b -> builder.add(key, b);
+                        case Long l -> builder.add(key, l);
+                        case null -> {
+                                if (allowNullValues) builder.add(key, JsonValue.NULL);
                         }
-                } else if (allowNullValues) {
-                        builder.add(key, JsonValue.NULL);
+                        default -> builder.add(key, value.toString());
                 }
         }
 
@@ -428,10 +421,8 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                 if (values != null) {
                         final JsonObjectBuilder mapBuilder = factory.createObjectBuilder();
                         for (final Map.Entry<String, String> entry : values.entrySet()) {
-
-                                if (entry.getKey() == null) {
-                                        continue;
-                                } else if (entry.getValue() == null) {
+                                if (entry.getKey() == null) continue;
+                                if (entry.getValue() == null) {
                                         if (allowNullValues) {
                                                 mapBuilder.add(entry.getKey(), JsonValue.NULL);
                                         }
@@ -441,7 +432,6 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                         }
 
                         builder.add(key, mapBuilder);
-
                 } else if (allowNullValues) {
                         builder.add(key, JsonValue.NULL);
                 }

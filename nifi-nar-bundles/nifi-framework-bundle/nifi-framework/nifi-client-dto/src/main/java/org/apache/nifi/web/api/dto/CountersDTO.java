@@ -17,9 +17,9 @@
 
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
 
 @XmlType(name = "counters")
@@ -27,7 +27,7 @@ public class CountersDTO {
     private CountersSnapshotDTO aggregateSnapshot;
     private List<NodeCountersSnapshotDTO> nodeSnapshots;
 
-    @ApiModelProperty("A Counters snapshot that represents the aggregate values of all nodes in the cluster. If the NiFi instance is "
+    @Schema(description = "A Counters snapshot that represents the aggregate values of all nodes in the cluster. If the NiFi instance is "
         + "a standalone instance, rather than a cluster, this represents the stats of the single instance.")
     public CountersSnapshotDTO getAggregateSnapshot() {
         return aggregateSnapshot;
@@ -37,7 +37,7 @@ public class CountersDTO {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    @ApiModelProperty("A Counters snapshot for each node in the cluster. If the NiFi instance is a standalone instance, rather than "
+    @Schema(description = "A Counters snapshot for each node in the cluster. If the NiFi instance is a standalone instance, rather than "
         + "a cluster, this may be null.")
     public List<NodeCountersSnapshotDTO> getNodeSnapshots() {
         return nodeSnapshots;

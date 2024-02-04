@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Map;
 import java.util.Set;
 
@@ -67,8 +67,7 @@ public class ProcessorConfigDTO {
      *
      * @return The scheduling period
      */
-    @ApiModelProperty(
-            value = "The frequency with which to schedule the processor. The format of the value will depend on th value of schedulingStrategy."
+    @Schema(description = "The frequency with which to schedule the processor. The format of the value will depend on th value of schedulingStrategy."
     )
     public String getSchedulingPeriod() {
         return schedulingPeriod;
@@ -83,8 +82,7 @@ public class ProcessorConfigDTO {
      *
      * @return scheduling strategy
      */
-    @ApiModelProperty(
-            value = "Indicates how the processor should be scheduled to run."
+    @Schema(description = "Indicates how the processor should be scheduled to run."
     )
     public String getSchedulingStrategy() {
         return schedulingStrategy;
@@ -99,8 +97,7 @@ public class ProcessorConfigDTO {
      *
      * @return execution node
      */
-    @ApiModelProperty(
-            value = "Indicates the node where the process will execute."
+    @Schema(description = "Indicates the node where the process will execute."
     )
     public String getExecutionNode() {
         return executionNode;
@@ -113,8 +110,7 @@ public class ProcessorConfigDTO {
     /**
      * @return the amount of time that is used when this processor penalizes a flowfile
      */
-    @ApiModelProperty(
-            value = "The amount of time that is used when the process penalizes a flowfile."
+    @Schema(description = "The amount of time that is used when the process penalizes a flowfile."
     )
     public String getPenaltyDuration() {
         return penaltyDuration;
@@ -127,8 +123,7 @@ public class ProcessorConfigDTO {
     /**
      * @return amount of time must elapse before this processor is scheduled again when yielding
      */
-    @ApiModelProperty(
-            value = "The amount of time that must elapse before this processor is scheduled again after yielding."
+    @Schema(description = "The amount of time that must elapse before this processor is scheduled again after yielding."
     )
     public String getYieldDuration() {
         return yieldDuration;
@@ -141,8 +136,7 @@ public class ProcessorConfigDTO {
     /**
      * @return the level at this this processor will report bulletins
      */
-    @ApiModelProperty(
-            value = "The level at which the processor will report bulletins."
+    @Schema(description = "The level at which the processor will report bulletins."
     )
     public String getBulletinLevel() {
         return bulletinLevel;
@@ -157,8 +151,7 @@ public class ProcessorConfigDTO {
      *
      * @return the concurrently schedulable task count
      */
-    @ApiModelProperty(
-            value = "The number of tasks that should be concurrently schedule for the processor. If the processor doesn't allow parallol processing then any positive input will be ignored."
+    @Schema(description = "The number of tasks that should be concurrently schedule for the processor. If the processor doesn't allow parallol processing then any positive input will be ignored."
     )
     public Integer getConcurrentlySchedulableTaskCount() {
         return concurrentlySchedulableTaskCount;
@@ -171,8 +164,7 @@ public class ProcessorConfigDTO {
     /**
      * @return whether or not this Processor is Loss Tolerant
      */
-    @ApiModelProperty(
-            value = "Whether the processor is loss tolerant."
+    @Schema(description = "Whether the processor is loss tolerant."
     )
     public Boolean isLossTolerant() {
         return lossTolerant;
@@ -185,8 +177,7 @@ public class ProcessorConfigDTO {
     /**
      * @return the comments
      */
-    @ApiModelProperty(
-            value = "The comments for the processor."
+    @Schema(description = "The comments for the processor."
     )
     public String getComments() {
         return comments;
@@ -202,8 +193,7 @@ public class ProcessorConfigDTO {
      *
      * @return The optional properties
      */
-    @ApiModelProperty(
-            value = "The properties for the processor. Properties whose value is not set will only contain the property name."
+    @Schema(description = "The properties for the processor. Properties whose value is not set will only contain the property name."
     )
     public Map<String, String> getProperties() {
         return properties;
@@ -216,8 +206,7 @@ public class ProcessorConfigDTO {
     /**
      * @return descriptors for this processor's properties
      */
-    @ApiModelProperty(
-            value = "Descriptors for the processor's properties."
+    @Schema(description = "Descriptors for the processor's properties."
     )
     public Map<String, PropertyDescriptorDTO> getDescriptors() {
         return descriptors;
@@ -230,8 +219,7 @@ public class ProcessorConfigDTO {
     /**
      * @return Set of sensitive dynamic property names
      */
-    @ApiModelProperty(
-            value = "Set of sensitive dynamic property names"
+    @Schema(description = "Set of sensitive dynamic property names"
     )
     public Set<String> getSensitiveDynamicPropertyNames() {
         return sensitiveDynamicPropertyNames;
@@ -246,8 +234,7 @@ public class ProcessorConfigDTO {
      *
      * @return The annotation data
      */
-    @ApiModelProperty(
-            value = "The annotation data for the processor used to relay configuration between a custom UI and the procesosr."
+    @Schema(description = "The annotation data for the processor used to relay configuration between a custom UI and the procesosr."
     )
     public String getAnnotationData() {
         return annotationData;
@@ -260,8 +247,7 @@ public class ProcessorConfigDTO {
     /**
      * @return the URL for this processors custom configuration UI if applicable. Null otherwise.
      */
-    @ApiModelProperty(
-            value = "The URL for the processor's custom configuration UI if applicable."
+    @Schema(description = "The URL for the processor's custom configuration UI if applicable."
     )
     public String getCustomUiUrl() {
         return customUiUrl;
@@ -274,8 +260,7 @@ public class ProcessorConfigDTO {
     /**
      * @return the names of all processor relationships that cause a flow file to be terminated if the relationship is not connected to anything
      */
-    @ApiModelProperty(
-        value = "The names of all relationships that cause a flow file to be terminated if the relationship is not connected elsewhere. This property differs "
+    @Schema(description = "The names of all relationships that cause a flow file to be terminated if the relationship is not connected elsewhere. This property differs "
             + "from the 'isAutoTerminate' property of the RelationshipDTO in that the RelationshipDTO is meant to depict the current configuration, whereas this "
             + "property can be set in a DTO when updating a Processor in order to change which Relationships should be auto-terminated."
     )
@@ -290,8 +275,7 @@ public class ProcessorConfigDTO {
     /**
      * @return maps default values for concurrent tasks for each applicable scheduling strategy.
      */
-    @ApiModelProperty(
-            value = "Maps default values for concurrent tasks for each applicable scheduling strategy."
+    @Schema(description = "Maps default values for concurrent tasks for each applicable scheduling strategy."
     )
     public Map<String, String> getDefaultConcurrentTasks() {
         return defaultConcurrentTasks;
@@ -304,8 +288,7 @@ public class ProcessorConfigDTO {
     /**
      * @return run duration in milliseconds
      */
-    @ApiModelProperty(
-            value = "The run duration for the processor in milliseconds."
+    @Schema(description = "The run duration for the processor in milliseconds."
     )
     public Long getRunDurationMillis() {
         return runDurationMillis;
@@ -318,8 +301,7 @@ public class ProcessorConfigDTO {
     /**
      * @return Maps default values for scheduling period for each applicable scheduling strategy
      */
-    @ApiModelProperty(
-            value = "Maps default values for scheduling period for each applicable scheduling strategy."
+    @Schema(description = "Maps default values for scheduling period for each applicable scheduling strategy."
     )
     public Map<String, String> getDefaultSchedulingPeriod() {
         return defaultSchedulingPeriod;
@@ -329,8 +311,7 @@ public class ProcessorConfigDTO {
         this.defaultSchedulingPeriod = defaultSchedulingPeriod;
     }
 
-    @ApiModelProperty(
-            value = "Overall number of retries."
+    @Schema(description = "Overall number of retries."
     )
     public Integer getRetryCount() {
         return retryCount;
@@ -340,8 +321,7 @@ public class ProcessorConfigDTO {
         this.retryCount = retryCount;
     }
 
-    @ApiModelProperty(
-            value = "All the relationships should be retried."
+    @Schema(description = "All the relationships should be retried."
     )
     public Set<String> getRetriedRelationships() {
         return retriedRelationships;
@@ -351,8 +331,7 @@ public class ProcessorConfigDTO {
         this.retriedRelationships = retriedRelationships;
     }
 
-    @ApiModelProperty(accessMode = ApiModelProperty.AccessMode.READ_ONLY,
-            value = "Determines whether the FlowFile should be penalized or the processor should be yielded between retries.",
+    @Schema(description = "Determines whether the FlowFile should be penalized or the processor should be yielded between retries.",
             allowableValues = "PENALIZE_FLOWFILE, YIELD_PROCESSOR"
     )
     public String getBackoffMechanism() {
@@ -363,8 +342,7 @@ public class ProcessorConfigDTO {
         this.backoffMechanism = backoffMechanism;
     }
 
-    @ApiModelProperty(
-            value = "Maximum amount of time to be waited during a retry period."
+    @Schema(description = "Maximum amount of time to be waited during a retry period."
     )
     public String getMaxBackoffPeriod() {
         return maxBackoffPeriod;

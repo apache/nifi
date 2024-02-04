@@ -16,58 +16,47 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { CanvasUtils } from './canvas-utils.service';
 import {
+    ComponentRunStatusRequest,
     CreateComponentRequest,
     CreateConnection,
     CreatePortRequest,
     CreateProcessGroupRequest,
     CreateProcessorRequest,
     DeleteComponentRequest,
+    ProcessGroupRunStatusRequest,
+    ReplayLastProvenanceEventRequest,
+    RunOnceRequest,
     Snippet,
+    StartComponentRequest,
+    StartProcessGroupRequest,
+    StopComponentRequest,
+    StopProcessGroupRequest,
     UpdateComponentRequest,
     UploadProcessGroupRequest
 } from '../state/flow';
-import { ComponentType } from '../../../state/shared';
+import { ComponentType, PropertyDescriptorRetriever } from '../../../state/shared';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 
 @Injectable({ providedIn: 'root' })
-export class FlowService {
+export class FlowService implements PropertyDescriptorRetriever {
     private static readonly API: string = '../nifi-api';
 
     constructor(
         private httpClient: HttpClient,
-        private canvasUtils: CanvasUtils,
         private client: Client,
         private nifiCommon: NiFiCommon
     ) {}
 
-    /**
-     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
-     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
-     *
-     * https://stackoverflow.com/a/59586462
-     *
-     * @param url
-     * @private
-     */
-    private stripProtocol(url: string): string {
-        return this.nifiCommon.substringAfterFirst(url, ':');
-    }
-
-    getFlow(processGroupId: string = 'root'): Observable<any> {
+    getFlow(processGroupId = 'root'): Observable<any> {
         // TODO - support uiOnly... this would mean that we need to load the entire resource prior to editing
         return this.httpClient.get(`${FlowService.API}/flow/process-groups/${processGroupId}`);
     }
 
-    getControllerService(id: string): Observable<any> {
-        return this.httpClient.get(`${FlowService.API}/controller-services/${id}`);
-    }
-
-    getProcessGroupStatus(processGroupId: string = 'root', recursive: boolean = false): Observable<any> {
+    getProcessGroupStatus(processGroupId = 'root', recursive = false): Observable<any> {
         return this.httpClient.get(`${FlowService.API}/flow/process-groups/${processGroupId}/status`, {
             params: { recursive: recursive }
         });
@@ -95,10 +84,6 @@ export class FlowService {
         });
     }
 
-    getCurrentUser(): Observable<any> {
-        return this.httpClient.get(`${FlowService.API}/flow/controller/bulletins`);
-    }
-
     getProcessor(id: string): Observable<any> {
         return this.httpClient.get(`${FlowService.API}/processors/${id}`);
     }
@@ -119,7 +104,7 @@ export class FlowService {
         return this.httpClient.get(`${FlowService.API}/process-groups/${id}`);
     }
 
-    createFunnel(processGroupId: string = 'root', createFunnel: CreateComponentRequest): Observable<any> {
+    createFunnel(processGroupId = 'root', createFunnel: CreateComponentRequest): Observable<any> {
         return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/funnels`, {
             revision: createFunnel.revision,
             component: {
@@ -128,7 +113,7 @@ export class FlowService {
         });
     }
 
-    createLabel(processGroupId: string = 'root', createLabel: CreateComponentRequest): Observable<any> {
+    createLabel(processGroupId = 'root', createLabel: CreateComponentRequest): Observable<any> {
         return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/labels`, {
             revision: createLabel.revision,
             component: {
@@ -137,7 +122,7 @@ export class FlowService {
         });
     }
 
-    createProcessor(processGroupId: string = 'root', createProcessor: CreateProcessorRequest): Observable<any> {
+    createProcessor(processGroupId = 'root', createProcessor: CreateProcessorRequest): Observable<any> {
         return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/processors`, {
             revision: createProcessor.revision,
             component: {
@@ -148,17 +133,14 @@ export class FlowService {
         });
     }
 
-    createConnection(processGroupId: string = 'root', createConnection: CreateConnection): Observable<any> {
+    createConnection(processGroupId = 'root', createConnection: CreateConnection): Observable<any> {
         return this.httpClient.post(
             `${FlowService.API}/process-groups/${processGroupId}/connections`,
             createConnection.payload
         );
     }
 
-    createProcessGroup(
-        processGroupId: string = 'root',
-        createProcessGroup: CreateProcessGroupRequest
-    ): Observable<any> {
+    createProcessGroup(processGroupId = 'root', createProcessGroup: CreateProcessGroupRequest): Observable<any> {
         const payload: any = {
             revision: createProcessGroup.revision,
             component: {
@@ -176,10 +158,7 @@ export class FlowService {
         return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/process-groups`, payload);
     }
 
-    uploadProcessGroup(
-        processGroupId: string = 'root',
-        uploadProcessGroup: UploadProcessGroupRequest
-    ): Observable<any> {
+    uploadProcessGroup(processGroupId = 'root', uploadProcessGroup: UploadProcessGroupRequest): Observable<any> {
         const payload = new FormData();
         payload.append('id', processGroupId);
         payload.append('groupName', uploadProcessGroup.name);
@@ -204,7 +183,7 @@ export class FlowService {
         });
     }
 
-    createPort(processGroupId: string = 'root', createPort: CreatePortRequest): Observable<any> {
+    createPort(processGroupId = 'root', createPort: CreatePortRequest): Observable<any> {
         const portType: string = ComponentType.InputPort == createPort.type ? 'input-ports' : 'output-ports';
         return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/${portType}`, {
             revision: createPort.revision,
@@ -217,14 +196,12 @@ export class FlowService {
     }
 
     updateComponent(updateComponent: UpdateComponentRequest): Observable<any> {
-        // return throwError('API Error');
-        return this.httpClient.put(this.stripProtocol(updateComponent.uri), updateComponent.payload);
+        return this.httpClient.put(this.nifiCommon.stripProtocol(updateComponent.uri), updateComponent.payload);
     }
 
     deleteComponent(deleteComponent: DeleteComponentRequest): Observable<any> {
-        // return throwError('API Error');
         const revision: any = this.client.getRevision(deleteComponent.entity);
-        return this.httpClient.delete(this.stripProtocol(deleteComponent.uri), { params: revision });
+        return this.httpClient.delete(this.nifiCommon.stripProtocol(deleteComponent.uri), { params: revision });
     }
 
     createSnippet(snippet: Snippet): Observable<any> {
@@ -244,5 +221,76 @@ export class FlowService {
 
     deleteSnippet(snippetId: string): Observable<any> {
         return this.httpClient.delete(`${FlowService.API}/snippets/${snippetId}`);
+    }
+
+    replayLastProvenanceEvent(request: ReplayLastProvenanceEventRequest): Observable<any> {
+        return this.httpClient.post(`${FlowService.API}/provenance-events/latest/replays`, request);
+    }
+
+    runOnce(request: RunOnceRequest): Observable<any> {
+        const startRequest: ComponentRunStatusRequest = {
+            revision: request.revision,
+            disconnectedNodeAcknowledged: false,
+            state: 'RUN_ONCE'
+        };
+        return this.httpClient.put(`${this.nifiCommon.stripProtocol(request.uri)}/run-status`, startRequest);
+    }
+
+    startComponent(request: StartComponentRequest): Observable<any> {
+        const startRequest: ComponentRunStatusRequest = {
+            revision: request.revision,
+            disconnectedNodeAcknowledged: false,
+            state: request.type === ComponentType.RemoteProcessGroup ? 'TRANSMITTING' : 'RUNNING'
+        };
+        return this.httpClient.put(`${this.nifiCommon.stripProtocol(request.uri)}/run-status`, startRequest);
+    }
+
+    stopComponent(request: StopComponentRequest): Observable<any> {
+        const stopRequest: ComponentRunStatusRequest = {
+            revision: request.revision,
+            disconnectedNodeAcknowledged: false,
+            state: 'STOPPED'
+        };
+        return this.httpClient.put(`${this.nifiCommon.stripProtocol(request.uri)}/run-status`, stopRequest);
+    }
+
+    startProcessGroup(request: StartProcessGroupRequest): Observable<any> {
+        const startRequest: ProcessGroupRunStatusRequest = {
+            id: request.id,
+            disconnectedNodeAcknowledged: false,
+            state: 'RUNNING'
+        };
+        return this.httpClient.put(`${FlowService.API}/flow/process-groups/${request.id}`, startRequest);
+    }
+
+    startRemoteProcessGroupsInProcessGroup(request: StartProcessGroupRequest): Observable<any> {
+        const startRequest = {
+            disconnectedNodeAcknowledged: false,
+            state: 'TRANSMITTING'
+        };
+        return this.httpClient.put(
+            `${FlowService.API}/remote-process-groups/process-group/${request.id}/run-status`,
+            startRequest
+        );
+    }
+
+    stopProcessGroup(request: StopProcessGroupRequest): Observable<any> {
+        const stopRequest: ProcessGroupRunStatusRequest = {
+            id: request.id,
+            disconnectedNodeAcknowledged: false,
+            state: 'STOPPED'
+        };
+        return this.httpClient.put(`${FlowService.API}/flow/process-groups/${request.id}`, stopRequest);
+    }
+
+    stopRemoteProcessGroupsInProcessGroup(request: StopProcessGroupRequest): Observable<any> {
+        const stopRequest = {
+            disconnectedNodeAcknowledged: false,
+            state: 'STOPPED'
+        };
+        return this.httpClient.put(
+            `${FlowService.API}/remote-process-groups/process-group/${request.id}/run-status`,
+            stopRequest
+        );
     }
 }

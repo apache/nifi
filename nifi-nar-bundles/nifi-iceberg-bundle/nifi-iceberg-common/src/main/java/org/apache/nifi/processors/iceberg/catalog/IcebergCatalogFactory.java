@@ -41,14 +41,10 @@ public class IcebergCatalogFactory {
     }
 
     public Catalog create() {
-        switch (catalogService.getCatalogType()) {
-            case HIVE:
-                return initHiveCatalog(catalogService);
-            case HADOOP:
-                return initHadoopCatalog(catalogService);
-            default:
-                throw new IllegalArgumentException("Unknown catalog type: " + catalogService.getCatalogType());
-        }
+        return switch (catalogService.getCatalogType()) {
+            case HIVE -> initHiveCatalog(catalogService);
+            case HADOOP -> initHadoopCatalog(catalogService);
+        };
     }
 
     private Catalog initHiveCatalog(IcebergCatalogService catalogService) {

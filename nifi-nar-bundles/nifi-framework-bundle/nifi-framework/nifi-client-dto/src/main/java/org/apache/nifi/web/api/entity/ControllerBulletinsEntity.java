@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,7 +38,7 @@ public class ControllerBulletinsEntity extends Entity {
     /**
      * @return System bulletins to be reported to the user
      */
-    @ApiModelProperty("System level bulletins to be reported to the user.")
+    @Schema(description = "System level bulletins to be reported to the user.")
     public List<BulletinEntity> getBulletins() {
         return bulletins;
     }
@@ -50,7 +50,7 @@ public class ControllerBulletinsEntity extends Entity {
     /**
      * @return Controller service bulletins to be reported to the user
      */
-    @ApiModelProperty("Controller service bulletins to be reported to the user.")
+    @Schema(description = "Controller service bulletins to be reported to the user.")
     public List<BulletinEntity> getControllerServiceBulletins() {
         return controllerServiceBulletins;
     }
@@ -62,7 +62,7 @@ public class ControllerBulletinsEntity extends Entity {
     /**
      * @return Reporting task bulletins to be reported to the user
      */
-    @ApiModelProperty("Reporting task bulletins to be reported to the user.")
+    @Schema(description = "Reporting task bulletins to be reported to the user.")
     public List<BulletinEntity> getReportingTaskBulletins() {
         return reportingTaskBulletins;
     }
@@ -74,7 +74,7 @@ public class ControllerBulletinsEntity extends Entity {
     /**
      * @return Flow Analysis Rule bulletins to be reported to the user
      */
-    @ApiModelProperty("Flow Analysis Rule bulletins to be reported to the user.")
+    @Schema(description = "Flow Analysis Rule bulletins to be reported to the user.")
     public List<BulletinEntity> getFlowAnalysisRuleBulletins() {
         return flowAnalysisRuleBulletins;
     }
@@ -86,7 +86,7 @@ public class ControllerBulletinsEntity extends Entity {
     /**
      * @return Parameter provider bulletins to be reported to the user
      */
-    @ApiModelProperty("Parameter provider bulletins to be reported to the user.")
+    @Schema(description = "Parameter provider bulletins to be reported to the user.")
     public List<BulletinEntity> getParameterProviderBulletins() {
         return parameterProviderBulletins;
     }
@@ -98,7 +98,7 @@ public class ControllerBulletinsEntity extends Entity {
     /**
      * @return Flow registry client bulletins to be reported to the user
      */
-    @ApiModelProperty("Flow registry client bulletins to be reported to the user.")
+    @Schema(description = "Flow registry client bulletins to be reported to the user.")
     public List<BulletinEntity> getFlowRegistryClientBulletins() {
         return flowRegistryClientBulletins;
     }

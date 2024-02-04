@@ -16,8 +16,8 @@
  */
 
 import {
-    AffectedComponentEntity,
     ParameterContextReferenceEntity,
+    ParameterContextUpdateRequestEntity,
     ParameterEntity,
     Permissions,
     Revision
@@ -46,15 +46,6 @@ export interface EditParameterContextRequest {
     parameterContext?: ParameterContextEntity;
 }
 
-export interface SubmitParameterContextUpdate {
-    id: string;
-    payload: any;
-}
-
-export interface PollParameterContextUpdateSuccess {
-    requestEntity: ParameterContextUpdateRequestEntity;
-}
-
 export interface DeleteParameterContextRequest {
     parameterContext: ParameterContextEntity;
 }
@@ -65,23 +56,6 @@ export interface DeleteParameterContextSuccess {
 
 export interface SelectParameterContextRequest {
     id: string;
-}
-
-export interface ParameterContextUpdateRequest {
-    complete: boolean;
-    lastUpdated: string;
-    percentComponent: number;
-    referencingComponents: AffectedComponentEntity[];
-    requestId: string;
-    state: string;
-    updateSteps: any[];
-    uri: string;
-    parameterContext?: any;
-}
-
-export interface ParameterContextUpdateRequestEntity {
-    parameterContextRevision: Revision;
-    request: ParameterContextUpdateRequest;
 }
 
 export interface ParameterContextEntity {

@@ -79,7 +79,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             .description("How the JSON Query will be defined for use by the processor.")
             .required(true)
             .allowableValues(QueryDefinitionType.class)
-            .defaultValue(QueryDefinitionType.FULL_QUERY.getValue())
+            .defaultValue(QueryDefinitionType.FULL_QUERY)
             .build();
 
     PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
@@ -217,7 +217,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
     default String getQuery(final FlowFile input, final ProcessContext context, final ProcessSession session) throws IOException {
         String retVal = getQuery(input != null ? input.getAttributes() : Collections.emptyMap(), context);
         if (DEFAULT_QUERY_JSON.equals(retVal) && input != null
-            && QueryDefinitionType.FULL_QUERY.getValue().equals(context.getProperty(QUERY_DEFINITION_STYLE).getValue())
+            && QueryDefinitionType.FULL_QUERY == context.getProperty(QUERY_DEFINITION_STYLE).asAllowableValue(QueryDefinitionType.class)
             && !context.getProperty(QUERY).isSet()) {
             try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
                 session.exportTo(input, out);
@@ -230,7 +230,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
 
     default String getQuery(final Map<String, String> attributes, final ProcessContext context) throws IOException {
         final String retVal;
-        if (QueryDefinitionType.FULL_QUERY.getValue().equals(context.getProperty(QUERY_DEFINITION_STYLE).getValue())) {
+        if (QueryDefinitionType.FULL_QUERY == context.getProperty(QUERY_DEFINITION_STYLE).asAllowableValue(QueryDefinitionType.class)) {
             if (context.getProperty(QUERY).isSet()) {
                 retVal = context.getProperty(QUERY).evaluateAttributeExpressions(attributes).getValue();
             } else {

@@ -51,8 +51,8 @@ export class SourceProcessor implements ControlValueAccessor {
     }
     @Input() groupName!: string;
 
-    isDisabled: boolean = false;
-    isTouched: boolean = false;
+    isDisabled = false;
+    isTouched = false;
     onTouched!: () => void;
     onChange!: (selectedRelationships: string[]) => void;
 
@@ -61,8 +61,6 @@ export class SourceProcessor implements ControlValueAccessor {
 
     relationshipItems!: RelationshipItem[];
     selectedRelationships!: string[];
-
-    constructor() {}
 
     processRelationships(): void {
         if (this.relationships && this.selectedRelationships) {

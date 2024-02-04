@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.registry.authorization;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel
 public class Resource {
 
     private String identifier;
@@ -30,7 +28,7 @@ public class Resource {
      *
      * @return The name of the resource
      */
-    @ApiModelProperty(value = "The name of the resource.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The name of the resource.", accessMode = Schema.AccessMode.READ_ONLY)
     public String getName() {
         return name;
     }
@@ -44,7 +42,7 @@ public class Resource {
      *
      * @return The identifier of the resource
      */
-    @ApiModelProperty(value = "The identifier of the resource.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The identifier of the resource.", accessMode = Schema.AccessMode.READ_ONLY)
     public String getIdentifier() {
         return identifier;
     }

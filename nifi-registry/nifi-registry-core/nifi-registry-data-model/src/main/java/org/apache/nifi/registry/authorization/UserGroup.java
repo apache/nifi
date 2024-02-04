@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.registry.authorization;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -26,7 +25,6 @@ import java.util.Set;
 /**
  * A user group, used to apply a single set of authorization policies to a group of users.
  */
-@ApiModel
 public class UserGroup extends Tenant {
 
     private Set<Tenant> users;
@@ -40,7 +38,7 @@ public class UserGroup extends Tenant {
     /**
      * @return The users that belong to this user group.
      */
-    @ApiModelProperty(value = "The users that belong to this user group. This can only be changed if this group is configurable.")
+    @Schema(description = "The users that belong to this user group. This can only be changed if this group is configurable.")
     public Set<Tenant> getUsers() {
         return users;
     }

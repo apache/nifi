@@ -23,6 +23,7 @@ import {
     DocumentedType,
     ParameterContextReferenceEntity,
     Permissions,
+    Revision,
     SelectOption
 } from '../../../../state/shared';
 import { ParameterContextEntity } from '../../../parameter-contexts/state/parameter-context-listing';
@@ -214,6 +215,11 @@ export interface OpenComponentDialogRequest {
     type: ComponentType;
 }
 
+export interface NavigateToManageComponentPoliciesRequest {
+    resource: string;
+    id: string;
+}
+
 export interface EditComponentDialogRequest {
     type: ComponentType;
     uri: string;
@@ -222,6 +228,10 @@ export interface EditComponentDialogRequest {
 
 export interface NavigateToControllerServicesRequest {
     id: string;
+}
+
+export interface NavigateToQueueListing {
+    connectionId: string;
 }
 
 export interface EditCurrentProcessGroupRequest {
@@ -237,6 +247,11 @@ export interface EditConnectionDialogRequest extends EditComponentDialogRequest 
     };
 }
 
+export interface UpdateProcessorRequest {
+    payload: any;
+    postUpdateNavigation?: string[];
+}
+
 export interface UpdateComponentRequest {
     requestId?: number;
     id: string;
@@ -244,6 +259,7 @@ export interface UpdateComponentRequest {
     uri: string;
     payload: any;
     restoreOnFailure?: any;
+    postUpdateNavigation?: string[];
 }
 
 export interface UpdateComponentResponse {
@@ -251,6 +267,7 @@ export interface UpdateComponentResponse {
     id: string;
     type: ComponentType;
     response: any;
+    postUpdateNavigation?: string[];
 }
 
 export interface UpdateComponentFailure {
@@ -302,6 +319,11 @@ export interface NavigateToComponentRequest {
     id: string;
     type: ComponentType;
     processGroupId?: string;
+}
+
+export interface ReplayLastProvenanceEventRequest {
+    componentId: string;
+    nodes: string;
 }
 
 /*
@@ -456,4 +478,91 @@ export interface FlowState {
     operationCollapsed: boolean;
     error: string | null;
     status: 'pending' | 'loading' | 'error' | 'success';
+}
+
+export interface RunOnceRequest {
+    uri: string;
+    revision: Revision;
+}
+
+export interface RunOnceResponse {
+    component: ComponentEntity;
+}
+
+export interface StartProcessGroupRequest {
+    id: string;
+    type: ComponentType;
+}
+
+export interface StartComponentRequest {
+    id: string;
+    uri: string;
+    type: ComponentType;
+    revision: Revision;
+}
+
+export interface StartComponentsRequest {
+    components: StartComponentRequest[];
+}
+
+export interface StartComponentResponse {
+    type: ComponentType;
+    component: ComponentEntity;
+}
+
+export interface StartProcessGroupResponse {
+    type: ComponentType;
+    component: {
+        id: string;
+        state: string;
+    };
+}
+
+export interface StopProcessGroupResponse {
+    type: ComponentType;
+    component: {
+        id: string;
+        state: string;
+    };
+}
+
+export interface StartComponentsResponse {
+    components: StartComponentsResponse[];
+}
+
+export interface ComponentRunStatusRequest {
+    revision: Revision;
+    state: string;
+    disconnectedNodeAcknowledged: boolean;
+}
+
+export interface ProcessGroupRunStatusRequest {
+    id: string;
+    state: string;
+    disconnectedNodeAcknowledged: boolean;
+}
+
+export interface StopComponentRequest {
+    id: string;
+    uri: string;
+    type: ComponentType;
+    revision: Revision;
+}
+
+export interface StopProcessGroupRequest {
+    id: string;
+    type: ComponentType;
+}
+
+export interface StopComponentResponse {
+    type: ComponentType;
+    component: ComponentEntity;
+}
+
+export interface StopComponentsRequest {
+    components: StopComponentRequest[];
+}
+
+export interface LoadChildProcessGroupRequest {
+    id: string;
 }

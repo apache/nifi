@@ -99,7 +99,7 @@
                             <ng-template #validNonService>
                                 <div [ngClass]="getNonServiceStateIcon(reference.component)"></div>
                             </ng-template>
-                            <a [routerLink]="getRouteForReference(reference.component)" mat-dialog-close="ROUTED">{{
+                            <a (click)="goToReferencingComponentClicked($event, reference.component)">{{
                                 reference.component.name
                             }}</a>
                             <div
@@ -134,9 +134,11 @@
                                 <ng-template #validService>
                                     <div [ngClass]="getServiceStateIcon(service.component)"></div>
                                 </ng-template>
-                                <a [routerLink]="getRouteForReference(service.component)" mat-dialog-close="ROUTED">{{
-                                    service.component.name
-                                }}</a>
+                                <a
+                                    (click)="goToReferencingComponentClicked($event, service.component)"
+                                    mat-dialog-close="ROUTED"
+                                    >{{ service.component.name }}</a
+                                >
                                 <div
                                     class="pointer fa fa-sticky-note-o"
                                     *ngIf="hasBulletins(service)"

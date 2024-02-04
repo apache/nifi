@@ -25,7 +25,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
-describe('CounterTableComponent', () => {
+describe('CounterTable', () => {
     let component: CounterTable;
     let fixture: ComponentFixture<CounterTable>;
 

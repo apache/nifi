@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Bundle, ControllerServiceEntity, Revision } from '../../../../state/shared';
+import { ControllerServiceEntity, ParameterContextReferenceEntity } from '../../../../state/shared';
 import { BreadcrumbEntity } from '../shared';
 
 export const controllerServicesFeatureKey = 'controllerServiceListing';
@@ -28,14 +28,8 @@ export interface LoadControllerServicesResponse {
     processGroupId: string;
     breadcrumb: BreadcrumbEntity;
     controllerServices: ControllerServiceEntity[];
+    parameterContext: ParameterContextReferenceEntity | null;
     loadedTimestamp: string;
-}
-
-export interface CreateControllerServiceRequest {
-    processGroupId: string;
-    controllerServiceType: string;
-    controllerServiceBundle: Bundle;
-    revision: Revision;
 }
 
 export interface CreateControllerServiceSuccess {
@@ -46,11 +40,13 @@ export interface ConfigureControllerServiceRequest {
     id: string;
     uri: string;
     payload: any;
+    postUpdateNavigation?: string[];
 }
 
 export interface ConfigureControllerServiceSuccess {
     id: string;
     controllerService: ControllerServiceEntity;
+    postUpdateNavigation?: string[];
 }
 
 export interface DeleteControllerServiceRequest {
@@ -70,8 +66,8 @@ export interface ControllerServicesState {
     processGroupId: string;
     breadcrumb: BreadcrumbEntity;
     controllerServices: ControllerServiceEntity[];
+    parameterContext: ParameterContextReferenceEntity | null;
     saving: boolean;
     loadedTimestamp: string;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }

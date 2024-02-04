@@ -455,7 +455,7 @@ run() {
     # Wait just a bit (3 secs) to wait for the logging to finish and then echo a new-line.
     # We do this to avoid having logs spewed on the console after running the command and then not giving
     # control back to the user
-    sleep 3
+    sleep 1
     echo
 }
 
@@ -470,7 +470,7 @@ case "$1" in
         install "$@"
         ;;
 
-    start|stop|decommission|run|status|is_loaded|dump|diagnostics|status-history|env|stateless|set-sensitive-properties-algorithm|set-sensitive-properties-key|set-single-user-credentials)
+    start|stop|decommission|run|status|is_loaded|dump|diagnostics|status-history|env|stateless|set-sensitive-properties-algorithm|set-sensitive-properties-key|set-single-user-credentials|cluster-status)
         main "$@"
         ;;
 
@@ -480,6 +480,6 @@ case "$1" in
         run "start"
         ;;
     *)
-        echo "Usage nifi {start|stop|decommission|run|restart|status|dump|diagnostics|status-history|install|stateless|set-sensitive-properties-algorithm|set-sensitive-properties-key|set-single-user-credentials}"
+        echo "Usage nifi {start|stop|decommission|run|restart|status|dump|diagnostics|status-history|install|stateless|set-sensitive-properties-algorithm|set-sensitive-properties-key|set-single-user-credentials|cluster-status}"
         ;;
 esac

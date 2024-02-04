@@ -17,6 +17,7 @@
 
 <h2 mat-dialog-title>Edit Processor</h2>
 <form class="processor-edit-form" [formGroup]="editProcessorForm">
+    <error-banner></error-banner>
     <!-- TODO - Stop & Configure -->
     <mat-dialog-content>
         <mat-tab-group>
@@ -153,7 +154,10 @@
                         [createNewProperty]="createNewProperty"
                         [createNewService]="createNewService"
                         [getParameters]="getParameters"
-                        [getServiceLink]="getServiceLink"
+                        [goToParameter]="goToParameter"
+                        [parameterContext]="parameterContext"
+                        [convertToParameter]="convertToParameter"
+                        [goToService]="goToService"
                         [supportsSensitiveDynamicProperties]="
                             request.entity.component.supportsSensitiveDynamicProperties
                         "></property-table>
@@ -180,7 +184,7 @@
         </mat-tab-group>
     </mat-dialog-content>
     <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
+        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
         <button
             [disabled]="!editProcessorForm.dirty || editProcessorForm.invalid || saving.value"
             type="button"

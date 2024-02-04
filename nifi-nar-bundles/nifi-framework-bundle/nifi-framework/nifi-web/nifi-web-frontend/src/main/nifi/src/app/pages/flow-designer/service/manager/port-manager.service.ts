@@ -59,7 +59,7 @@ export class PortManager {
 
     private ports: [] = [];
     private portContainer: any;
-    private transitionRequired: boolean = false;
+    private transitionRequired = false;
 
     private viewContainerRef: ViewContainerRef | undefined;
 
@@ -151,7 +151,6 @@ export class PortManager {
             .attr('class', 'remote-banner')
             .attr('width', this.remotePortDimensions.width)
             .attr('height', PortManager.OFFSET_VALUE)
-            .attr('fill', '#e3e8eb')
             .classed('hidden', this.isLocalPort);
 
         // port icon
@@ -386,21 +385,21 @@ export class PortManager {
         // update the run status
         updated
             .select('text.run-status-icon')
-            .attr('fill', function (d: any) {
-                let fill: string = '#728e9b';
+            .attr('class', function (d: any) {
+                let clazz = 'primary-500';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
-                    fill = '#cf9f5d';
+                    clazz = 'canvas-accent-A200';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
-                    fill = '#7dc7a0';
+                    clazz = 'canvas-accent-200';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                    fill = '#d18686';
+                    clazz = 'warn-200';
                 }
 
-                return fill;
+                return `run-status-icon ${clazz}`;
             })
             .attr('font-family', function (d: any) {
-                let family: string = 'FontAwesome';
+                let family = 'FontAwesome';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     family = 'flowfont';
                 }
@@ -408,7 +407,7 @@ export class PortManager {
             })
             .attr('y', this.offsetY(25))
             .text(function (d: any) {
-                let img: string = '';
+                let img = '';
                 if (d.status.aggregateSnapshot.runStatus === 'Disabled') {
                     img = '\ue802';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {

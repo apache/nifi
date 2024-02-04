@@ -32,7 +32,9 @@
             </mat-form-field>
         </div>
         <div class="-mt-4 mb-4">
-            <mat-checkbox formControlName="empty" (change)="setEmptyStringChanged()">Set empty string</mat-checkbox>
+            <mat-checkbox color="primary" formControlName="empty" (change)="setEmptyStringChanged()"
+                >Set empty string</mat-checkbox
+            >
         </div>
         <div class="flex flex-col mb-4">
             <label>Sensitive Value</label>
@@ -48,14 +50,14 @@
             </mat-form-field>
         </div>
     </mat-dialog-content>
-    <mat-dialog-actions align="end">
-        <button mat-raised-button mat-dialog-close color="accent">Cancel</button>
+    <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
+        <button mat-stroked-button mat-dialog-close color="primary">Cancel</button>
         <button
             mat-raised-button
-            [disabled]="!editParameterForm.dirty || editParameterForm.invalid || saving"
-            (click)="addProperty()"
+            [disabled]="editParameterForm.invalid || saving.value"
+            (click)="okClicked()"
             color="primary">
-            <span *nifiSpinner="saving">Ok</span>
+            <span *nifiSpinner="saving.value">Ok</span>
         </button>
     </mat-dialog-actions>
 </form>

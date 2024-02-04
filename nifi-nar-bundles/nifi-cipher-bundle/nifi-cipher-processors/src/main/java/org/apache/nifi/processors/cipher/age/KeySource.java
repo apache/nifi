@@ -23,7 +23,6 @@ import org.apache.nifi.components.DescribedValue;
  */
 public enum KeySource implements DescribedValue {
     PROPERTIES("Load one or more keys from configured properties"),
-
     RESOURCES("Load one or more keys from files or URLs");
 
     private final String description;

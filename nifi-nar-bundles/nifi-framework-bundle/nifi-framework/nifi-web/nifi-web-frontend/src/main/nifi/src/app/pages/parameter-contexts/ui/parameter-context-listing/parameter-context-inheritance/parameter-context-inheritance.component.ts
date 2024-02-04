@@ -59,14 +59,14 @@ import {
         CdkDrag,
         NgForOf
     ],
-    styleUrls: ['./parameter-context-inheritance.component.scss'],
     providers: [
         {
             provide: NG_VALUE_ACCESSOR,
             useExisting: forwardRef(() => ParameterContextInheritance),
             multi: true
         }
-    ]
+    ],
+    styleUrls: ['./parameter-context-inheritance.component.scss']
 })
 export class ParameterContextInheritance implements ControlValueAccessor {
     @Input() set allParameterContexts(allParameterContexts: ParameterContextEntity[]) {
@@ -76,8 +76,8 @@ export class ParameterContextInheritance implements ControlValueAccessor {
 
     protected readonly TextTip = TextTip;
 
-    isDisabled: boolean = false;
-    isTouched: boolean = false;
+    isDisabled = false;
+    isTouched = false;
     onTouched!: () => void;
     onChange!: (inheritedParameterContexts: ParameterContextReferenceEntity[]) => void;
 

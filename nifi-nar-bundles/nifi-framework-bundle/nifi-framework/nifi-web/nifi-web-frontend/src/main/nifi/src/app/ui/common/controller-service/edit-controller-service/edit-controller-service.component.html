@@ -17,6 +17,7 @@
 
 <h2 mat-dialog-title>Edit Controller Service</h2>
 <form class="controller-service-edit-form" [formGroup]="editControllerServiceForm">
+    <error-banner></error-banner>
     <mat-dialog-content>
         <mat-tab-group>
             <mat-tab label="Settings">
@@ -70,9 +71,8 @@
                         <div>Referencing Components</div>
                         <div>
                             <controller-service-references
-                                [serviceReferences]="
-                                    request.controllerService.component.referencingComponents
-                                "></controller-service-references>
+                                [serviceReferences]="request.controllerService.component.referencingComponents"
+                                [goToReferencingComponent]="goToReferencingComponent"></controller-service-references>
                         </div>
                     </div>
                 </div>
@@ -84,7 +84,10 @@
                         [createNewProperty]="createNewProperty"
                         [createNewService]="createNewService"
                         [getParameters]="getParameters"
-                        [getServiceLink]="getServiceLink"
+                        [parameterContext]="parameterContext"
+                        [goToParameter]="goToParameter"
+                        [convertToParameter]="convertToParameter"
+                        [goToService]="goToService"
                         [supportsSensitiveDynamicProperties]="
                             request.controllerService.component.supportsSensitiveDynamicProperties
                         "></property-table>
@@ -101,7 +104,7 @@
         </mat-tab-group>
     </mat-dialog-content>
     <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
+        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
         <button
             [disabled]="!editControllerServiceForm.dirty || editControllerServiceForm.invalid || saving.value"
             type="button"

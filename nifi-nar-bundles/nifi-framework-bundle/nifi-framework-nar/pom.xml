@@ -64,6 +64,10 @@
             <groupId>org.glassfish.jersey.core</groupId>
             <artifactId>jersey-server</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.containers</groupId>
+            <artifactId>jersey-container-servlet</artifactId>
+        </dependency>
         <!-- Override scope to compile since framework NAR won't get this from a parent NAR -->
         <dependency>
             <groupId>org.apache.nifi</groupId>

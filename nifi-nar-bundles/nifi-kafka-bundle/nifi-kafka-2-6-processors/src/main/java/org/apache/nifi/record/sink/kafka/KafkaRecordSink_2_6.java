@@ -33,14 +33,13 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
-import org.apache.nifi.kafka.shared.validation.KafkaClientCustomValidationFunction;
 import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
+import org.apache.nifi.kafka.shared.validation.KafkaClientCustomValidationFunction;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.record.sink.RecordSinkService;
@@ -57,9 +56,7 @@ import org.apache.nifi.stream.io.exception.TokenTooLargeException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -105,7 +102,7 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(DELIVERY_BEST_EFFORT, DELIVERY_ONE_NODE, DELIVERY_REPLICATED)
-            .defaultValue(DELIVERY_BEST_EFFORT.getValue())
+            .defaultValue(DELIVERY_BEST_EFFORT)
             .build();
 
     static final PropertyDescriptor METADATA_WAIT_TIME = new PropertyDescriptor.Builder()
@@ -159,7 +156,22 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
             .required(false)
             .build();
 
-    private List<PropertyDescriptor> properties;
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            BOOTSTRAP_SERVERS,
+            TOPIC,
+            RecordSinkService.RECORD_WRITER_FACTORY,
+            DELIVERY_GUARANTEE,
+            MESSAGE_HEADER_ENCODING,
+            SECURITY_PROTOCOL,
+            SELF_CONTAINED_KERBEROS_USER_SERVICE,
+            KERBEROS_SERVICE_NAME,
+            SSL_CONTEXT_SERVICE,
+            MAX_REQUEST_SIZE,
+            ACK_WAIT_TIME,
+            METADATA_WAIT_TIME,
+            COMPRESSION_CODEC
+    );
+
     private volatile RecordSetWriterFactory writerFactory;
     private volatile int maxMessageSize;
     private volatile long maxAckWaitMillis;
@@ -167,27 +179,8 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
     private volatile Producer<byte[], byte[]> producer;
 
     @Override
-    protected void init(final ControllerServiceInitializationContext context) {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(BOOTSTRAP_SERVERS);
-        properties.add(TOPIC);
-        properties.add(RecordSinkService.RECORD_WRITER_FACTORY);
-        properties.add(DELIVERY_GUARANTEE);
-        properties.add(MESSAGE_HEADER_ENCODING);
-        properties.add(SECURITY_PROTOCOL);
-        properties.add(SELF_CONTAINED_KERBEROS_USER_SERVICE);
-        properties.add(KERBEROS_SERVICE_NAME);
-        properties.add(SSL_CONTEXT_SERVICE);
-        properties.add(MAX_REQUEST_SIZE);
-        properties.add(ACK_WAIT_TIME);
-        properties.add(METADATA_WAIT_TIME);
-        properties.add(COMPRESSION_CODEC);
-        this.properties = Collections.unmodifiableList(properties);
-    }
-
-    @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

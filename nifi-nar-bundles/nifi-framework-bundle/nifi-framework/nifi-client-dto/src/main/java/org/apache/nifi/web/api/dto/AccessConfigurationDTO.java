@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * Details for the access configuration.
@@ -31,9 +31,8 @@ public class AccessConfigurationDTO {
     /**
      * @return Indicates whether or not this NiFi supports user login.
      */
-    @ApiModelProperty(
-            value = "Indicates whether or not this NiFi supports user login.",
-            accessMode = ApiModelProperty.AccessMode.READ_ONLY
+    @Schema(description = "Indicates whether or not this NiFi supports user login.",
+            accessMode = Schema.AccessMode.READ_ONLY
     )
     public Boolean getSupportsLogin() {
         return supportsLogin;

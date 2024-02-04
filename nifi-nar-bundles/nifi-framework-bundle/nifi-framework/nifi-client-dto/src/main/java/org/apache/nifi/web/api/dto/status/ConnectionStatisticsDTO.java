@@ -17,11 +17,11 @@
 
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -35,7 +35,7 @@ public class ConnectionStatisticsDTO implements Cloneable {
 
     private List<NodeConnectionStatisticsSnapshotDTO> nodeSnapshots;
 
-    @ApiModelProperty("The ID of the connection")
+    @Schema(description = "The ID of the connection")
     public String getId() {
         return id;
     }
@@ -44,7 +44,7 @@ public class ConnectionStatisticsDTO implements Cloneable {
         this.id = id;
     }
 
-    @ApiModelProperty("The status snapshot that represents the aggregate stats of the cluster")
+    @Schema(description = "The status snapshot that represents the aggregate stats of the cluster")
     public ConnectionStatisticsSnapshotDTO getAggregateSnapshot() {
         return aggregateSnapshot;
     }
@@ -53,7 +53,7 @@ public class ConnectionStatisticsDTO implements Cloneable {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    @ApiModelProperty("A list of status snapshots for each node")
+    @Schema(description = "A list of status snapshots for each node")
     public List<NodeConnectionStatisticsSnapshotDTO> getNodeSnapshots() {
         return nodeSnapshots;
     }
@@ -63,9 +63,8 @@ public class ConnectionStatisticsDTO implements Cloneable {
     }
 
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-            value = "The timestamp of when the stats were last refreshed",
-            dataType = "string"
+    @Schema(description = "The timestamp of when the stats were last refreshed",
+            type = "string"
     )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;

@@ -15,7 +15,6 @@
 -->
 <flowController encoding-version="1.4">
     <maxTimerDrivenThreadCount>10</maxTimerDrivenThreadCount>
-    <maxEventDrivenThreadCount>1</maxEventDrivenThreadCount>
     <registries/>
     <parameterContexts/>
     <rootGroup>

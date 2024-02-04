@@ -17,17 +17,13 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
 
-@ApiModel
 public class ComponentStatus implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Boolean running;
 
-    @ApiModelProperty
     public Boolean getRunning() {
         return running;
     }

@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.ParameterContextUpdateRequestDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "parameterContextUpdateRequestEntity")
 public class ParameterContextUpdateRequestEntity extends Entity {
     private RevisionDTO parameterContextRevision;
     private ParameterContextUpdateRequestDTO request;
 
-    @ApiModelProperty("The Revision of the Parameter Context")
+    @Schema(description = "The Revision of the Parameter Context")
     public RevisionDTO getParameterContextRevision() {
         return parameterContextRevision;
     }
@@ -36,7 +36,7 @@ public class ParameterContextUpdateRequestEntity extends Entity {
         this.parameterContextRevision = parameterContextRevision;
     }
 
-    @ApiModelProperty("The Update Request")
+    @Schema(description = "The Update Request")
     public ParameterContextUpdateRequestDTO getRequest() {
         return request;
     }

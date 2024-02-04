@@ -28,19 +28,6 @@ import com.microsoft.graph.requests.extensions.IGroupCollectionRequestBuilder;
 import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesPage;
 import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesRequest;
 import com.microsoft.graph.requests.extensions.IUserCollectionWithReferencesRequestBuilder;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 import org.apache.nifi.authorization.AuthorizerConfigurationContext;
 import org.apache.nifi.authorization.Group;
 import org.apache.nifi.authorization.User;
@@ -57,6 +44,19 @@ import org.apache.nifi.util.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The AzureGraphUserGroupProvider provides support for retrieving users and
@@ -275,7 +275,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
                 Arrays.stream(groupFilterList.split(","))
                     .map(String::trim)
                     .filter(s-> !s.isEmpty())
-                    .collect(Collectors.toList())
+                    .toList()
             );
         }
         return Collections.unmodifiableSet(groupDisplayNames);
@@ -309,14 +309,10 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
         List<com.microsoft.graph.models.extensions.Group> currentPage = filterResults.getCurrentPage();
         while (currentPage != null) {
             for (com.microsoft.graph.models.extensions.Group grp : currentPage) {
-                boolean filterEvaluation = true;
-                if (!StringUtils.isEmpty(suffix) && !grp.displayName.endsWith(suffix)) {
-                    filterEvaluation = false;
-                }
-                if (!StringUtils.isEmpty(substring) && !grp.displayName.contains(substring)) {
-                    filterEvaluation = false;
-                }
-                if (filterEvaluation) {
+                boolean suffixMatches = StringUtils.isEmpty(suffix) || grp.displayName.endsWith(suffix);
+                boolean substringMatches = StringUtils.isEmpty(substring) || grp.displayName.contains(substring);
+
+                if (suffixMatches && substringMatches) {
                     groups.add(grp.displayName);
                 }
             }
@@ -345,7 +341,7 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
         final List<com.microsoft.graph.models.extensions.Group> currentPage = results.getCurrentPage();
 
         if (currentPage != null && !currentPage.isEmpty()) {
-            final com.microsoft.graph.models.extensions.Group graphGroup = results.getCurrentPage().get(0);
+            final com.microsoft.graph.models.extensions.Group graphGroup = results.getCurrentPage().getFirst();
             final Group.Builder groupBuilder =
                 new Group.Builder()
                     .identifier(graphGroup.id)

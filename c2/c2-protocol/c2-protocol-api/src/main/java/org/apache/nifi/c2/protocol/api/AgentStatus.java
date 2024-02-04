@@ -17,8 +17,8 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.io.Serializable;
 import java.util.Map;
 
@@ -26,7 +26,6 @@ import java.util.Map;
  * Status of the aspects of the agent, including any agent components that are controllable by the C2 server, ie:
  * - Repositories that can be cleared and their current state
  */
-@ApiModel
 public class AgentStatus implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -35,7 +34,7 @@ public class AgentStatus implements Serializable {
     private Map<String, ComponentStatus> components;
     private AgentResourceConsumption resourceConsumption;
 
-    @ApiModelProperty("The number of milliseconds since the agent started.")
+    @Schema(description = "The number of milliseconds since the agent started.")
     public Long getUptime() {
         return uptime;
     }
@@ -44,7 +43,7 @@ public class AgentStatus implements Serializable {
         this.uptime = uptime;
     }
 
-    @ApiModelProperty("Status and metrics for the agent repositories")
+    @Schema(description = "Status and metrics for the agent repositories")
     public AgentRepositories getRepositories() {
         return repositories;
     }
@@ -53,7 +52,7 @@ public class AgentStatus implements Serializable {
         this.repositories = repositories;
     }
 
-    @ApiModelProperty("Status for shared agent components (that is, components that exist outside the context of a specific flow).")
+    @Schema(description = "Status for shared agent components (that is, components that exist outside the context of a specific flow).")
     public Map<String, ComponentStatus> getComponents() {
         return components;
     }
@@ -62,7 +61,7 @@ public class AgentStatus implements Serializable {
         this.components = components;
     }
 
-    @ApiModelProperty("Resource consumption details of the agent.")
+    @Schema(description = "Resource consumption details of the agent.")
     public AgentResourceConsumption getResourceConsumption() {
         return resourceConsumption;
     }

@@ -194,7 +194,7 @@ export class EditProcessGroup {
     }
 
     submitForm() {
-        let updateStrategy: string = 'DIRECT_CHILDREN';
+        let updateStrategy = 'DIRECT_CHILDREN';
         if (this.editProcessGroupForm.get('applyParameterContextRecursively')?.value) {
             updateStrategy = 'ALL_DESCENDANTS';
         }

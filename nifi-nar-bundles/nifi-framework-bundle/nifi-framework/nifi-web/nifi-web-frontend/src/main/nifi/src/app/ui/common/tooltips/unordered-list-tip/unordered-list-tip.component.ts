@@ -27,7 +27,7 @@ import { NgForOf } from '@angular/common';
     styleUrls: ['./unordered-list-tip.component.scss']
 })
 export class UnorderedListTip {
-    @Input() left: number = 0;
-    @Input() top: number = 0;
+    @Input() left = 0;
+    @Input() top = 0;
     @Input() data: UnorderedListTipInput | undefined;
 }

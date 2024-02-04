@@ -58,7 +58,7 @@ public class ITFetchAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT 
 
     @Test
     public void testFetchBlobWithCSE() throws Exception {
-        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL);
         runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
         runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY, KEY_128B_VALUE);
         uploadBlobWithCSE(BLOB_NAME, BLOB_DATA, KEY_128B_VALUE, KEY_ID_VALUE, KeyWrapAlgorithm.A128KW.toString());
@@ -205,7 +205,7 @@ public class ITFetchAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT 
     private void assertFlowFile(String blobName, byte[] blobData, Integer originalLength) throws Exception {
         runner.assertAllFlowFilesTransferred(FetchAzureBlobStorage_v12.REL_SUCCESS, 1);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchAzureBlobStorage_v12.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchAzureBlobStorage_v12.REL_SUCCESS).getFirst();
 
         assertFlowFileCommonBlobAttributes(flowFile, getContainerName(), blobName);
         if(originalLength != null) {
@@ -226,7 +226,7 @@ public class ITFetchAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT 
     private void assertFailure() throws Exception {
         runner.assertAllFlowFilesTransferred(FetchAzureBlobStorage_v12.REL_FAILURE, 1);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchAzureBlobStorage_v12.REL_FAILURE).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchAzureBlobStorage_v12.REL_FAILURE).getFirst();
         flowFile.assertContentEquals(EMPTY_CONTENT);
     }
 }

@@ -16,19 +16,17 @@
  */
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.components.state.Scope;
 
 import java.util.Set;
 
-@ApiModel
 public class Stateful {
 
     private String description;
     private Set<Scope> scopes;
 
-    @ApiModelProperty(value = "Description of what information is being stored in the StateManager")
+    @Schema(description = "Description of what information is being stored in the StateManager")
     public String getDescription() {
         return description;
     }
@@ -37,7 +35,7 @@ public class Stateful {
         this.description = description;
     }
 
-    @ApiModelProperty(value = "Indicates the Scope(s) associated with the State that is stored and retrieved")
+    @Schema(description = "Indicates the Scope(s) associated with the State that is stored and retrieved")
     public Set<Scope> getScopes() {
         return scopes;
     }

@@ -28,11 +28,8 @@ import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.OperationResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @WritesAttributes({
         @WritesAttribute(attribute = "elasticsearch.delete.took", description = "The amount of time that it took to complete the delete operation in ms."),
@@ -52,15 +49,8 @@ public class DeleteByQueryElasticsearch extends AbstractByQueryElasticsearch {
     static final String TOOK_ATTRIBUTE = "elasticsearch.delete.took";
     static final String ERROR_ATTRIBUTE = "elasticsearch.delete.error";
 
-    private static final List<PropertyDescriptor> propertyDescriptors;
-
-    static {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>(
-                byQueryPropertyDescriptors.stream().filter(pd -> !SCRIPT.equals(pd)).collect(Collectors.toList())
-        );
-
-        propertyDescriptors = Collections.unmodifiableList(descriptors);
-    }
+    private static final List<PropertyDescriptor> propertyDescriptors =
+            byQueryPropertyDescriptors.stream().filter(pd -> !SCRIPT.equals(pd)).toList();
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {

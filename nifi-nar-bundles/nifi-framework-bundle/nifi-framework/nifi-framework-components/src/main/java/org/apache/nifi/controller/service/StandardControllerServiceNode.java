@@ -136,6 +136,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         this.active = new AtomicBoolean();
         setControllerServiceAndProxy(implementation, proxiedControllerService, invocationHandler);
         stateTransition = new ServiceStateTransition(this);
+        this.comment = "";
     }
 
     @Override
@@ -858,7 +859,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             final List<ControllerServiceCreationDetails> servicesCreated = propertyConfig.getCreatedServices();
             servicesCreated.forEach(serviceFactory::create);
 
-            overwriteProperties(propertyConfig.getProperties());
+            overwriteProperties(propertyConfig.getRawProperties());
         }
     }
 

@@ -50,18 +50,19 @@ import org.apache.nifi.record.path.RecordPathResult;
 import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.record.path.validation.RecordPathValidator;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.DateTimeFormatValidator;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.SimpleDateFormatValidator;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.PushBackRecordSet;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.field.StandardFieldConverterRegistry;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StopWatch;
@@ -71,7 +72,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -82,7 +82,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "put", "index", "record"})
@@ -307,7 +306,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 + "If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy for a two-digit month, followed by "
                 + "a two-digit day, followed by a four-digit year, all separated by '/' characters, as in 01/25/2017).")
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-        .addValidator(new SimpleDateFormatValidator())
+        .addValidator(new DateTimeFormatValidator())
         .required(false)
         .build();
 
@@ -319,7 +318,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 + "If specified, the value must match the Java Simple Date Format (for example, HH:mm:ss for a two-digit hour in 24-hour format, followed by "
                 + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 18:04:15).")
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-        .addValidator(new SimpleDateFormatValidator())
+        .addValidator(new DateTimeFormatValidator())
         .required(false)
         .build();
 
@@ -332,20 +331,19 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 + "a two-digit day, followed by a four-digit year, all separated by '/' characters; and then followed by a two-digit hour in 24-hour format, followed by "
                 + "a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 01/25/2017 18:04:15).")
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-        .addValidator(new SimpleDateFormatValidator())
+        .addValidator(new DateTimeFormatValidator())
         .required(false)
         .build();
 
-    static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
+    static final List<PropertyDescriptor> DESCRIPTORS = List.of(
         INDEX_OP, INDEX, TYPE, AT_TIMESTAMP, CLIENT_SERVICE, RECORD_READER, BATCH_SIZE, ID_RECORD_PATH, RETAIN_ID_FIELD,
         INDEX_OP_RECORD_PATH, INDEX_RECORD_PATH, TYPE_RECORD_PATH, AT_TIMESTAMP_RECORD_PATH, RETAIN_AT_TIMESTAMP_FIELD,
         SCRIPT_RECORD_PATH, SCRIPTED_UPSERT_RECORD_PATH, DYNAMIC_TEMPLATES_RECORD_PATH, DATE_FORMAT, TIME_FORMAT,
         TIMESTAMP_FORMAT, LOG_ERROR_RESPONSES, OUTPUT_ERROR_RESPONSES, RESULT_RECORD_WRITER, NOT_FOUND_IS_SUCCESSFUL,
         GROUP_BULK_ERRORS_BY_TYPE
-    ));
-    static final Set<Relationship> BASE_RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-        REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS, REL_SUCCESSFUL_RECORDS
-    )));
+    );
+    static final Set<Relationship> BASE_RELATIONSHIPS =
+            Set.of(REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS, REL_SUCCESSFUL_RECORDS);
 
     private static final String OUTPUT_TYPE_SUCCESS = "success";
     private static final String OUTPUT_TYPE_ERROR = "error";
@@ -516,7 +514,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
 
         successfulRecords.getAndAdd(responseDetails.getSuccessCount());
         erroredRecords.getAndAdd(responseDetails.getErrorCount());
-        resultRecords.addAll(responseDetails.getOutputs().values().stream().map(Output::getFlowFile).collect(Collectors.toList()));
+        resultRecords.addAll(responseDetails.getOutputs().values().stream().map(Output::getFlowFile).toList());
 
         operationList.clear();
         originals.clear();
@@ -622,7 +620,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 if (format != null) {
                     final Object formattedValue = coerceStringToLong(
                             recordField.getFieldName(),
-                            DataTypeUtils.toString(value, () -> DataTypeUtils.getDateFormat(format))
+                            StandardFieldConverterRegistry.getRegistry().getFieldConverter(String.class).convertField(value, Optional.of(format), recordField.getFieldName())
                     );
                     contentMap.put(recordField.getFieldName(), formattedValue);
                 }
@@ -709,37 +707,22 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 return null;
             }
 
-            final Object returnValue;
-            switch (chosenDataType.getFieldType()) {
-                case DATE:
-                case TIME:
-                case TIMESTAMP:
+            final Object returnValue = switch (chosenDataType.getFieldType()) {
+                case DATE, TIME, TIMESTAMP -> {
                     final String format = determineDateFormat(chosenDataType.getFieldType());
-                    returnValue = coerceStringToLong(
+                    yield coerceStringToLong(
                             fieldName,
-                            DataTypeUtils.toString(coercedValue, () -> DataTypeUtils.getDateFormat(format))
+                            StandardFieldConverterRegistry.getRegistry().getFieldConverter(String.class).convertField(coercedValue, Optional.ofNullable(format), path.getPath())
                     );
-                    break;
-                case LONG:
-                    returnValue = DataTypeUtils.toLong(coercedValue, fieldName);
-                    break;
-                case INT:
-                case BYTE:
-                case SHORT:
-                    returnValue = DataTypeUtils.toInteger(coercedValue, fieldName);
-                    break;
-                case CHAR:
-                case STRING:
-                    returnValue = coerceStringToLong(fieldName, coercedValue.toString());
-                    break;
-                case BIGINT:
-                    returnValue = coercedValue;
-                    break;
-                default:
-                    throw new ProcessException(
-                            String.format("Cannot use %s field referenced by %s as @timestamp.", chosenDataType, path.getPath())
-                    );
-            }
+                }
+                case LONG -> DataTypeUtils.toLong(coercedValue, fieldName);
+                case INT, BYTE, SHORT -> DataTypeUtils.toInteger(coercedValue, fieldName);
+                case CHAR, STRING -> coerceStringToLong(fieldName, coercedValue.toString());
+                case BIGINT -> coercedValue;
+                default -> throw new ProcessException(
+                        String.format("Cannot use %s field referenced by %s as @timestamp.", chosenDataType, path.getPath())
+                );
+            };
 
             if (!retain) {
                 fieldValue.updateValue(null);
@@ -776,21 +759,12 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     }
 
     private String determineDateFormat(final RecordFieldType recordFieldType) {
-        final String format;
-        switch (recordFieldType) {
-            case DATE:
-                format = this.dateFormat;
-                break;
-            case TIME:
-                format = this.timeFormat;
-                break;
-            case TIMESTAMP:
-                format = this.timestampFormat;
-                break;
-            default:
-                format = null;
-        }
-        return format;
+        return switch (recordFieldType) {
+            case DATE -> this.dateFormat;
+            case TIME -> this.timeFormat;
+            case TIMESTAMP -> this.timestampFormat;
+            default -> null;
+        };
     }
 
     private Object coerceStringToLong(final String fieldName, final String stringValue) {

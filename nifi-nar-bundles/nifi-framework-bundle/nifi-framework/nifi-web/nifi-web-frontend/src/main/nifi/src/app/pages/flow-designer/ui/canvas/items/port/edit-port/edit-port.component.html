@@ -17,7 +17,7 @@
 
 <h2 mat-dialog-title>Edit {{ portTypeLabel }}</h2>
 <form class="edit-port-form" [formGroup]="editPortForm">
-    <banner></banner>
+    <error-banner></error-banner>
     <mat-dialog-content>
         <div>
             <mat-form-field>
@@ -33,7 +33,7 @@
         </div>
         <div *ngIf="portTypeLabel == 'Output Port'" class="mb-3.5">
             <mat-label>Failure Port</mat-label>
-            <mat-checkbox formControlName="portFunction"></mat-checkbox>
+            <mat-checkbox color="primary" formControlName="portFunction"></mat-checkbox>
         </div>
         <div>
             <mat-form-field>
@@ -43,7 +43,7 @@
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
+        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
         <button
             [disabled]="!editPortForm.dirty || editPortForm.invalid || saving.value"
             type="button"

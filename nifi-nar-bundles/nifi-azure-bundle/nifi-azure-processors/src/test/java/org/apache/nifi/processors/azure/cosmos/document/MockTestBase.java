@@ -23,8 +23,6 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.services.azure.cosmos.document.AzureCosmosDBClientService;
 import org.apache.nifi.util.TestRunner;
 
-import java.util.Random;
-
 import static org.mockito.Mockito.mock;
 
 public class MockTestBase {
@@ -55,11 +53,6 @@ public class MockTestBase {
                 testRunner.setProperty(AbstractAzureCosmosDBProcessor.CONNECTION_SERVICE, "connService");
             }
         }
-    }
-
-    private static Random random = new Random();
-    public static int getRandomInt(int min, int max){
-        return random.nextInt((max-min)+1) + min;
     }
 
     private class MockConnectionService extends AzureCosmosDBClientService {

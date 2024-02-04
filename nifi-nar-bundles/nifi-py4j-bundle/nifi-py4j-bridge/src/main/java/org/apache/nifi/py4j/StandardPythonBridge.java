@@ -38,11 +38,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -132,20 +132,21 @@ public class StandardPythonBridge implements PythonBridge {
     }
 
     @Override
-    public AsyncLoadedProcessor createProcessor(final String identifier, final String type, final String version, final boolean preferIsolatedProcess) {
+    public AsyncLoadedProcessor createProcessor(final String identifier, final String type, final String version, final boolean preferIsolatedProcess, final boolean initialize) {
         final PythonProcessorDetails processorDetails = getProcessorTypes().stream()
             .filter(details -> details.getProcessorType().equals(type))
+            .filter(details -> details.getProcessorVersion().equals(version))
             .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("Unknown Python Processor type: " + type));
+            .orElseThrow(() -> new IllegalArgumentException("Unknown Python Processor type [%s] or version [%s]".formatted(type, version)));
 
         final String implementedInterface = processorDetails.getInterface();
         final Supplier<PythonProcessorBridge> processorBridgeFactory = () -> createProcessorBridge(identifier, type, version, preferIsolatedProcess);
 
         if (FlowFileTransform.class.getName().equals(implementedInterface)) {
-            return new FlowFileTransformProxy(type, processorBridgeFactory);
+            return new FlowFileTransformProxy(type, processorBridgeFactory, initialize);
         }
         if (RecordTransform.class.getName().equals(implementedInterface)) {
-            return new RecordTransformProxy(type, processorBridgeFactory);
+            return new RecordTransformProxy(type, processorBridgeFactory, initialize);
         }
         return null;
     }
@@ -161,18 +162,29 @@ public class StandardPythonBridge implements PythonBridge {
                 return;
             }
 
-            // Find the Python Process that has the Processor, if any, and remove it.
-            // If there are no additional Processors in the Python Process, remove it from our list and shut down the process.
-            final Iterator<PythonProcess> processItr = processes.iterator(); // Use iterator so we can call remove()
-            while (processItr.hasNext()) {
-                final PythonProcess process = processItr.next();
-                final boolean removed = process.removeProcessor(identifier);
-                if (removed && process.getProcessorCount() == 0) {
-                    processItr.remove();
-                    process.shutdown();
-                    break;
+            Thread.ofVirtual().name("Remove Python Processor " + identifier).start(() -> {
+                PythonProcess toRemove = null;
+
+                try {
+                    // Find the Python Process that has the Processor, if any, and remove it.
+                    // If there are no additional Processors in the Python Process, remove it from our list and shut down the process.
+                    // Use iterator so we can call remove()
+                    for (final PythonProcess process : processes) {
+                        final boolean removed = process.removeProcessor(identifier);
+                        if (removed && process.getProcessorCount() == 0) {
+                            toRemove = process;
+                            break;
+                        }
+                    }
+
+                    if (toRemove != null) {
+                        processes.remove(toRemove);
+                        toRemove.shutdown();
+                    }
+                } catch (final Exception e) {
+                    logger.error("Failed to trigger removal of Python Processor with ID {}", identifier, e);
                 }
-            }
+            });
 
             processorCountByType.merge(extensionId, -1, Integer::sum);
         } else {
@@ -197,7 +209,7 @@ public class StandardPythonBridge implements PythonBridge {
         // isolation (which is the case when Extension Manager creates a temp component), or if an existing process
         // consists only of processors that don't prefer isolation. I.e., we don't want to collocate two Processors if
         // they both prefer isolation.
-        final List<PythonProcess> processesForType = processesByProcessorType.computeIfAbsent(extensionId, key -> new ArrayList<>());
+        final List<PythonProcess> processesForType = processesByProcessorType.computeIfAbsent(extensionId, key -> new CopyOnWriteArrayList<>());
         for (final PythonProcess pythonProcess : processesForType) {
             if (!preferIsolatedProcess || !pythonProcess.containsIsolatedProcessor()) {
                 logger.debug("Using {} to create Processor of type {}", pythonProcess, extensionId.type());

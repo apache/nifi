@@ -16,16 +16,14 @@
  */
 package org.apache.nifi.c2.protocol.component.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel
 public class SystemResourceConsideration {
 
     private String resource;
     private String description;
 
-    @ApiModelProperty(value = "The resource to consider")
+    @Schema(description = "The resource to consider")
     public String getResource() {
         return resource;
     }
@@ -34,7 +32,7 @@ public class SystemResourceConsideration {
         this.resource = resource;
     }
 
-    @ApiModelProperty(value = "The description of how the resource is affected")
+    @Schema(description = "The description of how the resource is affected")
     public String getDescription() {
         return description;
     }

@@ -17,7 +17,7 @@
 
 package org.apache.nifi.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
 
@@ -29,7 +29,7 @@ public class VersionedControllerService extends VersionedConfigurableExtension {
     private ScheduledState scheduledState;
     private String bulletinLevel;
 
-    @ApiModelProperty(value = "Lists the APIs this Controller Service implements.")
+    @Schema(description = "Lists the APIs this Controller Service implements.")
     public List<ControllerServiceAPI> getControllerServiceApis() {
         return controllerServiceApis;
     }
@@ -38,7 +38,7 @@ public class VersionedControllerService extends VersionedConfigurableExtension {
         this.controllerServiceApis = controllerServiceApis;
     }
 
-    @ApiModelProperty(value = "The annotation for the controller service. This is how the custom UI relays configuration to the controller service.")
+    @Schema(description = "The annotation for the controller service. This is how the custom UI relays configuration to the controller service.")
     public String getAnnotationData() {
         return annotationData;
     }
@@ -52,7 +52,7 @@ public class VersionedControllerService extends VersionedConfigurableExtension {
         return ComponentType.CONTROLLER_SERVICE;
     }
 
-    @ApiModelProperty("The ScheduledState denoting whether the Controller Service is ENABLED or DISABLED")
+    @Schema(description = "The ScheduledState denoting whether the Controller Service is ENABLED or DISABLED")
     public ScheduledState getScheduledState() {
         return scheduledState;
     }
@@ -61,7 +61,7 @@ public class VersionedControllerService extends VersionedConfigurableExtension {
         this.scheduledState = scheduledState;
     }
 
-    @ApiModelProperty("The level at which the controller service will report bulletins.")
+    @Schema(description = "The level at which the controller service will report bulletins.")
     public String getBulletinLevel() {
         return bulletinLevel;
     }

@@ -1,0 +1,537 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+@use 'sass:map';
+@use '@angular/material' as mat;
+
+@mixin nifi-theme($material-theme, $canvas-theme) {
+    // Get the color config from the theme.
+    $color-config: mat.get-color-config($material-theme);
+    $canvas-color-config: mat.get-color-config($canvas-theme);
+
+    // Get the color palette from the color-config.
+    $primary-palette: map.get($color-config, 'primary');
+    $warn-palette: map.get($color-config, 'warn');
+    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
+    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
+
+    // Get hues from palette
+    $primary-palette-100: mat.get-color-from-palette($primary-palette, 100);
+    $primary-palette-200: mat.get-color-from-palette($primary-palette, 200);
+    $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
+    $primary-palette-A200: mat.get-color-from-palette($primary-palette, 'A200');
+    $primary-palette-A400: mat.get-color-from-palette($primary-palette, 'A400');
+    $canvas-primary-palette-50: mat.get-color-from-palette($canvas-primary-palette, 50);
+    $canvas-primary-palette-200: mat.get-color-from-palette($canvas-primary-palette, 200);
+    $canvas-primary-palette-300: mat.get-color-from-palette($canvas-primary-palette, 300);
+    $canvas-primary-palette-400: mat.get-color-from-palette($canvas-primary-palette, 400);
+    $canvas-primary-palette-500: mat.get-color-from-palette($canvas-primary-palette, 500);
+    $canvas-primary-palette-600: mat.get-color-from-palette($canvas-primary-palette, 600);
+    $canvas-primary-palette-700: mat.get-color-from-palette($canvas-primary-palette, 700);
+    $canvas-primary-palette-800: mat.get-color-from-palette($canvas-primary-palette, 800);
+    $canvas-primary-palette-900: mat.get-color-from-palette($canvas-primary-palette, 900);
+    $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
+    $canvas-primary-palette-A400: mat.get-color-from-palette($canvas-primary-palette, 'A400');
+    $canvas-primary-palette-A700: mat.get-color-from-palette($canvas-primary-palette, 'A700');
+    $canvas-accent-palette-200: mat.get-color-from-palette($canvas-accent-palette, 200);
+    $canvas-accent-palette-300: mat.get-color-from-palette($canvas-accent-palette, 300);
+    $canvas-accent-palette-600: mat.get-color-from-palette($canvas-accent-palette, 600);
+    $canvas-accent-palette-800: mat.get-color-from-palette($canvas-accent-palette, 800);
+    $canvas-accent-palette-900: mat.get-color-from-palette($canvas-accent-palette, 900);
+    $canvas-accent-palette-A200: mat.get-color-from-palette($canvas-accent-palette, 'A200');
+    $canvas-accent-palette-A400: mat.get-color-from-palette($canvas-accent-palette, 'A400');
+    $canvas-accent-palette-A700: mat.get-color-from-palette($canvas-accent-palette, 'A700');
+    $warn-palette-200: mat.get-color-from-palette($warn-palette, 200);
+    $warn-palette-400: mat.get-color-from-palette($warn-palette, 400);
+    $warn-palette-800: mat.get-color-from-palette($warn-palette, 800);
+    $warn-palette-A200: mat.get-color-from-palette($warn-palette, 'A200');
+    $warn-palette-A400: mat.get-color-from-palette($warn-palette, 'A400');
+    $warn-palette-A700: mat.get-color-from-palette($warn-palette, 'A700');
+
+    .canvas-background {
+        background-color: $canvas-primary-palette-600;
+        background-image: linear-gradient(to right, $canvas-primary-palette-700 1px, transparent 1px),
+            linear-gradient(to bottom, $canvas-primary-palette-700 1px, transparent 1px);
+    }
+
+    /* svg styles */
+
+    svg.canvas-svg {
+        text.unset {
+            fill: $canvas-primary-palette-400;
+        }
+
+        /*
+          All components
+      */
+        .transparent {
+            fill: transparent;
+        }
+
+        .warn-200 {
+            fill: $warn-palette-200;
+        }
+
+        .warn-400 {
+            fill: $warn-palette-400;
+        }
+
+        .warn-A700 {
+            fill: $warn-palette-A700;
+        }
+
+        .warn-contrast-300 {
+            fill: $canvas-primary-palette-400;
+        }
+
+        .canvas-accent-200 {
+            fill: $canvas-accent-palette-200;
+        }
+
+        .canvas-accent-600 {
+            fill: $canvas-accent-palette-600;
+        }
+
+        .canvas-accent-A200 {
+            fill: $canvas-accent-palette-A200;
+        }
+
+        .canvas-accent-A400 {
+            fill: $canvas-accent-palette-A400;
+        }
+
+        .primary-200 {
+            fill: $primary-palette-200;
+        }
+
+        .primary-500 {
+            fill: $primary-palette-500;
+        }
+
+        .primary-contrast-200 {
+            fill: $canvas-primary-palette-200;
+        }
+
+        .primary-contrast-300 {
+            fill: $canvas-primary-palette-300;
+        }
+
+        .primary-contrast-800 {
+            fill: $canvas-primary-palette-800;
+        }
+
+        .primary-contrast-900 {
+            fill: $canvas-primary-palette-900;
+        }
+
+        .primary-contrast-A700 {
+            fill: $canvas-primary-palette-A700;
+        }
+
+        g.component rect.body {
+            fill: $canvas-primary-palette-900;
+        }
+
+        g.component rect.body.unauthorized {
+            fill: $canvas-primary-palette-700;
+        }
+
+        g.component rect.border {
+            stroke: $canvas-primary-palette-50;
+        }
+
+        g.component rect.border.unauthorized {
+            stroke: $warn-palette-400 !important;
+        }
+
+        g.component rect.border.ghost {
+            stroke: $canvas-primary-palette-400 !important;
+        }
+
+        g.component rect.processor-icon-container.unauthorized {
+            fill: $canvas-primary-palette-700 !important;
+        }
+
+        g.component.selected rect.border {
+            stroke: $primary-palette-A400 !important;
+        }
+
+        text.stats-label {
+            fill: $canvas-primary-palette-A200;
+        }
+
+        text.stats-value {
+            fill: $warn-palette-A400;
+        }
+
+        text.stats-info {
+            fill: $primary-palette-500;
+        }
+
+        text.bulletin-icon {
+            fill: $canvas-primary-palette-900;
+        }
+
+        rect.bulletin-background {
+            fill: $warn-palette-400;
+        }
+
+        text.active-thread-count-icon {
+            fill: $primary-palette-500;
+        }
+
+        text.active-thread-count {
+            fill: $warn-palette-A400;
+        }
+
+        path.component-comments {
+            fill: $canvas-primary-palette-50;
+            stroke: $canvas-primary-palette-50;
+        }
+
+        /*
+          Selection
+      */
+
+        g.component.connectable-destination rect.border {
+            stroke: $canvas-accent-palette-900;
+        }
+
+        rect.component-selection,
+        rect.drag-selection,
+        rect.label-drag {
+            stroke: $canvas-primary-palette-A400;
+            fill: transparent;
+        }
+
+        text.add-connect {
+            fill: $primary-palette-A400;
+        }
+
+        /*
+          Processor
+      */
+        #component-drop-shadow feFlood {
+            flood-color: $canvas-primary-palette-200;
+        }
+
+        #connection-full-drop-shadow feFlood {
+            flood-color: $warn-palette-400;
+        }
+
+        rect.processor-read-write-stats {
+            fill: $canvas-primary-palette-900;
+        }
+
+        rect.processor-stats-border {
+            fill: $primary-palette-200;
+        }
+
+        rect.processor-stats-in-out {
+            fill: $canvas-primary-palette-800;
+        }
+
+        text.processor-name {
+            fill: $canvas-primary-palette-A200;
+        }
+
+        text.processor-type {
+            fill: $primary-palette-500;
+        }
+
+        text.processor-bundle {
+            fill: $canvas-primary-palette-A700;
+        }
+
+        rect.processor-icon-container {
+            fill: $canvas-primary-palette-900;
+        }
+
+        circle.restricted-background,
+        circle.is-primary-background {
+            fill: $canvas-primary-palette-900;
+        }
+
+        text.restricted {
+            fill: $warn-palette-400;
+        }
+
+        /*
+          Connection
+      */
+
+        g.connection rect.body {
+            fill: $canvas-primary-palette-900;
+        }
+
+        g.connection rect.body.unauthorized {
+            fill: $canvas-primary-palette-700;
+        }
+
+        g.connection rect.border.unauthorized {
+            stroke: $warn-palette-400;
+        }
+
+        g.connection rect.border.full {
+            stroke: $warn-palette-A700;
+        }
+
+        g.connection.selected rect.border {
+            stroke: $canvas-accent-palette-A700;
+        }
+
+        path.connector {
+            stroke: $warn-palette-800;
+        }
+
+        path.connector.connectable {
+            stroke: $canvas-accent-palette-900;
+        }
+
+        g.connection path.connection-path {
+            fill: none;
+            stroke: $canvas-primary-palette-50;
+        }
+
+        g.connection path.connection-path.full {
+            stroke: $warn-palette-400;
+        }
+
+        g.connection path.connection-path.unauthorized {
+            stroke: $warn-palette-400;
+        }
+
+        text.connection-from-run-status,
+        text.connection-to-run-status,
+        text.expiration-icon,
+        text.load-balance-icon,
+        text.penalized-icon {
+            fill: $primary-palette-500;
+            text-shadow: 0 0 4px $canvas-primary-palette-900;
+        }
+
+        text.load-balance-icon-active {
+            fill: $primary-palette-A200;
+        }
+
+        text.connection-from-run-status.is-missing-port,
+        text.connection-to-run-status.is-missing-port {
+            fill: $canvas-accent-palette-A200;
+        }
+
+        g.connection rect.backpressure-tick {
+            fill: transparent;
+        }
+
+        g.connection rect.backpressure-tick.data-size-prediction.prediction-down,
+        g.connection rect.backpressure-tick.object-prediction.prediction-down {
+            fill: $canvas-primary-palette-900;
+        }
+
+        g.connection rect.backpressure-tick.data-size-prediction,
+        g.connection rect.backpressure-tick.object-prediction {
+            fill: $canvas-primary-palette-50;
+        }
+
+        g.connection rect.backpressure-tick.data-size-prediction.not-configured,
+        g.connection rect.backpressure-tick.object-prediction.not-configured,
+        g.connection rect.backpressure-tick.data-size-prediction.prediction-down.not-configured,
+        g.connection rect.backpressure-tick.object-prediction.prediction-down.not-configured {
+            fill: transparent;
+        }
+
+        g.connection rect.backpressure-tick.not-configured {
+            fill: $canvas-primary-palette-400;
+        }
+
+        g.connection rect.backpressure-object,
+        g.connection rect.backpressure-data-size {
+            fill: $canvas-primary-palette-500;
+        }
+
+        g.connection rect.backpressure-object.not-configured,
+        g.connection rect.backpressure-data-size.not-configured {
+            fill: transparent;
+        }
+
+        g.connection rect.backpressure-percent {
+            fill: $canvas-accent-palette-300;
+        }
+
+        g.connection rect.backpressure-percent.warning {
+            fill: $canvas-accent-palette-A400;
+        }
+
+        g.connection rect.backpressure-percent.error {
+            fill: $warn-palette-400;
+        }
+
+        /* ghost connection */
+
+        g.connection.ghost path.connection-path,
+        g.connection.ghost rect.connection-label {
+            stroke: $canvas-primary-palette-400;
+        }
+
+        g.connection path.connection-selection-path {
+            stroke: $canvas-accent-palette-A700;
+            fill: none;
+        }
+
+        g.connection path.connection-path-selectable {
+            fill: none;
+        }
+
+        g.connection rect.startpoint {
+            stroke: $warn-palette-800;
+            fill: $warn-palette-800;
+        }
+
+        g.connection rect.midpoint {
+            stroke: $canvas-accent-palette-A700;
+            fill: $canvas-accent-palette-A700;
+        }
+
+        g.connection rect.endpoint {
+            stroke: $canvas-accent-palette-800;
+            fill: $canvas-accent-palette-800;
+        }
+
+        /* labels */
+
+        g.label rect.labelpoint {
+            stroke: $canvas-accent-palette-A700;
+            fill: $canvas-accent-palette-A700;
+        }
+
+        /* funnels */
+
+        text.funnel-icon {
+            fill: $warn-palette-A200;
+        }
+
+        /* ports */
+
+        text.port-name {
+            fill: $canvas-primary-palette-A200;
+        }
+
+        text.port-icon {
+            fill: $warn-palette-A200;
+        }
+
+        rect.remote-banner {
+            fill: $primary-palette-100;
+        }
+
+        text.port-transmission-icon {
+            fill: $primary-palette-500;
+        }
+
+        /* process groups */
+
+        rect.process-group-stats-in-out {
+            fill: $canvas-primary-palette-900;
+        }
+
+        rect.process-group-stats-border {
+            fill: $primary-palette-200;
+        }
+
+        rect.process-group-queued-stats {
+            fill: $canvas-primary-palette-800;
+        }
+
+        rect.process-group-read-write-stats {
+            fill: $canvas-primary-palette-800;
+        }
+
+        rect.process-group-details-banner {
+            fill: $primary-palette-100;
+        }
+
+        text.process-group-name {
+            fill: $canvas-primary-palette-A200;
+        }
+
+        text.version-control {
+            text-shadow: 0 0 4px $canvas-primary-palette-900;
+        }
+
+        rect.process-group-banner {
+            fill: $primary-palette-200;
+        }
+
+        text.process-group-contents-count {
+            fill: $warn-palette-A400;
+        }
+
+        g.process-group.drop rect.border {
+            stroke: $canvas-accent-palette-800;
+        }
+
+        text.process-group-contents-icon {
+            fill: $primary-palette-500;
+        }
+
+        /* remote process group */
+
+        rect.remote-process-group-stats-border {
+            fill: $primary-palette-200;
+        }
+
+        rect.remote-process-group-sent-stats {
+            fill: $canvas-primary-palette-800;
+        }
+
+        rect.remote-process-group-received-stats {
+            fill: $canvas-primary-palette-900;
+        }
+
+        rect.remote-process-group-details-banner {
+            fill: $primary-palette-100;
+        }
+
+        rect.remote-process-group-last-refresh-rect {
+            fill: $primary-palette-100;
+        }
+
+        text.remote-process-group-name {
+            fill: $canvas-primary-palette-A200;
+        }
+
+        text.remote-process-group-uri {
+            fill: $primary-palette-A400;
+        }
+
+        rect.remote-process-group-banner {
+            fill: $primary-palette-200;
+        }
+
+        text.remote-process-group-transmission-status {
+            fill: $primary-palette-500;
+        }
+
+        text.remote-process-group-transmission-secure {
+            fill: $primary-palette-A400;
+        }
+
+        text.remote-process-group-last-refresh {
+            fill: $primary-palette-500;
+        }
+    }
+}

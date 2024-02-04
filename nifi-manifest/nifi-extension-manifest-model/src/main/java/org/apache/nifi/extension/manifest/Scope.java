@@ -16,12 +16,9 @@
  */
 package org.apache.nifi.extension.manifest;
 
-import io.swagger.annotations.ApiModel;
-
 /**
  * Possible scopes for storing state.
  */
-@ApiModel
 public enum Scope {
 
     CLUSTER,

@@ -64,10 +64,15 @@
         <property name="Access Control">Open</property>
     </cluster-provider>
 
-    <!-- Kubernetes ConfigMap implementation of State Provider -->
+    <!-- 
+        Kubernetes ConfigMap implementation of State Provider. This Provider has the following optional properties:
+        
+        ConfigMap Name Prefix - Optional prefix that the Provider will prepend to Kubernetes ConfigMap names. The resulting ConfigMap name will contain nifi-component and the component identifier.
+    -->
     <cluster-provider>
         <id>kubernetes-provider</id>
         <class>org.apache.nifi.kubernetes.state.provider.KubernetesConfigMapStateProvider</class>
+        <property name="ConfigMap Name Prefix"></property>
     </cluster-provider>
 
     <!--

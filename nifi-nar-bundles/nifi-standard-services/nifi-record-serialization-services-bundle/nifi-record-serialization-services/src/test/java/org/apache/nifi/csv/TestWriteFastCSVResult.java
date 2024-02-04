@@ -24,8 +24,8 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -76,7 +76,7 @@ public class TestWriteFastCSVResult {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        final long now = System.currentTimeMillis();
+        final OffsetDateTime now = OffsetDateTime.now();
 
         try (final WriteFastCSVResult result = new WriteFastCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
                 RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "UTF-8")) {
@@ -93,9 +93,9 @@ public class TestWriteFastCSVResult {
             valueMap.put("float", 8.0F);
             valueMap.put("double", 8.0D);
             valueMap.put("decimal", BigDecimal.valueOf(8.1D));
-            valueMap.put("date", new Date(now));
-            valueMap.put("time", new Time(now));
-            valueMap.put("timestamp", new Timestamp(now));
+            valueMap.put("date", new Date(now.toInstant().toEpochMilli()));
+            valueMap.put("time", new Time(now.toInstant().toEpochMilli()));
+            valueMap.put("timestamp", new Timestamp(now.toInstant().toEpochMilli()));
             valueMap.put("record", null);
             valueMap.put("choice", 48L);
             valueMap.put("array", null);
@@ -117,9 +117,9 @@ public class TestWriteFastCSVResult {
         assertEquals(2, splits.length);
         assertEquals(headerLine, splits[0]);
 
-        final String dateValue = getDateFormat(RecordFieldType.DATE.getDefaultFormat()).format(now);
-        final String timeValue = getDateFormat(RecordFieldType.TIME.getDefaultFormat()).format(now);
-        final String timestampValue = getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat()).format(now);
+        final String dateValue = getFormatter(RecordFieldType.DATE.getDefaultFormat()).format(now);
+        final String timeValue = getFormatter(RecordFieldType.TIME.getDefaultFormat()).format(now);
+        final String timestampValue = getFormatter(RecordFieldType.TIMESTAMP.getDefaultFormat()).format(now);
 
         final String values = splits[1];
 
@@ -369,10 +369,7 @@ public class TestWriteFastCSVResult {
     }
 
 
-    private DateFormat getDateFormat(final String format) {
-        final DateFormat df = new SimpleDateFormat(format);
-        return df;
+    private DateTimeFormatter getFormatter(final String format) {
+        return DateTimeFormatter.ofPattern(format);
     }
-
-
 }

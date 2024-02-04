@@ -19,13 +19,13 @@ package org.apache.nifi.flow;
 
 import java.util.Objects;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public class ControllerServiceAPI {
     private String type;
     private Bundle bundle;
 
-    @ApiModelProperty("The fully qualified name of the service interface.")
+    @Schema(description = "The fully qualified name of the service interface.")
     public String getType() {
         return type;
     }
@@ -34,7 +34,7 @@ public class ControllerServiceAPI {
         this.type = type;
     }
 
-    @ApiModelProperty("The details of the artifact that bundled this service interface.")
+    @Schema(description = "The details of the artifact that bundled this service interface.")
     public Bundle getBundle() {
         return bundle;
     }

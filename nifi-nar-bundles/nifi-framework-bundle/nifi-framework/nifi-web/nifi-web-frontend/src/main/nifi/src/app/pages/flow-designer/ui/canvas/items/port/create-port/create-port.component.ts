@@ -28,7 +28,7 @@ import { ComponentType, SelectOption, TextTipInput } from '../../../../../../../
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Banner } from '../../../../common/banner/banner.component';
+import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
@@ -44,7 +44,7 @@ import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/ni
         MatInputModule,
         MatSelectModule,
         MatTooltipModule,
-        Banner,
+        ErrorBanner,
         NgIf,
         NgForOf,
         MatButtonModule,
@@ -61,7 +61,7 @@ export class CreatePort {
     protected readonly TextTip = TextTip;
 
     createPortForm: FormGroup;
-    isRootProcessGroup: boolean = false;
+    isRootProcessGroup = false;
     portTypeLabel: string;
 
     allowRemoteAccessOptions: SelectOption[] = [

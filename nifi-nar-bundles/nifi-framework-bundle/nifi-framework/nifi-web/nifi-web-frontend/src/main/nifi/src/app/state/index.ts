@@ -17,19 +17,47 @@
 
 import { routerReducer, RouterReducerState } from '@ngrx/router-store';
 import { ActionReducerMap } from '@ngrx/store';
-import { UserState, userFeatureKey } from './user';
-import { userReducer } from './user/user.reducer';
+import { CurrentUserState, currentUserFeatureKey } from './current-user';
+import { currentUserReducer } from './current-user/current-user.reducer';
 import { extensionTypesFeatureKey, ExtensionTypesState } from './extension-types';
 import { extensionTypesReducer } from './extension-types/extension-types.reducer';
+import { aboutFeatureKey, AboutState } from './about';
+import { aboutReducer } from './about/about.reducer';
+import { statusHistoryFeatureKey, StatusHistoryState } from './status-history';
+import { statusHistoryReducer } from './status-history/status-history.reducer';
+import { controllerServiceStateFeatureKey, ControllerServiceState } from './contoller-service-state';
+import { controllerServiceStateReducer } from './contoller-service-state/controller-service-state.reducer';
+import { systemDiagnosticsFeatureKey, SystemDiagnosticsState } from './system-diagnostics';
+import { systemDiagnosticsReducer } from './system-diagnostics/system-diagnostics.reducer';
+import { flowConfigurationFeatureKey, FlowConfigurationState } from './flow-configuration';
+import { flowConfigurationReducer } from './flow-configuration/flow-configuration.reducer';
+import { componentStateFeatureKey, ComponentStateState } from './component-state';
+import { componentStateReducer } from './component-state/component-state.reducer';
+import { errorFeatureKey, ErrorState } from './error';
+import { errorReducer } from './error/error.reducer';
 
 export interface NiFiState {
     router: RouterReducerState;
-    [userFeatureKey]: UserState;
+    [errorFeatureKey]: ErrorState;
+    [currentUserFeatureKey]: CurrentUserState;
     [extensionTypesFeatureKey]: ExtensionTypesState;
+    [aboutFeatureKey]: AboutState;
+    [flowConfigurationFeatureKey]: FlowConfigurationState;
+    [statusHistoryFeatureKey]: StatusHistoryState;
+    [controllerServiceStateFeatureKey]: ControllerServiceState;
+    [systemDiagnosticsFeatureKey]: SystemDiagnosticsState;
+    [componentStateFeatureKey]: ComponentStateState;
 }
 
 export const rootReducers: ActionReducerMap<NiFiState> = {
     router: routerReducer,
-    [userFeatureKey]: userReducer,
-    [extensionTypesFeatureKey]: extensionTypesReducer
+    [errorFeatureKey]: errorReducer,
+    [currentUserFeatureKey]: currentUserReducer,
+    [extensionTypesFeatureKey]: extensionTypesReducer,
+    [aboutFeatureKey]: aboutReducer,
+    [flowConfigurationFeatureKey]: flowConfigurationReducer,
+    [statusHistoryFeatureKey]: statusHistoryReducer,
+    [controllerServiceStateFeatureKey]: controllerServiceStateReducer,
+    [systemDiagnosticsFeatureKey]: systemDiagnosticsReducer,
+    [componentStateFeatureKey]: componentStateReducer
 };

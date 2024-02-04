@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.cluster.protocol;
 
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.cluster.protocol.jaxb.message.NodeBulletinsAdapter;
 
 /**

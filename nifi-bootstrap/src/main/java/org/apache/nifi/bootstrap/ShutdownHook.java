@@ -67,7 +67,6 @@ public class ShutdownHook extends Thread {
             }
         }
 
-        runner.notifyStop();
         System.out.printf("NiFi PID [%d] shutdown in progress...%n", pid);
         final long startWait = System.nanoTime();
         while (RunNiFi.isAlive(nifiProcess)) {

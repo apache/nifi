@@ -17,21 +17,20 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.io.Serializable;
 
 /**
  * Resource consumption of the given agent
  */
-@ApiModel
 public class AgentResourceConsumption implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long memoryUsage;
     private Double cpuUtilization;
 
-    @ApiModelProperty("The memory footprint of the agent in bytes.")
+    @Schema(description = "The memory footprint of the agent in bytes.")
     public Long getMemoryUsage() {
         return memoryUsage;
     }
@@ -40,7 +39,7 @@ public class AgentResourceConsumption implements Serializable {
         this.memoryUsage = memoryUsage;
     }
 
-    @ApiModelProperty("The CPU utilisation of the agent [0.0 - 1.0] and -1.0 in case of errors.")
+    @Schema(description = "The CPU utilisation of the agent [0.0 - 1.0] and -1.0 in case of errors.")
     public Double getCpuUtilization() {
         return cpuUtilization;
     }

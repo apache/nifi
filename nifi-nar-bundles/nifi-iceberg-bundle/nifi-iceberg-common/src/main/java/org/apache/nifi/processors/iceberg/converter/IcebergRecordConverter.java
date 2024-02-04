@@ -191,20 +191,35 @@ public class IcebergRecordConverter {
                 return GenericDataConverters.convertSchemaTypeToDataType(schemaFieldType);
             }
             final Optional<RecordField> recordField = recordType.getChildSchema().getField(mappedFieldName.get());
-            final RecordField field = recordField.get();
+            final DataType fieldType = recordField.get().getDataType();
 
             // If the actual record contains a nested record then we need to create a RecordTypeWithFieldNameMapper wrapper object for it.
-            if (field.getDataType() instanceof RecordDataType) {
-                return new RecordTypeWithFieldNameMapper(new Schema(schema.findField(fieldId).type().asStructType().fields()), (RecordDataType) field.getDataType());
+            if (fieldType instanceof RecordDataType) {
+                return new RecordTypeWithFieldNameMapper(new Schema(schema.findField(fieldId).type().asStructType().fields()), (RecordDataType) fieldType);
+            }
+
+            // If the field is an Array, and it contains Records then add the record's iceberg schema for creating RecordTypeWithFieldNameMapper
+            if (fieldType instanceof ArrayDataType && ((ArrayDataType) fieldType).getElementType() instanceof RecordDataType) {
+                return new ArrayTypeWithIcebergSchema(
+                        new Schema(schema.findField(fieldId).type().asListType().elementType().asStructType().fields()),
+                        ((ArrayDataType) fieldType).getElementType()
+                );
+            }
+
+            // If the field is a Map, and it's value field contains Records then add the record's iceberg schema for creating RecordTypeWithFieldNameMapper
+            if (fieldType instanceof MapDataType && ((MapDataType) fieldType).getValueType() instanceof RecordDataType) {
+                return new MapTypeWithIcebergSchema(
+                        new Schema(schema.findField(fieldId).type().asMapType().valueType().asStructType().fields()),
+                        ((MapDataType) fieldType).getValueType()
+                );
             }
 
             // If the source field or target field is of type UUID, create a UUIDDataType from it
-            if (field.getDataType().getFieldType().equals(RecordFieldType.UUID)
-                    || schema.findField(fieldId).type().typeId() == Type.TypeID.UUID) {
-                return new UUIDDataType(field.getDataType(), fileFormat);
+            if (fieldType.getFieldType().equals(RecordFieldType.UUID) || schema.findField(fieldId).type().typeId() == Type.TypeID.UUID) {
+                return new UUIDDataType(fieldType, fileFormat);
             }
 
-            return field.getDataType();
+            return fieldType;
         }
 
         @Override
@@ -216,6 +231,10 @@ public class IcebergRecordConverter {
         public DataType mapValuePartner(DataType dataType) {
             Validate.isTrue(dataType instanceof MapDataType, String.format("Invalid map: %s is not a map", dataType));
             final MapDataType mapType = (MapDataType) dataType;
+            if (mapType instanceof MapTypeWithIcebergSchema) {
+                MapTypeWithIcebergSchema typeWithSchema = (MapTypeWithIcebergSchema) mapType;
+                return new RecordTypeWithFieldNameMapper(typeWithSchema.getValueSchema(), (RecordDataType) typeWithSchema.getValueType());
+            }
             return mapType.getValueType();
         }
 
@@ -223,6 +242,10 @@ public class IcebergRecordConverter {
         public DataType listElementPartner(DataType dataType) {
             Validate.isTrue(dataType instanceof ArrayDataType, String.format("Invalid array: %s is not an array", dataType));
             final ArrayDataType arrayType = (ArrayDataType) dataType;
+            if (arrayType instanceof ArrayTypeWithIcebergSchema) {
+                ArrayTypeWithIcebergSchema typeWithSchema = (ArrayTypeWithIcebergSchema) arrayType;
+                return new RecordTypeWithFieldNameMapper(typeWithSchema.getElementSchema(), (RecordDataType) typeWithSchema.getElementType());
+            }
             return arrayType.getElementType();
         }
     }
@@ -265,6 +288,40 @@ public class IcebergRecordConverter {
 
         Optional<String> getNameMapping(String name) {
             return Optional.ofNullable(fieldNameMap.get(name));
+        }
+    }
+
+    /**
+     * Data type for Arrays which contains Records. The class stores the iceberg schema for the element type.
+     */
+    private static class ArrayTypeWithIcebergSchema extends ArrayDataType {
+
+        private final Schema elementSchema;
+
+        public ArrayTypeWithIcebergSchema(Schema elementSchema, DataType elementType) {
+            super(elementType);
+            this.elementSchema = elementSchema;
+        }
+
+        public Schema getElementSchema() {
+            return elementSchema;
+        }
+    }
+
+    /**
+     * Data type for Maps which contains Records in the entries value. The class stores the iceberg schema for the value type.
+     */
+    private static class MapTypeWithIcebergSchema extends MapDataType {
+
+        private final Schema valueSchema;
+
+        public MapTypeWithIcebergSchema(Schema valueSchema, DataType valueType) {
+            super(valueType);
+            this.valueSchema = valueSchema;
+        }
+
+        public Schema getValueSchema() {
+            return valueSchema;
         }
     }
 

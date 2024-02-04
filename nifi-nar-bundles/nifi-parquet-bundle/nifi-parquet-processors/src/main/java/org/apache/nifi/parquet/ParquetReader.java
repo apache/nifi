@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.parquet;
 
+import static org.apache.nifi.parquet.utils.ParquetUtils.applyCommonConfig;
+import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -28,15 +36,6 @@ import org.apache.nifi.parquet.utils.ParquetUtils;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import static org.apache.nifi.parquet.utils.ParquetUtils.applyCommonConfig;
-import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;
-
 @Tags({"parquet", "parse", "record", "row", "reader"})
 @CapabilityDescription("Parses Parquet data and returns each Parquet record as a separate Record object. " +
         "The schema will come from the Parquet data itself.")
@@ -47,7 +46,7 @@ public class ParquetReader extends AbstractControllerService implements RecordRe
         final Configuration conf = new Configuration();
         final ParquetConfig parquetConfig = createParquetConfig(getConfigurationContext(), variables);
         applyCommonConfig(conf, parquetConfig);
-        return new ParquetRecordReader(in, inputLength, conf);
+        return new ParquetRecordReader(in, inputLength, conf, variables);
     }
 
     @Override

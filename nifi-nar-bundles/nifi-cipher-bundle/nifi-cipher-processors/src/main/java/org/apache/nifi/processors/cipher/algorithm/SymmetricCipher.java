@@ -23,19 +23,13 @@ import org.apache.nifi.components.DescribedValue;
  */
 public enum SymmetricCipher implements DescribedValue {
     AES("AES", "Advanced Encryption Standard defined in FIPS 197"),
-
     DES("DES", "Data Encryption Standard defined in FIPS 46-3 and withdrawn in 2005"),
-
     DESEDE("DESede", "Triple Data Encryption Standard also known as 3DES and deprecated in 2023"),
-
     RC2("RC2", "RSA Rivest Cipher 2 defined in RFC 2268"),
-
     RC4("RC4", "RSA Rivest Cipher 4"),
-
     TWOFISH("TWOFISH", "Twofish Block Cipher");
 
     private final String name;
-
     private final String description;
 
     SymmetricCipher(final String name, final String description) {

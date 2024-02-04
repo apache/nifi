@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -335,7 +336,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
     protected Object convertType(Object value, TSDataType type) {
         switch (type) {
             case TEXT:
-                return Binary.valueOf(String.valueOf(value));
+                return new Binary(String.valueOf(value), StandardCharsets.UTF_8);
             case INT32:
                 return Integer.parseInt(value.toString());
             case INT64:

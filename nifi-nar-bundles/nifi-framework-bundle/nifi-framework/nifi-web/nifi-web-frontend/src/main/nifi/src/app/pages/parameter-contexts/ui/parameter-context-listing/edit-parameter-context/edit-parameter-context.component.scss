@@ -18,8 +18,6 @@
 @use '@angular/material' as mat;
 
 .parameter-context-edit-form {
-    //@include mat.dialog-density(-2);
-    //@include mat.tabs-density(-2);
     @include mat.button-density(-1);
 
     .mdc-dialog__content {

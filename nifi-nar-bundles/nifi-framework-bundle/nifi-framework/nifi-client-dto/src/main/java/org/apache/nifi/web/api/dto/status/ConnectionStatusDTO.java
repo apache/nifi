@@ -17,11 +17,11 @@
 
 package org.apache.nifi.web.api.dto.status;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -42,7 +42,7 @@ public class ConnectionStatusDTO implements Cloneable {
 
     private List<NodeConnectionStatusSnapshotDTO> nodeSnapshots;
 
-    @ApiModelProperty("The ID of the connection")
+    @Schema(description = "The ID of the connection")
     public String getId() {
         return id;
     }
@@ -51,7 +51,7 @@ public class ConnectionStatusDTO implements Cloneable {
         this.id = id;
     }
 
-    @ApiModelProperty("The ID of the Process Group that the connection belongs to")
+    @Schema(description = "The ID of the Process Group that the connection belongs to")
     public String getGroupId() {
         return groupId;
     }
@@ -60,7 +60,7 @@ public class ConnectionStatusDTO implements Cloneable {
         this.groupId = groupId;
     }
 
-    @ApiModelProperty("The name of the connection")
+    @Schema(description = "The name of the connection")
     public String getName() {
         return name;
     }
@@ -69,7 +69,7 @@ public class ConnectionStatusDTO implements Cloneable {
         this.name = name;
     }
 
-    @ApiModelProperty("The ID of the source component")
+    @Schema(description = "The ID of the source component")
     public String getSourceId() {
         return sourceId;
     }
@@ -78,7 +78,7 @@ public class ConnectionStatusDTO implements Cloneable {
         this.sourceId = sourceId;
     }
 
-    @ApiModelProperty("The name of the source component")
+    @Schema(description = "The name of the source component")
     public String getSourceName() {
         return sourceName;
     }
@@ -87,7 +87,7 @@ public class ConnectionStatusDTO implements Cloneable {
         this.sourceName = sourceName;
     }
 
-    @ApiModelProperty("The ID of the destination component")
+    @Schema(description = "The ID of the destination component")
     public String getDestinationId() {
         return destinationId;
     }
@@ -96,7 +96,7 @@ public class ConnectionStatusDTO implements Cloneable {
         this.destinationId = destinationId;
     }
 
-    @ApiModelProperty("The name of the destination component")
+    @Schema(description = "The name of the destination component")
     public String getDestinationName() {
         return destinationName;
     }
@@ -105,7 +105,7 @@ public class ConnectionStatusDTO implements Cloneable {
         this.destinationName = destinationName;
     }
 
-    @ApiModelProperty("The status snapshot that represents the aggregate stats of the cluster")
+    @Schema(description = "The status snapshot that represents the aggregate stats of the cluster")
     public ConnectionStatusSnapshotDTO getAggregateSnapshot() {
         return aggregateSnapshot;
     }
@@ -114,7 +114,7 @@ public class ConnectionStatusDTO implements Cloneable {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    @ApiModelProperty("A list of status snapshots for each node")
+    @Schema(description = "A list of status snapshots for each node")
     public List<NodeConnectionStatusSnapshotDTO> getNodeSnapshots() {
         return nodeSnapshots;
     }
@@ -124,9 +124,8 @@ public class ConnectionStatusDTO implements Cloneable {
     }
 
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-            value = "The timestamp of when the stats were last refreshed",
-            dataType = "string"
+    @Schema(description = "The timestamp of when the stats were last refreshed",
+            type = "string"
     )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;

@@ -118,12 +118,12 @@
             <button color="primary" mat-raised-button mat-dialog-close>Close</button>
         </ng-container>
         <ng-template #updateInProgressActions>
-            <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
+            <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
         </ng-template>
     </mat-dialog-actions>
     <ng-template #editFormActions>
         <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-            <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
+            <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
             <button
                 [disabled]="!editParameterContextForm.dirty || editParameterContextForm.invalid || saving.value"
                 type="button"

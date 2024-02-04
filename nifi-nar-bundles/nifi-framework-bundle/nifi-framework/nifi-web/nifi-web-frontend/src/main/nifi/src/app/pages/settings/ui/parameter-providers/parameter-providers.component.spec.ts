@@ -18,6 +18,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ParameterProviders } from './parameter-providers.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialParameterProvidersState } from '../../state/parameter-providers/parameter-providers.reducer';
 
 describe('ParameterProviders', () => {
     let component: ParameterProviders;
@@ -25,7 +27,12 @@ describe('ParameterProviders', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ParameterProviders]
+            declarations: [ParameterProviders],
+            providers: [
+                provideMockStore({
+                    initialState: initialParameterProvidersState
+                })
+            ]
         });
         fixture = TestBed.createComponent(ParameterProviders);
         component = fixture.componentInstance;

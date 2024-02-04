@@ -94,9 +94,10 @@ public interface PythonBridge {
      * @param type the Processor's type
      * @param version the Processor's version
      * @param preferIsolatedProcess whether or not to prefer launching a Python Process that is isolated for just this one instance of the Processor
+     * @param initialize whether or not to initialize the processor
      * @return a PythonProcessorBridge that can be used for interacting with the Processor
      */
-    AsyncLoadedProcessor createProcessor(String identifier, String type, String version, boolean preferIsolatedProcess);
+    AsyncLoadedProcessor createProcessor(String identifier, String type, String version, boolean preferIsolatedProcess, boolean initialize);
 
     /**
      * A notification that the Processor with the given identifier, type, and version was removed from the flow. This triggers the bridge

@@ -27,7 +27,7 @@ import { NgForOf, NgIf } from '@angular/common';
     styleUrls: ['./validation-errors-tip.component.scss']
 })
 export class ValidationErrorsTip {
-    @Input() left: number = 0;
-    @Input() top: number = 0;
+    @Input() left = 0;
+    @Input() top = 0;
     @Input() data: ValidationErrorsTipInput | undefined;
 }

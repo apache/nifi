@@ -14,9 +14,7 @@
   limitations under the License.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -32,6 +30,12 @@
         <node.version>v20.5.1</node.version>
         <frontend.source>${basedir}/src/main/nifi</frontend.source>
         <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>
+        <copy-rename-maven-plugin.version>1.0</copy-rename-maven-plugin.version>
+        <!--
+            String name of the theme file to be used.
+            Ex: 'purple' // will overwrite the nifi.scss theme file with the 'purple' theme.
+        -->
+        <frontend.theme>nifi</frontend.theme>
     </properties>
 
     <build>
@@ -88,6 +92,27 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>com.coderplus.maven.plugins</groupId>
+                <artifactId>copy-rename-maven-plugin</artifactId>
+                <version>${copy-rename-maven-plugin.version}</version>
+                <executions>
+                    <!--
+                        Copy theme.
+                    -->
+                    <execution>
+                        <id>copy-theme</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <sourceFile>${frontend.working.dir}/src/assets/themes/${frontend.theme}.scss</sourceFile>
+                            <destinationFile>${frontend.working.dir}/src/assets/themes/nifi.scss</destinationFile>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
                 <version>${frontend.mvn.plugin.version}</version>
@@ -122,6 +147,22 @@
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
+
+                    <!--
+                        Run the code linter
+                    -->
+                    <execution>
+                        <id>lint</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <arguments>run lint</arguments>
+                            <workingDirectory>${frontend.working.dir}</workingDirectory>
+                        </configuration>
+                    </execution>
+
                     <!--
                         Bundle, minify, and gzip compress all the javascript.
                     -->
@@ -151,7 +192,8 @@
                         <exclude>src/main/nifi/README.md</exclude>
                         <exclude>src/main/nifi/proxy.config.mjs</exclude>
                         <exclude>src/main/nifi/.prettierrc</exclude>
-                        <exclude>src/main/nifi/src/.eslintrc</exclude>
+                        <exclude>src/main/nifi/.prettierignore</exclude>
+                        <exclude>src/main/nifi/dist/**/*</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -159,8 +201,8 @@
     </build>
     <dependencies>
         <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

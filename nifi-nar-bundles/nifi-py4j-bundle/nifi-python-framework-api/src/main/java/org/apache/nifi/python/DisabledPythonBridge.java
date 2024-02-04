@@ -64,7 +64,7 @@ public class DisabledPythonBridge implements PythonBridge {
     }
 
     @Override
-    public AsyncLoadedProcessor createProcessor(final String identifier, final String type, final String version, final boolean preferIsolatedProcess) {
+    public AsyncLoadedProcessor createProcessor(final String identifier, final String type, final String version, final boolean preferIsolatedProcess, final boolean initialize) {
         throw new UnsupportedOperationException("Cannot create Processor of type " + type + " because Python extensions are disabled");
     }
 

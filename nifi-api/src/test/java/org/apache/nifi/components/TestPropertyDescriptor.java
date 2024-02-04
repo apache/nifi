@@ -20,17 +20,16 @@ import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -40,66 +39,180 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 
-/**
- * Regression test for issue NIFI-49, to ensure that if a Processor's Property's
- * Default Value is not allowed, the Exception thrown should indicate what the
- * default value is
- */
 public class TestPropertyDescriptor {
 
-    private static Builder invalidDescriptorBuilder;
-    private static Builder validDescriptorBuilder;
     private static final String DEFAULT_VALUE = "Default Value";
     private static final String DEPENDENT_PROPERTY_NAME = "dependentProperty";
 
-    @BeforeAll
-    public static void setUp() {
-        validDescriptorBuilder = new PropertyDescriptor.Builder().name("").allowableValues("Allowable Value", "Another Allowable Value").defaultValue("Allowable Value");
-        invalidDescriptorBuilder = new PropertyDescriptor.Builder().name("").allowableValues("Allowable Value", "Another Allowable Value").defaultValue(DEFAULT_VALUE);
+    @Nested
+    class RegardingDefaultValue {
+        @Test
+        void supportsStringValues() {
+            final PropertyDescriptor descriptor = builder().defaultValue(DEFAULT_VALUE).build();
+
+            assertEquals(DEFAULT_VALUE, descriptor.getDefaultValue());
+        }
+
+        @Test
+        void supportsDescribedValuesValues() {
+            final PropertyDescriptor descriptor = builder().defaultValue(EnumDescribedValue.GREEN).build();
+
+            assertEquals(EnumDescribedValue.GREEN.getValue(), descriptor.getDefaultValue());
+        }
+
+        /**
+         * Regression test for issue NIFI-49, to ensure that if a Processor's Property's
+         * Default Value is not allowed, the Exception thrown should indicate what the default value is
+         */
+        @Test
+        void throwsIllegalStateExceptionWhenDefaultValueNotInAllowableValues() {
+            IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+                builder().allowableValues("NOT DEFAULT", "OTHER NOT DEFAULT").defaultValue(DEFAULT_VALUE).build();
+            });
+            assertTrue(exception.getMessage().contains("[" + DEFAULT_VALUE + "]"));
+        }
+
+        @Test
+        void canBeCleared() {
+            final PropertyDescriptor descriptorWithDefault = builder().defaultValue(DEFAULT_VALUE).build();
+            final PropertyDescriptor resetDescriptor = builder(descriptorWithDefault).clearDefaultValue().build();
+
+            assertNull(resetDescriptor.getDefaultValue());
+        }
     }
 
-    @Test
-    void testExceptionThrownByDescriptorWithInvalidDefaultValue() {
-        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> invalidDescriptorBuilder.build());
-        assertTrue(exception.getMessage().contains("[" + DEFAULT_VALUE + "]") );
-    }
+    @Nested
+    class RegardingAllowableValues {
 
-    @Test
-    void testNoExceptionThrownByPropertyDescriptorWithValidDefaultValue() {
-        assertNotNull(validDescriptorBuilder.build());
-    }
+        private static final Comparator<AllowableValue> allowableValueComparator = Comparator.comparing(AllowableValue::getValue);
+        private final List<AllowableValue> expectedMinimalAllowableValues =
+                List.of(new AllowableValue("GREEN"), new AllowableValue("RED"), new AllowableValue("BLUE"));
+        private final List<AllowableValue> expectedAllowableValuesWithDescription =
+                Arrays.stream(EnumDescribedValue.values()).map(AllowableValue::fromDescribedValue).toList();
 
-    @Test
-    void testAllowableValuesWithEnumClass() {
-        final PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder()
-                .name("enumAllowableValueDescriptor")
-                .allowableValues(EnumAllowableValue.class)
-                .build();
+        @Test
+        void supportsStringVarArgValues() {
+            final List<AllowableValue> expected = expectedMinimalAllowableValues;
 
-        assertNotNull(propertyDescriptor);
+            final PropertyDescriptor descriptor = builder().allowableValues("GREEN", "RED", "BLUE").build();
+            final List<AllowableValue> actual = descriptor.getAllowableValues();
 
-        final List<AllowableValue> expectedAllowableValues = Arrays.stream(EnumAllowableValue.values())
-                .map(enumValue -> new AllowableValue(enumValue.getValue(), enumValue.getDisplayName(), enumValue.getDescription()))
-                .collect(Collectors.toList());
-        assertEquals(expectedAllowableValues, propertyDescriptor.getAllowableValues());
-    }
+            assertEquals(expected, actual); // equals only compares getValue()
+            assertEquals(displayNamesOf(expected), displayNamesOf(actual));
+            assertEquals(descriptionsOf(expected), descriptionsOf(actual));
+        }
 
-    @Test
-    void testAllowableValuesWithEnumSet() {
-        final PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder()
-                .name("enumAllowableValueDescriptor")
-                .allowableValues(EnumSet.of(
-                        EnumAllowableValue.GREEN,
-                        EnumAllowableValue.BLUE
-                ))
-                .build();
+        @Test
+        void supportsStringSetValues() {
+            final List<AllowableValue> expected = sort(expectedMinimalAllowableValues);
 
-        assertNotNull(propertyDescriptor);
+            final PropertyDescriptor descriptor = builder().allowableValues(Set.of("GREEN", "RED", "BLUE")).build();
+            // the iteration order of sets is not guaranteed by all implementations, thus we unify the order here
+            final List<AllowableValue> actual = sort(descriptor.getAllowableValues());
 
-        final List<AllowableValue> expectedAllowableValues = Stream.of(EnumAllowableValue.GREEN, EnumAllowableValue.BLUE)
-                .map(enumValue -> new AllowableValue(enumValue.getValue(), enumValue.getDisplayName(), enumValue.getDescription()))
-                .collect(Collectors.toList());
-        assertEquals(expectedAllowableValues, propertyDescriptor.getAllowableValues());
+            assertEquals(expected, actual); // equals only compares getValue()
+            assertEquals(displayNamesOf(expected), displayNamesOf(actual));
+            assertEquals(descriptionsOf(expected), descriptionsOf(actual));
+        }
+
+        @Test
+        void supportsEnumArrayValues() {
+            final List<AllowableValue> expected = expectedMinimalAllowableValues;
+
+            final PropertyDescriptor descriptor = builder().allowableValues(EnumNotDescribedValue.values()).build();
+            final List<AllowableValue> actual = descriptor.getAllowableValues();
+
+            assertEquals(expected, actual); // equals only compares getValue()
+            assertEquals(displayNamesOf(expected), displayNamesOf(actual));
+            assertEquals(descriptionsOf(expected), descriptionsOf(actual));
+        }
+
+        @Test
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        void supportsDescribedValueEnumArrayValues() {
+            final List<AllowableValue> expected = expectedAllowableValuesWithDescription;
+
+            final Enum[] enumArray = EnumDescribedValue.values();
+            final PropertyDescriptor descriptor = builder().allowableValues(enumArray).build();
+            final List<AllowableValue> actual = descriptor.getAllowableValues();
+
+            assertEquals(expected, actual); // equals only compares getValue()
+            assertEquals(displayNamesOf(expected), displayNamesOf(actual));
+            assertEquals(descriptionsOf(expected), descriptionsOf(actual));
+        }
+
+        @Test
+        void supportsEnumClassValues() {
+            final List<AllowableValue> expected = expectedMinimalAllowableValues;
+
+            final PropertyDescriptor descriptor = builder().allowableValues(EnumNotDescribedValue.class).build();
+            final List<AllowableValue> actual = descriptor.getAllowableValues();
+
+            assertEquals(expected, actual); // equals only compares getValue()
+            assertEquals(displayNamesOf(expected), displayNamesOf(actual));
+            assertEquals(descriptionsOf(expected), descriptionsOf(actual));
+        }
+
+        @Test
+        void supportsDescribedValueEnumClassValues() {
+            final List<AllowableValue> expected = expectedAllowableValuesWithDescription;
+
+            final PropertyDescriptor descriptor = builder().allowableValues(EnumDescribedValue.class).build();
+            final List<AllowableValue> actual = descriptor.getAllowableValues();
+
+            assertEquals(expected, actual); // equals only compares getValue()
+            assertEquals(displayNamesOf(expected), displayNamesOf(actual));
+            assertEquals(descriptionsOf(expected), descriptionsOf(actual));
+        }
+
+        @Test
+        void supportsEnumSetValues() {
+            final List<AllowableValue> expected = expectedMinimalAllowableValues;
+
+            final PropertyDescriptor descriptor = builder().allowableValues(EnumSet.allOf(EnumNotDescribedValue.class)).build();
+            final List<AllowableValue> actual = descriptor.getAllowableValues();
+
+            assertEquals(expected, actual); // equals only compares getValue()
+            assertEquals(displayNamesOf(expected), displayNamesOf(actual));
+            assertEquals(descriptionsOf(expected), descriptionsOf(actual));
+        }
+
+        @Test
+        void supportsDescribedValueEnumSetValues() {
+            final List<AllowableValue> expected = expectedAllowableValuesWithDescription;
+
+            final PropertyDescriptor descriptor = builder().allowableValues(EnumSet.allOf(EnumDescribedValue.class)).build();
+            final List<AllowableValue> actual = descriptor.getAllowableValues();
+
+            assertEquals(expected, actual); // equals only compares getValue()
+            assertEquals(displayNamesOf(expected), displayNamesOf(actual));
+            assertEquals(descriptionsOf(expected), descriptionsOf(actual));
+        }
+
+        @Test
+        void supportsDescribedValueVarArgValues() {
+            final List<AllowableValue> expected = expectedAllowableValuesWithDescription;
+
+            final PropertyDescriptor descriptor = builder()
+                    .allowableValues(EnumDescribedValue.GREEN, EnumDescribedValue.RED, EnumDescribedValue.BLUE).build();
+            final List<AllowableValue> actual = descriptor.getAllowableValues();
+
+            assertEquals(expected, actual); // equals only compares getValue()
+            assertEquals(displayNamesOf(expected), displayNamesOf(actual));
+            assertEquals(descriptionsOf(expected), descriptionsOf(actual));
+        }
+
+        private List<AllowableValue> sort(final List<AllowableValue> allowableValues) {
+            return allowableValues.stream().sorted(allowableValueComparator).toList();
+        }
+
+        private List<String> displayNamesOf(final List<AllowableValue> allowableValues) {
+            return allowableValues.stream().map(AllowableValue::getDisplayName).toList();
+        }
+
+        private List<String> descriptionsOf(final List<AllowableValue> allowableValues) {
+            return allowableValues.stream().map(AllowableValue::getDescription).toList();
+        }
     }
 
     @Test
@@ -110,7 +223,7 @@ public class TestPropertyDescriptor {
 
         final PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder()
                 .name("enumDependsOnDescriptor")
-                .dependsOn(dependentPropertyDescriptor, EnumAllowableValue.RED)
+                .dependsOn(dependentPropertyDescriptor, EnumDescribedValue.RED)
                 .build();
 
         assertNotNull(propertyDescriptor);
@@ -122,17 +235,17 @@ public class TestPropertyDescriptor {
         final Set<String> dependentValues = dependency.getDependentValues();
         assertEquals(1, dependentValues.size());
         final String dependentValue = dependentValues.iterator().next();
-        assertEquals(EnumAllowableValue.RED.getValue(), dependentValue);
+        assertEquals(EnumDescribedValue.RED.getValue(), dependentValue);
     }
 
     @Test
     void testExternalResourceIgnoredIfELWithAttributesPresent() {
         final PropertyDescriptor descriptor = new PropertyDescriptor.Builder()
-            .name("dir")
-            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(false)
-            .build();
+                .name("dir")
+                .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                .required(false)
+                .build();
 
         final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
         Mockito.when(validationContext.isExpressionLanguagePresent(anyString())).thenReturn(true);
@@ -148,11 +261,11 @@ public class TestPropertyDescriptor {
     @Test
     void testExternalResourceConsideredIfELVarRegistryPresent() {
         final PropertyDescriptor descriptor = new PropertyDescriptor.Builder()
-            .name("dir")
-            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.DIRECTORY)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .required(false)
-            .build();
+                .name("dir")
+                .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.DIRECTORY)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+                .required(false)
+                .build();
 
         final AtomicReference<String> variable = new AtomicReference<>("__my_var__");
         final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
@@ -179,9 +292,9 @@ public class TestPropertyDescriptor {
         // Consider if Expression Language is not supported.
         Mockito.when(validationContext.isExpressionLanguageSupported(anyString())).thenReturn(false);
         final PropertyDescriptor withElNotAllowed = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(descriptor)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .build();
+                .fromPropertyDescriptor(descriptor)
+                .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+                .build();
 
         // Expression will not be evaluated, so the directory being looked at will literally be ${TestPropertyDescriptor.Var1}
         assertFalse(withElNotAllowed.validate("${TestPropertyDescriptor.Var1}", validationContext).isValid());
@@ -220,5 +333,13 @@ public class TestPropertyDescriptor {
         assertTrue(pd2.getValidators().isEmpty());
         assertTrue(pd2.getDependencies().isEmpty());
         assertNull(pd2.getAllowableValues());
+    }
+
+    private Builder builder() {
+        return new PropertyDescriptor.Builder().name("propertyName");
+    }
+
+    private Builder builder(final PropertyDescriptor propertyDescriptor) {
+        return new PropertyDescriptor.Builder().fromPropertyDescriptor(propertyDescriptor);
     }
 }

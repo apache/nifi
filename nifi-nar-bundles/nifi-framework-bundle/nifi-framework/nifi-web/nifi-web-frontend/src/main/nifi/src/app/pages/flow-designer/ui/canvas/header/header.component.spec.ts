@@ -24,22 +24,34 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { NewCanvasItem } from './new-canvas-item/new-canvas-item.component';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
-import { FlowStatus } from './flow-status/flow-status.component';
-import { RouterModule } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
 import {
     selectClusterSummary,
     selectControllerBulletins,
     selectControllerStatus
 } from '../../../state/flow/flow.selectors';
 import { ClusterSummary, ControllerStatus } from '../../../state/flow';
-import { Search } from './search/search.component';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { Component } from '@angular/core';
+import { RouterTestingModule } from '@angular/router/testing';
 
 describe('HeaderComponent', () => {
     let component: HeaderComponent;
     let fixture: ComponentFixture<HeaderComponent>;
+
+    @Component({
+        selector: 'navigation',
+        standalone: true,
+        template: ''
+    })
+    class MockNavigation {}
+
+    @Component({
+        selector: 'flow-status',
+        standalone: true,
+        template: ''
+    })
+    class MockFlowStatus {}
 
     const clusterSummary: ClusterSummary = {
         clustered: false,
@@ -72,17 +84,16 @@ describe('HeaderComponent', () => {
             imports: [
                 HeaderComponent,
                 NewCanvasItem,
-                FlowStatus,
-                Search,
                 HttpClientTestingModule,
+                MockFlowStatus,
                 MatMenuModule,
                 MatDividerModule,
-                RouterModule,
                 RouterTestingModule,
                 CdkOverlayOrigin,
                 CdkConnectedOverlay,
                 FormsModule,
-                ReactiveFormsModule
+                ReactiveFormsModule,
+                MockNavigation
             ],
             providers: [
                 provideMockStore({

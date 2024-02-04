@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.registry.authorization;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel
 public class ResourcePermissions {
 
     private Permissions buckets = new Permissions();
@@ -27,7 +25,7 @@ public class ResourcePermissions {
     private Permissions policies = new Permissions();
     private Permissions proxy = new Permissions();
 
-    @ApiModelProperty(value = "The access that the current user has to any top level resources (a logical 'OR' of all other values)", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(description = "The access that the current user has to any top level resources (a logical 'OR' of all other values)", accessMode = Schema.AccessMode.READ_ONLY)
     public Permissions getAnyTopLevelResource() {
         return new Permissions()
                 .withCanRead(buckets.getCanRead()
@@ -44,9 +42,9 @@ public class ResourcePermissions {
                         || proxy.getCanDelete());
     }
 
-    @ApiModelProperty(
-        value = "The access that the current user has to the top level /buckets resource of this NiFi Registry (i.e., access to all buckets)",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(
+        description = "The access that the current user has to the top level /buckets resource of this NiFi Registry (i.e., access to all buckets)",
+        accessMode = Schema.AccessMode.READ_ONLY)
     public Permissions getBuckets() {
         return buckets;
     }
@@ -55,9 +53,9 @@ public class ResourcePermissions {
         this.buckets = buckets;
     }
 
-    @ApiModelProperty(
-        value = "The access that the current user has to the top level /tenants resource of this NiFi Registry",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(
+        description = "The access that the current user has to the top level /tenants resource of this NiFi Registry",
+        accessMode = Schema.AccessMode.READ_ONLY)
     public Permissions getTenants() {
         return tenants;
     }
@@ -66,9 +64,9 @@ public class ResourcePermissions {
         this.tenants = tenants;
     }
 
-    @ApiModelProperty(
-        value = "The access that the current user has to the top level /policies resource of this NiFi Registry",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(
+        description = "The access that the current user has to the top level /policies resource of this NiFi Registry",
+        accessMode = Schema.AccessMode.READ_ONLY)
     public Permissions getPolicies() {
         return policies;
     }
@@ -77,9 +75,9 @@ public class ResourcePermissions {
         this.policies = policies;
     }
 
-    @ApiModelProperty(
-        value = "The access that the current user has to the top level /proxy resource of this NiFi Registry",
-        accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    @Schema(
+        description = "The access that the current user has to the top level /proxy resource of this NiFi Registry",
+        accessMode = Schema.AccessMode.READ_ONLY)
     public Permissions getProxy() {
         return proxy;
     }

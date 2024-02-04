@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { ManagementControllerServicesState } from '../../state/management-controller-services';
 import {
@@ -28,25 +28,36 @@ import {
     loadManagementControllerServices,
     navigateToEditService,
     openConfigureControllerServiceDialog,
+    openDisableControllerServiceDialog,
+    openEnableControllerServiceDialog,
     openNewControllerServiceDialog,
     promptControllerServiceDeletion,
+    resetManagementControllerServicesState,
     selectControllerService
 } from '../../state/management-controller-services/management-controller-services.actions';
 import { ControllerServiceEntity } from '../../../../state/shared';
 import { initialState } from '../../state/management-controller-services/management-controller-services.reducer';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
+import { NiFiState } from '../../../../state';
+import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
+import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
+import { CurrentUser } from '../../../../state/current-user';
+import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 
 @Component({
     selector: 'management-controller-services',
     templateUrl: './management-controller-services.component.html',
     styleUrls: ['./management-controller-services.component.scss']
 })
-export class ManagementControllerServices implements OnInit {
+export class ManagementControllerServices implements OnInit, OnDestroy {
     serviceState$ = this.store.select(selectManagementControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
+    currentUser$ = this.store.select(selectCurrentUser);
+    flowConfiguration$ = this.store.select(selectFlowConfiguration);
 
-    constructor(private store: Store<ManagementControllerServicesState>) {
+    constructor(private store: Store<NiFiState>) {
         this.store
             .select(selectSingleEditedService)
             .pipe(
@@ -74,6 +85,7 @@ export class ManagementControllerServices implements OnInit {
     }
 
     ngOnInit(): void {
+        this.store.dispatch(loadFlowConfiguration());
         this.store.dispatch(loadManagementControllerServices());
     }
 
@@ -90,11 +102,11 @@ export class ManagementControllerServices implements OnInit {
         this.store.dispatch(loadManagementControllerServices());
     }
 
-    formatScope(entity: ControllerServiceEntity): string {
+    formatScope(): string {
         return 'Controller';
     }
 
-    definedByCurrentGroup(entity: ControllerServiceEntity): boolean {
+    definedByCurrentGroup(): boolean {
         return true;
     }
 
@@ -102,6 +114,40 @@ export class ManagementControllerServices implements OnInit {
         this.store.dispatch(
             navigateToEditService({
                 id: entity.id
+            })
+        );
+    }
+
+    enableControllerService(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            openEnableControllerServiceDialog({
+                request: {
+                    id: entity.id,
+                    controllerService: entity
+                }
+            })
+        );
+    }
+
+    disableControllerService(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            openDisableControllerServiceDialog({
+                request: {
+                    id: entity.id,
+                    controllerService: entity
+                }
+            })
+        );
+    }
+
+    viewStateControllerService(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            getComponentStateAndOpenDialog({
+                request: {
+                    componentUri: entity.uri,
+                    componentName: entity.component.name,
+                    canClear: entity.component.state === 'DISABLED'
+                }
             })
         );
     }
@@ -116,6 +162,10 @@ export class ManagementControllerServices implements OnInit {
         );
     }
 
+    canModifyParent(currentUser: CurrentUser): (entity: ControllerServiceEntity) => boolean {
+        return () => currentUser.controllerPermissions.canRead && currentUser.controllerPermissions.canWrite;
+    }
+
     selectControllerService(entity: ControllerServiceEntity): void {
         this.store.dispatch(
             selectControllerService({
@@ -124,5 +174,9 @@ export class ManagementControllerServices implements OnInit {
                 }
             })
         );
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(resetManagementControllerServicesState());
     }
 }

@@ -19,13 +19,15 @@ import { createReducer, on } from '@ngrx/store';
 import {
     configureControllerService,
     configureControllerServiceSuccess,
-    controllerServicesApiError,
+    controllerServicesBannerApiError,
     createControllerService,
     createControllerServiceSuccess,
+    deleteControllerService,
     deleteControllerServiceSuccess,
     inlineCreateControllerServiceSuccess,
     loadControllerServices,
-    loadControllerServicesSuccess
+    loadControllerServicesSuccess,
+    resetControllerServicesState
 } from './controller-services.actions';
 import { produce } from 'immer';
 import { ControllerServicesState } from './index';
@@ -45,14 +47,17 @@ export const initialState: ControllerServicesState = {
             name: ''
         }
     },
+    parameterContext: null,
     saving: false,
     loadedTimestamp: '',
-    error: null,
     status: 'pending'
 };
 
 export const controllerServicesReducer = createReducer(
     initialState,
+    on(resetControllerServicesState, () => ({
+        ...initialState
+    })),
     on(loadControllerServices, (state) => ({
         ...state,
         status: 'loading' as const
@@ -62,17 +67,15 @@ export const controllerServicesReducer = createReducer(
         processGroupId: response.processGroupId,
         controllerServices: response.controllerServices,
         breadcrumb: response.breadcrumb,
+        parameterContext: response.parameterContext,
         loadedTimestamp: response.loadedTimestamp,
-        error: null,
         status: 'success' as const
     })),
-    on(controllerServicesApiError, (state, { error }) => ({
+    on(controllerServicesBannerApiError, (state) => ({
         ...state,
-        saving: false,
-        error,
-        status: 'error' as const
+        saving: false
     })),
-    on(createControllerService, (state, { request }) => ({
+    on(createControllerService, configureControllerService, deleteControllerService, (state) => ({
         ...state,
         saving: true
     })),
@@ -87,10 +90,6 @@ export const controllerServicesReducer = createReducer(
             draftState.controllerServices.push(response.controllerService);
         });
     }),
-    on(configureControllerService, (state, { request }) => ({
-        ...state,
-        saving: true
-    })),
     on(configureControllerServiceSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             const componentIndex: number = draftState.controllerServices.findIndex((f: any) => response.id === f.id);
@@ -108,6 +107,7 @@ export const controllerServicesReducer = createReducer(
             if (componentIndex > -1) {
                 draftState.controllerServices.splice(componentIndex, 1);
             }
+            draftState.saving = false;
         });
     })
 );

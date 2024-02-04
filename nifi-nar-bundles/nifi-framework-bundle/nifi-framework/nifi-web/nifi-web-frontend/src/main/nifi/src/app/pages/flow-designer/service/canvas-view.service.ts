@@ -50,7 +50,7 @@ export class CanvasView {
 
     private behavior: any;
 
-    private birdseyeTranslateInProgress: boolean = false;
+    private birdseyeTranslateInProgress = false;
 
     constructor(
         private store: Store<CanvasState>,
@@ -95,7 +95,7 @@ export class CanvasView {
 
         const self: CanvasView = this;
         let refreshed: Promise<void> | null;
-        let panning: boolean = false;
+        let panning = false;
 
         // define the behavior
         this.behavior = d3
@@ -123,7 +123,7 @@ export class CanvasView {
                     refreshBirdseye: false
                 });
             })
-            .on('end', function (event) {
+            .on('end', function () {
                 if (!self.isBirdseyeEvent()) {
                     // ensure the canvas was actually refreshed
                     if (refreshed) {
@@ -188,6 +188,11 @@ export class CanvasView {
     public updateCanvasVisibility(): void {
         const self: CanvasView = this;
         const canvasContainer: any = document.getElementById('canvas-container');
+
+        if (canvasContainer == null) {
+            return;
+        }
+
         let translate = [this.x, this.y];
         const scale = this.k;
 
@@ -239,7 +244,7 @@ export class CanvasView {
         };
 
         // marks the specific component as visible and determines if its entering or leaving visibility
-        const updateVisibility = function (selection: any, d: any, isVisible: Function) {
+        const updateVisibility = function (selection: any, d: any, isVisible: (d: any) => boolean) {
             const visible: boolean = isVisible(d);
             const wasVisible: boolean = selection.classed('visible');
 
@@ -302,11 +307,11 @@ export class CanvasView {
             let box;
             if (this.canvasUtils.isConnection(selection)) {
                 let x, y;
-                let d = selection.datum();
+                const d = selection.datum();
 
                 // get the position of the connection label
                 if (d.bends.length > 0) {
-                    let i: number = Math.min(Math.max(0, d.labelIndex), d.bends.length - 1);
+                    const i: number = Math.min(Math.max(0, d.labelIndex), d.bends.length - 1);
                     x = d.bends[i].x;
                     y = d.bends[i].y;
                 } else {

@@ -19,18 +19,19 @@ MiNiFi is a child project effort of Apache NiFi.  The MiNiFi toolkit aids in cre
 ## Table of Contents
 
 - [Requirements](#requirements)
-- [Getting Started](#getting-started)
+- [MiNiFi Toolkit Converter](#minifi-toolkit-converter)
+- [Encrypting Sensitive Properties in bootstrap.conf](#encrypt-sensitive-properties-in-bootstrapconf)
 - [Getting Help](#getting-help)
 - [Documentation](#documentation)
 - [License](#license)
 - [Export Control](#export-control)
 
 ## Requirements
-* JRE 1.8
+* JRE 21
 
-## Getting Started
+The latest version of the MiNiFi Toolkit can be found at https://nifi.apache.org/minifi/download.html under the `MiNiFi Toolkit Binaries` section.
 
-The latest version of the MiNiFi Toolkit Converter can be found at https://nifi.apache.org/minifi/download.html under the `MiNiFi Toolkit Binaries` section.
+# <a id="minifi-toolkit-converter" href="#minifi-toolkit-converter">MiNiFi Toolkit Converter</a>
 
 After downloading the binary and extracting it, to run the MiNiFi Toolkit Converter:
 - Change directory to the location where you installed MiNiFi Toolkit and run it and view usage information
@@ -59,6 +60,87 @@ After downloading the binary and extracting it, to run the MiNiFi Toolkit Conver
 
 ## Note
 It's not guaranteed in all circumstances that the migration will result in a correct flow. For example if a processor's configuration has changed between version, the conversion tool won't be aware of this, and will use the deprecated property names. You will need to fix such issues manually.
+
+# <a id="encrypt-sensitive-properties-in-bootstrapconf" href="#encrypt-sensitive-properties-in-bootstrapconf">Encrypting Sensitive Properties in bootstrap.conf</a>
+
+## MiNiFi Encrypt-Config Tool
+The encrypt-config command line tool (invoked in minifi-toolkit as ./bin/encrypt-config.sh or bin\encrypt-config.bat) reads from a bootstrap.conf file with plaintext sensitive configuration values and encrypts each value using a random encryption key. It replaces the plain values with the protected value in the same file, or writes to a new bootstrap.conf file if specified.
+
+The supported encryption algorithm utilized is AES/GCM 256-bit.
+
+### Usage
+To show help:
+
+```
+./bin/encrypt-config.sh -h
+```
+
+The following are the available options:
+* -b, --bootstrapConf <bootstrapConfPath> Path to file containing Bootstrap Configuration [bootstrap.conf]
+* -B, --outputBootstrapConf <outputBootstrapConf> Path to output file for Bootstrap Configuration [bootstrap.conf] with root key configured
+* -h, --help          Show help message and exit.
+
+### Example
+As an example of how the tool works with the following existing values in the bootstrap.conf file:
+```
+nifi.sensitive.props.key=thisIsABadSensitiveKeyPassword
+nifi.sensitive.props.algorithm=NIFI_PBKDF2_AES_GCM_256
+nifi.sensitive.props.additional.keys=
+
+nifi.security.keystore=/path/to/keystore.jks
+nifi.security.keystoreType=JKS
+nifi.security.keystorePasswd=thisIsABadKeystorePassword
+nifi.security.keyPasswd=thisIsABadKeyPassword
+nifi.security.truststore=
+nifi.security.truststoreType=
+nifi.security.truststorePasswd=
+c2.security.truststore.location=
+c2.security.truststore.password=thisIsABadTruststorePassword
+c2.security.truststore.type=JKS
+c2.security.keystore.location=
+c2.security.keystore.password=thisIsABadKeystorePassword
+c2.security.keystore.type=JKS
+```
+Enter the following arguments when using the tool:
+```
+encrypt-config.sh \
+-b bootstrap.conf \
+```
+As a result, the bootstrap.conf file is overwritten with protected properties and sibling encryption identifiers (aes/gcm/256, the currently supported algorithm):
+```
+nifi.sensitive.props.key=4OjkrFywZb7BlGz4||Tm9pg0jV4TltvVKeiMlm9zBsqmtmYUA2QkzcLKQpspyggtQuhNAkAla5s2695A==
+nifi.sensitive.props.key.protected=aes/gcm/256
+nifi.sensitive.props.algorithm=NIFI_PBKDF2_AES_GCM_256
+nifi.sensitive.props.additional.keys=
+
+nifi.security.keystore=/path/to/keystore.jks
+nifi.security.keystoreType=JKS
+nifi.security.keystorePasswd=iXDmDCadoNJ3VotZ||WvOGbrii4Gk0vr3b6mDstZg+NE0BPZUPk6LVqQlf2Sx3G5XFbUbUYAUz
+nifi.security.keystorePasswd.protected=aes/gcm/256
+nifi.security.keyPasswd=199uUUgpPqB4Fuoo||KckbW7iu+HZf1r4KSMQAFn8NLJK+CnUuayqPsTsdM0Wxou1BHg==
+nifi.security.keyPasswd.protected=aes/gcm/256
+nifi.security.truststore=
+nifi.security.truststoreType=
+nifi.security.truststorePasswd=
+c2.security.truststore.location=
+c2.security.truststore.password=0pHpp+l/WHsDM/sm||fXBvDAQ1BXvNQ8b4EHKa1GspsLx+UD+2EDhph0HbsdmgpVhEv4qj0q5TDo0=
+c2.security.truststore.password.protected=aes/gcm/256
+c2.security.truststore.type=JKS
+c2.security.keystore.location=
+c2.security.keystore.password=j+80L7++RNDf9INQ||RX/QkdVFwRos6Y4XJ8YSUWoI3W5Wx50dyw7HrAA84719SvfxA9eUSDEA
+c2.security.keystore.password.protected=aes/gcm/256
+c2.security.keystore.type=JKS
+```
+
+Additionally, the bootstrap.conf file is updated with the encryption key as follows:
+```
+minifi.bootstrap.sensitive.key=c92623e798be949379d0d18f432a57f1b74732141be321cb4af9ed94aa0ae8ac
+```
+
+Sensitive configuration values are encrypted by the tool by default, however you can encrypt any additional properties, if desired. To encrypt additional properties, specify them as comma-separated values in the minifi.sensitive.props.additional.keys property.
+
+If the bootstrap.conf file already has valid protected values, those property values are not modified by the tool.
+
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org

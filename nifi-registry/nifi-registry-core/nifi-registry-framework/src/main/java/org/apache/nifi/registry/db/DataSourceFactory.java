@@ -22,7 +22,7 @@ import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,7 +34,7 @@ import javax.sql.DataSource;
  * Overriding Spring Boot's normal automatic creation of a DataSource in order to use the properties
  * from NiFiRegistryProperties rather than the standard application.properties/yaml.
  */
-@ConditionalOnProperty("nifi.registry.db.url")
+@ConditionalOnMissingBean(DataSource.class)
 @Configuration
 public class DataSourceFactory {
 

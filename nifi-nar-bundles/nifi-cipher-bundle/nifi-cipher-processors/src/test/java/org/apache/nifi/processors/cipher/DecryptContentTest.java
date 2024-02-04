@@ -88,7 +88,7 @@ class DecryptContentTest {
 
     @Test
     void testRunInitializationVectorNotFound() {
-        runner.setProperty(DecryptContent.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.PASSWORD.getValue());
+        runner.setProperty(DecryptContent.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.PASSWORD);
         runner.setProperty(DecryptContent.KEY_SPECIFICATION, SECRET_KEY_SPECIFICATION);
 
         runner.enqueue(WORD);
@@ -100,7 +100,7 @@ class DecryptContentTest {
 
     @Test
     void testRunInputNotFound() {
-        runner.setProperty(DecryptContent.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.RAW.getValue());
+        runner.setProperty(DecryptContent.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.RAW);
         runner.setProperty(DecryptContent.KEY_SPECIFICATION, HEXADECIMAL_KEY_SPECIFICATION);
 
         final byte[] bytes = Arrays.concatenate(INITIALIZATION_VECTOR, EncodedDelimiter.IV.getDelimiter());
@@ -113,7 +113,7 @@ class DecryptContentTest {
 
     @Test
     void testRunInputInvalid() {
-        runner.setProperty(DecryptContent.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.RAW.getValue());
+        runner.setProperty(DecryptContent.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.RAW);
         runner.setProperty(DecryptContent.KEY_SPECIFICATION, HEXADECIMAL_KEY_SPECIFICATION);
 
         final byte[] bytes = Arrays.concatenate(INITIALIZATION_VECTOR, EncodedDelimiter.IV.getDelimiter(), INITIALIZATION_VECTOR);
@@ -170,10 +170,10 @@ class DecryptContentTest {
 
     @Test
     void testRunAesCtrNoPaddingRaw() throws IOException {
-        runner.setProperty(DecryptContent.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.RAW.getValue());
+        runner.setProperty(DecryptContent.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.RAW);
         runner.setProperty(DecryptContent.KEY_SPECIFICATION, HEXADECIMAL_KEY_SPECIFICATION);
-        runner.setProperty(DecryptContent.CIPHER_ALGORITHM_MODE, CipherAlgorithmMode.CTR.getValue());
-        runner.setProperty(DecryptContent.CIPHER_ALGORITHM_PADDING, CipherAlgorithmPadding.NO_PADDING.getValue());
+        runner.setProperty(DecryptContent.CIPHER_ALGORITHM_MODE, CipherAlgorithmMode.CTR);
+        runner.setProperty(DecryptContent.CIPHER_ALGORITHM_PADDING, CipherAlgorithmPadding.NO_PADDING);
 
         final byte[] encryptedBytes = getHexadecimalKeyEncryptedBytes();
         runner.enqueue(encryptedBytes);
@@ -183,15 +183,15 @@ class DecryptContentTest {
     }
 
     private void setGcmNoPaddingPassword() {
-        runner.setProperty(DecryptContent.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.PASSWORD.getValue());
+        runner.setProperty(DecryptContent.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.PASSWORD);
         runner.setProperty(DecryptContent.KEY_SPECIFICATION, SECRET_KEY_SPECIFICATION);
-        runner.setProperty(DecryptContent.CIPHER_ALGORITHM_MODE, CipherAlgorithmMode.GCM.getValue());
-        runner.setProperty(DecryptContent.CIPHER_ALGORITHM_PADDING, CipherAlgorithmPadding.NO_PADDING.getValue());
+        runner.setProperty(DecryptContent.CIPHER_ALGORITHM_MODE, CipherAlgorithmMode.GCM);
+        runner.setProperty(DecryptContent.CIPHER_ALGORITHM_PADDING, CipherAlgorithmPadding.NO_PADDING);
     }
 
     private void assertDecryptedSuccess() {
         runner.assertAllFlowFilesTransferred(DecryptContent.SUCCESS);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(DecryptContent.SUCCESS).get(0);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(DecryptContent.SUCCESS).getFirst();
         flowFile.assertContentEquals(UNENCRYPTED);
     }
 

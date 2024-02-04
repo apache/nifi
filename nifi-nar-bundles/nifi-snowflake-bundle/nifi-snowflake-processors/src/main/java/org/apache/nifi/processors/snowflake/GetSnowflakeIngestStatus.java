@@ -17,16 +17,6 @@
 
 package org.apache.nifi.processors.snowflake;
 
-import static org.apache.nifi.processors.snowflake.util.SnowflakeAttributes.ATTRIBUTE_STAGED_FILE_PATH;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import net.snowflake.ingest.SimpleIngestManager;
 import net.snowflake.ingest.connection.HistoryResponse;
 import net.snowflake.ingest.connection.HistoryResponse.FileEntry;
@@ -46,6 +36,14 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import static org.apache.nifi.processors.snowflake.util.SnowflakeAttributes.ATTRIBUTE_STAGED_FILE_PATH;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @DefaultSettings(penaltyDuration = "5 sec")
@@ -81,15 +79,9 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
             .description("For FlowFiles whose file is still not ingested. These FlowFiles should be routed back to this processor to try again later")
             .build();
 
-    static final List<PropertyDescriptor> PROPERTIES = Collections.singletonList(
-            INGEST_MANAGER_PROVIDER
-    );
+    static final List<PropertyDescriptor> PROPERTIES = List.of(INGEST_MANAGER_PROVIDER);
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            REL_SUCCESS,
-            REL_RETRY,
-            REL_FAILURE
-    )));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_RETRY, REL_FAILURE);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -135,7 +127,7 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
                         .filter(entry -> entry.getPath().equals(stagedFilePath) && entry.isComplete())
                         .findFirst());
 
-        if (!fileEntry.isPresent()) {
+        if (fileEntry.isEmpty()) {
             session.transfer(session.penalize(flowFile), REL_RETRY);
             return;
         }
@@ -147,6 +139,5 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
             return;
         }
         session.transfer(flowFile, REL_SUCCESS);
-
     }
 }

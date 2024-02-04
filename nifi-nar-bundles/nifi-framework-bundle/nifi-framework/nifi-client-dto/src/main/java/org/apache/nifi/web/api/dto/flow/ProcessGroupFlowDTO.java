@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.web.api.dto.flow;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 
 /**
@@ -42,8 +42,7 @@ public class ProcessGroupFlowDTO {
     /**
      * @return contents of this process group. This field will be populated if the request is marked verbose
      */
-    @ApiModelProperty(
-        value = "The flow structure starting at this Process Group."
+    @Schema(description = "The flow structure starting at this Process Group."
     )
     public FlowDTO getFlow() {
         return flow;
@@ -58,8 +57,7 @@ public class ProcessGroupFlowDTO {
      *
      * @return The id
      */
-    @ApiModelProperty(
-        value = "The id of the component."
+    @Schema(description = "The id of the component."
     )
     public String getId() {
         return this.id;
@@ -74,8 +72,7 @@ public class ProcessGroupFlowDTO {
      *
      * @return The breadcrumb for this ProcessGroup flow
      */
-    @ApiModelProperty(
-        value = "The breadcrumb of the process group."
+    @Schema(description = "The breadcrumb of the process group."
     )
     public FlowBreadcrumbEntity getBreadcrumb() {
         return breadcrumb;
@@ -88,8 +85,7 @@ public class ProcessGroupFlowDTO {
     /**
      * @return id for the parent group of this component if applicable, null otherwise
      */
-    @ApiModelProperty(
-        value = "The id of parent process group of this component if applicable."
+    @Schema(description = "The id of parent process group of this component if applicable."
     )
     public String getParentGroupId() {
         return parentGroupId;
@@ -104,8 +100,7 @@ public class ProcessGroupFlowDTO {
      *
      * @return The uri
      */
-    @ApiModelProperty(
-        value = "The URI for futures requests to the component."
+    @Schema(description = "The URI for futures requests to the component."
     )
     public String getUri() {
         return uri;
@@ -116,9 +111,8 @@ public class ProcessGroupFlowDTO {
     }
 
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-        value = "The time the flow for the process group was last refreshed.",
-        dataType = "string"
+    @Schema(description = "The time the flow for the process group was last refreshed.",
+        type = "string"
     )
     public Date getLastRefreshed() {
         return lastRefreshed;
@@ -128,7 +122,7 @@ public class ProcessGroupFlowDTO {
         this.lastRefreshed = lastRefreshed;
     }
 
-    @ApiModelProperty("The Parameter Context, or null if no Parameter Context has been bound to the Process Group")
+    @Schema(description = "The Parameter Context, or null if no Parameter Context has been bound to the Process Group")
     public ParameterContextReferenceEntity getParameterContext() {
         return parameterContext;
     }

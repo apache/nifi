@@ -46,7 +46,6 @@ import javax.xml.transform.stream.StreamSource;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,7 +53,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 public class WindowsEventLogRecordReader implements RecordReader {
 
@@ -67,9 +65,9 @@ public class WindowsEventLogRecordReader implements RecordReader {
     // Utility used to infer <Data> tag data types
     private final XmlSchemaInference xmlSchemaInference;
 
-    private final Supplier<DateFormat> LAZY_DATE_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIME_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
+    private final String dateFormat;
+    private final String timeFormat;
+    private final String timestampFormat;
 
     private static final String DATA_TAG = "Data";
     private static final String BINARY_TAG = "Binary";
@@ -138,13 +136,9 @@ public class WindowsEventLogRecordReader implements RecordReader {
 
         this.logger = logger;
 
-        final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
-        final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
-        final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
-
-        LAZY_DATE_FORMAT = () -> df;
-        LAZY_TIME_FORMAT = () -> tf;
-        LAZY_TIMESTAMP_FORMAT = () -> tsf;
+        this.dateFormat = dateFormat;
+        this.timeFormat = timeFormat;
+        this.timestampFormat = timestampFormat;
 
         final FilterInputStream inputStream;
         final XMLEventReaderProvider provider = new StandardXMLEventReaderProvider();
@@ -508,7 +502,7 @@ public class WindowsEventLogRecordReader implements RecordReader {
             case DATE:
             case TIME:
             case TIMESTAMP: {
-                return DataTypeUtils.convertType(data, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                return DataTypeUtils.convertType(data, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
             }
         }
         return null;
@@ -544,7 +538,9 @@ public class WindowsEventLogRecordReader implements RecordReader {
                         final String contentToReturn = content.toString();
 
                         if (!StringUtils.isBlank(contentToReturn)) {
-                            return DataTypeUtils.convertType(content.toString(), dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                            return DataTypeUtils.convertType(
+                                    content.toString(), dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName
+                            );
                         } else {
                             return null;
                         }
@@ -599,7 +595,10 @@ public class WindowsEventLogRecordReader implements RecordReader {
         Optional<RecordField> rf = schema.getField(dataFieldName);
         if (rf.isPresent()) {
             return Collections.singletonMap(dataFieldName,
-                    DataTypeUtils.convertType(content, rf.get().getDataType(), LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, dataFieldName));
+                    DataTypeUtils.convertType(
+                        content, rf.get().getDataType(), Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), dataFieldName
+                    )
+            );
         } else if (dropUnknown) {
             return Collections.emptyMap();
         } else {

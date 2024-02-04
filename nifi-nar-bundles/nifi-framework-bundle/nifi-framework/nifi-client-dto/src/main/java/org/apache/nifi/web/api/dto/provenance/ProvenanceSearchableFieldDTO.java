@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.provenance;
 
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-import javax.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * A searchable field for provenance queries.
@@ -34,8 +34,7 @@ public class ProvenanceSearchableFieldDTO {
     /**
      * @return id of this searchable field
      */
-    @ApiModelProperty(
-            value = "The id of the searchable field."
+    @Schema(description = "The id of the searchable field."
     )
     public String getId() {
         return id;
@@ -48,8 +47,7 @@ public class ProvenanceSearchableFieldDTO {
     /**
      * @return the field
      */
-    @ApiModelProperty(
-            value = "The searchable field."
+    @Schema(description = "The searchable field."
     )
     public String getField() {
         return field;
@@ -62,8 +60,7 @@ public class ProvenanceSearchableFieldDTO {
     /**
      * @return label for this field
      */
-    @ApiModelProperty(
-            value = "The label for the searchable field."
+    @Schema(description = "The label for the searchable field."
     )
     public String getLabel() {
         return label;
@@ -76,8 +73,7 @@ public class ProvenanceSearchableFieldDTO {
     /**
      * @return type of this field
      */
-    @ApiModelProperty(
-            value = "The type of the searchable field."
+    @Schema(description = "The type of the searchable field."
     )
     public String getType() {
         return type;

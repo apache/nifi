@@ -20,7 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Canvas } from './canvas.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../state/flow/flow.reducer';
-import { ContextMenu } from './context-menu/context-menu.component';
+import { ContextMenu } from '../../../../ui/common/context-menu/context-menu.component';
 import { Component } from '@angular/core';
 import { CdkContextMenuTrigger } from '@angular/cdk/menu';
 import { selectBreadcrumbs } from '../../state/flow/flow.selectors';

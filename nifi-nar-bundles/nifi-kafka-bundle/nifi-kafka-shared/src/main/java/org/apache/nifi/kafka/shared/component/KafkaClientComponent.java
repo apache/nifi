@@ -56,7 +56,7 @@ public interface KafkaClientComponent {
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(SaslMechanism.getAvailableSaslMechanisms())
-            .defaultValue(SaslMechanism.GSSAPI.getValue())
+            .defaultValue(SaslMechanism.GSSAPI)
             .build();
 
     PropertyDescriptor SASL_USERNAME = new PropertyDescriptor.Builder()
@@ -68,9 +68,9 @@ public interface KafkaClientComponent {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(
                     SASL_MECHANISM,
-                    SaslMechanism.PLAIN.getValue(),
-                    SaslMechanism.SCRAM_SHA_256.getValue(),
-                    SaslMechanism.SCRAM_SHA_512.getValue()
+                    SaslMechanism.PLAIN,
+                    SaslMechanism.SCRAM_SHA_256,
+                    SaslMechanism.SCRAM_SHA_512
             )
             .build();
 
@@ -84,9 +84,9 @@ public interface KafkaClientComponent {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dependsOn(
                     SASL_MECHANISM,
-                    SaslMechanism.PLAIN.getValue(),
-                    SaslMechanism.SCRAM_SHA_256.getValue(),
-                    SaslMechanism.SCRAM_SHA_512.getValue()
+                    SaslMechanism.PLAIN,
+                    SaslMechanism.SCRAM_SHA_256,
+                    SaslMechanism.SCRAM_SHA_512
             )
             .build();
 
@@ -99,8 +99,8 @@ public interface KafkaClientComponent {
             .defaultValue(Boolean.FALSE.toString())
             .dependsOn(
                     SASL_MECHANISM,
-                    SaslMechanism.SCRAM_SHA_256.getValue(),
-                    SaslMechanism.SCRAM_SHA_512.getValue()
+                    SaslMechanism.SCRAM_SHA_256,
+                    SaslMechanism.SCRAM_SHA_512
             )
             .build();
 

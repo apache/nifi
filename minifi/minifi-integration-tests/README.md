@@ -12,7 +12,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-# Apache NiFi MiNiFi Command and Control (C2) Server
+# Apache NiFi MiNiFi Integration Tests
 
 ## How to execute minifi-integration-tests
 

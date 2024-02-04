@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.util;
 
-import javax.xml.bind.annotation.adapters.XmlAdapter;
+import jakarta.xml.bind.annotation.adapters.XmlAdapter;
 import java.time.Instant;
 
 /**

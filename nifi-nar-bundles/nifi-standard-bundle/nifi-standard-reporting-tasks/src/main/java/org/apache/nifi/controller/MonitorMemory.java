@@ -134,7 +134,6 @@ public class MonitorMemory extends AbstractReportingTask {
             .description("Indicates how often this reporting task should report bulletins while the memory utilization exceeds the configured threshold")
             .required(false)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue(null)
             .build();
 
     public static final Pattern PERCENTAGE_PATTERN = Pattern.compile("\\d{1,2}%");

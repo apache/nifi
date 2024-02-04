@@ -18,9 +18,6 @@
 import { TestBed } from '@angular/core/testing';
 
 import { PositionBehavior } from './position-behavior.service';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/flow/flow.reducer';
-import { selectFlowState } from '../../state/flow/flow.selectors';
 
 describe('PositionBehavior', () => {
     let service: PositionBehavior;

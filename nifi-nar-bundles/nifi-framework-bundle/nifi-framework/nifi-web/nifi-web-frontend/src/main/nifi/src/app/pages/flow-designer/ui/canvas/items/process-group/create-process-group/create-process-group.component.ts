@@ -24,7 +24,7 @@ import { createProcessGroup, uploadProcessGroup } from '../../../../../state/flo
 import { SelectOption, TextTipInput } from '../../../../../../../state/shared';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
-import { Banner } from '../../../../common/banner/banner.component';
+import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -42,7 +42,7 @@ import { NiFiCommon } from '../../../../../../../service/nifi-common.service';
     standalone: true,
     imports: [
         AsyncPipe,
-        Banner,
+        ErrorBanner,
         MatButtonModule,
         MatDialogModule,
         MatFormFieldModule,
@@ -114,6 +114,7 @@ export class CreateProcessGroup {
             this.createProcessGroupForm
                 .get('newProcessGroupName')
                 ?.setValue(this.nifiCommon.substringBeforeLast(file.name, '.'));
+            this.createProcessGroupForm.get('newProcessGroupName')?.markAsDirty();
             this.createProcessGroupForm.get('newProcessGroupParameterContext')?.setValue(null);
             this.flowNameAttached = file.name;
             this.flowDefinition = file;

@@ -24,11 +24,14 @@ import { ReportingTasks } from '../ui/reporting-tasks/reporting-tasks.component'
 import { FlowAnalysisRules } from '../ui/flow-analysis-rules/flow-analysis-rules.component';
 import { RegistryClients } from '../ui/registry-clients/registry-clients.component';
 import { ParameterProviders } from '../ui/parameter-providers/parameter-providers.component';
+import { authorizationGuard } from '../../../service/guard/authorization.guard';
+import { CurrentUser } from '../../../state/current-user';
 
 const routes: Routes = [
     {
         path: '',
         component: Settings,
+        canMatch: [authorizationGuard((user: CurrentUser) => user.controllerPermissions.canRead)],
         children: [
             { path: '', pathMatch: 'full', redirectTo: 'general' },
             { path: 'general', component: General },
@@ -54,13 +57,68 @@ const routes: Routes = [
                 children: [
                     {
                         path: ':id',
-                        component: ReportingTasks
+                        component: ReportingTasks,
+                        children: [
+                            {
+                                path: 'edit',
+                                component: ReportingTasks
+                            }
+                        ]
                     }
                 ]
             },
-            { path: 'flow-analysis-rules', component: FlowAnalysisRules },
-            { path: 'registry-clients', component: RegistryClients },
-            { path: 'parameter-providers', component: ParameterProviders }
+            {
+                path: 'flow-analysis-rules',
+                component: FlowAnalysisRules,
+                children: [
+                    {
+                        path: ':id',
+                        component: FlowAnalysisRules,
+                        children: [
+                            {
+                                path: 'edit',
+                                component: FlowAnalysisRules
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                path: 'registry-clients',
+                component: RegistryClients,
+                children: [
+                    {
+                        path: ':id',
+                        component: RegistryClients,
+                        children: [
+                            {
+                                path: 'edit',
+                                component: RegistryClients
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                path: 'parameter-providers',
+                component: ParameterProviders,
+                children: [
+                    {
+                        path: ':id',
+                        component: ParameterProviders,
+                        children: [
+                            {
+                                path: 'edit',
+                                component: ParameterProviders
+                            },
+                            {
+                                path: 'fetch',
+                                component: ParameterProviders
+                            }
+                        ]
+                    }
+                ]
+            }
         ]
     }
 ];
