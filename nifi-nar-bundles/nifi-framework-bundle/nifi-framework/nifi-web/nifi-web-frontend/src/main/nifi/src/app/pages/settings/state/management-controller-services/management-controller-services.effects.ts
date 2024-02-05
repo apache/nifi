@@ -69,17 +69,9 @@ export class ManagementControllerServicesEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) => {
-                        if (status === 'success') {
-                            if (this.errorHelper.showErrorInContext(errorResponse.status)) {
-                                return of(ErrorActions.snackBarError({ error: errorResponse.error }));
-                            } else {
-                                return of(this.errorHelper.fullScreenError(errorResponse));
-                            }
-                        } else {
-                            return of(this.errorHelper.fullScreenError(errorResponse));
-                        }
-                    })
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.errorHelper.handleLoadingError(status, errorResponse))
+                    )
                 )
             )
         )

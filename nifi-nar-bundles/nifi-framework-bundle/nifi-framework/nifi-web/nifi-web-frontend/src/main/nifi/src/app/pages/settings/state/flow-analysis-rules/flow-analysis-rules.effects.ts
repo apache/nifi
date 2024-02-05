@@ -65,17 +65,9 @@ export class FlowAnalysisRulesEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) => {
-                        if (status === 'success') {
-                            if (this.errorHelper.showErrorInContext(errorResponse.status)) {
-                                return of(ErrorActions.snackBarError({ error: errorResponse.error }));
-                            } else {
-                                return of(this.errorHelper.fullScreenError(errorResponse));
-                            }
-                        } else {
-                            return of(this.errorHelper.fullScreenError(errorResponse));
-                        }
-                    })
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.errorHelper.handleLoadingError(status, errorResponse))
+                    )
                 )
             )
         )
@@ -293,6 +285,8 @@ export class FlowAnalysisRulesEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe((response) => {
+                        this.store.dispatch(ErrorActions.clearBannerErrors());
+
                         if (response != 'ROUTED') {
                             this.store.dispatch(
                                 FlowAnalysisRuleActions.selectFlowAnalysisRule({

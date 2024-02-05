@@ -63,17 +63,9 @@ export class RegistryClientsEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) => {
-                        if (status === 'success') {
-                            if (this.errorHelper.showErrorInContext(errorResponse.status)) {
-                                return of(ErrorActions.snackBarError({ error: errorResponse.error }));
-                            } else {
-                                return of(this.errorHelper.fullScreenError(errorResponse));
-                            }
-                        } else {
-                            return of(this.errorHelper.fullScreenError(errorResponse));
-                        }
-                    })
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.errorHelper.handleLoadingError(status, errorResponse))
+                    )
                 )
             )
         )
@@ -151,7 +143,7 @@ export class RegistryClientsEffects {
         )
     );
 
-    flowAnalysisRuleBannerApiError$ = createEffect(() =>
+    registryClientsBannerApiError$ = createEffect(() =>
         this.actions$.pipe(
             ofType(RegistryClientsActions.registryClientsBannerApiError),
             map((action) => action.error),
@@ -159,7 +151,7 @@ export class RegistryClientsEffects {
         )
     );
 
-    flowAnalysisRuleSnackbarApiError$ = createEffect(() =>
+    registryClientsSnackbarApiError$ = createEffect(() =>
         this.actions$.pipe(
             ofType(RegistryClientsActions.registryClientsSnackbarApiError),
             map((action) => action.error),
@@ -242,6 +234,8 @@ export class RegistryClientsEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe((response) => {
+                        this.store.dispatch(ErrorActions.clearBannerErrors());
+
                         if (response != 'ROUTED') {
                             this.store.dispatch(
                                 RegistryClientsActions.selectClient({

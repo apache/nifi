@@ -24,7 +24,6 @@ import { asyncScheduler, catchError, from, interval, map, of, switchMap, takeUnt
 import { BulletinBoardService } from '../../service/bulletin-board.service';
 import { selectBulletinBoardFilter, selectLastBulletinId, selectStatus } from './bulletin-board.selectors';
 import { LoadBulletinBoardRequest } from './index';
-import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -53,17 +52,9 @@ export class BulletinBoardEffects {
                                 }
                             })
                         ),
-                        catchError((errorResponse: HttpErrorResponse) => {
-                            if (status === 'success') {
-                                if (this.errorHelper.showErrorInContext(errorResponse.status)) {
-                                    return of(ErrorActions.snackBarError({ error: errorResponse.error }));
-                                } else {
-                                    return of(this.errorHelper.fullScreenError(errorResponse));
-                                }
-                            } else {
-                                return of(this.errorHelper.fullScreenError(errorResponse));
-                            }
-                        })
+                        catchError((errorResponse: HttpErrorResponse) =>
+                            of(this.errorHelper.handleLoadingError(status, errorResponse))
+                        )
                     )
                 )
             )
