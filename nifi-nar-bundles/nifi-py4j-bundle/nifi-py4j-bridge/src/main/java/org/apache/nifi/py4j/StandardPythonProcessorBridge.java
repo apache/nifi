@@ -34,7 +34,6 @@ import static org.apache.nifi.components.AsyncLoadedProcessor.LoadState;
 public class StandardPythonProcessorBridge implements PythonProcessorBridge {
     private static final Logger logger = LoggerFactory.getLogger(StandardPythonProcessorBridge.class);
 
-    private final PythonController controller;
     private final ProcessorCreationWorkflow creationWorkflow;
     private final PythonProcessorDetails processorDetails;
     private volatile PythonProcessorAdapter adapter;
@@ -43,6 +42,7 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
     private volatile long lastModified;
     private volatile LoadState loadState = LoadState.DOWNLOADING_DEPENDENCIES;
     private volatile PythonProcessorInitializationContext initializationContext;
+    private volatile PythonController controller;
 
 
     private StandardPythonProcessorBridge(final Builder builder) {
@@ -67,6 +67,15 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
         Thread.ofVirtual().name(threadName).start(() -> initializePythonSide(true));
     }
 
+    @Override
+    public void replaceController(final PythonController controller) {
+        this.controller = controller;
+        this.adapter = null;
+
+        final String threadName = "Re-Initialize Python Processor %s (%s)".formatted(initializationContext.getIdentifier(), getProcessorType());
+        Thread.ofVirtual().name(threadName).start(() -> initializePythonSide(true));
+    }
+
     public LoadState getLoadState() {
         return loadState;
     }
@@ -87,7 +96,7 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
                 }
 
                 sleepMillis = Math.min(sleepMillis * 2, TimeUnit.MINUTES.toMillis(10));
-                logger.error("Failed to download dependencies for Python Processor {} ({}). Will try again in {} millis", initializationContext.getIdentifier(), getProcessorType(), sleepMillis);
+                logger.error("Failed to download dependencies for Python Processor {} ({}). Will try again in {} millis", initializationContext.getIdentifier(), getProcessorType(), sleepMillis, e);
 
                 try {
                     Thread.sleep(sleepMillis);

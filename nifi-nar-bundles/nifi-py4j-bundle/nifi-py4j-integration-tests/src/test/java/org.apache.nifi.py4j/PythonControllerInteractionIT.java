@@ -23,16 +23,12 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
-import org.apache.nifi.mock.MockProcessorInitializationContext;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.python.ControllerServiceTypeLookup;
 import org.apache.nifi.python.PythonBridge;
 import org.apache.nifi.python.PythonBridgeInitializationContext;
 import org.apache.nifi.python.PythonProcessConfig;
 import org.apache.nifi.python.PythonProcessorDetails;
-import org.apache.nifi.python.processor.FlowFileTransformProxy;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
@@ -46,6 +42,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.DisabledOnOs;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -55,7 +53,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -67,6 +64,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PythonControllerInteractionIT {
@@ -170,8 +168,7 @@ public class PythonControllerInteractionIT {
         // Create a PrettyPrintJson Processor
         final byte[] jsonContent = Files.readAllBytes(Paths.get("src/test/resources/json/input/simple-person.json"));
         for (int i=0; i < 3; i++) {
-            final FlowFileTransformProxy wrapper = createFlowFileTransform(PRETTY_PRINT_JSON);
-            final TestRunner runner = TestRunners.newTestRunner(wrapper);
+            final TestRunner runner = createFlowFileTransform(PRETTY_PRINT_JSON);
 
             runner.enqueue(jsonContent);
             runner.run();
@@ -184,8 +181,7 @@ public class PythonControllerInteractionIT {
     @Disabled("Just for manual testing...")
     public void runPrettyPrintJsonManyThreads() throws IOException {
         // Create a PrettyPrintJson Processor
-        final FlowFileTransformProxy wrapper = createFlowFileTransform(PRETTY_PRINT_JSON);
-        final TestRunner runner = TestRunners.newTestRunner(wrapper);
+        final TestRunner runner = createFlowFileTransform(PRETTY_PRINT_JSON);
 
         final int flowFileCount = 100_000;
         final int threadCount = 12;
@@ -204,8 +200,7 @@ public class PythonControllerInteractionIT {
     @Test
     public void testSimplePrettyPrint() throws IOException {
         // Setup
-        final FlowFileTransformProxy wrapper = createFlowFileTransform(PRETTY_PRINT_JSON);
-        final TestRunner runner = TestRunners.newTestRunner(wrapper);
+        final TestRunner runner = createFlowFileTransform(PRETTY_PRINT_JSON);
         runner.enqueue(Paths.get("src/test/resources/json/input/simple-person.json"));
         runner.setProperty("Indentation", "2");
 
@@ -223,8 +218,7 @@ public class PythonControllerInteractionIT {
 
     @Test
     public void testValidator() {
-        final FlowFileTransformProxy wrapper = createFlowFileTransform(PRETTY_PRINT_JSON);
-        final TestRunner runner = TestRunners.newTestRunner(wrapper);
+        final TestRunner runner = createFlowFileTransform(PRETTY_PRINT_JSON);
 
         runner.setProperty("Indentation", "-1");
         runner.assertNotValid();
@@ -245,8 +239,7 @@ public class PythonControllerInteractionIT {
     @Test
     public void testCsvToExcel() {
         // Create a PrettyPrintJson Processor
-        final FlowFileTransformProxy wrapper = createFlowFileTransform("ConvertCsvToExcel");
-        final TestRunner runner = TestRunners.newTestRunner(wrapper);
+        final TestRunner runner = createFlowFileTransform("ConvertCsvToExcel");
         runner.enqueue("name, number\nJohn Doe, 500");
 
         // Trigger the processor
@@ -259,8 +252,7 @@ public class PythonControllerInteractionIT {
     @Test
     public void testExpressionLanguageWithAttributes() {
         // Setup
-        final FlowFileTransformProxy wrapper = createFlowFileTransform("WritePropertyToFlowFile");
-        final TestRunner runner = TestRunners.newTestRunner(wrapper);
+        final TestRunner runner = createFlowFileTransform("WritePropertyToFlowFile");
         runner.setProperty("Message", "Hola Mundo");
         runner.enqueue("Hello World");
 
@@ -274,8 +266,7 @@ public class PythonControllerInteractionIT {
     @Test
     public void testPythonPackage() {
         // Create a WriteNumber Processor
-        final FlowFileTransformProxy wrapper = createFlowFileTransform("WriteNumber");
-        final TestRunner runner = TestRunners.newTestRunner(wrapper);
+        final TestRunner runner = createFlowFileTransform("WriteNumber");
         runner.enqueue("");
 
         // Trigger the processor
@@ -289,12 +280,8 @@ public class PythonControllerInteractionIT {
         assertTrue(resultNum <= 1000);
     }
 
-    private FlowFileTransformProxy createFlowFileTransform(final String type) {
-        final Processor processor = createProcessor(type);
-        assertNotNull(processor);
-
-        processor.initialize(new MockProcessorInitializationContext());
-        return (FlowFileTransformProxy) processor;
+    private TestRunner createFlowFileTransform(final String type) {
+        return createProcessor(type);
     }
 
     @Test
@@ -312,8 +299,7 @@ public class PythonControllerInteractionIT {
         assertEquals("numpy==1.25.0", dependencies.get(0));
 
         // Setup
-        final FlowFileTransformProxy wrapper = createFlowFileTransform("WriteNumpyVersion");
-        final TestRunner runner = TestRunners.newTestRunner(wrapper);
+        final TestRunner runner = createFlowFileTransform("WriteNumpyVersion");
         runner.enqueue("Hello World");
 
         // Trigger the processor
@@ -328,8 +314,7 @@ public class PythonControllerInteractionIT {
     public void testControllerService() throws InitializationException {
         // Setup
         controllerServiceMap.put("StringLookupService", TestLookupService.class);
-        final FlowFileTransformProxy wrapper = createFlowFileTransform("LookupAddress");
-        final TestRunner runner = TestRunners.newTestRunner(wrapper);
+        final TestRunner runner = createFlowFileTransform("LookupAddress");
         final StringLookupService lookupService = new TestLookupService((Collections.singletonMap("John Doe", "123 My Street")));
         runner.addControllerService("lookup", lookupService);
         runner.enableControllerService(lookupService);
@@ -356,8 +341,7 @@ public class PythonControllerInteractionIT {
         replaceFileText(sourceFile, replacement, originalMessage);
 
         // Setup
-        final FlowFileTransformProxy wrapper = createFlowFileTransform("WriteMessage");
-        final TestRunner runner = TestRunners.newTestRunner(wrapper);
+        final TestRunner runner = createFlowFileTransform("WriteMessage");
         runner.enqueue("");
 
         // Trigger the processor
@@ -424,8 +408,7 @@ public class PythonControllerInteractionIT {
         assertEquals(1, v2Count);
 
         // Create a WriteMessage Processor, version 0.0.1-SNAPSHOT
-        final FlowFileTransformProxy wrapperV1 = createFlowFileTransform("WriteMessage");
-        final TestRunner runnerV1 = TestRunners.newTestRunner(wrapperV1);
+        final TestRunner runnerV1 = createFlowFileTransform("WriteMessage");
         runnerV1.enqueue("");
 
         // Trigger the processor
@@ -436,8 +419,7 @@ public class PythonControllerInteractionIT {
         runnerV1.getFlowFilesForRelationship("success").get(0).assertContentEquals("Hello, World");
 
         // Create an instance of WriteMessage V2
-        final Processor procV2 = createProcessor("WriteMessage", "0.0.2-SNAPSHOT");
-        final TestRunner runnerV2 = TestRunners.newTestRunner(procV2);
+        final TestRunner runnerV2 = createProcessor("WriteMessage", "0.0.2-SNAPSHOT");
         runnerV2.enqueue("");
 
         // Trigger the processor
@@ -486,13 +468,11 @@ public class PythonControllerInteractionIT {
 
 
     private TestRunner createRecordTransformRunner(final String type) throws InitializationException {
-        final Processor processor = createProcessor("SetRecordField");
-        assertNotNull(processor);
+        final TestRunner runner = createProcessor("SetRecordField");
 
         final JsonTreeReader reader = new JsonTreeReader();
         final JsonRecordSetWriter writer = new JsonRecordSetWriter();
 
-        final TestRunner runner = TestRunners.newTestRunner(processor);
         runner.addControllerService("reader", reader);
         runner.addControllerService("writer", writer);
         runner.enableControllerService(reader);
@@ -525,8 +505,7 @@ public class PythonControllerInteractionIT {
 
     @Test
     public void testCustomRelationships() {
-        final FlowFileTransformProxy processor = createFlowFileTransform("RouteFlowFile");
-        final TestRunner runner = TestRunners.newTestRunner(processor);
+        final TestRunner runner = createFlowFileTransform("RouteFlowFile");
 
         final Set<Relationship> relationships = runner.getProcessor().getRelationships();
         assertEquals(4, relationships.size());
@@ -545,9 +524,41 @@ public class PythonControllerInteractionIT {
         runner.assertTransferCount("failure", 0);
     }
 
+    @Test
+    @Timeout(45)
+    @DisabledOnOs(org.junit.jupiter.api.condition.OS.WINDOWS) // Cannot run on windows because ExitAfterFourInvocations uses `kill -9` command
+    public void testProcessRestarted() {
+        final TestRunner runner = createFlowFileTransform("ExitAfterFourInvocations");
 
-    private RecordSchema createSimpleRecordSchema(final String... fieldNames) {
-        return createSimpleRecordSchema(Arrays.asList(fieldNames));
+        for (int i=0; i < 10; i++) {
+            runner.enqueue(Integer.toString(i));
+        }
+
+        runner.run(4);
+        assertThrows(Throwable.class, runner::run);
+
+        // Run 2 additional times. Because the Python Process will have to be restarted, it may take a bit,
+        // so we keep trying until we succeed, relying on the 15 second timeout for the test to fail us if
+        // the Process doesn't get restarted in time.
+        for (int i=0; i < 2; i++) {
+            while(true) {
+                try {
+                    runner.run(1, false, i == 0);
+                    break;
+                } catch (final Throwable t) {
+                    try {
+                        Thread.sleep(1000L);
+                    } catch (final InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        }
+
+        // Trigger stop on finish
+        runner.run(1, true, false);
+
+        runner.assertTransferCount("success", 7);
     }
 
     private RecordSchema createSimpleRecordSchema(final List<String> fieldNames) {
@@ -583,16 +594,15 @@ public class PythonControllerInteractionIT {
         return UUID.randomUUID().toString();
     }
 
-    private Processor createProcessor(final String type) {
+    private TestRunner createProcessor(final String type) {
         return createProcessor(type, VERSION);
     }
 
-    private Processor createProcessor(final String type, final String version) {
+    private TestRunner createProcessor(final String type, final String version) {
         bridge.discoverExtensions();
         final AsyncLoadedProcessor processor = bridge.createProcessor(createId(), type, version, true, true);
 
-        final ProcessorInitializationContext initContext = new MockProcessorInitializationContext();
-        processor.initialize(initContext);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
 
         final long maxInitTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30L);
         while (true) {
@@ -615,8 +625,8 @@ public class PythonControllerInteractionIT {
                 throw new RuntimeException("Interrupted while initializing processor of type %s version %s".formatted(type, version));
             }
         }
-        processor.initialize(new MockProcessorInitializationContext());
-        return processor;
+
+        return runner;
     }
 
 }

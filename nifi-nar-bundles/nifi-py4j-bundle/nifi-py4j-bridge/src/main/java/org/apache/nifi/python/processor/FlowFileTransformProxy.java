@@ -19,7 +19,6 @@ package org.apache.nifi.python.processor;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -28,29 +27,16 @@ import org.apache.nifi.processor.exception.ProcessException;
 import py4j.Py4JNetworkException;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
-public class FlowFileTransformProxy extends PythonProcessorProxy {
+public class FlowFileTransformProxy extends PythonProcessorProxy<FlowFileTransform> {
 
-    private volatile FlowFileTransform transform;
 
     public FlowFileTransformProxy(final String processorType, final Supplier<PythonProcessorBridge> bridgeFactory, final boolean initialize) {
         super(processorType, bridgeFactory, initialize);
     }
 
-    @OnScheduled
-    public void setContext(final ProcessContext context) {
-        final PythonProcessorBridge bridge = getBridge().orElseThrow(() -> new IllegalStateException(this + " is not finished initializing"));
-        final Optional<PythonProcessorAdapter> optionalAdapter = bridge.getProcessorAdapter();
-        if (optionalAdapter.isEmpty()) {
-            throw new IllegalStateException(this + " is not finished initializing");
-        }
-
-        this.transform = (FlowFileTransform) optionalAdapter.get().getProcessor();
-        this.transform.setContext(context);
-    }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
@@ -63,7 +49,7 @@ public class FlowFileTransformProxy extends PythonProcessorProxy {
 
         final FlowFileTransformResult result;
         try (final StandardInputFlowFile inputFlowFile = new StandardInputFlowFile(session, original)) {
-            result = transform.transformFlowFile(inputFlowFile);
+            result = getTransform().transformFlowFile(inputFlowFile);
         } catch (final Py4JNetworkException e) {
             throw new ProcessException("Failed to communicate with Python Process", e);
         } catch (final Exception e) {

@@ -22,12 +22,10 @@ import org.apache.nifi.python.BoundObjectCounts;
 import org.apache.nifi.python.ControllerServiceTypeLookup;
 import org.apache.nifi.python.PythonBridge;
 import org.apache.nifi.python.PythonBridgeInitializationContext;
-import org.apache.nifi.python.PythonController;
 import org.apache.nifi.python.PythonProcessConfig;
 import org.apache.nifi.python.PythonProcessorDetails;
 import org.apache.nifi.python.processor.FlowFileTransform;
 import org.apache.nifi.python.processor.FlowFileTransformProxy;
-import org.apache.nifi.python.processor.PythonProcessorAdapter;
 import org.apache.nifi.python.processor.PythonProcessorBridge;
 import org.apache.nifi.python.processor.RecordTransform;
 import org.apache.nifi.python.processor.RecordTransformProxy;
@@ -90,7 +88,7 @@ public class StandardPythonBridge implements PythonBridge {
             .map(File::getAbsolutePath)
             .collect(Collectors.toList());
         final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
-        controllerProcess.getController().discoverExtensions(extensionsDirs, workDirPath);
+        controllerProcess.discoverExtensions(extensionsDirs, workDirPath);
     }
 
     private PythonProcessorBridge createProcessorBridge(final String identifier, final String type, final String version, final boolean preferIsolatedProcess) {
@@ -103,30 +101,7 @@ public class StandardPythonBridge implements PythonBridge {
         final PythonProcess pythonProcess = getProcessForNextComponent(extensionId, identifier, preferIsolatedProcess);
         final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
 
-        final PythonController controller = pythonProcess.getController();
-
-        final ProcessorCreationWorkflow creationWorkflow = new ProcessorCreationWorkflow() {
-            @Override
-            public void downloadDependencies() {
-                controller.downloadDependencies(type, version, workDirPath);
-            }
-
-            @Override
-            public PythonProcessorAdapter createProcessor() {
-                return controller.createProcessor(type, version, workDirPath);
-            }
-        };
-
-        final PythonProcessorDetails processorDetails = controller.getProcessorDetails(type, version);
-        final PythonProcessorBridge processorBridge = new StandardPythonProcessorBridge.Builder()
-            .controller(controller)
-            .creationWorkflow(creationWorkflow)
-            .processorDetails(processorDetails)
-            .workingDirectory(processConfig.getPythonWorkingDirectory())
-            .moduleFile(new File(controller.getModuleFile(type, version)))
-            .build();
-
-        pythonProcess.addProcessor(identifier, preferIsolatedProcess);
+        final PythonProcessorBridge processorBridge = pythonProcess.createProcessor(identifier, type, version, workDirPath);
         processorCountByType.merge(extensionId, 1, Integer::sum);
         return processorBridge;
     }
@@ -239,7 +214,7 @@ public class StandardPythonBridge implements PythonBridge {
                     .map(File::getAbsolutePath)
                     .collect(Collectors.toList());
                 final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
-                pythonProcess.getController().discoverExtensions(extensionsDirs, workDirPath);
+                pythonProcess.discoverExtensions(extensionsDirs, workDirPath);
 
                 // Add the newly create process to the processes for the given type of processor.
                 processesForType.add(pythonProcess);
@@ -262,7 +237,7 @@ public class StandardPythonBridge implements PythonBridge {
     @Override
     public List<PythonProcessorDetails> getProcessorTypes() {
         ensureStarted();
-        return controllerProcess.getController().getProcessorTypes();
+        return controllerProcess.getCurrentController().getProcessorTypes();
     }
 
     @Override
@@ -321,7 +296,7 @@ public class StandardPythonBridge implements PythonBridge {
 
     @Override
     public void ping() {
-        controllerProcess.getController().ping();
+        controllerProcess.getCurrentController().ping();
     }
 
     @Override
@@ -330,7 +305,7 @@ public class StandardPythonBridge implements PythonBridge {
     }
 
     private Optional<ExtensionId> findExtensionId(final String type, final String version) {
-        final List<PythonProcessorDetails> processorTypes = controllerProcess.getController().getProcessorTypes();
+        final List<PythonProcessorDetails> processorTypes = controllerProcess.getCurrentController().getProcessorTypes();
         return processorTypes.stream()
                 .filter(details -> details.getProcessorType().equals(type))
                 .filter(details -> details.getProcessorVersion().equals(version))
