@@ -72,9 +72,9 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
 # Download and install ChromeDriver
 RUN wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/121.0.6167.85/linux64/chromedriver-linux64.zip && \
     unzip chromedriver-linux64.zip && \
-    ls -l && \  # Add this line for debugging
+    ls -l && \ 
     mv chromedriver /usr/local/bin/chromedriver && \
-    ls -l /usr/local/bin/  # Add this line for debugging
+    ls -l /usr/local/bin/  
     chmod +x /usr/local/bin/chromedriver
 
     #  unzip chromedriver_linux64.zip && \ chromedriver-linux64
