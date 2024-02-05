@@ -1,3 +1,5 @@
+
+
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -15,18 +17,19 @@
 
 import logging
 import os
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 from py4j.java_gateway import JavaGateway, CallbackServerParameters, GatewayParameters
 
 import ExtensionManager
 
-# We do not use ThreadPoolExecutor, but it must be kept here. Python introduced a bug in 3.9 that causes Exceptions to be raised
+# We do not use ThreadPoolExecutor or ProcessPoolExecutor, but they must be kept here. Python introduced a bug in 3.9 that causes Exceptions to be raised
 # incorrectly in multi-threaded applications (https://bugs.python.org/issue42647). This works around the bug.
-# What is actually necessary is to import ThreadPoolExecutor.
+# What is actually necessary is to import ThreadPoolExecutor and ProcessPoolExecutor.
 # Unfortunately, IntelliJ often likes to cleanup the unused import. So we assign a bogus variable just so
-# that we have some reference to ThreadPoolExecutor in order to prevent the IDE from cleaning up the import
+# that we have some reference to ThreadPoolExecutor and ProcessPoolExecutor in order to prevent the IDE from cleaning up the import
 threadpool_attrs = dir(ThreadPoolExecutor)
+processpool_attrs = dir(ProcessPoolExecutor)
 
 
 # Initialize logging
