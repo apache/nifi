@@ -24,6 +24,9 @@ import org.apache.nifi.py4j.server.NiFiGatewayServer;
 import org.apache.nifi.python.ControllerServiceTypeLookup;
 import org.apache.nifi.python.PythonController;
 import org.apache.nifi.python.PythonProcessConfig;
+import org.apache.nifi.python.PythonProcessorDetails;
+import org.apache.nifi.python.processor.PythonProcessorAdapter;
+import org.apache.nifi.python.processor.PythonProcessorBridge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import py4j.CallbackClient;
@@ -40,7 +43,9 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 
 public class PythonProcess {
@@ -57,6 +62,10 @@ public class PythonProcess {
     private Process process;
     private NiFiPythonGateway gateway;
     private final Map<String, Boolean> processorPrefersIsolation = new ConcurrentHashMap<>();
+    private final Set<CreatedProcessor> createdProcessors = new CopyOnWriteArraySet<>();
+    private volatile boolean shutdown = false;
+    private volatile List<String> extensionDirs;
+    private volatile String workDir;
 
 
     public PythonProcess(final PythonProcessConfig processConfig, final ControllerServiceTypeLookup controllerServiceTypeLookup, final File virtualEnvHome,
@@ -68,11 +77,17 @@ public class PythonProcess {
         this.componentId = componentId;
     }
 
-    public PythonController getController() {
+    /**
+     * Returns the current Controller for the Python Process. Note that the Controller
+     * may change if the Python Process dies and is restarted. As a result, the value should never be
+     * cached and reused later.
+     * @return the current Controller for the Python Process
+     */
+    PythonController getCurrentController() {
         return controller;
     }
 
-    public void start() throws IOException {
+    public synchronized void start() throws IOException {
         final ServerSocketFactory serverSocketFactory = ServerSocketFactory.getDefault();
         final SocketFactory socketFactory = SocketFactory.getDefault();
 
@@ -101,6 +116,7 @@ public class PythonProcess {
 
         setupEnvironment();
         this.process = launchPythonProcess(listeningPort, authToken);
+        this.process.onExit().thenAccept(this::handlePythonProcessDied);
 
         final StandardPythonClient pythonClient = new StandardPythonClient(gateway);
         controller = pythonClient.getController();
@@ -112,6 +128,7 @@ public class PythonProcess {
             try {
                 final String pingResponse = controller.ping();
                 pingSuccessful = "pong".equals(pingResponse);
+
                 if (pingSuccessful) {
                     break;
                 } else {
@@ -136,6 +153,52 @@ public class PythonProcess {
 
         controller.setControllerServiceTypeLookup(controllerServiceTypeLookup);
         logger.info("Successfully started and pinged Python Server. Python Process = {}", process);
+    }
+
+    private void handlePythonProcessDied(final Process process) {
+        if (isShutdown()) {
+            // If shutdown, don't try to restart the Process
+            logger.info("Python Process {} exited with code {}", process, process.exitValue());
+            return;
+        }
+
+        final List<String> processorsInvolved = this.createdProcessors.stream()
+            .map(coordinates -> "%s (%s)".formatted(coordinates.identifier(), coordinates.type()))
+            .toList();
+
+        logger.error("Python Process {} with Processors {} died unexpectedly with exit code {}. Restarting...", process, processorsInvolved, process.exitValue());
+        long backoff = 1000L;
+        while (!isShutdown()) {
+            try {
+                // Ensure that we clean up any resources
+                killProcess();
+
+                // Restart the Process and establish new communications
+                start();
+
+                // Ensure that we re-discover any extensions, as this is necessary in order to create Processors
+                if (extensionDirs != null && workDir != null) {
+                    discoverExtensions(extensionDirs, workDir);
+                    recreateProcessors();
+                }
+
+                return;
+            } catch (final Exception e) {
+                // If we fail to restart the Python Process, we'll keep trying, as long as the Process isn't intentionally shutdown.
+                logger.error("Failed to restart Python Process with Processors {}; will keep trying", processorsInvolved, e);
+
+                try {
+                    // Sleep to avoid constantly hitting resources that are potentially already constrained
+                    Thread.sleep(backoff);
+
+                    // Exponentially backoff, but cap at 60 seconds
+                    backoff = Math.min(60000L, backoff * 2);
+                } catch (final InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(ex);
+                }
+            }
+        }
     }
 
     private String generateAuthToken() {
@@ -255,15 +318,25 @@ public class PythonProcess {
         }
     }
 
-    public void shutdown() {
-        logger.info("Shutting down Python Process {}", process);
+    public boolean isShutdown() {
+        return shutdown;
+    }
 
+    public void shutdown() {
+        shutdown = true;
+        logger.info("Shutting down Python Process {}", process);
+        killProcess();
+    }
+
+    private synchronized void killProcess() {
         if (server != null) {
             try {
                 server.shutdown();
             } catch (final Exception e) {
                 logger.error("Failed to cleanly shutdown Py4J server", e);
             }
+
+            server = null;
         }
 
         if (gateway != null) {
@@ -272,6 +345,8 @@ public class PythonProcess {
             } catch (final Exception e) {
                 logger.error("Failed to cleanly shutdown Py4J Gateway", e);
             }
+
+            gateway = null;
         }
 
         if (process != null) {
@@ -280,12 +355,60 @@ public class PythonProcess {
             } catch (final Exception e) {
                 logger.error("Failed to cleanly shutdown Py4J process", e);
             }
+
+            process = null;
         }
     }
 
-    void addProcessor(final String identifier, final boolean prefersIsolation) {
-        processorPrefersIsolation.put(identifier, prefersIsolation);
+    public void discoverExtensions(final List<String> directories, final String workDirectory) {
+        extensionDirs = new ArrayList<>(directories);
+        workDir = workDirectory;
+        controller.discoverExtensions(directories, workDirectory);
     }
+
+    public PythonProcessorBridge createProcessor(final String identifier, final String type, final String version, final String workDirPath) {
+        final ProcessorCreationWorkflow creationWorkflow = new ProcessorCreationWorkflow() {
+            @Override
+            public void downloadDependencies() {
+                controller.downloadDependencies(type, version, workDirPath);
+            }
+
+            @Override
+            public PythonProcessorAdapter createProcessor() {
+                return controller.createProcessor(type, version, workDirPath);
+            }
+        };
+
+        // Create a PythonProcessorDetails and then call getProcessorType and getProcessorVersion to ensure that the details are cached
+        final PythonProcessorDetails processorDetails = new CachingPythonProcessorDetails(controller.getProcessorDetails(type, version));
+        processorDetails.getProcessorType();
+        processorDetails.getProcessorVersion();
+
+        final PythonProcessorBridge processorBridge = new StandardPythonProcessorBridge.Builder()
+            .controller(controller)
+            .creationWorkflow(creationWorkflow)
+            .processorDetails(processorDetails)
+            .workingDirectory(processConfig.getPythonWorkingDirectory())
+            .moduleFile(new File(controller.getModuleFile(type, version)))
+            .build();
+
+        final CreatedProcessor createdProcessor = new CreatedProcessor(identifier, type, processorBridge);
+        createdProcessors.add(createdProcessor);
+
+        return processorBridge;
+    }
+
+    /**
+     * Updates all Processor Bridges to use the new Controller. This will cause the Processor Bridges to re-initialize
+     * themselves and recreate the Python Processors that they interact with.
+     */
+    private void recreateProcessors() {
+        for (final CreatedProcessor createdProcessor : createdProcessors) {
+            createdProcessor.processorBridge().replaceController(controller);
+            logger.info("Recreated Processor {} ({}) in Python Process {}", createdProcessor.identifier(), createdProcessor.type(), process);
+        }
+    }
+
 
     public boolean containsIsolatedProcessor() {
         return processorPrefersIsolation.containsValue(Boolean.TRUE);
@@ -303,4 +426,6 @@ public class PythonProcess {
     public Map<String, Integer> getJavaObjectBindingCounts() {
         return gateway.getObjectBindings().getCountsPerClass();
     }
+
+    private record CreatedProcessor(String identifier, String type, PythonProcessorBridge processorBridge) {}
 }

@@ -44,7 +44,7 @@ import java.util.function.Supplier;
 
 @SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
 @SupportsSensitiveDynamicProperties
-public abstract class PythonProcessorProxy extends AbstractProcessor implements AsyncLoadedProcessor {
+public abstract class PythonProcessorProxy<T extends PythonProcessor> extends AbstractProcessor implements AsyncLoadedProcessor {
     private final String processorType;
     private volatile PythonProcessorInitializationContext initContext;
     private volatile PythonProcessorBridge bridge;
@@ -52,6 +52,10 @@ public abstract class PythonProcessorProxy extends AbstractProcessor implements 
     private volatile List<PropertyDescriptor> cachedPropertyDescriptors = null;
     private volatile Map<String, PropertyDescriptor> cachedDynamicDescriptors = null;
     private volatile Boolean supportsDynamicProperties;
+
+    private volatile T currentTransform;
+    private volatile ProcessContext currentProcessContext;
+
 
     protected static final Relationship REL_ORIGINAL = new Relationship.Builder()
         .name("original")
@@ -105,6 +109,28 @@ public abstract class PythonProcessorProxy extends AbstractProcessor implements 
         if (bridge != null) {
             bridge.initialize(initContext);
         }
+    }
+
+
+    @OnScheduled
+    public void setContext(final ProcessContext context) {
+        this.currentProcessContext = context;
+    }
+
+    protected T getTransform() {
+        final PythonProcessorBridge bridge = getBridge().orElseThrow(() -> new IllegalStateException(this + " is not finished initializing"));
+        final Optional<PythonProcessorAdapter> optionalAdapter = bridge.getProcessorAdapter();
+        if (optionalAdapter.isEmpty()) {
+            throw new IllegalStateException(this + " is not finished initializing");
+        }
+
+        final T transform = (T) optionalAdapter.get().getProcessor();
+        if (transform != currentTransform) {
+            transform.setContext(currentProcessContext);
+            currentTransform = transform;
+        }
+
+        return transform;
     }
 
     protected Optional<PythonProcessorBridge> getBridge() {

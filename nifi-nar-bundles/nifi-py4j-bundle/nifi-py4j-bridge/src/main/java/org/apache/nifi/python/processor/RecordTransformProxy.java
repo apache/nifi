@@ -20,7 +20,6 @@ package org.apache.nifi.python.processor;
 import org.apache.nifi.NullSuppression;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.json.JsonRecordSource;
@@ -55,12 +54,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
-public class RecordTransformProxy extends PythonProcessorProxy {
-    private volatile RecordTransform transform;
+public class RecordTransformProxy extends PythonProcessorProxy<RecordTransform> {
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
         .name("Record Reader")
@@ -91,18 +88,6 @@ public class RecordTransformProxy extends PythonProcessorProxy {
         return properties;
     }
 
-    @OnScheduled
-    public void setProcessContext(final ProcessContext context) {
-        final PythonProcessorBridge bridge = getBridge().orElseThrow(() -> new IllegalStateException(this + " is not finished initializing"));
-
-        final Optional<PythonProcessorAdapter> adapterOptional = bridge.getProcessorAdapter();
-        if (adapterOptional.isEmpty()) {
-            throw new IllegalStateException(this + " is not finished initializing");
-        }
-
-        this.transform = (RecordTransform) adapterOptional.get().getProcessor();
-        this.transform.setContext(context);
-    }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
@@ -120,6 +105,7 @@ public class RecordTransformProxy extends PythonProcessorProxy {
         long recordsRead = 0L;
         long recordsWritten = 0L;
 
+        final RecordTransform transform = getTransform();
         Map<Relationship, List<FlowFile>> flowFilesPerRelationship;
         try (final InputStream in = session.read(flowFile);
              final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
