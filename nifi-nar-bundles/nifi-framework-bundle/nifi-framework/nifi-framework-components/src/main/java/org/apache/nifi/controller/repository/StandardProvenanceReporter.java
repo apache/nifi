@@ -288,21 +288,6 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
-    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final long transmissionMillis) {
-        upload(flowFile, fileResource, transitUri, transmissionMillis, true);
-    }
-
-    @Override
-    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final String details, final long transmissionMillis) {
-        upload(flowFile, fileResource, transitUri, details, transmissionMillis, true);
-    }
-
-    @Override
-    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final long transmissionMillis, final boolean force) {
-        upload(flowFile, fileResource, transitUri, null, transmissionMillis, force);
-    }
-
-    @Override
     public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri, final String details, final long transmissionMillis, final boolean force) {
         try {
             final String enrichedDetails = StringUtils.isNotBlank(details) ? details + " " + fileResource.toString() : fileResource.toString();
