@@ -68,7 +68,8 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
     # && pip install chromedriver-autoinstaller
 
 # Download and install ChromeDriver
-RUN wget https://chromedriver.storage.googleapis.com/99.0.4844.51/chromedriver_linux64.zip && \
+# RUN wget https://chromedriver.storage.googleapis.com/99.0.4844.51/chromedriver_linux64.zip && \
+RUN wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/121.0.6167.85/linux64/chromedriver-linux64.zip && \
      unzip chromedriver_linux64.zip && \
      mv chromedriver /usr/local/bin/chromedriver && \
      chmod +x /usr/local/bin/chromedriver \
@@ -91,7 +92,6 @@ RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key
 ENV CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --ignore-certificate-errors --disable-gpu"
 
 # ------------------------------------
-
 
 USER nifi
 
