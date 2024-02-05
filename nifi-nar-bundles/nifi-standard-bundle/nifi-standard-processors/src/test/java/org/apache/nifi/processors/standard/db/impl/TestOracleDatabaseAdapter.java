@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard.db.impl;
 import org.apache.nifi.processors.standard.db.ColumnDescription;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 import org.apache.nifi.processors.standard.db.TableSchema;
+import org.apache.nifi.processors.standard.db.TranslationStrategy;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Types;
@@ -118,7 +119,9 @@ public class TestOracleDatabaseAdapter {
                 new ColumnDescription("col1", Types.INTEGER, true, 4, false),
                 new ColumnDescription("col2", Types.VARCHAR, false, 2000, true)
         );
-        TableSchema tableSchema = new TableSchema("USERS", null, "TEST_TABLE", columns, true, Collections.singleton("COL1"), db.getColumnQuoteString());
+        TableSchema tableSchema = new TableSchema("USERS", null,
+                "TEST_TABLE", columns, true, TranslationStrategy.REMOVE_UNDERSCORE,
+                null, Collections.singleton("COL1"), db.getColumnQuoteString());
 
         String expectedStatement = "DECLARE\n\tsql_stmt long;\nBEGIN\n\tsql_stmt:='CREATE TABLE "
                 // Strings are returned as VARCHAR2(2000) regardless of reported size and that VARCHAR2 is not in java.sql.Types

@@ -25,6 +25,7 @@ import java.util.List;
 import org.apache.nifi.processors.standard.db.ColumnDescription;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 import org.apache.nifi.processors.standard.db.TableSchema;
+import org.apache.nifi.processors.standard.db.TranslationStrategy;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -139,19 +140,20 @@ public class TestOracle12DatabaseAdapter {
     public void testGetUpsertStatement() {
         // GIVEN
         String tableName = "table";
-        List<String> columnNames = Arrays.asList("column1","column2", "column3", "column_4");
+        List<String> columnNames = Arrays.asList("column1", "column2", "column3", "column_4");
         // uniqueKeyColumnNames can be normalized, so "column_4" become "column4" here.
-        Collection<String> uniqueKeyColumnNames = Arrays.asList("column1","column4");
+        Collection<String> uniqueKeyColumnNames = Arrays.asList("column1", "column4");
 
         String expected = "MERGE INTO table USING (SELECT ? column1, ? column2, ? column3, ? column_4 FROM DUAL) n" +
-        " ON (table.column1 = n.column1 AND table.column_4 = n.column_4) WHEN NOT MATCHED THEN" +
-        " INSERT (column1, column2, column3, column_4) VALUES (n.column1, n.column2, n.column3, n.column_4)" +
-        " WHEN MATCHED THEN UPDATE SET table.column2 = n.column2, table.column3 = n.column3";
+                " ON (table.column1 = n.column1 AND table.column_4 = n.column_4) WHEN NOT MATCHED THEN" +
+                " INSERT (column1, column2, column3, column_4) VALUES (n.column1, n.column2, n.column3, n.column_4)" +
+                " WHEN MATCHED THEN UPDATE SET table.column2 = n.column2, table.column3 = n.column3";
 
         // WHEN
         // THEN
         testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, expected);
     }
+
     @Test
     public void testGetCreateTableStatement() {
         assertTrue(db.supportsCreateTableIfNotExists());
@@ -159,7 +161,9 @@ public class TestOracle12DatabaseAdapter {
                 new ColumnDescription("col1", Types.INTEGER, true, 4, false),
                 new ColumnDescription("col2", Types.VARCHAR, false, 2000, true)
         );
-        TableSchema tableSchema = new TableSchema("USERS", null, "TEST_TABLE", columns, true, Collections.singleton("COL1"), db.getColumnQuoteString());
+        TableSchema tableSchema = new TableSchema("USERS", null, "TEST_TABLE", columns,
+                true, TranslationStrategy.REMOVE_UNDERSCORE,
+                null, Collections.singleton("COL1"), db.getColumnQuoteString());
 
         String expectedStatement = "DECLARE\n\tsql_stmt long;\nBEGIN\n\tsql_stmt:='CREATE TABLE "
                 // Strings are returned as VARCHAR2(2000) regardless of reported size and that VARCHAR2 is not in java.sql.Types
@@ -173,7 +177,7 @@ public class TestOracle12DatabaseAdapter {
 
     private void testGetUpsertStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, IllegalArgumentException expected) {
         final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
-            testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, (String)null);
+            testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, (String) null);
         });
         assertEquals(expected.getMessage(), e.getMessage());
     }
