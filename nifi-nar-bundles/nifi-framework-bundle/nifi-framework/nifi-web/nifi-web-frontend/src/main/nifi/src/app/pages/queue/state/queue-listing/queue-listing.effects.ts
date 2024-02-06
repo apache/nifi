@@ -30,6 +30,8 @@ import { selectAbout } from '../../../../state/about/about.selectors';
 import { FlowFileDialog } from '../../ui/queue-listing/flowfile-dialog/flowfile-dialog.component';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { isDefinedAndNotNull } from '../../../../state/shared';
+import { HttpErrorResponse } from '@angular/common/http';
+import * as ErrorActions from '../../../../state/error/error.actions';
 
 @Injectable()
 export class QueueListingEffects {
@@ -103,10 +105,10 @@ export class QueueListingEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             QueueListingActions.queueListingApiError({
-                                error: error.error
+                                error: errorResponse.error
                             })
                         )
                     )
@@ -165,10 +167,10 @@ export class QueueListingEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             QueueListingActions.queueListingApiError({
-                                error: error.error
+                                error: errorResponse.error
                             })
                         )
                     )
@@ -202,7 +204,11 @@ export class QueueListingEffects {
                     this.dialog.closeAll();
 
                     if (requestEntity) {
-                        this.queueService.deleteQueueListingRequest(requestEntity.listingRequest).subscribe();
+                        this.queueService.deleteQueueListingRequest(requestEntity.listingRequest).subscribe({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            }
+                        });
                     }
                 })
             ),
@@ -222,10 +228,10 @@ export class QueueListingEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
+                    catchError((errorResponse: HttpErrorResponse) =>
                         of(
-                            QueueListingActions.queueListingApiError({
-                                error: error.error
+                            ErrorActions.snackBarError({
+                                error: errorResponse.error
                             })
                         )
                     )
