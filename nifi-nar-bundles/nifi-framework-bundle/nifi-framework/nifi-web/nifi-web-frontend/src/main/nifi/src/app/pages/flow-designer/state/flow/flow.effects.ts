@@ -92,7 +92,8 @@ import { PropertyTableHelperService } from '../../../../service/property-table-h
 import { ParameterHelperService } from '../../service/parameter-helper.service';
 import { RegistryService } from '../../service/registry.service';
 import { ImportFromRegistry } from '../../ui/canvas/items/flow/import-from-registry/import-from-registry.component';
-import { showOkDialog } from './flow.actions';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
+import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dialog/no-registry-clients-dialog.component';
 
 @Injectable()
 export class FlowEffects {
@@ -615,7 +616,8 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.openImportFromRegistryDialog),
                 map((action) => action.request),
-                tap((request) => {
+                concatLatestFrom(() => this.store.select(selectCurrentUser)),
+                tap(([request, currentUser]) => {
                     const someRegistries = request.registryClients.some(
                         (registryClient: RegistryClientEntity) => registryClient.permissions.canRead
                     );
@@ -660,12 +662,17 @@ export class FlowEffects {
                             this.store.dispatch(FlowActions.setDragging({ dragging: false }));
                         });
                     } else {
-                        this.store.dispatch(
-                            showOkDialog({
-                                title: 'Import From Registry',
-                                message: 'No available Registries to import Flows from.'
+                        this.dialog
+                            .open(NoRegistryClientsDialog, {
+                                data: {
+                                    controllerPermissions: currentUser.controllerPermissions
+                                },
+                                panelClass: 'medium-dialog'
                             })
-                        );
+                            .afterClosed()
+                            .subscribe(() => {
+                                this.store.dispatch(FlowActions.setDragging({ dragging: false }));
+                            });
                     }
                 })
             ),

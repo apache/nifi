@@ -15,31 +15,20 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { Component, Inject } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { NoRegistryClientsDialogRequest } from '../../../state/flow';
+import { NgIf } from '@angular/common';
+import { RouterLink } from '@angular/router';
 
-.import-from-registry-form {
-    @include mat.button-density(-1);
-
-    .mat-mdc-form-field {
-        width: 100%;
-    }
-
-    .mat-mdc-form-field-error {
-        font-size: 12px;
-    }
-
-    .listing-table {
-        table {
-            width: auto;
-            table-layout: unset;
-
-            .mat-column-version {
-                width: 75px;
-            }
-
-            .mat-column-created {
-                width: 200px;
-            }
-        }
-    }
+@Component({
+    selector: 'no-registry-clients-dialog',
+    standalone: true,
+    imports: [MatDialogModule, MatButtonModule, NgIf, RouterLink],
+    templateUrl: './no-registry-clients-dialog.component.html',
+    styleUrls: ['./no-registry-clients-dialog.component.scss']
+})
+export class NoRegistryClientsDialog {
+    constructor(@Inject(MAT_DIALOG_DATA) public request: NoRegistryClientsDialogRequest) {}
 }

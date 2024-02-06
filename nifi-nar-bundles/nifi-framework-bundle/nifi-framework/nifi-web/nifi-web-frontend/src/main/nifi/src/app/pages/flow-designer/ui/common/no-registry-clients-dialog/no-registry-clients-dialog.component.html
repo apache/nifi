@@ -15,10 +15,24 @@
   ~ limitations under the License.
   -->
 
-<h2 mat-dialog-title>{{ request.title }}</h2>
+<h2 mat-dialog-title>No Registry clients available</h2>
 <mat-dialog-content>
-    <div class="text-sm max-w-sm">{{ request.message }}</div>
+    <div class="text-sm max-w-sm">
+        {{
+            request.controllerPermissions.canRead
+                ? 'In order to import a flow a Registry Client must be configured in Controller Settings.'
+                : 'Cannot import a Flow because there are no available Registry Clients.'
+        }}
+    </div>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-    <button mat-raised-button mat-dialog-close cdkFocusInitial color="primary">Ok</button>
+    <ng-container *ngIf="request.controllerPermissions.canRead; else noPermissions">
+        <button mat-stroked-button mat-dialog-close color="primary">Cancel</button>
+        <button mat-raised-button mat-dialog-close color="primary" [routerLink]="['/settings', 'registry-clients']">
+            Configure
+        </button>
+    </ng-container>
+    <ng-template #noPermissions>
+        <button mat-raised-button mat-dialog-close color="primary">Ok</button>
+    </ng-template>
 </mat-dialog-actions>

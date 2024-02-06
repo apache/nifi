@@ -166,6 +166,10 @@ export interface CreateProcessGroupDialogRequest {
     parameterContexts: ParameterContextEntity[];
 }
 
+export interface NoRegistryClientsDialogRequest {
+    controllerPermissions: Permissions;
+}
+
 export interface ImportFromRegistryDialogRequest {
     request: CreateComponentRequest;
     registryClients: RegistryClientEntity[];

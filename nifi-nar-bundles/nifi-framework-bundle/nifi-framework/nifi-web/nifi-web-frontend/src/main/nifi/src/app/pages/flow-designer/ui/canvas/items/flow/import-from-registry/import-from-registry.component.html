@@ -58,6 +58,9 @@
                     </ng-template>
                 </ng-container>
             </mat-select>
+            <mat-error *ngIf="importFromRegistryForm.controls['bucket'].hasError('required')"
+                >No buckets available</mat-error
+            >
         </mat-form-field>
         <mat-form-field>
             <mat-label>Flow</mat-label>
@@ -78,6 +81,9 @@
                     </ng-template>
                 </ng-container>
             </mat-select>
+            <mat-error *ngIf="importFromRegistryForm.controls['flow'].hasError('required')"
+                >No flows available</mat-error
+            >
         </mat-form-field>
         <div class="mb-5">
             <mat-checkbox color="primary" formControlName="keepParameterContexts">

@@ -17,29 +17,6 @@
 
 @use '@angular/material' as mat;
 
-.import-from-registry-form {
+mat-dialog-actions {
     @include mat.button-density(-1);
-
-    .mat-mdc-form-field {
-        width: 100%;
-    }
-
-    .mat-mdc-form-field-error {
-        font-size: 12px;
-    }
-
-    .listing-table {
-        table {
-            width: auto;
-            table-layout: unset;
-
-            .mat-column-version {
-                width: 75px;
-            }
-
-            .mat-column-created {
-                width: 200px;
-            }
-        }
-    }
 }
