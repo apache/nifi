@@ -20,6 +20,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class TestValidateCsv {
 
     @Test
@@ -162,6 +165,36 @@ public class TestValidateCsv {
         runner.enqueue("bigdecimal,bool,char,integer,long\r\n10.0001,true,c,92147483647,92147483647");
         runner.run();
         runner.assertTransferCount(ValidateCsv.REL_INVALID, 1);
+    }
+
+    @Test
+    public void testNoSchema() {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateCsv());
+        runner.setProperty(ValidateCsv.DELIMITER_CHARACTER, ",");
+        runner.setProperty(ValidateCsv.END_OF_LINE_CHARACTER, "\r\n");
+        runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "\"");
+        runner.setProperty(ValidateCsv.HEADER, "true");
+
+        runner.enqueue("bigdecimal,bool,char,integer,long\r\n10.0001,true,c,1,92147483647");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ValidateCsv.REL_VALID, 1);
+    }
+
+    @Test
+    public void testValidateOnAttribute() {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateCsv());
+        runner.setProperty(ValidateCsv.DELIMITER_CHARACTER, ",");
+        runner.setProperty(ValidateCsv.END_OF_LINE_CHARACTER, "\r\n");
+        runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "\"");
+        runner.setProperty(ValidateCsv.HEADER, "true");
+        runner.setProperty(ValidateCsv.VALIDATION_ATTRIBUTE, "CSV_ATTRIBUTE");
+        runner.setProperty(ValidateCsv.VALIDATION_STRATEGY, ValidateCsv.VALIDATE_ATTRIBUTE_AS_CSV.getValue());
+        final Map<String, String> attributeMap = new HashMap<>();
+        attributeMap.put("CSV_ATTRIBUTE", "bigdecimal,bool,char,integer,long\r\n10.0001,true,c,1,92147483647");
+
+        runner.enqueue(new byte[0], attributeMap);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ValidateCsv.REL_VALID, 1);
     }
 
     @Test
