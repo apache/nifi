@@ -39,8 +39,7 @@ export interface BulletinBoardState {
     autoRefresh: boolean;
     lastBulletinId: number;
     loadedTimestamp: string;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }
 
 export interface LoadBulletinBoardResponse {

@@ -47,6 +47,7 @@ import {
 import { ControllerServiceApi } from '../../../../../ui/common/controller-service/controller-service-api/controller-service-api.component';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 
 @Component({
     selector: 'edit-reporting-task',
@@ -68,7 +69,8 @@ import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.com
         AsyncPipe,
         NifiSpinnerDirective,
         MatTooltipModule,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        ErrorBanner
     ],
     styleUrls: ['./edit-reporting-task.component.scss']
 })

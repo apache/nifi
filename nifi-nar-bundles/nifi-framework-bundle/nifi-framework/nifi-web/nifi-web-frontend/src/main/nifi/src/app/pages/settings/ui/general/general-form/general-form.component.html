@@ -28,14 +28,16 @@
             </mat-form-field>
         </div>
         <div *ngIf="currentUser.controllerPermissions.canWrite">
-            <button
-                [disabled]="!controllerForm.dirty || controllerForm.invalid"
-                type="button"
-                color="primary"
-                (click)="apply()"
-                mat-raised-button>
-                Apply
-            </button>
+            <ng-container *ngIf="{ value: (saving$ | async)! } as saving">
+                <button
+                    [disabled]="!controllerForm.dirty || controllerForm.invalid"
+                    type="button"
+                    color="primary"
+                    (click)="apply()"
+                    mat-raised-button>
+                    <span *nifiSpinner="saving.value">Add</span>
+                </button>
+            </ng-container>
         </div>
     </form>
 </div>

@@ -30,7 +30,6 @@ export const initialState: CounterListingState = {
     counters: [],
     saving: false,
     loadedTimestamp: '',
-    error: null,
     status: 'pending'
 };
 
@@ -44,14 +43,11 @@ export const counterListingReducer = createReducer(
         ...state,
         counters: response.counters,
         loadedTimestamp: response.loadedTimestamp,
-        error: null,
         status: 'success' as const
     })),
-    on(counterListingApiError, (state, { error }) => ({
+    on(counterListingApiError, (state) => ({
         ...state,
-        saving: false,
-        error,
-        status: 'error' as const
+        saving: false
     })),
     on(resetCounterSuccess, (state, { response }) => {
         return produce(state, (draftState) => {

@@ -16,25 +16,34 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as GeneralActions from './general.actions';
+import * as ErrorActions from '../../../../state/error/error.actions';
 import { catchError, from, map, of, switchMap, tap } from 'rxjs';
 import { ControllerService } from '../../service/controller.service';
 import { MatDialog } from '@angular/material/dialog';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
+import { ErrorHelper } from '../../../../service/error-helper.service';
+import { selectStatus } from './general.selectors';
+import { NiFiState } from '../../../../state';
+import { Store } from '@ngrx/store';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class GeneralEffects {
     constructor(
         private actions$: Actions,
+        private store: Store<NiFiState>,
         private controllerService: ControllerService,
+        private errorHelper: ErrorHelper,
         private dialog: MatDialog
     ) {}
 
     loadControllerConfig$ = createEffect(() =>
         this.actions$.pipe(
             ofType(GeneralActions.loadControllerConfig),
-            switchMap(() =>
+            concatLatestFrom(() => this.store.select(selectStatus)),
+            switchMap(([, status]) =>
                 from(this.controllerService.getControllerConfig()).pipe(
                     map((response) =>
                         GeneralActions.loadControllerConfigSuccess({
@@ -43,12 +52,8 @@ export class GeneralEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            GeneralActions.controllerConfigApiError({
-                                error: error.error
-                            })
-                        )
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.errorHelper.handleLoadingError(status, errorResponse))
                     )
                 )
             )
@@ -95,5 +100,13 @@ export class GeneralEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    controllerConfigApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(GeneralActions.controllerConfigApiError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.snackBarError({ error })))
+        )
     );
 }

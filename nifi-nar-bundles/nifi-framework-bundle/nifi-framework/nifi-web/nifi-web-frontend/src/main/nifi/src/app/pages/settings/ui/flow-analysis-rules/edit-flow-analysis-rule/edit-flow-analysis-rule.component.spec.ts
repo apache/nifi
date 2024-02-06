@@ -21,6 +21,9 @@ import { EditFlowAnalysisRule } from './edit-flow-analysis-rule.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { EditFlowAnalysisRuleDialogRequest } from '../../../state/flow-analysis-rules';
+import { Component } from '@angular/core';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../../../state/error/error.reducer';
 
 describe('EditFlowAnalysisRule', () => {
     let component: EditFlowAnalysisRule;
@@ -89,10 +92,22 @@ describe('EditFlowAnalysisRule', () => {
         }
     };
 
+    @Component({
+        selector: 'error-banner',
+        standalone: true,
+        template: ''
+    })
+    class MockErrorBanner {}
+
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditFlowAnalysisRule, BrowserAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
+            imports: [EditFlowAnalysisRule, MockErrorBanner, BrowserAnimationsModule],
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                provideMockStore({
+                    initialState
+                })
+            ]
         });
         fixture = TestBed.createComponent(EditFlowAnalysisRule);
         component = fixture.componentInstance;

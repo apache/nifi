@@ -34,11 +34,6 @@ export const resetBulletinBoardState = createAction(`${BULLETIN_BOARD_PREFIX} Re
 
 export const clearBulletinBoard = createAction(`${BULLETIN_BOARD_PREFIX} Clear Bulletin Board`);
 
-export const bulletinBoardApiError = createAction(
-    `${BULLETIN_BOARD_PREFIX} Load Bulletin Board Errors`,
-    props<{ error: string }>()
-);
-
 export const setBulletinBoardFilter = createAction(
     `${BULLETIN_BOARD_PREFIX} Set Bulletin Board Filter`,
     props<{ filter: BulletinBoardFilterArgs }>()

@@ -45,6 +45,7 @@ import {
     UpdateFlowAnalysisRuleRequest
 } from '../../../state/flow-analysis-rules';
 import { FlowAnalysisRuleTable } from '../flow-analysis-rule-table/flow-analysis-rule-table.component';
+import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 
 @Component({
     selector: 'edit-flow-analysis-rule',
@@ -65,7 +66,8 @@ import { FlowAnalysisRuleTable } from '../flow-analysis-rule-table/flow-analysis
         NifiSpinnerDirective,
         MatTooltipModule,
         NifiTooltipDirective,
-        FlowAnalysisRuleTable
+        FlowAnalysisRuleTable,
+        ErrorBanner
     ],
     styleUrls: ['./edit-flow-analysis-rule.component.scss']
 })

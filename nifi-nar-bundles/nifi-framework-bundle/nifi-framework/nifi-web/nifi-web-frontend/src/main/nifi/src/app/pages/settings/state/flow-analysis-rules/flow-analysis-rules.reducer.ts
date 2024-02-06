@@ -26,12 +26,13 @@ import {
     deleteFlowAnalysisRuleSuccess,
     loadFlowAnalysisRules,
     loadFlowAnalysisRulesSuccess,
-    flowAnalysisRuleApiError,
+    flowAnalysisRuleBannerApiError,
     resetFlowAnalysisRulesState,
     disableFlowAnalysisRule,
     enableFlowAnalysisRule,
     enableFlowAnalysisRuleSuccess,
-    disableFlowAnalysisRuleSuccess
+    disableFlowAnalysisRuleSuccess,
+    flowAnalysisRuleSnackbarApiError
 } from './flow-analysis-rules.actions';
 import { produce } from 'immer';
 
@@ -39,7 +40,6 @@ export const initialState: FlowAnalysisRulesState = {
     flowAnalysisRules: [],
     saving: false,
     loadedTimestamp: '',
-    error: null,
     status: 'pending'
 };
 
@@ -56,14 +56,11 @@ export const flowAnalysisRulesReducer = createReducer(
         ...state,
         flowAnalysisRules: response.flowAnalysisRules,
         loadedTimestamp: response.loadedTimestamp,
-        error: null,
         status: 'success' as const
     })),
-    on(flowAnalysisRuleApiError, (state, { error }) => ({
+    on(flowAnalysisRuleBannerApiError, flowAnalysisRuleSnackbarApiError, (state) => ({
         ...state,
-        saving: false,
-        error,
-        status: 'error' as const
+        saving: false
     })),
     on(enableFlowAnalysisRuleSuccess, (state, { response }) => {
         return produce(state, (draftState) => {

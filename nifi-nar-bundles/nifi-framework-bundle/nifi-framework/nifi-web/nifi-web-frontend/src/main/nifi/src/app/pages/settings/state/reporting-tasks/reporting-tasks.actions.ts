@@ -56,8 +56,13 @@ export const configureReportingTaskSuccess = createAction(
     props<{ response: ConfigureReportingTaskSuccess }>()
 );
 
-export const reportingTasksApiError = createAction(
-    '[Reporting Tasks] Load Reporting Tasks Error',
+export const reportingTasksBannerApiError = createAction(
+    '[Reporting Tasks] Load Reporting Tasks Banner Api Error',
+    props<{ error: string }>()
+);
+
+export const reportingTasksSnackbarApiError = createAction(
+    '[Reporting Tasks] Load Reporting Tasks Snackbar Api Error',
     props<{ error: string }>()
 );
 

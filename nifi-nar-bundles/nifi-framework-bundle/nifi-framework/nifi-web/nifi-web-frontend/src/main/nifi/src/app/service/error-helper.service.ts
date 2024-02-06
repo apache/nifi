@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import * as ErrorDetailActions from '../state/error/error.actions';
+import * as ErrorActions from '../state/error/error.actions';
 import { Action } from '@ngrx/store';
 import { NiFiCommon } from './nifi-common.service';
 
@@ -55,7 +55,7 @@ export class ErrorHelper {
             message = errorResponse.error;
         }
 
-        return ErrorDetailActions.fullScreenError({
+        return ErrorActions.fullScreenError({
             errorDetail: {
                 title,
                 message
@@ -65,5 +65,17 @@ export class ErrorHelper {
 
     showErrorInContext(status: number): boolean {
         return [400, 403, 404, 409, 413, 503].includes(status);
+    }
+
+    handleLoadingError(status: string, errorResponse: HttpErrorResponse): Action {
+        if (status === 'success') {
+            if (this.showErrorInContext(errorResponse.status)) {
+                return ErrorActions.snackBarError({ error: errorResponse.error });
+            } else {
+                return this.fullScreenError(errorResponse);
+            }
+        } else {
+            return this.fullScreenError(errorResponse);
+        }
     }
 }

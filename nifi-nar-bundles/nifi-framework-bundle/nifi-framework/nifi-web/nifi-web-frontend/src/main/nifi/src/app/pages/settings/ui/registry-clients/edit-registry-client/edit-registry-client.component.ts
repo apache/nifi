@@ -40,6 +40,7 @@ import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.com
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { MatTabsModule } from '@angular/material/tabs';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
+import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 
 @Component({
     selector: 'edit-registry-client',
@@ -58,7 +59,8 @@ import { PropertyTable } from '../../../../../ui/common/property-table/property-
         NgForOf,
         NifiTooltipDirective,
         MatTabsModule,
-        PropertyTable
+        PropertyTable,
+        ErrorBanner
     ],
     styleUrls: ['./edit-registry-client.component.scss']
 })

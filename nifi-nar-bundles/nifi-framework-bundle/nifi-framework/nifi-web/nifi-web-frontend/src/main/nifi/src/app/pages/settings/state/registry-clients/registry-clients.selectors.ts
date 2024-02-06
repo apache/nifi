@@ -27,6 +27,8 @@ export const selectRegistryClientsState = createSelector(
 
 export const selectSaving = createSelector(selectRegistryClientsState, (state: RegistryClientsState) => state.saving);
 
+export const selectStatus = createSelector(selectRegistryClientsState, (state: RegistryClientsState) => state.status);
+
 export const selectRegistryClientIdFromRoute = createSelector(selectCurrentRoute, (route) => {
     if (route) {
         // always select the registry client from the route

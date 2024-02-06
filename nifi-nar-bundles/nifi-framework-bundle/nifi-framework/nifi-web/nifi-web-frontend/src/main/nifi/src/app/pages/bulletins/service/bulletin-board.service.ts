@@ -17,17 +17,13 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Client } from '../../../service/client.service';
 import { LoadBulletinBoardRequest } from '../state/bulletin-board';
 
 @Injectable({ providedIn: 'root' })
 export class BulletinBoardService {
     private static readonly API: string = '../nifi-api';
 
-    constructor(
-        private httpClient: HttpClient,
-        private client: Client
-    ) {}
+    constructor(private httpClient: HttpClient) {}
 
     getBulletins(request: LoadBulletinBoardRequest) {
         const params: HttpParams = request as HttpParams;

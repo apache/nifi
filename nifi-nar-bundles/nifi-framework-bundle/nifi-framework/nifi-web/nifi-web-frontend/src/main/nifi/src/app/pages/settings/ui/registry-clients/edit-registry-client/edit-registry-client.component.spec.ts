@@ -21,6 +21,9 @@ import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { EditRegistryClient } from './edit-registry-client.component';
 import { EditRegistryClientDialogRequest } from '../../../state/registry-clients';
+import { Component } from '@angular/core';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../../../state/error/error.reducer';
 
 describe('EditRegistryClient', () => {
     let component: EditRegistryClient;
@@ -102,10 +105,22 @@ describe('EditRegistryClient', () => {
         }
     };
 
+    @Component({
+        selector: 'error-banner',
+        standalone: true,
+        template: ''
+    })
+    class MockErrorBanner {}
+
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditRegistryClient, BrowserAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
+            imports: [EditRegistryClient, MockErrorBanner, BrowserAnimationsModule],
+            providers: [
+                { provide: MAT_DIALOG_DATA, useValue: data },
+                provideMockStore({
+                    initialState
+                })
+            ]
         });
         fixture = TestBed.createComponent(EditRegistryClient);
         component = fixture.componentInstance;

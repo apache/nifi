@@ -28,6 +28,7 @@ import {
     loadManagementControllerServices,
     loadManagementControllerServicesSuccess,
     managementControllerServicesBannerApiError,
+    managementControllerServicesSnackbarApiError,
     resetManagementControllerServicesState
 } from './management-controller-services.actions';
 import { produce } from 'immer';
@@ -54,7 +55,7 @@ export const managementControllerServicesReducer = createReducer(
         loadedTimestamp: response.loadedTimestamp,
         status: 'success' as const
     })),
-    on(managementControllerServicesBannerApiError, (state) => ({
+    on(managementControllerServicesBannerApiError, managementControllerServicesSnackbarApiError, (state) => ({
         ...state,
         saving: false
     })),
