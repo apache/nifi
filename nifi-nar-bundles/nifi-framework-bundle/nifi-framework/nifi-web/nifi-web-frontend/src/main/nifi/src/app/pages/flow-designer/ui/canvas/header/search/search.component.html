@@ -195,7 +195,7 @@
                             result.parentGroup.id == currentProcessGroupId;
                             else componentInDifferentProcessGroupLink
                         "
-                        (click)="componentLinkClicked()"
+                        (click)="componentLinkClicked(path, result.id)"
                         [routerLink]="['/process-groups', result.parentGroup.id, path, result.id]">
                         {{ result.name ? result.name : result.id }}
                     </a>

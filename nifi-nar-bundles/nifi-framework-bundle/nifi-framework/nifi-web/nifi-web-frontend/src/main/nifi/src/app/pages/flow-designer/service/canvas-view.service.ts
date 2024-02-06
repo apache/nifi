@@ -123,7 +123,7 @@ export class CanvasView {
 
                 // refresh the canvas
                 refreshed = self.refresh({
-                    transition: self.shouldTransition(event),
+                    transition: self.shouldTransition(),
                     refreshComponents: false,
                     refreshBirdseye: false
                 });
@@ -175,7 +175,7 @@ export class CanvasView {
         return this.birdseyeTranslateInProgress;
     }
 
-    private shouldTransition(sourceEvent: any): boolean {
+    private shouldTransition(): boolean {
         if (this.birdseyeTranslateInProgress) {
             return false;
         }
@@ -290,15 +290,7 @@ export class CanvasView {
                 return false;
             }
 
-            let x, y;
-            if (d.bends.length > 0) {
-                const i: number = Math.min(Math.max(0, d.labelIndex), d.bends.length - 1);
-                x = d.bends[i].x;
-                y = d.bends[i].y;
-            } else {
-                x = (d.start.x + d.end.x) / 2;
-                y = (d.start.y + d.end.y) / 2;
-            }
+            const { x, y } = self.canvasUtils.getPositionForCenteringConnection(d);
 
             return screenLeft < x && screenRight > x && screenTop < y && screenBottom > y;
         };
@@ -372,17 +364,51 @@ export class CanvasView {
             return;
         }
 
-        const box = this.getSelectionBoundingClientRect(selection, canvasContainer);
+        let bbox;
+        if (selection.size() === 1) {
+            bbox = this.getSingleSelectionBoundingClientRect(selection);
+        } else {
+            bbox = this.getBulkSelectionBoundingClientRect(selection, canvasContainer);
+        }
 
         this.allowTransition = allowTransition;
-        this.centerBoundingBox(box);
+        this.centerBoundingBox(bbox);
         this.allowTransition = false;
+    }
+
+    private getSingleSelectionBoundingClientRect(selection: any): any {
+        let bbox;
+        if (this.canvasUtils.isConnection(selection)) {
+            const d = selection.datum();
+
+            // get the position of the connection label
+            const { x, y } = this.canvasUtils.getPositionForCenteringConnection(d);
+
+            bbox = {
+                x: x,
+                y: y,
+                width: 1,
+                height: 1
+            };
+        } else {
+            const selectionData = selection.datum();
+            const selectionPosition = selectionData.position;
+
+            bbox = {
+                x: selectionPosition.x,
+                y: selectionPosition.y,
+                width: selectionData.dimensions.width,
+                height: selectionData.dimensions.height
+            };
+        }
+
+        return bbox;
     }
 
     /**
      * Get a BoundingClientRect, normalized to the canvas, that encompasses all nodes in a given selection.
      */
-    private getSelectionBoundingClientRect(selection: any, canvasContainer: any): any {
+    private getBulkSelectionBoundingClientRect(selection: any, canvasContainer: any): any {
         const canvasBoundingBox: any = canvasContainer.getBoundingClientRect();
 
         const initialBBox: any = {
