@@ -25,12 +25,7 @@ import {
     RemoteProcessGroupStatusSnapshotEntity,
     SummaryListingState
 } from './index';
-import {
-    loadSummaryListing,
-    loadSummaryListingSuccess,
-    resetSummaryState,
-    summaryListingApiError
-} from './summary-listing.actions';
+import { loadSummaryListing, loadSummaryListingSuccess, resetSummaryState } from './summary-listing.actions';
 
 export const initialState: SummaryListingState = {
     clusterSummary: null,
@@ -42,7 +37,6 @@ export const initialState: SummaryListingState = {
     connectionStatusSnapshots: [],
     remoteProcessGroupStatusSnapshots: [],
     status: 'pending',
-    error: null,
     loadedTimestamp: ''
 };
 
@@ -85,7 +79,6 @@ export const summaryListingReducer = createReducer(
 
         return {
             ...state,
-            error: null,
             status: 'success' as const,
             loadedTimestamp: response.status.processGroupStatus.statsLastRefreshed,
             processGroupStatus: response.status,
@@ -98,12 +91,6 @@ export const summaryListingReducer = createReducer(
             remoteProcessGroupStatusSnapshots: rpgs
         };
     }),
-
-    on(summaryListingApiError, (state, { error }) => ({
-        ...state,
-        error,
-        status: 'error' as const
-    })),
 
     on(resetSummaryState, () => ({
         ...initialState

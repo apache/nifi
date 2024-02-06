@@ -199,6 +199,5 @@ export interface SummaryListingState {
     connectionStatusSnapshots: ConnectionStatusSnapshotEntity[];
     remoteProcessGroupStatusSnapshots: RemoteProcessGroupStatusSnapshotEntity[];
     loadedTimestamp: string;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    status: 'pending' | 'loading' | 'success';
 }

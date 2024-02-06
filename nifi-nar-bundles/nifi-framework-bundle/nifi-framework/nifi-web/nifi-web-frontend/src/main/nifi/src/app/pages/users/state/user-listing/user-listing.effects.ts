@@ -410,7 +410,9 @@ export class UserListingEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) => of(UserListingActions.usersApiBannerError({ error: errorResponse.error })))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(UserListingActions.usersApiBannerError({ error: errorResponse.error }))
+                    )
                 )
             )
         )
@@ -612,7 +614,9 @@ export class UserListingEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) => of(UserListingActions.usersApiBannerError({ error: errorResponse.error })))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(UserListingActions.usersApiBannerError({ error: errorResponse.error }))
+                    )
                 )
             )
         )
@@ -701,7 +705,9 @@ export class UserListingEffects {
             switchMap((request) =>
                 from(this.usersService.deleteUser(request.user)).pipe(
                     map(() => UserListingActions.loadTenants()),
-                    catchError((errorResponse: HttpErrorResponse) => of(UserListingActions.usersApiSnackbarError({ error: errorResponse.error })))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(UserListingActions.usersApiSnackbarError({ error: errorResponse.error }))
+                    )
                 )
             )
         )
@@ -740,7 +746,9 @@ export class UserListingEffects {
             switchMap((request) =>
                 from(this.usersService.deleteUserGroup(request.userGroup)).pipe(
                     map(() => UserListingActions.loadTenants()),
-                    catchError((errorResponse: HttpErrorResponse) => of(UserListingActions.usersApiSnackbarError({ error: errorResponse.error })))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(UserListingActions.usersApiSnackbarError({ error: errorResponse.error }))
+                    )
                 )
             )
         )

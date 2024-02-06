@@ -28,7 +28,9 @@ import {
     updateUser,
     updateUserComplete,
     updateUserGroup,
-    updateUserGroupSuccess, usersApiBannerError, usersApiSnackbarError
+    updateUserGroupSuccess,
+    usersApiBannerError,
+    usersApiSnackbarError
 } from './user-listing.actions';
 
 export const initialState: UserListingState = {
@@ -53,7 +55,6 @@ export const userListingReducer = createReducer(
         users: response.users,
         userGroups: response.userGroups,
         loadedTimestamp: response.loadedTimestamp,
-        error: null,
         status: 'success' as const
     })),
     on(createUser, updateUser, createUserGroup, updateUserGroup, (state) => ({

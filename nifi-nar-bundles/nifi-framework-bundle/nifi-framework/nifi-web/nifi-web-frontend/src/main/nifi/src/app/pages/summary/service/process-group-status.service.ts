@@ -17,17 +17,13 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Client } from '../../../service/client.service';
 import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class ProcessGroupStatusService {
     private static readonly API: string = '../nifi-api';
 
-    constructor(
-        private httpClient: HttpClient,
-        private client: Client
-    ) {}
+    constructor(private httpClient: HttpClient) {}
 
     getProcessGroupsStatus(recursive?: boolean): Observable<any> {
         if (recursive) {
