@@ -17,9 +17,9 @@
 
 import { Injectable } from '@angular/core';
 
-interface StorageEntry {
+interface StorageEntry<T> {
     expires: number;
-    item: unknown;
+    item: T;
 }
 
 @Injectable({
@@ -29,13 +29,28 @@ export class Storage {
     private static readonly MILLIS_PER_DAY: number = 86400000;
     private static readonly TWO_DAYS: number = Storage.MILLIS_PER_DAY * 2;
 
+    constructor() {
+        for(let i = 0; i < localStorage.length; i++) {
+            try {
+                // get the next item
+                const key: string | null = localStorage.key(i);
+
+                if (key) {
+                    // attempt to get the item which will expire if necessary
+                    this.getItem(key);
+                }
+            } catch (e) {
+            }
+        }
+    }
+
     /**
      * Checks the expiration for the specified entry.
      *
      * @param {object} entry
      * @returns {boolean}
      */
-    private checkExpiration(entry: StorageEntry): boolean {
+    private checkExpiration<T>(entry: StorageEntry<T>): boolean {
         if (entry.expires) {
             // get the expiration
             const expires: Date = new Date(entry.expires);
@@ -53,7 +68,7 @@ export class Storage {
      *
      * @param {string} key
      */
-    private getEntry(key: string): null | StorageEntry {
+    private getEntry<T>(key: string): null | StorageEntry<T> {
         try {
             // parse the entry
             const item = localStorage.getItem(key);
@@ -81,12 +96,12 @@ export class Storage {
      * @param {object} item
      * @param {number} expires
      */
-    public setItem(key: string, item: unknown, expires?: number): void {
+    public setItem<T>(key: string, item: T, expires?: number): void {
         // calculate the expiration
         expires = expires != null ? expires : new Date().valueOf() + Storage.TWO_DAYS;
 
         // create the entry
-        const entry: StorageEntry = {
+        const entry: StorageEntry<T> = {
             expires,
             item
         };
@@ -113,8 +128,8 @@ export class Storage {
      *
      * @param {type} key
      */
-    public getItem(key: string): unknown {
-        const entry = this.getEntry(key);
+    public getItem<T>(key: string): null | T {
+        const entry: StorageEntry<T> | null = this.getEntry(key);
         if (entry === null) {
             return null;
         }

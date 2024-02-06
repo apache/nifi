@@ -26,6 +26,12 @@ import { CanvasState } from '../index';
 import { CanvasView } from '../../service/canvas-view.service';
 import { BirdseyeView } from '../../service/birdseye-view.service';
 
+interface StorageTransform {
+    scale: number;
+    translateX: number;
+    translateY: number;
+}
+
 @Injectable()
 export class TransformEffects {
     private static readonly VIEW_PREFIX: string = 'nifi-view-';
@@ -48,7 +54,7 @@ export class TransformEffects {
                     const name: string = TransformEffects.VIEW_PREFIX + processGroupId;
 
                     // create the item to store
-                    const item = {
+                    const item: StorageTransform = {
                         scale: transform.scale,
                         translateX: transform.translate.x,
                         translateY: transform.translate.y
@@ -70,7 +76,7 @@ export class TransformEffects {
                     try {
                         // see if we can restore the view position from storage
                         const name: string = TransformEffects.VIEW_PREFIX + processGroupId;
-                        const item: any = this.storage.getItem(name);
+                        const item: StorageTransform | null = this.storage.getItem(name);
 
                         // ensure the item is valid
                         if (item) {

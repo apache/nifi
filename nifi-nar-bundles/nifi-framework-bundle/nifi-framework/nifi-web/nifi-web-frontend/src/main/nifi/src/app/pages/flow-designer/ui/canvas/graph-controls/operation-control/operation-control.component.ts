@@ -65,7 +65,7 @@ export class OperationControl {
         private storage: Storage
     ) {
         try {
-            const item: any = this.storage.getItem(OperationControl.CONTROL_VISIBILITY_KEY);
+            const item: { [key: string]: boolean } | null = this.storage.getItem(OperationControl.CONTROL_VISIBILITY_KEY);
             if (item) {
                 this.operationCollapsed = item[OperationControl.OPERATION_KEY] === false;
                 this.store.dispatch(setOperationCollapsed({ operationCollapsed: this.operationCollapsed }));
@@ -80,7 +80,7 @@ export class OperationControl {
         this.store.dispatch(setOperationCollapsed({ operationCollapsed: this.operationCollapsed }));
 
         // update the current value in storage
-        let item: any = this.storage.getItem(OperationControl.CONTROL_VISIBILITY_KEY);
+        let item: { [key: string]: boolean } | null = this.storage.getItem(OperationControl.CONTROL_VISIBILITY_KEY);
         if (item == null) {
             item = {};
         }
