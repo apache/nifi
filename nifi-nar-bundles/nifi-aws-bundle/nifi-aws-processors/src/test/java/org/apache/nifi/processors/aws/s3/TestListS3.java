@@ -1,4 +1,4 @@
-/*
+    /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -20,6 +20,7 @@ import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
@@ -645,6 +646,49 @@ public class TestListS3 {
     }
 
     @Test
+    void testResetTimestampTrackingWhenBucketModified() throws Exception {
+        setUpResetTrackingTest(ListS3.BY_TIMESTAMPS);
+
+        assertFalse(listS3.isResetTracking());
+
+        runner.run();
+
+        assertEquals(TEST_TIMESTAMP, listS3.getListingSnapshot().getTimestamp());
+
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "otherBucket");
+
+        assertTrue(listS3.isResetTracking());
+
+        runner.run();
+
+        assertEquals(0, listS3.getListingSnapshot().getTimestamp());
+        mockStateManager.assertStateEquals(ListS3.CURRENT_TIMESTAMP, "0", Scope.CLUSTER);
+
+        assertFalse(listS3.isResetTracking());
+    }
+    @Test
+    void testResetTimestampTrackingWhenRegionModified() throws Exception {
+        setUpResetTrackingTest(ListS3.BY_TIMESTAMPS);
+
+        assertFalse(listS3.isResetTracking());
+
+        runner.run();
+
+        assertEquals(TEST_TIMESTAMP, listS3.getListingSnapshot().getTimestamp());
+
+        runner.setProperty(ListS3.REGION, Regions.EU_CENTRAL_1.getName());
+
+        assertTrue(listS3.isResetTracking());
+
+        runner.run();
+
+        assertEquals(0, listS3.getListingSnapshot().getTimestamp());
+        mockStateManager.assertStateEquals(ListS3.CURRENT_TIMESTAMP, "0", Scope.CLUSTER);
+
+        assertFalse(listS3.isResetTracking());
+    }
+
+    @Test
     void testResetTimestampTrackingWhenPrefixModified() throws Exception {
         setUpResetTrackingTest(ListS3.BY_TIMESTAMPS);
 
@@ -684,6 +728,51 @@ public class TestListS3 {
 
         assertEquals(0, listS3.getListingSnapshot().getTimestamp());
         mockStateManager.assertStateNotSet(ListS3.CURRENT_TIMESTAMP, Scope.CLUSTER);
+
+        assertFalse(listS3.isResetTracking());
+    }
+
+    @Test
+    void testResetEntityTrackingWhenBucketModified() throws Exception {
+        setUpResetTrackingTest(ListS3.BY_ENTITIES);
+
+        assertFalse(listS3.isResetTracking());
+
+        runner.run();
+
+        assertNotNull(listS3.getListedEntityTracker());
+
+        runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "otherBucket");
+
+        assertTrue(listS3.isResetTracking());
+
+        runner.run();
+
+        assertNotNull(listS3.getListedEntityTracker());
+        verify(mockCache).remove(eq("ListedEntities::" + listS3.getIdentifier()), any());
+
+        assertFalse(listS3.isResetTracking());
+    }
+
+    @Test
+    void testResetEntityTrackingWhenRegionModified() throws Exception {
+
+        setUpResetTrackingTest(ListS3.BY_ENTITIES);
+
+        assertFalse(listS3.isResetTracking());
+
+        runner.run();
+
+        assertNotNull(listS3.getListedEntityTracker());
+
+        runner.setProperty(ListS3.REGION, Regions.EU_CENTRAL_1.getName());
+
+        assertTrue(listS3.isResetTracking());
+
+        runner.run();
+
+        assertNotNull(listS3.getListedEntityTracker());
+        verify(mockCache).remove(eq("ListedEntities::" + listS3.getIdentifier()), any());
 
         assertFalse(listS3.isResetTracking());
     }

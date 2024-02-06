@@ -354,8 +354,9 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
     @OnScheduled
     public void initTrackingStrategy(ProcessContext context) throws IOException {
-        final boolean isTrackingTimestampsStrategy = BY_TIMESTAMPS.getValue().equals(context.getProperty(LISTING_STRATEGY).getValue());
-        final boolean isTrackingEntityStrategy = BY_ENTITIES.getValue().equals(context.getProperty(LISTING_STRATEGY).getValue());
+        final String listingStrategy = context.getProperty(LISTING_STRATEGY).getValue();
+        final boolean isTrackingTimestampsStrategy = BY_TIMESTAMPS.getValue().equals(listingStrategy);
+        final boolean isTrackingEntityStrategy = BY_ENTITIES.getValue().equals(listingStrategy);
 
         if (resetTracking || !isTrackingTimestampsStrategy) {
             context.getStateManager().clear(Scope.CLUSTER);
