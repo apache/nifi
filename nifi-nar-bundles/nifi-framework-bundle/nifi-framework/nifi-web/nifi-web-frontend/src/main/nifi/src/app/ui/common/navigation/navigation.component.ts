@@ -75,8 +75,7 @@ export class Navigation {
         if (window.matchMedia) {
             // Watch for changes of the preference
             window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
-                const newColorScheme = e.matches ? 'dark' : 'light';
-                this.darkModeOn = newColorScheme === 'dark';
+                this.darkModeOn = e.matches;
                 this.theme = this.storage.getItem('theme');
             });
         }
@@ -115,14 +114,13 @@ export class Navigation {
     }
 
     getCanvasLink(): string {
-        const canvasRoute = this.storage.getItem('current-canvas-route');
+        const canvasRoute = this.storage.getItem<string>('current-canvas-route');
         return canvasRoute || '/';
     }
 
     toggleTheme(theme: string) {
         this.theme = theme;
         this.storage.setItem('theme', theme);
-        this.darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        this.themingService.toggleTheme(this.darkModeOn, theme);
+        this.themingService.toggleTheme(!!this.darkModeOn, theme);
     }
 }

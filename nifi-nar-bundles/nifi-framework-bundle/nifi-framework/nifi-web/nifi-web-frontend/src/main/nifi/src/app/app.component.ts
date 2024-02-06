@@ -56,8 +56,7 @@ export class AppComponent {
             // Watch for changes of the preference
             window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
                 theme = this.storage.getItem('theme');
-                const newColorScheme = e.matches ? 'dark' : 'light';
-                this.themingService.toggleTheme(newColorScheme === 'dark', theme);
+                this.themingService.toggleTheme(e.matches, theme);
             });
         }
     }

@@ -35,7 +35,7 @@ export class ThemingService {
             } else {
                 this._document.body.classList.toggle('dark-theme', true);
             }
-        } else if (!darkModeOn) {
+        } else {
             if (theme === DARK_THEME) {
                 this._document.body.classList.toggle('dark-theme', true);
             } else if (theme === LIGHT_THEME) {
