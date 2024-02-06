@@ -106,6 +106,36 @@ public class TestAvroReaderWithExplicitSchema {
     }
 
     @Test
+    public void testAvroExplicitReaderWithSchemalessFileAndExplicitSchema() throws Exception {
+        File avroFileWithoutSchema = new File("src/test/resources/avro/schemaless_simple_record.avro");
+        FileInputStream fileInputStream = new FileInputStream(avroFileWithoutSchema);
+        Schema dataSchema = new Schema.Parser().parse(new File("src/test/resources/avro/schemaless_simple_record.avsc"));
+        RecordSchema recordSchema = new SimpleRecordSchema(dataSchema.toString(), AvroTypeUtil.AVRO_SCHEMA_FORMAT, null);
+
+        AvroReaderWithExplicitSchema avroReader = new AvroReaderWithExplicitSchema(fileInputStream, recordSchema, dataSchema);
+        GenericRecord record = avroReader.nextAvroRecord();
+        assertNotNull(record);
+        assertEquals(123, record.get("field_1"));
+        assertNotNull(record.get("field_2"));
+        assertEquals("44", record.get("field_2").toString());
+        assertEquals(5, record.get("field_3"));
+
+        record = avroReader.nextAvroRecord();
+        assertNull(record);
+    }
+
+    @Test
+    public void testAvroExplicitReaderWithSchemalessFileAndWrongExplicitSchema() throws Exception {
+        File avroFileWithoutSchema = new File("src/test/resources/avro/schemaless_simple_record.avro");
+        FileInputStream fileInputStream = new FileInputStream(avroFileWithoutSchema);
+        Schema dataSchema = new Schema.Parser().parse(new File("src/test/resources/avro/schemaless_simple_record_extra_field.avsc"));
+        RecordSchema recordSchema = new SimpleRecordSchema(dataSchema.toString(), AvroTypeUtil.AVRO_SCHEMA_FORMAT, null);
+
+        AvroReaderWithExplicitSchema avroReader = new AvroReaderWithExplicitSchema(fileInputStream, recordSchema, dataSchema);
+        assertThrows(IOException.class, avroReader::nextAvroRecord);
+    }
+
+    @Test
     public void testAvroExplicitReaderWithSchemalessFileDecimalValuesWithDifferentBufferSize() throws Exception {
         // GIVEN
         String avroFilePath = "src/test/resources/avro/avro_schemaless_decimal.avro";
