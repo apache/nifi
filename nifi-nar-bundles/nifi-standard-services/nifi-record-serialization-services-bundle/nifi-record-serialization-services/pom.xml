@@ -169,6 +169,8 @@
                         <exclude>src/test/resources/avro/multiple-types.avsc</exclude>
                         <exclude>src/test/resources/avro/simple.avsc</exclude>
                         <exclude>src/test/resources/avro/recursive.avsc</exclude>
+                        <exclude>src/test/resources/avro/schemaless_simple_record.avsc</exclude>
+                        <exclude>src/test/resources/avro/schemaless_simple_record_extra_field.avsc</exclude>
 
                         <exclude>src/test/resources/cef/empty-row.txt</exclude>
                         <exclude>src/test/resources/cef/misformatted-row.txt</exclude>

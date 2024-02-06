@@ -16,14 +16,10 @@
  */
 package org.apache.nifi.avro;
 
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -32,11 +28,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.junit.jupiter.api.Test;
 
 public class TestAvroReaderWithExplicitSchema {
 
@@ -103,6 +103,34 @@ public class TestAvroReaderWithExplicitSchema {
 
         // Causes IOException in constructor due to schemas not matching
         assertThrows(IOException.class, () -> new AvroReaderWithExplicitSchema(fileInputStream, recordSchema, dataSchema));
+    }
+
+    @Test
+    public void testAvroExplicitReaderWithSchemalessFileAndExplicitSchema() throws Exception {
+        AvroReaderWithExplicitSchema avroReader = createAvroReaderWithExplicitSchema(
+                "src/test/resources/avro/schemaless_simple_record.avro",
+                "src/test/resources/avro/schemaless_simple_record.avsc"
+        );
+
+        GenericData.Record expected = new GenericData.Record(new Schema.Parser().parse(new File("src/test/resources/avro/schemaless_simple_record.avsc")));
+        expected.put("field_1", 123);
+        expected.put("field_2", "44");
+        expected.put("field_3", 5);
+
+        GenericRecord actual1 = avroReader.nextAvroRecord();
+        assertEquals(expected, actual1);
+
+        GenericRecord actual2 = avroReader.nextAvroRecord();
+        assertNull(actual2);
+    }
+
+    @Test
+    public void testAvroExplicitReaderWithSchemalessFileAndWrongExplicitSchema() throws Exception {
+        AvroReaderWithExplicitSchema avroReader = createAvroReaderWithExplicitSchema(
+                "src/test/resources/avro/schemaless_simple_record.avro",
+                "src/test/resources/avro/schemaless_simple_record_extra_field.avsc"
+        );
+        assertThrows(IOException.class, avroReader::nextAvroRecord);
     }
 
     @Test
