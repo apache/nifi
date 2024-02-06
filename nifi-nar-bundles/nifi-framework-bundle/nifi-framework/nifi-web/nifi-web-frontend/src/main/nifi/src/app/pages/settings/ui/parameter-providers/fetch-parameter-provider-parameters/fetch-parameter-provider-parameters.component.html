@@ -43,9 +43,7 @@
                             *ngFor="let updateStep of requestEntity.updateSteps"
                             class="flex justify-between items-center">
                             <div class="value">{{ updateStep.description }}</div>
-                            <div
-                                *ngIf="updateStep.complete; else stepInProgress"
-                                class="fa fa-check text-green-500"></div>
+                            <div *ngIf="updateStep.complete; else stepInProgress" class="fa fa-check complete"></div>
                             <ng-template #stepInProgress>
                                 <div class="fa fa-spin fa-circle-o-notch"></div>
                             </ng-template>

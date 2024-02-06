@@ -35,6 +35,7 @@
     $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
     $warn-palette-500: mat.get-color-from-palette($warn-palette, 500);
     $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
+    $accent-palette-500: mat.get-color-from-palette($canvas-accent-palette, 500);
 
     .splash {
         background-color: $primary-palette-500;
@@ -53,5 +54,9 @@
     // https://github.com/angular/components/issues/11426
     .nifi-snackbar .mat-mdc-button:not(:disabled) .mdc-button__label {
         color: $accent-palette-A400;
+    }
+
+    .fa.fa-check.complete {
+        color: $accent-palette-500;
     }
 }
