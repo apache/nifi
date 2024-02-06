@@ -27,8 +27,13 @@
 
     // Get hues from palette
     $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
+    $primary-palette-300: mat.get-color-from-palette($primary-palette, 300);
 
     .splash {
         background-color: $primary-palette-500;
+    }
+
+    .nifi-snackbar .mat-mdc-button:not(:disabled) .mdc-button__label {
+        color: $primary-palette-300;
     }
 }
