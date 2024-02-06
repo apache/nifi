@@ -70,7 +70,7 @@ export class TransformEffects {
                     try {
                         // see if we can restore the view position from storage
                         const name: string = TransformEffects.VIEW_PREFIX + processGroupId;
-                        const item = this.storage.getItem(name);
+                        const item: any = this.storage.getItem(name);
 
                         // ensure the item is valid
                         if (item) {

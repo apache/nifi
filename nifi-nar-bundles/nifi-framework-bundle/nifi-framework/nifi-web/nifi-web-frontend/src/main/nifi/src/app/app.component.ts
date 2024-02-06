@@ -18,8 +18,8 @@
 import { Component, Inject } from '@angular/core';
 import { GuardsCheckEnd, GuardsCheckStart, NavigationCancel, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DOCUMENT } from '@angular/common';
 import { Storage } from './service/storage.service';
+import { ThemingService } from './service/theming.service';
 
 @Component({
     selector: 'nifi',
@@ -33,7 +33,7 @@ export class AppComponent {
     constructor(
         private router: Router,
         private storage: Storage,
-        @Inject(DOCUMENT) private _document: Document
+        private themingService: ThemingService
     ) {
         this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
             if (event instanceof GuardsCheckStart) {
@@ -44,31 +44,19 @@ export class AppComponent {
             }
         });
 
-        let overrideTheme = this.storage.getItem('override-theme');
+        let theme = this.storage.getItem('theme');
 
         // Initially check if dark mode is enabled on system
         const darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
         // If dark mode is enabled then directly switch to the dark-theme
-        if (darkModeOn) {
-            this._document.body.classList.toggle('dark-theme', !overrideTheme);
-        } else if (!darkModeOn) {
-            this._document.body.classList.toggle('dark-theme', overrideTheme);
-        }
+        this.themingService.toggleTheme(darkModeOn, theme);
 
         // Watch for changes of the preference
         window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
-            overrideTheme = this.storage.getItem('override-theme');
+            theme = this.storage.getItem('theme');
             const newColorScheme = e.matches ? 'dark' : 'light';
-            if (newColorScheme === 'dark' && overrideTheme) {
-                this._document.body.classList.toggle('dark-theme', false);
-            } else if (newColorScheme === 'dark' && !overrideTheme) {
-                this._document.body.classList.toggle('dark-theme', true);
-            } else if (newColorScheme === 'light' && overrideTheme) {
-                this._document.body.classList.toggle('dark-theme', true);
-            } else {
-                this._document.body.classList.toggle('dark-theme', false);
-            }
+            this.themingService.toggleTheme(newColorScheme === 'dark', theme);
         });
     }
 }

@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
-import { AsyncPipe, DOCUMENT, NgIf, NgOptimizedImage } from '@angular/common';
+import { Component } from '@angular/core';
+import { AsyncPipe, NgIf, NgOptimizedImage } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
@@ -33,6 +33,7 @@ import { NiFiState } from '../../../state';
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
 import { Storage } from '../../../service/storage.service';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { OS_SETTING, LIGHT_THEME, DARK_THEME, ThemingService } from '../../../service/theming.service';
 
 @Component({
     selector: 'navigation',
@@ -53,8 +54,11 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
     styleUrls: ['./navigation.component.scss']
 })
 export class Navigation {
-    overrideTheme: boolean | undefined;
+    theme: any | undefined;
     darkModeOn: boolean | undefined;
+    LIGHT_THEME: string = LIGHT_THEME;
+    DARK_THEME: string = DARK_THEME;
+    OS_SETTING: string = OS_SETTING;
     currentUser$ = this.store.select(selectCurrentUser);
     flowConfiguration$ = this.store.select(selectFlowConfiguration);
 
@@ -63,16 +67,16 @@ export class Navigation {
         private authStorage: AuthStorage,
         private authService: AuthService,
         private storage: Storage,
-        @Inject(DOCUMENT) private _document: Document
+        private themingService: ThemingService
     ) {
         this.darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        this.overrideTheme = !!this.storage.getItem('override-theme');
+        this.theme = this.storage.getItem('theme');
 
         // Watch for changes of the preference
         window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
             const newColorScheme = e.matches ? 'dark' : 'light';
             this.darkModeOn = newColorScheme === 'dark';
-            this.overrideTheme = !!this.storage.getItem('override-theme');
+            this.theme = this.storage.getItem('theme');
         });
     }
 
@@ -113,16 +117,10 @@ export class Navigation {
         return canvasRoute || '/';
     }
 
-    toggleTheme() {
-        this.overrideTheme = !this.overrideTheme;
-        this.storage.setItem('override-theme', this.overrideTheme);
+    toggleTheme(theme: string) {
+        this.theme = theme;
+        this.storage.setItem('theme', theme);
         this.darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-        // If dark mode is enabled then directly switch to the dark-theme
-        if (this.darkModeOn) {
-            this._document.body.classList.toggle('dark-theme', !this.overrideTheme);
-        } else if (!this.darkModeOn) {
-            this._document.body.classList.toggle('dark-theme', this.overrideTheme);
-        }
+        this.themingService.toggleTheme(this.darkModeOn, theme);
     }
 }

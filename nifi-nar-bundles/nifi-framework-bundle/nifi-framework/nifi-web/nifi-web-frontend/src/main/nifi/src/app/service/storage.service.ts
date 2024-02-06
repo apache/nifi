@@ -17,6 +17,11 @@
 
 import { Injectable } from '@angular/core';
 
+interface StorageEntry {
+    expires: number;
+    item: unknown;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -30,7 +35,7 @@ export class Storage {
      * @param {object} entry
      * @returns {boolean}
      */
-    private checkExpiration(entry: any): boolean {
+    private checkExpiration(entry: StorageEntry): boolean {
         if (entry.expires) {
             // get the expiration
             const expires: Date = new Date(entry.expires);
@@ -48,10 +53,10 @@ export class Storage {
      *
      * @param {string} key
      */
-    private getEntry(key: string): null | any {
+    private getEntry(key: string): null | StorageEntry {
         try {
             // parse the entry
-            const item: any | null = localStorage.getItem(key);
+            const item = localStorage.getItem(key);
             if (!item) {
                 return null;
             }
@@ -76,12 +81,12 @@ export class Storage {
      * @param {object} item
      * @param {number} expires
      */
-    public setItem(key: string, item: any, expires?: number): void {
+    public setItem(key: string, item: unknown, expires?: number): void {
         // calculate the expiration
         expires = expires != null ? expires : new Date().valueOf() + Storage.TWO_DAYS;
 
         // create the entry
-        const entry = {
+        const entry: StorageEntry = {
             expires,
             item
         };
@@ -108,7 +113,7 @@ export class Storage {
      *
      * @param {type} key
      */
-    public getItem(key: string): null | any {
+    public getItem(key: string): unknown {
         const entry = this.getEntry(key);
         if (entry === null) {
             return null;

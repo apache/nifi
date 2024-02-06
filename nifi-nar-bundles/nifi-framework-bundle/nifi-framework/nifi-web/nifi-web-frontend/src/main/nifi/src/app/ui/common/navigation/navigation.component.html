@@ -139,23 +139,23 @@
                     <i class="fa fa-fw fa-info-circle mr-2"></i>
                     About
                 </button>
-                <button mat-menu-item class="global-menu-item" (click)="toggleTheme()">
-                    <ng-container *ngIf="darkModeOn && !overrideTheme">
-                        <i class="fa fa-fw fa-ban mr-2"></i>
-                        Override Default Theme
-                    </ng-container>
-                    <ng-container *ngIf="darkModeOn && overrideTheme">
-                        <i class="fa fa-fw fa-check mr-2"></i>
-                        Use Default Theme (Dark)
-                    </ng-container>
-                    <ng-container *ngIf="!darkModeOn && !overrideTheme">
-                        <i class="fa fa-fw fa-ban mr-2"></i>
-                        Override Default Theme
-                    </ng-container>
-                    <ng-container *ngIf="!darkModeOn && overrideTheme">
-                        <i class="fa fa-fw fa-check mr-2"></i>
-                        Use Default Theme (Light)
-                    </ng-container>
+                <button mat-menu-item [matMenuTriggerFor]="theming">Theming</button>
+            </mat-menu>
+            <mat-menu #theming="matMenu" xPosition="before">
+                <button mat-menu-item class="global-menu-item" (click)="toggleTheme(LIGHT_THEME)">
+                    <i class="fa fa-fw fa-check mr-2" *ngIf="theme === LIGHT_THEME"></i>
+                    <i class="fa fa-fw mr-2" *ngIf="theme !== LIGHT_THEME"></i>
+                    Light Theme
+                </button>
+                <button mat-menu-item class="global-menu-item" (click)="toggleTheme(DARK_THEME)">
+                    <i class="fa fa-fw fa-check mr-2" *ngIf="theme === DARK_THEME"></i>
+                    <i class="fa fa-fw mr-2" *ngIf="theme !== DARK_THEME"></i>
+                    Dark Theme
+                </button>
+                <button mat-menu-item class="global-menu-item" (click)="toggleTheme(OS_SETTING)">
+                    <i class="fa fa-fw fa-check mr-2" *ngIf="theme === OS_SETTING || theme === null"></i>
+                    <i class="fa fa-fw mr-2" *ngIf="theme !== OS_SETTING && theme !== null"></i>
+                    OS Theme
                 </button>
             </mat-menu>
         </div>
