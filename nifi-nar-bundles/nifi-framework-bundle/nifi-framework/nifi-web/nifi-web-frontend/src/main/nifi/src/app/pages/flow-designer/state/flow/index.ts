@@ -40,6 +40,10 @@ export interface SelectComponentsRequest {
     components: SelectedComponent[];
 }
 
+export interface CenterComponentRequest {
+    allowTransition: boolean;
+}
+
 /*
   Load Process Group
  */
@@ -473,6 +477,7 @@ export interface FlowState {
     dragging: boolean;
     transitionRequired: boolean;
     skipTransform: boolean;
+    allowTransition: boolean;
     saving: boolean;
     navigationCollapsed: boolean;
     operationCollapsed: boolean;

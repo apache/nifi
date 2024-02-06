@@ -18,27 +18,41 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { FlowStatus } from './flow-status.component';
-import { Search } from '../search/search.component';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { Component } from '@angular/core';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../../state/flow/flow.reducer';
 
 describe('FlowStatus', () => {
     let component: FlowStatus;
     let fixture: ComponentFixture<FlowStatus>;
 
+    @Component({
+        selector: 'search',
+        standalone: true,
+        template: ''
+    })
+    class MockSearch {}
+
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [
                 FlowStatus,
-                Search,
+                MockSearch,
                 HttpClientTestingModule,
                 CdkOverlayOrigin,
                 CdkConnectedOverlay,
                 MatAutocompleteModule,
                 FormsModule,
                 ReactiveFormsModule
+            ],
+            providers: [
+                provideMockStore({
+                    initialState
+                })
             ]
         });
         fixture = TestBed.createComponent(FlowStatus);

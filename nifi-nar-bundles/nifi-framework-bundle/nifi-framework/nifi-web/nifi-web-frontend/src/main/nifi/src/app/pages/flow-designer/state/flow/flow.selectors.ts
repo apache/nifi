@@ -80,7 +80,7 @@ export const selectAnySelectedComponentIds = createSelector(selectCurrentRoute, 
 
 export const selectBulkSelectedComponentIds = createSelector(selectCurrentRoute, (route) => {
     const ids: string[] = [];
-    // only handle either bulk component route
+    // only handle bulk component route
     if (route?.params.ids) {
         ids.push(...route.params.ids.split(','));
     }
@@ -139,6 +139,8 @@ export const selectTransitionRequired = createSelector(selectFlowState, (state: 
 export const selectDragging = createSelector(selectFlowState, (state: FlowState) => state.dragging);
 
 export const selectSkipTransform = createSelector(selectFlowState, (state: FlowState) => state.skipTransform);
+
+export const selectAllowTransition = createSelector(selectFlowState, (state: FlowState) => state.allowTransition);
 
 export const selectFunnels = createSelector(
     selectFlowState,

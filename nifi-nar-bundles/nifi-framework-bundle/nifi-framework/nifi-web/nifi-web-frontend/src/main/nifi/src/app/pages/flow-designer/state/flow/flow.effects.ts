@@ -636,7 +636,12 @@ export class FlowEffects {
                 map((action) => action.request),
                 concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([request, processGroupId]) => {
-                    this.router.navigate(['/process-groups', processGroupId, request.type, request.id, 'edit']);
+                    const url = ['/process-groups', processGroupId, request.type, request.id, 'edit'];
+                    if (this.canvasView.isSelectedComponentOnScreen()) {
+                        this.store.dispatch(FlowActions.navigateWithoutTransform({ url }));
+                    } else {
+                        this.router.navigate(url);
+                    }
                 })
             ),
         { dispatch: false }
@@ -1771,15 +1776,15 @@ export class FlowEffects {
         { dispatch: false }
     );
 
-    centerSelectedComponent$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(FlowActions.centerSelectedComponent),
-                tap(() => {
-                    this.canvasView.centerSelectedComponent();
-                })
-            ),
-        { dispatch: false }
+    centerSelectedComponents$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.centerSelectedComponents),
+            map((action) => action.request),
+            tap((request) => {
+                this.canvasView.centerSelectedComponents(request.allowTransition);
+            }),
+            switchMap(() => of(FlowActions.setAllowTransition({ allowTransition: false })))
+        )
     );
 
     navigateToProvenanceForComponent$ = createEffect(

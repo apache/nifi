@@ -20,7 +20,7 @@ import { CanvasUtils } from './canvas-utils.service';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../state';
 import {
-    centerSelectedComponent,
+    centerSelectedComponents,
     deleteComponents,
     enterProcessGroup,
     getParameterContextsAndOpenGroupComponentsDialog,
@@ -928,12 +928,12 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    return selection.size() === 1 && !this.canvasUtils.isConnection(selection);
+                    return !selection.empty();
                 },
                 clazz: 'fa fa-crosshairs',
                 text: 'Center in view',
                 action: () => {
-                    this.store.dispatch(centerSelectedComponent());
+                    this.store.dispatch(centerSelectedComponents({ request: { allowTransition: true } }));
                 }
             },
             {
