@@ -25,10 +25,13 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Utility class for AWS region methods.
+ * Utility class for AWS region methods. This class uses AWS SDK v2.
  *
  */
-public abstract class RegionUtil {
+public final class RegionUtilV2 {
+
+    private RegionUtilV2() {
+    }
 
     /**
      * Creates an AllowableValue from a Region.

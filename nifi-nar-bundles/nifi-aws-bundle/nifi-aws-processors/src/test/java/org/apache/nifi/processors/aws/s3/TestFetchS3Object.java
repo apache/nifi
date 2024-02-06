@@ -32,6 +32,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -80,7 +81,7 @@ public class TestFetchS3Object {
 
     @Test
     public void testGetObject() throws IOException {
-        runner.setProperty(FetchS3Object.S3_REGION, "attribute-defined-region");
+        runner.setProperty(RegionUtilV1.S3_REGION, "attribute-defined-region");
         runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
@@ -147,7 +148,7 @@ public class TestFetchS3Object {
 
     @Test
     public void testGetObjectWithRequesterPays() throws IOException {
-        runner.setProperty(FetchS3Object.S3_REGION, "us-east-1");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-east-1");
         runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket");
         runner.setProperty(FetchS3Object.REQUESTER_PAYS, "true");
         final Map<String, String> attrs = new HashMap<>();
@@ -205,7 +206,7 @@ public class TestFetchS3Object {
 
     @Test
     public void testGetObjectVersion() throws IOException {
-        runner.setProperty(FetchS3Object.S3_REGION, "us-east-1");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-east-1");
         runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket");
         runner.setProperty(FetchS3Object.VERSION_ID, "${s3.version}");
         final Map<String, String> attrs = new HashMap<>();
@@ -245,7 +246,7 @@ public class TestFetchS3Object {
 
     @Test
     public void testGetObjectExceptionGoesToFailure() {
-        runner.setProperty(FetchS3Object.S3_REGION, "us-east-1");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-east-1");
         runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
@@ -259,7 +260,7 @@ public class TestFetchS3Object {
 
     @Test
     public void testFetchObject_FailAdditionalAttributesBucketName() {
-        runner.setProperty(FetchS3Object.S3_REGION, "us-east-1");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-east-1");
         runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket-bad-name");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
@@ -288,7 +289,7 @@ public class TestFetchS3Object {
 
     @Test
     public void testFetchObject_FailAdditionalAttributesAuthentication() {
-        runner.setProperty(FetchS3Object.S3_REGION, "us-east-1");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-east-1");
         runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket-bad-name");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
@@ -312,7 +313,7 @@ public class TestFetchS3Object {
 
     @Test
     public void testFetchObject_FailAdditionalAttributesNetworkFailure() {
-        runner.setProperty(FetchS3Object.S3_REGION, "us-east-1");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-east-1");
         runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket-bad-name");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
@@ -330,7 +331,7 @@ public class TestFetchS3Object {
 
     @Test
     public void testGetObjectReturnsNull() {
-        runner.setProperty(FetchS3Object.S3_REGION, "us-east-1");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-east-1");
         runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
@@ -344,7 +345,7 @@ public class TestFetchS3Object {
 
     @Test
     public void testFlowFileAccessExceptionGoesToFailure() {
-        runner.setProperty(FetchS3Object.S3_REGION, "us-east-1");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-east-1");
         runner.setProperty(FetchS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "request-bucket");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");

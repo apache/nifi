@@ -56,6 +56,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.processors.aws.util.RegionUtilV1.REGION;
+
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @Tags({"Amazon", "AWS", "Client", "Gateway-API", "Rest", "http", "https"})
