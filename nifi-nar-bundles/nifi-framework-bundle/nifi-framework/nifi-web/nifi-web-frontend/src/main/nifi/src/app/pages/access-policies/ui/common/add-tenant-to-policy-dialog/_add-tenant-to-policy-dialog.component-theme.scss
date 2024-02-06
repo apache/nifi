@@ -23,14 +23,14 @@
     $color-config: mat.get-color-config($theme);
 
     // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
+    $accent-palette: map.get($color-config, 'accent');
 
     // Get hues from palette
-    $primary-palette-A400: mat.get-color-from-palette($primary-palette, 'A400');
+    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
 
     .add-tenant-to-policy-form {
         .fa {
-            color: $primary-palette-A400;
+            color: $accent-palette-A400;
         }
     }
 }
