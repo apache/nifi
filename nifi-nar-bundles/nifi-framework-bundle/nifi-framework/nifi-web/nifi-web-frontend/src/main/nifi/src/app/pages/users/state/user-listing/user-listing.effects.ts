@@ -26,12 +26,15 @@ import { MatDialog } from '@angular/material/dialog';
 import { UsersService } from '../../service/users.service';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { EditTenantDialog } from '../../../../ui/common/edit-tenant/edit-tenant-dialog.component';
-import { selectSaving, selectUserGroups, selectUsers } from './user-listing.selectors';
+import { selectSaving, selectStatus, selectUserGroups, selectUsers } from './user-listing.selectors';
 import { EditTenantRequest, UserGroupEntity } from '../../../../state/shared';
 import { selectTenant } from './user-listing.actions';
 import { Client } from '../../../../service/client.service';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { UserAccessPolicies } from '../../ui/user-listing/user-access-policies/user-access-policies.component';
+import * as ErrorActions from '../../../../state/error/error.actions';
+import { ErrorHelper } from '../../../../service/error-helper.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
 export class UserListingEffects {
@@ -44,13 +47,15 @@ export class UserListingEffects {
         private store: Store<NiFiState>,
         private router: Router,
         private usersService: UsersService,
+        private errorHelper: ErrorHelper,
         private dialog: MatDialog
     ) {}
 
     loadTenants$ = createEffect(() =>
         this.actions$.pipe(
             ofType(UserListingActions.loadTenants),
-            switchMap(() =>
+            concatLatestFrom(() => this.store.select(selectStatus)),
+            switchMap(([, status]) =>
                 combineLatest([this.usersService.getUsers(), this.usersService.getUserGroups()]).pipe(
                     map(([usersResponse, userGroupsResponse]) =>
                         UserListingActions.loadTenantsSuccess({
@@ -61,12 +66,8 @@ export class UserListingEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            UserListingActions.usersApiError({
-                                error: error.error
-                            })
-                        )
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.errorHelper.handleLoadingError(status, errorResponse))
                     )
                 )
             )
@@ -155,7 +156,10 @@ export class UserListingEffects {
                             }
                         })
                     ),
-                    catchError((error) => of(UserListingActions.usersApiError({ error: error.error })))
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        this.dialog.closeAll();
+                        return of(UserListingActions.usersApiSnackbarError({ error: errorResponse.error }));
+                    })
                 )
             )
         )
@@ -219,6 +223,22 @@ export class UserListingEffects {
         )
     );
 
+    usersApiBannerError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(UserListingActions.usersApiBannerError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+        )
+    );
+
+    usersApiSnackbarError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(UserListingActions.usersApiSnackbarError),
+            map((action) => action.error),
+            switchMap((error) => of(ErrorActions.snackBarError({ error })))
+        )
+    );
+
     awaitUpdateUserGroupsForCreateUser$ = createEffect(() =>
         this.actions$.pipe(
             ofType(UserListingActions.createUserSuccess),
@@ -263,7 +283,10 @@ export class UserListingEffects {
                             }
                         })
                     ),
-                    catchError((error) => of(UserListingActions.usersApiError({ error: error.error })))
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        this.dialog.closeAll();
+                        return of(UserListingActions.usersApiSnackbarError({ error: errorResponse.error }));
+                    })
                 )
             )
         )
@@ -360,6 +383,8 @@ export class UserListingEffects {
                         });
 
                     dialogReference.afterClosed().subscribe(() => {
+                        this.store.dispatch(ErrorActions.clearBannerErrors());
+
                         this.store.dispatch(
                             selectTenant({
                                 id: request.user.id
@@ -385,7 +410,7 @@ export class UserListingEffects {
                             }
                         })
                     ),
-                    catchError((error) => of(UserListingActions.usersApiError({ error: error.error })))
+                    catchError((errorResponse: HttpErrorResponse) => of(UserListingActions.usersApiBannerError({ error: errorResponse.error })))
                 )
             )
         )
@@ -560,6 +585,8 @@ export class UserListingEffects {
                         });
 
                     dialogReference.afterClosed().subscribe(() => {
+                        this.store.dispatch(ErrorActions.clearBannerErrors());
+
                         this.store.dispatch(
                             selectTenant({
                                 id: request.userGroup.id
@@ -585,7 +612,7 @@ export class UserListingEffects {
                             }
                         })
                     ),
-                    catchError((error) => of(UserListingActions.usersApiError({ error: error.error })))
+                    catchError((errorResponse: HttpErrorResponse) => of(UserListingActions.usersApiBannerError({ error: errorResponse.error })))
                 )
             )
         )
@@ -674,7 +701,7 @@ export class UserListingEffects {
             switchMap((request) =>
                 from(this.usersService.deleteUser(request.user)).pipe(
                     map(() => UserListingActions.loadTenants()),
-                    catchError((error) => of(UserListingActions.usersApiError({ error: error.error })))
+                    catchError((errorResponse: HttpErrorResponse) => of(UserListingActions.usersApiSnackbarError({ error: errorResponse.error })))
                 )
             )
         )
@@ -713,7 +740,7 @@ export class UserListingEffects {
             switchMap((request) =>
                 from(this.usersService.deleteUserGroup(request.userGroup)).pipe(
                     map(() => UserListingActions.loadTenants()),
-                    catchError((error) => of(UserListingActions.usersApiError({ error: error.error })))
+                    catchError((errorResponse: HttpErrorResponse) => of(UserListingActions.usersApiSnackbarError({ error: errorResponse.error })))
                 )
             )
         )

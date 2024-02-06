@@ -44,7 +44,9 @@ export const loadTenantsSuccess = createAction(
     props<{ response: LoadTenantsSuccess }>()
 );
 
-export const usersApiError = createAction(`${USER_PREFIX} Users Api Error`, props<{ error: string }>());
+export const usersApiSnackbarError = createAction(`${USER_PREFIX} Users Api Snackbar Error`, props<{ error: string }>());
+
+export const usersApiBannerError = createAction(`${USER_PREFIX} Users Api Banner Error`, props<{ error: string }>());
 
 export const openCreateTenantDialog = createAction(`${USER_PREFIX} Open Create Tenant Dialog`);
 

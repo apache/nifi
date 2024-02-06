@@ -28,7 +28,7 @@ import {
     updateUser,
     updateUserComplete,
     updateUserGroup,
-    updateUserGroupSuccess
+    updateUserGroupSuccess, usersApiBannerError, usersApiSnackbarError
 } from './user-listing.actions';
 
 export const initialState: UserListingState = {
@@ -36,7 +36,6 @@ export const initialState: UserListingState = {
     userGroups: [],
     saving: false,
     loadedTimestamp: '',
-    error: null,
     status: 'pending'
 };
 
@@ -76,5 +75,9 @@ export const userListingReducer = createReducer(
     on(updateUserGroupSuccess, (state, { response }) => ({
         ...state,
         saving: response.requestId == null ? false : state.saving
+    })),
+    on(usersApiSnackbarError, usersApiBannerError, (state) => ({
+        ...state,
+        saving: false
     }))
 );
