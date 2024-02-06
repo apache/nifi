@@ -41,7 +41,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.Month;
-import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,6 +48,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SuppressWarnings("resource")
 public class PutDatabaseRecordIT {
+
+    private final long MILLIS_TIMESTAMP_LONG = 1707238288351L;
+    private final long MICROS_TIMESTAMP_LONG = 1707238288351567L;
+    private final String MICROS_TIMESTAMP_FORMATTED = "2024-02-06 11:51:28.351567";
+    private final double MICROS_TIMESTAMP_DOUBLE = ((double) MICROS_TIMESTAMP_LONG) / 1000000D;
+    private final long NANOS_AFTER_SECOND = 351567000L;
+    private final Instant INSTANT_MICROS_PRECISION = Instant.ofEpochMilli(MILLIS_TIMESTAMP_LONG).plusNanos(NANOS_AFTER_SECOND).minusMillis(MILLIS_TIMESTAMP_LONG % 1000);
+
 
     private static PostgreSQLContainer<?> postgres;
     private TestRunner runner;
@@ -110,8 +117,6 @@ public class PutDatabaseRecordIT {
         runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_SUCCESS, 1);
 
         final Map<String, Object> results = getResults();
-        assertEquals("John Doe", results.get("name"));
-        assertEquals(50, results.get("age"));
         assertEquals("blue", results.get("favorite_color"));
     }
 
@@ -127,10 +132,7 @@ public class PutDatabaseRecordIT {
         runner.run();
         runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_SUCCESS, 1);
 
-
         final Map<String, Object> results = getResults();
-        assertEquals("John Doe", results.get("name"));
-        assertEquals(50, results.get("age"));
         final Date dob = (Date) results.get("dob");
         assertEquals(1975, dob.toLocalDate().getYear());
         assertEquals(Month.JANUARY, dob.toLocalDate().getMonth());
@@ -139,140 +141,74 @@ public class PutDatabaseRecordIT {
 
     @Test
     public void testWithTimestampUsingMillis() throws SQLException {
-        final long now = System.currentTimeMillis();
-        runner.enqueue("""
-            {
-              "name": "John Doe",
-              "age": 50,
-              "lastTransactionTime": %s
-            }
-            """.formatted(now));
+        runner.enqueue(createJson(MILLIS_TIMESTAMP_LONG));
         runner.run();
         runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_SUCCESS, 1);
 
         final Map<String, Object> results = getResults();
-        assertEquals(new Timestamp(now), results.get("lasttransactiontime"));
+        assertEquals(new Timestamp(MILLIS_TIMESTAMP_LONG), results.get("lasttransactiontime"));
     }
 
     @Test
     public void testWithTimestampUsingMillisAsString() throws SQLException {
-        final long now = System.currentTimeMillis();
-        runner.enqueue("""
-            {
-              "name": "John Doe",
-              "age": 50,
-              "lastTransactionTime": "%s"
-            }
-            """.formatted(now));
+        runner.enqueue(createJson(MILLIS_TIMESTAMP_LONG));
         runner.run();
         runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_SUCCESS, 1);
 
         final Map<String, Object> results = getResults();
-        assertEquals(new Timestamp(now), results.get("lasttransactiontime"));
+        assertEquals(new Timestamp(MILLIS_TIMESTAMP_LONG), results.get("lasttransactiontime"));
     }
 
     @Test
     public void testWithStringTimestampUsingMicros() throws SQLException {
-        runner.enqueue("""
-            {
-              "name": "John Doe",
-              "age": 50,
-              "lastTransactionTime": "2024-01-02 08:41:12.123456"
-            }
-            """);
+        runner.enqueue(createJson(MICROS_TIMESTAMP_FORMATTED));
         runner.run();
         runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_SUCCESS, 1);
 
-        final LocalDateTime localDateTime = LocalDateTime.now();
-
         final Map<String, Object> results = getResults();
-        assertEquals("John Doe", results.get("name"));
-        assertEquals(50, results.get("age"));
         final Timestamp lastTransactionTime = (Timestamp) results.get("lasttransactiontime");
         final LocalDateTime transactionLocalTime = lastTransactionTime.toLocalDateTime();
         assertEquals(2024, transactionLocalTime.getYear());
-        assertEquals(Month.JANUARY, transactionLocalTime.getMonth());
-        assertEquals(2, transactionLocalTime.getDayOfMonth());
-        assertEquals(8, transactionLocalTime.getHour());
-        assertEquals(41, transactionLocalTime.getMinute());
-        assertEquals(12, transactionLocalTime.getSecond());
-        assertEquals(123456000, transactionLocalTime.getNano());
+        assertEquals(Month.FEBRUARY, transactionLocalTime.getMonth());
+        assertEquals(6, transactionLocalTime.getDayOfMonth());
+        assertEquals(11, transactionLocalTime.getHour());
+        assertEquals(51, transactionLocalTime.getMinute());
+        assertEquals(28, transactionLocalTime.getSecond());
+        assertEquals(351567000, transactionLocalTime.getNano());
     }
 
     @Test
     public void testWithNumericTimestampUsingMicros() throws SQLException {
-        final Instant now = nowWithMicrosPrecision();
-        final long epochSecond = now.getEpochSecond();
-        final long epochMicros = (epochSecond * 1_000_000L) + (now.getNano() / 1000);
-
-        runner.enqueue("""
-            {
-              "name": "John Doe",
-              "age": 50,
-              "lastTransactionTime": %s
-            }
-            """.formatted(epochMicros));
+        runner.enqueue(createJson(MICROS_TIMESTAMP_LONG));
         runner.run();
         runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_SUCCESS, 1);
 
         final Map<String, Object> results = getResults();
-        assertEquals("John Doe", results.get("name"));
-        assertEquals(50, results.get("age"));
         final Timestamp lastTransactionTime = (Timestamp) results.get("lasttransactiontime");
-        assertEquals(now, lastTransactionTime.toInstant());
+        assertEquals(INSTANT_MICROS_PRECISION, lastTransactionTime.toInstant());
     }
 
-    // Depending on the operating system, the precision of Instant.now() may be microsecond precision, or it may be nanosecond precision.
-    // If nanosecond precision, the result that we retrieve from database will be inaccurate because it will be rounded down to microsecond precision.
-    // To adjust for this, we will use Instant.now().truncatedTo(ChronoUnit.MICROS) to ensure that the Instant is microsecond precision.
-    private Instant nowWithMicrosPrecision() {
-        return Instant.now().truncatedTo(ChronoUnit.MICROS);
-    }
 
     @Test
     public void testWithDecimalTimestampUsingMicros() throws SQLException {
-        final Instant now = nowWithMicrosPrecision();
-        final long epochSecond = now.getEpochSecond();
-        final long microsPastSecond = now.getNano() / 1000;
-
-        runner.enqueue("""
-            {
-              "name": "John Doe",
-              "age": 50,
-              "lastTransactionTime": %s.%s
-            }
-            """.formatted(epochSecond, microsPastSecond));
+        runner.enqueue(createJson(Double.toString(MICROS_TIMESTAMP_DOUBLE)));
         runner.run();
         runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_SUCCESS, 1);
 
         final Map<String, Object> results = getResults();
-        assertEquals("John Doe", results.get("name"));
-        assertEquals(50, results.get("age"));
         final Timestamp lastTransactionTime = (Timestamp) results.get("lasttransactiontime");
-        assertEquals(now, lastTransactionTime.toInstant());
+        assertEquals(INSTANT_MICROS_PRECISION, lastTransactionTime.toInstant());
     }
 
     @Test
     public void testWithDecimalTimestampUsingMicrosAsString() throws SQLException {
-        final Instant now = nowWithMicrosPrecision();
-        final long epochSecond = now.getEpochSecond();
-        final long microsPastSecond = now.getNano() / 1000;
-
-        runner.enqueue("""
-            {
-              "name": "John Doe",
-              "age": 50,
-              "lastTransactionTime": "%s.%s"
-            }
-            """.formatted(epochSecond, microsPastSecond));
+        runner.enqueue(createJson(Double.toString(MICROS_TIMESTAMP_DOUBLE)));
         runner.run();
         runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_SUCCESS, 1);
 
         final Map<String, Object> results = getResults();
-        assertEquals("John Doe", results.get("name"));
-        assertEquals(50, results.get("age"));
         final Timestamp lastTransactionTime = (Timestamp) results.get("lasttransactiontime");
-        assertEquals(now, lastTransactionTime.toInstant());
+        assertEquals(INSTANT_MICROS_PRECISION, lastTransactionTime.toInstant());
     }
 
 
@@ -305,8 +241,23 @@ public class PutDatabaseRecordIT {
                 }
             }
 
+            assertEquals("John Doe", resultsMap.get("name"));
+            assertEquals(50, resultsMap.get("age"));
+
             return resultsMap;
         }
     }
 
+    private String createJson(final long lastTransactionTime) {
+        return createJson(Long.toString(lastTransactionTime));
+    }
+
+    private String createJson(final String lastTransactionTime) {
+        return """
+            {
+              "name": "John Doe",
+              "age": 50,
+              "lastTransactionTime": "%s"
+            }""".formatted(lastTransactionTime);
+    }
 }

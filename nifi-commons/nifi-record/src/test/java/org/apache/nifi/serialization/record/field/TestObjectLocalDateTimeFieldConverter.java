@@ -27,73 +27,61 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestObjectLocalDateTimeFieldConverter {
+    private final long MILLIS_TIMESTAMP_LONG = 1707238288351L;
+    private final long MICROS_TIMESTAMP_LONG = 1707238288351567L;
+    private final String MICROS_TIMESTAMP_STRING = Long.toString(MICROS_TIMESTAMP_LONG);
+    private final double MICROS_TIMESTAMP_DOUBLE = ((double) MICROS_TIMESTAMP_LONG) / 1000000D;
+    private final long NANOS_AFTER_SECOND = 351567000L;
+    private final Instant INSTANT_MILLIS_PRECISION = Instant.ofEpochMilli(MILLIS_TIMESTAMP_LONG);
+    // Create an instant to represent the same time as the microsecond precision timestamp. We add nanoseconds after second but then have to subtract the milliseconds after the second that are already
+    // present in the MILLIS_TIMESTAMP_LONG value.
+    private final Instant INSTANT_MICROS_PRECISION = Instant.ofEpochMilli(MILLIS_TIMESTAMP_LONG).plusNanos(NANOS_AFTER_SECOND).minusMillis(MILLIS_TIMESTAMP_LONG % 1000);
+    private final LocalDateTime LOCAL_DATE_TIME_MILLIS_PRECISION = LocalDateTime.ofInstant(INSTANT_MILLIS_PRECISION, ZoneId.systemDefault());
+    private final LocalDateTime LOCAL_DATE_TIME_MICROS_PRECISION = LocalDateTime.ofInstant(INSTANT_MICROS_PRECISION, ZoneId.systemDefault());
+
+    private final ObjectLocalDateTimeFieldConverter converter = new ObjectLocalDateTimeFieldConverter();
+
 
     @Test
     public void testConvertTimestampMillis() {
-        final ObjectLocalDateTimeFieldConverter converter = new ObjectLocalDateTimeFieldConverter();
-        final long now = System.currentTimeMillis();
-        final Instant instant = Instant.ofEpochMilli(now);
-        final LocalDateTime expected = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
-
-        final LocalDateTime result = converter.convertField(now, Optional.empty(), "test");
-        assertEquals(expected, result);
-        assertEquals(now, result.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+        final LocalDateTime result = converter.convertField(MILLIS_TIMESTAMP_LONG, Optional.empty(), "test");
+        assertEquals(LOCAL_DATE_TIME_MILLIS_PRECISION, result);
     }
 
     @Test
     public void testConvertTimestampMicros() {
-        final ObjectLocalDateTimeFieldConverter converter = new ObjectLocalDateTimeFieldConverter();
-        final long now = System.currentTimeMillis();
-        final long withMicros =  now * 1000 + 567;
-
-        final LocalDateTime result = converter.convertField(withMicros, Optional.empty(), "test");
-        assertEquals(now, result.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+        final LocalDateTime result = converter.convertField(MICROS_TIMESTAMP_LONG, Optional.empty(), "test");
+        assertEquals(MILLIS_TIMESTAMP_LONG, result.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
 
         final Instant resultInstant = result.atZone(ZoneId.systemDefault()).toInstant();
-        final long expectedNanos = now % 1000 * 1_000_000 + 567_000;
-        assertEquals(expectedNanos, resultInstant.getNano());
+        assertEquals(NANOS_AFTER_SECOND, resultInstant.getNano());
     }
 
     @Test
     public void testDoubleAsEpochSeconds() {
-        final ObjectLocalDateTimeFieldConverter converter = new ObjectLocalDateTimeFieldConverter();
-        final long millis = System.currentTimeMillis();
-        final double seconds = millis / 1000.0;
-        final double withMicros =  seconds + 0.000567;
-
-        final LocalDateTime result = converter.convertField(withMicros, Optional.empty(), "test");
-        assertEquals(LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneId.systemDefault()).toLocalDate(), result.toLocalDate());
-        final double expectedNanos = (withMicros - (long) seconds) * 1_000_000_000;
-        assertEquals(expectedNanos, result.getNano(), 1000D);
+        final LocalDateTime result = converter.convertField(MICROS_TIMESTAMP_DOUBLE, Optional.empty(), "test");
+        assertEquals(LOCAL_DATE_TIME_MICROS_PRECISION, result);
+        assertEquals(NANOS_AFTER_SECOND, result.getNano(), 1D);
     }
 
     @Test
     public void testDoubleAsEpochSecondsAsString() {
-        final ObjectLocalDateTimeFieldConverter converter = new ObjectLocalDateTimeFieldConverter();
-        final long millis = System.currentTimeMillis();
-        final double seconds = millis / 1000.0;
-        final double withMicros =  seconds + 0.000567;
-
-        final LocalDateTime result = converter.convertField(Double.toString(withMicros), Optional.empty(), "test");
-        assertEquals(LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneId.systemDefault()).toLocalDate(), result.toLocalDate());
-        final double expectedNanos = (withMicros - (long) seconds) * 1_000_000_000;
-        assertEquals(expectedNanos, result.getNano(), 1000D);
+        final LocalDateTime result = converter.convertField(MICROS_TIMESTAMP_STRING, Optional.empty(), "test");
+        assertEquals(LOCAL_DATE_TIME_MICROS_PRECISION, result);
+        final double expectedNanos = 351567000L;
+        assertEquals(expectedNanos, result.getNano(), 1D);
     }
 
     @Test
     public void testWithDateFormatMillisPrecision() {
-        final ObjectLocalDateTimeFieldConverter converter = new ObjectLocalDateTimeFieldConverter();
         final long millis = System.currentTimeMillis();
         final LocalDateTime result = converter.convertField(millis, Optional.of("yyyy-MM-dd'T'HH:mm:ss.SSS"), "test");
         assertEquals(LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneId.systemDefault()), result);
     }
 
     @Test
-    public void testWIthDateFormatMicrosecondPrecision() {
-        final ObjectLocalDateTimeFieldConverter converter = new ObjectLocalDateTimeFieldConverter();
-        final long millis = System.currentTimeMillis();
-        final long micros = millis * 1000 + 567;
-        final LocalDateTime result = converter.convertField(micros, Optional.of("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"), "test");
-        assertEquals(LocalDateTime.ofInstant(Instant.ofEpochMilli(millis).plusNanos(567_000), ZoneId.systemDefault()), result);
+    public void testWithDateFormatMicrosecondPrecision() {
+        final LocalDateTime result = converter.convertField(MICROS_TIMESTAMP_LONG, Optional.of("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"), "test");
+        assertEquals(LOCAL_DATE_TIME_MICROS_PRECISION, result);
     }
 }

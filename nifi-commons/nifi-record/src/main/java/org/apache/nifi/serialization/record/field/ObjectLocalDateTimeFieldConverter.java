@@ -54,9 +54,9 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
         if (field instanceof final Number number) {
             // If value is a floating point number, we consider it as seconds since epoch plus a decimal part for fractions of a second.
             if (field instanceof Double || field instanceof Float) {
-                // Use long value as seconds; use everything after it as fractions of a second and multiply by 1_000_000_000 to get nanoseconds.
-                return toLocalDateTime(number.longValue(), (long) ((number.doubleValue() - number.longValue()) * 1_000_000_000));
+                return toLocalDateTime(number.doubleValue());
             }
+
             return toLocalDateTime(number.longValue());
         }
         if (field instanceof String) {
@@ -84,7 +84,7 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
         // If decimal, treat as a double and convert to seconds and nanoseconds.
         if (value.contains(".")) {
             final double number = Double.parseDouble(value);
-            return toLocalDateTime((long) number, (long) ((number - (long) number) * 1_000_000_000));
+            return toLocalDateTime(number);
         }
 
         // attempt to parse as a long value
@@ -94,6 +94,16 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
         } catch (final NumberFormatException e) {
             throw new FieldConversionException(LocalDateTime.class, value, fieldName, e);
         }
+    }
+
+    private LocalDateTime toLocalDateTime(final double secondsSinceEpoch) {
+        // Determine the number of micros past the second by subtracting the number of seconds from the decimal value and multiplying by 1 million.
+        final long micros = (long) (1_000_000 * (secondsSinceEpoch - (long) secondsSinceEpoch));
+        // Convert micros to nanos. Note that we perform this as a separate operation, rather than multiplying by 1_000,000,000 in order to avoid
+        // issues that occur with rounding at high precision.
+        final long nanos = micros * 1000L;
+
+        return toLocalDateTime((long) secondsSinceEpoch, nanos);
     }
 
     private LocalDateTime toLocalDateTime(final long epochSeconds, final long nanosPastSecond) {
