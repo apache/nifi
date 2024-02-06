@@ -30,7 +30,7 @@ export class Storage {
     private static readonly TWO_DAYS: number = Storage.MILLIS_PER_DAY * 2;
 
     constructor() {
-        for(let i = 0; i < localStorage.length; i++) {
+        for (let i = 0; i < localStorage.length; i++) {
             try {
                 // get the next item
                 const key: string | null = localStorage.key(i);
@@ -40,6 +40,7 @@ export class Storage {
                     this.getItem(key);
                 }
             } catch (e) {
+                //do nothing
             }
         }
     }

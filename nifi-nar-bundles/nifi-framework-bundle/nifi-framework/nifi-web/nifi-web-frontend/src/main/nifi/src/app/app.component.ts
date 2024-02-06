@@ -52,11 +52,13 @@ export class AppComponent {
         // If dark mode is enabled then directly switch to the dark-theme
         this.themingService.toggleTheme(darkModeOn, theme);
 
-        // Watch for changes of the preference
-        window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
-            theme = this.storage.getItem('theme');
-            const newColorScheme = e.matches ? 'dark' : 'light';
-            this.themingService.toggleTheme(newColorScheme === 'dark', theme);
-        });
+        if (window.matchMedia) {
+            // Watch for changes of the preference
+            window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
+                theme = this.storage.getItem('theme');
+                const newColorScheme = e.matches ? 'dark' : 'light';
+                this.themingService.toggleTheme(newColorScheme === 'dark', theme);
+            });
+        }
     }
 }

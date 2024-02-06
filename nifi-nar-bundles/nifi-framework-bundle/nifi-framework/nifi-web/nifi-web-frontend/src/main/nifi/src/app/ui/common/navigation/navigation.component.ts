@@ -72,12 +72,14 @@ export class Navigation {
         this.darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         this.theme = this.storage.getItem('theme');
 
-        // Watch for changes of the preference
-        window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
-            const newColorScheme = e.matches ? 'dark' : 'light';
-            this.darkModeOn = newColorScheme === 'dark';
-            this.theme = this.storage.getItem('theme');
-        });
+        if (window.matchMedia) {
+            // Watch for changes of the preference
+            window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
+                const newColorScheme = e.matches ? 'dark' : 'light';
+                this.darkModeOn = newColorScheme === 'dark';
+                this.theme = this.storage.getItem('theme');
+            });
+        }
     }
 
     allowLogin(user: CurrentUser): boolean {

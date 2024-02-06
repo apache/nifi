@@ -65,7 +65,9 @@ export class OperationControl {
         private storage: Storage
     ) {
         try {
-            const item: { [key: string]: boolean } | null = this.storage.getItem(OperationControl.CONTROL_VISIBILITY_KEY);
+            const item: { [key: string]: boolean } | null = this.storage.getItem(
+                OperationControl.CONTROL_VISIBILITY_KEY
+            );
             if (item) {
                 this.operationCollapsed = item[OperationControl.OPERATION_KEY] === false;
                 this.store.dispatch(setOperationCollapsed({ operationCollapsed: this.operationCollapsed }));

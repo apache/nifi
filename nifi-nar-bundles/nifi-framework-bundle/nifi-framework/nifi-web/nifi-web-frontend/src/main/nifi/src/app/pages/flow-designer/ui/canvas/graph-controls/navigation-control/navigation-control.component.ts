@@ -47,7 +47,9 @@ export class NavigationControl {
         private storage: Storage
     ) {
         try {
-            const item: { [key: string]: boolean } | null = this.storage.getItem(NavigationControl.CONTROL_VISIBILITY_KEY);
+            const item: { [key: string]: boolean } | null = this.storage.getItem(
+                NavigationControl.CONTROL_VISIBILITY_KEY
+            );
             if (item) {
                 this.navigationCollapsed = item[NavigationControl.NAVIGATION_KEY] === false;
                 this.store.dispatch(setNavigationCollapsed({ navigationCollapsed: this.navigationCollapsed }));
