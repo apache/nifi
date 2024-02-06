@@ -177,6 +177,7 @@ $appFontPath: '~roboto-fontface/fonts';
 
     // Get the color palette from the color-config.
     $primary-palette: map.get($color-config, 'primary');
+    $accent-palette: map.get($color-config, 'accent');
     $warn-palette: map.get($color-config, 'warn');
     $canvas-primary-palette: map.get($canvas-color-config, 'primary');
     $canvas-accent-palette: map.get($canvas-color-config, 'accent');
@@ -185,9 +186,9 @@ $appFontPath: '~roboto-fontface/fonts';
     $primary-palette-50: mat.get-color-from-palette($primary-palette, 50);
     $primary-palette-200: mat.get-color-from-palette($primary-palette, 200);
     $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
-    $primary-palette-A100: mat.get-color-from-palette($primary-palette, 'A100');
-    $primary-palette-A200: mat.get-color-from-palette($primary-palette, 'A200');
-    $primary-palette-A400: mat.get-color-from-palette($primary-palette, 'A400');
+    $accent-palette-A100: mat.get-color-from-palette($accent-palette, 'A100');
+    $accent-palette-A200: mat.get-color-from-palette($accent-palette, 'A200');
+    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
     $canvas-primary-palette-50: mat.get-color-from-palette($canvas-primary-palette, 50);
     $canvas-primary-palette-200: mat.get-color-from-palette($canvas-primary-palette, 200);
     $canvas-primary-palette-400: mat.get-color-from-palette($canvas-primary-palette, 400);
@@ -201,12 +202,12 @@ $appFontPath: '~roboto-fontface/fonts';
     $warn-palette-A400: mat.get-color-from-palette($warn-palette, 'A400');
 
     a {
-        color: $primary-palette-A400;
+        color: $accent-palette-A400;
         text-decoration-color: $primary-palette-200;
     }
 
     a:hover {
-        text-decoration-color: $primary-palette-A400;
+        text-decoration-color: $accent-palette-A400;
     }
 
     .tooltip {
@@ -228,8 +229,8 @@ $appFontPath: '~roboto-fontface/fonts';
     }
 
     .enabled {
-        color: $primary-palette-A200 !important;
-        fill: $primary-palette-A200 !important;
+        color: $accent-palette-A200 !important;
+        fill: $accent-palette-A200 !important;
         text-shadow: 0 0 4px $canvas-primary-palette-900;
     }
 
@@ -259,8 +260,8 @@ $appFontPath: '~roboto-fontface/fonts';
     }
 
     .transmitting {
-        color: $primary-palette-A200 !important;
-        fill: $primary-palette-A200 !important;
+        color: $accent-palette-A200 !important;
+        fill: $accent-palette-A200 !important;
         text-shadow: 0 0 4px $canvas-primary-palette-900;
     }
 
@@ -291,8 +292,8 @@ $appFontPath: '~roboto-fontface/fonts';
     }
 
     .zero {
-        color: $primary-palette-A100 !important;
-        fill: $primary-palette-A100 !important;
+        color: $accent-palette-A100 !important;
+        fill: $accent-palette-A100 !important;
         text-shadow: none !important;
     }
 
@@ -305,11 +306,11 @@ $appFontPath: '~roboto-fontface/fonts';
     button.nifi-button {
         border: 1px solid $primary-palette-200;
         background-color: $primary-palette-50;
-        color: $primary-palette-A400;
+        color: $accent-palette-A400;
     }
 
     button.nifi-button:hover {
-        border-color: $primary-palette-A400;
+        border-color: $accent-palette-A400;
     }
 
     button:disabled {

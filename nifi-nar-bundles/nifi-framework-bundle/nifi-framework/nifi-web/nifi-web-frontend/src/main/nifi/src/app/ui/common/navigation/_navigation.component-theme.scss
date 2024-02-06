@@ -25,12 +25,13 @@
 
     // Get the color palette from the color-config.
     $primary-palette: map.get($color-config, 'primary');
+    $accent-palette: map.get($color-config, 'accent');
     $canvas-primary-palette: map.get($canvas-color-config, 'primary');
 
     // Get hues from palette
     $primary-palette-100: mat.get-color-from-palette($primary-palette, 100);
     $primary-palette-300: mat.get-color-from-palette($primary-palette, 300);
-    $primary-palette-A400: mat.get-color-from-palette($primary-palette, 'A400');
+    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
     $canvas-primary-palette-50: mat.get-color-from-palette($canvas-primary-palette, 50);
     $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
 
@@ -38,7 +39,7 @@
         background-color: $primary-palette-300;
 
         .icon {
-            color: $primary-palette-A400;
+            color: $accent-palette-A400;
         }
 
         .current-user {
@@ -54,7 +55,7 @@
     button.global-menu-item {
         .fa,
         .icon {
-            color: $primary-palette-A400;
+            color: $accent-palette-A400;
         }
     }
 }

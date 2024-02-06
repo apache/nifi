@@ -33,7 +33,8 @@
     $canvas-primary-palette-100: mat.get-color-from-palette($canvas-primary-palette, 100);
     $canvas-primary-palette-200: mat.get-color-from-palette($canvas-primary-palette, 200);
     $canvas-primary-palette-300: mat.get-color-from-palette($canvas-primary-palette, 300);
-    $canvas-primary-palette-contrast-900: mat.get-color-from-palette($canvas-primary-palette, 'contrast-900');
+    $canvas-primary-palette-contrast-200: mat.get-color-from-palette($canvas-primary-palette, '200-contrast');
+    $canvas-primary-palette-contrast-900: mat.get-color-from-palette($canvas-primary-palette, '900-contrast');
 
     .property-editor {
         @include mat.button-density(-1);
@@ -48,6 +49,10 @@
                     color: $primary-palette-100;
                     border: 1px solid $primary-palette-300;
                 }
+            }
+
+            .CodeMirror-code {
+                color: $canvas-primary-palette-contrast-200;
             }
 
             /*
