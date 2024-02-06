@@ -92,7 +92,7 @@ final class BufferedStatusHistoryStorage implements StatusHistoryStorage {
 
         LOGGER.debug("Flushing shutdown task cancellation status: completed [{}] failed [{}]", cancelCompleted, cancelFailed);
         final List<Runnable> tasks = scheduledExecutorService.shutdownNow();
-        LOGGER.debug(" Scheduled Task Service shutdown remaining tasks [{}]", tasks.size());
+        LOGGER.debug("Scheduled Task Service shutdown remaining tasks [{}]", tasks.size());
 
     }
 

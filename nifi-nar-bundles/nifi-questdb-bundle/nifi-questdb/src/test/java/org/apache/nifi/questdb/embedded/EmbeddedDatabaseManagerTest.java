@@ -227,8 +227,7 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
     }
 
     @Test
-    @DisabledOnOs(OS.WINDOWS)
-    // This testcase cannot be reproduced under Windows using Junit
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "This testcase cannot be reproduced under Windows using Junit")
     public void testDatabaseRestorationAfterCorruptedFiles() throws DatabaseException, IOException {
         final DatabaseManager testSubject1 = getTestSubject();
         final Client client1 = testSubject1.acquireClient();
@@ -259,16 +258,18 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
         // After successful recreation of the database, the manager does not fall back to "dummy answers" behaviour
         assertEquals(3, result3.size());
 
-        final List<File> backup = Arrays.asList(new File(testDbPathDirectory.toFile().getParentFile(), "questDbBackup").listFiles(file -> file.isDirectory() && file.getName().startsWith("backup_")));
+        final File backupDirectory = new File(testDbPathDirectory.toFile().getParentFile(), "questDbBackup");
+        final List<File> backup = Arrays.asList(backupDirectory.listFiles(file -> file.isDirectory() && file.getName().startsWith("backup_")));
         assertFalse(backup.isEmpty());
 
         client2.disconnect();
         testSubject2.close();
+
+        FileUtils.deleteFile(backupDirectory, true);
     }
 
     @Test
-    @DisabledOnOs(OS.WINDOWS)
-    // This testcase cannot be reproduced under Windows using Junit
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "This testcase cannot be reproduced under Windows using Junit")
     public void testWhenBackupIsUnsuccessfulManagerRemovesItAndContinuesWork() throws DatabaseException, IOException {
         final DatabaseManager testSubject1 = getTestSubjectBuilder().backupLocation(NON_EXISTING_PLACE).build();
         final Client client1 = testSubject1.acquireClient();
@@ -295,8 +296,7 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
     }
 
     @Test
-    @DisabledOnOs(OS.WINDOWS)
-    // This testcase cannot be reproduced under Windows using Junit
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "This testcase cannot be reproduced under Windows using Junit")
     public void testWhenRestorationIsUnsuccessfulManagerFallsBackToDummyAnswers() throws DatabaseException, IOException {
         final DatabaseManager testSubject1 = getTestSubjectBuilder().backupLocation(NON_EXISTING_PLACE).build();
         final Client client1 = testSubject1.acquireClient();

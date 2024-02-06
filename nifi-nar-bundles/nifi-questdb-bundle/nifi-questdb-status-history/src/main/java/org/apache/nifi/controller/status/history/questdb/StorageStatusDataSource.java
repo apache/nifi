@@ -27,10 +27,10 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-final class StorateStatusDataSource implements InsertRowDataSource {
+final class StorageStatusDataSource implements InsertRowDataSource {
     private final Iterator<StorageStatusStatistic> statuses;
 
-    private StorateStatusDataSource(final Iterator<StorageStatusStatistic> statuses) {
+    private StorageStatusDataSource(final Iterator<StorageStatusStatistic> statuses) {
         this.statuses = statuses;
     }
 
@@ -58,7 +58,7 @@ final class StorateStatusDataSource implements InsertRowDataSource {
             nodeStatus.getStatus().getProvenanceRepositories().forEach(storageStatus -> statuses.add(new StorageStatusStatistic(storageStatus, StorageStatusType.PROVENANCE, captured)));
         }
 
-        return new StorateStatusDataSource(statuses.iterator());
+        return new StorageStatusDataSource(statuses.iterator());
     }
 
     private static class StorageStatusStatistic {

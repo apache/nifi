@@ -114,7 +114,7 @@ final class QuestDbStatusHistoryStorage implements StatusHistoryStorage {
     @Override
     public void storeNodeStatuses(final Collection<CapturedStatus<NodeStatus>> statuses) {
         store(TABLE_NAME_NODE_STATUS, EmbeddedQuestDbStatusHistoryRepositoryDefinitions.getNodeStatusDataSource(statuses));
-        store(TABLE_NAME_STORAGE_STATUS, StorateStatusDataSource.getInstance(statuses));
+        store(TABLE_NAME_STORAGE_STATUS, StorageStatusDataSource.getInstance(statuses));
     }
 
     @Override
