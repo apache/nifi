@@ -285,31 +285,61 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     }
 
     newPropertyClicked(): void {
-        const existingProperties: string[] = this.dataSource.data.map((item) => item.descriptor.name);
+        // filter out deleted properties in case the user needs to re-add one
+        const existingProperties: string[] = this.dataSource.data
+            .filter((item) => !item.deleted)
+            .map((item) => item.descriptor.name);
+
+        // create the new property
         this.createNewProperty(existingProperties, this.supportsSensitiveDynamicProperties)
             .pipe(take(1))
             .subscribe((property) => {
                 const currentPropertyItems: PropertyItem[] = this.dataSource.data;
 
-                const i: number = currentPropertyItems.length;
-                const item: PropertyItem = {
-                    ...property,
-                    id: i,
-                    triggerEdit: true,
-                    deleted: false,
-                    added: true,
-                    dirty: true,
-                    type: property.descriptor.required
-                        ? 'required'
-                        : property.descriptor.dynamic
-                          ? 'userDefined'
-                          : 'optional'
-                };
+                const itemIndex: number = currentPropertyItems.findIndex(
+                    (existingItem: PropertyItem) => existingItem.property == property.property
+                );
+                if (itemIndex > -1) {
+                    const currentItem: PropertyItem = currentPropertyItems[itemIndex];
+                    const updatedItem: PropertyItem = {
+                        ...currentItem,
+                        ...property,
+                        triggerEdit: true,
+                        deleted: false,
+                        added: true,
+                        dirty: true,
+                        type: property.descriptor.required
+                            ? 'required'
+                            : property.descriptor.dynamic
+                              ? 'userDefined'
+                              : 'optional'
+                    };
 
-                this.itemLookup.set(property.property, item);
+                    this.itemLookup.set(property.property, updatedItem);
 
-                const propertyItems: PropertyItem[] = [...currentPropertyItems, item];
-                this.setPropertyItems(propertyItems);
+                    // if the user had previously deleted the property, replace the matching property item
+                    currentPropertyItems[itemIndex] = updatedItem;
+                } else {
+                    const i: number = currentPropertyItems.length;
+                    const item: PropertyItem = {
+                        ...property,
+                        id: i,
+                        triggerEdit: true,
+                        deleted: false,
+                        added: true,
+                        dirty: true,
+                        type: property.descriptor.required
+                            ? 'required'
+                            : property.descriptor.dynamic
+                              ? 'userDefined'
+                              : 'optional'
+                    };
+
+                    this.itemLookup.set(property.property, item);
+
+                    // if this is a new property, add it to the list
+                    this.setPropertyItems([...currentPropertyItems, item]);
+                }
 
                 this.handleChanged();
             });

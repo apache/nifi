@@ -163,7 +163,12 @@ export class NfEditor implements OnDestroy {
             mode: this.mode,
             lineNumbers: true,
             matchBrackets: true,
-            extraKeys: { 'Ctrl-Space': 'autocomplete' }
+            extraKeys: {
+                'Ctrl-Space': 'autocomplete',
+                Enter: () => {
+                    this.okClicked();
+                }
+            }
         };
     }
 
