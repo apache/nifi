@@ -173,7 +173,6 @@ export class Search implements OnInit {
     backdropClicked() {
         this.searchingResultsVisible = false;
         this.searchForm.get('searchBar')?.setValue('');
-        this.searchInputVisible = false;
 
         this.processorResults = [];
         this.connectionResults = [];
