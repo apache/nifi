@@ -19,6 +19,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { NoRegistryClientsDialog } from './no-registry-clients-dialog.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { RouterModule } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
 
 describe('NoRegistryClientsDialog', () => {
     let component: NoRegistryClientsDialog;
@@ -26,7 +28,7 @@ describe('NoRegistryClientsDialog', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [NoRegistryClientsDialog],
+            imports: [NoRegistryClientsDialog, RouterModule, RouterTestingModule],
             providers: [
                 {
                     provide: MAT_DIALOG_DATA,
