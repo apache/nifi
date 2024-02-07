@@ -461,7 +461,7 @@ $appFontPath: '~roboto-fontface/fonts';
 
 // generate light mode nifi stylesheets
 @include mat.all-component-themes($material-theme-light);
-@include app-component.nifi-theme($material-theme-light);
+@include app-component.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include nifi-colors($material-theme-light, $nifi-canvas-theme-light);
 @include listing-table.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include access-policies.nifi-theme($material-theme-light);
@@ -510,7 +510,7 @@ $appFontPath: '~roboto-fontface/fonts';
     @include mat.all-component-colors($material-theme-dark);
 
     // generate dark mode nifi stylesheets
-    @include app-component.nifi-theme($material-theme-dark);
+    @include app-component.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
     @include nifi-colors($material-theme-dark, $nifi-canvas-theme-dark);
     @include listing-table.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
     @include access-policies.nifi-theme($material-theme-dark);
