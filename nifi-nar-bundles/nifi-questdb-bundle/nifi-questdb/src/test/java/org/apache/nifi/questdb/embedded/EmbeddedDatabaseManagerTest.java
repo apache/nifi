@@ -100,13 +100,19 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
         final Client client = testSubject.acquireClient();
         client.insert(EVENT_TABLE_NAME, QuestDbTestUtil.getEventTableDataSource(testData));
 
-        // The rollover runs in every 5 seconds
-        Thread.sleep(TimeUnit.SECONDS.toMillis(6));
+        final long pollTimeoutDuration = 3000;
+        final long pollTimeout = System.currentTimeMillis() + pollTimeoutDuration;
+        final int expectedNumberOfResults = 1;
+        int numberOfResults;
 
-        final List<Event> result = client.query(SELECT_QUERY, RequestMapping.getResultProcessor(QuestDbTestUtil.EVENT_TABLE_REQUEST_MAPPING));
+        do {
+            Thread.sleep(100);
+            final List<Event> result = client.query(SELECT_QUERY, RequestMapping.getResultProcessor(QuestDbTestUtil.EVENT_TABLE_REQUEST_MAPPING));
+            numberOfResults = result.size();
+        } while (numberOfResults != expectedNumberOfResults || pollTimeout > System.currentTimeMillis());
+
         testSubject.close();
-
-        assertEquals(1, result.size());
+        assertEquals(expectedNumberOfResults, numberOfResults);
     }
 
     @Test
@@ -322,6 +328,12 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
         assertEquals(0, result2.size());
 
         testDbPathDirectory.toFile().setWritable(true);
+
+        client2.disconnect();
+        testSubject2.close();
+
+        final File backupDirectory = new File(testDbPathDirectory.toFile().getParentFile(), "questDbBackup");
+        FileUtils.deleteFile(backupDirectory, true);
     }
 
     @Test
@@ -375,7 +387,7 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
         return EmbeddedDatabaseManagerBuilder
                 .builder(persistLocation)
                 .lockAttemptTime(50, TimeUnit.MILLISECONDS)
-                .rolloverFrequency(5, TimeUnit.SECONDS)
+                .rolloverFrequency(1, TimeUnit.SECONDS)
                 .numberOfAttemptedRetries(2)
                 .addTable(EVENT_TABLE_NAME, CREATE_EVENT_TABLE, RolloverStrategy.deleteOld(DAYS_TO_KEEP_EVENT))
                 .addTable(EVENT2_TABLE_NAME, CREATE_EVENT2_TABLE, RolloverStrategy.keep());
