@@ -1206,6 +1206,14 @@
              */
             updateBulletins: function (response) {
                 this.bulletins.update(response);
+            },
+
+            /**
+             * Reloads flow analysis rules
+             *
+             */
+            reloadFlowPolicies: function () {
+                this.flowAnalysis.loadFlowPolicies();
             }
         }
 
