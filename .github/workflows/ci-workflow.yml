@@ -97,7 +97,7 @@ jobs:
           # Cache Maven modules using a cache key different from setup-java steps
           key: ${{ runner.os }}-maven-static-analysis-${{ hashFiles('**/pom.xml') }}
       - name: Set up Java 21
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '21'
@@ -145,7 +145,7 @@ jobs:
             **/node_modules
           key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
       - name: Set up Java 21
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'corretto'
           java-version: '21'
@@ -188,7 +188,7 @@ jobs:
 
   macos-build-jp:
     timeout-minutes: 150
-    runs-on: macos-latest
+    runs-on: macos-14
     name: MacOS Zulu JDK 21 JP
     steps:
       - name: System Information
@@ -207,7 +207,7 @@ jobs:
             **/node_modules
           key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
       - name: Set up Java 21
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '21'
@@ -274,7 +274,7 @@ jobs:
             **\node_modules
           key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
       - name: Set up Java 21
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '21'
