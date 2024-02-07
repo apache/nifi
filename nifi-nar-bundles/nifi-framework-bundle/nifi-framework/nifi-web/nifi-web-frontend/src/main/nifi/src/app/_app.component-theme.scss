@@ -24,10 +24,12 @@
 
     // Get the color palette from the color-config.
     $primary-palette: map.get($color-config, 'primary');
+    $accent-palette: map.get($color-config, 'accent');
 
     // Get hues from palette
-    $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
     $primary-palette-300: mat.get-color-from-palette($primary-palette, 300);
+    $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
+    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
 
     .splash {
         background-color: $primary-palette-500;
@@ -35,5 +37,9 @@
 
     .nifi-snackbar .mat-mdc-button:not(:disabled) .mdc-button__label {
         color: $primary-palette-300;
+    }
+
+    .nifi-snackbar .mat-mdc-button:hover {
+        border-color: $accent-palette-A400;
     }
 }
