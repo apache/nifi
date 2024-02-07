@@ -99,7 +99,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
       - name: Set up Java Zulu 21
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: 21
