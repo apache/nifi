@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.c2.client.service;
 
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -21,6 +22,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Collections;
@@ -169,14 +171,20 @@ public class C2HeartbeatFactory {
                     logger.debug("Instance has multiple interfaces.  Generated information may be non-deterministic.");
                 }
 
+                boolean networkInfoUnset = true;
                 for (NetworkInterface networkInterface : operationIfaces) {
                     Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
-                    if (inetAddresses.hasMoreElements()) {
+                    while (inetAddresses.hasMoreElements()) {
                         InetAddress inetAddress = inetAddresses.nextElement();
-                        networkInfo.setDeviceId(networkInterface.getName());
-                        networkInfo.setHostname(inetAddress.getHostName());
-                        networkInfo.setIpAddress(inetAddress.getHostAddress());
-                        break;
+                        // IPv4 address is preferred over IPv6 as it provides more readable information for the user
+                        if (inetAddress instanceof Inet4Address) {
+                            updateNetworkInfo(networkInfo, networkInterface, inetAddress);
+                            return networkInfo;
+                        }
+                        if (networkInfoUnset) {
+                            updateNetworkInfo(networkInfo, networkInterface, inetAddress);
+                            networkInfoUnset = false;
+                        }
                     }
                 }
             }
@@ -184,6 +192,12 @@ public class C2HeartbeatFactory {
             logger.error("Network Interface processing failed", e);
         }
         return networkInfo;
+    }
+
+    private void updateNetworkInfo(NetworkInfo networkInfo, NetworkInterface networkInterface, InetAddress inetAddress) {
+        networkInfo.setDeviceId(networkInterface.getName());
+        networkInfo.setHostname(inetAddress.getHostName());
+        networkInfo.setIpAddress(inetAddress.getHostAddress());
     }
 
     private String getDeviceIdentifier(NetworkInfo networkInfo) {
