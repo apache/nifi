@@ -90,19 +90,7 @@ public class TestJettyWebSocketServer {
         final AtomicBoolean connected = new AtomicBoolean();
 
         final WebSocketClient client = new WebSocketClient();
-        final Session.Listener.AutoDemanding adapter = new AbstractAutoDemanding() {
-            @Override
-            public void onWebSocketOpen(Session session) {
-                super.onWebSocketOpen(session);
-                connected.set(true);
-            }
-
-            @Override
-            public void onWebSocketText(final String message) {
-
-            }
-        };
-
+        final Session.Listener.AutoDemanding adapter = new TrackedAutoDemandingListener(connected);
 
         try {
             client.start();
@@ -122,5 +110,24 @@ public class TestJettyWebSocketServer {
 
     private URI getWebSocketUri(final int port) {
         return URI.create(String.format("ws://localhost:%d", port));
+    }
+
+    public static class TrackedAutoDemandingListener extends AbstractAutoDemanding {
+        private final AtomicBoolean connected;
+
+        public TrackedAutoDemandingListener(final AtomicBoolean connected) {
+            this.connected = connected;
+        }
+
+        @Override
+        public void onWebSocketOpen(Session session) {
+            super.onWebSocketOpen(session);
+            connected.set(true);
+        }
+
+        @Override
+        public void onWebSocketText(final String message) {
+
+        }
     }
 }
