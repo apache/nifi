@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, inject, Input, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { initialState } from '../../../../state/flow/flow.reducer';
 import { debounceTime, filter, switchMap, tap } from 'rxjs';
@@ -70,6 +70,7 @@ export class Search implements OnInit {
         overlayY: 'top'
     };
     private position: ConnectionPositionPair = new ConnectionPositionPair(this.originPos, this.overlayPos, 0, 2);
+    private destroyRef: DestroyRef = inject(DestroyRef);
     public positions: ConnectionPositionPair[] = [this.position];
 
     searchForm: FormGroup;
@@ -116,6 +117,7 @@ export class Search implements OnInit {
         this.searchForm
             .get('searchBar')
             ?.valueChanges.pipe(
+                takeUntilDestroyed(this.destroyRef),
                 filter((data) => data?.trim().length > 0),
                 debounceTime(500),
                 tap(() => (this.searching = true)),

@@ -28,6 +28,7 @@
     $accent-palette: map.get($color-config, 'accent');
     $warn-palette: map.get($color-config, 'warn');
     $canvas-primary-palette: map.get($canvas-color-config, 'primary');
+    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
 
     // Get hues from palette
     $primary-palette-300: mat.get-color-from-palette($primary-palette, 300);
@@ -35,7 +36,7 @@
     $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
     $warn-palette-500: mat.get-color-from-palette($warn-palette, 500);
     $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
-    $accent-palette-500: mat.get-color-from-palette($canvas-accent-palette, 500);
+    $canvas-accent-palette-500: mat.get-color-from-palette($canvas-accent-palette, 500);
 
     .splash {
         background-color: $primary-palette-500;
@@ -57,6 +58,6 @@
     }
 
     .fa.fa-check.complete {
-        color: $accent-palette-500;
+        color: $canvas-accent-palette-500;
     }
 }

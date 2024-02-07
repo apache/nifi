@@ -17,7 +17,7 @@
 
 <div class="parameter-table listing-table flex gap-x-3">
     <div class="flex flex-col gap-y-3" style="flex-grow: 3">
-        <div class="flex justify-end items-center">
+        <div class="flex justify-end items-center" *ngIf="canAddParameters">
             <button class="nifi-button" type="button" (click)="newParameterClicked()">
                 <i class="fa fa-plus"></i>
             </button>

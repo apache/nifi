@@ -30,10 +30,16 @@ import { EditParameterContextRequest, ParameterContextEntity } from '../../../st
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Client } from '../../../../../service/client.service';
 import { ParameterTable } from '../parameter-table/parameter-table.component';
-import { Parameter, ParameterContextUpdateRequestEntity, ParameterEntity } from '../../../../../state/shared';
+import {
+    Parameter,
+    ParameterContextUpdateRequestEntity,
+    ParameterEntity,
+    ParameterProviderConfiguration
+} from '../../../../../state/shared';
 import { ProcessGroupReferences } from '../process-group-references/process-group-references.component';
 import { ParameterContextInheritance } from '../parameter-context-inheritance/parameter-context-inheritance.component';
 import { ParameterReferences } from '../../../../../ui/common/parameter-references/parameter-references.component';
+import { RouterLink } from '@angular/router';
 
 @Component({
     selector: 'edit-parameter-context',
@@ -56,7 +62,8 @@ import { ParameterReferences } from '../../../../../ui/common/parameter-referenc
         ParameterTable,
         ProcessGroupReferences,
         ParameterContextInheritance,
-        ParameterReferences
+        ParameterReferences,
+        RouterLink
     ],
     styleUrls: ['./edit-parameter-context.component.scss']
 })
@@ -72,6 +79,7 @@ export class EditParameterContext {
 
     editParameterContextForm: FormGroup;
     isNew: boolean;
+    parameterProvider: ParameterProviderConfiguration | null = null;
 
     parameters!: ParameterEntity[];
 
@@ -91,6 +99,9 @@ export class EditParameterContext {
                     request.parameterContext.component.inheritedParameterContexts
                 )
             });
+            if (request.parameterContext.component.parameterProviderConfiguration) {
+                this.parameterProvider = request.parameterContext.component.parameterProviderConfiguration.component;
+            }
         } else {
             this.isNew = true;
 
@@ -152,5 +163,9 @@ export class EditParameterContext {
 
             this.editParameterContext.next(payload);
         }
+    }
+
+    getParameterProviderLink(parameterProvider: ParameterProviderConfiguration): string[] {
+        return ['/settings', 'parameter-providers', parameterProvider.parameterProviderId];
     }
 }

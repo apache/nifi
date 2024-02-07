@@ -83,7 +83,12 @@
                             (click)="$event.stopPropagation()"
                             [routerLink]="getPolicyLink(item)"
                             title="Access Policies"></div>
-                        <!-- TODO go to parameter provider -->
+                        <div
+                            class="pointer fa fa-long-arrow-right"
+                            *ngIf="canGoToParameterProvider(item)"
+                            (click)="$event.stopPropagation()"
+                            [routerLink]="getParameterProviderLink(item)"
+                            title="Go to Parameter Provider"></div>
                     </div>
                 </td>
             </ng-container>

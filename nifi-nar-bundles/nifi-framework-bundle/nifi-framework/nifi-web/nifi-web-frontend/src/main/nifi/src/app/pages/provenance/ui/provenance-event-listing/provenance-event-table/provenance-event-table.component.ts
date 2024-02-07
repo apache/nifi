@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, EventEmitter, inject, Input, Output, ViewChild } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
@@ -37,6 +37,7 @@ import { Lineage, LineageRequest } from '../../../state/lineage';
 import { LineageComponent } from './lineage/lineage.component';
 import { GoToProvenanceEventSourceRequest, ProvenanceEventRequest } from '../../../state/provenance-event-listing';
 import { MatSliderModule } from '@angular/material/slider';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'provenance-event-table',
@@ -152,6 +153,7 @@ export class ProvenanceEventTable implements AfterViewInit {
     protected readonly TextTip = TextTip;
     protected readonly BulletinsTip = BulletinsTip;
     protected readonly ValidationErrorsTip = ValidationErrorsTip;
+    private destroyRef: DestroyRef = inject(DestroyRef);
 
     // TODO - conditionally include the cluster column
     displayedColumns: string[] = [
@@ -202,17 +204,20 @@ export class ProvenanceEventTable implements AfterViewInit {
 
         this.filterForm
             .get('filterTerm')
-            ?.valueChanges.pipe(debounceTime(500))
+            ?.valueChanges.pipe(debounceTime(500), takeUntilDestroyed(this.destroyRef))
             .subscribe((filterTerm: string) => {
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
                 this.filterApplied = filterTerm.length > 0;
                 this.applyFilter(filterTerm, filterColumn);
             });
 
-        this.filterForm.get('filterColumn')?.valueChanges.subscribe((filterColumn: string) => {
-            const filterTerm = this.filterForm.get('filterTerm')?.value;
-            this.applyFilter(filterTerm, filterColumn);
-        });
+        this.filterForm
+            .get('filterColumn')
+            ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((filterColumn: string) => {
+                const filterTerm = this.filterForm.get('filterTerm')?.value;
+                this.applyFilter(filterTerm, filterColumn);
+            });
     }
 
     updateSort(sort: Sort): void {

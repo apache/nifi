@@ -22,6 +22,7 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { ParameterContextEntity } from '../../../state/parameter-context-listing';
 import { FlowConfiguration } from '../../../../../state/flow-configuration';
 import { CurrentUser } from '../../../../../state/current-user';
+import { ParameterProviderConfigurationEntity } from '../../../../../state/shared';
 
 @Component({
     selector: 'parameter-context-table',
@@ -66,7 +67,11 @@ export class ParameterContextTable {
     }
 
     formatProvider(entity: ParameterContextEntity): string {
-        return '';
+        const paramProvider = entity.component.parameterProviderConfiguration;
+        if (!this.canRead(entity) || !paramProvider) {
+            return '';
+        }
+        return `${paramProvider.component.parameterGroupName} from ${paramProvider.component.parameterProviderName}`;
     }
 
     formatDescription(entity: ParameterContextEntity): string {
@@ -92,6 +97,17 @@ export class ParameterContextTable {
 
     canManageAccessPolicies(): boolean {
         return this.flowConfiguration.supportsManagedAuthorizer && this.currentUser.tenantsPermissions.canRead;
+    }
+
+    canGoToParameterProvider(entity: ParameterContextEntity): boolean {
+        return !!entity.component.parameterProviderConfiguration;
+    }
+
+    getParameterProviderLink(entity: ParameterContextEntity): string[] {
+        if (!entity.component.parameterProviderConfiguration) {
+            return [];
+        }
+        return ['/settings', 'parameter-providers', entity.component.parameterProviderConfiguration.id];
     }
 
     getPolicyLink(entity: ParameterContextEntity): string[] {

@@ -594,3 +594,15 @@ export interface CreateControllerServiceRequest {
 export interface ControllerServiceCreator {
     createControllerService(createControllerService: CreateControllerServiceRequest): Observable<any>;
 }
+
+export interface ParameterProviderConfiguration {
+    parameterGroupName: string;
+    parameterProviderId: string;
+    parameterProviderName: string;
+    synchronized: boolean;
+}
+
+export interface ParameterProviderConfigurationEntity {
+    id: string;
+    component: ParameterProviderConfiguration;
+}

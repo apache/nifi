@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, Input } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, inject, Input } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -75,6 +75,7 @@ export class ComponentStateDialog implements AfterViewInit {
     totalEntries = 0;
     filteredEntries = 0;
     partialResults = false;
+    private destroyRef: DestroyRef = inject(DestroyRef);
 
     constructor(
         private store: Store<ComponentStateState>,
@@ -116,7 +117,7 @@ export class ComponentStateDialog implements AfterViewInit {
     ngAfterViewInit(): void {
         this.filterForm
             .get('filterTerm')
-            ?.valueChanges.pipe(debounceTime(500))
+            ?.valueChanges.pipe(debounceTime(500), takeUntilDestroyed(this.destroyRef))
             .subscribe((filterTerm: string) => {
                 this.applyFilter(filterTerm);
             });

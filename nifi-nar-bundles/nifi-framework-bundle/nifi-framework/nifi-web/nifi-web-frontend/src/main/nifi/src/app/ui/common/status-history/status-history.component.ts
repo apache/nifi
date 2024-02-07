@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-import { AfterViewInit, Component, Inject, OnInit } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, inject, Inject, OnInit } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { StatusHistoryService } from '../../../service/status-history.service';
 import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
@@ -50,6 +50,7 @@ import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox
 import { Resizable } from '../resizable/resizable.component';
 import { Instance, NIFI_NODE_CONFIG, Stats } from './index';
 import { StatusHistoryChart } from './status-history-chart/status-history-chart.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'status-history',
@@ -100,6 +101,7 @@ export class StatusHistory implements OnInit, AfterViewInit {
     instances: Instance[] = [];
     instanceVisibility: any = {};
     selectedDescriptor: FieldDescriptor | null = null;
+    private destroyRef: DestroyRef = inject(DestroyRef);
 
     constructor(
         private statusHistoryService: StatusHistoryService,
@@ -115,60 +117,65 @@ export class StatusHistory implements OnInit, AfterViewInit {
     }
 
     ngOnInit(): void {
-        this.statusHistory$.pipe(filter((entity) => !!entity)).subscribe((entity: StatusHistoryEntity) => {
-            if (entity) {
-                this.instances = [];
-                if (entity.statusHistory?.aggregateSnapshots?.length > 1) {
-                    this.instances.push({
-                        id: NIFI_NODE_CONFIG.nifiInstanceId,
-                        label: NIFI_NODE_CONFIG.nifiInstanceLabel,
-                        snapshots: entity.statusHistory.aggregateSnapshots
-                    });
-                    // if this is the first time this instance is being rendered, make it visible
-                    if (this.instanceVisibility[NIFI_NODE_CONFIG.nifiInstanceId] === undefined) {
-                        this.instanceVisibility[NIFI_NODE_CONFIG.nifiInstanceId] = true;
-                    }
-                }
-
-                // get the status for each node in the cluster if applicable
-                if (entity.statusHistory?.nodeSnapshots && entity.statusHistory?.nodeSnapshots.length > 1) {
-                    entity.statusHistory.nodeSnapshots.forEach((nodeSnapshot: NodeSnapshot) => {
+        this.statusHistory$
+            .pipe(
+                filter((entity) => !!entity),
+                takeUntilDestroyed(this.destroyRef)
+            )
+            .subscribe((entity: StatusHistoryEntity) => {
+                if (entity) {
+                    this.instances = [];
+                    if (entity.statusHistory?.aggregateSnapshots?.length > 1) {
                         this.instances.push({
-                            id: nodeSnapshot.nodeId,
-                            label: `${nodeSnapshot.address}:${nodeSnapshot.apiPort}`,
-                            snapshots: nodeSnapshot.statusSnapshots
+                            id: NIFI_NODE_CONFIG.nifiInstanceId,
+                            label: NIFI_NODE_CONFIG.nifiInstanceLabel,
+                            snapshots: entity.statusHistory.aggregateSnapshots
                         });
                         // if this is the first time this instance is being rendered, make it visible
-                        if (this.instanceVisibility[nodeSnapshot.nodeId] === undefined) {
-                            this.instanceVisibility[nodeSnapshot.nodeId] = true;
+                        if (this.instanceVisibility[NIFI_NODE_CONFIG.nifiInstanceId] === undefined) {
+                            this.instanceVisibility[NIFI_NODE_CONFIG.nifiInstanceId] = true;
                         }
+                    }
+
+                    // get the status for each node in the cluster if applicable
+                    if (entity.statusHistory?.nodeSnapshots && entity.statusHistory?.nodeSnapshots.length > 1) {
+                        entity.statusHistory.nodeSnapshots.forEach((nodeSnapshot: NodeSnapshot) => {
+                            this.instances.push({
+                                id: nodeSnapshot.nodeId,
+                                label: `${nodeSnapshot.address}:${nodeSnapshot.apiPort}`,
+                                snapshots: nodeSnapshot.statusSnapshots
+                            });
+                            // if this is the first time this instance is being rendered, make it visible
+                            if (this.instanceVisibility[nodeSnapshot.nodeId] === undefined) {
+                                this.instanceVisibility[nodeSnapshot.nodeId] = true;
+                            }
+                        });
+                    }
+
+                    // identify all nodes and sort
+                    this.nodes = this.instances
+                        .filter((status) => {
+                            return status.id !== NIFI_NODE_CONFIG.nifiInstanceId;
+                        })
+                        .sort((a: any, b: any) => {
+                            return a.label < b.label ? -1 : a.label > b.label ? 1 : 0;
+                        });
+
+                    // determine the min/max date
+                    const minDate: any = d3.min(this.instances, (d) => {
+                        return d3.min(d.snapshots, (s) => {
+                            return s.timestamp;
+                        });
                     });
+                    const maxDate: any = d3.max(this.instances, (d) => {
+                        return d3.max(d.snapshots, (s) => {
+                            return s.timestamp;
+                        });
+                    });
+                    this.minDate = this.nifiCommon.formatDateTime(new Date(minDate));
+                    this.maxDate = this.nifiCommon.formatDateTime(new Date(maxDate));
                 }
-
-                // identify all nodes and sort
-                this.nodes = this.instances
-                    .filter((status) => {
-                        return status.id !== NIFI_NODE_CONFIG.nifiInstanceId;
-                    })
-                    .sort((a: any, b: any) => {
-                        return a.label < b.label ? -1 : a.label > b.label ? 1 : 0;
-                    });
-
-                // determine the min/max date
-                const minDate: any = d3.min(this.instances, (d) => {
-                    return d3.min(d.snapshots, (s) => {
-                        return s.timestamp;
-                    });
-                });
-                const maxDate: any = d3.max(this.instances, (d) => {
-                    return d3.max(d.snapshots, (s) => {
-                        return s.timestamp;
-                    });
-                });
-                this.minDate = this.nifiCommon.formatDateTime(new Date(minDate));
-                this.maxDate = this.nifiCommon.formatDateTime(new Date(maxDate));
-            }
-        });
+            });
         this.fieldDescriptors$
             .pipe(
                 filter((descriptors) => !!descriptors),
@@ -185,11 +192,14 @@ export class StatusHistory implements OnInit, AfterViewInit {
 
     ngAfterViewInit(): void {
         // when the selected descriptor changes, update the chart
-        this.statusHistoryForm.get('fieldDescriptor')?.valueChanges.subscribe((descriptor: FieldDescriptor) => {
-            if (this.instances.length > 0) {
-                this.selectedDescriptor = descriptor;
-            }
-        });
+        this.statusHistoryForm
+            .get('fieldDescriptor')
+            ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((descriptor: FieldDescriptor) => {
+                if (this.instances.length > 0) {
+                    this.selectedDescriptor = descriptor;
+                }
+            });
     }
 
     isInitialLoading(state: StatusHistoryState) {

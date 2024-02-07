@@ -69,6 +69,7 @@ export interface ParameterItem {
 export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     @Input() createNewParameter!: (existingParameters: string[]) => Observable<Parameter>;
     @Input() editParameter!: (parameter: Parameter) => Observable<Parameter>;
+    @Input() canAddParameters = true;
 
     protected readonly TextTip = TextTip;
 

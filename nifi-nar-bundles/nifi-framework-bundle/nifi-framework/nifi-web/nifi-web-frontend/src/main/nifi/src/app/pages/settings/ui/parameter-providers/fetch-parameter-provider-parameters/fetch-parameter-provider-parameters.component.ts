@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Inject, Input, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, Inject, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -47,6 +47,8 @@ import { ParameterReferences } from '../../../../../ui/common/parameter-referenc
 import { AffectedComponentEntity } from '../../../../../state/shared';
 import * as ParameterProviderActions from '../../../state/parameter-providers/parameter-providers.actions';
 import { Store } from '@ngrx/store';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { PipesModule } from '../../../../../pipes/pipes.module';
 
 @Component({
     selector: 'fetch-parameter-provider-parameters',
@@ -64,7 +66,8 @@ import { Store } from '@ngrx/store';
         ParameterGroupsTable,
         MatCheckboxModule,
         MatInputModule,
-        ParameterReferences
+        ParameterReferences,
+        PipesModule
     ],
     templateUrl: './fetch-parameter-provider-parameters.component.html',
     styleUrls: ['./fetch-parameter-provider-parameters.component.scss']
@@ -99,6 +102,8 @@ export class FetchParameterProviderParameters implements OnInit {
 
     protected readonly TextTip = TextTip;
     protected readonly Object = Object;
+
+    private destroyRef: DestroyRef = inject(DestroyRef);
 
     constructor(
         private formBuilder: FormBuilder,
@@ -135,7 +140,7 @@ export class FetchParameterProviderParameters implements OnInit {
     }
 
     ngOnInit(): void {
-        this.selectParameterChanged.subscribe((selectedParameter) => {
+        this.selectParameterChanged.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((selectedParameter) => {
             const parameterGroupName = this.selectedParameterGroup?.groupName;
             if (selectedParameter) {
                 // keep track of the currently selected parameter for each group
@@ -165,7 +170,7 @@ export class FetchParameterProviderParameters implements OnInit {
             this.parameterGroupConfigurations.forEach((groupConfig) => {
                 this.fetchParametersForm
                     .get(`${groupConfig.groupName}.parameterContextName`)
-                    ?.valueChanges.pipe(debounceTime(200))
+                    ?.valueChanges.pipe(debounceTime(200), takeUntilDestroyed(this.destroyRef))
                     .subscribe((name) => {
                         if (Object.hasOwn(this.parameterContextsToCreate, groupConfig.groupName)) {
                             this.parameterContextsToCreate[groupConfig.groupName] = name;
