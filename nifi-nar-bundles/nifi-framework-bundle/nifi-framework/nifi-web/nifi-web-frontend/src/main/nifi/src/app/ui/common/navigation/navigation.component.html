@@ -30,7 +30,6 @@
             <ng-content></ng-content>
         </div>
         <div class="flex justify-between items-center gap-x-1" *ngIf="currentUser$ | async as user">
-            <mat-slide-toggle color="primary" (click)="toggleTheme()"></mat-slide-toggle>
             <div class="flex flex-col justify-between items-end gap-y-1">
                 <div class="current-user">{{ user.identity }}</div>
                 <a href="#" *ngIf="allowLogin(user)">log in</a>
@@ -139,6 +138,24 @@
                 <button mat-menu-item class="global-menu-item">
                     <i class="fa fa-fw fa-info-circle mr-2"></i>
                     About
+                </button>
+                <button mat-menu-item [matMenuTriggerFor]="theming">Appearance</button>
+            </mat-menu>
+            <mat-menu #theming="matMenu" xPosition="before">
+                <button mat-menu-item class="global-menu-item" (click)="toggleTheme(LIGHT_THEME)">
+                    <i class="fa fa-fw fa-check mr-2" *ngIf="theme === LIGHT_THEME"></i>
+                    <i class="fa fa-fw mr-2" *ngIf="theme !== LIGHT_THEME"></i>
+                    Light
+                </button>
+                <button mat-menu-item class="global-menu-item" (click)="toggleTheme(DARK_THEME)">
+                    <i class="fa fa-fw fa-check mr-2" *ngIf="theme === DARK_THEME"></i>
+                    <i class="fa fa-fw mr-2" *ngIf="theme !== DARK_THEME"></i>
+                    Dark
+                </button>
+                <button mat-menu-item class="global-menu-item" (click)="toggleTheme(OS_SETTING)">
+                    <i class="fa fa-fw fa-check mr-2" *ngIf="theme === OS_SETTING || theme === null"></i>
+                    <i class="fa fa-fw mr-2" *ngIf="theme !== OS_SETTING && theme !== null"></i>
+                    Device
                 </button>
             </mat-menu>
         </div>

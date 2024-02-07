@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
-import { AsyncPipe, DOCUMENT, NgIf, NgOptimizedImage } from '@angular/common';
+import { Component } from '@angular/core';
+import { AsyncPipe, NgIf, NgOptimizedImage } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
@@ -31,12 +31,14 @@ import { selectCurrentUser } from '../../../state/current-user/current-user.sele
 import { MatButtonModule } from '@angular/material/button';
 import { NiFiState } from '../../../state';
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Storage } from '../../../service/storage.service';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { OS_SETTING, LIGHT_THEME, DARK_THEME, ThemingService } from '../../../service/theming.service';
 
 @Component({
     selector: 'navigation',
     standalone: true,
+    providers: [Storage],
     imports: [
         NgOptimizedImage,
         AsyncPipe,
@@ -45,24 +47,39 @@ import { Storage } from '../../../service/storage.service';
         NgIf,
         RouterLink,
         MatButtonModule,
-        MatSlideToggleModule,
-        FormsModule
+        FormsModule,
+        MatCheckboxModule
     ],
     templateUrl: './navigation.component.html',
     styleUrls: ['./navigation.component.scss']
 })
 export class Navigation {
+    theme: any | undefined;
+    darkModeOn: boolean | undefined;
+    LIGHT_THEME: string = LIGHT_THEME;
+    DARK_THEME: string = DARK_THEME;
+    OS_SETTING: string = OS_SETTING;
     currentUser$ = this.store.select(selectCurrentUser);
     flowConfiguration$ = this.store.select(selectFlowConfiguration);
-    isDarkMode = false;
 
     constructor(
         private store: Store<NiFiState>,
         private authStorage: AuthStorage,
         private authService: AuthService,
         private storage: Storage,
-        @Inject(DOCUMENT) private _document: Document
-    ) {}
+        private themingService: ThemingService
+    ) {
+        this.darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        this.theme = this.storage.getItem('theme');
+
+        if (window.matchMedia) {
+            // Watch for changes of the preference
+            window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
+                this.darkModeOn = e.matches;
+                this.theme = this.storage.getItem('theme');
+            });
+        }
+    }
 
     allowLogin(user: CurrentUser): boolean {
         return user.anonymous && location.protocol === 'https:';
@@ -97,14 +114,13 @@ export class Navigation {
     }
 
     getCanvasLink(): string {
-        const canvasRoute = this.storage.getItem('current-canvas-route');
+        const canvasRoute = this.storage.getItem<string>('current-canvas-route');
         return canvasRoute || '/';
     }
 
-    toggleTheme(value = !this.isDarkMode) {
-        this.isDarkMode = value;
-        this._document.body.classList.toggle('dark-theme', value);
-
-        // TODO: save to local storage or read OS settings???
+    toggleTheme(theme: string) {
+        this.theme = theme;
+        this.storage.setItem('theme', theme);
+        this.themingService.toggleTheme(!!this.darkModeOn, theme);
     }
 }

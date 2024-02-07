@@ -15,9 +15,11 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, Inject } from '@angular/core';
 import { GuardsCheckEnd, GuardsCheckStart, NavigationCancel, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Storage } from './service/storage.service';
+import { ThemingService } from './service/theming.service';
 
 @Component({
     selector: 'nifi',
@@ -28,7 +30,11 @@ export class AppComponent {
     title = 'nifi';
     guardLoading = true;
 
-    constructor(private router: Router) {
+    constructor(
+        private router: Router,
+        private storage: Storage,
+        private themingService: ThemingService
+    ) {
         this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
             if (event instanceof GuardsCheckStart) {
                 this.guardLoading = true;
@@ -37,5 +43,21 @@ export class AppComponent {
                 this.guardLoading = false;
             }
         });
+
+        let theme = this.storage.getItem('theme');
+
+        // Initially check if dark mode is enabled on system
+        const darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        // If dark mode is enabled then directly switch to the dark-theme
+        this.themingService.toggleTheme(darkModeOn, theme);
+
+        if (window.matchMedia) {
+            // Watch for changes of the preference
+            window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
+                theme = this.storage.getItem('theme');
+                this.themingService.toggleTheme(e.matches, theme);
+            });
+        }
     }
 }
