@@ -18,10 +18,6 @@ package org.apache.nifi.security.util.crypto;
 
 import java.util.Arrays;
 import java.util.List;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
-
 
 /**
  * Enumeration capturing information about the cryptographic hash algorithms
@@ -113,12 +109,7 @@ public enum HashAlgorithm {
 
     @Override
     public String toString() {
-        final ToStringBuilder builder = new ToStringBuilder(this);
-        ToStringBuilder.setDefaultStyle(ToStringStyle.SHORT_PREFIX_STYLE);
-        builder.append("Algorithm Name", name);
-        builder.append("Digest Length", digestBytesLength + " bytes");
-        builder.append("Description", description);
-        return builder.toString();
+        return "HashAlgorithm[Name=%s,Digest Length=%d bytes,Description=%s".formatted(name, digestBytesLength, description);
     }
 
     /**
@@ -137,7 +128,7 @@ public enum HashAlgorithm {
         if (!isStrongAlgorithm()) {
             sb.append(" [WARNING -- Cryptographically broken]");
         }
-        if (StringUtils.isNotBlank(description)) {
+        if (description != null && !description.isBlank()) {
             sb.append(" ").append(description);
         }
         return sb.toString();
