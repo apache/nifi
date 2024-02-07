@@ -90,7 +90,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
       - name: Cache Maven Modules
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.m2/repository
@@ -111,7 +111,7 @@ jobs:
           -P contrib-check
           -P include-new-ui
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v3
         with:
           languages: java
       - name: Maven Compile
@@ -122,7 +122,7 @@ jobs:
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_COMPILE_COMMAND }}
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v3
 
   ubuntu-build-en:
     timeout-minutes: 120
@@ -138,7 +138,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
       - name: Cache Node Modules
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.npm
@@ -170,11 +170,11 @@ jobs:
           -P python-unit-tests
           ${{ env.MAVEN_PROJECTS }}
       - name: Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           files: ./nifi-code-coverage/target/site/jacoco-aggregate/jacoco.xml
       - name: Upload Test Reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: surefire-reports-ubuntu-21
           path: |
@@ -200,7 +200,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
       - name: Cache Node Modules
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.npm
@@ -239,7 +239,7 @@ jobs:
           -P python-unit-tests
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Test Reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: surefire-reports-macos-jp
           path: |
@@ -267,7 +267,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
       - name: Cache Node Modules
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~\AppData\npm-cache
@@ -305,7 +305,7 @@ jobs:
           ${{ env.MAVEN_BUILD_PROFILES }}
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Test Reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: surefire-reports-windows-fr
           path: |

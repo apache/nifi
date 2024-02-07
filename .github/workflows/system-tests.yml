@@ -127,7 +127,7 @@ jobs:
           ${{ env.MAVEN_PROJECTS }}
       - name: Upload Troubleshooting Logs
         if: failure() || cancelled()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-${{ matrix.version }}-troubleshooting-logs
           path: |

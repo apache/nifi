@@ -122,7 +122,7 @@ jobs:
           ${{ env.MAVEN_BUILD_EXCLUDE_PROJECTS }}
       - name: Upload Troubleshooting Logs
         if: failure() || cancelled()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ubuntu-21-failsafe-logs
           path: |
