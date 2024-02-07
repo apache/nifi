@@ -40,6 +40,7 @@ import {
     CreateProcessGroupDialogRequest,
     DeleteComponentResponse,
     GroupComponentsDialogRequest,
+    ImportFromRegistryDialogRequest,
     LoadProcessGroupRequest,
     LoadProcessGroupResponse,
     Snippet,
@@ -63,7 +64,13 @@ import { ConnectionManager } from '../../service/manager/connection-manager.serv
 import { MatDialog } from '@angular/material/dialog';
 import { CreatePort } from '../../ui/canvas/items/port/create-port/create-port.component';
 import { EditPort } from '../../ui/canvas/items/port/edit-port/edit-port.component';
-import { ComponentType } from '../../../../state/shared';
+import {
+    BucketEntity,
+    ComponentType,
+    RegistryClientEntity,
+    VersionedFlowEntity,
+    VersionedFlowSnapshotMetadataEntity
+} from '../../../../state/shared';
 import { Router } from '@angular/router';
 import { Client } from '../../../../service/client.service';
 import { CanvasUtils } from '../../service/canvas-utils.service';
@@ -83,6 +90,10 @@ import { ControllerServiceService } from '../../service/controller-service.servi
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { ParameterHelperService } from '../../service/parameter-helper.service';
+import { RegistryService } from '../../service/registry.service';
+import { ImportFromRegistry } from '../../ui/canvas/items/flow/import-from-registry/import-from-registry.component';
+import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
+import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dialog/no-registry-clients-dialog.component';
 
 @Injectable()
 export class FlowEffects {
@@ -91,6 +102,7 @@ export class FlowEffects {
         private store: Store<NiFiState>,
         private flowService: FlowService,
         private controllerServiceService: ControllerServiceService,
+        private registryService: RegistryService,
         private client: Client,
         private canvasUtils: CanvasUtils,
         private canvasView: CanvasView,
@@ -217,6 +229,18 @@ export class FlowEffects {
                     case ComponentType.InputPort:
                     case ComponentType.OutputPort:
                         return of(FlowActions.openNewPortDialog({ request }));
+                    case ComponentType.Flow:
+                        return from(this.registryService.getRegistryClients()).pipe(
+                            map((response) => {
+                                const dialogRequest: ImportFromRegistryDialogRequest = {
+                                    request,
+                                    registryClients: response.registries
+                                };
+
+                                return FlowActions.openImportFromRegistryDialog({ request: dialogRequest });
+                            }),
+                            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                        );
                     default:
                         return of(FlowActions.flowApiError({ error: 'Unsupported type of Component.' }));
                 }
@@ -577,6 +601,95 @@ export class FlowEffects {
                         FlowActions.createComponentSuccess({
                             response: {
                                 type: request.type,
+                                payload: response
+                            }
+                        })
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                )
+            )
+        )
+    );
+
+    openImportFromRegistryDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openImportFromRegistryDialog),
+                map((action) => action.request),
+                concatLatestFrom(() => this.store.select(selectCurrentUser)),
+                tap(([request, currentUser]) => {
+                    const someRegistries = request.registryClients.some(
+                        (registryClient: RegistryClientEntity) => registryClient.permissions.canRead
+                    );
+
+                    if (someRegistries) {
+                        const dialogReference = this.dialog.open(ImportFromRegistry, {
+                            data: request,
+                            panelClass: 'medium-dialog'
+                        });
+
+                        dialogReference.componentInstance.getBuckets = (
+                            registryId: string
+                        ): Observable<BucketEntity[]> => {
+                            return this.registryService.getBuckets(registryId).pipe(
+                                take(1),
+                                map((response) => response.buckets)
+                            );
+                        };
+
+                        dialogReference.componentInstance.getFlows = (
+                            registryId: string,
+                            bucketId: string
+                        ): Observable<VersionedFlowEntity[]> => {
+                            return this.registryService.getFlows(registryId, bucketId).pipe(
+                                take(1),
+                                map((response) => response.versionedFlows)
+                            );
+                        };
+
+                        dialogReference.componentInstance.getFlowVersions = (
+                            registryId: string,
+                            bucketId: string,
+                            flowId: string
+                        ): Observable<VersionedFlowSnapshotMetadataEntity[]> => {
+                            return this.registryService.getFlowVersions(registryId, bucketId, flowId).pipe(
+                                take(1),
+                                map((response) => response.versionedFlowSnapshotMetadataSet)
+                            );
+                        };
+
+                        dialogReference.afterClosed().subscribe(() => {
+                            this.store.dispatch(FlowActions.setDragging({ dragging: false }));
+                        });
+                    } else {
+                        this.dialog
+                            .open(NoRegistryClientsDialog, {
+                                data: {
+                                    controllerPermissions: currentUser.controllerPermissions
+                                },
+                                panelClass: 'medium-dialog'
+                            })
+                            .afterClosed()
+                            .subscribe(() => {
+                                this.store.dispatch(FlowActions.setDragging({ dragging: false }));
+                            });
+                    }
+                })
+            ),
+        { dispatch: false }
+    );
+
+    importFromRegistry$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.importFromRegistry),
+            map((action) => action.request),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([request, processGroupId]) =>
+                from(this.registryService.importFromRegistry(processGroupId, request)).pipe(
+                    map((response) =>
+                        FlowActions.createComponentSuccess({
+                            response: {
+                                type: ComponentType.ProcessGroup,
                                 payload: response
                             }
                         })

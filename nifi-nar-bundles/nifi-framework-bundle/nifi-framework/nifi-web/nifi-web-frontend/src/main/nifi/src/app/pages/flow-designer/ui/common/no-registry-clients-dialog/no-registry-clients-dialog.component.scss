@@ -15,24 +15,8 @@
  * limitations under the License.
  */
 
-.new-canvas-item {
-    .icon {
-        font-size: 32px;
+@use '@angular/material' as mat;
 
-        &.hovering {
-            cursor: grab;
-        }
-
-        &.dragging {
-            cursor: grabbing;
-        }
-
-        &:disabled {
-            box-shadow: none;
-        }
-    }
-
-    .icon-import-from-registry-add:before {
-        margin-left: 1px;
-    }
+mat-dialog-actions {
+    @include mat.button-density(-1);
 }

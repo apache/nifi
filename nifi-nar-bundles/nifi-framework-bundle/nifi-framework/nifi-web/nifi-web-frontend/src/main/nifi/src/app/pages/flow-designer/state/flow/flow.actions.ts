@@ -71,7 +71,9 @@ import {
     NavigateToQueueListing,
     StartProcessGroupResponse,
     StopProcessGroupResponse,
-    CenterComponentRequest
+    CenterComponentRequest,
+    ImportFromRegistryDialogRequest,
+    ImportFromRegistryRequest
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
 
@@ -274,6 +276,16 @@ export const openNewPortDialog = createAction(
 );
 
 export const createPort = createAction(`${CANVAS_PREFIX} Create Port`, props<{ request: CreatePortRequest }>());
+
+export const openImportFromRegistryDialog = createAction(
+    `${CANVAS_PREFIX} Open Import From Registry Dialog`,
+    props<{ request: ImportFromRegistryDialogRequest }>()
+);
+
+export const importFromRegistry = createAction(
+    `${CANVAS_PREFIX} Import From Registry`,
+    props<{ request: ImportFromRegistryRequest }>()
+);
 
 export const createComponentSuccess = createAction(
     `${CANVAS_PREFIX} Create Component Success`,

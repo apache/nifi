@@ -23,6 +23,7 @@ import {
     DocumentedType,
     ParameterContextReferenceEntity,
     Permissions,
+    RegistryClientEntity,
     Revision,
     SelectOption
 } from '../../../../state/shared';
@@ -163,6 +164,20 @@ export interface CreateProcessGroupDialogRequest {
     request: CreateComponentRequest;
     currentParameterContextId?: string;
     parameterContexts: ParameterContextEntity[];
+}
+
+export interface NoRegistryClientsDialogRequest {
+    controllerPermissions: Permissions;
+}
+
+export interface ImportFromRegistryDialogRequest {
+    request: CreateComponentRequest;
+    registryClients: RegistryClientEntity[];
+}
+
+export interface ImportFromRegistryRequest {
+    payload: any;
+    keepExistingParameterContext: boolean;
 }
 
 export interface OpenGroupComponentsDialogRequest {

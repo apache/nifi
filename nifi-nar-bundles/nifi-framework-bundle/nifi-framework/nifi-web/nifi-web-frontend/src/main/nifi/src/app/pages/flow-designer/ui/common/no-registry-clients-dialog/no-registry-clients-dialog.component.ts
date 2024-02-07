@@ -15,24 +15,20 @@
  * limitations under the License.
  */
 
-.new-canvas-item {
-    .icon {
-        font-size: 32px;
+import { Component, Inject } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { NoRegistryClientsDialogRequest } from '../../../state/flow';
+import { NgIf } from '@angular/common';
+import { RouterLink } from '@angular/router';
 
-        &.hovering {
-            cursor: grab;
-        }
-
-        &.dragging {
-            cursor: grabbing;
-        }
-
-        &:disabled {
-            box-shadow: none;
-        }
-    }
-
-    .icon-import-from-registry-add:before {
-        margin-left: 1px;
-    }
+@Component({
+    selector: 'no-registry-clients-dialog',
+    standalone: true,
+    imports: [MatDialogModule, MatButtonModule, NgIf, RouterLink],
+    templateUrl: './no-registry-clients-dialog.component.html',
+    styleUrls: ['./no-registry-clients-dialog.component.scss']
+})
+export class NoRegistryClientsDialog {
+    constructor(@Inject(MAT_DIALOG_DATA) public request: NoRegistryClientsDialogRequest) {}
 }
