@@ -176,7 +176,6 @@ export class FetchParameterProviderParameters implements OnInit {
     }
 
     submitForm() {
-        console.log('Form data', this.fetchParametersForm);
         const data = this.getFormData();
         this.store.dispatch(
             ParameterProviderActions.submitParameterProviderParametersUpdateRequest({
@@ -236,7 +235,6 @@ export class FetchParameterProviderParameters implements OnInit {
 
     getParameterMappingDataSource(parameterGroupConfig: ParameterGroupConfiguration) {
         if (!this.dataSources[parameterGroupConfig.groupName]) {
-            // const ds = new MatTableDataSource<ParameterSensitivity>();
             const ds = new MatTableDataSource<FetchedParameterMapping>();
 
             ds.data = this.sortEntities(

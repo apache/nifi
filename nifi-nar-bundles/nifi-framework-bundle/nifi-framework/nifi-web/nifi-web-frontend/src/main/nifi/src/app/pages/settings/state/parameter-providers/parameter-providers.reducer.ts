@@ -62,7 +62,6 @@ export const parameterProvidersReducer = createReducer(
         ...state,
         parameterProviders: response.parameterProviders,
         loadedTimestamp: response.loadedTimestamp,
-        error: null,
         status: 'success' as const
     })),
 

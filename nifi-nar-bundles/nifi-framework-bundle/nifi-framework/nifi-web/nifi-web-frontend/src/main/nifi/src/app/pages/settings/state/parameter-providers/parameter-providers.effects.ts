@@ -25,7 +25,20 @@ import { Router } from '@angular/router';
 import { ParameterProviderService } from '../../service/parameter-provider.service';
 import * as ParameterProviderActions from './parameter-providers.actions';
 import { loadParameterProviders } from './parameter-providers.actions';
-import { asyncScheduler, catchError, from, interval, map, NEVER, of, switchMap, take, takeUntil, tap } from 'rxjs';
+import {
+    asyncScheduler,
+    catchError,
+    filter,
+    from,
+    interval,
+    map,
+    NEVER,
+    of,
+    switchMap,
+    take,
+    takeUntil,
+    tap
+} from 'rxjs';
 import {
     selectApplyParameterProviderParametersRequest,
     selectSaving,
@@ -71,17 +84,7 @@ export class ParameterProvidersEffects {
                             }
                         })
                     ),
-                    catchError((error: HttpErrorResponse) => {
-                        if (status === 'success') {
-                            if (this.errorHelper.showErrorInContext(error.status)) {
-                                return of(ErrorActions.snackBarError({ error: error.error }));
-                            } else {
-                                return of(this.errorHelper.fullScreenError(error));
-                            }
-                        } else {
-                            return of(this.errorHelper.fullScreenError(error));
-                        }
-                    })
+                    catchError((error: HttpErrorResponse) => of(this.errorHelper.handleLoadingError(status, error)))
                 )
             )
         )
@@ -595,13 +598,9 @@ export class ParameterProvidersEffects {
         this.actions$.pipe(
             ofType(ParameterProviderActions.pollParameterProviderParametersUpdateRequestSuccess),
             map((action) => action.response),
-            switchMap((response) => {
-                const updateRequest = response.request;
-                if (updateRequest.complete) {
-                    return of(ParameterProviderActions.stopPollingParameterProviderParametersUpdateRequest());
-                } else {
-                    return NEVER;
-                }
+            filter((response) => response.request.complete),
+            switchMap(() => {
+                return of(ParameterProviderActions.stopPollingParameterProviderParametersUpdateRequest());
             })
         )
     );

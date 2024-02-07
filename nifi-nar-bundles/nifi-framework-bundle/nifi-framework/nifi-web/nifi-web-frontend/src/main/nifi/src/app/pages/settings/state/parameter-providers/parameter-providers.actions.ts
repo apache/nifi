@@ -31,7 +31,6 @@ import {
     PollParameterProviderParametersUpdateSuccess,
     SelectParameterProviderRequest
 } from './index';
-import { FetchParameterProviderParameters } from '../../ui/parameter-providers/fetch-parameter-provider-parameters/fetch-parameter-provider-parameters.component';
 
 const PARAMETER_PROVIDERS_PREFIX = '[Parameter Providers]';
 

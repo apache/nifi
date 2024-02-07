@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { GuardsCheckEnd, GuardsCheckStart, NavigationCancel, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Storage } from './service/storage.service';
