@@ -77,6 +77,7 @@
 
         <div class="violation-menu" id="violation-menu">
             <ul>
+                <li class="violation-menu-option" id="violation-menu-more-info"><i class="fa fa-info-circle violation-menu-option-icon" aria-hidden="true"></i>Violation details</li>
                 <li class="violation-menu-option" id="violation-menu-go-to"><i class="fa fa-pencil violation-menu-option-icon" aria-hidden="true"></i>Go to component</li>
             </ul>
         </div>
