@@ -659,7 +659,7 @@
                                 flowAnalysisCtrl.setRuleMenuHandling();
 
                                 // setup violation menu handling
-                                flowAnalysisCtrl.setViolationMenuHandling();
+                                flowAnalysisCtrl.setViolationMenuHandling(response.rules);
                             }
                         }).fail(nfErrorHandler.handleAjaxError);
                     }
@@ -727,7 +727,7 @@
                 /**
                  * Set event bindings for violation menus
                  */
-                setViolationMenuHandling: function() {
+                setViolationMenuHandling: function(rules) {
                     $('.violation-menu-btn').click(function(event) {
                         // stop event from immediately bubbling up to document and triggering closeViolationWindow
                         event.stopPropagation();
@@ -741,6 +741,7 @@
                         });
 
                         // violation menu bindings
+                        $('#violation-menu-more-info').on( "click", openRuleViolationMoreInfoDialog);
                         $('#violation-menu-go-to').on('click', goToComponent);
                         $(document).on('click', closeViolationWindow);
 
@@ -751,6 +752,29 @@
                             }
                         }
 
+                        function openRuleViolationMoreInfoDialog() {
+                            var rule = rules.find(function(rule){ 
+                                return rule.id === violationInfo.ruleId;
+                            })
+                            $('#violation-menu').hide();
+                            $('#violation-type-pill').empty()
+                                                    .removeClass()
+                                                    .addClass(violationInfo.enforcementPolicy.toLowerCase() + ' violation-type-pill')
+                                                    .append(violationInfo.enforcementPolicy);
+                            $('#violation-description').empty().append(violationInfo.violationMessage);
+                            $('#violation-menu-more-info-dialog').modal( "show" );
+                            $('.violation-docs-link').click(function () {
+                                // open the documentation for this flow analysis rule
+                                nfShell.showPage('../nifi-docs/documentation?' + $.param({
+                                    select: rule.type,
+                                    group: rule.bundle.group,
+                                    artifact: rule.bundle.artifact,
+                                    version: rule.bundle.version
+                                })).done(function () {});
+                            });
+                            unbindViolationMenuHandling();
+                        }
+
                         function goToComponent() {
                             $('#violation-menu').hide();
                             nfCanvasUtils.showComponent(violationInfo.groupId, violationInfo.subjectId);
@@ -758,6 +782,7 @@
                         }
 
                         function unbindViolationMenuHandling() {
+                            $('#violation-menu-more-info').off("click");
                             $('#violation-menu-go-to').off("click");
                             $(document).unbind('click', closeViolationWindow);
                         }
