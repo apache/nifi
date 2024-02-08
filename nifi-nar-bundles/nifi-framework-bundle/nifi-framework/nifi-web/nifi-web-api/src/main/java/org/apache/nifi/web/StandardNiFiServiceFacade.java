@@ -5026,21 +5026,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             // If the flow has been created, but failed to add a snapshot,
             // then we need to capture the created versioned flow information as a partial successful result.
             if (registerNewFlow) {
-                logger.error("The flow has been created, but failed to add a snapshot. Returning the created flow information.", e);
-                final VersionControlInformationDTO vci = new VersionControlInformationDTO();
-                vci.setBucketId(registeredFlow.getBucketIdentifier());
-                vci.setBucketName(registeredFlow.getBucketName());
-                vci.setFlowId(registeredFlow.getIdentifier());
-                vci.setFlowName(registeredFlow.getName());
-                vci.setFlowDescription(registeredFlow.getDescription());
-                vci.setGroupId(groupId);
-                vci.setRegistryId(registryId);
-                vci.setRegistryName(getFlowRegistryName(registryId));
-                vci.setVersion(0);
-                vci.setState(VersionedFlowState.SYNC_FAILURE.name());
-                vci.setStateExplanation(e.getLocalizedMessage());
-
-                return createVersionControlComponentMappingEntity(groupId, versionedProcessGroup, vci);
+                try {
+                    flowRegistryDAO
+                        .getFlowRegistryClient(registryId)
+                        .deregisterFlow(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()), versionedFlowDto.getBucketId(), flowId);
+                } catch (final IOException | FlowRegistryException e2) {
+                    throw new NiFiCoreException("Failed to remove flow from Flow Registry due to " + e2.getMessage(), e2);
+                }
             }
 
             throw e;
