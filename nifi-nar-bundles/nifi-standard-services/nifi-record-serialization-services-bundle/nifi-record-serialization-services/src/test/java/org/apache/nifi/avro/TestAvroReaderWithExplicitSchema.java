@@ -107,31 +107,29 @@ public class TestAvroReaderWithExplicitSchema {
 
     @Test
     public void testAvroExplicitReaderWithSchemalessFileAndExplicitSchema() throws Exception {
-        File avroFileWithoutSchema = new File("src/test/resources/avro/schemaless_simple_record.avro");
-        FileInputStream fileInputStream = new FileInputStream(avroFileWithoutSchema);
-        Schema dataSchema = new Schema.Parser().parse(new File("src/test/resources/avro/schemaless_simple_record.avsc"));
-        RecordSchema recordSchema = new SimpleRecordSchema(dataSchema.toString(), AvroTypeUtil.AVRO_SCHEMA_FORMAT, null);
+        AvroReaderWithExplicitSchema avroReader = createAvroReaderWithExplicitSchema(
+                "src/test/resources/avro/schemaless_simple_record.avro",
+                "src/test/resources/avro/schemaless_simple_record.avsc"
+        );
 
-        AvroReaderWithExplicitSchema avroReader = new AvroReaderWithExplicitSchema(fileInputStream, recordSchema, dataSchema);
-        GenericRecord record = avroReader.nextAvroRecord();
-        assertNotNull(record);
-        assertEquals(123, record.get("field_1"));
-        assertNotNull(record.get("field_2"));
-        assertEquals("44", record.get("field_2").toString());
-        assertEquals(5, record.get("field_3"));
+        GenericData.Record expected = new GenericData.Record(new Schema.Parser().parse(new File("src/test/resources/avro/schemaless_simple_record.avsc")));
+        expected.put("field_1", 123);
+        expected.put("field_2", "44");
+        expected.put("field_3", 5);
 
-        record = avroReader.nextAvroRecord();
-        assertNull(record);
+        GenericRecord actual1 = avroReader.nextAvroRecord();
+        assertNotNull(actual1);
+
+        GenericRecord actual2 = avroReader.nextAvroRecord();
+        assertNull(actual2);
     }
 
     @Test
     public void testAvroExplicitReaderWithSchemalessFileAndWrongExplicitSchema() throws Exception {
-        File avroFileWithoutSchema = new File("src/test/resources/avro/schemaless_simple_record.avro");
-        FileInputStream fileInputStream = new FileInputStream(avroFileWithoutSchema);
-        Schema dataSchema = new Schema.Parser().parse(new File("src/test/resources/avro/schemaless_simple_record_extra_field.avsc"));
-        RecordSchema recordSchema = new SimpleRecordSchema(dataSchema.toString(), AvroTypeUtil.AVRO_SCHEMA_FORMAT, null);
-
-        AvroReaderWithExplicitSchema avroReader = new AvroReaderWithExplicitSchema(fileInputStream, recordSchema, dataSchema);
+        AvroReaderWithExplicitSchema avroReader = createAvroReaderWithExplicitSchema(
+                "src/test/resources/avro/schemaless_simple_record.avro",
+                "src/test/resources/avro/schemaless_simple_record_extra_field.avsc"
+        );
         assertThrows(IOException.class, avroReader::nextAvroRecord);
     }
 
