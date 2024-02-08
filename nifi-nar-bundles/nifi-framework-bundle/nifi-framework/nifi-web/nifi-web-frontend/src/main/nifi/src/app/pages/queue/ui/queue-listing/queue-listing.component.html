@@ -17,23 +17,20 @@
 
 <div class="flex flex-col gap-y-2 h-full" *ngIf="status$ | async; let status">
     <div class="flex-1">
-        <div class="value" *ngIf="status === 'error'; else noError">
-            {{ error$ | async }}
-        </div>
-        <ng-template #noError>
-            <ng-container *ngIf="listingRequestEntity$ | async as entity; else initialLoading">
+        <ng-container *ngIf="listingRequest$ | async as listingRequest; else initialLoading">
+            <ng-container *ngIf="about$ | async as about">
                 <flowfile-table
                     [connectionLabel]="(connectionLabel$ | async)!"
-                    [listingRequest]="entity.listingRequest"
+                    [listingRequest]="listingRequest"
                     [currentUser]="(currentUser$ | async)!"
-                    [contentViewerAvailable]="contentViewerAvailable((about$ | async)!)"
+                    [contentViewerAvailable]="contentViewerAvailable(about)"
                     (viewFlowFile)="viewFlowFile($event)"
                     (downloadContent)="downloadContent($event)"
                     (viewContent)="viewContent($event)"></flowfile-table>
             </ng-container>
-            <ng-template #initialLoading>
-                <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
-            </ng-template>
+        </ng-container>
+        <ng-template #initialLoading>
+            <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
         </ng-template>
     </div>
     <div class="flex justify-between">

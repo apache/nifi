@@ -21,8 +21,7 @@ import { distinctUntilChanged, filter } from 'rxjs';
 import {
     selectConnectionIdFromRoute,
     selectConnectionLabel,
-    selectError,
-    selectListingRequestEntity,
+    selectCompletedListingRequest,
     selectLoadedTimestamp,
     selectStatus
 } from '../../state/queue-listing/queue-listing.selectors';
@@ -41,6 +40,7 @@ import { NiFiState } from '../../../../state';
 import { selectAbout } from '../../../../state/about/about.selectors';
 import { About } from '../../../../state/about';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { clearBannerErrors } from '../../../../state/error/error.actions';
 
 @Component({
     selector: 'queue-listing',
@@ -49,10 +49,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 })
 export class QueueListing implements OnDestroy {
     status$ = this.store.select(selectStatus);
-    error$ = this.store.select(selectError);
     connectionLabel$ = this.store.select(selectConnectionLabel);
     loadedTimestamp$ = this.store.select(selectLoadedTimestamp);
-    listingRequestEntity$ = this.store.select(selectListingRequestEntity);
+    listingRequest$ = this.store.select(selectCompletedListingRequest);
     currentUser$ = this.store.select(selectCurrentUser);
     about$ = this.store.select(selectAbout);
 
@@ -104,5 +103,6 @@ export class QueueListing implements OnDestroy {
 
     ngOnDestroy(): void {
         this.store.dispatch(resetQueueListingState());
+        this.store.dispatch(clearBannerErrors());
     }
 }

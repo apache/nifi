@@ -25,12 +25,13 @@ import { NgForOf, NgIf } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FlowFileSummary, ListingRequest } from '../../../state/queue-listing';
 import { CurrentUser } from '../../../../../state/current-user';
+import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 
 @Component({
     selector: 'flowfile-table',
     standalone: true,
     templateUrl: './flowfile-table.component.html',
-    imports: [MatTableModule, NgForOf, NgIf, RouterLink],
+    imports: [MatTableModule, NgForOf, NgIf, RouterLink, ErrorBanner],
     styleUrls: ['./flowfile-table.component.scss']
 })
 export class FlowFileTable {

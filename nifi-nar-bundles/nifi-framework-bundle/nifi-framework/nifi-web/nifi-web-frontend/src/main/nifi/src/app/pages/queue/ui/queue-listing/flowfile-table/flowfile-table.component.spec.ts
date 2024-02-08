@@ -20,14 +20,29 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FlowFileTable } from './flowfile-table.component';
 import { MatTableModule } from '@angular/material/table';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { Component } from '@angular/core';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../../../state/error/error.reducer';
 
 describe('FlowFileTable', () => {
     let component: FlowFileTable;
     let fixture: ComponentFixture<FlowFileTable>;
 
+    @Component({
+        selector: 'error-banner',
+        standalone: true,
+        template: ''
+    })
+    class MockErrorBanner {}
+
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [FlowFileTable, MatTableModule, BrowserAnimationsModule]
+            imports: [FlowFileTable, MockErrorBanner, MatTableModule, BrowserAnimationsModule],
+            providers: [
+                provideMockStore({
+                    initialState
+                })
+            ]
         });
         fixture = TestBed.createComponent(FlowFileTable);
         component = fixture.componentInstance;

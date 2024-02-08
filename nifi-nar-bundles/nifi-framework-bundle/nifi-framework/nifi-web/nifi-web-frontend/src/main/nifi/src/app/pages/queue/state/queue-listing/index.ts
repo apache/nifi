@@ -101,9 +101,9 @@ export interface FlowFileDialogRequest {
 }
 
 export interface QueueListingState {
-    requestEntity: ListingRequestEntity | null;
+    activeListingRequest: ListingRequest | null;
+    completedListingRequest: ListingRequest | null;
     connectionLabel: string;
     loadedTimestamp: string;
-    error: string | null;
     status: 'pending' | 'loading' | 'error' | 'success';
 }
