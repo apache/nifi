@@ -25,10 +25,10 @@ import org.apache.nifi.questdb.rollover.RolloverStrategy;
 import org.apache.nifi.questdb.util.Event;
 import org.apache.nifi.questdb.util.QuestDbTestUtil;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.condition.OS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +68,7 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
     @Test
     public void testAcquiringWithoutInitialization() {
         final EmbeddedDatabaseManager testSubject = new EmbeddedDatabaseManager(new SimpleEmbeddedDatabaseManagerContext());
-        assertThrows(IllegalStateException.class, () -> testSubject.acquireClient());
+        assertThrows(IllegalStateException.class, testSubject::acquireClient);
     }
 
     @Test
@@ -193,7 +193,7 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
     }
 
     @Test
-    public void testDatabaseRestorationAfterLostDatabase() throws DatabaseException, IOException {
+    public void testDatabaseRestorationAfterLostDatabase() throws DatabaseException {
         final List<Event> testData = getTestData();
         final DatabaseManager testSubject = getTestSubject();
         final Client client = testSubject.acquireClient();
@@ -211,7 +211,7 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
     }
 
     @Test
-    public void testDatabaseRestorationAfterLosingTableFiles() throws DatabaseException, IOException {
+    public void testDatabaseRestorationAfterLosingTableFiles() throws DatabaseException {
         final List<Event> testData = getTestData();
         final DatabaseManager testSubject = getTestSubject();
         final Client client = testSubject.acquireClient();
@@ -223,8 +223,6 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
 
         client.insert(EVENT_TABLE_NAME, QuestDbTestUtil.getEventTableDataSource(testData));
         final List<Event> result = client.query(SELECT_QUERY, RequestMapping.getResultProcessor(QuestDbTestUtil.EVENT_TABLE_REQUEST_MAPPING));
-
-        testDbPathDirectory.toFile().list((dir, name) -> dir.isDirectory());
 
         testSubject.close();
 
@@ -261,7 +259,7 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
 
         client2.insert(EVENT_TABLE_NAME, QuestDbTestUtil.getEventTableDataSource(getTestData()));
         final List<Event> result3 = client2.query(SELECT_QUERY, RequestMapping.getResultProcessor(QuestDbTestUtil.EVENT_TABLE_REQUEST_MAPPING));
-        // After successful recreation of the database, the manager does not fall back to "dummy answers" behaviour
+        // After successful recreation of the database, the manager does not fall back to NoOp behaviour
         assertEquals(3, result3.size());
 
         final File backupDirectory = new File(testDbPathDirectory.toFile().getParentFile(), "questDbBackup");
@@ -299,11 +297,14 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
         final List<Event> result2 = client2.query(SELECT_QUERY, RequestMapping.getResultProcessor(QuestDbTestUtil.EVENT_TABLE_REQUEST_MAPPING));
         // After corrupted database cannot be moved out from the persist folder it is simply deleted
         assertEquals(3, result2.size());
+
+        // Close Database Manager to avoid orphaned files
+        testSubject2.close();
     }
 
     @Test
     @DisabledOnOs(value = OS.WINDOWS, disabledReason = "This testcase cannot be reproduced under Windows using Junit")
-    public void testWhenRestorationIsUnsuccessfulManagerFallsBackToDummyAnswers() throws DatabaseException, IOException {
+    public void testWhenRestorationIsUnsuccessfulManagerFallsBackToNoOp() throws DatabaseException, IOException {
         final DatabaseManager testSubject1 = getTestSubjectBuilder().backupLocation(NON_EXISTING_PLACE).build();
         final Client client1 = testSubject1.acquireClient();
 
@@ -337,7 +338,7 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
     }
 
     @Test
-    public void testFallsBackToDummyWhenCannotEnsureDatabaseHealth() throws DatabaseException, IOException {
+    public void testFallsBackToNoOpWhenCannotEnsureDatabaseHealth() throws DatabaseException {
         final DatabaseManager testSubject = getTestSubjectBuilder(NON_EXISTING_PLACE).build();
         final Client client = testSubject.acquireClient();
 
@@ -349,15 +350,15 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
         testSubject.close();
     }
 
-    @Test
-    @Timeout(10)
-    @Disabled
     /**
      * This test case is not part of the normally running test set and needs preparation. In order to successfully
      * run this test method, a dedicated partition is necessary with relatively small space. The test intends to
      * examine, how the manager behaves when the disk used for persisting the database runs out of space. It is suggested
      * to create a "memdisk" for this particular test.
      */
+    @Test
+    @Timeout(10)
+    @EnabledIfSystemProperty(named = "testQuestDBOutOfSpace", matches = "true")
     public void testDiskRunOutOfSpace() throws DatabaseException {
         final DatabaseManager testSubject = getTestSubjectBuilder("/Volumes/RAM_Disk/testDb").build();
         final Client client = testSubject.acquireClient();
@@ -371,8 +372,6 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
                 reachedBreakdown = true;
             }
         }
-
-        LOGGER.info("Memdisk is full, the manager switched to dummy answer mode");
     }
 
     private DatabaseManager getTestSubject() {
@@ -404,6 +403,8 @@ public class EmbeddedDatabaseManagerTest extends EmbeddedQuestDbTest {
     }
 
     private void assertDatabaseFolderIsNotEmpty() {
-        assertTrue(testDbPathDirectory.toFile().list().length > 0);
+        final String[] files = testDbPathDirectory.toFile().list();
+        final int filesFound = files == null ? 0 : files.length;
+        assertTrue(filesFound > 0);
     }
 }
