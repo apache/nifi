@@ -49,9 +49,11 @@ import java.math.BigInteger;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSetWriter, RawRecordWriter {
     private static final FieldConverter<Object, String> STRING_FIELD_CONVERTER = StandardFieldConverterRegistry.getRegistry().getFieldConverter(String.class);
+    private static final Pattern SCIENTIFIC_NOTATION_PATTERN = Pattern.compile("[0-9]([eE][-+]?)[0-9]");
 
     private final ComponentLog logger;
     private final SchemaAccessWriter schemaAccess;
@@ -170,22 +172,44 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         return WriteResult.of(incrementRecordCount(), attributes);
     }
 
+    private boolean isUseSerializeForm(final Record record, final RecordSchema writeSchema) {
+        final Optional<SerializedForm> serializedForm = record.getSerializedForm();
+        if (serializedForm.isEmpty()) {
+            return false;
+        }
+
+        final SerializedForm form = serializedForm.get();
+        if (!form.getMimeType().equals(getMimeType()) || !record.getSchema().equals(writeSchema)) {
+            return false;
+        }
+
+        final Object serialized = form.getSerialized();
+        if (!(serialized instanceof final String serializedString)) {
+            return false;
+        }
+        final boolean serializedPretty = serializedString.contains("\n");
+        if (serializedPretty != this.prettyPrint) {
+            return false;
+        }
+
+        if (!allowScientificNotation && hasScientificNotation(serializedString)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean hasScientificNotation(final String value) {
+        return SCIENTIFIC_NOTATION_PATTERN.matcher(value).find();
+    }
+
     private void writeRecord(final Record record, final RecordSchema writeSchema, final JsonGenerator generator,
         final GeneratorTask startTask, final GeneratorTask endTask, final boolean schemaAware) throws IOException {
 
-        final Optional<SerializedForm> serializedForm = record.getSerializedForm();
-        if (serializedForm.isPresent()) {
-            final SerializedForm form = serializedForm.get();
-            if (form.getMimeType().equals(getMimeType()) && record.getSchema().equals(writeSchema)) {
-                final Object serialized = form.getSerialized();
-                if (serialized instanceof final String serializedString) {
-                    final boolean serializedPretty = serializedString.contains("\n");
-                    if (serializedPretty == this.prettyPrint) {
-                        generator.writeRawValue((String) serialized);
-                        return;
-                    }
-                }
-            }
+        if (isUseSerializeForm(record, writeSchema)) {
+            final String serialized = (String) record.getSerializedForm().get().getSerialized();
+            generator.writeRawValue(serialized);
+            return;
         }
 
         try {
