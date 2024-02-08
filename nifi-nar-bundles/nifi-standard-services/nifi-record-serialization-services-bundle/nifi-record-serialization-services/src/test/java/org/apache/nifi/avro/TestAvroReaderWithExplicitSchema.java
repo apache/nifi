@@ -118,7 +118,7 @@ public class TestAvroReaderWithExplicitSchema {
         expected.put("field_3", 5);
 
         GenericRecord actual1 = avroReader.nextAvroRecord();
-        assertNotNull(actual1);
+        assertEquals(expected, actual1);
 
         GenericRecord actual2 = avroReader.nextAvroRecord();
         assertNull(actual2);
