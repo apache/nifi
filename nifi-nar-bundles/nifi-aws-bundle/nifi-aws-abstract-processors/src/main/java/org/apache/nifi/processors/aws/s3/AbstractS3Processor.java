@@ -22,7 +22,6 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.Signer;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Builder;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -49,7 +48,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 import org.apache.nifi.processors.aws.signer.AwsCustomSignerUtil;
@@ -62,11 +60,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import static java.lang.String.format;
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_S3_V2_SIGNER;
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_S3_V4_SIGNER;
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.CUSTOM_SIGNER;
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.DEFAULT_SIGNER;
+import static org.apache.nifi.processors.aws.util.RegionUtilV1.resolveRegion;
 
 public abstract class AbstractS3Processor extends AbstractAWSCredentialsProviderProcessor<AmazonS3Client> {
 
@@ -449,28 +447,6 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         }
 
         return cannedAcl;
-    }
-
-    private Region parseRegionValue(String regionValue) {
-        if (regionValue == null) {
-            throw new ProcessException(format("[%s] was selected as region source but [%s] attribute does not exist", ATTRIBUTE_DEFINED_REGION, S3_REGION_ATTRIBUTE));
-        }
-
-        try {
-            return Region.getRegion(Regions.fromName(regionValue));
-        } catch (Exception e) {
-            throw new ProcessException(format("The [%s] attribute contains an invalid region value [%s]", S3_REGION_ATTRIBUTE, regionValue), e);
-        }
-    }
-
-    private Region resolveRegion(final ProcessContext context, final Map<String, String> attributes) {
-        String regionValue = context.getProperty(S3_REGION).getValue();
-
-        if (ATTRIBUTE_DEFINED_REGION.getValue().equals(regionValue)) {
-            regionValue = attributes.get(S3_REGION_ATTRIBUTE);
-        }
-
-        return parseRegionValue(regionValue);
     }
 
     private boolean isAttributeDefinedRegion(final ProcessContext context) {

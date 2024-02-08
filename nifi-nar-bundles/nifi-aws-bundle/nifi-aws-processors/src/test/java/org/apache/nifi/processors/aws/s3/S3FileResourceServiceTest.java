@@ -49,9 +49,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class AwsFileResourceServiceTest {
-
-    private static final String TEST_NAME = AwsFileResourceServiceTest.class.getSimpleName();
+class S3FileResourceServiceTest {
     private static final String CONTROLLER_SERVICE = "AWSCredentialsService";
     private static final String BUCKET_NAME = "test-bucket";
     private static final String KEY = "key";
@@ -70,13 +68,13 @@ class AwsFileResourceServiceTest {
     private S3ObjectInputStream inputStream;
 
     @InjectMocks
-    private TestAwsFileResourceService service;
+    private TestS3FileResourceService service;
     private TestRunner runner;
 
     @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
-        runner.addControllerService(TEST_NAME, service);
+        runner.addControllerService("S3FileResourceService", service);
     }
 
     @Test
@@ -142,8 +140,8 @@ class AwsFileResourceServiceTest {
         runner.enableControllerService(credentialsService);
 
         runner.setProperty(service, AWS_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
-        runner.setProperty(service, AwsFileResourceService.KEY, key);
-        runner.setProperty(service, AwsFileResourceService.BUCKET_WITH_DEFAULT_VALUE, bucket);
+        runner.setProperty(service, S3FileResourceService.KEY, key);
+        runner.setProperty(service, S3FileResourceService.BUCKET_WITH_DEFAULT_VALUE, bucket);
 
         runner.enableControllerService(service);
     }
@@ -156,11 +154,11 @@ class AwsFileResourceServiceTest {
         when(metadata.getContentLength()).thenReturn(CONTENT_LENGTH);
     }
 
-    private static class TestAwsFileResourceService extends AwsFileResourceService {
+    private static class TestS3FileResourceService extends S3FileResourceService {
 
         private final AmazonS3 client;
 
-        private TestAwsFileResourceService(AmazonS3 client) {
+        private TestS3FileResourceService(AmazonS3 client) {
             this.client = client;
         }
 

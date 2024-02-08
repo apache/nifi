@@ -62,7 +62,7 @@ import static org.apache.nifi.util.StringUtils.isBlank;
                 The "AWS Credentials Provider Service" property should specify an instance of the AWSCredentialsProviderService in order to provide credentials for accessing the bucket.
                 """
 )
-public class AwsFileResourceService extends AbstractControllerService implements FileResourceService {
+public class S3FileResourceService extends AbstractControllerService implements FileResourceService {
 
     public static final PropertyDescriptor BUCKET_WITH_DEFAULT_VALUE = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AbstractS3Processor.BUCKET_WITH_DEFAULT_VALUE)
@@ -99,6 +99,9 @@ public class AwsFileResourceService extends AbstractControllerService implements
     @OnDisabled
     public void onDisabled() {
         this.context = null;
+        clientCache.asMap().values().forEach(AmazonS3::shutdown);
+        clientCache.invalidateAll();
+        clientCache.cleanUp();
     }
 
     @Override
@@ -140,7 +143,7 @@ public class AwsFileResourceService extends AbstractControllerService implements
     }
 
     protected AmazonS3 getS3Client(Map<String, String> attributes, AWSCredentialsProvider credentialsProvider) {
-        Region region = resolveRegion(context, attributes);
+        final Region region = resolveRegion(context, attributes);
         return clientCache.get(region, ignored -> AmazonS3Client.builder()
                 .withRegion(region.getName())
                 .withCredentials(credentialsProvider)
