@@ -403,7 +403,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             throw new IllegalStateException("Could not instantiate flow registry client because of TLS issues", e);
         }
 
-        final FlowRegistryClientNode clientNode = new ExtensionBuilder()
+        final ExtensionBuilder extensionBuilder = new ExtensionBuilder()
                 .identifier(id)
                 .type(type)
                 .flowController(flowController)
@@ -415,11 +415,21 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
                 .reloadComponent(flowController.getReloadComponent())
                 .addClasspathUrls(additionalUrls)
                 .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
-                .flowController(flowController)
                 .systemSslContext(systemSslContext)
                 .extensionManager(extensionManager)
                 .classloaderIsolationKey(classloaderIsolationKey)
-                .buildFlowRegistryClient();
+                .flowAnalysisAtRegistryCommit(nifiProperties.shouldCheckForRulesViolationWhenRegistryCommit());
+
+        if (getFlowAnalyzer().isPresent()) {
+            extensionBuilder.flowAnalyzer(getFlowAnalyzer().get());
+        }
+
+        if (getRuleViolationsManager().isPresent()) {
+            extensionBuilder.ruleViolationsManager(getRuleViolationsManager().get());
+        }
+
+        final FlowRegistryClientNode clientNode =
+                extensionBuilder.buildFlowRegistryClient();
 
         LogRepositoryFactory.getRepository(clientNode.getIdentifier()).setLogger(clientNode.getLogger());
 
