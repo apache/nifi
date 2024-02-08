@@ -17,11 +17,12 @@
 
 package org.apache.nifi.python.processor;
 
+import org.apache.nifi.python.PythonObjectProxy;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.util.Map;
 
-public interface RecordTransformResult {
+public interface RecordTransformResult extends PythonObjectProxy {
 
     String getRecordJson();
 

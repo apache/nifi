@@ -147,9 +147,13 @@ public class RecordTransformProxy extends PythonProcessorProxy {
                         baos.reset();
 
                         final List<RecordTransformResult> results = transform.transformRecord(json, recordSchema, attributeMap);
-                        for (final RecordTransformResult result : results) {
-                            writeResult(result, destinationTuples, writerFactory, session, flowFile);
-                            recordsWritten++;
+                        try {
+                            for (final RecordTransformResult result : results) {
+                                writeResult(result, destinationTuples, writerFactory, session, flowFile);
+                                recordsWritten++;
+                            }
+                        } finally {
+                            results.forEach(RecordTransformResult::free);
                         }
 
                         writtenSinceFlush = 0;
@@ -163,9 +167,13 @@ public class RecordTransformProxy extends PythonProcessorProxy {
                     baos.reset();
 
                     final List<RecordTransformResult> results = transform.transformRecord(json, recordSchema, attributeMap);
-                    for (final RecordTransformResult result : results) {
-                        writeResult(result, destinationTuples, writerFactory, session, flowFile);
-                        recordsWritten++;
+                    try {
+                        for (final RecordTransformResult result : results) {
+                            writeResult(result, destinationTuples, writerFactory, session, flowFile);
+                            recordsWritten++;
+                        }
+                    } finally {
+                        results.forEach(RecordTransformResult::free);
                     }
                 }
             }
