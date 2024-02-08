@@ -24,6 +24,7 @@ import {
     deleteComponents,
     enterProcessGroup,
     getParameterContextsAndOpenGroupComponentsDialog,
+    goToRemoteProcessGroup,
     leaveProcessGroup,
     moveComponents,
     navigateToComponent,
@@ -953,8 +954,13 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 },
                 clazz: 'fa fa-external-link',
                 text: 'Go to',
-                action: () => {
-                    // TODO - openUri
+                action: (selection: any) => {
+                    if (selection.size() === 1 && this.canvasUtils.isRemoteProcessGroup(selection)) {
+                        const selectionData = selection.datum();
+                        const uri = selectionData.component.targetUri;
+
+                        this.store.dispatch(goToRemoteProcessGroup({ request: { uri } }));
+                    }
                 }
             },
             {

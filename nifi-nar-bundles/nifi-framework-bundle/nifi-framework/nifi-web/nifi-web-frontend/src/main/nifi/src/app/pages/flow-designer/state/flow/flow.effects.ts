@@ -95,6 +95,7 @@ import { RegistryService } from '../../service/registry.service';
 import { ImportFromRegistry } from '../../ui/canvas/items/flow/import-from-registry/import-from-registry.component';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dialog/no-registry-clients-dialog.component';
+import { showOkDialog } from './flow.actions';
 
 @Injectable()
 export class FlowEffects {
@@ -335,6 +336,24 @@ export class FlowEffects {
                 )
             )
         )
+    );
+
+    goToRemoteProcessGroup$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.goToRemoteProcessGroup),
+                map((action) => action.request),
+                tap((request) => {
+                    if (request.uri) {
+                        this.flowService.goToRemoteProcessGroup(request);
+                    } else {
+                        this.store.dispatch(
+                            showOkDialog({ title: 'Remote Process Group', message: 'No target URI defined.' })
+                        );
+                    }
+                })
+            ),
+        { dispatch: false }
     );
 
     openNewProcessGroupDialog$ = createEffect(
