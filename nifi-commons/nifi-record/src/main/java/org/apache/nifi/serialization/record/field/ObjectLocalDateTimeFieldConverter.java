@@ -21,6 +21,7 @@ import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Date;
@@ -30,6 +31,8 @@ import java.util.Optional;
  * Convert Object to java.time.LocalDateTime using instanceof evaluation and optional format pattern for DateTimeFormatter
  */
 class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalDateTime> {
+    private static final long YEAR_TEN_THOUSAND = 253_402_300_800_000L;
+
     /**
      * Convert Object field to java.sql.Timestamp using optional format supported in DateTimeFormatter
      *
@@ -81,14 +84,14 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
     }
 
     private LocalDateTime tryParseAsNumber(final String value, final String fieldName) {
-        // If decimal, treat as a double and convert to seconds and nanoseconds.
-        if (value.contains(".")) {
-            final double number = Double.parseDouble(value);
-            return toLocalDateTime(number);
-        }
-
-        // attempt to parse as a long value
         try {
+            // If decimal, treat as a double and convert to seconds and nanoseconds.
+            if (value.contains(".")) {
+                final double number = Double.parseDouble(value);
+                return toLocalDateTime(number);
+            }
+
+            // attempt to parse as a long value
             final long number = Long.parseLong(value);
             return toLocalDateTime(number);
         } catch (final NumberFormatException e) {
@@ -98,10 +101,10 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
 
     private LocalDateTime toLocalDateTime(final double secondsSinceEpoch) {
         // Determine the number of micros past the second by subtracting the number of seconds from the decimal value and multiplying by 1 million.
-        final long micros = (long) (1_000_000 * (secondsSinceEpoch - (long) secondsSinceEpoch));
+        final double micros = 1_000_000 * (secondsSinceEpoch - (long) secondsSinceEpoch);
         // Convert micros to nanos. Note that we perform this as a separate operation, rather than multiplying by 1_000,000,000 in order to avoid
         // issues that occur with rounding at high precision.
-        final long nanos = micros * 1000L;
+        final long nanos = (long) micros * 1000L;
 
         return toLocalDateTime((long) secondsSinceEpoch, nanos);
     }
@@ -112,13 +115,14 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
     }
 
     private LocalDateTime toLocalDateTime(final long value) {
-        final Instant instant = Instant.ofEpochMilli(value);
-        final LocalDateTime localDateTime = ofInstant(instant);
-        if (localDateTime.getYear() > 10_000) {
+        if (value > YEAR_TEN_THOUSAND) {
             // Value is too large. Assume microseconds instead of milliseconds.
             final Instant microsInstant = Instant.ofEpochSecond(value / 1_000_000, (value % 1_000_000) * 1_000);
             return ofInstant(microsInstant);
         }
+
+        final Instant instant = Instant.ofEpochMilli(value);
+        final LocalDateTime localDateTime = ofInstant(instant);
 
         return localDateTime;
     }
