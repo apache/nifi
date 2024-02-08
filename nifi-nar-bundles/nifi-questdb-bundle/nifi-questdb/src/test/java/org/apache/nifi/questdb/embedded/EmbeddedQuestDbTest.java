@@ -16,11 +16,22 @@
  */
 package org.apache.nifi.questdb.embedded;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.net.URL;
 import java.nio.file.Path;
 
 public abstract class EmbeddedQuestDbTest {
     @TempDir
     protected Path testDbPathDirectory;
+
+    @BeforeAll
+    public static void setLogging() {
+        final URL logConfUrl = EmbeddedQuestDbTest.class.getResource("/log-stdout.conf");
+        if (logConfUrl == null) {
+            throw new IllegalStateException("QuestDB log configuration not found");
+        }
+        System.setProperty("out", logConfUrl.getPath());
+    }
 }
