@@ -166,6 +166,10 @@ export interface CreateProcessGroupDialogRequest {
     parameterContexts: ParameterContextEntity[];
 }
 
+export interface CreateRemoteProcessGroupDialogRequest {
+    request: CreateComponentRequest;
+}
+
 export interface NoRegistryClientsDialogRequest {
     controllerPermissions: Permissions;
 }
@@ -217,6 +221,18 @@ export interface CreateProcessGroupRequest extends CreateComponentRequest {
 export interface UploadProcessGroupRequest extends CreateComponentRequest {
     name: string;
     flowDefinition: File;
+}
+
+export interface CreateRemoteProcessGroupRequest extends CreateComponentRequest {
+    targetUris: string;
+    transportProtocol: string;
+    localNetworkInterface: string;
+    proxyHost: string;
+    proxyPort: string;
+    proxyUser: string;
+    proxyPassword: string;
+    communicationsTimeout: string;
+    yieldDuration: string;
 }
 
 export interface CreatePortRequest extends CreateComponentRequest {

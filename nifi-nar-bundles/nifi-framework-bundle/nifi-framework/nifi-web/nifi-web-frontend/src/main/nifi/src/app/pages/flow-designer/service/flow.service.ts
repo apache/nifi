@@ -25,6 +25,7 @@ import {
     CreatePortRequest,
     CreateProcessGroupRequest,
     CreateProcessorRequest,
+    CreateRemoteProcessGroupRequest,
     DeleteComponentRequest,
     ProcessGroupRunStatusRequest,
     ReplayLastProvenanceEventRequest,
@@ -156,6 +157,32 @@ export class FlowService implements PropertyDescriptorRetriever {
         }
 
         return this.httpClient.post(`${FlowService.API}/process-groups/${processGroupId}/process-groups`, payload);
+    }
+
+    createRemoteProcessGroup(
+        processGroupId = 'root',
+        createRemoteProcessGroup: CreateRemoteProcessGroupRequest
+    ): Observable<any> {
+        const payload: any = {
+            revision: createRemoteProcessGroup.revision,
+            component: {
+                position: createRemoteProcessGroup.position,
+                targetUris: createRemoteProcessGroup.targetUris,
+                transportProtocol: createRemoteProcessGroup.transportProtocol,
+                localNetworkInterface: createRemoteProcessGroup.localNetworkInterface,
+                proxyHost: createRemoteProcessGroup.proxyHost,
+                proxyPort: createRemoteProcessGroup.proxyPort,
+                proxyUser: createRemoteProcessGroup.proxyUser,
+                proxyPassword: createRemoteProcessGroup.proxyPassword,
+                communicationsTimeout: createRemoteProcessGroup.communicationsTimeout,
+                yieldDuration: createRemoteProcessGroup.yieldDuration
+            }
+        };
+
+        return this.httpClient.post(
+            `${FlowService.API}/process-groups/${processGroupId}/remote-process-groups`,
+            payload
+        );
     }
 
     uploadProcessGroup(processGroupId = 'root', uploadProcessGroup: UploadProcessGroupRequest): Observable<any> {
