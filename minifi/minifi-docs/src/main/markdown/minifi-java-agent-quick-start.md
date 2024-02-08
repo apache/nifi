@@ -86,18 +86,18 @@ For Windows users, navigate to the folder where MiNiFi was installed. Navigate t
 This launches MiNiFi and leaves it running in the foreground. To shut down NiFi, select the window that was launched and hold the Ctrl key while pressing C.
 
 # Working with DataFlows
-When you are working with a MiNiFi dataflow, you should design it, add any additional configuration your environment or use case requires, and then deploy your dataflow. MiNiFi is not designed to accommodate substantial mid-dataflow configuration.
+When you are working with a MiNiFi dataflow, you should design it, add any additional configuration your environment or use case requires, and then deploy your dataflow. MiNiFi is not designed to accommodate substantial mid-dataflow configuration. Prior to version 2.0.0-M1 minifi accepted configuration by yaml in the config.yml file. With versions 2.0.0-M1 or newer this is no longer supported. The flow.json.raw file must be used.
 
 ## Setting up Your DataFlow
 
 ### Manually from a NiFi Dataflow
 You can use the MiNiFi Toolkit, located in your MiNiFi installation directory, and any NiFi instance to set up the dataflow you want MiNiFi to run:
 
-1. Launch NiFi
+1. Launch NiFi UI
 2. Create a dataflow.
-3. Export the dataflow in JSON format.
+3. Download the flow.xml.gz file, and extract it with `gunzip -k flow.json.gz`
 4. Move your new .json file to `minifi/conf`.
-5. Rename your .json file _flow.json.raw_.
+5. Rename your .json file to `flow.json.raw`
 
 **Note:** You can use one template at a time, per MiNiFi instance.
 
