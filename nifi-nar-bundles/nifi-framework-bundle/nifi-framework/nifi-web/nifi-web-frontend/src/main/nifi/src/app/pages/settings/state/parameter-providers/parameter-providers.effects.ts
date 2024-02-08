@@ -499,6 +499,9 @@ export class ParameterProvidersEffects {
         this.actions$.pipe(
             ofType(ParameterProviderActions.parameterProvidersBannerApiError),
             map((action) => action.error),
+            tap(() =>
+                this.store.dispatch(ParameterProviderActions.stopPollingParameterProviderParametersUpdateRequest())
+            ),
             switchMap((error) => of(ErrorActions.addBannerError({ error })))
         )
     );
