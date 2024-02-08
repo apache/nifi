@@ -15,14 +15,8 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.python.processor;
+package org.apache.nifi.python;
 
-import org.apache.nifi.serialization.record.RecordSchema;
-
-public interface OutputRecord {
-    String getRelationship();
-
-    Object getRecord();
-
-    RecordSchema getSchema();
+public interface PythonObjectProxy {
+    void free();
 }

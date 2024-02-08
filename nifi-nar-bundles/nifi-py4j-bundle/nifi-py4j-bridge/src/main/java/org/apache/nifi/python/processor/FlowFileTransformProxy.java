@@ -72,26 +72,31 @@ public class FlowFileTransformProxy extends PythonProcessorProxy {
             session.transfer(original, REL_FAILURE);
             return;
         }
-        final String relationshipName = result.getRelationship();
-        final Relationship relationship = new Relationship.Builder().name(relationshipName).build();
-        if (REL_FAILURE.getName().equals(relationshipName)) {
-            session.remove(transformed);
-            session.transfer(original, REL_FAILURE);
-            return;
-        }
 
-        final Map<String, String> attributes = result.getAttributes();
-        if (attributes != null) {
-            transformed = session.putAllAttributes(transformed, attributes);
-        }
+        try {
+            final String relationshipName = result.getRelationship();
+            final Relationship relationship = new Relationship.Builder().name(relationshipName).build();
+            if (REL_FAILURE.getName().equals(relationshipName)) {
+                session.remove(transformed);
+                session.transfer(original, REL_FAILURE);
+                return;
+            }
 
-        final byte[] contents = result.getContents();
-        if (contents != null) {
-            transformed = session.write(transformed, out -> out.write(contents));
-        }
+            final Map<String, String> attributes = result.getAttributes();
+            if (attributes != null) {
+                transformed = session.putAllAttributes(transformed, attributes);
+            }
 
-        session.transfer(transformed, relationship);
-        session.transfer(original, REL_ORIGINAL);
+            final byte[] contents = result.getContents();
+            if (contents != null) {
+                transformed = session.write(transformed, out -> out.write(contents));
+            }
+
+            session.transfer(transformed, relationship);
+            session.transfer(original, REL_ORIGINAL);
+        } finally {
+            result.free();
+        }
     }
 
 }

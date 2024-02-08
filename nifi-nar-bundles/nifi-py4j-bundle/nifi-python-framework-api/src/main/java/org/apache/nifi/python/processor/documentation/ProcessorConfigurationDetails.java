@@ -17,7 +17,9 @@
 
 package org.apache.nifi.python.processor.documentation;
 
-public interface ProcessorConfigurationDetails {
+import org.apache.nifi.python.PythonObjectProxy;
+
+public interface ProcessorConfigurationDetails extends PythonObjectProxy {
     String getProcessorType();
 
     String getConfiguration();

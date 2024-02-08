@@ -17,9 +17,11 @@
 
 package org.apache.nifi.python.processor.documentation;
 
+import org.apache.nifi.python.PythonObjectProxy;
+
 import java.util.List;
 
-public interface UseCaseDetails {
+public interface UseCaseDetails extends PythonObjectProxy {
     String getDescription();
 
     String getNotes();

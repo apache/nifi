@@ -27,6 +27,7 @@ import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.nifi.python.PythonController;
+import org.apache.nifi.python.PythonObjectProxy;
 import org.apache.nifi.python.processor.PreserveJavaBinding;
 import org.apache.nifi.python.processor.PythonProcessor;
 import org.slf4j.Logger;
@@ -142,9 +143,23 @@ public class NiFiPythonGateway extends Gateway {
     protected PythonProxyHandler createPythonProxyHandler(final String id) {
         logger.debug("Creating Python Proxy Handler for ID {}", id);
         final PythonProxyInvocationHandler createdHandler = new PythonProxyInvocationHandler(this, id);
+
+        Method proxyFreeMethod;
+        try {
+            proxyFreeMethod = PythonObjectProxy.class.getMethod("free");
+        } catch (final NoSuchMethodException ignored) {
+            proxyFreeMethod = null;
+        }
+
+        final Method freeMethod = proxyFreeMethod;
         return new PythonProxyHandler(id, this) {
             @Override
             public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
+                if (Objects.equals(freeMethod, method)) {
+                    createdHandler.free();
+                    return null;
+                }
+
                 return createdHandler.invoke(proxy, method, args);
             }
 
