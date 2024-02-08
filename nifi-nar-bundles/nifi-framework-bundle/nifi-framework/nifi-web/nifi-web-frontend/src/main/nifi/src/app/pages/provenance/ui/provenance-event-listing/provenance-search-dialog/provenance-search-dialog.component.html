@@ -47,7 +47,7 @@
             <div class="w-full flex flex-col">
                 <mat-form-field>
                     <mat-label>Start Time ({{ timezone }})</mat-label>
-                    <input matInput type="text" formControlName="startTime" />
+                    <input matInput type="time" step="1" formControlName="startTime" />
                 </mat-form-field>
                 <mat-form-field>
                     <mat-label>Minimum File Size</mat-label>
@@ -57,7 +57,7 @@
             <div class="w-full flex flex-col">
                 <mat-form-field>
                     <mat-label>End Time ({{ timezone }})</mat-label>
-                    <input matInput type="text" formControlName="endTime" />
+                    <input matInput type="time" step="1" formControlName="endTime" />
                 </mat-form-field>
                 <mat-form-field>
                     <mat-label>Maximum File Size</mat-label>

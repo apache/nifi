@@ -78,6 +78,14 @@ const routes: Routes = [
         loadChildren: () => import('./pages/queue/feature/queue.module').then((m) => m.QueueModule)
     },
     {
+        path: 'flow-configuration-history',
+        canMatch: [authenticationGuard],
+        loadChildren: () =>
+            import('./pages/flow-configuration-history/feature/flow-configuration-history.module').then(
+                (m) => m.FlowConfigurationHistoryModule
+            )
+    },
+    {
         path: '',
         canMatch: [authenticationGuard],
         loadChildren: () =>
