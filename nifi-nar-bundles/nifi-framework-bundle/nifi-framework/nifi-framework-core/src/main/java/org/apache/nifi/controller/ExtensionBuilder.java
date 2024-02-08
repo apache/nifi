@@ -30,6 +30,7 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
+import org.apache.nifi.controller.flowanalysis.FlowAnalysisUtil;
 import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
 import org.apache.nifi.controller.flowanalysis.StandardFlowAnalysisInitializationContext;
 import org.apache.nifi.controller.flowanalysis.StandardFlowAnalysisRuleNode;
@@ -67,6 +68,7 @@ import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.python.PythonBridge;
+import org.apache.nifi.registry.flow.FlowAnalyzingRegistryClientNode;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.FlowRegistryClientInitializationContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
@@ -111,6 +113,7 @@ public class ExtensionBuilder {
    private StateManagerProvider stateManagerProvider;
    private RuleViolationsManager ruleViolationsManager;
    private FlowAnalyzer flowAnalyzer;
+   private boolean flowAnalysisAtRegistryCommit;
    private String classloaderIsolationKey;
    private SSLContext systemSslContext;
    private PythonBridge pythonBridge;
@@ -175,6 +178,11 @@ public class ExtensionBuilder {
 
    public ExtensionBuilder flowController(final FlowController flowController) {
        this.flowController = flowController;
+       return this;
+   }
+
+   public ExtensionBuilder flowAnalysisAtRegistryCommit(final boolean flowAnalysisAtRegistryCommit) {
+       this.flowAnalysisAtRegistryCommit = flowAnalysisAtRegistryCommit;
        return this;
    }
 
@@ -534,7 +542,7 @@ public class ExtensionBuilder {
 
    private FlowRegistryClientNode createFlowRegistryClientNode(final LoggableComponent<FlowRegistryClient> client, final boolean creationSuccessful) {
        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider, ruleViolationsManager, flowAnalyzer);
-       final FlowRegistryClientNode clientNode;
+       final StandardFlowRegistryClientNode clientNode;
 
        if (creationSuccessful) {
            clientNode = new StandardFlowRegistryClientNode(
@@ -570,7 +578,18 @@ public class ExtensionBuilder {
                    true);
        }
 
-       return clientNode;
+       if (flowAnalysisAtRegistryCommit) {
+           return new FlowAnalyzingRegistryClientNode(
+                   clientNode,
+                   serviceProvider,
+                   flowAnalyzer,
+                   ruleViolationsManager,
+                   flowController.getFlowManager(),
+                   () -> FlowAnalysisUtil.createMapper(extensionManager)
+           );
+       } else {
+           return clientNode;
+       }
    }
 
    private void applyDefaultSettings(final ProcessorNode processorNode) {
