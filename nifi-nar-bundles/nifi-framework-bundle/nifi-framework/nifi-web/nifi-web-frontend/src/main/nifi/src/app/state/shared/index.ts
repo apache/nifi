@@ -21,7 +21,7 @@ export function isDefinedAndNotNull<T>() {
     return (source$: Observable<null | undefined | T>) =>
         source$.pipe(
             filter((input: null | undefined | T): input is T => {
-                return input !== null && typeof input !== undefined;
+                return input !== null && typeof input !== 'undefined';
             })
         );
 }
@@ -593,4 +593,16 @@ export interface CreateControllerServiceRequest {
 
 export interface ControllerServiceCreator {
     createControllerService(createControllerService: CreateControllerServiceRequest): Observable<any>;
+}
+
+export interface ParameterProviderConfiguration {
+    parameterGroupName: string;
+    parameterProviderId: string;
+    parameterProviderName: string;
+    synchronized: boolean;
+}
+
+export interface ParameterProviderConfigurationEntity {
+    id: string;
+    component: ParameterProviderConfiguration;
 }

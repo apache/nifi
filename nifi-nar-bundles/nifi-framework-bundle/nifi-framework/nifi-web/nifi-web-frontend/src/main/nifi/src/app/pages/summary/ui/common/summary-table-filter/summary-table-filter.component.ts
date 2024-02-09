@@ -15,14 +15,16 @@
  *  limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, EventEmitter, inject, Input, Output } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { debounceTime } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export interface SummaryTableFilterColumn {
     key: string;
     label: string;
 }
+
 export interface SummaryTableFilterArgs {
     filterTerm: string;
     filterColumn: string;
@@ -40,6 +42,7 @@ export class SummaryTableFilter implements AfterViewInit {
     private _filteredCount = 0;
     private _totalCount = 0;
     private _initialFilterColumn = 'name';
+    private destroyRef: DestroyRef = inject(DestroyRef);
     showFilterMatchedLabel = false;
 
     @Input() filterableColumns: SummaryTableFilterColumn[] = [];
@@ -50,6 +53,7 @@ export class SummaryTableFilter implements AfterViewInit {
     @Input() set filterTerm(term: string) {
         this.filterForm.get('filterTerm')?.value(term);
     }
+
     @Input() set filterColumn(column: string) {
         this._initialFilterColumn = column;
         if (this.filterableColumns?.length > 0) {
@@ -97,7 +101,7 @@ export class SummaryTableFilter implements AfterViewInit {
     ngAfterViewInit(): void {
         this.filterForm
             .get('filterTerm')
-            ?.valueChanges.pipe(debounceTime(500))
+            ?.valueChanges.pipe(debounceTime(500), takeUntilDestroyed(this.destroyRef))
             .subscribe((filterTerm: string) => {
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
                 const filterStatus = this.filterForm.get('filterStatus')?.value;
@@ -105,26 +109,35 @@ export class SummaryTableFilter implements AfterViewInit {
                 this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly);
             });
 
-        this.filterForm.get('filterColumn')?.valueChanges.subscribe((filterColumn: string) => {
-            const filterTerm = this.filterForm.get('filterTerm')?.value;
-            const filterStatus = this.filterForm.get('filterStatus')?.value;
-            const primaryOnly = this.filterForm.get('primaryOnly')?.value;
-            this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly);
-        });
+        this.filterForm
+            .get('filterColumn')
+            ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((filterColumn: string) => {
+                const filterTerm = this.filterForm.get('filterTerm')?.value;
+                const filterStatus = this.filterForm.get('filterStatus')?.value;
+                const primaryOnly = this.filterForm.get('primaryOnly')?.value;
+                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly);
+            });
 
-        this.filterForm.get('filterStatus')?.valueChanges.subscribe((filterStatus: string) => {
-            const filterTerm = this.filterForm.get('filterTerm')?.value;
-            const filterColumn = this.filterForm.get('filterColumn')?.value;
-            const primaryOnly = this.filterForm.get('primaryOnly')?.value;
-            this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly);
-        });
+        this.filterForm
+            .get('filterStatus')
+            ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((filterStatus: string) => {
+                const filterTerm = this.filterForm.get('filterTerm')?.value;
+                const filterColumn = this.filterForm.get('filterColumn')?.value;
+                const primaryOnly = this.filterForm.get('primaryOnly')?.value;
+                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly);
+            });
 
-        this.filterForm.get('primaryOnly')?.valueChanges.subscribe((primaryOnly: boolean) => {
-            const filterTerm = this.filterForm.get('filterTerm')?.value;
-            const filterColumn = this.filterForm.get('filterColumn')?.value;
-            const filterStatus = this.filterForm.get('filterStatus')?.value;
-            this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly);
-        });
+        this.filterForm
+            .get('primaryOnly')
+            ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((primaryOnly: boolean) => {
+                const filterTerm = this.filterForm.get('filterTerm')?.value;
+                const filterColumn = this.filterForm.get('filterColumn')?.value;
+                const filterStatus = this.filterForm.get('filterStatus')?.value;
+                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly);
+            });
     }
 
     applyFilter(filterTerm: string, filterColumn: string, filterStatus: string, primaryOnly: boolean) {

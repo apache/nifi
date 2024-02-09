@@ -86,14 +86,17 @@
                         <td mat-cell *matCellDef="let item">
                             <div class="flex items-center gap-x-3">
                                 <div
+                                    *ngIf="canConfigure(item)"
                                     class="pointer fa fa-pencil"
                                     (click)="configureClicked(item, $event)"
                                     title="Edit"></div>
                                 <div
+                                    *ngIf="canFetch(item)"
                                     class="pointer fa fa-arrow-circle-down"
                                     (click)="fetchClicked(item, $event)"
                                     title="Fetch Parameters"></div>
                                 <div
+                                    *ngIf="canDelete(item)"
                                     class="pointer fa fa-trash"
                                     (click)="deleteClicked(item, $event)"
                                     title="Remove"></div>

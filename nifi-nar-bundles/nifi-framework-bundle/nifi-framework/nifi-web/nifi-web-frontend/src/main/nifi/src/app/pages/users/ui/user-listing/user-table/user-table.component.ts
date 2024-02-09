@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, EventEmitter, inject, Input, Output } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
@@ -27,6 +27,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { NgIf } from '@angular/common';
 import { MatInputModule } from '@angular/material/input';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export interface TenantItem {
     id: string;
@@ -68,6 +69,7 @@ export class UserTable implements AfterViewInit {
 
     userLookup: Map<string, UserEntity> = new Map<string, UserEntity>();
     userGroupLookup: Map<string, UserGroupEntity> = new Map<string, UserGroupEntity>();
+    private destroyRef: DestroyRef = inject(DestroyRef);
 
     @Input() set tenants(tenants: Tenants) {
         this.userLookup.clear();
@@ -141,16 +143,19 @@ export class UserTable implements AfterViewInit {
     ngAfterViewInit(): void {
         this.filterForm
             .get('filterTerm')
-            ?.valueChanges.pipe(debounceTime(500))
+            ?.valueChanges.pipe(debounceTime(500), takeUntilDestroyed(this.destroyRef))
             .subscribe((filterTerm: string) => {
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
                 this.applyFilter(filterTerm, filterColumn);
             });
 
-        this.filterForm.get('filterColumn')?.valueChanges.subscribe((filterColumn: string) => {
-            const filterTerm = this.filterForm.get('filterTerm')?.value;
-            this.applyFilter(filterTerm, filterColumn);
-        });
+        this.filterForm
+            .get('filterColumn')
+            ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((filterColumn: string) => {
+                const filterTerm = this.filterForm.get('filterTerm')?.value;
+                this.applyFilter(filterTerm, filterColumn);
+            });
     }
 
     applyFilter(filterTerm: string, filterColumn: string) {

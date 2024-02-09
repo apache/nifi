@@ -26,7 +26,7 @@
                         *ngFor="let updateStep of requestEntity.request.updateSteps"
                         class="flex justify-between items-center">
                         <div class="value">{{ updateStep.description }}</div>
-                        <div *ngIf="updateStep.complete; else stepInProgress" class="fa fa-check text-green-500"></div>
+                        <div *ngIf="updateStep.complete; else stepInProgress" class="fa fa-check complete"></div>
                         <ng-template #stepInProgress>
                             <div class="fa fa-spin fa-circle-o-notch"></div>
                         </ng-template>
@@ -67,6 +67,14 @@
                                 <div>Id</div>
                                 <div class="value">{{ request.parameterContext?.id }}</div>
                             </div>
+                            <div class="flex flex-col mb-5" *ngIf="parameterProvider">
+                                <div>Parameter Provider</div>
+                                <a [routerLink]="getParameterProviderLink(parameterProvider)" mat-dialog-close="ROUTED">
+                                    {{ parameterProvider.parameterGroupName }}
+                                    from
+                                    {{ parameterProvider.parameterProviderName }}
+                                </a>
+                            </div>
                             <div>
                                 <mat-form-field>
                                     <mat-label>Name</mat-label>
@@ -97,6 +105,7 @@
                     <div class="tab-content py-4">
                         <parameter-table
                             formControlName="parameters"
+                            [canAddParameters]="!request.parameterContext?.component?.parameterProviderConfiguration"
                             [createNewParameter]="createNewParameter"
                             [editParameter]="editParameter"></parameter-table>
                     </div>

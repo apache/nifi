@@ -28,7 +28,7 @@ import { Parameter, ParameterEntity, TextTipInput } from '../../../../../state/s
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { Observable, take } from 'rxjs';
-import { ParameterReferences } from '../parameter-references/parameter-references.component';
+import { ParameterReferences } from '../../../../../ui/common/parameter-references/parameter-references.component';
 import { Store } from '@ngrx/store';
 import { ParameterContextListingState } from '../../../state/parameter-context-listing';
 import { showOkDialog } from '../../../../flow-designer/state/flow/flow.actions';
@@ -69,6 +69,7 @@ export interface ParameterItem {
 export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     @Input() createNewParameter!: (existingParameters: string[]) => Observable<Parameter>;
     @Input() editParameter!: (parameter: Parameter) => Observable<Parameter>;
+    @Input() canAddParameters = true;
 
     protected readonly TextTip = TextTip;
 

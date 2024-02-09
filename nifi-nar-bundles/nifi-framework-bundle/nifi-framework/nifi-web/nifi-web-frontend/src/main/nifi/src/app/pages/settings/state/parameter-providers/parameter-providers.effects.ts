@@ -24,16 +24,37 @@ import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { ParameterProviderService } from '../../service/parameter-provider.service';
 import * as ParameterProviderActions from './parameter-providers.actions';
-import { loadParameterProviders, selectParameterProvider } from './parameter-providers.actions';
-import { catchError, from, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
-import { selectSaving } from './parameter-providers.selectors';
+import { loadParameterProviders } from './parameter-providers.actions';
+import {
+    asyncScheduler,
+    catchError,
+    filter,
+    from,
+    interval,
+    map,
+    NEVER,
+    of,
+    switchMap,
+    take,
+    takeUntil,
+    tap
+} from 'rxjs';
+import {
+    selectApplyParameterProviderParametersRequest,
+    selectSaving,
+    selectStatus
+} from './parameter-providers.selectors';
 import { selectParameterProviderTypes } from '../../../../state/extension-types/extension-types.selectors';
 import { CreateParameterProvider } from '../../ui/parameter-providers/create-parameter-provider/create-parameter-provider.component';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { EditParameterProvider } from '../../ui/parameter-providers/edit-parameter-provider/edit-parameter-provider.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
-import { UpdateParameterProviderRequest } from './index';
+import { ParameterProviderEntity, UpdateParameterProviderRequest } from './index';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
+import { FetchParameterProviderParameters } from '../../ui/parameter-providers/fetch-parameter-provider-parameters/fetch-parameter-provider-parameters.component';
+import * as ErrorActions from '../../../../state/error/error.actions';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../../../service/error-helper.service';
 
 @Injectable()
 export class ParameterProvidersEffects {
@@ -45,13 +66,15 @@ export class ParameterProvidersEffects {
         private router: Router,
         private parameterProviderService: ParameterProviderService,
         private propertyTableHelperService: PropertyTableHelperService,
-        private managementControllerServiceService: ManagementControllerServiceService
+        private managementControllerServiceService: ManagementControllerServiceService,
+        private errorHelper: ErrorHelper
     ) {}
 
     loadParameterProviders$ = createEffect(() =>
         this.actions$.pipe(
             ofType(loadParameterProviders),
-            switchMap(() =>
+            concatLatestFrom(() => this.store.select(selectStatus)),
+            switchMap(([, status]) =>
                 from(this.parameterProviderService.getParameterProviders()).pipe(
                     map((response) =>
                         ParameterProviderActions.loadParameterProvidersSuccess({
@@ -61,9 +84,7 @@ export class ParameterProvidersEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(ParameterProviderActions.parameterProvidersApiError({ error: error.error }))
-                    )
+                    catchError((error: HttpErrorResponse) => of(this.errorHelper.handleLoadingError(status, error)))
                 )
             )
         )
@@ -72,7 +93,7 @@ export class ParameterProvidersEffects {
     selectParameterProvider$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(selectParameterProvider),
+                ofType(ParameterProviderActions.selectParameterProvider),
                 map((action) => action.request),
                 tap((request) => {
                     this.router.navigate(['/settings', 'parameter-providers', request.id]);
@@ -130,9 +151,10 @@ export class ParameterProvidersEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(ParameterProviderActions.parameterProvidersApiError({ error: error.error }))
-                    )
+                    catchError((error: HttpErrorResponse) => {
+                        this.dialog.closeAll();
+                        return of(ErrorActions.snackBarError({ error: error.error }));
+                    })
                 )
             )
         )
@@ -196,13 +218,7 @@ export class ParameterProvidersEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ParameterProviderActions.parameterProvidersApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((error) => of(ErrorActions.snackBarError({ error: error.error })))
                 )
             )
         )
@@ -215,6 +231,18 @@ export class ParameterProvidersEffects {
                 map((action) => action.id),
                 tap((id) => {
                     this.router.navigate(['settings', 'parameter-providers', id, 'edit']);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    navigateToFetchParameterProvider$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ParameterProviderActions.navigateToFetchParameterProvider),
+                map((action) => action.id),
+                tap((id) => {
+                    this.router.navigate(['settings', 'parameter-providers', id, 'fetch']);
                 })
             ),
         { dispatch: false }
@@ -298,6 +326,8 @@ export class ParameterProvidersEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe((response) => {
+                        this.store.dispatch(ErrorActions.clearBannerErrors());
+
                         if (response !== 'ROUTED') {
                             this.store.dispatch(
                                 ParameterProviderActions.selectParameterProvider({
@@ -328,13 +358,18 @@ export class ParameterProvidersEffects {
                             }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ParameterProviderActions.parameterProvidersApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((error: HttpErrorResponse) => {
+                        if (this.errorHelper.showErrorInContext(error.status)) {
+                            return of(
+                                ParameterProviderActions.parameterProvidersBannerApiError({
+                                    error: error.error
+                                })
+                            );
+                        } else {
+                            this.dialog.getDialogById(request.id)?.close('ROUTED');
+                            return of(this.errorHelper.fullScreenError(error));
+                        }
+                    })
                 )
             )
         )
@@ -351,6 +386,248 @@ export class ParameterProvidersEffects {
                         this.dialog.getDialogById(response.id)?.close('ROUTED');
                     } else {
                         this.dialog.closeAll();
+                    }
+                })
+            ),
+        { dispatch: false }
+    );
+
+    fetchParameterProviderParametersAndOpenDialog$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ParameterProviderActions.fetchParameterProviderParametersAndOpenDialog),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.parameterProviderService.fetchParameters(request)).pipe(
+                    map((response: ParameterProviderEntity) =>
+                        ParameterProviderActions.fetchParameterProviderParametersSuccess({
+                            response: { parameterProvider: response }
+                        })
+                    ),
+                    catchError((error) => {
+                        if (this.errorHelper.showErrorInContext(error.status)) {
+                            this.store.dispatch(
+                                ParameterProviderActions.selectParameterProvider({
+                                    request: {
+                                        id: request.id
+                                    }
+                                })
+                            );
+                            return of(ErrorActions.snackBarError({ error: error.error }));
+                        } else {
+                            return of(ErrorActions.fullScreenError(error));
+                        }
+                    })
+                )
+            )
+        )
+    );
+
+    fetchParameterProviderParametersSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ParameterProviderActions.fetchParameterProviderParametersSuccess),
+            map((action) => action.response),
+            switchMap((response) =>
+                of(ParameterProviderActions.openFetchParameterProviderDialog({ request: response }))
+            )
+        )
+    );
+
+    openFetchParameterProvidersParametersDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ParameterProviderActions.openFetchParameterProviderDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogRef = this.dialog.open(FetchParameterProviderParameters, {
+                        panelClass: 'xl-dialog',
+                        data: request
+                    });
+
+                    const referencingParameterContexts =
+                        request.parameterProvider.component.referencingParameterContexts;
+                    if (referencingParameterContexts?.length > 0) {
+                        // add an error if one of the referenced parameter contexts is not readable/writeable
+                        const canReadWriteAll = referencingParameterContexts.every(
+                            (paramContextRef) =>
+                                paramContextRef.permissions.canRead && paramContextRef.permissions.canWrite
+                        );
+                        if (!canReadWriteAll) {
+                            this.store.dispatch(
+                                ParameterProviderActions.parameterProvidersBannerApiError({
+                                    error: 'You do not have permissions to modify one or more synced parameter contexts.'
+                                })
+                            );
+                        }
+                    }
+                    const affectedComponents = request.parameterProvider.component.affectedComponents;
+                    if (affectedComponents?.length > 0) {
+                        // add an error if one of the affected components is not readable/writeable
+                        const canReadWriteAll = affectedComponents.every(
+                            (paramContextRef) =>
+                                paramContextRef.permissions.canRead && paramContextRef.permissions.canWrite
+                        );
+                        if (!canReadWriteAll) {
+                            this.store.dispatch(
+                                ParameterProviderActions.parameterProvidersBannerApiError({
+                                    error: 'You do not have permissions to modify one or more affected components.'
+                                })
+                            );
+                        }
+                    }
+
+                    dialogRef.componentInstance.updateRequest = this.store.select(
+                        selectApplyParameterProviderParametersRequest
+                    );
+                    dialogRef.componentInstance.saving$ = this.store.select(selectSaving);
+
+                    dialogRef.afterClosed().subscribe((response) => {
+                        this.store.dispatch(ParameterProviderActions.resetFetchedParameterProvider());
+                        this.store.dispatch(ErrorActions.clearBannerErrors());
+
+                        if (response !== 'ROUTED') {
+                            this.store.dispatch(
+                                ParameterProviderActions.selectParameterProvider({
+                                    request: {
+                                        id: request.parameterProvider.id
+                                    }
+                                })
+                            );
+                            this.store.dispatch(
+                                ParameterProviderActions.submitParameterProviderParametersUpdateComplete()
+                            );
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    parameterProvidersBannerApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ParameterProviderActions.parameterProvidersBannerApiError),
+            map((action) => action.error),
+            tap(() =>
+                this.store.dispatch(ParameterProviderActions.stopPollingParameterProviderParametersUpdateRequest())
+            ),
+            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+        )
+    );
+
+    submitParameterProviderParametersUpdateRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ParameterProviderActions.submitParameterProviderParametersUpdateRequest),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(
+                    this.parameterProviderService.applyParameters(request).pipe(
+                        map((response: any) =>
+                            ParameterProviderActions.submitParameterProviderParametersUpdateRequestSuccess({
+                                response: {
+                                    request: response.request
+                                }
+                            })
+                        ),
+                        catchError((error) =>
+                            of(
+                                ParameterProviderActions.parameterProvidersBannerApiError({
+                                    error: error.error
+                                })
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    );
+
+    submitParameterProviderParametersUpdateRequestSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ParameterProviderActions.submitParameterProviderParametersUpdateRequestSuccess),
+            map((action) => action.response),
+            switchMap((response) => {
+                const updateRequest = response.request;
+                if (updateRequest.complete) {
+                    return of(ParameterProviderActions.deleteParameterProviderParametersUpdateRequest());
+                } else {
+                    return of(ParameterProviderActions.startPollingParameterProviderParametersUpdateRequest());
+                }
+            })
+        )
+    );
+
+    startPollingParameterProviderParametersUpdateRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ParameterProviderActions.startPollingParameterProviderParametersUpdateRequest),
+            switchMap(() =>
+                interval(2000, asyncScheduler).pipe(
+                    takeUntil(
+                        this.actions$.pipe(
+                            ofType(ParameterProviderActions.stopPollingParameterProviderParametersUpdateRequest)
+                        )
+                    )
+                )
+            ),
+            switchMap(() => of(ParameterProviderActions.pollParameterProviderParametersUpdateRequest()))
+        )
+    );
+
+    pollParameterProviderParametersUpdateRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ParameterProviderActions.pollParameterProviderParametersUpdateRequest),
+            concatLatestFrom(() => this.store.select(selectApplyParameterProviderParametersRequest)),
+            switchMap(([, updateRequest]) => {
+                if (updateRequest) {
+                    return from(
+                        this.parameterProviderService.pollParameterProviderParametersUpdateRequest(updateRequest)
+                    ).pipe(
+                        map((response) =>
+                            ParameterProviderActions.pollParameterProviderParametersUpdateRequestSuccess({
+                                response: {
+                                    request: response.request
+                                }
+                            })
+                        ),
+                        catchError((error) =>
+                            of(
+                                ParameterProviderActions.parameterProvidersBannerApiError({
+                                    error: error.error
+                                })
+                            )
+                        )
+                    );
+                } else {
+                    return NEVER;
+                }
+            })
+        )
+    );
+
+    pollParameterProviderParametersUpdateRequestSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ParameterProviderActions.pollParameterProviderParametersUpdateRequestSuccess),
+            map((action) => action.response),
+            filter((response) => response.request.complete),
+            switchMap(() => {
+                return of(ParameterProviderActions.stopPollingParameterProviderParametersUpdateRequest());
+            })
+        )
+    );
+
+    stopPollingParameterProviderParametersUpdateRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ParameterProviderActions.stopPollingParameterProviderParametersUpdateRequest),
+            switchMap(() => of(ParameterProviderActions.deleteParameterProviderParametersUpdateRequest()))
+        )
+    );
+
+    deleteParameterProviderParametersUpdateRequest$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(ParameterProviderActions.deleteParameterProviderParametersUpdateRequest),
+                concatLatestFrom(() => this.store.select(selectApplyParameterProviderParametersRequest)),
+                tap(([, updateRequest]) => {
+                    if (updateRequest) {
+                        this.parameterProviderService.deleteParameterProviderParametersUpdateRequest(updateRequest);
                     }
                 })
             ),

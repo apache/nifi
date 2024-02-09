@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,31 +17,18 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { NoRegistryClientsDialog } from './no-registry-clients-dialog.component';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { RouterModule } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
+import { ParameterGroupsTable } from './parameter-groups-table.component';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
-describe('NoRegistryClientsDialog', () => {
-    let component: NoRegistryClientsDialog;
-    let fixture: ComponentFixture<NoRegistryClientsDialog>;
+describe('ParameterGroupsTable', () => {
+    let component: ParameterGroupsTable;
+    let fixture: ComponentFixture<ParameterGroupsTable>;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [NoRegistryClientsDialog, RouterModule, RouterTestingModule],
-            providers: [
-                {
-                    provide: MAT_DIALOG_DATA,
-                    useValue: {
-                        controllerPermissions: {
-                            canRead: true,
-                            canWrite: true
-                        }
-                    }
-                }
-            ]
+            imports: [ParameterGroupsTable, NoopAnimationsModule]
         });
-        fixture = TestBed.createComponent(NoRegistryClientsDialog);
+        fixture = TestBed.createComponent(ParameterGroupsTable);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

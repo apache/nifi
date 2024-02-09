@@ -19,6 +19,7 @@ import {
     ParameterContextReferenceEntity,
     ParameterContextUpdateRequestEntity,
     ParameterEntity,
+    ParameterProviderConfigurationEntity,
     Permissions,
     Revision
 } from '../../../../state/shared';
@@ -73,7 +74,7 @@ export interface ParameterContext {
     parameters: ParameterEntity[];
     boundProcessGroups: BoundProcessGroup[];
     inheritedParameterContexts: ParameterContextReferenceEntity[];
-    // private ParameterProviderConfigurationEntity parameterProviderConfiguration;
+    parameterProviderConfiguration?: ParameterProviderConfigurationEntity;
 }
 
 // TODO - Replace this with ProcessGroupEntity was available

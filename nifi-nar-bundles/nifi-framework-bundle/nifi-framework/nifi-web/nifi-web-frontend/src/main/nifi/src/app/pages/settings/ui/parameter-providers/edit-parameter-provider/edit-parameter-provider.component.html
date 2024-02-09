@@ -17,6 +17,7 @@
 
 <h2 mat-dialog-title>Edit Parameter Provider</h2>
 <form class="parameter-provider-edit-form" [formGroup]="editParameterProviderForm">
+    <error-banner></error-banner>
     <mat-dialog-content>
         <mat-tab-group>
             <mat-tab label="Settings">
@@ -78,7 +79,7 @@
     </mat-dialog-content>
 
     <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="accent" mat-raised-button mat-dialog-close>Cancel</button>
+        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
         <button
             [disabled]="!editParameterProviderForm.dirty || editParameterProviderForm.invalid || saving.value"
             type="button"

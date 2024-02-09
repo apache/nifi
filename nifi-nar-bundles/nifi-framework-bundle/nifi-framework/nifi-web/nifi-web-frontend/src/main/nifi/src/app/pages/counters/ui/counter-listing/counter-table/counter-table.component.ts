@@ -15,13 +15,14 @@
  *  limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, EventEmitter, inject, Input, Output } from '@angular/core';
 import { CounterEntity } from '../../../state/counter-listing';
 import { MatTableDataSource } from '@angular/material/table';
 import { Sort } from '@angular/material/sort';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { debounceTime } from 'rxjs';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'counter-table',
@@ -30,6 +31,7 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
 })
 export class CounterTable implements AfterViewInit {
     private _canModifyCounters = false;
+    private destroyRef: DestroyRef = inject(DestroyRef);
     filterTerm = '';
     filterColumn: 'context' | 'name' = 'name';
     totalCount = 0;
@@ -95,16 +97,19 @@ export class CounterTable implements AfterViewInit {
     ngAfterViewInit(): void {
         this.filterForm
             .get('filterTerm')
-            ?.valueChanges.pipe(debounceTime(500))
+            ?.valueChanges.pipe(debounceTime(500), takeUntilDestroyed(this.destroyRef))
             .subscribe((filterTerm: string) => {
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
                 this.applyFilter(filterTerm, filterColumn);
             });
 
-        this.filterForm.get('filterColumn')?.valueChanges.subscribe((filterColumn: string) => {
-            const filterTerm = this.filterForm.get('filterTerm')?.value;
-            this.applyFilter(filterTerm, filterColumn);
-        });
+        this.filterForm
+            .get('filterColumn')
+            ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((filterColumn: string) => {
+                const filterTerm = this.filterForm.get('filterTerm')?.value;
+                this.applyFilter(filterTerm, filterColumn);
+            });
     }
 
     applyFilter(filterTerm: string, filterColumn: string) {

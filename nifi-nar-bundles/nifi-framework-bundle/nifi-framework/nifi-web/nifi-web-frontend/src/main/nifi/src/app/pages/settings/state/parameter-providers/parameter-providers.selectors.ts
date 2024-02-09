@@ -30,6 +30,11 @@ export const selectSaving = createSelector(
     (state: ParameterProvidersState) => state.saving
 );
 
+export const selectStatus = createSelector(
+    selectParameterProvidersState,
+    (state: ParameterProvidersState) => state.status
+);
+
 export const selectParameterProviderIdFromRoute = createSelector(selectCurrentRoute, (route) => {
     if (route) {
         // always select the parameter provider from the route
@@ -45,6 +50,13 @@ export const selectSingleEditedParameterProvider = createSelector(selectCurrentR
     return null;
 });
 
+export const selectSingleFetchParameterProvider = createSelector(selectCurrentRoute, (route) => {
+    if (route?.routeConfig?.path == 'fetch') {
+        return route.params.id;
+    }
+    return null;
+});
+
 export const selectParameterProviders = createSelector(
     selectParameterProvidersState,
     (state: ParameterProvidersState) => state.parameterProviders
@@ -52,5 +64,10 @@ export const selectParameterProviders = createSelector(
 
 export const selectParameterProvider = (id: string) =>
     createSelector(selectParameterProviders, (entities: ParameterProviderEntity[]) =>
-        entities.find((entity) => id == entity.id)
+        entities.find((entity) => id === entity.id)
     );
+
+export const selectApplyParameterProviderParametersRequest = createSelector(
+    selectParameterProvidersState,
+    (state: ParameterProvidersState) => state.applyParametersRequestEntity
+);

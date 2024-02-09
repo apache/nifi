@@ -27,7 +27,7 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { ParameterContextReferenceEntity, TextTipInput } from '../../../../../state/shared';
 import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { ParameterReferences } from '../parameter-references/parameter-references.component';
+import { ParameterReferences } from '../../../../../ui/common/parameter-references/parameter-references.component';
 import { ParameterContextEntity } from '../../../state/parameter-context-listing';
 import {
     DragDropModule,
