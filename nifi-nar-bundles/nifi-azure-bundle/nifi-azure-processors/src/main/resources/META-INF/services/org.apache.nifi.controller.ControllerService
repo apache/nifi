@@ -21,5 +21,5 @@ org.apache.nifi.services.azure.data.explorer.StandardKustoIngestService
 org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12
 org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerServiceLookup_v12
 org.apache.nifi.services.azure.StandardAzureCredentialsControllerService
-org.apache.nifi.services.azure.storage.AzureFileResourceService
-org.apache.nifi.services.azure.storage.ADLSFileResourceService
+org.apache.nifi.services.azure.storage.AzureBlobStorageFileResourceService
+org.apache.nifi.services.azure.storage.AzureDataLakeStorageFileResourceService

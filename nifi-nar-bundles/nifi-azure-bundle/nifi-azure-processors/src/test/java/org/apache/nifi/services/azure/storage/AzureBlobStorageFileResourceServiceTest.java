@@ -39,7 +39,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Map;
 
-import static org.apache.nifi.services.azure.storage.AzureFileResourceService.STORAGE_CREDENTIALS_SERVICE;
+import static org.apache.nifi.services.azure.storage.AzureBlobStorageFileResourceService.STORAGE_CREDENTIALS_SERVICE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -48,9 +48,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class AzureFileResourceServiceTest {
-
-    private static final String TEST_NAME = AzureFileResourceServiceTest.class.getSimpleName();
+class AzureBlobStorageFileResourceServiceTest {
     private static final String CONTROLLER_SERVICE = "AzureCredentialsService";
     private static final String CONTAINER = "container-name";
     private static final String BLOB_NAME = "test-file";
@@ -72,14 +70,14 @@ class AzureFileResourceServiceTest {
     private BlobInputStream blobInputStream;
 
     @InjectMocks
-    private TestAzureFileResourceService service;
+    private TestAzureBlobStorageFileResourceService service;
 
     private TestRunner runner;
 
     @BeforeEach
     void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
-        runner.addControllerService(TEST_NAME, service);
+        runner.addControllerService("AzureBlobStorageFileResourceService", service);
     }
 
     @Test
@@ -145,8 +143,8 @@ class AzureFileResourceServiceTest {
         runner.enableControllerService(credentialsService);
 
         runner.setProperty(service, STORAGE_CREDENTIALS_SERVICE, CONTROLLER_SERVICE);
-        runner.setProperty(service, AzureFileResourceService.BLOB_NAME, blobName);
-        runner.setProperty(service, AzureFileResourceService.CONTAINER, container);
+        runner.setProperty(service, AzureBlobStorageFileResourceService.BLOB_NAME, blobName);
+        runner.setProperty(service, AzureBlobStorageFileResourceService.CONTAINER, container);
 
         runner.enableControllerService(service);
     }
@@ -176,11 +174,11 @@ class AzureFileResourceServiceTest {
         verifyNoMoreInteractions(containerClient, blobClient, blobProperties);
     }
 
-    private static class TestAzureFileResourceService extends AzureFileResourceService {
+    private static class TestAzureBlobStorageFileResourceService extends AzureBlobStorageFileResourceService {
 
         private final BlobServiceClient client;
 
-        public TestAzureFileResourceService(BlobServiceClient client) {
+        public TestAzureBlobStorageFileResourceService(BlobServiceClient client) {
             this.client = client;
         }
 

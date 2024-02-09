@@ -59,7 +59,7 @@ import static org.apache.nifi.util.StringUtils.isBlank;
                 The "Storage Credentials" property should specify an instance of the AzureStorageCredentialsService_v12 in order to provide credentials for accessing the storage container.
                 """
 )
-public class AzureFileResourceService extends AbstractControllerService implements FileResourceService{
+public class AzureBlobStorageFileResourceService extends AbstractControllerService implements FileResourceService {
 
     public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.CONTAINER)

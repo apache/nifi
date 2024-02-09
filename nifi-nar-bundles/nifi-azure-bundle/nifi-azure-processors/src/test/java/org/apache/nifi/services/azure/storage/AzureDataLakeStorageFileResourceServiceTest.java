@@ -48,9 +48,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class ADLSFileResourceServiceTest {
-
-    private static final String TEST_NAME = ADLSFileResourceServiceTest.class.getSimpleName();
+class AzureDataLakeStorageFileResourceServiceTest {
     private static final String CREDENTIALS_CONTROLLER_SERVICE = "ADLSCredentialsService";
     private static final String FILE_SYSTEM = "filesystem-name";
     private static final String DIRECTORY = "test-directory";
@@ -76,14 +74,14 @@ class ADLSFileResourceServiceTest {
     private InputStream inputStream;
 
     @InjectMocks
-    private TestADLSFileResourceService service;
+    private TestAzureDataLakeStorageFileResourceService service;
 
     private TestRunner runner;
 
     @BeforeEach
     void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
-        runner.addControllerService(TEST_NAME, service);
+        runner.addControllerService("AzureDataLakeStorageFileResourceService", service);
     }
 
     @Test
@@ -243,10 +241,10 @@ class ADLSFileResourceServiceTest {
         verify(properties).getFileSize();
     }
 
-    private static class TestADLSFileResourceService extends ADLSFileResourceService {
+    private static class TestAzureDataLakeStorageFileResourceService extends AzureDataLakeStorageFileResourceService {
         private final DataLakeServiceClient client;
 
-        private TestADLSFileResourceService(DataLakeServiceClient client) {
+        private TestAzureDataLakeStorageFileResourceService(DataLakeServiceClient client) {
             this.client = client;
         }
 

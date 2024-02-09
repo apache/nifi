@@ -62,7 +62,7 @@ import static org.apache.nifi.util.StringUtils.isBlank;
                 The "ADLS Credentials" property should specify an instance of the ADLSCredentialsService in order to provide credentials for accessing the filesystem.
                 """
 )
-public class ADLSFileResourceService extends AbstractControllerService implements FileResourceService {
+public class AzureDataLakeStorageFileResourceService extends AbstractControllerService implements FileResourceService {
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
             ADLS_CREDENTIALS_SERVICE,
