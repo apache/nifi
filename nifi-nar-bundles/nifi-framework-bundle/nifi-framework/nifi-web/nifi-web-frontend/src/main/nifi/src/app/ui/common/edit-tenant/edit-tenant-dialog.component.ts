@@ -40,6 +40,7 @@ import { Observable } from 'rxjs';
 import { MatListModule } from '@angular/material/list';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon } from '../../../service/nifi-common.service';
+import { ErrorBanner } from '../error-banner/error-banner.component';
 
 @Component({
     selector: 'edit-tenant-dialog',
@@ -57,7 +58,8 @@ import { NiFiCommon } from '../../../service/nifi-common.service';
         NgIf,
         AsyncPipe,
         MatListModule,
-        NgForOf
+        NgForOf,
+        ErrorBanner
     ],
     templateUrl: './edit-tenant-dialog.component.html',
     styleUrls: ['./edit-tenant-dialog.component.scss']

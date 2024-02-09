@@ -68,6 +68,8 @@ export const stopPollingQueueListingRequest = createAction(`${QUEUE_PREFIX} Stop
 
 export const deleteQueueListingRequest = createAction(`${QUEUE_PREFIX} Delete Queue Listing Request`);
 
+export const deleteQueueListingRequestSuccess = createAction(`${QUEUE_PREFIX} Delete Queue Listing Request Success`);
+
 export const viewFlowFile = createAction(`${QUEUE_PREFIX} View FlowFile`, props<{ request: ViewFlowFileRequest }>());
 
 export const openFlowFileDialog = createAction(

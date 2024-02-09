@@ -25,14 +25,17 @@ export const selectQueueListingState = createSelector(
     (state: QueueState) => state[queueListingFeatureKey]
 );
 
-export const selectListingRequestEntity = createSelector(
+export const selectActiveListingRequest = createSelector(
     selectQueueListingState,
-    (state: QueueListingState) => state.requestEntity
+    (state: QueueListingState) => state.activeListingRequest
+);
+
+export const selectCompletedListingRequest = createSelector(
+    selectQueueListingState,
+    (state: QueueListingState) => state.completedListingRequest
 );
 
 export const selectStatus = createSelector(selectQueueListingState, (state: QueueListingState) => state.status);
-
-export const selectError = createSelector(selectQueueListingState, (state: QueueListingState) => state.error);
 
 export const selectConnectionLabel = createSelector(
     selectQueueListingState,

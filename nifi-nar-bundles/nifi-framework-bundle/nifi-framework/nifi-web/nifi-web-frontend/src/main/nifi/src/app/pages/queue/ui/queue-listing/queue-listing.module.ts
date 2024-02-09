@@ -26,6 +26,7 @@ import { StoreModule } from '@ngrx/store';
 import { EffectsModule } from '@ngrx/effects';
 import { queueFeatureKey, reducers } from '../../state';
 import { QueueListingEffects } from '../../state/queue-listing/queue-listing.effects';
+import { ErrorBanner } from '../../../../ui/common/error-banner/error-banner.component';
 
 @NgModule({
     declarations: [QueueListing],
@@ -37,7 +38,8 @@ import { QueueListingEffects } from '../../state/queue-listing/queue-listing.eff
         NifiTooltipDirective,
         FlowFileTable,
         StoreModule.forFeature(queueFeatureKey, reducers),
-        EffectsModule.forFeature(QueueListingEffects)
+        EffectsModule.forFeature(QueueListingEffects),
+        ErrorBanner
     ]
 })
 export class QueueListingModule {}

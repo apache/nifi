@@ -17,6 +17,7 @@
 
 <h2 mat-dialog-title>{{ isNew ? 'Add' : 'Edit' }} {{ isUser ? 'User' : 'User Group' }}</h2>
 <form class="edit-tenant-form" [formGroup]="editTenantForm">
+    <error-banner></error-banner>
     <mat-dialog-content>
         <div class="mb-6">
             <mat-radio-group formControlName="tenantType" (change)="tenantTypeChanged()">

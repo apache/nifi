@@ -17,6 +17,7 @@
 
 <div class="flowfile-table h-full flex flex-col gap-y-2">
     <h3 class="text-xl bold queue-listing-header">{{ connectionLabel }}</h3>
+    <error-banner></error-banner>
     <div class="flex justify-between">
         <div class="value">
             Display {{ displayObjectCount }} of {{ formatCount(queueSizeObjectCount) }} ({{

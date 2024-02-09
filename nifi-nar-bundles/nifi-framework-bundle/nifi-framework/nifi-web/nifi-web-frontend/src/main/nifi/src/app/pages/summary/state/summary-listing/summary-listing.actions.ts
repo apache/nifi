@@ -37,11 +37,6 @@ export const loadSummaryListingSuccess = createAction(
     props<{ response: SummaryListingResponse }>()
 );
 
-export const summaryListingApiError = createAction(
-    `${SUMMARY_LISTING_PREFIX} Load Summary Listing error`,
-    props<{ error: string }>()
-);
-
 export const selectProcessorStatus = createAction(
     `${SUMMARY_LISTING_PREFIX} Select Processor Status`,
     props<{ request: SelectProcessorStatusRequest }>()

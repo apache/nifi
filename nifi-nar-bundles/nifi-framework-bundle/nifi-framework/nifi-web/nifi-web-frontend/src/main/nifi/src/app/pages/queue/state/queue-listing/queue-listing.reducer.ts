@@ -23,14 +23,33 @@ import {
     submitQueueListingRequestSuccess,
     resetQueueListingState,
     queueListingApiError,
-    loadConnectionLabelSuccess
+    loadConnectionLabelSuccess,
+    deleteQueueListingRequestSuccess
 } from './queue-listing.actions';
+import { produce } from 'immer';
 
 export const initialState: QueueListingState = {
-    requestEntity: null,
+    activeListingRequest: null,
+    completedListingRequest: {
+        id: '',
+        uri: '',
+        submissionTime: '',
+        lastUpdated: '',
+        percentCompleted: 100,
+        finished: true,
+        failureReason: '',
+        maxResults: 0,
+        sourceRunning: false,
+        destinationRunning: false,
+        state: '',
+        queueSize: {
+            objectCount: 0,
+            byteCount: 0
+        },
+        flowFileSummaries: []
+    },
     connectionLabel: 'Connection',
     loadedTimestamp: 'N/A',
-    error: null,
     status: 'pending'
 };
 
@@ -44,16 +63,25 @@ export const queueListingReducer = createReducer(
         ...state,
         status: 'loading' as const
     })),
-    on(submitQueueListingRequestSuccess, pollQueueListingRequestSuccess, (state, { response }) => ({
+    on(submitQueueListingRequestSuccess, pollQueueListingRequestSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const listingRequest = response.requestEntity.listingRequest;
+
+            if (listingRequest.finished) {
+                draftState.completedListingRequest = listingRequest;
+                draftState.loadedTimestamp = listingRequest.lastUpdated;
+                draftState.status = 'success' as const;
+            } else {
+                draftState.activeListingRequest = listingRequest;
+            }
+        });
+    }),
+    on(deleteQueueListingRequestSuccess, (state) => ({
         ...state,
-        requestEntity: response.requestEntity,
-        loadedTimestamp: response.requestEntity.listingRequest.lastUpdated,
-        error: null,
-        status: 'success' as const
+        activeListingRequest: null
     })),
-    on(queueListingApiError, (state, { error }) => ({
+    on(queueListingApiError, (state) => ({
         ...state,
-        error,
         status: 'error' as const
     })),
     on(resetQueueListingState, () => ({

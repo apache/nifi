@@ -17,17 +17,13 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Client } from '../../../service/client.service';
 import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class ClusterSummaryService {
     private static readonly API: string = '../nifi-api';
 
-    constructor(
-        private httpClient: HttpClient,
-        private client: Client
-    ) {}
+    constructor(private httpClient: HttpClient) {}
 
     getClusterSummary(): Observable<any> {
         return this.httpClient.get(`${ClusterSummaryService.API}/flow/cluster/summary`);
