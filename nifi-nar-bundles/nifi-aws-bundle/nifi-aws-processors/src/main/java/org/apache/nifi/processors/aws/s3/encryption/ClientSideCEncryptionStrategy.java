@@ -60,10 +60,10 @@ public class ClientSideCEncryptionStrategy implements S3EncryptionStrategy {
         final StaticEncryptionMaterialsProvider encryptionMaterialsProvider = new StaticEncryptionMaterialsProvider(new EncryptionMaterials(symmetricKey));
 
         final CryptoConfigurationV2 cryptoConfig = new CryptoConfigurationV2();
-        cryptoConfig.setAwsKmsRegion(Region.getRegion(Regions.fromName(kmsRegion)));
+        // A placeholder KMS Region needs to be set due to bug https://github.com/aws/aws-sdk-java/issues/2530
+        cryptoConfig.setAwsKmsRegion(Region.getRegion(Regions.DEFAULT_REGION));
 
         final AmazonS3EncryptionClientV2Builder builder = AmazonS3EncryptionClientV2.encryptionBuilder()
-                .disableChunkedEncoding()
                 .withCryptoConfiguration(cryptoConfig)
                 .withEncryptionMaterialsProvider(encryptionMaterialsProvider);
         clientBuilder.accept(builder);
