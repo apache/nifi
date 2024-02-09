@@ -17,7 +17,6 @@
 
 import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { CreateRemoteProcessGroupDialogRequest } from '../../../../../state/flow';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../../state';
 import { createRemoteProcessGroup } from '../../../../../state/flow/flow.actions';
@@ -35,6 +34,7 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } 
 import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { MatIconModule } from '@angular/material/icon';
+import { CreateComponentRequest } from '../../../../../state/flow';
 
 @Component({
     selector: 'create-process-group',
@@ -66,7 +66,7 @@ export class CreateRemoteProcessGroup {
     createRemoteProcessGroupForm: FormGroup;
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) private dialogRequest: CreateRemoteProcessGroupDialogRequest,
+        @Inject(MAT_DIALOG_DATA) private dialogRequest: CreateComponentRequest,
         private formBuilder: FormBuilder,
         private store: Store<CanvasState>
     ) {
@@ -93,7 +93,7 @@ export class CreateRemoteProcessGroup {
         this.store.dispatch(
             createRemoteProcessGroup({
                 request: {
-                    ...this.dialogRequest.request,
+                    ...this.dialogRequest,
                     targetUris: this.createRemoteProcessGroupForm.get('urls')?.value,
                     transportProtocol: this.createRemoteProcessGroupForm.get('transportProtocol')?.value,
                     localNetworkInterface: this.createRemoteProcessGroupForm.get('localNetworkInterface')?.value,

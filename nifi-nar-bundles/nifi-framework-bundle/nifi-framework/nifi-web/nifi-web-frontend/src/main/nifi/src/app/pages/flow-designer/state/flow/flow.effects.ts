@@ -37,7 +37,6 @@ import {
     tap
 } from 'rxjs';
 import {
-    CreateRemoteProcessGroupDialogRequest,
     CreateProcessGroupDialogRequest,
     DeleteComponentResponse,
     GroupComponentsDialogRequest,
@@ -225,16 +224,7 @@ export class FlowEffects {
                             catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                         );
                     case ComponentType.RemoteProcessGroup:
-                        return from(this.flowService.getParameterContexts()).pipe(
-                            map((response) => {
-                                const dialogRequest: CreateRemoteProcessGroupDialogRequest = {
-                                    request
-                                };
-
-                                return FlowActions.openNewRemoteProcessGroupDialog({ request: dialogRequest });
-                            }),
-                            catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
-                        );
+                        return of(FlowActions.openNewRemoteProcessGroupDialog({ request }));
                     case ComponentType.Funnel:
                         return of(FlowActions.createFunnel({ request }));
                     case ComponentType.Label:

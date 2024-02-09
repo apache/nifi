@@ -166,10 +166,6 @@ export interface CreateProcessGroupDialogRequest {
     parameterContexts: ParameterContextEntity[];
 }
 
-export interface CreateRemoteProcessGroupDialogRequest {
-    request: CreateComponentRequest;
-}
-
 export interface NoRegistryClientsDialogRequest {
     controllerPermissions: Permissions;
 }
