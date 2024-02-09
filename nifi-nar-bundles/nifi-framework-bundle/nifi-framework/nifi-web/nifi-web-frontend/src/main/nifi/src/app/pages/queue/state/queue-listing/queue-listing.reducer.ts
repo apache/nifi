@@ -61,18 +61,16 @@ export const queueListingReducer = createReducer(
     })),
     on(submitQueueListingRequest, (state) => ({
         ...state,
-        status: 'loading' as const,
-        activeListingRequest: null
+        status: 'loading' as const
     })),
     on(submitQueueListingRequestSuccess, pollQueueListingRequestSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             const listingRequest = response.requestEntity.listingRequest;
 
-            draftState.status = 'success' as const;
-            draftState.loadedTimestamp = listingRequest.lastUpdated;
-
             if (listingRequest.finished) {
                 draftState.completedListingRequest = listingRequest;
+                draftState.loadedTimestamp = listingRequest.lastUpdated;
+                draftState.status = 'success' as const;
             } else {
                 draftState.activeListingRequest = listingRequest;
             }

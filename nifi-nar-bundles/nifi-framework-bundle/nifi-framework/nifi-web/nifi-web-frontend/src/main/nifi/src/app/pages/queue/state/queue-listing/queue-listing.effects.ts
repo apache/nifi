@@ -210,24 +210,23 @@ export class QueueListingEffects {
         )
     );
 
-    deleteQueueListingRequest$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(QueueListingActions.deleteQueueListingRequest),
-                concatLatestFrom(() => this.store.select(selectActiveListingRequest)),
-                tap(([, listingRequest]) => {
-                    this.dialog.closeAll();
+    deleteQueueListingRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(QueueListingActions.deleteQueueListingRequest),
+            concatLatestFrom(() => this.store.select(selectActiveListingRequest)),
+            tap(([, listingRequest]) => {
+                this.dialog.closeAll();
 
-                    if (listingRequest) {
-                        this.queueService.deleteQueueListingRequest(listingRequest).subscribe({
-                            error: (errorResponse: HttpErrorResponse) => {
-                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
-                            }
-                        });
-                    }
-                })
-            ),
-        { dispatch: false }
+                if (listingRequest) {
+                    this.queueService.deleteQueueListingRequest(listingRequest).subscribe({
+                        error: (errorResponse: HttpErrorResponse) => {
+                            this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                        }
+                    });
+                }
+            }),
+            switchMap(() => of(QueueListingActions.deleteQueueListingRequestSuccess()))
+        )
     );
 
     viewFlowFile$ = createEffect(() =>
