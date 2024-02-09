@@ -93,7 +93,7 @@ There is also a specific profile allowing you to build NiFi with all of the addi
 
 `./mvnw clean install -Pinclude-all`
 
-This will include bundles such as gRPC, Atlas, Hive, Hive 1_1, Hive 3, Media, Rules, SQL Reporting, Accumulo, Ranger, ASN1, Snowflake, Iceberg, etc.
+This will include all optional bundles.
 
 == Port Configuration
 
