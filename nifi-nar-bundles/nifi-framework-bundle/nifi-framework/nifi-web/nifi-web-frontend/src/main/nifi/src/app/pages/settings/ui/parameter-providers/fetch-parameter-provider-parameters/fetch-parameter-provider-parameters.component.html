@@ -31,7 +31,7 @@
                     <div class="flex flex-col mb-4">
                         <div>Parameter Groups</div>
                         <div class="value">
-                            {{ parameterGroupNames.sort().join(', ') }}
+                            {{ parameterGroupNames | sort | join }}
                         </div>
                     </div>
                 </div>
@@ -76,7 +76,7 @@
                                     title="Synced parameter contexts to be updated, pending apply."></i>
                             </div>
                             <div *ngIf="parameterContextsToUpdate.length > 0; else none" class="value">
-                                {{ parameterContextsToUpdate.sort().join(', ') }}
+                                {{ parameterContextsToUpdate | sort | join }}
                             </div>
                         </div>
                         <div class="flex flex-1 flex-col">
