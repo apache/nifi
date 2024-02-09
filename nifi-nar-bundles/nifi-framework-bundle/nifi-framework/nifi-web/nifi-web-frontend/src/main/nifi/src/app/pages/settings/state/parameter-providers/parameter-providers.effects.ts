@@ -414,7 +414,7 @@ export class ParameterProvidersEffects {
                             );
                             return of(ErrorActions.snackBarError({ error: error.error }));
                         } else {
-                            return of(ErrorActions.fullScreenError({ errorDetail: error }));
+                            return of(ErrorActions.fullScreenError(error));
                         }
                     })
                 )
