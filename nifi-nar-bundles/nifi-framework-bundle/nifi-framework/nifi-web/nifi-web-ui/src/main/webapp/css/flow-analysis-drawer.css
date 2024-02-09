@@ -216,8 +216,7 @@
 }
 
 #flow-analysis-drawer .rule-menu-btn,
-#flow-analysis-drawer .violation-menu-btn,
-#flow-analysis-drawer .warning-menu-btn {
+#flow-analysis-drawer .violation-menu-btn {
   border: 0;
 }
 
@@ -230,8 +229,7 @@
 }
 
 #flow-analysis-drawer .rule-menu-option,
-#flow-analysis-drawer .violation-menu-option,
-#flow-analysis-drawer .warning-menu {
+#flow-analysis-drawer .violation-menu-option {
   padding: 3px 0 3px 10px;
   background-color: #fff;
   font-family: Roboto;
@@ -249,8 +247,7 @@
 }
 
 #flow-analysis-drawer .rule-menu-option:hover:not(.disabled),
-#flow-analysis-drawer .violation-menu-option:hover:not(.disabled),
-#flow-analysis-drawer .warning-menu-option:hover {
+#flow-analysis-drawer .violation-menu-option:hover:not(.disabled) {
   background-color: #dce3e6;
   color: #262626;
   cursor: pointer;
@@ -262,8 +259,7 @@
 }
 
 #flow-analysis-drawer .rule-menu-option-icon,
-#flow-analysis-drawer .violation-menu-option-icon,
-#flow-analysis-drawer .warning-menu-option-icon {
+#flow-analysis-drawer .violation-menu-option-icon {
   color: #004849;
   font-size: 18px;
   margin-right: 10px;
