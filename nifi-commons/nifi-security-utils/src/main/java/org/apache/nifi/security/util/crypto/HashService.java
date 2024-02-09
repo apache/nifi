@@ -21,11 +21,11 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.List;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.bouncycastle.crypto.digests.Blake2bDigest;
 import org.slf4j.Logger;
@@ -106,9 +106,9 @@ public class HashService {
         }
         // The Blake2 algorithms are instantiated differently and rely on BouncyCastle
         if (algorithm.isBlake2()) {
-            return Hex.encodeHexString(blake2HashStreaming(algorithm, value));
+            return HexFormat.of().formatHex(blake2HashStreaming(algorithm, value));
         } else {
-            return Hex.encodeHexString(traditionalHashStreaming(algorithm, value));
+            return HexFormat.of().formatHex(traditionalHashStreaming(algorithm, value));
         }
     }
 
@@ -122,7 +122,7 @@ public class HashService {
      */
     public static String hashValue(HashAlgorithm algorithm, String value, Charset charset) {
         byte[] rawHash = hashValueRaw(algorithm, value, charset);
-        return Hex.encodeHexString(rawHash);
+        return HexFormat.of().formatHex(rawHash);
     }
 
     /**
@@ -189,13 +189,28 @@ public class HashService {
     }
 
     private static byte[] traditionalHash(HashAlgorithm algorithm, byte[] value) {
-        return DigestUtils.getDigest(algorithm.getName()).digest(value);
+        return getMessageDigest(algorithm).digest(value);
     }
 
     private static byte[] traditionalHashStreaming(HashAlgorithm algorithm, InputStream value) throws IOException {
-        MessageDigest digest = DigestUtils.getDigest(algorithm.getName());
-        // DigestInputStream digestInputStream = new DigestInputStream(value, digest);
-        return DigestUtils.digest(digest, value);
+        final MessageDigest messageDigest = getMessageDigest(algorithm);
+
+        final byte[] buffer = new byte[BUFFER_SIZE];
+        int read = value.read(buffer);
+        while (read != -1) {
+            messageDigest.update(buffer, 0 , read);
+            read = value.read(buffer);
+        }
+
+        return messageDigest.digest();
+    }
+
+    private static MessageDigest getMessageDigest(final HashAlgorithm algorithm) {
+        try {
+            return MessageDigest.getInstance(algorithm.getName());
+        } catch (final NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException("Message Digest algorithm not found", e);
+        }
     }
 
     private static byte[] blake2Hash(HashAlgorithm algorithm, byte[] value) {

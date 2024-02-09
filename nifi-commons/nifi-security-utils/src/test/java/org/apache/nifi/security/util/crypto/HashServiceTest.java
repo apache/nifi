@@ -92,18 +92,13 @@ public class HashServiceTest {
     /**
      * This test ensures that the service properly handles UTF-16 encoded data to return it without
      * the Big Endian Byte Order Mark (BOM). Java treats UTF-16 encoded data without a BOM as Big Endian by default on decoding, but when <em>encoding</em>, it inserts a BE BOM in the data.
-     *
      * Examples:
-     *
      * "apachenifi"
-     *
      * *     UTF-8: 0x61 0x70 0x61 0x63 0x68 0x65 0x6E 0x69 0x66 0x69
      * *    UTF-16: 0xFE 0xFF 0x00 0x61 0x00 0x70 0x00 0x61 0x00 0x63 0x00 0x68 0x00 0x65 0x00 0x6E 0x00 0x69 0x00 0x66 0x00 0x69
      * *  UTF-16LE: 0x61 0x00 0x70 0x00 0x61 0x00 0x63 0x00 0x68 0x00 0x65 0x00 0x6E 0x00 0x69 0x00 0x66 0x00 0x69 0x00
      * *  UTF-16BE: 0x00 0x61 0x00 0x70 0x00 0x61 0x00 0x63 0x00 0x68 0x00 0x65 0x00 0x6E 0x00 0x69 0x00 0x66 0x00 0x69
-     *
      * The result of "UTF-16" decoding should have the 0xFE 0xFF stripped on return by encoding in UTF-16BE directly, which will not insert a BOM.
-     *
      * See also: <a href="https://unicode.org/faq/utf_bom.html#bom10">https://unicode.org/faq/utf_bom.html#bom10</a>
      */
     @Test
@@ -191,7 +186,7 @@ public class HashServiceTest {
     }
 
     @Test
-    void testShouldHashConstantValue() throws Exception {
+    void testShouldHashConstantValue() {
         // Arrange
         final List<HashAlgorithm> algorithms = List.of(HashAlgorithm.values());
 
@@ -232,7 +227,7 @@ public class HashServiceTest {
     }
 
     @Test
-    void testShouldHashEmptyValue() throws Exception {
+    void testShouldHashEmptyValue() {
         // Arrange
         final List<HashAlgorithm> algorithms = List.of(HashAlgorithm.values());
         final String EMPTY_VALUE = "";
@@ -274,7 +269,7 @@ public class HashServiceTest {
     }
 
     @Test
-    void testShouldBuildHashAlgorithmAllowableValues() throws Exception {
+    void testShouldBuildHashAlgorithmAllowableValues() {
         // Arrange
         final List<HashAlgorithm> EXPECTED_ALGORITHMS = List.of(HashAlgorithm.values());
 
@@ -298,7 +293,7 @@ public class HashServiceTest {
     }
 
     @Test
-    void testShouldBuildCharacterSetAllowableValues() throws Exception {
+    void testShouldBuildCharacterSetAllowableValues() {
         // Arrange
         final List<Charset> EXPECTED_CHARACTER_SETS = Arrays.asList(
                 StandardCharsets.US_ASCII,
@@ -336,7 +331,7 @@ public class HashServiceTest {
     }
 
     @Test
-    void testShouldHashValueFromStream() throws Exception {
+    void testShouldHashValueFromStream() {
         // Arrange
 
         // No command-line md2sum tool available

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.security.util;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.util.NiFiProperties;
 
 import java.io.File;
@@ -267,7 +266,7 @@ public class StandardTlsConfiguration implements TlsConfiguration {
      */
     @Override
     public String getFunctionalKeyPassword() {
-        return StringUtils.isNotBlank(keyPassword) ? keyPassword : keystorePassword;
+        return isNotBlank(keyPassword) ? keyPassword : keystorePassword;
     }
 
     /**
@@ -346,7 +345,7 @@ public class StandardTlsConfiguration implements TlsConfiguration {
     public boolean isKeystoreValid() {
         if (isStoreValid(keystorePath, keystorePassword, keystoreType, StoreType.KEY_STORE)) {
             return true;
-        } else if (StringUtils.isNotBlank(keyPassword) && !keyPassword.equals(keystorePassword)) {
+        } else if (isNotBlank(keyPassword) && !keyPassword.equals(keystorePassword)) {
             return isKeystorePopulated()
                     && KeyStoreUtils.isKeyPasswordCorrect(getFileUrl(keystorePath), keystoreType, keystorePassword.toCharArray(),
                     getFunctionalKeyPassword().toCharArray());
@@ -464,20 +463,20 @@ public class StandardTlsConfiguration implements TlsConfiguration {
     }
 
     private static String maskPasswordForLog(String password) {
-        return StringUtils.isNotBlank(password) ? MASKED_PASSWORD_LOG : NULL_LOG;
+        return isNotBlank(password) ? MASKED_PASSWORD_LOG : NULL_LOG;
     }
 
     private boolean isAnyPopulated(String path, String password, KeystoreType type) {
-        return StringUtils.isNotBlank(path) || StringUtils.isNotBlank(password) || type != null;
+        return isNotBlank(path) || isNotBlank(password) || type != null;
     }
 
     private boolean isStorePopulated(final String path, final String password, final KeystoreType type, final StoreType storeType) {
         boolean populated;
 
         // Legacy trust stores such as JKS can be populated without a password; only check the path and type
-        populated = StringUtils.isNotBlank(path) && type != null;
+        populated = isNotBlank(path) && type != null;
         if (StoreType.KEY_STORE == storeType) {
-            populated = populated && StringUtils.isNotBlank(password);
+            populated = populated && isNotBlank(password);
         }
 
         return populated;
@@ -493,6 +492,10 @@ public class StandardTlsConfiguration implements TlsConfiguration {
         } catch (final MalformedURLException e) {
             throw new IllegalArgumentException(String.format("File Path [%s] URL conversion failed", path), e);
         }
+    }
+
+    private static boolean isNotBlank(final String string) {
+        return string != null && !string.isBlank();
     }
 
     private enum StoreType {

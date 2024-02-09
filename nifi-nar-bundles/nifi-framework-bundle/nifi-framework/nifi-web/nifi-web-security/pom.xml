@@ -183,6 +183,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- Commons Codec required for OpenSAML -->
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>${org.apache.commons.codec.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.security.kerberos</groupId>
             <artifactId>spring-security-kerberos-core</artifactId>
