@@ -22,6 +22,10 @@
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
+    <properties>
+        <jetty.version>11.0.20</jetty.version>
+    </properties>
+
     <artifactId>nifi-ranger-nar</artifactId>
     <packaging>nar</packaging>
 

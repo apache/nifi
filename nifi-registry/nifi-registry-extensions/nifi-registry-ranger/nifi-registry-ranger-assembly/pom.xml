@@ -25,6 +25,10 @@
     <packaging>pom</packaging>
     <description>Apache Ranger extension for Apache NiFi Registry</description>
 
+    <properties>
+        <jetty.version>11.0.20</jetty.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
