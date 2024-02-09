@@ -37,7 +37,7 @@ export class ErrorEffects {
             this.actions$.pipe(
                 ofType(ErrorActions.fullScreenError),
                 tap(() => {
-                    this.dialog.closeAll();
+                    this.dialog.openDialogs.forEach((dialog) => dialog.close('ROUTED'));
                     this.router.navigate(['/error'], { replaceUrl: true });
                 })
             ),
