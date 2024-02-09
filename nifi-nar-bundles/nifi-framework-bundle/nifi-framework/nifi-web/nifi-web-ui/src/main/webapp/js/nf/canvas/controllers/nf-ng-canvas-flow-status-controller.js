@@ -742,7 +742,17 @@
 
                         // violation menu bindings
                         $('#violation-menu-more-info').on( "click", openRuleViolationMoreInfoDialog);
-                        $('#violation-menu-go-to').on('click', goToComponent);
+                        // If the groupId and subjectId are not the same, we can select the component
+                        console.log(violationInfo.groupId !== violationInfo.subjectId);
+                        console.log(violationInfo);
+                        if (violationInfo.groupId !== violationInfo.subjectId) {
+                            $('#violation-menu-go-to').removeClass('disabled');
+                            $('#violation-menu-go-to .violation-menu-option-icon').removeClass('disabled');
+                            $('#violation-menu-go-to').on('click', goToComponent);
+                        } else {
+                            $('#violation-menu-go-to').addClass('disabled');
+                            $('#violation-menu-go-to .violation-menu-option-icon').addClass('disabled');
+                        }
                         $(document).on('click', closeViolationWindow);
 
                         function closeViolationWindow(e) {
@@ -755,7 +765,7 @@
                         function openRuleViolationMoreInfoDialog() {
                             var rule = rules.find(function(rule){ 
                                 return rule.id === violationInfo.ruleId;
-                            })
+                            });
                             $('#violation-menu').hide();
                             $('#violation-type-pill').empty()
                                                     .removeClass()
