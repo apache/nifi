@@ -1262,57 +1262,6 @@ language governing permissions and limitations under the License. -->
             </build>
         </profile>
         <profile>
-            <id>include-ranger</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>make shared resource</id>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                                <phase>package</phase>
-                                <configuration>
-                                    <finalName>nifi-${project.version}</finalName>
-                                    <attach>false</attach>
-                                    <archiverConfig>
-                                        <defaultDirectoryMode>0775</defaultDirectoryMode>
-                                        <directoryMode>0775</directoryMode>
-                                        <fileMode>0664</fileMode>
-                                    </archiverConfig>
-                                    <descriptors>
-                                        <descriptor>src/main/assembly/ranger.xml</descriptor>
-                                    </descriptors>
-                                    <tarLongFileMode>posix</tarLongFileMode>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-            <dependencies>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-ranger-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-ranger-resources</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
             <id>include-asn1</id>
             <activation>
                 <activeByDefault>false</activeByDefault>

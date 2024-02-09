@@ -2705,7 +2705,6 @@ deprecationLogger.warn(
 | Apache Hive 3 Bundle   | include-hive3         | Adds support for Apache Hive 3.X
 | Apache IoTDB Bundle    | include-iotdb         | Adds support for Apache IoTDB
 | Apache Kudu Bundle     | include-kudu          | Adds support for Apache Kudu
-| Apache Ranger Bundle   | include-ranger        | Adds support for https://ranger.apache.org[Apache Ranger].
 | Apache Solr Bundle     | include-solr          | Adds support for Apache Solr
 | ASN.1 Support          | include-asn1          | Adds support for ASN.1
 | Contribution Check     | contrib-check         | Runs various quality checks that are required to be accepted before a contribution can be accepted into the core NiFi code base.

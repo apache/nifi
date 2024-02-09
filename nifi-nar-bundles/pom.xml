@@ -82,7 +82,6 @@
         <module>nifi-cdc</module>
         <module>nifi-parquet-bundle</module>
         <module>nifi-extension-utils</module>
-        <module>nifi-ranger-bundle</module>
         <module>nifi-redis-bundle</module>
         <module>nifi-atlas-bundle</module>
         <module>nifi-network-bundle</module>
