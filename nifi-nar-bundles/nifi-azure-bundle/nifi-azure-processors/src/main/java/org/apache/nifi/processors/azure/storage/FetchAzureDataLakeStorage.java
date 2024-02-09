@@ -51,9 +51,9 @@ import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.A
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILE;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileValue;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateDirectoryValue;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileSystemValue;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateDirectoryProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileSystemProperty;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({PutAzureDataLakeStorage.class, DeleteAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
@@ -157,10 +157,9 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             final DownloadRetryOptions retryOptions = new DownloadRetryOptions();
             retryOptions.setMaxRetryRequests(numRetries);
 
-            final String fileSystem = validateFileSystemValue(context.getProperty(FILESYSTEM)
-                    .evaluateAttributeExpressions(flowFile).getValue());
-            final String directory = validateDirectoryValue(context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue());
-            final String fileName = validateFileValue(context.getProperty(FILE).evaluateAttributeExpressions(flowFile).getValue());
+            final String fileSystem = validateFileSystemProperty(FILESYSTEM, context, flowFile);
+            final String directory = validateDirectoryProperty(DIRECTORY, context, flowFile);
+            final String fileName = validateFileProperty(context, flowFile);
             final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
             final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
             final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);

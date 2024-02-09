@@ -61,9 +61,9 @@ import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.A
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILE;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileValue;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateDirectoryValue;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileSystemValue;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateDirectoryProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileSystemProperty;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({DeleteAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
@@ -154,15 +154,11 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
 
         final long startNanos = System.nanoTime();
         try {
-            final String sourceFileSystem = validateFileSystemValue(context.getProperty(SOURCE_DIRECTORY)
-                    .evaluateAttributeExpressions().getValue(), SOURCE_FILESYSTEM);
-            final String sourceDirectory = validateDirectoryValue(
-                    context.getProperty(SOURCE_DIRECTORY).evaluateAttributeExpressions(flowFile).getValue(), SOURCE_DIRECTORY);
-            final String destinationFileSystem = validateFileSystemValue(context.getProperty(DESTINATION_FILESYSTEM)
-                    .evaluateAttributeExpressions().getValue(), DESTINATION_FILESYSTEM);
-            final String destinationDirectory = validateDirectoryValue(
-                    context.getProperty(DESTINATION_DIRECTORY).evaluateAttributeExpressions(flowFile).getValue(), DESTINATION_DIRECTORY);
-            final String fileName = validateFileValue(context.getProperty(FILE).evaluateAttributeExpressions(flowFile).getValue());
+            final String sourceFileSystem = validateFileSystemProperty(SOURCE_FILESYSTEM, context, flowFile);
+            final String sourceDirectory = validateDirectoryProperty(SOURCE_DIRECTORY, context, flowFile);
+            final String destinationFileSystem = validateFileSystemProperty(DESTINATION_FILESYSTEM, context, flowFile);
+            final String destinationDirectory = validateDirectoryProperty(DESTINATION_DIRECTORY, context, flowFile);
+            final String fileName = validateFileProperty(context, flowFile);
 
             final String destinationPath;
             if (!destinationDirectory.isEmpty() && !sourceDirectory.isEmpty()) {

@@ -45,9 +45,9 @@ import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.D
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILE;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.getProxyOptions;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateDirectoryValue;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileSystemValue;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileValue;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateDirectoryProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileSystemProperty;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "file", "resource", "datalake"})
 @SeeAlso({FetchAzureDataLakeStorage.class})
@@ -117,11 +117,9 @@ public class AzureDataLakeStorageFileResourceService extends AbstractControllerS
      * @throws IOException exception caused by missing parameters or blob not found
      */
     private FileResource fetchBlob(final DataLakeServiceClient storageClient, final Map<String, String> attributes) throws IOException {
-        final String fileSystem = validateFileSystemValue(context.getProperty(FILESYSTEM)
-                .evaluateAttributeExpressions(attributes).getValue());
-        final String directory = validateDirectoryValue(context.getProperty(DIRECTORY)
-                .evaluateAttributeExpressions(attributes).getValue());
-        final String file = validateFileValue(context.getProperty(FILE).evaluateAttributeExpressions(attributes).getValue());
+        final String fileSystem = validateFileSystemProperty(FILESYSTEM, context, attributes);
+        final String directory = validateDirectoryProperty(DIRECTORY, context, attributes);
+        final String file = validateFileProperty(context, attributes);
 
         final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
         final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);

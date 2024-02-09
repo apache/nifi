@@ -23,6 +23,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
@@ -38,6 +39,7 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.Map;
 
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
 
@@ -256,22 +258,44 @@ public final class AzureStorageUtils {
         ProxyConfiguration.validateProxySpec(context, results, PROXY_SPECS);
     }
 
-    public static String validateFileSystemValue(String fileSystem) {
-        return validateFileSystemValue(fileSystem, FILESYSTEM);
+    public static String validateFileSystemProperty(PropertyDescriptor propertyDescriptor, PropertyContext context, Map<String, String> attributeMap) {
+        final String fileSystem = getPropertyFromAttributeMap(propertyDescriptor, context, attributeMap);
+        return doValidateFileSystemValue(propertyDescriptor, fileSystem);
     }
 
-    public static String validateFileSystemValue(String fileSystem, PropertyDescriptor property) {
+    public static String validateFileSystemProperty(PropertyDescriptor propertyDescriptor, PropertyContext context, FlowFile flowFile) {
+        final String fileSystem = getPropertyFromFlowFile(propertyDescriptor, context, flowFile);
+        return doValidateFileSystemValue(propertyDescriptor, fileSystem);
+    }
+
+    public static String validateDirectoryProperty(PropertyDescriptor property, PropertyContext context, FlowFile flowFile) {
+        final String directory = getPropertyFromFlowFile(property, context, flowFile);
+        return doValidateDirectoryValue(property, directory);
+    }
+
+    public static String validateDirectoryProperty(PropertyDescriptor property, PropertyContext context, Map<String, String> attributes) {
+        final String directory = getPropertyFromAttributeMap(property, context, attributes);
+        return doValidateDirectoryValue(property, directory);
+    }
+
+    public static String validateFileProperty(PropertyContext context, FlowFile flowFile) {
+        final String fileName = getPropertyFromFlowFile(FILE, context, flowFile);
+        return doValidateFileValue(fileName);
+    }
+
+    public static String validateFileProperty(PropertyContext context, Map<String, String> attributes) {
+        final String fileName = getPropertyFromAttributeMap(FILE, context, attributes);
+        return doValidateFileValue(fileName);
+    }
+
+    private static String doValidateFileSystemValue(PropertyDescriptor property, String fileSystem) {
         if (StringUtils.isBlank(fileSystem)) {
             throw new ProcessException(String.format("'%1$s' property evaluated to blank string. '%s' must be specified as a non-blank string.", property.getDisplayName()));
         }
         return fileSystem;
     }
 
-    public static String validateDirectoryValue(String directory) {
-        return validateDirectoryValue(directory, DIRECTORY);
-    }
-
-    public static String validateDirectoryValue(String directory, PropertyDescriptor property) {
+    private static String doValidateDirectoryValue(PropertyDescriptor property, String directory) {
         if (directory.startsWith("/")) {
             throw new ProcessException(String.format("'%1$s' starts with '/'. '%s' cannot contain a leading '/'.", property.getDisplayName()));
         } else if (StringUtils.isNotEmpty(directory) && StringUtils.isWhitespace(directory)) {
@@ -280,11 +304,19 @@ public final class AzureStorageUtils {
         return directory;
     }
 
-    public static String validateFileValue(String fileName) {
+    private static String doValidateFileValue(String fileName) {
         if (StringUtils.isBlank(fileName)) {
             throw new ProcessException(String.format("'%1$s' property evaluated to blank string. '%s' must be specified as a non-blank string.", FILE.getDisplayName()));
         }
         return fileName;
+    }
+
+    private static String getPropertyFromFlowFile(PropertyDescriptor propertyDescriptor, PropertyContext context, FlowFile flowFile) {
+        return context.getProperty(propertyDescriptor).evaluateAttributeExpressions(flowFile).getValue();
+    }
+
+    private static String getPropertyFromAttributeMap(PropertyDescriptor propertyDescriptor, PropertyContext context, Map<String, String> attributeMap) {
+        return context.getProperty(propertyDescriptor).evaluateAttributeExpressions(attributeMap).getValue();
     }
 
     /**

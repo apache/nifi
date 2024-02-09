@@ -65,9 +65,9 @@ import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.A
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILE;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileValue;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateDirectoryValue;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileSystemValue;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateDirectoryProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileSystemProperty;
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FILE_RESOURCE_SERVICE;
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
 import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileResource;
@@ -135,13 +135,11 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
 
         final long startNanos = System.nanoTime();
         try {
-            final String fileSystem = validateFileSystemValue(context.getProperty(FILESYSTEM).evaluateAttributeExpressions().getValue());
-            final String originalDirectory = validateDirectoryValue(context.getProperty(DIRECTORY)
-                    .evaluateAttributeExpressions(flowFile).getValue());
-            final String tempPath = validateDirectoryValue(context.getProperty(BASE_TEMPORARY_PATH)
-                    .evaluateAttributeExpressions(flowFile).getValue(), BASE_TEMPORARY_PATH);
+            final String fileSystem = validateFileSystemProperty(FILESYSTEM, context, flowFile);
+            final String originalDirectory = validateDirectoryProperty(DIRECTORY, context, flowFile);
+            final String tempPath = validateDirectoryProperty(BASE_TEMPORARY_PATH, context, flowFile);
             final String tempDirectory = createPath(tempPath, TEMP_FILE_DIRECTORY);
-            final String fileName = validateFileValue(context.getProperty(FILE).evaluateAttributeExpressions(flowFile).getValue());
+            final String fileName = validateFileProperty(context, flowFile);
 
             final DataLakeFileSystemClient fileSystemClient = getFileSystemClient(context, flowFile, fileSystem);
             final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(originalDirectory);
