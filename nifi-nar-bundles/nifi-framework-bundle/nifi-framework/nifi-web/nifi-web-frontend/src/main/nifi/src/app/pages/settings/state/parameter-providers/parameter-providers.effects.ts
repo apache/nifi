@@ -403,13 +403,20 @@ export class ParameterProvidersEffects {
                             response: { parameterProvider: response }
                         })
                     ),
-                    catchError((error) =>
-                        of(
-                            ParameterProviderActions.parameterProvidersBannerApiError({
-                                error: error.error
-                            })
-                        )
-                    )
+                    catchError((error) => {
+                        if (this.errorHelper.showErrorInContext(error.status)) {
+                            this.store.dispatch(
+                                ParameterProviderActions.selectParameterProvider({
+                                    request: {
+                                        id: request.id
+                                    }
+                                })
+                            );
+                            return of(ErrorActions.snackBarError({ error: error.error }));
+                        } else {
+                            return of(ErrorActions.fullScreenError({ errorDetail: error }));
+                        }
+                    })
                 )
             )
         )
