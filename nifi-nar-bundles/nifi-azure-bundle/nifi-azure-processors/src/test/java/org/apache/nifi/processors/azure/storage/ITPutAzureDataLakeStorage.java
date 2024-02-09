@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.fileresource.service.StandardFileResourceService;
 import org.apache.nifi.fileresource.service.api.FileResourceService;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.transfer.ResourceTransferProperties;
 import org.apache.nifi.processors.transfer.ResourceTransferSource;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -64,8 +65,8 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @BeforeEach
     public void setUp() {
-        runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, DIRECTORY);
-        runner.setProperty(PutAzureDataLakeStorage.FILE, FILE_NAME);
+        runner.setProperty(AzureStorageUtils.DIRECTORY, DIRECTORY);
+        runner.setProperty(AzureStorageUtils.FILE, FILE_NAME);
     }
 
     @Test
@@ -121,7 +122,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         String baseDirectory = "dir1/dir2";
         String fullDirectory = baseDirectory + "/dir3/dir4";
         fileSystemClient.createDirectory(baseDirectory);
-        runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, fullDirectory);
+        runner.setProperty(AzureStorageUtils.DIRECTORY, fullDirectory);
 
         runProcessor(FILE_DATA);
 
@@ -131,7 +132,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     @Test
     public void testPutFileToRootDirectory() throws Exception {
         String rootDirectory = "";
-        runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, rootDirectory);
+        runner.setProperty(AzureStorageUtils.DIRECTORY, rootDirectory);
 
         runProcessor(FILE_DATA);
 
@@ -160,7 +161,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @Test
     public void testPutFileWithNonExistingFileSystem() {
-        runner.setProperty(PutAzureDataLakeStorage.FILESYSTEM, "dummy");
+        runner.setProperty(AzureStorageUtils.FILESYSTEM, "dummy");
 
         runProcessor(FILE_DATA);
 
@@ -169,7 +170,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @Test
     public void testPutFileWithInvalidFileName() {
-        runner.setProperty(PutAzureDataLakeStorage.FILE, "/file1");
+        runner.setProperty(AzureStorageUtils.FILE, "/file1");
 
         runProcessor(FILE_DATA);
 
@@ -180,8 +181,8 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void testPutFileWithSpacesInDirectoryAndFileName() throws Exception {
         String directory = "dir 1";
         String fileName = "file 1";
-        runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, directory);
-        runner.setProperty(PutAzureDataLakeStorage.FILE, fileName);
+        runner.setProperty(AzureStorageUtils.DIRECTORY, directory);
+        runner.setProperty(AzureStorageUtils.FILE, fileName);
 
         runProcessor(FILE_DATA);
 
@@ -290,9 +291,9 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     private void setELProperties() {
-        runner.setProperty(PutAzureDataLakeStorage.FILESYSTEM, String.format("${%s}", EL_FILESYSTEM));
-        runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, String.format("${%s}", EL_DIRECTORY));
-        runner.setProperty(PutAzureDataLakeStorage.FILE, String.format("${%s}", EL_FILE_NAME));
+        runner.setProperty(AzureStorageUtils.FILESYSTEM, String.format("${%s}", EL_FILESYSTEM));
+        runner.setProperty(AzureStorageUtils.DIRECTORY, String.format("${%s}", EL_DIRECTORY));
+        runner.setProperty(AzureStorageUtils.FILE, String.format("${%s}", EL_FILE_NAME));
     }
 
     private void runProcessor(byte[] fileData) {

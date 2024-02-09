@@ -57,6 +57,13 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_PRIMARY_URI;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_SOURCE_DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_SOURCE_FILESYSTEM;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILE;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileValue;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateDirectoryValue;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileSystemValue;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({DeleteAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
@@ -147,11 +154,15 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
 
         final long startNanos = System.nanoTime();
         try {
-            final String sourceFileSystem = evaluateFileSystemProperty(context, flowFile, SOURCE_FILESYSTEM);
-            final String sourceDirectory = evaluateDirectoryProperty(context, flowFile, SOURCE_DIRECTORY);
-            final String destinationFileSystem = evaluateFileSystemProperty(context, flowFile, DESTINATION_FILESYSTEM);
-            final String destinationDirectory = evaluateDirectoryProperty(context, flowFile, DESTINATION_DIRECTORY);
-            final String fileName = evaluateFileNameProperty(context, flowFile);
+            final String sourceFileSystem = validateFileSystemValue(context.getProperty(SOURCE_DIRECTORY)
+                    .evaluateAttributeExpressions().getValue(), SOURCE_FILESYSTEM);
+            final String sourceDirectory = validateDirectoryValue(
+                    context.getProperty(SOURCE_DIRECTORY).evaluateAttributeExpressions(flowFile).getValue(), SOURCE_DIRECTORY);
+            final String destinationFileSystem = validateFileSystemValue(context.getProperty(DESTINATION_FILESYSTEM)
+                    .evaluateAttributeExpressions().getValue(), DESTINATION_FILESYSTEM);
+            final String destinationDirectory = validateDirectoryValue(
+                    context.getProperty(DESTINATION_DIRECTORY).evaluateAttributeExpressions(flowFile).getValue(), DESTINATION_DIRECTORY);
+            final String fileName = validateFileValue(context.getProperty(FILE).evaluateAttributeExpressions(flowFile).getValue());
 
             final String destinationPath;
             if (!destinationDirectory.isEmpty() && !sourceDirectory.isEmpty()) {

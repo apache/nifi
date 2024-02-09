@@ -24,7 +24,7 @@ import com.azure.storage.file.datalake.models.DataLakeFileOpenInputStreamResult;
 import com.azure.storage.file.datalake.models.PathProperties;
 import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
@@ -39,7 +39,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.InputStream;
 import java.util.Map;
 
-import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.ADLS_CREDENTIALS_SERVICE;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -54,6 +54,8 @@ class AzureDataLakeStorageFileResourceServiceTest {
     private static final String DIRECTORY = "test-directory";
     private static final String FILE = "test-file";
     private static final long CONTENT_LENGTH = 10L;
+    public static final String MSG_EMPTY_FILE_NAME = "'File Name' property evaluated to blank string. 'File Name' must be specified as a non-blank string.";
+    public static final String MSG_EMPTY_FILE_SYSTEM_NAME = "'Filesystem Name' property evaluated to blank string. 'Filesystem Name' must be specified as a non-blank string.";
 
     @Mock
     private DataLakeServiceClient client;
@@ -121,9 +123,7 @@ class AzureDataLakeStorageFileResourceServiceTest {
         when(fileClient.getProperties()).thenReturn(properties);
         when(properties.isDirectory()).thenReturn(true);
 
-        assertThrows(ProcessException.class,
-                () -> service.getFileResource(Map.of()),
-                "File Name (" + FILE + ") points to a directory. Full path: " + fileClient.getFilePath());
+        executeAndAssertProcessException(Map.of(), "File Name (" + FILE + ") points to a directory. Full path: " + fileClient.getFilePath());
     }
 
     @Test
@@ -136,9 +136,7 @@ class AzureDataLakeStorageFileResourceServiceTest {
         when(properties.isDirectory()).thenReturn(false);
         when(fileClient.exists()).thenReturn(false);
 
-        assertThrows(ProcessException.class,
-                () -> service.getFileResource(Map.of()),
-                "File " + DIRECTORY + "/" + FILE + " not found in file system: " + FILE_SYSTEM);
+        executeAndAssertProcessException(Map.of(), "File " + DIRECTORY + "/" + FILE + " not found in file system: " + FILE_SYSTEM);
     }
 
     @Test
@@ -147,18 +145,14 @@ class AzureDataLakeStorageFileResourceServiceTest {
         String directoryValue = "/invalid-directory";
         setupService(FILE_SYSTEM, "${" + directoryKey + "}", FILE);
 
-        assertThrows(ProcessException.class,
-                () -> service.getFileResource(Map.of(directoryKey, directoryValue)),
-                "'Directory Name' starts with '/'. 'Directory Name' cannot contain a leading '/'.");
+        executeAndAssertProcessException(Map.of(directoryKey, directoryValue), "'Directory Name' starts with '/'. 'Directory Name' cannot contain a leading '/'.");
     }
 
     @Test
     void testValidELWithMissingFileValue() throws InitializationException {
         setupService(FILE_SYSTEM, DIRECTORY, "${file.name}");
 
-        assertThrows(ProcessException.class,
-                () -> service.getFileResource(Map.of()),
-                "Filesystem and file name cannot be empty");
+        executeAndAssertProcessException(Map.of(), MSG_EMPTY_FILE_NAME);
     }
 
     @Test
@@ -167,9 +161,7 @@ class AzureDataLakeStorageFileResourceServiceTest {
         String fileSystemValue = "  ";
         setupService("${" + fileSystemKey + "}", DIRECTORY, FILE);
 
-        assertThrows(ProcessException.class,
-                () -> service.getFileResource(Map.of(fileSystemKey, fileSystemValue)),
-                "Filesystem and file name cannot be empty");
+        executeAndAssertProcessException(Map.of(fileSystemKey, fileSystemValue), MSG_EMPTY_FILE_SYSTEM_NAME);
     }
 
     @Test
@@ -178,9 +170,8 @@ class AzureDataLakeStorageFileResourceServiceTest {
         String fileValue = "  ";
         setupService(FILE_SYSTEM, DIRECTORY, "${" + fileKey + "}");
 
-        assertThrows(ProcessException.class,
-                () -> service.getFileResource(Map.of(fileKey, fileValue)),
-                "Filesystem and file name cannot be empty");
+        executeAndAssertProcessException(Map.of(fileKey, fileValue),
+                MSG_EMPTY_FILE_NAME);
     }
 
     @Test
@@ -189,9 +180,7 @@ class AzureDataLakeStorageFileResourceServiceTest {
         String directoryValue = "   ";
         setupService(FILE_SYSTEM, "${" + directoryKey + "}", FILE);
 
-        assertThrows(ProcessException.class,
-                () -> service.getFileResource(Map.of(directoryKey, directoryValue)),
-                "'Directory Name' contains whitespace characters only.");
+        executeAndAssertProcessException(Map.of(directoryKey, directoryValue), "'Directory Name' contains whitespace characters only.");
     }
 
     private void setupService() throws InitializationException {
@@ -205,9 +194,9 @@ class AzureDataLakeStorageFileResourceServiceTest {
         runner.enableControllerService(credentialsService);
 
         runner.setProperty(service, ADLS_CREDENTIALS_SERVICE, CREDENTIALS_CONTROLLER_SERVICE);
-        runner.setProperty(service, AbstractAzureDataLakeStorageProcessor.FILESYSTEM, fileSystem);
-        runner.setProperty(service, AbstractAzureDataLakeStorageProcessor.DIRECTORY, directory);
-        runner.setProperty(service, AbstractAzureDataLakeStorageProcessor.FILE, fileName);
+        runner.setProperty(service, AzureStorageUtils.FILESYSTEM, fileSystem);
+        runner.setProperty(service, AzureStorageUtils.DIRECTORY, directory);
+        runner.setProperty(service, AzureStorageUtils.FILE, fileName);
 
         runner.enableControllerService(service);
     }
@@ -223,6 +212,12 @@ class AzureDataLakeStorageFileResourceServiceTest {
         DataLakeFileOpenInputStreamResult result = mock(DataLakeFileOpenInputStreamResult.class);
         when(fileClient.openInputStream()).thenReturn(result);
         when(result.getInputStream()).thenReturn(inputStream);
+    }
+
+    private void executeAndAssertProcessException(Map<String, String> arguments, String expectedMessage) {
+        ProcessException exception = assertThrows(ProcessException.class,
+                () -> service.getFileResource(arguments));
+        assertEquals(expectedMessage, exception.getMessage());
     }
 
     private void assertFileResource(FileResource fileResource) {

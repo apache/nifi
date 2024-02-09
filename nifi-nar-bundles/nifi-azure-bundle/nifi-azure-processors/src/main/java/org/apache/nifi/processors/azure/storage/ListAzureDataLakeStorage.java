@@ -62,12 +62,7 @@ import java.util.regex.Pattern;
 import static org.apache.nifi.processor.util.list.ListedEntityTracker.INITIAL_LISTING_TARGET;
 import static org.apache.nifi.processor.util.list.ListedEntityTracker.TRACKING_STATE_CACHE;
 import static org.apache.nifi.processor.util.list.ListedEntityTracker.TRACKING_TIME_WINDOW;
-import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.ADLS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.DIRECTORY;
-import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.FILESYSTEM;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY;
-import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.evaluateDirectoryProperty;
-import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.evaluateFileSystemProperty;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_ETAG;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_FILENAME;
@@ -82,6 +77,11 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILE_PATH;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LAST_MODIFIED;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateDirectoryValue;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileSystemValue;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -265,8 +265,8 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
     private List<ADLSFileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode,
                                               final boolean applyFilters) throws IOException {
         try {
-            final String fileSystem = evaluateFileSystemProperty(context, null);
-            final String baseDirectory = evaluateDirectoryProperty(context, null);
+            final String fileSystem = validateFileSystemValue(context.getProperty(FILESYSTEM).evaluateAttributeExpressions().getValue());
+            final String baseDirectory = validateDirectoryValue(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
             final boolean recurseSubdirectories = context.getProperty(RECURSE_SUBDIRECTORIES).asBoolean();
 
             final Pattern filePattern = listingMode == ListingMode.EXECUTION ? this.filePattern : getPattern(context, FILE_FILTER);

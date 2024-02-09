@@ -29,19 +29,22 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.time.Duration;
 import java.util.List;
 
-import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileValue;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateDirectoryValue;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileSystemValue;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({PutAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
@@ -62,12 +65,7 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             .build();
 
     public static final PropertyDescriptor FILE = new PropertyDescriptor.Builder()
-            .name("file-name").displayName("File Name")
-            .description("The filename")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(true)
-            .defaultValue(String.format("${%s}", ATTR_NAME_FILENAME))
+            .fromPropertyDescriptor(AzureStorageUtils.FILE)
             .dependsOn(FILESYSTEM_OBJECT_TYPE, FS_TYPE_FILE)
             .build();
 
@@ -90,14 +88,15 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             final boolean isFile = context.getProperty(FILESYSTEM_OBJECT_TYPE).getValue().equals(FS_TYPE_FILE.getValue());
             final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
 
-            final String fileSystem = evaluateFileSystemProperty(context, flowFile);
+            final String fileSystem = validateFileSystemValue(context.getProperty(FILESYSTEM)
+                    .evaluateAttributeExpressions(flowFile).getValue());
             final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
 
-            final String directory = evaluateDirectoryProperty(context, flowFile);
+            final String directory = validateDirectoryValue(context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue());
             final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
 
             if (isFile) {
-                final String fileName = evaluateFileNameProperty(context, flowFile);
+                final String fileName = validateFileValue(context.getProperty(FILE).evaluateAttributeExpressions(flowFile).getValue());
                 final DataLakeFileClient fileClient = directoryClient.getFileClient(fileName);
                 fileClient.delete();
                 session.transfer(flowFile, REL_SUCCESS);

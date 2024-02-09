@@ -20,65 +20,26 @@ import com.azure.storage.file.datalake.DataLakeServiceClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.azure.storage.utils.DataLakeServiceClientFactory;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsDetails;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
 
 public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProcessor {
-
-    public static final PropertyDescriptor ADLS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-            .name("adls-credentials-service")
-            .displayName("ADLS Credentials")
-            .description("Controller Service used to obtain Azure Credentials.")
-            .identifiesControllerService(ADLSCredentialsService.class)
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor FILESYSTEM = new PropertyDescriptor.Builder()
-            .name("filesystem-name").displayName("Filesystem Name")
-            .description("Name of the Azure Storage File System (also called Container). It is assumed to be already existing.")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
-            .name("directory-name")
-            .displayName("Directory Name")
-            .description("Name of the Azure Storage Directory. The Directory Name cannot contain a leading '/'. The root directory can be designated by the empty string value. " +
-                    "In case of the PutAzureDataLakeStorage processor, the directory will be created if not already existing.")
-            .addValidator(new DirectoryValidator())
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor FILE = new PropertyDescriptor.Builder()
-            .name("file-name").displayName("File Name")
-            .description("The filename")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(true)
-            .defaultValue(String.format("${%s}", ATTR_NAME_FILENAME))
-            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -111,46 +72,13 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
     }
 
     public DataLakeServiceClient getStorageClient(PropertyContext context, FlowFile flowFile) {
-        final Map<String, String> attributes = flowFile != null ? flowFile.getAttributes() : Collections.emptyMap();
+        final Map<String, String> attributes = flowFile != null ? flowFile.getAttributes() : Map.of();
 
-        final ADLSCredentialsService credentialsService = context.getProperty(ADLS_CREDENTIALS_SERVICE).asControllerService(ADLSCredentialsService.class);
+        final ADLSCredentialsService credentialsService = context.getProperty(ADLS_CREDENTIALS_SERVICE)
+                .asControllerService(ADLSCredentialsService.class);
         final ADLSCredentialsDetails credentialsDetails = credentialsService.getCredentialsDetails(attributes);
 
         return clientFactory.getStorageClient(credentialsDetails);
-    }
-
-    public static String evaluateFileSystemProperty(ProcessContext context, FlowFile flowFile) {
-        return evaluateFileSystemProperty(context, flowFile, FILESYSTEM);
-    }
-
-    public static String evaluateFileSystemProperty(ProcessContext context, FlowFile flowFile, PropertyDescriptor property) {
-        String fileSystem = context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue();
-        if (StringUtils.isBlank(fileSystem)) {
-            throw new ProcessException(String.format("'%1$s' property evaluated to blank string. '%s' must be specified as a non-blank string.", property.getDisplayName()));
-        }
-        return fileSystem;
-    }
-
-    public static String evaluateDirectoryProperty(ProcessContext context, FlowFile flowFile) {
-        return evaluateDirectoryProperty(context, flowFile, DIRECTORY);
-    }
-
-    public static String evaluateDirectoryProperty(ProcessContext context, FlowFile flowFile, PropertyDescriptor property) {
-        String directory = context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue();
-        if (directory.startsWith("/")) {
-            throw new ProcessException(String.format("'%1$s' starts with '/'. '%s' cannot contain a leading '/'.", property.getDisplayName()));
-        } else if (StringUtils.isNotEmpty(directory) && StringUtils.isWhitespace(directory)) {
-            throw new ProcessException(String.format("'%1$s' contains whitespace characters only.", property.getDisplayName()));
-        }
-        return directory;
-    }
-
-    public static String evaluateFileNameProperty(ProcessContext context, FlowFile flowFile) {
-        String fileName = context.getProperty(FILE).evaluateAttributeExpressions(flowFile).getValue();
-        if (StringUtils.isBlank(fileName)) {
-            throw new ProcessException(String.format("'%1$s' property evaluated to blank string. '%s' must be specified as a non-blank string.", FILE.getDisplayName()));
-        }
-        return fileName;
     }
 
      public static class DirectoryValidator implements Validator {

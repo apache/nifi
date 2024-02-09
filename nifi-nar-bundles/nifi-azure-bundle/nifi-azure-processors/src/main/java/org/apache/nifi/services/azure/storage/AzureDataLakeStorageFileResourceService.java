@@ -21,7 +21,6 @@ import com.azure.storage.file.datalake.DataLakeFileClient;
 import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -41,12 +40,14 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.ADLS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.DIRECTORY;
-import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.FILE;
-import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.FILESYSTEM;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILE;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.getProxyOptions;
-import static org.apache.nifi.util.StringUtils.isBlank;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateDirectoryValue;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileSystemValue;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileValue;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "file", "resource", "datalake"})
 @SeeAlso({FetchAzureDataLakeStorage.class})
@@ -116,14 +117,11 @@ public class AzureDataLakeStorageFileResourceService extends AbstractControllerS
      * @throws IOException exception caused by missing parameters or blob not found
      */
     private FileResource fetchBlob(final DataLakeServiceClient storageClient, final Map<String, String> attributes) throws IOException {
-        final String fileSystem = context.getProperty(FILESYSTEM).evaluateAttributeExpressions(attributes).getValue();
-        final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions(attributes).getValue();
-        final String file = context.getProperty(FILE).evaluateAttributeExpressions(attributes).getValue();
-
-        if (isBlank(fileSystem) || isBlank(file)) {
-            throw new ProcessException("Filesystem and file name cannot be empty");
-        }
-        validateDirectoryProperty(directory);
+        final String fileSystem = validateFileSystemValue(context.getProperty(FILESYSTEM)
+                .evaluateAttributeExpressions(attributes).getValue());
+        final String directory = validateDirectoryValue(context.getProperty(DIRECTORY)
+                .evaluateAttributeExpressions(attributes).getValue());
+        final String file = validateFileValue(context.getProperty(FILE).evaluateAttributeExpressions(attributes).getValue());
 
         final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
         final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
@@ -139,13 +137,5 @@ public class AzureDataLakeStorageFileResourceService extends AbstractControllerS
 
         return new FileResource(fileClient.openInputStream().getInputStream(),
                 fileClient.getProperties().getFileSize());
-    }
-
-    private static void validateDirectoryProperty(String directoryName) {
-        if (directoryName.startsWith("/")) {
-            throw new ProcessException(String.format("'%1$s' starts with '/'. '%s' cannot contain a leading '/'.", DIRECTORY.getDisplayName()));
-        } else if (StringUtils.isNotEmpty(directoryName) && StringUtils.isWhitespace(directoryName)) {
-            throw new ProcessException(String.format("'%1$s' contains whitespace characters only.", DIRECTORY.getDisplayName()));
-        }
     }
 }
