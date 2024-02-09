@@ -529,7 +529,6 @@ export class ParameterProvidersEffects {
                         ),
                         catchError((error) =>
                             of(
-                                // TODO: maybe a snackbar error?
                                 ParameterProviderActions.parameterProvidersBannerApiError({
                                     error: error.error
                                 })
@@ -590,7 +589,6 @@ export class ParameterProvidersEffects {
                         ),
                         catchError((error) =>
                             of(
-                                // TODO: maybe a snackbar error?
                                 ParameterProviderActions.parameterProvidersBannerApiError({
                                     error: error.error
                                 })
