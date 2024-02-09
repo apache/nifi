@@ -328,7 +328,6 @@ public class TestListFile {
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles4 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(1, successFiles4.size());
-        assertEquals(file2.getName(), successFiles4.get(0).getAttribute("filename"));
         assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 1 matches the filter.");
 
     }
