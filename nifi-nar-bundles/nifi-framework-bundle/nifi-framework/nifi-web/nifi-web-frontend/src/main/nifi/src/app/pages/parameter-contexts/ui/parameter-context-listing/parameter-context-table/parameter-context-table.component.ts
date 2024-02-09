@@ -67,8 +67,11 @@ export class ParameterContextTable {
     }
 
     formatProvider(entity: ParameterContextEntity): string {
+        if (!this.canRead(entity)) {
+            return '';
+        }
         const paramProvider = entity.component.parameterProviderConfiguration;
-        if (!this.canRead(entity) || !paramProvider) {
+        if (!paramProvider) {
             return '';
         }
         return `${paramProvider.component.parameterGroupName} from ${paramProvider.component.parameterProviderName}`;
@@ -100,6 +103,9 @@ export class ParameterContextTable {
     }
 
     canGoToParameterProvider(entity: ParameterContextEntity): boolean {
+        if (!this.canRead(entity)) {
+            return false;
+        }
         return !!entity.component.parameterProviderConfiguration;
     }
 
