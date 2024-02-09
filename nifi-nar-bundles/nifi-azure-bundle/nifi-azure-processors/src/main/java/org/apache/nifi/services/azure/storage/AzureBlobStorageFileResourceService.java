@@ -107,7 +107,7 @@ public class AzureBlobStorageFileResourceService extends AbstractControllerServi
 
     @Override
     public FileResource getFileResource(Map<String, String> attributes) {
-        BlobServiceClient client = getStorageClient(attributes);
+        final BlobServiceClient client = getStorageClient(attributes);
         try {
             return fetchBlob(client, attributes);
         } catch (final BlobStorageException | IOException e) {

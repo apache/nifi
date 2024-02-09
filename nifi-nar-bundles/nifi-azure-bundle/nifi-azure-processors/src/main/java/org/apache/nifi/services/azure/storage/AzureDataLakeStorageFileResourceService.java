@@ -93,7 +93,7 @@ public class AzureDataLakeStorageFileResourceService extends AbstractControllerS
 
     @Override
     public FileResource getFileResource(Map<String, String> attributes) {
-        DataLakeServiceClient client = getStorageClient(attributes);
+        final DataLakeServiceClient client = getStorageClient(attributes);
         try {
             return fetchBlob(client, attributes);
         } catch (final DataLakeStorageException | IOException e) {
