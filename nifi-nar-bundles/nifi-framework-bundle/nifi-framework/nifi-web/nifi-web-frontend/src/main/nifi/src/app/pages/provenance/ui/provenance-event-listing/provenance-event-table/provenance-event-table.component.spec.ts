@@ -20,14 +20,29 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ProvenanceEventTable } from './provenance-event-table.component';
 import { MatTableModule } from '@angular/material/table';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../../../../state/error/error.reducer';
+import { Component } from '@angular/core';
 
 describe('ProvenanceEventTable', () => {
     let component: ProvenanceEventTable;
     let fixture: ComponentFixture<ProvenanceEventTable>;
 
+    @Component({
+        selector: 'error-banner',
+        standalone: true,
+        template: ''
+    })
+    class MockErrorBanner {}
+
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [ProvenanceEventTable, MatTableModule, BrowserAnimationsModule]
+            imports: [ProvenanceEventTable, MockErrorBanner, MatTableModule, BrowserAnimationsModule],
+            providers: [
+                provideMockStore({
+                    initialState
+                })
+            ]
         });
         fixture = TestBed.createComponent(ProvenanceEventTable);
         component = fixture.componentInstance;

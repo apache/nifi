@@ -27,7 +27,7 @@ import {
 } from '../../state/provenance-event-listing';
 import {
     selectLoadedTimestamp,
-    selectProvenance,
+    selectCompletedProvenance,
     selectProvenanceRequest,
     selectSearchableFieldsFromRoute,
     selectStatus
@@ -46,7 +46,7 @@ import {
 import { ProvenanceSearchDialog } from './provenance-search-dialog/provenance-search-dialog.component';
 import { resetLineage, submitLineageQuery } from '../../state/lineage/lineage.actions';
 import { LineageRequest } from '../../state/lineage';
-import { selectLineage } from '../../state/lineage/lineage.selectors';
+import { selectCompletedLineage } from '../../state/lineage/lineage.selectors';
 
 @Component({
     selector: 'provenance-event-listing',
@@ -56,8 +56,8 @@ import { selectLineage } from '../../state/lineage/lineage.selectors';
 export class ProvenanceEventListing implements OnDestroy {
     status$ = this.store.select(selectStatus);
     loadedTimestamp$ = this.store.select(selectLoadedTimestamp);
-    provenance$ = this.store.select(selectProvenance);
-    lineage$ = this.store.select(selectLineage);
+    provenance$ = this.store.select(selectCompletedProvenance);
+    lineage$ = this.store.select(selectCompletedLineage);
 
     request!: ProvenanceRequest;
     stateReset = false;

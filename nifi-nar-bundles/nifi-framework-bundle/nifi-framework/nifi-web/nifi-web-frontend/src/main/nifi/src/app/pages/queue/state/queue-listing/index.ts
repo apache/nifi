@@ -102,7 +102,7 @@ export interface FlowFileDialogRequest {
 
 export interface QueueListingState {
     activeListingRequest: ListingRequest | null;
-    completedListingRequest: ListingRequest | null;
+    completedListingRequest: ListingRequest;
     connectionLabel: string;
     loadedTimestamp: string;
     status: 'pending' | 'loading' | 'error' | 'success';

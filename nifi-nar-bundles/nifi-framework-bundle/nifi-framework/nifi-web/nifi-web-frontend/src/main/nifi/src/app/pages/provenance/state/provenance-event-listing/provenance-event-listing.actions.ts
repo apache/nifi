@@ -61,6 +61,8 @@ export const stopPollingProvenanceQuery = createAction('[Provenance Event Listin
 
 export const deleteProvenanceQuery = createAction('[Provenance Event Listing] Delete Provenance Query');
 
+export const deleteProvenanceQuerySuccess = createAction('[Provenance Event Listing] Delete Provenance Query Success');
+
 export const provenanceApiError = createAction(
     '[Provenance Event Listing] Provenance Api Error',
     props<{ error: string }>()

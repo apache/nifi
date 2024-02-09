@@ -38,6 +38,7 @@ import { LineageComponent } from './lineage/lineage.component';
 import { GoToProvenanceEventSourceRequest, ProvenanceEventRequest } from '../../../state/provenance-event-listing';
 import { MatSliderModule } from '@angular/material/slider';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 
 @Component({
     selector: 'provenance-event-table',
@@ -58,7 +59,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         AsyncPipe,
         MatPaginatorModule,
         LineageComponent,
-        MatSliderModule
+        MatSliderModule,
+        ErrorBanner
     ],
     styleUrls: ['./provenance-event-table.component.scss']
 })
@@ -305,11 +307,7 @@ export class ProvenanceEventTable implements AfterViewInit {
             return false;
         }
 
-        if (event.componentId === 'Remote Output Port' || event.componentId === 'Remote Input Port') {
-            return false;
-        }
-
-        return true;
+        return !(event.componentId === 'Remote Output Port' || event.componentId === 'Remote Input Port');
     }
 
     goToClicked(event: ProvenanceEventSummary): void {

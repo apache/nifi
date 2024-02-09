@@ -18,7 +18,7 @@
 import { Injectable } from '@angular/core';
 import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ProvenanceEventListingActions from './provenance-event-listing.actions';
-import { asyncScheduler, catchError, from, interval, map, NEVER, of, switchMap, take, takeUntil, tap } from 'rxjs';
+import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
@@ -27,7 +27,7 @@ import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { ProvenanceService } from '../../service/provenance.service';
 import {
     selectClusterNodeId,
-    selectProvenanceId,
+    selectActiveProvenanceId,
     selectProvenanceOptions,
     selectProvenanceRequest,
     selectTimeOffset
@@ -37,6 +37,10 @@ import { ProvenanceSearchDialog } from '../../ui/provenance-event-listing/proven
 import { selectAbout } from '../../../../state/about/about.selectors';
 import { ProvenanceEventDialog } from '../../../../ui/common/provenance-event-dialog/provenance-event-dialog.component';
 import { CancelDialog } from '../../../../ui/common/cancel-dialog/cancel-dialog.component';
+import * as ErrorActions from '../../../../state/error/error.actions';
+import { ErrorHelper } from '../../../../service/error-helper.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { isDefinedAndNotNull } from '../../../../state/shared';
 
 @Injectable()
 export class ProvenanceEventListingEffects {
@@ -44,6 +48,7 @@ export class ProvenanceEventListingEffects {
         private actions$: Actions,
         private store: Store<NiFiState>,
         private provenanceService: ProvenanceService,
+        private errorHelper: ErrorHelper,
         private dialog: MatDialog,
         private router: Router
     ) {}
@@ -58,10 +63,14 @@ export class ProvenanceEventListingEffects {
                             response
                         })
                     ),
-                    catchError((error) =>
+                    catchError(() =>
                         of(
-                            ProvenanceEventListingActions.provenanceApiError({
-                                error: error.error
+                            ProvenanceEventListingActions.loadProvenanceOptionsSuccess({
+                                response: {
+                                    provenanceOptions: {
+                                        searchableFields: []
+                                    }
+                                }
                             })
                         )
                     )
@@ -73,38 +82,6 @@ export class ProvenanceEventListingEffects {
     submitProvenanceQuery$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ProvenanceEventListingActions.submitProvenanceQuery),
-            map((action) => action.request),
-            switchMap((request) =>
-                from(this.provenanceService.submitProvenanceQuery(request)).pipe(
-                    map((response) =>
-                        ProvenanceEventListingActions.submitProvenanceQuerySuccess({
-                            response: {
-                                provenance: response.provenance
-                            }
-                        })
-                    ),
-                    catchError((error) => {
-                        this.store.dispatch(
-                            ProvenanceEventListingActions.showOkDialog({
-                                title: 'Error',
-                                message: error.error
-                            })
-                        );
-
-                        return of(
-                            ProvenanceEventListingActions.provenanceApiError({
-                                error: error.error
-                            })
-                        );
-                    })
-                )
-            )
-        )
-    );
-
-    resubmitProvenanceQuery = createEffect(() =>
-        this.actions$.pipe(
-            ofType(ProvenanceEventListingActions.resubmitProvenanceQuery),
             map((action) => action.request),
             switchMap((request) => {
                 const dialogReference = this.dialog.open(CancelDialog, {
@@ -120,6 +97,37 @@ export class ProvenanceEventListingEffects {
                     this.store.dispatch(ProvenanceEventListingActions.stopPollingProvenanceQuery());
                 });
 
+                return from(this.provenanceService.submitProvenanceQuery(request)).pipe(
+                    map((response) =>
+                        ProvenanceEventListingActions.submitProvenanceQuerySuccess({
+                            response: {
+                                provenance: response.provenance
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                            return of(
+                                ProvenanceEventListingActions.provenanceApiError({
+                                    error: errorResponse.error
+                                })
+                            );
+                        } else {
+                            this.store.dispatch(ProvenanceEventListingActions.stopPollingProvenanceQuery());
+
+                            return of(this.errorHelper.fullScreenError(errorResponse));
+                        }
+                    })
+                );
+            })
+        )
+    );
+
+    resubmitProvenanceQuery = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ProvenanceEventListingActions.resubmitProvenanceQuery),
+            map((action) => action.request),
+            switchMap((request) => {
                 return of(ProvenanceEventListingActions.submitProvenanceQuery({ request }));
             })
         )
@@ -156,29 +164,34 @@ export class ProvenanceEventListingEffects {
     pollProvenanceQuery$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ProvenanceEventListingActions.pollProvenanceQuery),
-            concatLatestFrom(() => [this.store.select(selectProvenanceId), this.store.select(selectClusterNodeId)]),
-            switchMap(([, id, clusterNodeId]) => {
-                if (id) {
-                    return from(this.provenanceService.getProvenanceQuery(id, clusterNodeId)).pipe(
-                        map((response) =>
-                            ProvenanceEventListingActions.pollProvenanceQuerySuccess({
-                                response: {
-                                    provenance: response.provenance
-                                }
-                            })
-                        ),
-                        catchError((error) =>
-                            of(
+            concatLatestFrom(() => [
+                this.store.select(selectActiveProvenanceId).pipe(isDefinedAndNotNull()),
+                this.store.select(selectClusterNodeId)
+            ]),
+            switchMap(([, id, clusterNodeId]) =>
+                from(this.provenanceService.getProvenanceQuery(id, clusterNodeId)).pipe(
+                    map((response) =>
+                        ProvenanceEventListingActions.pollProvenanceQuerySuccess({
+                            response: {
+                                provenance: response.provenance
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                            return of(
                                 ProvenanceEventListingActions.provenanceApiError({
-                                    error: error.error
+                                    error: errorResponse.error
                                 })
-                            )
-                        )
-                    );
-                } else {
-                    return NEVER;
-                }
-            })
+                            );
+                        } else {
+                            this.store.dispatch(ProvenanceEventListingActions.stopPollingProvenanceQuery());
+
+                            return of(this.errorHelper.fullScreenError(errorResponse));
+                        }
+                    })
+                )
+            )
         )
     );
 
@@ -186,15 +199,8 @@ export class ProvenanceEventListingEffects {
         this.actions$.pipe(
             ofType(ProvenanceEventListingActions.pollProvenanceQuerySuccess),
             map((action) => action.response),
-            switchMap((response) => {
-                const query: Provenance = response.provenance;
-                if (query.finished) {
-                    this.dialog.closeAll();
-                    return of(ProvenanceEventListingActions.stopPollingProvenanceQuery());
-                } else {
-                    return NEVER;
-                }
-            })
+            filter((response) => response.provenance.finished),
+            switchMap(() => of(ProvenanceEventListingActions.stopPollingProvenanceQuery()))
         )
     );
 
@@ -205,18 +211,26 @@ export class ProvenanceEventListingEffects {
         )
     );
 
-    deleteProvenanceQuery$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(ProvenanceEventListingActions.deleteProvenanceQuery),
-                concatLatestFrom(() => [this.store.select(selectProvenanceId), this.store.select(selectClusterNodeId)]),
-                tap(([, id, clusterNodeId]) => {
-                    if (id) {
-                        this.provenanceService.deleteProvenanceQuery(id, clusterNodeId).subscribe();
-                    }
-                })
-            ),
-        { dispatch: false }
+    deleteProvenanceQuery$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ProvenanceEventListingActions.deleteProvenanceQuery),
+            concatLatestFrom(() => [
+                this.store.select(selectActiveProvenanceId),
+                this.store.select(selectClusterNodeId)
+            ]),
+            tap(([, id, clusterNodeId]) => {
+                this.dialog.closeAll();
+
+                if (id) {
+                    this.provenanceService.deleteProvenanceQuery(id, clusterNodeId).subscribe({
+                        error: (errorResponse: HttpErrorResponse) => {
+                            this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                        }
+                    });
+                }
+            }),
+            switchMap(() => of(ProvenanceEventListingActions.deleteProvenanceQuerySuccess()))
+        )
     );
 
     openSearchDialog$ = createEffect(
@@ -227,44 +241,40 @@ export class ProvenanceEventListingEffects {
                     this.store.select(selectTimeOffset),
                     this.store.select(selectProvenanceOptions),
                     this.store.select(selectProvenanceRequest),
-                    this.store.select(selectAbout)
+                    this.store.select(selectAbout).pipe(isDefinedAndNotNull())
                 ]),
                 tap(([, timeOffset, options, currentRequest, about]) => {
-                    if (about) {
-                        const dialogReference = this.dialog.open(ProvenanceSearchDialog, {
-                            data: {
-                                timeOffset,
-                                options,
-                                currentRequest
-                            },
-                            panelClass: 'large-dialog'
-                        });
+                    const dialogReference = this.dialog.open(ProvenanceSearchDialog, {
+                        data: {
+                            timeOffset,
+                            options,
+                            currentRequest
+                        },
+                        panelClass: 'large-dialog'
+                    });
 
-                        dialogReference.componentInstance.timezone = about.timezone;
+                    dialogReference.componentInstance.timezone = about.timezone;
 
-                        dialogReference.componentInstance.submitSearchCriteria
-                            .pipe(take(1))
-                            .subscribe((request: ProvenanceRequest) => {
-                                if (request.searchTerms) {
-                                    const queryParams: any = {};
-                                    if (request.searchTerms['ProcessorID']) {
-                                        queryParams['componentId'] = request.searchTerms['ProcessorID'].value;
-                                    }
-                                    if (request.searchTerms['FlowFileUUID']) {
-                                        queryParams['flowFileUuid'] = request.searchTerms['FlowFileUUID'].value;
-                                    }
-
-                                    // if either of the supported query params are present in the query, update the url
-                                    if (Object.keys(queryParams).length > 0) {
-                                        this.router.navigate(['/provenance'], { queryParams });
-                                    }
+                    dialogReference.componentInstance.submitSearchCriteria
+                        .pipe(take(1))
+                        .subscribe((request: ProvenanceRequest) => {
+                            if (request.searchTerms) {
+                                const queryParams: any = {};
+                                if (request.searchTerms['ProcessorID']) {
+                                    queryParams['componentId'] = request.searchTerms['ProcessorID'].value;
+                                }
+                                if (request.searchTerms['FlowFileUUID']) {
+                                    queryParams['flowFileUuid'] = request.searchTerms['FlowFileUUID'].value;
                                 }
 
-                                this.store.dispatch(ProvenanceEventListingActions.saveProvenanceRequest({ request }));
-                            });
-                    }
+                                // if either of the supported query params are present in the query, update the url
+                                if (Object.keys(queryParams).length > 0) {
+                                    this.router.navigate(['/provenance'], { queryParams });
+                                }
+                            }
 
-                    // TODO - if about hasn't loaded we should show an error
+                            this.store.dispatch(ProvenanceEventListingActions.saveProvenanceRequest({ request }));
+                        });
                 })
             ),
         { dispatch: false }
@@ -311,18 +321,31 @@ export class ProvenanceEventListingEffects {
                             dialogReference.componentInstance.replay
                                 .pipe(takeUntil(dialogReference.afterClosed()))
                                 .subscribe(() => {
-                                    this.provenanceService.replay(request.id).subscribe(() => {
-                                        this.store.dispatch(
-                                            ProvenanceEventListingActions.showOkDialog({
-                                                title: 'Provenance',
-                                                message: 'Successfully submitted replay request.'
-                                            })
-                                        );
+                                    this.provenanceService.replay(request.id).subscribe({
+                                        next: () => {
+                                            dialogReference.close();
+
+                                            this.store.dispatch(
+                                                ProvenanceEventListingActions.showOkDialog({
+                                                    title: 'Provenance',
+                                                    message: 'Successfully submitted replay request.'
+                                                })
+                                            );
+                                        },
+                                        error: (errorResponse: HttpErrorResponse) => {
+                                            this.store.dispatch(
+                                                ErrorActions.snackBarError({ error: errorResponse.error })
+                                            );
+                                        }
                                     });
                                 });
                         },
-                        error: () => {
-                            // TODO - handle error
+                        error: (errorResponse: HttpErrorResponse) => {
+                            if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            } else {
+                                this.store.dispatch(this.errorHelper.fullScreenError(errorResponse));
+                            }
                         }
                     });
                 })
@@ -337,9 +360,14 @@ export class ProvenanceEventListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     if (request.eventId) {
-                        this.provenanceService.getProvenanceEvent(request.eventId).subscribe((response) => {
-                            const event: any = response.provenanceEvent;
-                            this.router.navigate(this.getEventComponentLink(event.groupId, event.componentId));
+                        this.provenanceService.getProvenanceEvent(request.eventId).subscribe({
+                            next: (response) => {
+                                const event: any = response.provenanceEvent;
+                                this.router.navigate(this.getEventComponentLink(event.groupId, event.componentId));
+                            },
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                            }
                         });
                     } else if (request.groupId && request.componentId) {
                         this.router.navigate(this.getEventComponentLink(request.groupId, request.componentId));
@@ -347,6 +375,16 @@ export class ProvenanceEventListingEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    provenanceApiError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ProvenanceEventListingActions.provenanceApiError),
+            tap(() => {
+                this.store.dispatch(ProvenanceEventListingActions.stopPollingProvenanceQuery());
+            }),
+            switchMap(({ error }) => of(ErrorActions.addBannerError({ error })))
+        )
     );
 
     showOkDialog$ = createEffect(

@@ -24,8 +24,11 @@ export const selectLineageState = createSelector(
     (state: ProvenanceState) => state[lineageFeatureKey]
 );
 
-export const selectStatus = createSelector(selectLineageState, (state: LineageState) => state.status);
+export const selectActiveLineage = createSelector(selectLineageState, (state: LineageState) => state.activeLineage);
 
-export const selectLineage = createSelector(selectLineageState, (state: LineageState) => state.lineage);
+export const selectCompletedLineage = createSelector(
+    selectLineageState,
+    (state: LineageState) => state.completedLineage
+);
 
-export const selectLineageId = createSelector(selectLineage, (state: Lineage | null) => state?.id);
+export const selectActiveLineageId = createSelector(selectActiveLineage, (state: Lineage | null) => state?.id);

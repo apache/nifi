@@ -40,6 +40,8 @@ export const stopPollingLineageQuery = createAction('[Lineage] Stop Polling Line
 
 export const deleteLineageQuery = createAction('[Lineage] Delete Lineage Query');
 
+export const deleteLineageQuerySuccess = createAction('[Lineage] Delete Lineage Query Success');
+
 export const lineageApiError = createAction(
     '[Lineage] Load Parameter Context Listing Error',
     props<{ error: string }>()
