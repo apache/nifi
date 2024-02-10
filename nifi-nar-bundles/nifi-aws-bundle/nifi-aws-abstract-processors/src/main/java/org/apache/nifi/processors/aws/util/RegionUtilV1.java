@@ -18,24 +18,42 @@ package org.apache.nifi.processors.aws.util;
 
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processor.exception.ProcessException;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
-
-import static org.apache.nifi.processors.aws.s3.AbstractS3Processor.S3_REGION;
 
 /**
  * Utility class for AWS region methods. This class uses AWS SDK v1.
  *
  */
-public abstract class RegionUtilV1 {
+public final class RegionUtilV1 {
+
+    private RegionUtilV1() {
+    }
 
     public static final String S3_REGION_ATTRIBUTE = "s3.region" ;
-    static final AllowableValue ATTRIBUTE_DEFINED_REGION = new AllowableValue("attribute-defined-region",
+    public static final AllowableValue ATTRIBUTE_DEFINED_REGION = new AllowableValue("attribute-defined-region",
             "Use '" + S3_REGION_ATTRIBUTE + "' Attribute",
             "Uses '" + S3_REGION_ATTRIBUTE + "' FlowFile attribute as region.");
+
+    public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
+            .name("Region")
+            .description("The AWS Region to connect to.")
+            .required(true)
+            .allowableValues(getAvailableRegions())
+            .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
+            .build();
+
+    public static final PropertyDescriptor S3_REGION = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(REGION)
+            .allowableValues(getAvailableS3Regions())
+            .build();
 
     public static Region parseRegionValue(String regionValue) {
         if (regionValue == null) {
@@ -58,4 +76,22 @@ public abstract class RegionUtilV1 {
 
         return parseRegionValue(regionValue);
     }
+
+    public static AllowableValue[] getAvailableS3Regions() {
+        final AllowableValue[] availableRegions = getAvailableRegions();
+        return ArrayUtils.addAll(availableRegions, ATTRIBUTE_DEFINED_REGION);
+    }
+
+    public static AllowableValue createAllowableValue(final Regions region) {
+        return new AllowableValue(region.getName(), region.getDescription(), "AWS Region Code : " + region.getName());
+    }
+
+    public static AllowableValue[] getAvailableRegions() {
+        final List<AllowableValue> values = new ArrayList<>();
+        for (final Regions region : Regions.values()) {
+            values.add(createAllowableValue(region));
+        }
+        return values.toArray(new AllowableValue[0]);
+    }
+
 }

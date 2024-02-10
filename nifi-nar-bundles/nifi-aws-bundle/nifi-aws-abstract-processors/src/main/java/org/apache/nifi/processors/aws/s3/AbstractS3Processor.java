@@ -34,10 +34,8 @@ import com.amazonaws.services.s3.model.EmailAddressGrantee;
 import com.amazonaws.services.s3.model.Grantee;
 import com.amazonaws.services.s3.model.Owner;
 import com.amazonaws.services.s3.model.Permission;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -64,6 +62,8 @@ import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_S3_V2_SIGN
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_S3_V4_SIGNER;
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.CUSTOM_SIGNER;
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.DEFAULT_SIGNER;
+import static org.apache.nifi.processors.aws.util.RegionUtilV1.ATTRIBUTE_DEFINED_REGION;
+import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
 import static org.apache.nifi.processors.aws.util.RegionUtilV1.resolveRegion;
 
 public abstract class AbstractS3Processor extends AbstractAWSCredentialsProviderProcessor<AmazonS3Client> {
@@ -178,16 +178,6 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
             .dependsOn(SIGNER_OVERRIDE, CUSTOM_SIGNER)
             .dynamicallyModifiesClasspath(true)
-            .build();
-
-    public static final String S3_REGION_ATTRIBUTE = "s3.region" ;
-    static final AllowableValue ATTRIBUTE_DEFINED_REGION = new AllowableValue("attribute-defined-region",
-            "Use '" + S3_REGION_ATTRIBUTE + "' Attribute",
-            "Uses '" + S3_REGION_ATTRIBUTE + "' FlowFile attribute as region.");
-
-    public static final PropertyDescriptor S3_REGION = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(REGION)
-            .allowableValues(getAvailableS3Regions())
             .build();
 
     public static final PropertyDescriptor ENCRYPTION_SERVICE = new PropertyDescriptor.Builder()
@@ -453,10 +443,4 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         String regionValue = context.getProperty(S3_REGION).getValue();
         return ATTRIBUTE_DEFINED_REGION.getValue().equals(regionValue);
     }
-
-    private static AllowableValue[] getAvailableS3Regions() {
-        final AllowableValue[] availableRegions = getAvailableRegions();
-        return ArrayUtils.addAll(availableRegions, ATTRIBUTE_DEFINED_REGION);
-    }
-
 }

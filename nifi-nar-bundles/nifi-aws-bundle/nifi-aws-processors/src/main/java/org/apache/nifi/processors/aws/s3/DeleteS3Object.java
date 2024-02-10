@@ -38,6 +38,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.processors.aws.s3.S3FileResourceService.S3_REGION;
+
 
 @SupportsBatching
 @WritesAttributes({

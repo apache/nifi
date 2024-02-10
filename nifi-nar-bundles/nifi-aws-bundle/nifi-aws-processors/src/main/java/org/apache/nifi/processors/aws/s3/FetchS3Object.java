@@ -62,6 +62,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
+
 @SupportsBatching
 @SeeAlso({PutS3Object.class, DeleteS3Object.class, ListS3.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)

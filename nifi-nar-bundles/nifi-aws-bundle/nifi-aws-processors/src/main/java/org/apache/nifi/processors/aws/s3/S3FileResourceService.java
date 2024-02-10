@@ -38,6 +38,7 @@ import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.fileresource.service.api.FileResourceService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
+import org.apache.nifi.processors.aws.util.RegionUtilV1;
 
 import java.util.List;
 import java.util.Map;
@@ -73,7 +74,7 @@ public class S3FileResourceService extends AbstractControllerService implements 
             .build();
 
     public static final PropertyDescriptor S3_REGION = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AbstractS3Processor.S3_REGION)
+            .fromPropertyDescriptor(RegionUtilV1.S3_REGION)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(

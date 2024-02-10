@@ -99,6 +99,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.processors.aws.util.RegionUtilV1.REGION;
+import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
+
 @PrimaryNodeOnly
 @TriggerSerially
 @TriggerWhenEmpty

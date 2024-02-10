@@ -43,6 +43,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.signer.AwsSignerType;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.processors.transfer.ResourceTransferSource;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -245,7 +246,7 @@ public class TestPutS3Object {
     }
 
     private void prepareTest(String filename) {
-        runner.setProperty(PutS3Object.S3_REGION, "ap-northeast-1");
+        runner.setProperty(RegionUtilV1.S3_REGION, "ap-northeast-1");
         runner.setProperty(PutS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.assertValid();
 
@@ -258,7 +259,7 @@ public class TestPutS3Object {
     }
 
     private void prepareTestWithRegionInAttributes(String filename, String region) {
-        runner.setProperty(PutS3Object.S3_REGION, "attribute-defined-region");
+        runner.setProperty(RegionUtilV1.S3_REGION, "attribute-defined-region");
         runner.setProperty(PutS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.assertValid();
 

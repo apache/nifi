@@ -28,7 +28,10 @@ import java.util.List;
  * Utility class for AWS region methods. This class uses AWS SDK v2.
  *
  */
-public abstract class RegionUtilV2 {
+public final class RegionUtilV2 {
+
+    private RegionUtilV2() {
+    }
 
     /**
      * Creates an AllowableValue from a Region.

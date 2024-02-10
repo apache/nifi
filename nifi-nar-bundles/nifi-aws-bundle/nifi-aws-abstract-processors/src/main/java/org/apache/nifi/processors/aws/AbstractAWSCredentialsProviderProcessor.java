@@ -29,7 +29,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -57,6 +56,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
+import static org.apache.nifi.processors.aws.util.RegionUtilV1.REGION;
 
 /**
  * Base class for AWS processors that uses AWSCredentialsProvider interface for creating AWS clients.
@@ -92,14 +93,6 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
 
 
     // Property Descriptors
-    public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
-            .name("Region")
-            .description("The AWS Region to connect to.")
-            .required(true)
-            .allowableValues(getAvailableRegions())
-            .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
-            .build();
-
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
             .name("Communications Timeout")
             .description("The amount of time to wait in order to establish a connection to AWS or receive data from AWS before timing out.")
@@ -176,19 +169,6 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
         this.clientCache.invalidateAll();
         this.clientCache.cleanUp();
     }
-
-    public static AllowableValue createAllowableValue(final Regions region) {
-        return new AllowableValue(region.getName(), region.getDescription(), "AWS Region Code : " + region.getName());
-    }
-
-    public static AllowableValue[] getAvailableRegions() {
-        final List<AllowableValue> values = new ArrayList<>();
-        for (final Regions region : Regions.values()) {
-            values.add(createAllowableValue(region));
-        }
-        return values.toArray(new AllowableValue[0]);
-    }
-
 
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
