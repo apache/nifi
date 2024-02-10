@@ -22,12 +22,12 @@ import org.apache.nifi.components.DescribedValue;
  * Enumeration of supported Database column name Translation Strategies
  */
 public enum TranslationStrategy implements DescribedValue {
-   REMOVE_UNDERSCORE("Remove Underscore",
+    REMOVE_UNDERSCORE("Remove Underscore",
             "Underscore(_) will be removed from column name with empty string Ex. Pics_1_11 become PICS111"),
-    REMOVE_SPACE("Remove Space", "Spaces will be removed from column name with empty string Ex. 'User Name' become 'USERNAME'"),
+    REMOVE_SPACE("Remove Space",
+            "Spaces will be removed from column name with empty string Ex. 'User Name' become 'USERNAME'"),
     REMOVE_ALL_SPECIAL_CHAR("Remove All Special Character", "Remove All Special Character"),
     PATTERN("Regular Expression", "Remove character matched Regular Expression from column name");
-    
     private final String displayName;
     private final String description;
 
