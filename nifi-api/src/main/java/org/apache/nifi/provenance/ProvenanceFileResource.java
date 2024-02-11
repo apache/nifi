@@ -20,7 +20,7 @@ package org.apache.nifi.provenance;
  * Holds information of a file resource for UPLOAD
  * provenance events.
  */
-public record FileResource(String location, long size) {
+public record ProvenanceFileResource(String location, long size) {
 
     @Override
     public String toString() {

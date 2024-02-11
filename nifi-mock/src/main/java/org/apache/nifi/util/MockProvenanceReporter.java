@@ -24,7 +24,7 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
-import org.apache.nifi.provenance.FileResource;
+import org.apache.nifi.provenance.ProvenanceFileResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -228,13 +228,13 @@ public class MockProvenanceReporter implements ProvenanceReporter {
     }
 
     @Override
-    public void upload(final FlowFile flowFile, final FileResource fileResource, final String transitUri) {
+    public void upload(final FlowFile flowFile, final ProvenanceFileResource fileResource, final String transitUri) {
         upload(flowFile, fileResource, transitUri, null, -1L, true);
 
     }
 
     @Override
-    public void upload(FlowFile flowFile, FileResource fileResource, String transitUri, String details, long transmissionMillis, boolean force) {
+    public void upload(FlowFile flowFile, ProvenanceFileResource fileResource, String transitUri, String details, long transmissionMillis, boolean force) {
         try {
             final String fileResourceDetails = fileResource.toString();
             final String enrichedDetails = details == null ? fileResourceDetails : details + " " + fileResourceDetails;

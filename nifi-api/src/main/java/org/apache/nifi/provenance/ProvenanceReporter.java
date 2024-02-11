@@ -330,7 +330,7 @@ public interface ProvenanceReporter {
      * events to an external Enterprise-wide system that is then able to
      * correlate the SEND and RECEIVE events.
      */
-    void upload(FlowFile flowFile, FileResource fileResource, String transitUri);
+    void upload(FlowFile flowFile, ProvenanceFileResource fileResource, String transitUri);
 
     /**
      * Emits a Provenance Event of type {@link ProvenanceEventType#UPLOAD UPLOAD}
@@ -355,7 +355,7 @@ public interface ProvenanceReporter {
      * ProvenanceReporter is associated is rolled back. Otherwise, the Event
      * will be recorded only on a successful session commit.
      */
-    void upload(FlowFile flowFile, FileResource fileResource, String transitUri, String details, long transmissionMillis, boolean force);
+    void upload(FlowFile flowFile, ProvenanceFileResource fileResource, String transitUri, String details, long transmissionMillis, boolean force);
 
     /**
      * Emits a Provenance Event of type {@link ProvenanceEventType#REMOTE_INVOCATION}
