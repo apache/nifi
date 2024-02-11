@@ -24,6 +24,6 @@ public record ProvenanceFileResource(String location, long size) {
 
     @Override
     public String toString() {
-        return "FileResource[location=%s, size=%d]".formatted(location, size);
+        return "ProvenanceFileResource[location=%s, size=%d]".formatted(location, size);
     }
 }
