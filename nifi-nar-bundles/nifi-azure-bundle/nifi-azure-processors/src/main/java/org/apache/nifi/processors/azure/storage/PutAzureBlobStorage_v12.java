@@ -46,6 +46,7 @@ import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12;
 import org.apache.nifi.processors.azure.ClientSideEncryptionSupport;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.transfer.ResourceTransferSource;
+import org.apache.nifi.provenance.ProvenanceFileResource;
 import org.apache.nifi.services.azure.storage.AzureStorageConflictResolutionStrategy;
 
 import java.io.InputStream;
@@ -102,7 +103,6 @@ import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileR
         @WritesAttribute(attribute = ATTR_NAME_ERROR_CODE, description = ATTR_DESCRIPTION_ERROR_CODE),
         @WritesAttribute(attribute = ATTR_NAME_IGNORED, description = ATTR_DESCRIPTION_IGNORED)})
 public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 implements ClientSideEncryptionSupport {
-
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
             STORAGE_CREDENTIALS_SERVICE,
             AzureStorageUtils.CONTAINER,
@@ -201,6 +201,12 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
             long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             String transitUri = attributes.get(ATTR_NAME_PRIMARY_URI);
             session.getProvenanceReporter().send(flowFile, transitUri, transferMillis);
+            if (fileResourceFound.isPresent()) {
+                final FileResource fileResource = fileResourceFound.get();
+                final long size = fileResource.getSize();
+                final ProvenanceFileResource provenanceFileResource = new ProvenanceFileResource(null, size);
+                session.getProvenanceReporter().upload(flowFile, provenanceFileResource, transitUri);
+            }
         } catch (Exception e) {
             getLogger().error("Failed to create blob on Azure Blob Storage", e);
             flowFile = session.penalize(flowFile);
