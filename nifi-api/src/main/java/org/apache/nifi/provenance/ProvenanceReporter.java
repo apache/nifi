@@ -323,14 +323,14 @@ public interface ProvenanceReporter {
      * local destination, such as the local file system but is external to NiFi.
      *
      * @param flowFile the FlowFile that was sent
-     * @param fileResource the FileResource that was uploaded
+     * @param size the size of the resource in bytes that was uploaded
      * @param transitUri A URI that provides information about the System and
      * Protocol information over which the transfer occurred. The intent of this
      * field is such that both the sender and the receiver can publish the
      * events to an external Enterprise-wide system that is then able to
      * correlate the SEND and RECEIVE events.
      */
-    void upload(FlowFile flowFile, ProvenanceFileResource fileResource, String transitUri);
+    void upload(FlowFile flowFile, long size, String transitUri);
 
     /**
      * Emits a Provenance Event of type {@link ProvenanceEventType#UPLOAD UPLOAD}
@@ -339,7 +339,7 @@ public interface ProvenanceReporter {
      * local destination, such as the local file system but is external to NiFi.
      *
      * @param flowFile the FlowFile that was sent
-     * @param fileResource the FileResource that was uploaded
+     * @param size the size of the resource in bytes that was uploaded
      * @param transitUri A URI that provides information about the System and
      * Protocol information over which the transfer occurred. The intent of this
      * field is such that both the sender and the receiver can publish the
@@ -355,7 +355,7 @@ public interface ProvenanceReporter {
      * ProvenanceReporter is associated is rolled back. Otherwise, the Event
      * will be recorded only on a successful session commit.
      */
-    void upload(FlowFile flowFile, ProvenanceFileResource fileResource, String transitUri, String details, long transmissionMillis, boolean force);
+    void upload(FlowFile flowFile, long size, String transitUri, String details, long transmissionMillis, boolean force);
 
     /**
      * Emits a Provenance Event of type {@link ProvenanceEventType#REMOTE_INVOCATION}

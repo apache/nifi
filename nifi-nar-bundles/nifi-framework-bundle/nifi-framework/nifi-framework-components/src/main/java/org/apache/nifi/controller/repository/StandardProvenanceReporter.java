@@ -24,7 +24,6 @@ import org.apache.nifi.provenance.ProvenanceEventBuilder;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.provenance.ProvenanceFileResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -282,15 +281,15 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
-    public void upload(final FlowFile flowFile, final ProvenanceFileResource fileResource, final String transitUri) {
-        upload(flowFile, fileResource, transitUri, null, -1L, true);
+    public void upload(final FlowFile flowFile, final long size, final String transitUri) {
+        upload(flowFile, size, transitUri, null, -1L, true);
     }
 
     @Override
-    public void upload(final FlowFile flowFile, final ProvenanceFileResource fileResource, final String transitUri, final String details, final long transmissionMillis, final boolean force) {
+    public void upload(final FlowFile flowFile, final long size, final String transitUri, final String details, final long transmissionMillis, final boolean force) {
         try {
-            final String fileResourceDetails = fileResource.toString();
-            final String enrichedDetails = details == null ? fileResourceDetails : details + " " + fileResourceDetails;
+            final String displayedSizeInBytes = size + " bytes";
+            final String enrichedDetails = details == null ? displayedSizeInBytes : details + " " + displayedSizeInBytes;
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.UPLOAD)
                     .setTransitUri(transitUri)
                     .setEventDuration(transmissionMillis)
@@ -306,7 +305,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
                 events.add(enriched);
             }
 
-            bytesSent += fileResource.size();
+            bytesSent += size;
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
         }
