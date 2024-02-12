@@ -57,6 +57,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -882,12 +883,15 @@ public class TestQueryRecord {
 
     @Test
     public void testSimple() throws InitializationException {
+        UUID tomId = UUID.randomUUID();
+
         final MockRecordParser parser = new MockRecordParser();
+        parser.addSchemaField("id", RecordFieldType.UUID);
         parser.addSchemaField("name", RecordFieldType.STRING);
         parser.addSchemaField("age", RecordFieldType.INT);
-        parser.addRecord("Tom", 49);
+        parser.addRecord(tomId, "Tom", 49);
 
-        final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
+        final MockRecordWriter writer = new MockRecordWriter("\"id\",\"name\",\"points\"");
 
         TestRunner runner = getRunner();
         runner.addControllerService("parser", parser);
@@ -895,7 +899,7 @@ public class TestQueryRecord {
         runner.addControllerService("writer", writer);
         runner.enableControllerService(writer);
 
-        runner.setProperty(REL_NAME, "select name, age from FLOWFILE WHERE name <> ''");
+        runner.setProperty(REL_NAME, "select id, name, age from FLOWFILE WHERE name <> ''");
         runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
 
@@ -910,8 +914,7 @@ public class TestQueryRecord {
         runner.assertTransferCount(REL_NAME, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(REL_NAME).get(0);
         out.assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
-        System.out.println(new String(out.toByteArray()));
-        out.assertContentEquals("\"name\",\"points\"\n\"Tom\",\"49\"\n");
+        out.assertContentEquals("\"id\",\"name\",\"points\"\n\"" + tomId + "\",\"Tom\",\"49\"\n");
     }
 
     @Test
