@@ -28,6 +28,7 @@
 
     <modules>
         <module>nifi-bin-manager</module>
+        <module>nifi-conflict-resolution</module>
         <module>nifi-database-utils</module>
         <module>nifi-database-test-utils</module>
         <module>nifi-dbcp-base</module>
@@ -38,14 +39,14 @@
         <module>nifi-hadoop-utils</module>
         <module>nifi-kerberos-test-utils</module>
         <module>nifi-listed-entity</module>
+        <module>nifi-migration-utils</module>
         <module>nifi-prometheus-utils</module>
         <module>nifi-put-pattern</module>
+        <module>nifi-record-path-property</module>
         <module>nifi-record-utils</module>
         <module>nifi-reporting-utils</module>
         <module>nifi-resource-transfer</module>
         <module>nifi-service-utils</module>
         <module>nifi-syslog-utils</module>
-        <module>nifi-conflict-resolution</module>
-        <module>nifi-record-path-property</module>
     </modules>
 </project>

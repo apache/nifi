@@ -21,7 +21,6 @@ import com.google.cloud.Service;
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.TransportOptions;
 import com.google.cloud.http.HttpTransportOptions;
-import java.net.Proxy;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +31,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -44,6 +45,12 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 public abstract class AbstractGCPProcessor<
         CloudService extends Service<CloudServiceOptions>,
         CloudServiceOptions extends ServiceOptions<CloudService, CloudServiceOptions>> extends AbstractProcessor {
+
+    // Obsolete property names
+    private static final String OBSOLETE_PROXY_HOST = "gcp-proxy-host";
+    private static final String OBSOLETE_PROXY_PORT = "gcp-proxy-port";
+    private static final String OBSOLETE_PROXY_USERNAME = "gcp-proxy-user-name";
+    private static final String OBSOLETE_PROXY_PASSWORD = "gcp-proxy-user-password";
 
     public static final PropertyDescriptor PROJECT_ID = new PropertyDescriptor
             .Builder().name("gcp-project-id")
@@ -63,53 +70,14 @@ public abstract class AbstractGCPProcessor<
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor
-            .Builder().name("gcp-proxy-host")
-            .displayName("Proxy host")
-        .description("""
-            IP or hostname of the proxy to be used.
-             You might need to set the following properties in bootstrap for https proxy usage:
-            -Djdk.http.auth.tunneling.disabledSchemes=
-            -Djdk.http.auth.proxying.disabledSchemes=""")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor
-            .Builder().name("gcp-proxy-port")
-            .displayName("Proxy port")
-            .description("Proxy port number")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.PORT_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor HTTP_PROXY_USERNAME = new PropertyDescriptor
-            .Builder().name("gcp-proxy-user-name")
-            .displayName("HTTP Proxy Username")
-            .description("HTTP Proxy Username")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .required(false)
-            .build();
-
-    public static final PropertyDescriptor HTTP_PROXY_PASSWORD = new PropertyDescriptor
-            .Builder().name("gcp-proxy-user-password")
-            .displayName("HTTP Proxy Password")
-            .description("HTTP Proxy Password")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .required(false)
-            .sensitive(true)
-            .build();
-
     public static final PropertyDescriptor GCP_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
         .name("GCP Credentials Provider Service")
         .description("The Controller Service used to obtain Google Cloud Platform credentials.")
         .required(true)
         .identifiesControllerService(GCPCredentialsService.class)
         .build();
+
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxyAwareTransportFactory.PROXY_SPECS);
 
     protected volatile CloudService cloudService;
 
@@ -122,12 +90,14 @@ public abstract class AbstractGCPProcessor<
         return List.of(PROJECT_ID,
                 GCP_CREDENTIALS_PROVIDER_SERVICE,
                 RETRY_COUNT,
-                PROXY_HOST,
-                PROXY_PORT,
-                HTTP_PROXY_USERNAME,
-                HTTP_PROXY_PASSWORD,
-            ProxyConfiguration.createProxyConfigPropertyDescriptor(true, ProxyAwareTransportFactory.PROXY_SPECS)
+                PROXY_CONFIGURATION_SERVICE
         );
+    }
+
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        ProxyServiceMigration.migrateProxyProperties(config, PROXY_CONFIGURATION_SERVICE, OBSOLETE_PROXY_HOST, OBSOLETE_PROXY_PORT, OBSOLETE_PROXY_USERNAME, OBSOLETE_PROXY_PASSWORD);
     }
 
     /**
@@ -206,25 +176,7 @@ public abstract class AbstractGCPProcessor<
      * @return Transport options object with proxy configuration
      */
     protected TransportOptions getTransportOptions(ProcessContext context) {
-        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context, () -> {
-            if (context.getProperty(PROXY_HOST).isSet() && context.getProperty(PROXY_PORT).isSet()) {
-                final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
-                final Integer proxyPort = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
-                if (proxyHost != null && proxyPort != null && proxyPort > 0) {
-                    final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
-                    final String proxyUser = context.getProperty(HTTP_PROXY_USERNAME).evaluateAttributeExpressions().getValue();
-                    final String proxyPassword = context.getProperty(HTTP_PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
-                    componentProxyConfig.setProxyType(Proxy.Type.HTTP);
-                    componentProxyConfig.setProxyServerHost(proxyHost);
-                    componentProxyConfig.setProxyServerPort(proxyPort);
-                    componentProxyConfig.setProxyUserName(proxyUser);
-                    componentProxyConfig.setProxyUserPassword(proxyPassword);
-                    return componentProxyConfig;
-                }
-            }
-
-            return ProxyConfiguration.DIRECT_CONFIGURATION;
-        });
+        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
 
         final ProxyAwareTransportFactory transportFactory = new ProxyAwareTransportFactory(proxyConfiguration);
         return HttpTransportOptions.newBuilder().setHttpTransportFactory(transportFactory).build();
