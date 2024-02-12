@@ -317,12 +317,6 @@ public class SFTPTransfer implements FileTransfer {
             final RemoteResourceFilter filter = (entry) -> {
                 final String entryFilename = entry.getName();
 
-                // Since SSHJ does not have the concept of BREAK that JSCH had, we need to move this before the call to listing.add
-                // below, otherwise we would keep adding to the listings since returning false here doesn't break
-                if (listing.size() >= maxResults) {
-                    return false;
-                }
-
                 // skip over 'this directory' and 'parent directory' special files regardless of ignoring dot files
                 if (RELATIVE_CURRENT_DIRECTORY.equals(entryFilename) || RELATIVE_PARENT_DIRECTORY.equals(entryFilename)) {
                     return false;
@@ -335,6 +329,12 @@ public class SFTPTransfer implements FileTransfer {
 
                 if (isIncludedDirectory(entry, recurse, symlink)) {
                     subDirs.add(entry);
+                    return false;
+                }
+
+                // Since SSHJ does not have the concept of BREAK that JSCH had, we need to move this before the call to listing.add
+                // below, otherwise we would keep adding to the listings since returning false here doesn't break
+                if (listing.size() >= maxResults) {
                     return false;
                 }
 
