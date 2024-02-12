@@ -204,6 +204,10 @@ export interface CreateProcessorDialogRequest {
     processorTypes: DocumentedType[];
 }
 
+export interface GoToRemoteProcessGroupRequest {
+    uri: string;
+}
+
 export interface CreateProcessorRequest extends CreateComponentRequest {
     processorType: string;
     processorBundle: Bundle;

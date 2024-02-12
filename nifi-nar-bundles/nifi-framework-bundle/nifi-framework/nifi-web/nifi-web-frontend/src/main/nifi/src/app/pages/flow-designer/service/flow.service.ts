@@ -27,6 +27,7 @@ import {
     CreateProcessorRequest,
     CreateRemoteProcessGroupRequest,
     DeleteComponentRequest,
+    GoToRemoteProcessGroupRequest,
     ProcessGroupRunStatusRequest,
     ReplayLastProvenanceEventRequest,
     RunOnceRequest,
@@ -121,6 +122,10 @@ export class FlowService implements PropertyDescriptorRetriever {
                 position: createLabel.position
             }
         });
+    }
+
+    goToRemoteProcessGroup(goToRemoteProcessGroupRequest: GoToRemoteProcessGroupRequest) {
+        window.open(encodeURI(goToRemoteProcessGroupRequest.uri));
     }
 
     createProcessor(processGroupId = 'root', createProcessor: CreateProcessorRequest): Observable<any> {
