@@ -80,6 +80,7 @@ import { NiFiState } from '../../../../state';
 import { CreateProcessor } from '../../ui/canvas/items/processor/create-processor/create-processor.component';
 import { EditProcessor } from '../../ui/canvas/items/processor/edit-processor/edit-processor.component';
 import { BirdseyeView } from '../../service/birdseye-view.service';
+import { CreateRemoteProcessGroup } from '../../ui/canvas/items/remote-process-group/create-remote-process-group/create-remote-process-group.component';
 import { CreateProcessGroup } from '../../ui/canvas/items/process-group/create-process-group/create-process-group.component';
 import { CreateConnection } from '../../ui/canvas/items/connection/create-connection/create-connection.component';
 import { EditConnectionComponent } from '../../ui/canvas/items/connection/edit-connection/edit-connection.component';
@@ -222,6 +223,8 @@ export class FlowEffects {
                             }),
                             catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                         );
+                    case ComponentType.RemoteProcessGroup:
+                        return of(FlowActions.openNewRemoteProcessGroupDialog({ request }));
                     case ComponentType.Funnel:
                         return of(FlowActions.createFunnel({ request }));
                     case ComponentType.Label:
@@ -279,6 +282,47 @@ export class FlowEffects {
             concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) =>
                 from(this.flowService.createProcessor(processGroupId, request)).pipe(
+                    map((response) =>
+                        FlowActions.createComponentSuccess({
+                            response: {
+                                type: request.type,
+                                payload: response
+                            }
+                        })
+                    ),
+                    catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                )
+            )
+        )
+    );
+
+    openNewRemoteProcessGroupDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openNewRemoteProcessGroupDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    this.dialog
+                        .open(CreateRemoteProcessGroup, {
+                            data: request,
+                            panelClass: 'large-dialog'
+                        })
+                        .afterClosed()
+                        .subscribe(() => {
+                            this.store.dispatch(FlowActions.setDragging({ dragging: false }));
+                        });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    createRemoteProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.createRemoteProcessGroup),
+            map((action) => action.request),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([request, processGroupId]) =>
+                from(this.flowService.createRemoteProcessGroup(processGroupId, request)).pipe(
                     map((response) =>
                         FlowActions.createComponentSuccess({
                             response: {

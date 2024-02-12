@@ -24,6 +24,7 @@ import {
     CreateConnectionDialogRequest,
     CreateConnectionRequest,
     CreatePortRequest,
+    CreateRemoteProcessGroupRequest,
     CreateProcessGroupDialogRequest,
     CreateProcessGroupRequest,
     CreateProcessorRequest,
@@ -210,9 +211,19 @@ export const createFunnel = createAction(
 
 export const createLabel = createAction(`${CANVAS_PREFIX} Create Label`, props<{ request: CreateComponentRequest }>());
 
+export const createRemoteProcessGroup = createAction(
+    `${CANVAS_PREFIX} Create Remote Process Group`,
+    props<{ request: CreateRemoteProcessGroupRequest }>()
+);
+
 export const openNewProcessGroupDialog = createAction(
     `${CANVAS_PREFIX} Open New Process Group Dialog`,
     props<{ request: CreateProcessGroupDialogRequest }>()
+);
+
+export const openNewRemoteProcessGroupDialog = createAction(
+    `${CANVAS_PREFIX} Open New Remote Process Group Dialog`,
+    props<{ request: CreateComponentRequest }>()
 );
 
 export const createProcessGroup = createAction(

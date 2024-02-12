@@ -219,6 +219,18 @@ export interface UploadProcessGroupRequest extends CreateComponentRequest {
     flowDefinition: File;
 }
 
+export interface CreateRemoteProcessGroupRequest extends CreateComponentRequest {
+    targetUris: string;
+    transportProtocol: string;
+    localNetworkInterface: string;
+    proxyHost: string;
+    proxyPort: string;
+    proxyUser: string;
+    proxyPassword: string;
+    communicationsTimeout: string;
+    yieldDuration: string;
+}
+
 export interface CreatePortRequest extends CreateComponentRequest {
     name: string;
     allowRemoteAccess: boolean;
