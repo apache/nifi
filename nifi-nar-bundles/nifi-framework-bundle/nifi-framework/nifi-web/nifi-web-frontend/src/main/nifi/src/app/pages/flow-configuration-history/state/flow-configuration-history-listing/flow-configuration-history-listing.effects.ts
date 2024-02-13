@@ -32,6 +32,7 @@ import { ActionDetails } from '../../ui/flow-configuration-history-listing/actio
 import { PurgeHistory } from '../../ui/flow-configuration-history-listing/purge-history/purge-history.component';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { isDefinedAndNotNull } from '../../../../state/shared';
+import * as ErrorActions from '../../../../state/error/error.actions';
 
 @Injectable()
 export class FlowConfigurationHistoryListingEffects {
@@ -68,8 +69,7 @@ export class FlowConfigurationHistoryListingEffects {
         this.actions$.pipe(
             ofType(HistoryActions.flowConfigurationHistorySnackbarError),
             map((action) => action.errorResponse),
-            concatLatestFrom(() => this.store.select(selectHistoryStatus)),
-            switchMap(([errorResponse, status]) => of(this.errorHelper.handleLoadingError(status, errorResponse)))
+            switchMap((errorResponse) => of(ErrorActions.snackBarError({ error: errorResponse.error })))
         )
     );
 
