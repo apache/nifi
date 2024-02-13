@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { SourceRemoteProcessGroup } from './source-remote-process-group.component';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('SourceRemoteProcessGroup', () => {
     let component: SourceRemoteProcessGroup;
@@ -26,7 +26,7 @@ describe('SourceRemoteProcessGroup', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [BrowserAnimationsModule, SourceRemoteProcessGroup]
+            imports: [NoopAnimationsModule, SourceRemoteProcessGroup]
         });
         fixture = TestBed.createComponent(SourceRemoteProcessGroup);
         component = fixture.componentInstance;

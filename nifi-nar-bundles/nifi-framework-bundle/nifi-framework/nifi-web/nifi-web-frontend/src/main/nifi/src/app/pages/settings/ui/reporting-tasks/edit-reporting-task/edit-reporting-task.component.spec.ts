@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { EditReportingTask } from './edit-reporting-task.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EditReportingTaskDialogRequest } from '../../../state/reporting-tasks';
 import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
@@ -394,7 +394,7 @@ describe('EditReportingTask', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditReportingTask, MockErrorBanner, BrowserAnimationsModule],
+            imports: [EditReportingTask, MockErrorBanner, NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 provideMockStore({

@@ -67,6 +67,6 @@ export interface Lineage {
 
 export interface LineageState {
     activeLineage: Lineage | null;
-    completedLineage: Lineage;
-    status: 'pending' | 'loading' | 'error' | 'success';
+    completedLineage: Lineage | null;
+    status: 'pending' | 'loading' | 'success';
 }

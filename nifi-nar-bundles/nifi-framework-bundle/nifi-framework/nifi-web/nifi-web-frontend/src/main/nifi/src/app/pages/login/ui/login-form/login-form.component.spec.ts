@@ -26,7 +26,7 @@ import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('LoginForm', () => {
     let component: LoginForm;
@@ -37,7 +37,7 @@ describe('LoginForm', () => {
             declarations: [LoginForm],
             imports: [
                 HttpClientTestingModule,
-                BrowserAnimationsModule,
+                NoopAnimationsModule,
                 MatFormFieldModule,
                 RouterModule,
                 RouterTestingModule,

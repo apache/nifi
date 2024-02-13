@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ProvenanceEventTable } from './provenance-event-table.component';
 import { MatTableModule } from '@angular/material/table';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/error/error.reducer';
 import { Component } from '@angular/core';
@@ -37,7 +37,7 @@ describe('ProvenanceEventTable', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [ProvenanceEventTable, MockErrorBanner, MatTableModule, BrowserAnimationsModule],
+            imports: [ProvenanceEventTable, MockErrorBanner, MatTableModule, NoopAnimationsModule],
             providers: [
                 provideMockStore({
                     initialState

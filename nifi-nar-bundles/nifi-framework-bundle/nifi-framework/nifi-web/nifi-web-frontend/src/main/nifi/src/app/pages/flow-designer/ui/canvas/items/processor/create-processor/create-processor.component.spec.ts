@@ -23,7 +23,7 @@ import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../../../state/extension-types/extension-types.reducer';
 import { ComponentType } from '../../../../../../../state/shared';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('CreateProcessor', () => {
     let component: CreateProcessor;
@@ -59,7 +59,7 @@ describe('CreateProcessor', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [CreateProcessor, BrowserAnimationsModule],
+            imports: [CreateProcessor, NoopAnimationsModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(CreateProcessor);

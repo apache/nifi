@@ -26,7 +26,6 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Attribute, ProvenanceEventDialogRequest } from '../../../state/shared';
-import { ErrorBanner } from '../error-banner/error-banner.component';
 
 @Component({
     selector: 'provenance-event-dialog',
@@ -44,8 +43,7 @@ import { ErrorBanner } from '../error-banner/error-banner.component';
         MatDatepickerModule,
         MatTabsModule,
         NgTemplateOutlet,
-        FormsModule,
-        ErrorBanner
+        FormsModule
     ]
 })
 export class ProvenanceEventDialog {

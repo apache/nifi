@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { EditFlowAnalysisRule } from './edit-flow-analysis-rule.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EditFlowAnalysisRuleDialogRequest } from '../../../state/flow-analysis-rules';
 import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
@@ -101,7 +101,7 @@ describe('EditFlowAnalysisRule', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditFlowAnalysisRule, MockErrorBanner, BrowserAnimationsModule],
+            imports: [EditFlowAnalysisRule, MockErrorBanner, NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 provideMockStore({

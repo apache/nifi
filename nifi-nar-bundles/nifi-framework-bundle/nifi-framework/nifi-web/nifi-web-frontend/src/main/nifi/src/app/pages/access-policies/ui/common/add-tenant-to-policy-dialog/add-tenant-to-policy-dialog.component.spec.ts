@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { AddTenantToPolicyDialog } from './add-tenant-to-policy-dialog.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { AddTenantToPolicyDialogRequest } from '../../../state/access-policy';
 
 describe('AddTenantToPolicyDialog', () => {
@@ -68,7 +68,7 @@ describe('AddTenantToPolicyDialog', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [AddTenantToPolicyDialog, BrowserAnimationsModule],
+            imports: [AddTenantToPolicyDialog, NoopAnimationsModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
         });
         fixture = TestBed.createComponent(AddTenantToPolicyDialog);

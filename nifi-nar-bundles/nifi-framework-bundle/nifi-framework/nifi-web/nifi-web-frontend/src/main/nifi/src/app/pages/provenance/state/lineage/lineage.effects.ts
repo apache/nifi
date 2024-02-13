@@ -156,11 +156,7 @@ export class LineageEffects {
             concatLatestFrom(() => [this.store.select(selectActiveLineageId), this.store.select(selectClusterNodeId)]),
             tap(([, id, clusterNodeId]) => {
                 if (id) {
-                    this.provenanceService.deleteLineageQuery(id, clusterNodeId).subscribe({
-                        error: (errorResponse: HttpErrorResponse) => {
-                            this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
-                        }
-                    });
+                    this.provenanceService.deleteLineageQuery(id, clusterNodeId).subscribe();
                 }
             }),
             switchMap(() => of(LineageActions.deleteLineageQuerySuccess()))

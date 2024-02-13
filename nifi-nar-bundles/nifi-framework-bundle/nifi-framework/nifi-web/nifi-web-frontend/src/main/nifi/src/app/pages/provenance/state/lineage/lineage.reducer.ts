@@ -19,7 +19,6 @@ import { createReducer, on } from '@ngrx/store';
 import { LineageState } from './index';
 import {
     deleteLineageQuerySuccess,
-    lineageApiError,
     pollLineageQuerySuccess,
     resetLineage,
     submitLineageQuery,
@@ -29,21 +28,7 @@ import { produce } from 'immer';
 
 export const initialState: LineageState = {
     activeLineage: null,
-    completedLineage: {
-        id: '',
-        uri: '',
-        submissionTime: '',
-        expiration: '',
-        percentCompleted: 0,
-        finished: false,
-        request: {
-            lineageRequestType: 'FLOWFILE'
-        },
-        results: {
-            nodes: [],
-            links: []
-        }
-    },
+    completedLineage: null,
     status: 'pending'
 };
 
@@ -71,9 +56,5 @@ export const lineageReducer = createReducer(
     on(deleteLineageQuerySuccess, (state) => ({
         ...state,
         activeLineage: null
-    })),
-    on(lineageApiError, (state) => ({
-        ...state,
-        status: 'error' as const
     }))
 );

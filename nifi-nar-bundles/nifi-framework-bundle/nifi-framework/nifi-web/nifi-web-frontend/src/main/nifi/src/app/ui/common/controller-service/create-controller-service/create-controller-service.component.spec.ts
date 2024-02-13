@@ -21,7 +21,7 @@ import { CreateControllerService } from './create-controller-service.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../state/extension-types/extension-types.reducer';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { CreateControllerServiceDialogRequest } from '../../../../state/shared';
 
 describe('CreateControllerService', () => {
@@ -56,7 +56,7 @@ describe('CreateControllerService', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [CreateControllerService, BrowserAnimationsModule],
+            imports: [CreateControllerService, NoopAnimationsModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(CreateControllerService);

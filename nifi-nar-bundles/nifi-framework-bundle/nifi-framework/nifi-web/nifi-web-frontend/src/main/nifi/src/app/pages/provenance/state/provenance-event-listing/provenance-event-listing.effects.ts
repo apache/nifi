@@ -222,11 +222,7 @@ export class ProvenanceEventListingEffects {
                 this.dialog.closeAll();
 
                 if (id) {
-                    this.provenanceService.deleteProvenanceQuery(id, clusterNodeId).subscribe({
-                        error: (errorResponse: HttpErrorResponse) => {
-                            this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
-                        }
-                    });
+                    this.provenanceService.deleteProvenanceQuery(id, clusterNodeId).subscribe();
                 }
             }),
             switchMap(() => of(ProvenanceEventListingActions.deleteProvenanceQuerySuccess()))
@@ -321,10 +317,10 @@ export class ProvenanceEventListingEffects {
                             dialogReference.componentInstance.replay
                                 .pipe(takeUntil(dialogReference.afterClosed()))
                                 .subscribe(() => {
+                                    dialogReference.close();
+
                                     this.provenanceService.replay(request.id).subscribe({
                                         next: () => {
-                                            dialogReference.close();
-
                                             this.store.dispatch(
                                                 ProvenanceEventListingActions.showOkDialog({
                                                     title: 'Provenance',

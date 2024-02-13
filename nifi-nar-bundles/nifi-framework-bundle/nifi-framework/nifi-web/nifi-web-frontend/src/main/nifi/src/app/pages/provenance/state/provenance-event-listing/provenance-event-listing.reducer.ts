@@ -22,7 +22,6 @@ import {
     deleteProvenanceQuerySuccess,
     loadProvenanceOptionsSuccess,
     pollProvenanceQuerySuccess,
-    provenanceApiError,
     resetProvenanceState,
     saveProvenanceRequest,
     submitProvenanceQuery,
@@ -34,28 +33,7 @@ export const initialState: ProvenanceEventListingState = {
     options: null,
     request: null,
     activeProvenance: null,
-    completedProvenance: {
-        id: '',
-        uri: '',
-        submissionTime: '',
-        expiration: '',
-        percentCompleted: 0,
-        finished: false,
-        request: {
-            maxResults: 0,
-            summarize: true,
-            incrementalResults: false
-        },
-        results: {
-            provenanceEvents: [],
-            total: '',
-            totalCount: 0,
-            generated: 'N/A',
-            oldestEvent: 'N/A',
-            timeOffset: 0,
-            errors: []
-        }
-    },
+    completedProvenance: null,
     loadedTimestamp: 'N/A',
     status: 'pending'
 };
@@ -97,9 +75,5 @@ export const provenanceEventListingReducer = createReducer(
     on(clearProvenanceRequest, (state) => ({
         ...state,
         request: null
-    })),
-    on(provenanceApiError, (state) => ({
-        ...state,
-        status: 'error' as const
     }))
 );

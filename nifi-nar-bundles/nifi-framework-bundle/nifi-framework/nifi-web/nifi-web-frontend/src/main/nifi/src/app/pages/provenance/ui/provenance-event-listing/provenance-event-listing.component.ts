@@ -47,6 +47,7 @@ import { ProvenanceSearchDialog } from './provenance-search-dialog/provenance-se
 import { resetLineage, submitLineageQuery } from '../../state/lineage/lineage.actions';
 import { LineageRequest } from '../../state/lineage';
 import { selectCompletedLineage } from '../../state/lineage/lineage.selectors';
+import { clearBannerErrors } from '../../../../state/error/error.actions';
 
 @Component({
     selector: 'provenance-event-listing',
@@ -200,6 +201,10 @@ export class ProvenanceEventListing implements OnDestroy {
         );
     }
 
+    clearBannerErrors(): void {
+        this.store.dispatch(clearBannerErrors());
+    }
+
     resetLineage(): void {
         this.store.dispatch(resetLineage());
     }
@@ -208,5 +213,6 @@ export class ProvenanceEventListing implements OnDestroy {
         this.stateReset = true;
         this.store.dispatch(resetProvenanceState());
         this.store.dispatch(resetLineage());
+        this.store.dispatch(clearBannerErrors());
     }
 }

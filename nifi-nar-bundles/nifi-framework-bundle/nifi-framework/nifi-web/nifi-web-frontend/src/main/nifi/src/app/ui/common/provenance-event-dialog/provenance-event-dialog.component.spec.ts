@@ -19,10 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ProvenanceEventDialog } from './provenance-event-dialog.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { Component } from '@angular/core';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../state/error/error.reducer';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('ProvenanceEventDialog', () => {
     let component: ProvenanceEventDialog;
@@ -72,22 +69,10 @@ describe('ProvenanceEventDialog', () => {
         }
     };
 
-    @Component({
-        selector: 'error-banner',
-        standalone: true,
-        template: ''
-    })
-    class MockErrorBanner {}
-
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [ProvenanceEventDialog, MockErrorBanner, BrowserAnimationsModule],
-            providers: [
-                { provide: MAT_DIALOG_DATA, useValue: data },
-                provideMockStore({
-                    initialState
-                })
-            ]
+            imports: [ProvenanceEventDialog, NoopAnimationsModule],
+            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
         });
         fixture = TestBed.createComponent(ProvenanceEventDialog);
         component = fixture.componentInstance;

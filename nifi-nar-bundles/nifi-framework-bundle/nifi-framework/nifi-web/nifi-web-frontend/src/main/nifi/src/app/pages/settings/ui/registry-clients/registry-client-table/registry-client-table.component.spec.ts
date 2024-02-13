@@ -20,7 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RegistryClientTable } from './registry-client-table.component';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('RegistryClientTable', () => {
     let component: RegistryClientTable;
@@ -29,7 +29,7 @@ describe('RegistryClientTable', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [RegistryClientTable],
-            imports: [MatTableModule, MatSortModule, BrowserAnimationsModule]
+            imports: [MatTableModule, MatSortModule, NoopAnimationsModule]
         });
         fixture = TestBed.createComponent(RegistryClientTable);
         component = fixture.componentInstance;

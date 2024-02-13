@@ -20,7 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { EditTenantDialog } from './edit-tenant-dialog.component';
 import { EditTenantRequest } from '../../../state/shared';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/error/error.reducer';
@@ -794,7 +794,7 @@ describe('EditTenantDialog', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditTenantDialog, MockErrorBanner, BrowserAnimationsModule],
+            imports: [EditTenantDialog, MockErrorBanner, NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 provideMockStore({

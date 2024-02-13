@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ExtensionCreation } from './extension-creation.component';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('ExtensionCreation', () => {
     let component: ExtensionCreation;
@@ -26,7 +26,7 @@ describe('ExtensionCreation', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [ExtensionCreation, BrowserAnimationsModule]
+            imports: [ExtensionCreation, NoopAnimationsModule]
         });
         fixture = TestBed.createComponent(ExtensionCreation);
         component = fixture.componentInstance;

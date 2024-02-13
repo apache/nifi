@@ -151,6 +151,7 @@ export class ProvenanceEventTable implements AfterViewInit {
     @Output() resubmitProvenanceQuery: EventEmitter<void> = new EventEmitter<void>();
     @Output() queryLineage: EventEmitter<LineageRequest> = new EventEmitter<LineageRequest>();
     @Output() resetLineage: EventEmitter<void> = new EventEmitter<void>();
+    @Output() clearBannerErrors: EventEmitter<void> = new EventEmitter<void>();
 
     protected readonly TextTip = TextTip;
     protected readonly BulletinsTip = BulletinsTip;
@@ -325,6 +326,8 @@ export class ProvenanceEventTable implements AfterViewInit {
         this.eventId = event.id;
         this.showLineage = true;
 
+        this.clearBannerErrors.next();
+
         this.submitLineageQuery({
             lineageRequestType: 'FLOWFILE',
             uuid: event.flowFileUuid,
@@ -343,6 +346,7 @@ export class ProvenanceEventTable implements AfterViewInit {
         this.eventTimestampStep = 1;
         this.initialEventTimestampThreshold = 0;
         this.currentEventTimestampThreshold = 0;
+        this.clearBannerErrors.next();
         this.resetLineage.next();
     }
 
