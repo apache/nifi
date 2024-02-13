@@ -383,6 +383,11 @@ export const openEditProcessGroupDialog = createAction(
     props<{ request: EditComponentDialogRequest }>()
 );
 
+export const openEditRemoteProcessGroupDialog = createAction(
+    `${CANVAS_PREFIX} Open Edit Remote Process Group Dialog`,
+    props<{ request: EditComponentDialogRequest }>()
+);
+
 export const updateComponent = createAction(
     `${CANVAS_PREFIX} Update Component`,
     props<{ request: UpdateComponentRequest }>()

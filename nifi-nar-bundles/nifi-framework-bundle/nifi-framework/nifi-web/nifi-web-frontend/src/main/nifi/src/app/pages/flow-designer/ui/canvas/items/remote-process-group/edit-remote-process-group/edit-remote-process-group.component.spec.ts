@@ -17,19 +17,18 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { CreateRemoteProcessGroup } from './create-remote-process-group.component';
+import { EditRemoteProcessGroup } from './edit-remote-process-group.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ComponentType } from '../../../../../../../state/shared';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { CreateComponentRequest } from '../../../../../state/flow';
 
-describe('CreateRemoteProcessGroup', () => {
-    let component: CreateRemoteProcessGroup;
-    let fixture: ComponentFixture<CreateRemoteProcessGroup>;
+describe('EditRemoteProcessGroup', () => {
+    let component: EditRemoteProcessGroup;
+    let fixture: ComponentFixture<EditRemoteProcessGroup>;
 
-    const data: CreateComponentRequest = {
+    const data: any = {
         revision: {
             clientId: 'a6482293-7fe8-43b4-8ab4-ee95b3b27721',
             version: 0
@@ -38,16 +37,41 @@ describe('CreateRemoteProcessGroup', () => {
         position: {
             x: -4,
             y: -698.5
+        },
+        entity: {
+            component: {
+                activeRemoteInputPortCount: 0,
+                activeRemoteOutputPortCount: 0,
+                comments: '',
+                communicationsTimeout: '30 sec',
+                flowRefreshed: '02/10/2024 15:20:58 EST',
+                id: '868228e2-018d-1000-00e2-92a25d9cb363',
+                inactiveRemoteInputPortCount: 0,
+                inactiveRemoteOutputPortCount: 0,
+                inputPortCount: 0,
+                name: 'NiFi Flow',
+                outputPortCount: 0,
+                parentGroupId: '7be4b23a-018d-1000-d059-ca023539b044',
+                proxyHost: '',
+                proxyUser: '',
+                targetSecure: true,
+                targetUri: 'https://localhost:8443/nifi',
+                targetUris: 'https://localhost:8443/nifi',
+                transmitting: false,
+                transportProtocol: 'HTTP',
+                yieldDuration: '10 sec'
+            }
         }
     };
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [CreateRemoteProcessGroup, BrowserAnimationsModule],
+            imports: [EditRemoteProcessGroup, BrowserAnimationsModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
         });
-        fixture = TestBed.createComponent(CreateRemoteProcessGroup);
+        fixture = TestBed.createComponent(EditRemoteProcessGroup);
         component = fixture.componentInstance;
+
         fixture.detectChanges();
     });
 

@@ -37,7 +37,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { CreateComponentRequest } from '../../../../../state/flow';
 
 @Component({
-    selector: 'create-process-group',
     standalone: true,
     imports: [
         AsyncPipe,
