@@ -411,7 +411,11 @@ export class FlowEffects {
                                 }
                             });
                         }),
-                        catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
+                        catchError((error) => {
+                            this.store.dispatch(FlowActions.stopRemoteProcessGroupPolling());
+
+                            return of(FlowActions.flowApiError({ error: error.error }));
+                        })
                     )
                 )
             )
