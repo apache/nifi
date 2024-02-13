@@ -41,4 +41,9 @@ public class ParameterExpression implements Expression {
 
         return parameter.getValue();
     }
+
+    @Override
+    public String getExpression() {
+        return "#{" + parameterName + "}";
+    }
 }

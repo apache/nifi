@@ -28,4 +28,9 @@ public interface Expression {
      * @return the evaluated value
      */
     String evaluate(EvaluationContext evaluationContext, AttributeValueDecorator decorator);
+
+    /**
+     * @return the expression as a String
+     */
+    String getExpression();
 }
