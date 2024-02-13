@@ -751,7 +751,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    return this.canvasUtils.isRemoteProcessGroup(selection);
+                    return this.canvasUtils.canRead(selection) && this.canvasUtils.isRemoteProcessGroup(selection);
                 },
                 clazz: 'fa fa-refresh',
                 text: 'Refresh remote',
@@ -972,7 +972,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    return this.canvasUtils.isRemoteProcessGroup(selection);
+                    return this.canvasUtils.canRead(selection) && this.canvasUtils.isRemoteProcessGroup(selection);
                 },
                 clazz: 'fa fa-external-link',
                 text: 'Go to',

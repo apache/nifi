@@ -43,6 +43,7 @@ import {
     ImportFromRegistryDialogRequest,
     LoadProcessGroupRequest,
     LoadProcessGroupResponse,
+    RefreshRemoteProcessGroupRequest,
     Snippet,
     UpdateComponentFailure,
     UpdateComponentResponse,
@@ -390,12 +391,8 @@ export class FlowEffects {
     refreshRemoteProcessGroup$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.refreshRemoteProcessGroup),
-            concatLatestFrom(() => this.store.select(selectRpgToPoll)),
-            map(([, rpgToPoll]) => {
-                return rpgToPoll;
-            }),
-            isDefinedAndNotNull(),
-            switchMap((rpgToPoll) =>
+            concatLatestFrom(() => this.store.select(selectRpgToPoll).pipe(isDefinedAndNotNull())),
+            switchMap(([, rpgToPoll]) =>
                 from(
                     this.flowService.getRemoteProcessGroup(rpgToPoll.id).pipe(
                         map((response: any) => {
@@ -414,11 +411,7 @@ export class FlowEffects {
                                 }
                             });
                         }),
-                        catchError((errorResponse: HttpErrorResponse) => {
-                            this.store.dispatch(FlowActions.stopRemoteProcessGroupPolling());
-
-                            return of(this.errorHelper.handleLoadingError(status, errorResponse));
-                        })
+                        catchError((error) => of(FlowActions.flowApiError({ error: error.error })))
                     )
                 )
             )
