@@ -79,12 +79,6 @@ export class EditRemoteProcessGroup {
         });
     }
 
-    getOptionTipData(tip: string): TextTipInput {
-        return {
-            text: tip
-        };
-    }
-
     submitForm() {
         const payload: any = {
             revision: this.client.getRevision(this.request.entity),

@@ -40,22 +40,8 @@
                 <mat-form-field>
                     <mat-label>Transport Protocol</mat-label>
                     <mat-select formControlName="transportProtocol">
-                        <mat-option
-                            value="RAW"
-                            nifiTooltip
-                            [tooltipComponentType]="TextTip"
-                            [tooltipInputData]="getOptionTipData('RAW')"
-                            [delayClose]="false">
-                            RAW
-                        </mat-option>
-                        <mat-option
-                            value="HTTP"
-                            nifiTooltip
-                            [tooltipComponentType]="TextTip"
-                            [tooltipInputData]="getOptionTipData('HTTP')"
-                            [delayClose]="false">
-                            HTTP
-                        </mat-option>
+                        <mat-option value="RAW"> RAW </mat-option>
+                        <mat-option value="HTTP"> HTTP </mat-option>
                     </mat-select>
                 </mat-form-field>
             </div>
