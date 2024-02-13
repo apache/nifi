@@ -179,8 +179,8 @@ public class ValidateCsv extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor VALIDATION_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("validate-csv-attribute")
-            .displayName("Validation attribute")
+            .name("Validation Attribute")
+            .displayName("Validation Attribute")
             .description("FlowFile attribute to validate. The value of this attribute will be treated as CSV text.")
             .required(true)
             .dependsOn(VALIDATION_STRATEGY, VALIDATE_ATTRIBUTE_AS_CSV)
