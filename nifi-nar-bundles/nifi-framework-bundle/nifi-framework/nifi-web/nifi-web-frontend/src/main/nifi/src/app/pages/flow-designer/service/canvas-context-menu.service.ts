@@ -37,6 +37,7 @@ import {
     navigateToViewStatusHistoryForComponent,
     reloadFlow,
     replayLastProvenanceEvent,
+    requestRemoteProcessGroupPolling,
     runOnce,
     startComponents,
     startCurrentProcessGroup,
@@ -754,8 +755,15 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 },
                 clazz: 'fa fa-refresh',
                 text: 'Refresh remote',
-                action: () => {
-                    // TODO - refreshRemoteFlow
+                action: (selection: any) => {
+                    const d = selection.datum();
+                    const id = d.id;
+                    const refreshTimestamp = d.component.flowRefreshed;
+                    const request = {
+                        id,
+                        refreshTimestamp
+                    };
+                    this.store.dispatch(requestRemoteProcessGroupPolling({ request }));
                 }
             },
             {
@@ -969,12 +977,10 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 clazz: 'fa fa-external-link',
                 text: 'Go to',
                 action: (selection: any) => {
-                    if (selection.size() === 1 && this.canvasUtils.isRemoteProcessGroup(selection)) {
-                        const selectionData = selection.datum();
-                        const uri = selectionData.component.targetUri;
+                    const selectionData = selection.datum();
+                    const uri = selectionData.component.targetUri;
 
-                        this.store.dispatch(goToRemoteProcessGroup({ request: { uri } }));
-                    }
+                    this.store.dispatch(goToRemoteProcessGroup({ request: { uri } }));
                 }
             },
             {

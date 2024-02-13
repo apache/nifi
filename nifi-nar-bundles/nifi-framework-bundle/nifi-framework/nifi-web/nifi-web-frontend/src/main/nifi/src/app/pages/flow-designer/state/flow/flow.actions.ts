@@ -75,7 +75,8 @@ import {
     CenterComponentRequest,
     ImportFromRegistryDialogRequest,
     ImportFromRegistryRequest,
-    GoToRemoteProcessGroupRequest
+    GoToRemoteProcessGroupRequest,
+    RefreshRemoteProcessGroupRequest
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
 
@@ -231,6 +232,17 @@ export const goToRemoteProcessGroup = createAction(
     `${CANVAS_PREFIX} Go To Remote Process Group`,
     props<{ request: GoToRemoteProcessGroupRequest }>()
 );
+
+export const refreshRemoteProcessGroup = createAction(`${CANVAS_PREFIX} Refresh Remote Process Group`);
+
+export const requestRemoteProcessGroupPolling = createAction(
+    `${CANVAS_PREFIX} Request Remote Process Group Polling`,
+    props<{ request: RefreshRemoteProcessGroupRequest }>()
+);
+
+export const startRemoteProcessGroupPolling = createAction(`${CANVAS_PREFIX} Start Remote Process Group Polling`);
+
+export const stopRemoteProcessGroupPolling = createAction(`${CANVAS_PREFIX} Stop Remote Process Group Polling`);
 
 export const createProcessGroup = createAction(
     `${CANVAS_PREFIX} Create Process Group`,

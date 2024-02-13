@@ -32,6 +32,8 @@ export const selectSaving = createSelector(selectFlowState, (state: FlowState) =
 
 export const selectCurrentProcessGroupId = createSelector(selectFlowState, (state: FlowState) => state.id);
 
+export const selectRpgToPoll = createSelector(selectFlowState, (state: FlowState) => state.rpgToPoll);
+
 export const selectCurrentParameterContext = createSelector(
     selectFlowState,
     (state: FlowState) => state.flow.processGroupFlow.parameterContext

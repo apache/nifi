@@ -58,6 +58,7 @@ import {
     selectProcessGroup,
     selectProcessor,
     selectRemoteProcessGroup,
+    selectRpgToPoll,
     selectSaving
 } from './flow.selectors';
 import { ConnectionManager } from '../../service/manager/connection-manager.service';
@@ -67,6 +68,7 @@ import { EditPort } from '../../ui/canvas/items/port/edit-port/edit-port.compone
 import {
     BucketEntity,
     ComponentType,
+    isDefinedAndNotNull,
     RegistryClientEntity,
     VersionedFlowEntity,
     VersionedFlowSnapshotMetadataEntity
@@ -96,6 +98,8 @@ import { ImportFromRegistry } from '../../ui/canvas/items/flow/import-from-regis
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dialog/no-registry-clients-dialog.component';
 import { EditRemoteProcessGroup } from '../../ui/canvas/items/remote-process-group/edit-remote-process-group/edit-remote-process-group.component';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../../../service/error-helper.service';
 
 @Injectable()
 export class FlowEffects {
@@ -113,7 +117,8 @@ export class FlowEffects {
         private router: Router,
         private dialog: MatDialog,
         private propertyTableHelperService: PropertyTableHelperService,
-        private parameterHelperService: ParameterHelperService
+        private parameterHelperService: ParameterHelperService,
+        private errorHelper: ErrorHelper
     ) {}
 
     reloadFlow$ = createEffect(() =>
@@ -357,6 +362,67 @@ export class FlowEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    startRemoteProcessGroupPolling$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startRemoteProcessGroupPolling),
+            switchMap((request) => {
+                return interval(3000, asyncScheduler).pipe(
+                    takeUntil(this.actions$.pipe(ofType(FlowActions.stopRemoteProcessGroupPolling)))
+                );
+            }),
+            switchMap(() => {
+                return of(FlowActions.refreshRemoteProcessGroup());
+            })
+        )
+    );
+
+    requestRemoteProcessGroupPolling$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.requestRemoteProcessGroupPolling),
+            switchMap(() => {
+                return of(FlowActions.startRemoteProcessGroupPolling());
+            })
+        )
+    );
+
+    refreshRemoteProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.refreshRemoteProcessGroup),
+            concatLatestFrom(() => this.store.select(selectRpgToPoll)),
+            map(([, rpgToPoll]) => {
+                return rpgToPoll;
+            }),
+            isDefinedAndNotNull(),
+            switchMap((rpgToPoll) =>
+                from(
+                    this.flowService.getRemoteProcessGroup(rpgToPoll.id).pipe(
+                        map((response: any) => {
+                            const entity = response;
+
+                            if (rpgToPoll.refreshTimestamp !== response.component.flowRefreshed) {
+                                this.store.dispatch(FlowActions.stopRemoteProcessGroupPolling());
+                            } else {
+                                entity.component.flowRefreshed = 'Refreshing...';
+                            }
+
+                            return FlowActions.loadRemoteProcessGroupSuccess({
+                                response: {
+                                    id: entity.id,
+                                    remoteProcessGroup: entity
+                                }
+                            });
+                        }),
+                        catchError((errorResponse: HttpErrorResponse) => {
+                            this.store.dispatch(FlowActions.stopRemoteProcessGroupPolling());
+
+                            return of(this.errorHelper.handleLoadingError(status, errorResponse));
+                        })
+                    )
+                )
+            )
+        )
     );
 
     openNewProcessGroupDialog$ = createEffect(
