@@ -22,13 +22,7 @@ import { NgModule } from '@angular/core';
 const routes: Routes = [
     {
         path: '',
-        component: FlowConfigurationHistory,
-        children: [
-            {
-                path: ':id',
-                component: FlowConfigurationHistory
-            }
-        ]
+        component: FlowConfigurationHistory
     }
 ];
 

@@ -73,29 +73,6 @@ export class FlowConfigurationHistoryListingEffects {
         )
     );
 
-    selectFlowConfigurationHistory$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(HistoryActions.selectHistoryItem),
-                map((action) => action.request),
-                tap((request) => {
-                    this.router.navigate(['/flow-configuration-history', request.id]);
-                })
-            ),
-        { dispatch: false }
-    );
-
-    clearHistorySelection$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(HistoryActions.clearHistorySelection),
-                tap(() => {
-                    this.router.navigate(['/flow-configuration-history']);
-                })
-            ),
-        { dispatch: false }
-    );
-
     openMoreDetailsDialog$ = createEffect(
         () =>
             this.actions$.pipe(

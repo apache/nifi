@@ -27,7 +27,7 @@ import {
 import { Store } from '@ngrx/store';
 import {
     selectFlowConfigurationHistoryListingState,
-    selectHistoryItemFromRoute,
+    selectedHistoryItem,
     selectHistoryQuery
 } from '../../state/flow-configuration-history-listing/flow-configuration-history-listing.selectors';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
@@ -82,7 +82,7 @@ export class FlowConfigurationHistoryListing implements OnInit, OnDestroy {
 
     historyListingState$ = this.store.select(selectFlowConfigurationHistoryListingState);
     historyQuery$ = this.store.select(selectHistoryQuery);
-    selectedHistoryId$ = this.store.select(selectHistoryItemFromRoute);
+    selectedHistoryId$ = this.store.select(selectedHistoryItem);
     queryRequest$ = this.store.select(selectHistoryQuery);
     about$ = this.store.select(selectAbout);
     currentUser$ = this.store.select(selectCurrentUser);

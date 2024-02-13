@@ -18,7 +18,6 @@
 import { createSelector } from '@ngrx/store';
 import { FlowConfigurationHistoryState, selectFlowConfigurationHistoryState } from '../index';
 import { flowConfigurationHistoryListingFeatureKey, FlowConfigurationHistoryListingState } from './index';
-import { selectCurrentRoute } from '../../../../state/router/router.selectors';
 
 export const selectFlowConfigurationHistoryListingState = createSelector(
     selectFlowConfigurationHistoryState,
@@ -50,9 +49,7 @@ export const selectHistoryTotalResults = createSelector(
     (state: FlowConfigurationHistoryListingState) => state.total
 );
 
-export const selectHistoryItemFromRoute = createSelector(selectCurrentRoute, (route) => {
-    if (route) {
-        return route.params.id;
-    }
-    return null;
-});
+export const selectedHistoryItem = createSelector(
+    selectFlowConfigurationHistoryListingState,
+    (state: FlowConfigurationHistoryListingState) => state.selectedId
+);

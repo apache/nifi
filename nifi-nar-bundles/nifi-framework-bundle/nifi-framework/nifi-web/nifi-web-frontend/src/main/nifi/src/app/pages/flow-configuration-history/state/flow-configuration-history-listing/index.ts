@@ -100,6 +100,7 @@ export interface FlowConfigurationHistoryListingState {
     query: HistoryQueryRequest | null;
     loadedTimestamp: string;
     purging: boolean;
+    selectedId: number | null;
     status: 'pending' | 'loading' | 'success';
 }
 

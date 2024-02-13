@@ -18,12 +18,14 @@
 import { FlowConfigurationHistoryListingState } from './index';
 import { createReducer, on } from '@ngrx/store';
 import {
+    clearHistorySelection,
     flowConfigurationHistorySnackbarError,
     loadHistory,
     loadHistorySuccess,
     purgeHistory,
     purgeHistorySuccess,
-    resetHistoryState
+    resetHistoryState,
+    selectHistoryItem
 } from './flow-configuration-history-listing.actions';
 
 export const initialHistoryState: FlowConfigurationHistoryListingState = {
@@ -32,6 +34,7 @@ export const initialHistoryState: FlowConfigurationHistoryListingState = {
     status: 'pending',
     loadedTimestamp: '',
     query: null,
+    selectedId: null,
     purging: false
 };
 
@@ -64,5 +67,15 @@ export const flowConfigurationHistoryListingReducer = createReducer(
     on(purgeHistorySuccess, flowConfigurationHistorySnackbarError, (state) => ({
         ...state,
         purging: false
+    })),
+
+    on(selectHistoryItem, (state, { request }) => ({
+        ...state,
+        selectedId: request.id
+    })),
+
+    on(clearHistorySelection, (state) => ({
+        ...state,
+        selectedId: null
     }))
 );

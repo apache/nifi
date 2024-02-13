@@ -30,7 +30,7 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
     styleUrls: ['./flow-configuration-history-table.component.scss']
 })
 export class FlowConfigurationHistoryTable {
-    @Input() selectedHistoryActionId: string | null = null;
+    @Input() selectedHistoryActionId: number | null = null;
     @Input() initialSortColumn: 'timestamp' | 'sourceName' | 'sourceType' | 'operation' | 'userIdentity' = 'timestamp';
     @Input() initialSortDirection: 'asc' | 'desc' = 'desc';
 
@@ -99,7 +99,7 @@ export class FlowConfigurationHistoryTable {
 
     isSelected(item: ActionEntity): boolean {
         if (this.selectedHistoryActionId) {
-            return `${item.id}` === this.selectedHistoryActionId;
+            return item.id === this.selectedHistoryActionId;
         }
         return false;
     }
