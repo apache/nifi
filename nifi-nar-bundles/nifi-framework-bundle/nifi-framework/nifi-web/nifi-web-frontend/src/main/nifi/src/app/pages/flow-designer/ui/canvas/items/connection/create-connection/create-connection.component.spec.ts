@@ -23,7 +23,7 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
 import { CreateConnectionDialogRequest } from '../../../../../state/flow';
 import { ComponentType, DocumentedType } from '../../../../../../../state/shared';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 
 describe('CreateConnection', () => {
@@ -366,7 +366,7 @@ describe('CreateConnection', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [CreateConnection, BrowserAnimationsModule],
+            imports: [CreateConnection, NoopAnimationsModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(CreateConnection);

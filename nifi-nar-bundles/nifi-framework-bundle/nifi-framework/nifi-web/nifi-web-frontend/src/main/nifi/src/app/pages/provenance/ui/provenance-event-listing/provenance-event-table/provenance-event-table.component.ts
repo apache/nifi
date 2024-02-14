@@ -38,6 +38,7 @@ import { LineageComponent } from './lineage/lineage.component';
 import { GoToProvenanceEventSourceRequest, ProvenanceEventRequest } from '../../../state/provenance-event-listing';
 import { MatSliderModule } from '@angular/material/slider';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 
 @Component({
     selector: 'provenance-event-table',
@@ -58,7 +59,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         AsyncPipe,
         MatPaginatorModule,
         LineageComponent,
-        MatSliderModule
+        MatSliderModule,
+        ErrorBanner
     ],
     styleUrls: ['./provenance-event-table.component.scss']
 })
@@ -149,6 +151,7 @@ export class ProvenanceEventTable implements AfterViewInit {
     @Output() resubmitProvenanceQuery: EventEmitter<void> = new EventEmitter<void>();
     @Output() queryLineage: EventEmitter<LineageRequest> = new EventEmitter<LineageRequest>();
     @Output() resetLineage: EventEmitter<void> = new EventEmitter<void>();
+    @Output() clearBannerErrors: EventEmitter<void> = new EventEmitter<void>();
 
     protected readonly TextTip = TextTip;
     protected readonly BulletinsTip = BulletinsTip;
@@ -305,11 +308,7 @@ export class ProvenanceEventTable implements AfterViewInit {
             return false;
         }
 
-        if (event.componentId === 'Remote Output Port' || event.componentId === 'Remote Input Port') {
-            return false;
-        }
-
-        return true;
+        return !(event.componentId === 'Remote Output Port' || event.componentId === 'Remote Input Port');
     }
 
     goToClicked(event: ProvenanceEventSummary): void {
@@ -326,6 +325,8 @@ export class ProvenanceEventTable implements AfterViewInit {
     showLineageGraph(event: ProvenanceEventSummary): void {
         this.eventId = event.id;
         this.showLineage = true;
+
+        this.clearBannerErrors.next();
 
         this.submitLineageQuery({
             lineageRequestType: 'FLOWFILE',
@@ -345,6 +346,7 @@ export class ProvenanceEventTable implements AfterViewInit {
         this.eventTimestampStep = 1;
         this.initialEventTimestampThreshold = 0;
         this.currentEventTimestampThreshold = 0;
+        this.clearBannerErrors.next();
         this.resetLineage.next();
     }
 

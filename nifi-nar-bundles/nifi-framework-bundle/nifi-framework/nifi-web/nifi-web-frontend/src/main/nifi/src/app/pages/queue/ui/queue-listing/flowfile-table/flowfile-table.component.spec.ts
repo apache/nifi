@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { FlowFileTable } from './flowfile-table.component';
 import { MatTableModule } from '@angular/material/table';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Component } from '@angular/core';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/error/error.reducer';
@@ -37,7 +37,7 @@ describe('FlowFileTable', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [FlowFileTable, MockErrorBanner, MatTableModule, BrowserAnimationsModule],
+            imports: [FlowFileTable, MockErrorBanner, MatTableModule, NoopAnimationsModule],
             providers: [
                 provideMockStore({
                     initialState

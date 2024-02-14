@@ -23,7 +23,7 @@ import { initialState } from '../../../state/general/general.reducer';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('GeneralForm', () => {
     let component: GeneralForm;
@@ -32,7 +32,7 @@ describe('GeneralForm', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [GeneralForm],
-            imports: [BrowserAnimationsModule, MatFormFieldModule, MatInputModule, FormsModule, ReactiveFormsModule],
+            imports: [NoopAnimationsModule, MatFormFieldModule, MatInputModule, FormsModule, ReactiveFormsModule],
             providers: [
                 provideMockStore({
                     initialState

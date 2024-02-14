@@ -23,7 +23,7 @@ import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ComponentType } from '../../../../../../../state/shared';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EMPTY } from 'rxjs';
 
 describe('ImportFromRegistry', () => {
@@ -111,7 +111,7 @@ describe('ImportFromRegistry', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [ImportFromRegistry, BrowserAnimationsModule],
+            imports: [ImportFromRegistry, NoopAnimationsModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(ImportFromRegistry);

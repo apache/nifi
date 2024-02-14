@@ -66,13 +66,13 @@ export const queueListingReducer = createReducer(
     on(submitQueueListingRequestSuccess, pollQueueListingRequestSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             const listingRequest = response.requestEntity.listingRequest;
+            draftState.activeListingRequest = listingRequest;
 
+            // if the query has finished save it as completed, the active query will be reset after deletion
             if (listingRequest.finished) {
                 draftState.completedListingRequest = listingRequest;
                 draftState.loadedTimestamp = listingRequest.lastUpdated;
                 draftState.status = 'success' as const;
-            } else {
-                draftState.activeListingRequest = listingRequest;
             }
         });
     }),

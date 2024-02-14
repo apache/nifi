@@ -66,19 +66,27 @@ export const selectLoadedTimestamp = createSelector(
     (state: ProvenanceEventListingState) => state.loadedTimestamp
 );
 
-export const selectProvenance = createSelector(
+export const selectActiveProvenance = createSelector(
     selectProvenanceEventListingState,
-    (state: ProvenanceEventListingState) => state.provenance
+    (state: ProvenanceEventListingState) => state.activeProvenance
 );
 
-export const selectProvenanceId = createSelector(selectProvenance, (state: Provenance | null) => state?.id);
+export const selectCompletedProvenance = createSelector(
+    selectProvenanceEventListingState,
+    (state: ProvenanceEventListingState) => state.completedProvenance
+);
+
+export const selectActiveProvenanceId = createSelector(selectActiveProvenance, (state: Provenance | null) => state?.id);
 
 export const selectClusterNodeId = createSelector(
     selectProvenanceRequest,
     (state: ProvenanceRequest | null) => state?.clusterNodeId
 );
 
-export const selectProvenanceResults = createSelector(selectProvenance, (state: Provenance | null) => state?.results);
+export const selectProvenanceResults = createSelector(
+    selectCompletedProvenance,
+    (state: Provenance | null) => state?.results
+);
 
 export const selectTimeOffset = createSelector(
     selectProvenanceResults,

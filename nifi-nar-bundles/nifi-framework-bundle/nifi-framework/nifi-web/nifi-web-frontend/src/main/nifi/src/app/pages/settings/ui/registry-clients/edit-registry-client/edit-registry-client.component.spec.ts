@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EditRegistryClient } from './edit-registry-client.component';
 import { EditRegistryClientDialogRequest } from '../../../state/registry-clients';
 import { Component } from '@angular/core';
@@ -114,7 +114,7 @@ describe('EditRegistryClient', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditRegistryClient, MockErrorBanner, BrowserAnimationsModule],
+            imports: [EditRegistryClient, MockErrorBanner, NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 provideMockStore({

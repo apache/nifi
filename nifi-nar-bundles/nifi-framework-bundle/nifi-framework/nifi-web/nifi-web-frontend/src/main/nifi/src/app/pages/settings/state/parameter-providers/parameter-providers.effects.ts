@@ -627,7 +627,9 @@ export class ParameterProvidersEffects {
                 concatLatestFrom(() => this.store.select(selectApplyParameterProviderParametersRequest)),
                 tap(([, updateRequest]) => {
                     if (updateRequest) {
-                        this.parameterProviderService.deleteParameterProviderParametersUpdateRequest(updateRequest);
+                        this.parameterProviderService
+                            .deleteParameterProviderParametersUpdateRequest(updateRequest)
+                            .subscribe();
                     }
                 })
             ),

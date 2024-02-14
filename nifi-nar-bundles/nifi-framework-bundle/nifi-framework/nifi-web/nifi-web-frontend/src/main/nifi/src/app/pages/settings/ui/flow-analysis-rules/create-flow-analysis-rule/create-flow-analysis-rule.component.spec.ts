@@ -21,7 +21,7 @@ import { CreateFlowAnalysisRule } from './create-flow-analysis-rule.component';
 import { CreateFlowAnalysisRuleDialogRequest } from '../../../state/flow-analysis-rules';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { initialState } from '../../../state/flow-analysis-rules/flow-analysis-rules.reducer';
 
 describe('CreateFlowAnalysisRule', () => {
@@ -47,7 +47,7 @@ describe('CreateFlowAnalysisRule', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [CreateFlowAnalysisRule, BrowserAnimationsModule],
+            imports: [CreateFlowAnalysisRule, NoopAnimationsModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
         });
         fixture = TestBed.createComponent(CreateFlowAnalysisRule);

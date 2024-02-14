@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ProvenanceSearchDialog } from './provenance-search-dialog.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatNativeDateModule } from '@angular/material/core';
 
 describe('ProvenanceSearchDialog', () => {
@@ -71,7 +71,7 @@ describe('ProvenanceSearchDialog', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [ProvenanceSearchDialog, BrowserAnimationsModule, MatNativeDateModule],
+            imports: [ProvenanceSearchDialog, NoopAnimationsModule, MatNativeDateModule],
             providers: [{ provide: MAT_DIALOG_DATA, useValue: data }]
         });
         fixture = TestBed.createComponent(ProvenanceSearchDialog);
