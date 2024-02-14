@@ -34,6 +34,8 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -141,7 +143,7 @@ public class JettyServer {
                     final String scheme = sslConnectionFactory == null ? HTTP_SCHEME : HTTPS_SCHEME;
                     final int port = serverConnector.getLocalPort();
                     final String connectorHost = serverConnector.getHost();
-                    final String host = StringUtils.defaultIfEmpty(connectorHost, HOST_UNSPECIFIED);
+                    final String host = URLEncoder.encode(StringUtils.defaultIfEmpty(connectorHost, HOST_UNSPECIFIED), StandardCharsets.UTF_8);
                     return URI.create(String.format(APPLICATION_URL_FORMAT, scheme, host, port));
                 })
                 .collect(Collectors.toList());
