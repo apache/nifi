@@ -61,6 +61,11 @@ export const flowConfigurationHistoryListingReducer = createReducer(
 
     on(purgeHistory, (state) => ({
         ...state,
+        query: {
+            ...state.query,
+            count: 50,
+            offset: 0
+        },
         purging: true
     })),
 

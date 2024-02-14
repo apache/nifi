@@ -25,7 +25,7 @@ import * as HistoryActions from './flow-configuration-history-listing.actions';
 import { catchError, from, map, of, switchMap, take, tap } from 'rxjs';
 import { selectHistoryQuery, selectHistoryStatus } from './flow-configuration-history-listing.selectors';
 import { FlowConfigurationHistoryService } from '../../service/flow-configuration-history.service';
-import { HistoryEntity, PurgeHistoryRequest } from './index';
+import { HistoryEntity } from './index';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { ActionDetails } from '../../ui/flow-configuration-history-listing/action-details/action-details.component';
@@ -33,6 +33,7 @@ import { PurgeHistory } from '../../ui/flow-configuration-history-listing/purge-
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
 import { isDefinedAndNotNull } from '../../../../state/shared';
 import * as ErrorActions from '../../../../state/error/error.actions';
+import { selectAbout } from '../../../../state/about/about.selectors';
 
 @Injectable()
 export class FlowConfigurationHistoryListingEffects {
@@ -98,12 +99,16 @@ export class FlowConfigurationHistoryListingEffects {
                     });
 
                     dialogReference.componentInstance.submitPurgeRequest
-                        .pipe(isDefinedAndNotNull(), take(1))
-                        .subscribe((result: PurgeHistoryRequest) => {
+                        .pipe(
+                            isDefinedAndNotNull(),
+                            concatLatestFrom(() => this.store.select(selectAbout).pipe(isDefinedAndNotNull())),
+                            take(1)
+                        )
+                        .subscribe(([result, about]) => {
                             const yesNoRef = this.dialog.open(YesNoDialog, {
                                 data: {
                                     title: 'Confirm History Purge',
-                                    message: `Are you sure you want to delete all history before '${result.endDate}'?`
+                                    message: `Are you sure you want to delete all history before '${result.endDate} ${about.timezone}'?`
                                 },
                                 panelClass: 'small-dialog'
                             });

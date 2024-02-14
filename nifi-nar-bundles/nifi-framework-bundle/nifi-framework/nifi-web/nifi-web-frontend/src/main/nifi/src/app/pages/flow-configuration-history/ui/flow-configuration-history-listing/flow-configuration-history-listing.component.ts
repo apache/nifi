@@ -26,8 +26,8 @@ import {
 } from '../../state/flow-configuration-history-listing';
 import { Store } from '@ngrx/store';
 import {
-    selectFlowConfigurationHistoryListingState,
     selectedHistoryItem,
+    selectFlowConfigurationHistoryListingState,
     selectHistoryQuery
 } from '../../state/flow-configuration-history-listing/flow-configuration-history-listing.selectors';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
@@ -89,8 +89,11 @@ export class FlowConfigurationHistoryListing implements OnInit, OnDestroy {
     pageSize = 50;
     queryRequest: HistoryQueryRequest = {
         count: this.pageSize,
-        offset: 0
+        offset: 0,
+        startDate: this.getFormattedStartDateTime(),
+        endDate: this.getFormattedEndDateTime()
     };
+
     filterForm: FormGroup;
     filterableColumns: FilterableColumn[] = [
         { key: 'sourceId', label: 'id' },
@@ -198,65 +201,65 @@ export class FlowConfigurationHistoryListing implements OnInit, OnDestroy {
                 if (!this.filterForm.valid) {
                     return;
                 }
-
                 // clear out any selection
                 this.store.dispatch(HistoryActions.clearHistorySelection());
 
+                // always reset the pagination state when a filter changes
                 const historyRequest: HistoryQueryRequest = {
-                    ...this.queryRequest
+                    ...this.queryRequest,
+                    offset: 0
                 };
 
                 if (formValue.filterTerm) {
                     if (formValue.filterColumn === 'sourceId') {
                         historyRequest.sourceId = formValue.filterTerm;
+                        delete historyRequest.userIdentity;
                     } else {
                         historyRequest.userIdentity = formValue.filterTerm;
+                        delete historyRequest.sourceId;
                     }
                 } else {
                     delete historyRequest.sourceId;
                     delete historyRequest.userIdentity;
                 }
 
+                let start: Date = new Date();
                 if (formValue.filterStartDate) {
-                    const formatted = this.nifiCommon.formatDateTime(formValue.filterStartDate);
-                    // get just the date portion because the time is entered separately by the user
-                    const formattedStartDateTime = formatted.split(' ');
-                    if (formattedStartDateTime.length > 0) {
-                        const formattedStartDate = formattedStartDateTime[0];
-
-                        let startTime: string = formValue.filterStartTime;
-                        if (!startTime) {
-                            startTime = FlowConfigurationHistoryListing.DEFAULT_START_TIME;
-                        }
-
-                        // combine all three pieces into the format the api requires
-                        historyRequest.startDate = `${formattedStartDate} ${startTime}`;
-                    }
+                    historyRequest.startDate = this.getFormattedStartDateTime(
+                        formValue.filterStartDate,
+                        formValue.filterStartTime
+                    );
+                    start = new Date(historyRequest.startDate);
                 }
 
+                let end: Date = new Date(0);
                 if (formValue.filterEndDate) {
-                    const formatted = this.nifiCommon.formatDateTime(formValue.filterEndDate);
-                    // get just the date portion because the time is entered separately by the user
-                    const formattedEndDateTime = formatted.split(' ');
-                    if (formattedEndDateTime.length > 0) {
-                        const formattedEndDate = formattedEndDateTime[0];
-
-                        let endTime: string = formValue.filterEndTime;
-                        if (!endTime) {
-                            endTime = FlowConfigurationHistoryListing.DEFAULT_END_TIME;
-                        }
-
-                        // combine all three pieces into the format the api requires
-                        historyRequest.endDate = `${formattedEndDate} ${endTime}`;
-                    }
+                    historyRequest.endDate = this.getFormattedEndDateTime(
+                        formValue.filterEndDate,
+                        formValue.filterEndTime
+                    );
+                    end = new Date(historyRequest.endDate);
                 }
-
-                this.store.dispatch(
-                    loadHistory({
-                        request: historyRequest
-                    })
-                );
+                if (this.queryChanged(historyRequest) && start.getTime() <= end.getTime()) {
+                    this.store.dispatch(
+                        loadHistory({
+                            request: historyRequest
+                        })
+                    );
+                }
             });
+    }
+
+    private queryChanged(historyRequest: HistoryQueryRequest) {
+        const before: HistoryQueryRequest = this.queryRequest;
+        const proposed: HistoryQueryRequest = historyRequest;
+
+        return (
+            proposed.endDate !== before.endDate ||
+            proposed.startDate !== before.startDate ||
+            proposed.sourceId != before.sourceId ||
+            proposed.userIdentity != before.userIdentity
+        );
     }
 
     resetFilter(event: MouseEvent) {
@@ -283,5 +286,32 @@ export class FlowConfigurationHistoryListing implements OnInit, OnDestroy {
 
     purgeHistoryClicked() {
         this.store.dispatch(HistoryActions.openPurgeHistoryDialog());
+    }
+
+    private getFormatDateTime(date: Date, time: string): string {
+        let formatted = this.nifiCommon.formatDateTime(date);
+        // get just the date portion because the time is entered separately by the user
+        const formattedStartDateTime = formatted.split(' ');
+        if (formattedStartDateTime.length > 0) {
+            const formattedStartDate = formattedStartDateTime[0];
+
+            // combine the pieces into the format the api requires
+            formatted = `${formattedStartDate} ${time}`;
+        }
+        return formatted;
+    }
+
+    private getFormattedStartDateTime(date?: Date, time?: string): string {
+        const now = new Date();
+        const twoWeeksAgo: Date = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 14);
+        const d: Date = date ? date : twoWeeksAgo;
+        const t: string = time ? time : FlowConfigurationHistoryListing.DEFAULT_START_TIME;
+        return this.getFormatDateTime(d, t);
+    }
+
+    private getFormattedEndDateTime(date?: Date, time?: string): string {
+        const d: Date = date ? date : new Date();
+        const t: string = time ? time : FlowConfigurationHistoryListing.DEFAULT_END_TIME;
+        return this.getFormatDateTime(d, t);
     }
 }
