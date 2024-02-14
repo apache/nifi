@@ -17,7 +17,7 @@
 
 import { Component, ElementRef, Input, ViewChild } from '@angular/core';
 import { initialState } from '../../../state/flow/flow.reducer';
-import { NgForOf, NgIf } from '@angular/common';
+
 import { RouterLink } from '@angular/router';
 import { BreadcrumbEntity } from '../../../state/shared';
 
@@ -25,7 +25,7 @@ import { BreadcrumbEntity } from '../../../state/shared';
     selector: 'breadcrumbs',
     standalone: true,
     templateUrl: './breadcrumbs.component.html',
-    imports: [NgForOf, NgIf, RouterLink],
+    imports: [RouterLink],
     styleUrls: ['./breadcrumbs.component.scss']
 })
 export class Breadcrumbs {

@@ -19,7 +19,9 @@
     <div class="flex justify-between items-center">
         <div class="login-title">Log In</div>
         <div class="flex gap-x-2">
-            <a (click)="logout()" *ngIf="hasToken()">log out</a>
+            @if (hasToken()) {
+                <a (click)="logout()">log out</a>
+            }
             <a [routerLink]="['/']">home</a>
         </div>
     </div>

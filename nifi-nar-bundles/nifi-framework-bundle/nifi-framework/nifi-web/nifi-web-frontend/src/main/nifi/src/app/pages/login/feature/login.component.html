@@ -16,36 +16,31 @@
   -->
 
 <div class="login-background pt-24 pl-24 h-screen">
-    <ng-container *ngIf="access$ | async; let access">
-        <div class="w-96" *ngIf="access.status === 'pending' || access.status === 'loading'; else loaded">
-            <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
-        </div>
-
-        <ng-template #loaded>
-            <ng-container *ngIf="access.error; else noErrors">
+    @if (access$ | async; as access) {
+        @if (access.status === 'pending' || access.status === 'loading') {
+            <div class="w-96">
+                <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+            </div>
+        } @else {
+            @if (access.error) {
                 <page-content [title]="access.error.title">
                     <div class="text-sm">{{ access.error.message }}</div>
                 </page-content>
-            </ng-container>
-
-            <ng-template #noErrors>
-                <ng-container *ngIf="access.accessStatus.status === 'ACTIVE'; else needsLogin">
+            } @else {
+                @if (access.accessStatus.status === 'ACTIVE') {
                     <page-content [title]="'Success'">
                         <div class="text-sm">{{ access.accessStatus.message }}</div>
                     </page-content>
-                </ng-container>
-                <ng-template #needsLogin>
-                    <ng-container *ngIf="access.accessConfig.supportsLogin; else loginNotSupported">
+                } @else {
+                    @if (access.accessConfig.supportsLogin) {
                         <login-form></login-form>
-                    </ng-container>
-
-                    <ng-template #loginNotSupported>
+                    } @else {
                         <page-content [title]="'Access Denied'">
                             <div class="text-sm">This NiFi is not configured to support username/password logins.</div>
                         </page-content>
-                    </ng-template>
-                </ng-template>
-            </ng-template>
-        </ng-template>
-    </ng-container>
+                    }
+                }
+            }
+        }
+    }
 </div>

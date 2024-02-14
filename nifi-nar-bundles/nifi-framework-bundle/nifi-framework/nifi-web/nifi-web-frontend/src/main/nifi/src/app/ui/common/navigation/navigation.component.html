@@ -29,135 +29,153 @@
             </div>
             <ng-content></ng-content>
         </div>
-        <div class="flex justify-between items-center gap-x-1" *ngIf="currentUser$ | async as user">
-            <div class="flex flex-col justify-between items-end gap-y-1">
-                <div class="current-user">{{ user.identity }}</div>
-                <a href="#" *ngIf="allowLogin(user)">log in</a>
-                <a (click)="logout()" *ngIf="hasToken()">log out</a>
+        @if (currentUser$ | async; as user) {
+            <div class="flex justify-between items-center gap-x-1">
+                <div class="flex flex-col justify-between items-end gap-y-1">
+                    <div class="current-user">{{ user.identity }}</div>
+                    @if (allowLogin(user)) {
+                        <a href="#">log in</a>
+                    }
+                    @if (hasToken()) {
+                        <a (click)="logout()">log out</a>
+                    }
+                </div>
+                <button
+                    mat-button
+                    [matMenuTriggerFor]="globalMenu"
+                    class="h-16 w-16 flex items-center justify-center icon global-menu">
+                    <i class="fa fa-navicon"></i>
+                </button>
+                <mat-menu #globalMenu="matMenu" xPosition="before">
+                    <button mat-menu-item class="global-menu-item" [routerLink]="getCanvasLink()">
+                        <i class="icon icon-drop mr-2"></i>
+                        Canvas
+                    </button>
+                    <mat-divider></mat-divider>
+                    <button mat-menu-item class="global-menu-item" [routerLink]="['/summary']">
+                        <i class="fa fa-fw fa-table mr-2"></i>
+                        Summary
+                    </button>
+                    <button
+                        mat-menu-item
+                        class="global-menu-item"
+                        [routerLink]="['/counters']"
+                        [disabled]="!user.countersPermissions.canRead">
+                        <i class="icon fa-fw icon-counter mr-2"></i>
+                        Counter
+                    </button>
+                    <button mat-menu-item class="global-menu-item" [routerLink]="['/bulletins']">
+                        <i class="fa fa-fw fa-sticky-note-o mr-2"></i>
+                        Bulletin Board
+                    </button>
+                    <mat-divider></mat-divider>
+                    <button
+                        mat-menu-item
+                        class="global-menu-item"
+                        [routerLink]="['/provenance']"
+                        [disabled]="!user.provenancePermissions.canRead">
+                        <i class="icon fa-fw icon-provenance mr-2"></i>
+                        Data Provenance
+                    </button>
+                    <mat-divider></mat-divider>
+                    <button
+                        mat-menu-item
+                        class="global-menu-item"
+                        [routerLink]="['/settings']"
+                        [disabled]="!user.controllerPermissions.canRead">
+                        <i class="fa fa-fw fa-wrench mr-2"></i>
+                        Controller Settings
+                    </button>
+                    <button mat-menu-item class="global-menu-item" [routerLink]="['/parameter-contexts']">
+                        <i class="fa fa-fw mr-2"></i>
+                        Parameter Contexts
+                    </button>
+                    <button mat-menu-item class="global-menu-item">
+                        <i class="fa fa-fw fa-cubes mr-2"></i>
+                        Cluster
+                    </button>
+                    <button mat-menu-item class="global-menu-item" [routerLink]="['/flow-configuration-history']">
+                        <i class="fa fa-fw fa-history mr-2"></i>
+                        Flow Configuration History
+                    </button>
+                    <button mat-menu-item class="global-menu-item" (click)="viewNodeStatusHistory()">
+                        <i class="fa fa-fw fa-area-chart mr-2"></i>
+                        Node Status History
+                    </button>
+                    <button
+                        mat-menu-item
+                        class="global-menu-item"
+                        [disabled]="!user.systemPermissions.canRead"
+                        (click)="viewSystemDiagnostics()">
+                        <i class="fa fa-fw mr-2"></i>
+                        System Diagnostics
+                    </button>
+                    @if (flowConfiguration$ | async; as flowConfiguration) {
+                        @if (flowConfiguration.supportsManagedAuthorizer) {
+                            <mat-divider></mat-divider>
+                            <button
+                                mat-menu-item
+                                class="global-menu-item"
+                                [routerLink]="['/users']"
+                                [disabled]="!user.tenantsPermissions.canRead">
+                                <i class="fa fa-fw fa-users mr-2"></i>
+                                Users
+                            </button>
+                            <button
+                                mat-menu-item
+                                class="global-menu-item"
+                                [routerLink]="['/access-policies', 'global']"
+                                [disabled]="
+                                    !user.tenantsPermissions.canRead ||
+                                    !user.policiesPermissions.canRead ||
+                                    !user.policiesPermissions.canWrite
+                                ">
+                                <i class="fa fa-fw fa-key mr-2"></i>
+                                Policies
+                            </button>
+                            <mat-divider></mat-divider>
+                        }
+                    }
+                    <button mat-menu-item class="global-menu-item">
+                        <i class="fa fa-fw fa-question-circle mr-2"></i>
+                        Help
+                    </button>
+                    <button mat-menu-item class="global-menu-item">
+                        <i class="fa fa-fw fa-info-circle mr-2"></i>
+                        About
+                    </button>
+                    <button mat-menu-item [matMenuTriggerFor]="theming">Appearance</button>
+                </mat-menu>
+                <mat-menu #theming="matMenu" xPosition="before">
+                    <button mat-menu-item class="global-menu-item" (click)="toggleTheme(LIGHT_THEME)">
+                        @if (theme === LIGHT_THEME) {
+                            <i class="fa fa-fw fa-check mr-2"></i>
+                        }
+                        @if (theme !== LIGHT_THEME) {
+                            <i class="fa fa-fw mr-2"></i>
+                        }
+                        Light
+                    </button>
+                    <button mat-menu-item class="global-menu-item" (click)="toggleTheme(DARK_THEME)">
+                        @if (theme === DARK_THEME) {
+                            <i class="fa fa-fw fa-check mr-2"></i>
+                        }
+                        @if (theme !== DARK_THEME) {
+                            <i class="fa fa-fw mr-2"></i>
+                        }
+                        Dark
+                    </button>
+                    <button mat-menu-item class="global-menu-item" (click)="toggleTheme(OS_SETTING)">
+                        @if (theme === OS_SETTING || theme === null) {
+                            <i class="fa fa-fw fa-check mr-2"></i>
+                        }
+                        @if (theme !== OS_SETTING && theme !== null) {
+                            <i class="fa fa-fw mr-2"></i>
+                        }
+                        Device
+                    </button>
+                </mat-menu>
             </div>
-            <button
-                mat-button
-                [matMenuTriggerFor]="globalMenu"
-                class="h-16 w-16 flex items-center justify-center icon global-menu">
-                <i class="fa fa-navicon"></i>
-            </button>
-            <mat-menu #globalMenu="matMenu" xPosition="before">
-                <button mat-menu-item class="global-menu-item" [routerLink]="getCanvasLink()">
-                    <i class="icon icon-drop mr-2"></i>
-                    Canvas
-                </button>
-                <mat-divider></mat-divider>
-                <button mat-menu-item class="global-menu-item" [routerLink]="['/summary']">
-                    <i class="fa fa-fw fa-table mr-2"></i>
-                    Summary
-                </button>
-                <button
-                    mat-menu-item
-                    class="global-menu-item"
-                    [routerLink]="['/counters']"
-                    [disabled]="!user.countersPermissions.canRead">
-                    <i class="icon fa-fw icon-counter mr-2"></i>
-                    Counter
-                </button>
-                <button mat-menu-item class="global-menu-item" [routerLink]="['/bulletins']">
-                    <i class="fa fa-fw fa-sticky-note-o mr-2"></i>
-                    Bulletin Board
-                </button>
-                <mat-divider></mat-divider>
-                <button
-                    mat-menu-item
-                    class="global-menu-item"
-                    [routerLink]="['/provenance']"
-                    [disabled]="!user.provenancePermissions.canRead">
-                    <i class="icon fa-fw icon-provenance mr-2"></i>
-                    Data Provenance
-                </button>
-                <mat-divider></mat-divider>
-                <button
-                    mat-menu-item
-                    class="global-menu-item"
-                    [routerLink]="['/settings']"
-                    [disabled]="!user.controllerPermissions.canRead">
-                    <i class="fa fa-fw fa-wrench mr-2"></i>
-                    Controller Settings
-                </button>
-                <button mat-menu-item class="global-menu-item" [routerLink]="['/parameter-contexts']">
-                    <i class="fa fa-fw mr-2"></i>
-                    Parameter Contexts
-                </button>
-                <button mat-menu-item class="global-menu-item">
-                    <i class="fa fa-fw fa-cubes mr-2"></i>
-                    Cluster
-                </button>
-                <button mat-menu-item class="global-menu-item" [routerLink]="['/flow-configuration-history']">
-                    <i class="fa fa-fw fa-history mr-2"></i>
-                    Flow Configuration History
-                </button>
-                <button mat-menu-item class="global-menu-item" (click)="viewNodeStatusHistory()">
-                    <i class="fa fa-fw fa-area-chart mr-2"></i>
-                    Node Status History
-                </button>
-                <button
-                    mat-menu-item
-                    class="global-menu-item"
-                    [disabled]="!user.systemPermissions.canRead"
-                    (click)="viewSystemDiagnostics()">
-                    <i class="fa fa-fw mr-2"></i>
-                    System Diagnostics
-                </button>
-                <ng-container *ngIf="flowConfiguration$ | async as flowConfiguration">
-                    <ng-container *ngIf="flowConfiguration.supportsManagedAuthorizer">
-                        <mat-divider></mat-divider>
-                        <button
-                            mat-menu-item
-                            class="global-menu-item"
-                            [routerLink]="['/users']"
-                            [disabled]="!user.tenantsPermissions.canRead">
-                            <i class="fa fa-fw fa-users mr-2"></i>
-                            Users
-                        </button>
-                        <button
-                            mat-menu-item
-                            class="global-menu-item"
-                            [routerLink]="['/access-policies', 'global']"
-                            [disabled]="
-                                !user.tenantsPermissions.canRead ||
-                                !user.policiesPermissions.canRead ||
-                                !user.policiesPermissions.canWrite
-                            ">
-                            <i class="fa fa-fw fa-key mr-2"></i>
-                            Policies
-                        </button>
-                        <mat-divider></mat-divider>
-                    </ng-container>
-                </ng-container>
-                <button mat-menu-item class="global-menu-item">
-                    <i class="fa fa-fw fa-question-circle mr-2"></i>
-                    Help
-                </button>
-                <button mat-menu-item class="global-menu-item">
-                    <i class="fa fa-fw fa-info-circle mr-2"></i>
-                    About
-                </button>
-                <button mat-menu-item [matMenuTriggerFor]="theming">Appearance</button>
-            </mat-menu>
-            <mat-menu #theming="matMenu" xPosition="before">
-                <button mat-menu-item class="global-menu-item" (click)="toggleTheme(LIGHT_THEME)">
-                    <i class="fa fa-fw fa-check mr-2" *ngIf="theme === LIGHT_THEME"></i>
-                    <i class="fa fa-fw mr-2" *ngIf="theme !== LIGHT_THEME"></i>
-                    Light
-                </button>
-                <button mat-menu-item class="global-menu-item" (click)="toggleTheme(DARK_THEME)">
-                    <i class="fa fa-fw fa-check mr-2" *ngIf="theme === DARK_THEME"></i>
-                    <i class="fa fa-fw mr-2" *ngIf="theme !== DARK_THEME"></i>
-                    Dark
-                </button>
-                <button mat-menu-item class="global-menu-item" (click)="toggleTheme(OS_SETTING)">
-                    <i class="fa fa-fw fa-check mr-2" *ngIf="theme === OS_SETTING || theme === null"></i>
-                    <i class="fa fa-fw mr-2" *ngIf="theme !== OS_SETTING && theme !== null"></i>
-                    Device
-                </button>
-            </mat-menu>
-        </div>
+        }
     </div>
 </nav>

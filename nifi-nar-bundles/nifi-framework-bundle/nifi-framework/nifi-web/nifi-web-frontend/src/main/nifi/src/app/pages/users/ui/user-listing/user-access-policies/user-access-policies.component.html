@@ -37,12 +37,13 @@
                         <ng-container matColumnDef="policy">
                             <th mat-header-cell *matHeaderCellDef mat-sort-header>Policy</th>
                             <td mat-cell *matCellDef="let item">
-                                <div *ngIf="item.permissions.canRead; else noPermissions">
-                                    {{ formatPolicy(item) }}
-                                </div>
-                                <ng-template #noPermissions>
+                                @if (item.permissions.canRead) {
+                                    <div>
+                                        {{ formatPolicy(item) }}
+                                    </div>
+                                } @else {
                                     <div class="unset">{{ item.id }}</div>
-                                </ng-template>
+                                }
                             </td>
                         </ng-container>
 
@@ -58,12 +59,13 @@
                         <ng-container matColumnDef="actions">
                             <th mat-header-cell *matHeaderCellDef></th>
                             <td mat-cell *matCellDef="let item">
-                                <div
-                                    class="pointer fa fa-long-arrow-right"
-                                    *ngIf="canGoToPolicyTarget(item)"
-                                    [routerLink]="getPolicyTargetLink(item)"
-                                    mat-dialog-close="ROUTED"
-                                    title="Go to"></div>
+                                @if (canGoToPolicyTarget(item)) {
+                                    <div
+                                        class="pointer fa fa-long-arrow-right"
+                                        [routerLink]="getPolicyTargetLink(item)"
+                                        mat-dialog-close="ROUTED"
+                                        title="Go to"></div>
+                                }
                             </td>
                         </ng-container>
 

@@ -21,7 +21,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { MatSortModule, Sort } from '@angular/material/sort';
-import { NgIf } from '@angular/common';
+
 import { ControllerServiceApiTipInput, DocumentedType, RestrictionsTipInput } from '../../../state/shared';
 import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
 import { RestrictionsTip } from '../tooltips/restrictions-tip/restrictions-tip.component';
@@ -40,7 +40,6 @@ import { ReactiveFormsModule } from '@angular/forms';
         MatDialogModule,
         MatTableModule,
         MatSortModule,
-        NgIf,
         NifiTooltipDirective,
         NifiSpinnerDirective,
         MatFormFieldModule,

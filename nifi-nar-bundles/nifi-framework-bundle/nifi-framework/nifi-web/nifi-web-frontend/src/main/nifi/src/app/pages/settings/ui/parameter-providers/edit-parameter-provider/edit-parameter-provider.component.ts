@@ -16,7 +16,7 @@
  */
 
 import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
@@ -42,12 +42,12 @@ import { ControllerServiceReferences } from '../../../../../ui/common/controller
 import { ParameterProviderReferences } from '../parameter-context-references/parameter-provider-references.component';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
+import { CommonModule } from '@angular/common';
 
 @Component({
     selector: 'edit-parameter-provider',
     standalone: true,
     imports: [
-        CommonModule,
         MatDialogModule,
         MatTabsModule,
         MatButtonModule,
@@ -58,7 +58,8 @@ import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.
         ControllerServiceReferences,
         ParameterProviderReferences,
         PropertyTable,
-        ErrorBanner
+        ErrorBanner,
+        CommonModule
     ],
     templateUrl: './edit-parameter-provider.component.html',
     styleUrls: ['./edit-parameter-provider.component.scss']

@@ -27,7 +27,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { debounceTime, Observable, tap } from 'rxjs';
 import { ProvenanceEventSummary } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
@@ -52,8 +52,6 @@ import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.
         MatOptionModule,
         MatSelectModule,
         ReactiveFormsModule,
-        NgForOf,
-        NgIf,
         RouterLink,
         NgxSkeletonLoaderModule,
         AsyncPipe,

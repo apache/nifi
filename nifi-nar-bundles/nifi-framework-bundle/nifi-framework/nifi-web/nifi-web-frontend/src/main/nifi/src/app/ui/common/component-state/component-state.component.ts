@@ -21,7 +21,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { MatSortModule, Sort } from '@angular/material/sort';
-import { AsyncPipe, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
 import { ComponentStateState, StateEntry, StateMap } from '../../../state/component-state';
@@ -48,7 +48,6 @@ import { MatInputModule } from '@angular/material/input';
         MatDialogModule,
         MatTableModule,
         MatSortModule,
-        NgIf,
         NifiTooltipDirective,
         NifiSpinnerDirective,
         AsyncPipe,

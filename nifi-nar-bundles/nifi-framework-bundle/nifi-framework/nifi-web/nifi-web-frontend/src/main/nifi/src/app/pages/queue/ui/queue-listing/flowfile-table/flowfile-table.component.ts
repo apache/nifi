@@ -21,7 +21,7 @@ import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.com
 import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
-import { NgForOf, NgIf } from '@angular/common';
+
 import { RouterLink } from '@angular/router';
 import { FlowFileSummary, ListingRequest } from '../../../state/queue-listing';
 import { CurrentUser } from '../../../../../state/current-user';
@@ -31,7 +31,7 @@ import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.
     selector: 'flowfile-table',
     standalone: true,
     templateUrl: './flowfile-table.component.html',
-    imports: [MatTableModule, NgForOf, NgIf, RouterLink, ErrorBanner],
+    imports: [MatTableModule, RouterLink, ErrorBanner],
     styleUrls: ['./flowfile-table.component.scss']
 })
 export class FlowFileTable {

@@ -28,7 +28,9 @@
                 </div>
                 <div>
                     {{ resultsMessage }}
-                    <a *ngIf="hasRequest" (click)="clearRequestClicked()">Clear Search</a>
+                    @if (hasRequest) {
+                        <a (click)="clearRequestClicked()">Clear Search</a>
+                    }
                 </div>
             </div>
             <div class="flex justify-between">
@@ -44,9 +46,9 @@
                             <mat-form-field>
                                 <mat-label>Filter By</mat-label>
                                 <mat-select formControlName="filterColumn">
-                                    <mat-option *ngFor="let option of filterColumnOptions" [value]="option"
-                                        >{{ option }}
-                                    </mat-option>
+                                    @for (option of filterColumnOptions; track option) {
+                                        <mat-option [value]="option">{{ option }} </mat-option>
+                                    }
                                 </mat-select>
                             </mat-form-field>
                         </div>
@@ -137,11 +139,12 @@
                                     class="pointer icon icon-lineage"
                                     (click)="showLineageGraph(item)"
                                     title="Show Lineage"></div>
-                                <div
-                                    *ngIf="supportsGoTo(item)"
-                                    class="pointer fa fa-long-arrow-right"
-                                    title="Go To"
-                                    (click)="goToClicked(item)"></div>
+                                @if (supportsGoTo(item)) {
+                                    <div
+                                        class="pointer fa fa-long-arrow-right"
+                                        title="Go To"
+                                        (click)="goToClicked(item)"></div>
+                                }
                             </div>
                         </td>
                     </ng-container>

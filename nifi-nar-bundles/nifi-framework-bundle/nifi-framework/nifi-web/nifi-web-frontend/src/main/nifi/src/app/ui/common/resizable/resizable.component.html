@@ -22,4 +22,6 @@
     (cdkDragStarted)="dragStarted()"
     (cdkDragEnded)="dragEnded($event)"
     (cdkDragMoved)="dragMoved($event)"></div>
-<div class="resizable-triangle" *ngIf="sub$ | async"></div>
+@if (sub$ | async) {
+    <div class="resizable-triangle"></div>
+}

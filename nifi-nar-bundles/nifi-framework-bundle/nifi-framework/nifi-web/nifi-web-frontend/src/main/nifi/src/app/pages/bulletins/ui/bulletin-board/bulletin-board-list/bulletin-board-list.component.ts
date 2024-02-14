@@ -26,7 +26,7 @@ import {
     Output,
     ViewChild
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
@@ -42,15 +42,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 @Component({
     selector: 'bulletin-board-list',
     standalone: true,
-    imports: [
-        CommonModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatOptionModule,
-        MatSelectModule,
-        ReactiveFormsModule,
-        RouterLink
-    ],
+    imports: [MatFormFieldModule, MatInputModule, MatOptionModule, MatSelectModule, ReactiveFormsModule, RouterLink],
     templateUrl: './bulletin-board-list.component.html',
     styleUrls: ['./bulletin-board-list.component.scss']
 })

@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,7 +24,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import { MatListModule } from '@angular/material/list';
 import { TenantEntity, UserEntity, UserGroupEntity } from '../../../../../state/shared';
@@ -44,10 +44,8 @@ import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spin
         ReactiveFormsModule,
         MatRadioModule,
         MatCheckboxModule,
-        NgIf,
         AsyncPipe,
         MatListModule,
-        NgForOf,
         NifiSpinnerDirective
     ],
     templateUrl: './add-tenant-to-policy-dialog.component.html',

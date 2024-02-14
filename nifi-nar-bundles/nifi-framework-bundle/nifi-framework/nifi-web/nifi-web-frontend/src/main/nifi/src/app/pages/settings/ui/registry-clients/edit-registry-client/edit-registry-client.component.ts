@@ -21,7 +21,7 @@ import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModu
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import {
     DocumentedType,
@@ -52,11 +52,9 @@ import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.
         MatInputModule,
         MatCheckboxModule,
         MatButtonModule,
-        NgIf,
         AsyncPipe,
         NifiSpinnerDirective,
         MatSelectModule,
-        NgForOf,
         NifiTooltipDirective,
         MatTabsModule,
         PropertyTable,

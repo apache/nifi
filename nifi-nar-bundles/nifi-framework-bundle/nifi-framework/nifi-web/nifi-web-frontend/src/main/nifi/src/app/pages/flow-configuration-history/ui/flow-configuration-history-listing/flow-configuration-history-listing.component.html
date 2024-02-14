@@ -15,12 +15,12 @@
   ~ limitations under the License.
   -->
 
-<ng-container *ngIf="historyListingState$ | async; let state">
-    <div *ngIf="isInitialLoading(state); else loaded">
-        <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
-    </div>
-
-    <ng-template #loaded>
+@if (historyListingState$ | async; as state) {
+    @if (isInitialLoading(state)) {
+        <div>
+            <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+        </div>
+    } @else {
         <div class="flow-configuration-history-listing flex flex-col h-full gap-y-2">
             <div class="flex align-middle justify-between">
                 <div class="flow-configuration-filter flex-1">
@@ -36,9 +36,9 @@
                                 <mat-form-field>
                                     <mat-label>Filter By</mat-label>
                                     <mat-select formControlName="filterColumn">
-                                        <ng-container *ngFor="let option of filterableColumns">
-                                            <mat-option [value]="option.key"> {{ option.label }} </mat-option>
-                                        </ng-container>
+                                        @for (option of filterableColumns; track option) {
+                                            <mat-option [value]="option.key"> {{ option.label }}</mat-option>
+                                        }
                                     </mat-select>
                                 </mat-form-field>
                             </div>
@@ -91,11 +91,13 @@
                         </div>
                     </form>
                 </div>
-                <div class="mt-4" *ngIf="(currentUser$ | async)?.controllerPermissions?.canWrite">
-                    <button class="nifi-button" (click)="purgeHistoryClicked()">
-                        <i class="fa fa-eraser"></i>
-                    </button>
-                </div>
+                @if ((currentUser$ | async)?.controllerPermissions?.canWrite) {
+                    <div class="mt-4">
+                        <button class="nifi-button" (click)="purgeHistoryClicked()">
+                            <i class="fa fa-eraser"></i>
+                        </button>
+                    </div>
+                }
             </div>
 
             <div class="flex-1">
@@ -127,5 +129,5 @@
                 </div>
             </div>
         </div>
-    </ng-template>
-</ng-container>
+    }
+}

@@ -17,6 +17,8 @@
 
 <div class="tooltip" [style.left.px]="left" [style.top.px]="top">
     <ul>
-        <li *ngFor="let item of data?.items">{{ item }}</li>
+        @for (item of data?.items; track item) {
+            <li>{{ item }}</li>
+        }
     </ul>
 </div>

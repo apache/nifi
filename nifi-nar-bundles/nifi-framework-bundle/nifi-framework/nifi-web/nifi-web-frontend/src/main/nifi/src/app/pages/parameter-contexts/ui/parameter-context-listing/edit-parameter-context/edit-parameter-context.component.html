@@ -17,64 +17,73 @@
 
 <h2 mat-dialog-title>{{ this.isNew ? 'Add' : 'Edit' }} Parameter Context</h2>
 <form class="parameter-context-edit-form" [formGroup]="editParameterContextForm">
-    <mat-dialog-content *ngIf="(updateRequest | async)! as requestEntity; else editFormContent">
-        <div class="results-content flex gap-x-8">
-            <div class="w-full flex flex-col">
-                <div>Steps To Update Parameters</div>
-                <div class="flex flex-col gap-y-1.5">
-                    <div
-                        *ngFor="let updateStep of requestEntity.request.updateSteps"
-                        class="flex justify-between items-center">
-                        <div class="value">{{ updateStep.description }}</div>
-                        <div *ngIf="updateStep.complete; else stepInProgress" class="fa fa-check complete"></div>
-                        <ng-template #stepInProgress>
-                            <div class="fa fa-spin fa-circle-o-notch"></div>
-                        </ng-template>
+    @if ((updateRequest | async)!; as requestEntity) {
+        <mat-dialog-content>
+            <div class="results-content flex gap-x-8">
+                <div class="w-full flex flex-col">
+                    <div>Steps To Update Parameters</div>
+                    <div class="flex flex-col gap-y-1.5">
+                        @for (updateStep of requestEntity.request.updateSteps; track updateStep) {
+                            <div class="flex justify-between items-center">
+                                <div class="value">{{ updateStep.description }}</div>
+                                @if (updateStep.complete) {
+                                    <div class="fa fa-check complete"></div>
+                                } @else {
+                                    <div class="fa fa-spin fa-circle-o-notch"></div>
+                                }
+                            </div>
+                        }
                     </div>
                 </div>
-            </div>
-            <div class="w-full flex flex-col gap-y-3">
-                <div class="flex flex-col">
-                    <div>Parameter</div>
-                    <div class="value" *ngIf="parameters && parameters.length > 0; else noParametersUpdated">
-                        {{ getUpdatedParameters() }}
+                <div class="w-full flex flex-col gap-y-3">
+                    <div class="flex flex-col">
+                        <div>Parameter</div>
+                        @if (parameters && parameters.length > 0) {
+                            <div class="value">
+                                {{ getUpdatedParameters() }}
+                            </div>
+                        } @else {
+                            <div class="unset">No parameters updated</div>
+                        }
                     </div>
-                    <ng-template #noParametersUpdated>
-                        <div class="unset">No parameters updated</div>
-                    </ng-template>
-                </div>
-                <div class="flex-1 flex flex-col">
-                    <div>Referencing Components</div>
-                    <div class="relative h-full border">
-                        <div class="absolute inset-0 overflow-y-auto p-1">
-                            <parameter-references
-                                [parameterReferences]="
-                                    requestEntity.request.referencingComponents
-                                "></parameter-references>
+                    <div class="flex-1 flex flex-col">
+                        <div>Referencing Components</div>
+                        <div class="relative h-full border">
+                            <div class="absolute inset-0 overflow-y-auto p-1">
+                                <parameter-references
+                                    [parameterReferences]="
+                                        requestEntity.request.referencingComponents
+                                    "></parameter-references>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </mat-dialog-content>
-    <ng-template #editFormContent>
+        </mat-dialog-content>
+    } @else {
         <mat-dialog-content>
             <mat-tab-group>
                 <mat-tab label="Settings">
                     <div class="tab-content py-4 flex gap-x-4">
                         <div class="w-full">
-                            <div class="flex flex-col mb-5" *ngIf="!isNew">
-                                <div>Id</div>
-                                <div class="value">{{ request.parameterContext?.id }}</div>
-                            </div>
-                            <div class="flex flex-col mb-5" *ngIf="parameterProvider">
-                                <div>Parameter Provider</div>
-                                <a [routerLink]="getParameterProviderLink(parameterProvider)" mat-dialog-close="ROUTED">
-                                    {{ parameterProvider.parameterGroupName }}
-                                    from
-                                    {{ parameterProvider.parameterProviderName }}
-                                </a>
-                            </div>
+                            @if (!isNew) {
+                                <div class="flex flex-col mb-5">
+                                    <div>Id</div>
+                                    <div class="value">{{ request.parameterContext?.id }}</div>
+                                </div>
+                            }
+                            @if (parameterProvider) {
+                                <div class="flex flex-col mb-5">
+                                    <div>Parameter Provider</div>
+                                    <a
+                                        [routerLink]="getParameterProviderLink(parameterProvider)"
+                                        mat-dialog-close="ROUTED">
+                                        {{ parameterProvider.parameterGroupName }}
+                                        from
+                                        {{ parameterProvider.parameterProviderName }}
+                                    </a>
+                                </div>
+                            }
                             <div>
                                 <mat-form-field>
                                     <mat-label>Name</mat-label>
@@ -121,26 +130,28 @@
                 </mat-tab>
             </mat-tab-group>
         </mat-dialog-content>
-    </ng-template>
-    <mat-dialog-actions align="end" *ngIf="(updateRequest | async)! as requestEntity; else editFormActions">
-        <ng-container *ngIf="requestEntity.request.complete; else updateInProgressActions">
-            <button color="primary" mat-raised-button mat-dialog-close>Close</button>
-        </ng-container>
-        <ng-template #updateInProgressActions>
-            <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
-        </ng-template>
-    </mat-dialog-actions>
-    <ng-template #editFormActions>
-        <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-            <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
-            <button
-                [disabled]="!editParameterContextForm.dirty || editParameterContextForm.invalid || saving.value"
-                type="button"
-                color="primary"
-                (click)="submitForm()"
-                mat-raised-button>
-                <span *nifiSpinner="saving.value">Apply</span>
-            </button>
+    }
+    @if ((updateRequest | async)!; as requestEntity) {
+        <mat-dialog-actions align="end">
+            @if (requestEntity.request.complete) {
+                <button color="primary" mat-raised-button mat-dialog-close>Close</button>
+            } @else {
+                <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+            }
         </mat-dialog-actions>
-    </ng-template>
+    } @else {
+        @if ({ value: (saving$ | async)! }; as saving) {
+            <mat-dialog-actions align="end">
+                <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+                <button
+                    [disabled]="!editParameterContextForm.dirty || editParameterContextForm.invalid || saving.value"
+                    type="button"
+                    color="primary"
+                    (click)="submitForm()"
+                    mat-raised-button>
+                    <span *nifiSpinner="saving.value">Apply</span>
+                </button>
+            </mat-dialog-actions>
+        }
+    }
 </form>

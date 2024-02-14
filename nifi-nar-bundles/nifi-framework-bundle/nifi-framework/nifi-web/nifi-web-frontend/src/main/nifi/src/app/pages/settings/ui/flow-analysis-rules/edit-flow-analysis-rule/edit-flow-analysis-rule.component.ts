@@ -20,7 +20,7 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
@@ -56,11 +56,9 @@ import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.
         MatDialogModule,
         MatInputModule,
         MatButtonModule,
-        NgIf,
         MatTabsModule,
         MatOptionModule,
         MatSelectModule,
-        NgForOf,
         PropertyTable,
         AsyncPipe,
         NifiSpinnerDirective,

@@ -21,7 +21,7 @@ import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, 
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable } from 'rxjs';
@@ -40,7 +40,6 @@ import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-b
         MatInputModule,
         MatCheckboxModule,
         MatButtonModule,
-        NgIf,
         MatOptionModule,
         MatSelectModule,
         AsyncPipe,

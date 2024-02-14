@@ -25,19 +25,17 @@
             }}) bytes
         </div>
         <div class="listing-message">
-            <ng-container *ngIf="sourceRunning && destinationRunning; else bothNotRunning">
+            @if (sourceRunning && destinationRunning) {
                 The source and destination of this queue are currently running. This listing may no longer be accurate.
-            </ng-container>
-            <ng-template #bothNotRunning>
-                <ng-container *ngIf="sourceRunning; else sourceNotRunning">
+            } @else {
+                @if (sourceRunning) {
                     The source of this queue is currently running. This listing may no longer be accurate.
-                </ng-container>
-            </ng-template>
-            <ng-template #sourceNotRunning>
-                <ng-container *ngIf="destinationRunning">
-                    The destination of this queue is currently running. This listing may no longer be accurate.
-                </ng-container>
-            </ng-template>
+                } @else {
+                    @if (destinationRunning) {
+                        The destination of this queue is currently running. This listing may no longer be accurate.
+                    }
+                }
+            }
         </div>
     </div>
     <div class="flex-1 relative">
@@ -115,22 +113,25 @@
                     <th mat-header-cell *matHeaderCellDef></th>
                     <td mat-cell *matCellDef="let item">
                         <div class="flex items-center gap-x-3">
-                            <div
-                                *ngIf="item.size > 0"
-                                class="pointer fa fa-download"
-                                title="Download content"
-                                (click)="downloadContentClicked(item)"></div>
-                            <div
-                                *ngIf="contentViewerAvailable && item.size > 0"
-                                class="pointer fa fa-eye"
-                                title="View content"
-                                (click)="viewContentClicked(item)"></div>
-                            <div
-                                *ngIf="currentUser.provenancePermissions.canRead"
-                                class="pointer icon icon-provenance"
-                                title="Provenance"
-                                [routerLink]="['/provenance']"
-                                [queryParams]="{ flowFileUuid: item.uuid }"></div>
+                            @if (item.size > 0) {
+                                <div
+                                    class="pointer fa fa-download"
+                                    title="Download content"
+                                    (click)="downloadContentClicked(item)"></div>
+                            }
+                            @if (contentViewerAvailable && item.size > 0) {
+                                <div
+                                    class="pointer fa fa-eye"
+                                    title="View content"
+                                    (click)="viewContentClicked(item)"></div>
+                            }
+                            @if (currentUser.provenancePermissions.canRead) {
+                                <div
+                                    class="pointer icon icon-provenance"
+                                    title="Provenance"
+                                    [routerLink]="['/provenance']"
+                                    [queryParams]="{ flowFileUuid: item.uuid }"></div>
+                            }
                         </div>
                     </td>
                 </ng-container>

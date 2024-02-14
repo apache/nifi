@@ -19,13 +19,13 @@ import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { NoRegistryClientsDialogRequest } from '../../../state/flow';
-import { NgIf } from '@angular/common';
+
 import { RouterLink } from '@angular/router';
 
 @Component({
     selector: 'no-registry-clients-dialog',
     standalone: true,
-    imports: [MatDialogModule, MatButtonModule, NgIf, RouterLink],
+    imports: [MatDialogModule, MatButtonModule, RouterLink],
     templateUrl: './no-registry-clients-dialog.component.html',
     styleUrls: ['./no-registry-clients-dialog.component.scss']
 })

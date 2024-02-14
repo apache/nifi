@@ -19,10 +19,12 @@
     <h2 mat-dialog-title>Component State</h2>
     <mat-dialog-content>
         <div class="flex flex-col justify-between gap-y-5">
-            <div class="flex flex-col" *ngIf="componentName$ | async; let componentName">
-                <div>Name</div>
-                <div class="value">{{ componentName }}</div>
-            </div>
+            @if (componentName$ | async; as componentName) {
+                <div class="flex flex-col">
+                    <div>Name</div>
+                    <div class="value">{{ componentName }}</div>
+                </div>
+            }
             <div class="flex flex-col">
                 <div>Description</div>
                 <div class="value">
@@ -37,11 +39,13 @@
                             <mat-label>Filter</mat-label>
                             <input matInput type="text" class="small" formControlName="filterTerm" />
                         </mat-form-field>
-                        <ng-container *ngIf="{ value: (canClear$ | async)! } as canClear">
-                            <div *ngIf="canClear.value && totalEntries > 0">
-                                <a (click)="clearState()">Clear state</a>
-                            </div>
-                        </ng-container>
+                        @if ({ value: (canClear$ | async)! }; as canClear) {
+                            @if (canClear.value && totalEntries > 0) {
+                                <div>
+                                    <a (click)="clearState()">Clear state</a>
+                                </div>
+                            }
+                        }
                     </div>
                 </form>
                 <div class="h-72 overflow-y-auto overflow-x-hidden border">
@@ -77,7 +81,9 @@
                     </table>
                 </div>
             </div>
-            <div *ngIf="partialResults" class="-mt-3">Showing partial results</div>
+            @if (partialResults) {
+                <div class="-mt-3">Showing partial results</div>
+            }
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">

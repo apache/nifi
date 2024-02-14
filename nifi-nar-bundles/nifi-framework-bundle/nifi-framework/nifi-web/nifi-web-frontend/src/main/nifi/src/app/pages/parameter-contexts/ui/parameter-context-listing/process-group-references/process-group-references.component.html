@@ -16,50 +16,58 @@
   -->
 
 <div class="process-group-references">
-    <div *ngIf="!hasBoundProcessGroups(); else hasReferences" class="value">No referencing Process Groups</div>
-
-    <ng-template #hasReferences>
+    @if (!hasBoundProcessGroups()) {
+        <div class="value">No referencing Process Groups</div>
+    } @else {
         <ul>
-            <li *ngIf="authorizedProcessGroupReferences.length > 0">
-                <h4>
-                    <b>Process Groups ({{ authorizedProcessGroupReferences.length }})</b>
-                </h4>
-                <ul class="nested">
-                    <ng-container
-                        *ngTemplateOutlet="
-                            processGroups;
-                            context: { $implicit: authorizedProcessGroupReferences }
-                        "></ng-container>
-                </ul>
-            </li>
-            <li *ngIf="unauthorizedProcessGroupReferences.length > 0">
-                <h4>
-                    <b>Unauthorized ({{ unauthorizedProcessGroupReferences.length }})</b>
-                </h4>
-                <ul class="nested">
-                    <ng-container
-                        *ngTemplateOutlet="
-                            unauthorized;
-                            context: { $implicit: unauthorizedProcessGroupReferences }
-                        "></ng-container>
-                </ul>
-            </li>
+            @if (authorizedProcessGroupReferences.length > 0) {
+                <li>
+                    <h4>
+                        <b>Process Groups ({{ authorizedProcessGroupReferences.length }})</b>
+                    </h4>
+                    <ul class="nested">
+                        <ng-container
+                            *ngTemplateOutlet="
+                                processGroups;
+                                context: { $implicit: authorizedProcessGroupReferences }
+                            "></ng-container>
+                    </ul>
+                </li>
+            }
+            @if (unauthorizedProcessGroupReferences.length > 0) {
+                <li>
+                    <h4>
+                        <b>Unauthorized ({{ unauthorizedProcessGroupReferences.length }})</b>
+                    </h4>
+                    <ul class="nested">
+                        <ng-container
+                            *ngTemplateOutlet="
+                                unauthorized;
+                                context: { $implicit: unauthorizedProcessGroupReferences }
+                            "></ng-container>
+                    </ul>
+                </li>
+            }
         </ul>
         <ng-template #processGroups let-references>
-            <ng-container *ngIf="references.length > 0">
-                <li *ngFor="let reference of references">
-                    <a [routerLink]="getRouteForReference(reference)" mat-dialog-close="ROUTED">{{
-                        reference.component.name
-                    }}</a>
-                </li>
-            </ng-container>
+            @if (references.length > 0) {
+                @for (reference of references; track reference) {
+                    <li>
+                        <a [routerLink]="getRouteForReference(reference)" mat-dialog-close="ROUTED">{{
+                            reference.component.name
+                        }}</a>
+                    </li>
+                }
+            }
         </ng-template>
         <ng-template #unauthorized let-references>
-            <ng-container *ngIf="references.length > 0">
-                <li *ngFor="let reference of references">
-                    <div class="unset">{{ reference.id }}</div>
-                </li>
-            </ng-container>
+            @if (references.length > 0) {
+                @for (reference of references; track reference) {
+                    <li>
+                        <div class="unset">{{ reference.id }}</div>
+                    </li>
+                }
+            }
         </ng-template>
-    </ng-template>
+    }
 </div>

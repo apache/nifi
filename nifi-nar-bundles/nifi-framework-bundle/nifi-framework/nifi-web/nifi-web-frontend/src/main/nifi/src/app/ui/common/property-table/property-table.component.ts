@@ -31,7 +31,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { NiFiCommon } from '../../../service/nifi-common.service';
-import { AsyncPipe, NgIf, NgTemplateOutlet } from '@angular/common';
+import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import {
     AllowableValueEntity,
     InlineServiceCreationRequest,
@@ -78,7 +78,6 @@ export interface PropertyItem extends Property {
         MatButtonModule,
         MatDialogModule,
         MatTableModule,
-        NgIf,
         NifiTooltipDirective,
         NgTemplateOutlet,
         NfEditor,

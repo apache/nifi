@@ -16,7 +16,7 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { NgForOf, NgIf } from '@angular/common';
+
 import { Parameter, ParameterTipInput } from '../../../../state/shared';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { ControllerServiceApi } from '../../controller-service/controller-service-api/controller-service-api.component';
@@ -25,13 +25,13 @@ import { ControllerServiceApi } from '../../controller-service/controller-servic
     selector: 'parameter-tip',
     standalone: true,
     templateUrl: './parameter-tip.component.html',
-    imports: [NgForOf, NgIf, ControllerServiceApi],
+    imports: [ControllerServiceApi],
     styleUrls: ['./parameter-tip.component.scss']
 })
 export class ParameterTip {
     @Input() left = 0;
     @Input() bottom = 0;
-    @Input() data!: ParameterTipInput;
+    @Input() data: ParameterTipInput | null = null;
 
     constructor(private nifiCommon: NiFiCommon) {}
 

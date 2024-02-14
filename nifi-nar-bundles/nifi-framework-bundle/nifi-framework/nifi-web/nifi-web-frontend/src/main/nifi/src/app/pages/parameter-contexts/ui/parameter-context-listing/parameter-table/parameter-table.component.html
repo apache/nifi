@@ -17,11 +17,13 @@
 
 <div class="parameter-table listing-table flex gap-x-3">
     <div class="flex flex-col gap-y-3" style="flex-grow: 3">
-        <div class="flex justify-end items-center" *ngIf="canAddParameters">
-            <button class="nifi-button" type="button" (click)="newParameterClicked()">
-                <i class="fa fa-plus"></i>
-            </button>
-        </div>
+        @if (canAddParameters) {
+            <div class="flex justify-end items-center">
+                <button class="nifi-button" type="button" (click)="newParameterClicked()">
+                    <i class="fa fa-plus"></i>
+                </button>
+            </div>
+        }
         <div class="h-96 overflow-y-auto overflow-x-hidden border">
             <table mat-table [dataSource]="dataSource">
                 <!-- Name Column -->
@@ -33,12 +35,13 @@
                                 {{ item.entity.parameter.name }}
                             </div>
                             <div>
-                                <div
-                                    class="fa fa-question-circle"
-                                    *ngIf="hasDescription(item)"
-                                    nifiTooltip
-                                    [tooltipComponentType]="TextTip"
-                                    [tooltipInputData]="getDescriptionTipData(item)"></div>
+                                @if (hasDescription(item)) {
+                                    <div
+                                        class="fa fa-question-circle"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        [tooltipInputData]="getDescriptionTipData(item)"></div>
+                                }
                             </div>
                         </div>
                     </td>
@@ -48,10 +51,9 @@
                 <ng-container matColumnDef="value">
                     <th mat-header-cell *matHeaderCellDef>Value</th>
                     <td mat-cell *matCellDef="let item">
-                        <ng-container *ngIf="isNull(item.entity.parameter.value); else nonNull">
+                        @if (isNull(item.entity.parameter.value)) {
                             <div class="unset">No value set</div>
-                        </ng-container>
-                        <ng-template #nonNull>
+                        } @else {
                             <ng-container
                                 *ngTemplateOutlet="
                                     isSensitiveParameter(item) ? sensitive : nonSensitive;
@@ -75,15 +77,16 @@
                                     <div class="whitespace-nowrap overflow-hidden text-ellipsis">
                                         {{ value }}
                                     </div>
-                                    <div
-                                        class="fa fa-info"
-                                        *ngIf="hasExtraWhitespace(value)"
-                                        nifiTooltip
-                                        [tooltipComponentType]="TextTip"
-                                        [tooltipInputData]="getExtraWhitespaceTipData()"></div>
+                                    @if (hasExtraWhitespace(value)) {
+                                        <div
+                                            class="fa fa-info"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            [tooltipInputData]="getExtraWhitespaceTipData()"></div>
+                                    }
                                 </div>
                             </ng-template>
-                        </ng-template>
+                        }
                     </td>
                 </ng-container>
 
@@ -92,22 +95,19 @@
                     <th mat-header-cell *matHeaderCellDef></th>
                     <td mat-cell *matCellDef="let item">
                         <div class="flex items-center gap-x-3">
-                            <div
-                                class="pointer fa fa-long-arrow-right"
-                                *ngIf="canGoToParameter(item)"
-                                [routerLink]="getParameterLink(item)"
-                                mat-dialog-close="ROUTED"
-                                title="Go to"></div>
-                            <div
-                                class="pointer fa fa-pencil"
-                                *ngIf="canEdit(item)"
-                                (click)="editClicked(item)"
-                                title="Edit"></div>
-                            <div
-                                class="pointer fa fa-trash"
-                                *ngIf="canDelete(item)"
-                                (click)="deleteClicked(item)"
-                                title="Delete"></div>
+                            @if (canGoToParameter(item)) {
+                                <div
+                                    class="pointer fa fa-long-arrow-right"
+                                    [routerLink]="getParameterLink(item)"
+                                    mat-dialog-close="ROUTED"
+                                    title="Go to"></div>
+                            }
+                            @if (canEdit(item)) {
+                                <div class="pointer fa fa-pencil" (click)="editClicked(item)" title="Edit"></div>
+                            }
+                            @if (canDelete(item)) {
+                                <div class="pointer fa fa-trash" (click)="deleteClicked(item)" title="Delete"></div>
+                            }
                         </div>
                     </td>
                 </ng-container>
@@ -126,21 +126,23 @@
         <div class="flex flex-col">
             <div>Parameter</div>
             <div class="value">
-                <span *ngIf="selectedItem; else noParameterSelected">{{ selectedItem.entity.parameter.name }}</span>
-                <ng-template #noParameterSelected>
+                @if (selectedItem) {
+                    <span>{{ selectedItem.entity.parameter.name }}</span>
+                } @else {
                     <span class="unset">None</span>
-                </ng-template>
+                }
             </div>
         </div>
         <div class="flex-1 flex flex-col">
             <div>Referencing Components</div>
             <div class="relative h-full border">
                 <div class="absolute inset-0 overflow-y-auto p-1">
-                    <parameter-references
-                        *ngIf="selectedItem"
-                        [parameterReferences]="
-                            selectedItem.entity.parameter.referencingComponents
-                        "></parameter-references>
+                    @if (selectedItem) {
+                        <parameter-references
+                            [parameterReferences]="
+                                selectedItem.entity.parameter.referencingComponents
+                            "></parameter-references>
+                    }
                 </div>
             </div>
         </div>

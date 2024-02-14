@@ -16,7 +16,7 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { NgForOf, NgIf } from '@angular/common';
+
 import { PropertyDescriptor, PropertyTipInput } from '../../../../state/shared';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { ControllerServiceApi } from '../../controller-service/controller-service-api/controller-service-api.component';
@@ -25,7 +25,7 @@ import { ControllerServiceApi } from '../../controller-service/controller-servic
     selector: 'property-tip',
     standalone: true,
     templateUrl: './property-tip.component.html',
-    imports: [NgForOf, NgIf, ControllerServiceApi],
+    imports: [ControllerServiceApi],
     styleUrls: ['./property-tip.component.scss']
 })
 export class PropertyTip {

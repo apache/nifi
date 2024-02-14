@@ -15,31 +15,32 @@
   ~ limitations under the License.
   -->
 
-<div class="flex flex-col gap-y-2 h-full" *ngIf="status$ | async; let status">
-    <div class="flex-1">
-        <ng-container *ngIf="listingRequest$ | async as listingRequest; else initialLoading">
-            <ng-container *ngIf="about$ | async as about">
-                <flowfile-table
-                    [connectionLabel]="(connectionLabel$ | async)!"
-                    [listingRequest]="listingRequest"
-                    [currentUser]="(currentUser$ | async)!"
-                    [contentViewerAvailable]="contentViewerAvailable(about)"
-                    (viewFlowFile)="viewFlowFile($event)"
-                    (downloadContent)="downloadContent($event)"
-                    (viewContent)="viewContent($event)"></flowfile-table>
-            </ng-container>
-        </ng-container>
-        <ng-template #initialLoading>
-            <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
-        </ng-template>
-    </div>
-    <div class="flex justify-between">
-        <div class="flex items-center gap-x-2">
-            <button class="nifi-button" (click)="refreshClicked()">
-                <i class="fa fa-refresh" [class.fa-spin]="status === 'loading'"></i>
-            </button>
-            <div>Last updated:</div>
-            <div class="refresh-timestamp">{{ loadedTimestamp$ | async }}</div>
+@if (status$ | async; as status) {
+    <div class="flex flex-col gap-y-2 h-full">
+        <div class="flex-1">
+            @if (listingRequest$ | async; as listingRequest) {
+                @if (about$ | async; as about) {
+                    <flowfile-table
+                        [connectionLabel]="(connectionLabel$ | async)!"
+                        [listingRequest]="listingRequest"
+                        [currentUser]="(currentUser$ | async)!"
+                        [contentViewerAvailable]="contentViewerAvailable(about)"
+                        (viewFlowFile)="viewFlowFile($event)"
+                        (downloadContent)="downloadContent($event)"
+                        (viewContent)="viewContent($event)"></flowfile-table>
+                }
+            } @else {
+                <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+            }
+        </div>
+        <div class="flex justify-between">
+            <div class="flex items-center gap-x-2">
+                <button class="nifi-button" (click)="refreshClicked()">
+                    <i class="fa fa-refresh" [class.fa-spin]="status === 'loading'"></i>
+                </button>
+                <div>Last updated:</div>
+                <div class="refresh-timestamp">{{ loadedTimestamp$ | async }}</div>
+            </div>
         </div>
     </div>
-</div>
+}
