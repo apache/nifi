@@ -33,7 +33,28 @@ export const initialState: ProvenanceEventListingState = {
     options: null,
     request: null,
     activeProvenance: null,
-    completedProvenance: null,
+    completedProvenance: {
+        id: '',
+        uri: '',
+        submissionTime: '',
+        expiration: '',
+        percentCompleted: 0,
+        finished: false,
+        request: {
+            maxResults: 0,
+            summarize: true,
+            incrementalResults: false
+        },
+        results: {
+            provenanceEvents: [],
+            total: '',
+            totalCount: 0,
+            generated: 'N/A',
+            oldestEvent: 'N/A',
+            timeOffset: 0,
+            errors: []
+        }
+    },
     loadedTimestamp: 'N/A',
     status: 'pending'
 };

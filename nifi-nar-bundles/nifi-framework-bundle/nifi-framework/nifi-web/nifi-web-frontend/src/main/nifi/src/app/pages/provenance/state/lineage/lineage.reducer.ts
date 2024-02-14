@@ -28,7 +28,21 @@ import { produce } from 'immer';
 
 export const initialState: LineageState = {
     activeLineage: null,
-    completedLineage: null,
+    completedLineage: {
+        id: '',
+        uri: '',
+        submissionTime: '',
+        expiration: '',
+        percentCompleted: 0,
+        finished: false,
+        request: {
+            lineageRequestType: 'FLOWFILE'
+        },
+        results: {
+            nodes: [],
+            links: []
+        }
+    },
     status: 'pending'
 };
 
