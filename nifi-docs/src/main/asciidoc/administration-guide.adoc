@@ -247,9 +247,6 @@ located as a sibling of this directory. For example, if the value of this proper
 by default, but multiple Python Extension directories can be added by adding additional properties with the prefix `nifi.python.extensions.source.directory.`.
 | nifi.python.working.directory | ./work/python | The working directory where NiFi should store artifacts, such as any third-party libraries that are downloaded as dependencies
 for the Python Processors.
-| nifi.python.logs.directory | ./logs | The directory where NiFi should store the logs for the Python processes. If Python Processors use the in-built logger, the messages will be logged to the
-app-log. However, if they create their own Python logger, the messages will be written to the Python-specific log file(s). Additionally, the Python framework will write to the Python-specific log
-file(s).
 | nifi.python.max.processes.per.extension.type | 10 | The maximum number of Python processes that should be spawned for any one type of Processor. Because Python does not scale vertically,
 adding many NiFi Processors within the same Python process would yield very poor performance. Instead, NiFi creates a Python process for every Python Processor that is added to the canvas,
 within limits. This property indicates the maximum number of Python processes that can be created for any particular type of Processor. For example, if there are 5 instances of the

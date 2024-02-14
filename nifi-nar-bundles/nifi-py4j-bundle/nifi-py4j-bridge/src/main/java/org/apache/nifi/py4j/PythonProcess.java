@@ -36,6 +36,7 @@ import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -52,6 +53,8 @@ public class PythonProcess {
     private static final Logger logger = LoggerFactory.getLogger(PythonProcess.class);
     private static final String PYTHON_CONTROLLER_FILENAME = "Controller.py";
 
+    private static final String LOG_READER_THREAD_NAME_FORMAT = "python-log-%s";
+
     private final PythonProcessConfig processConfig;
     private final ControllerServiceTypeLookup controllerServiceTypeLookup;
     private final File virtualEnvHome;
@@ -66,6 +69,7 @@ public class PythonProcess {
     private volatile boolean shutdown = false;
     private volatile List<String> extensionDirs;
     private volatile String workDir;
+    private Thread logReaderThread;
 
 
     public PythonProcess(final PythonProcessConfig processConfig, final ControllerServiceTypeLookup controllerServiceTypeLookup, final File virtualEnvHome,
@@ -117,6 +121,10 @@ public class PythonProcess {
         setupEnvironment();
         this.process = launchPythonProcess(listeningPort, authToken);
         this.process.onExit().thenAccept(this::handlePythonProcessDied);
+
+        final String logReaderThreadName = LOG_READER_THREAD_NAME_FORMAT.formatted(componentType);
+        final Runnable logReaderCommand = new PythonProcessLogReader(process.inputReader(StandardCharsets.UTF_8));
+        this.logReaderThread = Thread.ofVirtual().name(logReaderThreadName).start(logReaderCommand);
 
         final StandardPythonClient pythonClient = new StandardPythonClient(gateway);
         controller = pythonClient.getController();
@@ -211,7 +219,6 @@ public class PythonProcess {
     private Process launchPythonProcess(final int listeningPort, final String authToken) throws IOException {
         final File pythonFrameworkDirectory = processConfig.getPythonFrameworkDirectory();
         final File pythonApiDirectory = new File(pythonFrameworkDirectory.getParentFile(), "api");
-        final File pythonLogsDirectory = processConfig.getPythonLogsDirectory();
         final File pythonCmdFile = new File(processConfig.getPythonCommand());
         final String pythonCmd = pythonCmdFile.getName();
         final File pythonCommandFile = new File(virtualEnvHome, "bin/" + pythonCmd);
@@ -225,14 +232,12 @@ public class PythonProcess {
 
         String pythonPath = pythonApiDirectory.getAbsolutePath();
 
-
         if (processConfig.isDebugController() && "Controller".equals(componentId)) {
             commands.add("-m");
             commands.add("debugpy");
             commands.add("--listen");
             commands.add(processConfig.getDebugHost() + ":" + processConfig.getDebugPort());
-            commands.add("--log-to");
-            commands.add(processConfig.getDebugLogsDirectory().getAbsolutePath());
+            commands.add("--log-to-stderr");
 
             pythonPath = pythonPath + File.pathSeparator + virtualEnvHome.getAbsolutePath();
         }
@@ -241,12 +246,13 @@ public class PythonProcess {
         processBuilder.command(commands);
 
         processBuilder.environment().put("JAVA_PORT", String.valueOf(listeningPort));
-        processBuilder.environment().put("LOGS_DIR", pythonLogsDirectory.getAbsolutePath());
         processBuilder.environment().put("ENV_HOME", virtualEnvHome.getAbsolutePath());
         processBuilder.environment().put("PYTHONPATH", pythonPath);
         processBuilder.environment().put("PYTHON_CMD", pythonCommandFile.getAbsolutePath());
         processBuilder.environment().put("AUTH_TOKEN", authToken);
-        processBuilder.inheritIO();
+
+        // Redirect error stream to standard output stream
+        processBuilder.redirectErrorStream(true);
 
         logger.info("Launching Python Process {} {} with working directory {} to communicate with Java on Port {}",
             pythonCommand, controllerPyFile.getAbsolutePath(), virtualEnvHome, listeningPort);
@@ -357,6 +363,10 @@ public class PythonProcess {
             }
 
             process = null;
+        }
+
+        if (logReaderThread != null) {
+            logReaderThread.interrupt();
         }
     }
 

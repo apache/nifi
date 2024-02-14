@@ -15,6 +15,7 @@
 
 import logging
 import os
+import sys
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 from py4j.java_gateway import JavaGateway, CallbackServerParameters, GatewayParameters
@@ -36,9 +37,9 @@ logger.setLevel(logging.INFO)
 
 logging.getLogger("py4j").setLevel(logging.WARN)
 
-logsDir = os.getenv('LOGS_DIR')
-logging.basicConfig(filename=logsDir + '/nifi-python.log',
-                    format='%(asctime)s %(levelname)s %(name)s %(message)s',
+# Set log format with level number and separator as expected in PythonProcessReaderCommand
+logging.basicConfig(stream=sys.stdout,
+                    format='%(levelno)s %(name)s:%(message)s',
                     encoding='utf-8',
                     level=logging.INFO)
 
