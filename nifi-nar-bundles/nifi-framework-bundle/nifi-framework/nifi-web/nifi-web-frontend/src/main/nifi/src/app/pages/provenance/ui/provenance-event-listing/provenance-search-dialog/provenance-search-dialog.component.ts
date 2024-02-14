@@ -17,7 +17,7 @@
 
 import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
@@ -54,6 +54,7 @@ export class ProvenanceSearchDialog {
     public static readonly MAX_RESULTS: number = 1000;
     private static readonly DEFAULT_START_TIME: string = '00:00:00';
     private static readonly DEFAULT_END_TIME: string = '23:59:59';
+    private static readonly TIME_REGEX = /^([0-1]\d|2[0-3]):([0-5]\d):([0-5]\d)$/;
 
     provenanceOptionsForm: FormGroup;
 
@@ -106,9 +107,15 @@ export class ProvenanceSearchDialog {
 
         this.provenanceOptionsForm = this.formBuilder.group({
             startDate: new FormControl(startDate),
-            startTime: new FormControl(startTime),
+            startTime: new FormControl(startTime, [
+                Validators.required,
+                Validators.pattern(ProvenanceSearchDialog.TIME_REGEX)
+            ]),
             endDate: new FormControl(endDate),
-            endTime: new FormControl(endTime),
+            endTime: new FormControl(endTime, [
+                Validators.required,
+                Validators.pattern(ProvenanceSearchDialog.TIME_REGEX)
+            ]),
             minFileSize: new FormControl(minFileSize),
             maxFileSize: new FormControl(maxFileSize)
         });
