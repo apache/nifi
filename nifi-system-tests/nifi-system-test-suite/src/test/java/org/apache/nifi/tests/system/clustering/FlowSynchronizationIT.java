@@ -912,6 +912,49 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
     }
 
 
+    @Test
+    public void testReconnectWithRunningProcessorUnchanged() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorEntity generateFlowFile = getClientUtil().createProcessor("GenerateFlowFile");
+        final ProcessorEntity reverseContents = getClientUtil().createProcessor("ReverseContents");
+        final ProcessorEntity terminateFlowFile = getClientUtil().createProcessor("TerminateFlowFile");
+        getClientUtil().createConnection(generateFlowFile, reverseContents, "success");
+        getClientUtil().createConnection(reverseContents, terminateFlowFile, "success");
+
+        getClientUtil().waitForValidProcessor(generateFlowFile.getId());
+        getClientUtil().waitForValidProcessor(reverseContents.getId());
+        getClientUtil().waitForValidProcessor(terminateFlowFile.getId());
+
+        getClientUtil().startProcessor(reverseContents);
+
+        disconnectNode(2);
+        reconnectNode(2);
+        waitForAllNodesConnected();
+    }
+
+    @Test
+    public void testReconnectWithRunningProcessorUnchangedInChildGroup() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessGroupEntity group = getClientUtil().createProcessGroup("testReconnectWithRunningProcessorUnchangedInChildGroup", "root");
+        final ProcessorEntity generateFlowFile = getClientUtil().createProcessor("GenerateFlowFile", group.getId());
+        final ProcessorEntity reverseContents = getClientUtil().createProcessor("ReverseContents", group.getId());
+        final ProcessorEntity terminateFlowFile = getClientUtil().createProcessor("TerminateFlowFile", group.getId());
+        getClientUtil().createConnection(
+            getClientUtil().createConnectableDTO(generateFlowFile), getClientUtil().createConnectableDTO(reverseContents),
+            Collections.singleton("success"), group.getId());
+        getClientUtil().createConnection(getClientUtil().createConnectableDTO(reverseContents), getClientUtil().createConnectableDTO(terminateFlowFile),
+            Collections.singleton("success"), group.getId());
+
+        getClientUtil().waitForValidProcessor(generateFlowFile.getId());
+        getClientUtil().waitForValidProcessor(reverseContents.getId());
+        getClientUtil().waitForValidProcessor(terminateFlowFile.getId());
+
+        getClientUtil().startProcessor(reverseContents);
+
+        disconnectNode(2);
+        reconnectNode(2);
+        waitForAllNodesConnected();
+    }
+
+
     private VersionedDataflow getNode2Flow() throws IOException {
         final File instanceDir = getNiFiInstance().getNodeInstance(2).getInstanceDirectory();
         final File conf = new File(instanceDir, "conf");

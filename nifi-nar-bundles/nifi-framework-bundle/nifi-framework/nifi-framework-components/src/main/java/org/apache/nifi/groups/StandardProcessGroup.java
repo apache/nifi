@@ -3485,10 +3485,12 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             if (currentId == null) {
                 versionedComponentId.set(componentId);
+                LOG.info("Set Versioned Component ID of {} to {}", this, componentId);
             } else if (currentId.equals(componentId)) {
                 return;
             } else if (componentId == null) {
                 versionedComponentId.set(null);
+                LOG.info("Cleared Versioned Component ID for {}", this);
             } else {
                 throw new IllegalStateException(this + " is already under version control with a different Versioned Component ID");
             }

@@ -902,8 +902,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                     if (flowService != null && flowService.isRunning()) {
                         flowService.stop(false);
                     }
-                    logger.error("Unable to load flow due to: " + e, e);
-                    throw new Exception("Unable to load flow due to: " + e); // cannot wrap the exception as they are not defined in a classloader accessible to the caller
+                    logger.error("Failed to start Flow Service", e);
+                    throw new Exception("Failed to start Flow Service: " + e); // cannot wrap the exception as they are not defined in a classloader accessible to the caller
                 }
             }
 
@@ -1062,7 +1062,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private void startUpFailure(Throwable t) {
         System.err.println("Failed to start web server: " + t.getMessage());
         System.err.println("Shutting down...");
-        logger.warn("Failed to start web server... shutting down.", t);
+        logger.error("Failed to start web server... shutting down.", t);
         System.exit(1);
     }
 
