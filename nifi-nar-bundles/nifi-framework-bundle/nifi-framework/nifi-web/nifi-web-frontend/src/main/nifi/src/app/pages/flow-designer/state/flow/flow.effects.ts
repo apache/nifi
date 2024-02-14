@@ -1260,8 +1260,7 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.openEditRemoteProcessGroupDialog),
                 map((action) => action.request),
-                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
-                tap(([request, currentProcessGroupId]) => {
+                tap((request) => {
                     const editDialogReference = this.dialog.open(EditRemoteProcessGroup, {
                         data: request,
                         panelClass: 'large-dialog'
@@ -1284,17 +1283,10 @@ export class FlowEffects {
                             );
                         });
 
-                    editDialogReference.afterClosed().subscribe(() => {
+                    editDialogReference.afterClosed().subscribe((response) => {
                         this.store.dispatch(FlowActions.clearFlowApiError());
-                        if (request.entity.id === currentProcessGroupId) {
-                            this.store.dispatch(
-                                FlowActions.enterProcessGroup({
-                                    request: {
-                                        id: currentProcessGroupId
-                                    }
-                                })
-                            );
-                        } else {
+
+                        if (response != 'ROUTED') {
                             this.store.dispatch(
                                 FlowActions.selectComponents({
                                     request: {

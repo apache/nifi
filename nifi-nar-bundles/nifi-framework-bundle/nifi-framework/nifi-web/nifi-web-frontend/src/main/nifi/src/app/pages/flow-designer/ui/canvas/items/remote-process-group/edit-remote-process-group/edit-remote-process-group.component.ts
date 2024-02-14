@@ -25,10 +25,8 @@ import { AsyncPipe, NgIf } from '@angular/common';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable } from 'rxjs';
-import { TextTipInput } from '../../../../../../../state/shared';
 import { Client } from '../../../../../../../service/client.service';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
-import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
@@ -47,7 +45,6 @@ import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-b
         MatSelectModule,
         AsyncPipe,
         NifiSpinnerDirective,
-        NifiTooltipDirective,
         FormsModule,
         ErrorBanner
     ],
