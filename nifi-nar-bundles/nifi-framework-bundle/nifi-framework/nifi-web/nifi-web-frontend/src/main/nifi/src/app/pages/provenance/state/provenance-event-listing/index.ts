@@ -106,5 +106,5 @@ export interface ProvenanceEventListingState {
     activeProvenance: Provenance | null;
     completedProvenance: Provenance;
     loadedTimestamp: string;
-    status: 'pending' | 'loading' | 'success';
+    status: 'pending' | 'loading' | 'error' | 'success';
 }

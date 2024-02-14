@@ -22,6 +22,7 @@ import {
     deleteProvenanceQuerySuccess,
     loadProvenanceOptionsSuccess,
     pollProvenanceQuerySuccess,
+    provenanceApiError,
     resetProvenanceState,
     saveProvenanceRequest,
     submitProvenanceQuery,
@@ -96,5 +97,9 @@ export const provenanceEventListingReducer = createReducer(
     on(clearProvenanceRequest, (state) => ({
         ...state,
         request: null
+    })),
+    on(provenanceApiError, (state) => ({
+        ...state,
+        status: 'error' as const
     }))
 );

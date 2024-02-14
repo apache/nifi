@@ -19,6 +19,7 @@ import { createReducer, on } from '@ngrx/store';
 import { LineageState } from './index';
 import {
     deleteLineageQuerySuccess,
+    lineageApiError,
     pollLineageQuerySuccess,
     resetLineage,
     submitLineageQuery,
@@ -70,5 +71,9 @@ export const lineageReducer = createReducer(
     on(deleteLineageQuerySuccess, (state) => ({
         ...state,
         activeLineage: null
+    })),
+    on(lineageApiError, (state) => ({
+        ...state,
+        status: 'error' as const
     }))
 );
