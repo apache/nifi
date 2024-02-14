@@ -182,7 +182,14 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
         leaderRole.getElectionListener().disable();
 
-        leaderSelector.close();
+        try {
+            leaderSelector.close();
+        } catch (final Exception e) {
+            // LeaderSelector will throw an IllegalStateException if it is not in the STARTED state.
+            // However, it exposes no method to check its state, so we have to catch the exception and ignore it.
+            logger.debug("Failed to close Leader Selector when unregistering for Role '{}'", roleName, e);
+        }
+
         logger.info("This node is no longer registered to be elected as the Leader for Role '{}'", roleName);
     }
 

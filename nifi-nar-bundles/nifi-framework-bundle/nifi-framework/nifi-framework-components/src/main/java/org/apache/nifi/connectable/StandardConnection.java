@@ -307,7 +307,7 @@ public final class StandardConnection implements Connection, ConnectionEventList
         }
 
         if (previousDestination.isRunning() && !(previousDestination instanceof Funnel || previousDestination instanceof LocalPort)) {
-            throw new IllegalStateException("Cannot change destination of Connection because the current destination is running");
+            throw new IllegalStateException(String.format("Cannot change destination of Connection because the current destination ([%s]) is running", previousDestination));
         }
 
         if (getFlowFileQueue().isUnacknowledgedFlowFile()) {

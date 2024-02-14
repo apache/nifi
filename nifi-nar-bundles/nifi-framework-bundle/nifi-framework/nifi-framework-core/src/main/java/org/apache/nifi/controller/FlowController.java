@@ -2504,8 +2504,17 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     }
 
     public void onClusterDisconnect() {
-        leaderElectionManager.unregister(ClusterRoles.PRIMARY_NODE);
-        leaderElectionManager.unregister(ClusterRoles.CLUSTER_COORDINATOR);
+        try {
+            leaderElectionManager.unregister(ClusterRoles.PRIMARY_NODE);
+        } catch (final Exception e) {
+            LOG.warn("Failed to unregister this node as a Primary Node candidate", e);
+        }
+
+        try {
+            leaderElectionManager.unregister(ClusterRoles.CLUSTER_COORDINATOR);
+        } catch (final Exception e) {
+            LOG.warn("Failed to unregister this node as a Cluster Coordinator candidate", e);
+        }
     }
 
     public LeaderElectionManager getLeaderElectionManager() {

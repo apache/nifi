@@ -696,6 +696,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 connectionsWithTempDestination.add(proposedConnection.getIdentifier());
             }
 
+            LOG.debug("Changing destination of Connection {} from {} to {}", connection, connection.getDestination(), newDestination);
             connection.setDestination(newDestination);
         }
 
@@ -727,6 +728,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private boolean isTempDestinationNecessary(final Connection existingConnection, final VersionedConnection proposedConnection, final Connectable newDestination) {
         if (newDestination == null) {
+            LOG.debug("Will use a temporary destination for {} because its destination doesn't yet exist", existingConnection);
             return true;
         }
 
@@ -735,24 +737,49 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final boolean port = connectableType == ConnectableType.OUTPUT_PORT || connectableType == ConnectableType.INPUT_PORT;
         final boolean groupChanged = !newDestination.getProcessGroup().equals(existingConnection.getProcessGroup());
         if (port && groupChanged) {
+            LOG.debug("Will use a temporary destination for {} because its destination is a port whose group has changed", existingConnection);
             return true;
         }
 
         // If the proposed destination has a different group than the existing group, use a temp destination.
         final String proposedDestinationGroupId = proposedConnection.getDestination().getGroupId();
-        final String destinationGroupVersionedComponentId = existingConnection.getDestination().getProcessGroup().getVersionedComponentId().orElse(null);
+        final String destinationGroupVersionedComponentId = getVersionedId(existingConnection.getDestination().getProcessGroup());
         if (!Objects.equals(proposedDestinationGroupId, destinationGroupVersionedComponentId)) {
+            LOG.debug("Will use a temporary destination for {} because its destination has a different group than the existing group. " +
+                      "Existing group ID is [{}] (instance ID of [{}]); proposed is [{}]",
+                existingConnection, destinationGroupVersionedComponentId, existingConnection.getProcessGroup().getIdentifier(), proposedDestinationGroupId);
             return true;
         }
 
         // If the proposed connection exists in a different group than the existing group, use a temp destination.
-        final String connectionGroupVersionedComponentId = existingConnection.getProcessGroup().getVersionedComponentId().orElse(null);
+        final String connectionGroupVersionedComponentId = getVersionedId(existingConnection.getProcessGroup());
         final String proposedGroupId = proposedConnection.getGroupIdentifier();
         if (!Objects.equals(proposedGroupId, connectionGroupVersionedComponentId)) {
+            LOG.debug("Will use a temporary destination for {} because it has a different group than the existing group. Existing group ID is [{}]; proposed is [{}]",
+                existingConnection, connectionGroupVersionedComponentId, proposedGroupId);
             return true;
         }
 
         return false;
+    }
+
+    private String getVersionedId(final ProcessGroup processGroup) {
+        return getVersionedId(processGroup.getIdentifier(), processGroup.getVersionedComponentId().orElse(null));
+    }
+
+    /**
+     * Determines the Versioned Component ID to use for a component by first using the Versioned ID if it is already available. Otherwise,
+     * use the Component ID Lookup to determine the Versioned ID based on the Instance ID. This allows us to ensure that when we sync the dataflow,
+     * we use the same approach to mapping as we will use when we write out the dataflow.
+     *
+     * @return the Versioned Component ID to use for the component
+     */
+    private String getVersionedId(final String instanceId, final String versionedId) {
+        if (versionedId != null) {
+            return versionedId;
+        }
+
+        return this.context.getFlowMappingOptions().getComponentIdLookup().getComponentId(Optional.empty(), instanceId);
     }
 
     private Funnel getTemporaryFunnel(final ProcessGroup group) {
