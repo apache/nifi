@@ -103,7 +103,7 @@ public class TestListS3 {
 
     @Test
     public void testList() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "eu-west-1");
+        runner.setProperty(RegionUtilV1.REGION, "eu-west-1");
         runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
 
         Date lastModified = new Date();
@@ -155,7 +155,7 @@ public class TestListS3 {
 
     @Test
     public void testListWithRecords() throws InitializationException {
-        runner.setProperty(RegionUtilV1.S3_REGION, "eu-west-1");
+        runner.setProperty(RegionUtilV1.REGION, "eu-west-1");
         runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
 
         final MockRecordWriter recordWriter = new MockRecordWriter(null, false);
@@ -206,7 +206,7 @@ public class TestListS3 {
 
     @Test
     public void testListWithRequesterPays() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "eu-west-1");
+        runner.setProperty(RegionUtilV1.REGION, "eu-west-1");
         runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.REQUESTER_PAYS, "true");
 
@@ -252,7 +252,7 @@ public class TestListS3 {
 
     @Test
     public void testListWithRequesterPays_invalid() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "eu-west-1");
+        runner.setProperty(RegionUtilV1.REGION, "eu-west-1");
         runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.USE_VERSIONS, "true"); // requester pays cannot be used with versions
         runner.setProperty(ListS3.REQUESTER_PAYS, "true");
@@ -262,7 +262,7 @@ public class TestListS3 {
 
     @Test
     public void testListVersion2() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "eu-west-1");
+        runner.setProperty(RegionUtilV1.REGION, "eu-west-1");
         runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.LIST_TYPE, "2");
 
@@ -308,7 +308,7 @@ public class TestListS3 {
 
     @Test
     public void testListVersion2WithRequesterPays() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "eu-west-1");
+        runner.setProperty(RegionUtilV1.REGION, "eu-west-1");
         runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.REQUESTER_PAYS, "true");
         runner.setProperty(ListS3.LIST_TYPE, "2");
@@ -355,7 +355,7 @@ public class TestListS3 {
 
     @Test
     public void testListVersions() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "eu-west-1");
+        runner.setProperty(RegionUtilV1.REGION, "eu-west-1");
         runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.USE_VERSIONS, "true");
 
@@ -399,7 +399,7 @@ public class TestListS3 {
 
     @Test
     public void testListObjectsNothingNew() throws IOException {
-        runner.setProperty(RegionUtilV1.S3_REGION, "eu-west-1");
+        runner.setProperty(RegionUtilV1.REGION, "eu-west-1");
         runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
 
         Calendar calendar = Calendar.getInstance();
@@ -435,7 +435,7 @@ public class TestListS3 {
 
     @Test
     public void testListIgnoreByMinAge() throws IOException {
-        runner.setProperty(RegionUtilV1.S3_REGION, "eu-west-1");
+        runner.setProperty(RegionUtilV1.REGION, "eu-west-1");
         runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.MIN_AGE, "30 sec");
 
@@ -486,7 +486,7 @@ public class TestListS3 {
 
     @Test
     public void testListIgnoreByMaxAge() throws IOException {
-        runner.setProperty(RegionUtilV1.S3_REGION, "eu-west-1");
+        runner.setProperty(RegionUtilV1.REGION, "eu-west-1");
         runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.MAX_AGE, "30 sec");
         Date lastModifiedNow = new Date();
@@ -534,7 +534,7 @@ public class TestListS3 {
 
     @Test
     public void testWriteObjectTags() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "eu-west-1");
+        runner.setProperty(RegionUtilV1.REGION, "eu-west-1");
         runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.WRITE_OBJECT_TAGS, "true");
 
@@ -561,7 +561,7 @@ public class TestListS3 {
 
     @Test
     public void testWriteUserMetadata() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "eu-west-1");
+        runner.setProperty(RegionUtilV1.REGION, "eu-west-1");
         runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.WRITE_USER_METADATA, "true");
 
@@ -589,7 +589,7 @@ public class TestListS3 {
 
     @Test
     public void testNoTrackingList() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "eu-west-1");
+        runner.setProperty(RegionUtilV1.REGION, "eu-west-1");
         runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(ListS3.LISTING_STRATEGY, ListS3.NO_TRACKING);
 
@@ -677,7 +677,7 @@ public class TestListS3 {
 
         assertEquals(TEST_TIMESTAMP, listS3.getListingSnapshot().getTimestamp());
 
-        runner.setProperty(RegionUtilV1.S3_REGION, Regions.EU_CENTRAL_1.getName());
+        runner.setProperty(RegionUtilV1.REGION, Regions.EU_CENTRAL_1.getName());
 
         assertTrue(listS3.isResetTracking());
 

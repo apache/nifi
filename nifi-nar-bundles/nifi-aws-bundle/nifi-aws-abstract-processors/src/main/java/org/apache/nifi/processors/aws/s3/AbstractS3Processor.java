@@ -64,7 +64,7 @@ import static org.apache.nifi.processors.aws.signer.AwsSignerType.CUSTOM_SIGNER;
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.DEFAULT_SIGNER;
 import static org.apache.nifi.processors.aws.util.RegionUtilV1.ATTRIBUTE_DEFINED_REGION;
 import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
-import static org.apache.nifi.processors.aws.util.RegionUtilV1.resolveRegion;
+import static org.apache.nifi.processors.aws.util.RegionUtilV1.resolveS3Region;
 
 public abstract class AbstractS3Processor extends AbstractAWSCredentialsProviderProcessor<AmazonS3Client> {
 
@@ -280,7 +280,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
      * @return The created S3 client
      */
     protected AmazonS3Client getS3Client(final ProcessContext context, final Map<String, String> attributes) {
-        final Region region = resolveRegion(context, attributes);
+        final Region region = resolveS3Region(context, attributes);
         return getClient(context, region);
     }
 
@@ -291,7 +291,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
      * @return The newly created S3 client
      */
     protected AmazonS3Client createClient(final ProcessContext context, final Map<String, String> attributes) {
-        final Region region = resolveRegion(context, attributes);
+        final Region region = resolveS3Region(context, attributes);
         return createClient(context, region);
     }
 

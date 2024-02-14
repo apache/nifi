@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.aws.s3;
+package org.apache.nifi.processors.aws.s3.service;
 
 import com.amazonaws.SdkClientException;
 import com.amazonaws.auth.AWSCredentialsProvider;
@@ -38,13 +38,15 @@ import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.fileresource.service.api.FileResourceService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
+import org.apache.nifi.processors.aws.s3.AbstractS3Processor;
+import org.apache.nifi.processors.aws.s3.FetchS3Object;
 import org.apache.nifi.processors.aws.util.RegionUtilV1;
 
 import java.util.List;
 import java.util.Map;
 
 import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
-import static org.apache.nifi.processors.aws.util.RegionUtilV1.resolveRegion;
+import static org.apache.nifi.processors.aws.util.RegionUtilV1.resolveS3Region;
 import static org.apache.nifi.util.StringUtils.isBlank;
 
 @Tags({"Amazon", "S3", "AWS", "file", "resource"})
@@ -55,10 +57,9 @@ import static org.apache.nifi.util.StringUtils.isBlank;
                 "The service provides higher performance compared to fetch processors when the data should be moved between different storages without any transformation.",
         configuration = """
                 "Bucket" = "${s3.bucket}"
-                "Name" = "${filename}"
+                "Object Key" = "${filename}"
 
                 The "Region" property must be set to denote the S3 region that the Bucket resides in.
-                If the flow being built is to be reused elsewhere, it's a good idea to parameterize this property by setting it to something like #{S3_REGION}.
 
                 The "AWS Credentials Provider Service" property should specify an instance of the AWSCredentialsProviderService in order to provide credentials for accessing the bucket.
                 """
@@ -144,7 +145,7 @@ public class S3FileResourceService extends AbstractControllerService implements 
     }
 
     protected AmazonS3 getS3Client(Map<String, String> attributes, AWSCredentialsProvider credentialsProvider) {
-        final Region region = resolveRegion(context, attributes);
+        final Region region = resolveS3Region(context, attributes);
         return clientCache.get(region, ignored -> AmazonS3Client.builder()
                 .withRegion(region.getName())
                 .withCredentials(credentialsProvider)

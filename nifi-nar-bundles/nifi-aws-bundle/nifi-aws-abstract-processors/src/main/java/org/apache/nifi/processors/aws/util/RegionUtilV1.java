@@ -24,8 +24,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processor.exception.ProcessException;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -55,7 +54,32 @@ public final class RegionUtilV1 {
             .allowableValues(getAvailableS3Regions())
             .build();
 
-    public static Region parseRegionValue(String regionValue) {
+    public static Region resolveS3Region(final PropertyContext context, final Map<String, String> attributes) {
+        String regionValue = context.getProperty(S3_REGION).getValue();
+
+        if (ATTRIBUTE_DEFINED_REGION.getValue().equals(regionValue)) {
+            regionValue = attributes.get(S3_REGION_ATTRIBUTE);
+        }
+
+        return parseS3RegionValue(regionValue);
+    }
+
+    public static AllowableValue[] getAvailableS3Regions() {
+        final AllowableValue[] availableRegions = getAvailableRegions();
+        return ArrayUtils.add(availableRegions, ATTRIBUTE_DEFINED_REGION);
+    }
+
+    public static AllowableValue createAllowableValue(final Regions region) {
+        return new AllowableValue(region.getName(), region.getDescription(), "AWS Region Code : " + region.getName());
+    }
+
+    public static AllowableValue[] getAvailableRegions() {
+        return Arrays.stream(Regions.values())
+                .map(RegionUtilV1::createAllowableValue)
+                .toArray(AllowableValue[]::new);
+    }
+
+    private static Region parseS3RegionValue(String regionValue) {
         if (regionValue == null) {
             throw new ProcessException(String.format("[%s] was selected as region source but [%s] attribute does not exist", ATTRIBUTE_DEFINED_REGION, S3_REGION_ATTRIBUTE));
         }
@@ -65,33 +89,6 @@ public final class RegionUtilV1 {
         } catch (Exception e) {
             throw new ProcessException(String.format("The [%s] attribute contains an invalid region value [%s]", S3_REGION_ATTRIBUTE, regionValue), e);
         }
-    }
-
-    public static Region resolveRegion(final PropertyContext context, final Map<String, String> attributes) {
-        String regionValue = context.getProperty(S3_REGION).getValue();
-
-        if (ATTRIBUTE_DEFINED_REGION.getValue().equals(regionValue)) {
-            regionValue = attributes.get(S3_REGION_ATTRIBUTE);
-        }
-
-        return parseRegionValue(regionValue);
-    }
-
-    public static AllowableValue[] getAvailableS3Regions() {
-        final AllowableValue[] availableRegions = getAvailableRegions();
-        return ArrayUtils.addAll(availableRegions, ATTRIBUTE_DEFINED_REGION);
-    }
-
-    public static AllowableValue createAllowableValue(final Regions region) {
-        return new AllowableValue(region.getName(), region.getDescription(), "AWS Region Code : " + region.getName());
-    }
-
-    public static AllowableValue[] getAvailableRegions() {
-        final List<AllowableValue> values = new ArrayList<>();
-        for (final Regions region : Regions.values()) {
-            values.add(createAllowableValue(region));
-        }
-        return values.toArray(new AllowableValue[0]);
     }
 
 }
