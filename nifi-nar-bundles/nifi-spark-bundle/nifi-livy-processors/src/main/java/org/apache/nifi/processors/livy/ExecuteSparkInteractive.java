@@ -44,6 +44,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.api.livy.exception.SessionManagerException;
@@ -64,6 +65,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.apache.nifi.controller.api.livy.LivySessionService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 
+@DeprecationNotice(reason = "Unmaintained and planned for removal in version 2.0")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"spark", "livy", "http", "execute"})
 @CapabilityDescription("Execute Spark Code over a Livy-managed HTTP session to a live Spark context. Supports cached RDD sharing.")
