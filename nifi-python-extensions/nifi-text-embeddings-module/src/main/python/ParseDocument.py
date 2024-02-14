@@ -51,8 +51,8 @@ class ParseDocument(FlowFileTransform):
             Note that use of this Processor may require significant storage space and RAM utilization due to third-party dependencies necessary for processing PDF and image files.
             Also note that in order to process PDF or Images, Tesseract and Poppler must be installed on the system."""
         tags = ["text", "embeddings", "vector", "machine learning", "ML", "artificial intelligence", "ai", "document", "langchain", "pdf", "html", "markdown", "word", "excel", "powerpoint"]
-        dependencies = ['pikepdf', 'pypdf', 'langchain', 'unstructured', 'unstructured-inference', 'unstructured_pytesseract', 'numpy',
-                        'opencv-python', 'pdf2image', 'pdfminer.six', 'python-docx', 'openpyxl', 'python-pptx']
+        dependencies = ['pikepdf==8.12.0', 'pypdf==4.0.1', 'langchain==0.1.7', 'unstructured==0.12.4', 'unstructured-inference==0.7.24', 'unstructured_pytesseract==0.3.12', 'pillow-heif==0.15.0',
+                        'numpy==1.26.4','opencv-python==4.9.0.80', 'pdf2image==1.17.0', 'pdfminer.six==20221105', 'python-docx==1.1.0', 'openpyxl==3.1.2', 'python-pptx==0.6.23']
 
 
     INPUT_FORMAT = PropertyDescriptor(
