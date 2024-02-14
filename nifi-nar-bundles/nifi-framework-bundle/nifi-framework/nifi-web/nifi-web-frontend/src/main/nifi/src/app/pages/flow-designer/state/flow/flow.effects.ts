@@ -398,6 +398,19 @@ export class FlowEffects {
 
                             if (rpgToPoll.refreshTimestamp !== response.component.flowRefreshed) {
                                 this.store.dispatch(FlowActions.stopRemoteProcessGroupPolling());
+
+                                // reload the group's connections
+                                const connections = this.canvasUtils.getComponentConnections(entity.id);
+                                connections.forEach((connection) => {
+                                    if (connection.permissions.canRead) {
+                                        FlowActions.loadConnectionSuccess({
+                                            response: {
+                                                id: connection.id,
+                                                connection
+                                            }
+                                        });
+                                    }
+                                });
                             } else {
                                 entity.component.flowRefreshed = 'Refreshing...';
                             }
