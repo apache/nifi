@@ -91,7 +91,7 @@
                         </div>
                     </form>
                 </div>
-                <div class="purge flex align-middle" *ngIf="(currentUser$ | async)?.controllerPermissions?.canWrite">
+                <div class="mt-4" *ngIf="(currentUser$ | async)?.controllerPermissions?.canWrite">
                     <button class="nifi-button" (click)="purgeHistoryClicked()">
                         <i class="fa fa-eraser"></i>
                     </button>

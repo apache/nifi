@@ -81,7 +81,6 @@ export class FlowConfigurationHistoryListing implements OnInit, OnDestroy {
     private destroyRef = inject(DestroyRef);
 
     historyListingState$ = this.store.select(selectFlowConfigurationHistoryListingState);
-    historyQuery$ = this.store.select(selectHistoryQuery);
     selectedHistoryId$ = this.store.select(selectedHistoryItem);
     queryRequest$ = this.store.select(selectHistoryQuery);
     about$ = this.store.select(selectAbout);
