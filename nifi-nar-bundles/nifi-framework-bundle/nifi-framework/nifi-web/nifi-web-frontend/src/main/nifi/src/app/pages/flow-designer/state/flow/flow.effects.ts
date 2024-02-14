@@ -43,7 +43,6 @@ import {
     ImportFromRegistryDialogRequest,
     LoadProcessGroupRequest,
     LoadProcessGroupResponse,
-    RefreshRemoteProcessGroupRequest,
     Snippet,
     UpdateComponentFailure,
     UpdateComponentResponse,
@@ -99,7 +98,6 @@ import { ImportFromRegistry } from '../../ui/canvas/items/flow/import-from-regis
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dialog/no-registry-clients-dialog.component';
 import { EditRemoteProcessGroup } from '../../ui/canvas/items/remote-process-group/edit-remote-process-group/edit-remote-process-group.component';
-import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 
 @Injectable()
@@ -368,7 +366,7 @@ export class FlowEffects {
     startRemoteProcessGroupPolling$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.startRemoteProcessGroupPolling),
-            switchMap((request) => {
+            switchMap(() => {
                 return interval(3000, asyncScheduler).pipe(
                     takeUntil(this.actions$.pipe(ofType(FlowActions.stopRemoteProcessGroupPolling)))
                 );
