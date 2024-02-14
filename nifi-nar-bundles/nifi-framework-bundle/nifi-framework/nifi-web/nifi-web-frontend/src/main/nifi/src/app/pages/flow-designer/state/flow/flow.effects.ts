@@ -95,7 +95,7 @@ import { RegistryService } from '../../service/registry.service';
 import { ImportFromRegistry } from '../../ui/canvas/items/flow/import-from-registry/import-from-registry.component';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dialog/no-registry-clients-dialog.component';
-import { showOkDialog } from './flow.actions';
+import { EditRemoteProcessGroup } from '../../ui/canvas/items/remote-process-group/edit-remote-process-group/edit-remote-process-group.component';
 
 @Injectable()
 export class FlowEffects {
@@ -348,7 +348,10 @@ export class FlowEffects {
                         this.flowService.goToRemoteProcessGroup(request);
                     } else {
                         this.store.dispatch(
-                            showOkDialog({ title: 'Remote Process Group', message: 'No target URI defined.' })
+                            FlowActions.showOkDialog({
+                                title: 'Remote Process Group',
+                                message: 'No target URI defined.'
+                            })
                         );
                     }
                 })
@@ -926,6 +929,8 @@ export class FlowEffects {
                         return of(FlowActions.openEditConnectionDialog({ request }));
                     case ComponentType.ProcessGroup:
                         return of(FlowActions.openEditProcessGroupDialog({ request }));
+                    case ComponentType.RemoteProcessGroup:
+                        return of(FlowActions.openEditRemoteProcessGroupDialog({ request }));
                     case ComponentType.InputPort:
                     case ComponentType.OutputPort:
                         return of(FlowActions.openEditPortDialog({ request }));
@@ -1231,6 +1236,57 @@ export class FlowEffects {
                                 })
                             );
                         } else {
+                            this.store.dispatch(
+                                FlowActions.selectComponents({
+                                    request: {
+                                        components: [
+                                            {
+                                                id: request.entity.id,
+                                                componentType: request.type
+                                            }
+                                        ]
+                                    }
+                                })
+                            );
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openEditRemoteProcessGroupDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openEditRemoteProcessGroupDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const editDialogReference = this.dialog.open(EditRemoteProcessGroup, {
+                        data: request,
+                        panelClass: 'large-dialog'
+                    });
+
+                    editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+
+                    editDialogReference.componentInstance.editRemoteProcessGroup
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((payload: any) => {
+                            this.store.dispatch(
+                                FlowActions.updateComponent({
+                                    request: {
+                                        id: request.entity.id,
+                                        uri: request.uri,
+                                        type: request.type,
+                                        payload
+                                    }
+                                })
+                            );
+                        });
+
+                    editDialogReference.afterClosed().subscribe((response) => {
+                        this.store.dispatch(FlowActions.clearFlowApiError());
+
+                        if (response != 'ROUTED') {
                             this.store.dispatch(
                                 FlowActions.selectComponents({
                                     request: {
