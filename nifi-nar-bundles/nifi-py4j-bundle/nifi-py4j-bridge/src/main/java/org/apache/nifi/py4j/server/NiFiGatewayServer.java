@@ -24,6 +24,7 @@ import py4j.commands.Command;
 
 import javax.net.ServerSocketFactory;
 import java.io.IOException;
+import java.lang.Thread.Builder.OfVirtual;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.Collections;
@@ -41,6 +42,7 @@ public class NiFiGatewayServer extends GatewayServer {
     private final String componentType;
     private final String componentId;
     private final String authToken;
+    private final ClassLoader contextClassLoader;
 
     public NiFiGatewayServer(final Gateway gateway,
                              final int port,
@@ -56,6 +58,7 @@ public class NiFiGatewayServer extends GatewayServer {
         this.componentType = componentType;
         this.componentId = componentId;
         this.authToken = authToken;
+        this.contextClassLoader = getClass().getClassLoader();
     }
 
     protected Py4JServerConnection createConnection(final Gateway gateway, final Socket socket) throws IOException {
@@ -84,11 +87,19 @@ public class NiFiGatewayServer extends GatewayServer {
 
     @Override
     public void run() {
-        if (startProcessForked) {
-            Thread.currentThread().setName("NiFiGatewayServer Thread for " + componentType + " " + componentId);
-        }
+        final ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(this.contextClassLoader);
+            if (startProcessForked) {
+                Thread.currentThread().setName("NiFiGatewayServer Thread for " + componentType + " " + componentId);
+            }
 
-        super.run();
+            super.run();
+        } finally {
+            if (originalClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(originalClassLoader);
+            }
+        }
     }
 
     @Override

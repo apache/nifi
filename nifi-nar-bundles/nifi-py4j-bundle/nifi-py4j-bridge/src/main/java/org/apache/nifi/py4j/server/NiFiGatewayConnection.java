@@ -70,6 +70,7 @@ public class NiFiGatewayConnection extends GatewayConnection {
 
     private final NiFiGatewayServer gatewayServer;
     private volatile boolean poisoned = false;
+    private final ClassLoader contextClassLoader;
 
     public NiFiGatewayConnection(final NiFiGatewayServer gatewayServer,
                                  final Gateway gateway,
@@ -79,6 +80,7 @@ public class NiFiGatewayConnection extends GatewayConnection {
                                  final List<GatewayServerListener> listeners) throws IOException {
         super(gateway, socket, authToken, customCommands, listeners);
         this.gatewayServer = gatewayServer;
+        this.contextClassLoader = getClass().getClassLoader();
     }
 
     private boolean isContinue() {
@@ -87,12 +89,21 @@ public class NiFiGatewayConnection extends GatewayConnection {
 
     @Override
     public void run() {
-        Thread.currentThread().setName(String.format("NiFiGatewayConnection Thread for %s %s", gatewayServer.getComponentType(), gatewayServer.getComponentId()));
-        while (isContinue()) {
-            super.run();
-        }
+        final ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(this.contextClassLoader);
 
-        shutdown(false);
+            Thread.currentThread().setName(String.format("NiFiGatewayConnection Thread for %s %s", gatewayServer.getComponentType(), gatewayServer.getComponentId()));
+            while (isContinue()) {
+                super.run();
+            }
+
+            shutdown(false);
+        } finally {
+            if (originalClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(originalClassLoader);
+            }
+        }
     }
 
     protected void quietSendFatalError(final BufferedWriter writer, final Throwable exception) {
