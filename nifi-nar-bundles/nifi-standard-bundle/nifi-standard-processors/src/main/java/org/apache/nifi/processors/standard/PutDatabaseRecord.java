@@ -183,7 +183,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
     static final PropertyDescriptor STATEMENT_TYPE_RECORD_PATH = new Builder()
         .name("Statement Type Record Path")
         .displayName("Statement Type Record Path")
-        .description("Specifies a RecordPath to evaluate against each Record in order to determine the Statement Type. The RecordPath should equate to either INSERT, UPDATE, UPSERT, or DELETE.")
+        .description("Specifies a RecordPath to evaluate against each Record in order to determine the Statement Type. The RecordPath should equate to either INSERT, UPDATE, UPSERT, or DELETE. "
+                + "(Debezium style operation types are also supported: \"r\" and \"c\" for INSERT, \"u\" for UPDATE, and \"d\" for DELETE)")
         .required(true)
         .addValidator(new RecordPathValidator())
         .expressionLanguageSupported(NONE)
@@ -1555,6 +1556,13 @@ public class PutDatabaseRecord extends AbstractProcessor {
                 case DELETE_TYPE:
                 case UPSERT_TYPE:
                     return resultValue;
+                case "C":
+                case "R":
+                    return INSERT_TYPE;
+                case "U":
+                    return UPDATE_TYPE;
+                case "D":
+                    return DELETE_TYPE;
             }
 
             throw new ProcessException("Evaluated RecordPath " + recordPath.getPath() + " against Record to determine Statement Type but found invalid value: " + resultValue);

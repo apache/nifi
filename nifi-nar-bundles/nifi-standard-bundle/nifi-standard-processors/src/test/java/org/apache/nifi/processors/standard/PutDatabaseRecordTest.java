@@ -1311,9 +1311,10 @@ public class PutDatabaseRecordTest {
         // CREATE, CREATE, CREATE, DELETE, UPDATE
         parser.addRecord("INSERT", new MapRecord(dataSchema, createValues(1, "John Doe", 55)));
         parser.addRecord("INSERT", new MapRecord(dataSchema, createValues(2, "Jane Doe", 44)));
-        parser.addRecord("INSERT", new MapRecord(dataSchema, createValues(3, "Jim Doe", 2)));
+        parser.addRecord("c", new MapRecord(dataSchema, createValues(3, "Jim Doe", 2)));
         parser.addRecord("DELETE", new MapRecord(dataSchema, createValues(2, "Jane Doe", 44)));
         parser.addRecord("UPDATE", new MapRecord(dataSchema, createValues(1, "John Doe", 201)));
+        parser.addRecord("u", new MapRecord(dataSchema, createValues(3, "Jim Doe", 20)));
 
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.USE_RECORD_PATH);
@@ -1337,7 +1338,7 @@ public class PutDatabaseRecordTest {
         assertTrue(rs.next());
         assertEquals(3, rs.getInt(1));
         assertEquals("Jim Doe", rs.getString(2));
-        assertEquals(2, rs.getInt(3));
+        assertEquals(20, rs.getInt(3));
         assertFalse(rs.next());
 
         stmt.close();
