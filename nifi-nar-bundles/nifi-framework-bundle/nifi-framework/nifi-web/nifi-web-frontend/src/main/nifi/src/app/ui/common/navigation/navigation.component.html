@@ -136,7 +136,7 @@
                             <mat-divider></mat-divider>
                         }
                     }
-                    <button mat-menu-item class="global-menu-item">
+                    <button mat-menu-item class="global-menu-item" [routerLink]="['/documentation']">
                         <i class="fa fa-fw fa-question-circle mr-2"></i>
                         Help
                     </button>
@@ -144,7 +144,10 @@
                         <i class="fa fa-fw fa-info-circle mr-2"></i>
                         About
                     </button>
-                    <button mat-menu-item [matMenuTriggerFor]="theming">Appearance</button>
+                    <button mat-menu-item [matMenuTriggerFor]="theming">
+                        <i class="fa fa-fw mr-2"></i>
+                        Appearance
+                    </button>
                 </mat-menu>
                 <mat-menu #theming="matMenu" xPosition="before">
                     <button mat-menu-item class="global-menu-item" (click)="toggleTheme(LIGHT_THEME)">

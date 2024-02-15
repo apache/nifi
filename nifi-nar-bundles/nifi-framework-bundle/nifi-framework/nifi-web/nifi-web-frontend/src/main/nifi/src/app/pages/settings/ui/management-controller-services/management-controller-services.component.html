@@ -40,6 +40,7 @@
                         [canModifyParent]="canModifyParent(currentUser)"
                         [flowConfiguration]="(flowConfiguration$ | async)!"
                         (selectControllerService)="selectControllerService($event)"
+                        (viewControllerServiceDocumentation)="viewControllerServiceDocumentation($event)"
                         (configureControllerService)="configureControllerService($event)"
                         (enableControllerService)="enableControllerService($event)"
                         (disableControllerService)="disableControllerService($event)"

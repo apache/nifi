@@ -29,6 +29,12 @@ const routes: Routes = [
         loadChildren: () => import('./pages/error/feature/error.module').then((m) => m.ErrorModule)
     },
     {
+        path: 'documentation',
+        canMatch: [authenticationGuard],
+        loadChildren: () =>
+            import('./pages/documentation/feature/documentation.module').then((m) => m.DocumentationModule)
+    },
+    {
         path: 'settings',
         canMatch: [authenticationGuard],
         loadChildren: () => import('./pages/settings/feature/settings.module').then((m) => m.SettingsModule)

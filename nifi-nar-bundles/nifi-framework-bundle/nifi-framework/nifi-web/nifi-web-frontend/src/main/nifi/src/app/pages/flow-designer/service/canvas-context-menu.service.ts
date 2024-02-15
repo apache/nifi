@@ -57,6 +57,7 @@ import {
 } from '../../../ui/common/context-menu/context-menu.component';
 import { promptEmptyQueueRequest, promptEmptyQueuesRequest } from '../state/queue/queue.actions';
 import { getComponentStateAndOpenDialog } from '../../../state/component-state/component-state.actions';
+import { navigateToComponentDocumentation } from '../../../state/documentation/documentation.actions';
 
 @Injectable({ providedIn: 'root' })
 export class CanvasContextMenu implements ContextMenuDefinitionProvider {
@@ -717,13 +718,26 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
             },
             {
                 condition: (selection: any) => {
-                    // TODO - hasUsage
-                    return false;
+                    return (
+                        this.canvasUtils.canRead(selection) &&
+                        selection.size() === 1 &&
+                        this.canvasUtils.isProcessor(selection)
+                    );
                 },
                 clazz: 'fa fa-book',
-                text: 'View usage',
-                action: () => {
-                    // TODO - showUsage
+                text: 'View documentation',
+                action: (selection: any) => {
+                    const selectionData = selection.datum();
+                    this.store.dispatch(
+                        navigateToComponentDocumentation({
+                            params: {
+                                select: selectionData.component.type,
+                                group: selectionData.component.bundle.group,
+                                artifact: selectionData.component.bundle.artifact,
+                                version: selectionData.component.bundle.version
+                            }
+                        })
+                    );
                 }
             },
             {

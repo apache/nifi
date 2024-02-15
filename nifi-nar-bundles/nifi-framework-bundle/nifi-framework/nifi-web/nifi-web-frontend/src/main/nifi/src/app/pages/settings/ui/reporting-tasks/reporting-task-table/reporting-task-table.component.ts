@@ -49,6 +49,8 @@ export class ReportingTaskTable {
     @Input() currentUser!: CurrentUser;
 
     @Output() selectReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
+    @Output() viewReportingTaskDocumentation: EventEmitter<ReportingTaskEntity> =
+        new EventEmitter<ReportingTaskEntity>();
     @Output() deleteReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() startReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
     @Output() configureReportingTask: EventEmitter<ReportingTaskEntity> = new EventEmitter<ReportingTaskEntity>();
@@ -77,6 +79,11 @@ export class ReportingTaskTable {
             return true;
         }
         return !!entity.operatePermissions?.canWrite;
+    }
+
+    viewDocumentationClicked(entity: ReportingTaskEntity, event: MouseEvent): void {
+        event.stopPropagation();
+        this.viewReportingTaskDocumentation.next(entity);
     }
 
     hasComments(entity: ReportingTaskEntity): boolean {

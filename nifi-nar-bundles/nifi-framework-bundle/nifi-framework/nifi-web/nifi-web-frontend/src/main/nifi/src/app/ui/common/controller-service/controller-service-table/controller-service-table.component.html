@@ -31,13 +31,11 @@
                 <td mat-cell *matCellDef="let item">
                     @if (canRead(item)) {
                         <div class="flex items-center gap-x-3">
-                            <div class="pointer fa fa-book" title="Usage"></div>
-                            <!--
-              nifiTooltip dynamically inserts the tooltip component
-              into the dom. the dom placement caused shifting of icons
-              because of the gap between items. simple solution is to
-              just wrap the target.
-              -->
+                            <div
+                                class="pointer fa fa-book"
+                                (click)="viewDocumentationClicked(item, $event)"
+                                title="View Documentation"></div>
+
                             @if (hasComments(item)) {
                                 <div>
                                     <div

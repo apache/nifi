@@ -51,10 +51,13 @@ export class FlowAnalysisRuleTable {
     @Input() set flowAnalysisRules(flowAnalysisRuleEntities: FlowAnalysisRuleEntity[]) {
         this.dataSource.data = this.sortFlowAnalysisRules(flowAnalysisRuleEntities, this.sort);
     }
+
     @Input() selectedFlowAnalysisRuleId!: string;
     @Input() currentUser!: CurrentUser;
 
     @Output() selectFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> = new EventEmitter<FlowAnalysisRuleEntity>();
+    @Output() viewFlowAnalysisRuleDocumentation: EventEmitter<FlowAnalysisRuleEntity> =
+        new EventEmitter<FlowAnalysisRuleEntity>();
     @Output() deleteFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> = new EventEmitter<FlowAnalysisRuleEntity>();
     @Output() configureFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> =
         new EventEmitter<FlowAnalysisRuleEntity>();
@@ -121,6 +124,11 @@ export class FlowAnalysisRuleTable {
             return true;
         }
         return !!entity.operatePermissions?.canWrite;
+    }
+
+    viewDocumentationClicked(entity: FlowAnalysisRuleEntity, event: MouseEvent): void {
+        event.stopPropagation();
+        this.viewFlowAnalysisRuleDocumentation.next(entity);
     }
 
     hasComments(entity: FlowAnalysisRuleEntity): boolean {
@@ -236,7 +244,7 @@ export class FlowAnalysisRuleTable {
             this.isDisabled(entity) &&
             this.canRead(entity) &&
             this.canWrite(entity) &&
-            entity.component.multipleVersionsAvailable === true
+            entity.component.multipleVersionsAvailable
         );
     }
 

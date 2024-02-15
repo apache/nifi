@@ -72,6 +72,8 @@ export class ParameterProvidersTable {
 
     @Output() selectParameterProvider: EventEmitter<ParameterProviderEntity> =
         new EventEmitter<ParameterProviderEntity>();
+    @Output() viewParameterProviderDocumentation: EventEmitter<ParameterProviderEntity> =
+        new EventEmitter<ParameterProviderEntity>();
     @Output() configureParameterProvider: EventEmitter<ParameterProviderEntity> =
         new EventEmitter<ParameterProviderEntity>();
     @Output() deleteParameterProvider: EventEmitter<ParameterProviderEntity> =
@@ -129,6 +131,11 @@ export class ParameterProvidersTable {
         return false;
     }
 
+    viewDocumentationClicked(entity: ParameterProviderEntity, event: MouseEvent): void {
+        event.stopPropagation();
+        this.viewParameterProviderDocumentation.next(entity);
+    }
+
     formatName(entity: ParameterProviderEntity): string {
         return this.canRead(entity) ? entity.component.name : entity.id;
     }
@@ -142,7 +149,7 @@ export class ParameterProvidersTable {
     }
 
     hasErrors(entity: ParameterProviderEntity): boolean {
-        return this.canRead(entity) && !this.nifiCommon.isEmpty(entity.component.validationErrors);
+        return !this.nifiCommon.isEmpty(entity.component.validationErrors);
     }
 
     getValidationErrorsTipData(entity: ParameterProviderEntity): ValidationErrorsTipInput | null {
