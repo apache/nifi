@@ -17,8 +17,8 @@
 
 package org.apache.nifi.record.path.functions;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
-import org.apache.nifi.util.StringUtils;
 
 public class PadLeft extends Padding {
 

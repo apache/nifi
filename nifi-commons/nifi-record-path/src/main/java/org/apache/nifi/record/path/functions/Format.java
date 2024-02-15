@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.record.path.functions;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 import org.apache.nifi.record.path.util.RecordPathUtils;
-import org.apache.nifi.util.StringUtils;
 
 import java.time.Instant;
 import java.time.ZoneId;
