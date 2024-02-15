@@ -21,12 +21,12 @@ import org.apache.nifi.components.DescribedValue;
 public enum EncodingMode implements DescribedValue {
      ENCODE("Encode", "Sets the operation mode to 'encode'."),
      DECODE("Decode", "Sets the operation mode to 'decode'.");
-     
+
      EncodingMode(String displayName, String description) {
             this.displayName = displayName;
             this.description = description;
       }
-     
+
       private final String displayName;
       private final String description;
 
