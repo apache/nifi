@@ -44,6 +44,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -54,8 +55,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.transfer.ResourceTransferSource;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 import org.ietf.jgss.GSSException;
@@ -78,6 +79,9 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FILE_RESOURCE_SERVICE;
+import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
+import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileResource;
 
 /**
  * This processor copies FlowFiles to HDFS.
@@ -246,6 +250,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
         props.add(REMOTE_GROUP);
         props.add(COMPRESSION_CODEC);
         props.add(IGNORE_LOCALITY);
+        props.add(RESOURCE_TRANSFER_SOURCE);
+        props.add(FILE_RESOURCE_SERVICE);
         return props;
     }
 
@@ -372,10 +378,11 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
                     // Write FlowFile to temp file on HDFS
                     final StopWatch stopWatch = new StopWatch(true);
-                    session.read(putFlowFile, new InputStreamCallback() {
+                    final ResourceTransferSource resourceTransferSource = ResourceTransferSource.valueOf(
+                            context.getProperty(RESOURCE_TRANSFER_SOURCE).getValue());
+                    try (final InputStream in = getFileResource(resourceTransferSource, context, flowFile.getAttributes())
+                            .map(FileResource::getInputStream).orElseGet(() -> session.read(flowFile))) {
 
-                        @Override
-                        public void process(InputStream in) throws IOException {
                             OutputStream fos = null;
                             Path createdFile = null;
                             try {
@@ -420,7 +427,6 @@ public class PutHDFS extends AbstractHadoopProcessor {
                             }
                         }
 
-                    });
                     stopWatch.stop();
                     final String dataRate = stopWatch.calculateDataRate(putFlowFile.getSize());
                     final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
