@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base32InputStream;
 import org.apache.commons.codec.binary.Base32OutputStream;
@@ -29,24 +37,22 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.StreamCallback;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.encoding.EncodingMode;
+import org.apache.nifi.processors.standard.encoding.EncodingType;
+import org.apache.nifi.processors.standard.encoding.LineOutputMode;
 import org.apache.nifi.processors.standard.util.ValidatingBase32InputStream;
 import org.apache.nifi.processors.standard.util.ValidatingBase64InputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 @SideEffectFree
 @SupportsBatching
@@ -55,28 +61,63 @@ import java.util.concurrent.TimeUnit;
 @CapabilityDescription("Encode or decode the contents of a FlowFile using Base64, Base32, or hex encoding schemes")
 public class EncodeContent extends AbstractProcessor {
 
-    public static final String ENCODE_MODE = "Encode";
-    public static final String DECODE_MODE = "Decode";
-
-    public static final String BASE64_ENCODING = "base64";
-    public static final String BASE32_ENCODING = "base32";
-    public static final String HEX_ENCODING = "hex";
-
     public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
             .name("Mode")
             .description("Specifies whether the content should be encoded or decoded")
             .required(true)
-            .allowableValues(ENCODE_MODE, DECODE_MODE)
-            .defaultValue(ENCODE_MODE)
+            .allowableValues(EncodingMode.class)
+            .defaultValue(EncodingMode.ENCODE.getValue())
             .build();
 
     public static final PropertyDescriptor ENCODING = new PropertyDescriptor.Builder()
             .name("Encoding")
             .description("Specifies the type of encoding used")
             .required(true)
-            .allowableValues(BASE64_ENCODING, BASE32_ENCODING, HEX_ENCODING)
-            .defaultValue(BASE64_ENCODING)
+            .allowableValues(EncodingType.class)
+            .defaultValue(EncodingType.BASE64_ENCODING.getValue())
             .build();
+
+    static final PropertyDescriptor LINE_OUTPUT_MODE = new PropertyDescriptor.Builder()
+            .name("line-output-mode")
+            .displayName("Line Output Mode")
+            .description("If set to 'single-line', the encoded FlowFile content will output as a single line. If set to 'multiple-lines', "
+                + "it will output as multiple lines. This property is only applicable when Base64 or Base32 encoding is selected.")
+            .required(false)
+            .defaultValue(LineOutputMode.SINGLE_LINE.getValue())
+            .allowableValues(LineOutputMode.class)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dependsOn(MODE, EncodingMode.ENCODE)
+            .dependsOn(ENCODING, EncodingType.BASE64_ENCODING, EncodingType.BASE32_ENCODING)
+            .build();
+
+    static final PropertyDescriptor ENCODED_LINE_SEPARATOR = new PropertyDescriptor.Builder()
+        .name("line-separator")
+        .displayName("Encoded Content Line Separator")
+        .description("Each line of encoded data will be terminated with this byte sequence (e.g. \\r\\n"
+                + "). This property defaults to the system-dependent line separator string.  If `line-length` <= 0, "
+                + "the `line-separator` property is not used. This property is not used for `hex` encoding.")
+        .required(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .defaultValue(System.lineSeparator())
+        .addValidator(Validator.VALID)
+        .dependsOn(MODE, EncodingMode.ENCODE)
+        .dependsOn(ENCODING, EncodingType.BASE64_ENCODING, EncodingType.BASE32_ENCODING)
+        .build();
+
+    static final PropertyDescriptor ENCODED_LINE_LENGTH = new PropertyDescriptor.Builder()
+        .name("encoded-line-length")
+        .displayName("Encoded Content Line Length")
+        .description("Each line of encoded data will contain `encoded-line-length` characters (rounded down to the nearest multiple of 4). "
+            + "If `encoded-line-length` <= 0, the encoded data is not divided into lines. This property is "
+            + "ignored if `line-output-mode` is set to `single-line`.")
+        .required(false)
+        .defaultValue("76")
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.INTEGER_VALIDATOR)
+        .dependsOn(MODE, EncodingMode.ENCODE)
+        .dependsOn(ENCODING, EncodingType.BASE64_ENCODING, EncodingType.BASE32_ENCODING)
+        .dependsOn(LINE_OUTPUT_MODE, LineOutputMode.MULTIPLE_LINES)
+        .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -90,7 +131,7 @@ public class EncodeContent extends AbstractProcessor {
     private static final int BUFFER_SIZE = 8192;
 
     private static final List<PropertyDescriptor> properties = List.of(MODE,
-        ENCODING);
+        ENCODING, LINE_OUTPUT_MODE, ENCODED_LINE_SEPARATOR, ENCODED_LINE_LENGTH);
 
     private static final Set<Relationship> relationships = Set.of(REL_SUCCESS,
         REL_FAILURE);
@@ -112,9 +153,14 @@ public class EncodeContent extends AbstractProcessor {
             return;
         }
 
-        final boolean encode = context.getProperty(MODE).getValue().equalsIgnoreCase(ENCODE_MODE);
+        final boolean encode = context.getProperty(MODE).getValue().equals(EncodingMode.ENCODE.getValue());
         final String encoding = context.getProperty(ENCODING).getValue();
-        final StreamCallback callback = getStreamCallback(encode, encoding);
+
+        final Boolean singleLineOutput = context.getProperty(LINE_OUTPUT_MODE).getValue().equals(LineOutputMode.SINGLE_LINE.getValue());
+        final int lineLength = context.getProperty(ENCODED_LINE_LENGTH).evaluateAttributeExpressions(flowFile).asInteger();
+        final String lineSeparator = context.getProperty(ENCODED_LINE_SEPARATOR).evaluateAttributeExpressions(flowFile).getValue();
+
+        final StreamCallback callback = getStreamCallback(encode, encoding, Boolean.TRUE.equals(singleLineOutput) ? -1 : lineLength, lineSeparator);
 
         try {
             final StopWatch stopWatch = new StopWatch(true);
@@ -129,31 +175,35 @@ public class EncodeContent extends AbstractProcessor {
         }
     }
 
-    private static StreamCallback getStreamCallback(final boolean encode, final String encoding) {
-        if (encode) {
-            if (encoding.equalsIgnoreCase(BASE64_ENCODING)) {
-                return new EncodeBase64();
-            } else if (encoding.equalsIgnoreCase(BASE32_ENCODING)) {
-                return new EncodeBase32();
-            } else {
-                return new EncodeHex();
-            }
-        } else {
-            if (encoding.equalsIgnoreCase(BASE64_ENCODING)) {
-                return new DecodeBase64();
-            } else if (encoding.equalsIgnoreCase(BASE32_ENCODING)) {
-                return new DecodeBase32();
-            } else {
-                return new DecodeHex();
-            }
+    private static StreamCallback getStreamCallback(final Boolean encode, final String encoding,
+        final int lineLength, final String lineSeparator) {
+        switch(encoding) {
+            case "BASE64_ENCODING":
+                return encode ? new EncodeBase64(lineLength, lineSeparator) : new DecodeBase64();
+            case "BASE32_ENCODING":
+                return encode ? new EncodeBase32(lineLength, lineSeparator) : new DecodeBase32();
+            default:
+                return encode ? new EncodeHex() : new DecodeHex();
         }
     }
 
     private static class EncodeBase64 implements StreamCallback {
 
+        private int lineLength;
+        private String lineSeparator;
+
+        public EncodeBase64(final int lineLength,
+            final String lineSeparator) {
+            this.lineLength = lineLength;
+            this.lineSeparator = lineSeparator;
+        }
+
         @Override
         public void process(final InputStream in, final OutputStream out) throws IOException {
-            try (Base64OutputStream bos = new Base64OutputStream(out)) {
+            try (Base64OutputStream bos = new Base64OutputStream(out,
+                true,
+                this.lineLength,
+                this.lineSeparator.getBytes())) {
                 StreamUtils.copy(in, bos);
             }
         }
@@ -171,9 +221,22 @@ public class EncodeContent extends AbstractProcessor {
 
     private static class EncodeBase32 implements StreamCallback {
 
+        private int lineLength;
+        private String lineSeparator;
+
+        public EncodeBase32(final int lineLength,
+            final String lineSeparator) {
+
+            this.lineLength = lineLength;
+            this.lineSeparator = lineSeparator;
+        }
+
         @Override
         public void process(final InputStream in, final OutputStream out) throws IOException {
-            try (Base32OutputStream bos = new Base32OutputStream(out)) {
+            try (Base32OutputStream bos = new Base32OutputStream(out,
+                true,
+                this.lineLength,
+                this.lineSeparator.getBytes())) {
                 StreamUtils.copy(in, bos);
             }
         }
