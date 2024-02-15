@@ -48,6 +48,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
@@ -80,6 +81,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.io.InputStream;
+import org.apache.nifi.processors.transfer.ResourceTransferSource;
+import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FILE_RESOURCE_SERVICE;
+import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
+import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileResource;
 
 /**
  * This processor copies FlowFiles to HDFS.
@@ -260,6 +266,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
         props.add(REMOTE_GROUP);
         props.add(COMPRESSION_CODEC);
         props.add(IGNORE_LOCALITY);
+        props.add(RESOURCE_TRANSFER_SOURCE);
+        props.add(FILE_RESOURCE_SERVICE);
         return props;
     }
 
@@ -402,7 +410,9 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
                     // Write FlowFile to temp file on HDFS
                     final StopWatch stopWatch = new StopWatch(true);
-                    session.read(putFlowFile, in -> {
+                    final ResourceTransferSource resourceTransferSource = context.getProperty(RESOURCE_TRANSFER_SOURCE).asAllowableValue(ResourceTransferSource.class);
+                    try (final InputStream in = getFileResource(resourceTransferSource, context, flowFile.getAttributes())
+                            .map(FileResource::getInputStream).orElseGet(() -> session.read(flowFile))) {
                         OutputStream fos = null;
                         Path createdFile = null;
                         try {
@@ -463,7 +473,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                             }
                             fos = null;
                         }
-                    });
+                    }
                     stopWatch.stop();
                     final String dataRate = stopWatch.calculateDataRate(putFlowFile.getSize());
                     final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
