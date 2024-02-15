@@ -1,19 +1,19 @@
 <!--
-  ~  Licensed to the Apache Software Foundation (ASF) under one or more
-  ~  contributor license agreements.  See the NOTICE file distributed with
-  ~  this work for additional information regarding copyright ownership.
-  ~  The ASF licenses this file to You under the Apache License, Version 2.0
-  ~  (the "License"); you may not use this file except in compliance with
-  ~  the License.  You may obtain a copy of the License at
-  ~
-  ~     http://www.apache.org/licenses/LICENSE-2.0
-  ~
-  ~  Unless required by applicable law or agreed to in writing, software
-  ~  distributed under the License is distributed on an "AS IS" BASIS,
-  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  ~  See the License for the specific language governing permissions and
-  ~  limitations under the License.
-  -->
+~  Licensed to the Apache Software Foundation (ASF) under one or more
+~  contributor license agreements.  See the NOTICE file distributed with
+~  this work for additional information regarding copyright ownership.
+~  The ASF licenses this file to You under the Apache License, Version 2.0
+~  (the "License"); you may not use this file except in compliance with
+~  the License.  You may obtain a copy of the License at
+~
+~     http://www.apache.org/licenses/LICENSE-2.0
+~
+~  Unless required by applicable law or agreed to in writing, software
+~  distributed under the License is distributed on an "AS IS" BASIS,
+~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~  See the License for the specific language governing permissions and
+~  limitations under the License.
+-->
 
 <div class="bulletin-board-list-container h-full flex flex-col">
     <div class="bulletin-board-list-filter-container">
@@ -43,40 +43,42 @@
     <div class="flex-1 relative">
         <div class="bulletin-board-list overflow-y-auto absolute inset-0 border-2 p-4" #scrollContainer>
             <ul class="flex flex-wrap gap-y-2">
-                <ng-container *ngFor="let item of bulletinBoardItems">
+                @for (item of bulletinBoardItems; track item) {
                     <!-- each item can either be a BulletinEntity or BulletinBoardEvent -->
-                    <ng-container *ngIf="isBulletin(item); else bulletinEvent">
-                        <ng-container *ngIf="asBulletin(item); let bulletin">
-                            <li *ngIf="bulletin.canRead">
-                                <div class="inline-flex flex-wrap gap-x-1.5">
-                                    <div>{{ bulletin.timestamp }}</div>
-                                    <div class="font-bold {{ getSeverity(bulletin.bulletin.level) }}">
-                                        {{ bulletin.bulletin.level }}
+                    @if (isBulletin(item)) {
+                        @if (asBulletin(item); as bulletin) {
+                            @if (bulletin.canRead) {
+                                <li>
+                                    <div class="inline-flex flex-wrap gap-x-1.5">
+                                        <div>{{ bulletin.timestamp }}</div>
+                                        <div class="font-bold {{ getSeverity(bulletin.bulletin.level) }}">
+                                            {{ bulletin.bulletin.level }}
+                                        </div>
+                                        @if (getRouterLink(bulletin); as link) {
+                                            <div>
+                                                <a class="link" [routerLink]="link">{{ bulletin.bulletin.sourceId }}</a>
+                                            </div>
+                                        } @else {
+                                            <div>{{ bulletin.bulletin.sourceId }}</div>
+                                        }
+                                        @if (!!bulletin.nodeAddress) {
+                                            <div>{{ bulletin.nodeAddress }}</div>
+                                        }
+                                        <pre class="whitespace-pre-wrap">{{ bulletin.bulletin.message }}</pre>
                                     </div>
-                                    <div *ngIf="getRouterLink(bulletin); let link; else: noLink">
-                                        <a class="link" [routerLink]="link">{{ bulletin.bulletin.sourceId }}</a>
-                                    </div>
-                                    <ng-template #noLink>
-                                        <div>{{ bulletin.bulletin.sourceId }}</div>
-                                    </ng-template>
-
-                                    <div *ngIf="!!bulletin.nodeAddress">{{ bulletin.nodeAddress }}</div>
-                                    <pre class="whitespace-pre-wrap">{{ bulletin.bulletin.message }}</pre>
-                                </div>
-                            </li>
-                        </ng-container>
-                    </ng-container>
-
-                    <ng-template #bulletinEvent>
-                        <ng-container *ngIf="asBulletinEvent(item); let event">
+                                </li>
+                            }
+                        }
+                    } @else {
+                        @if (asBulletinEvent(item); as event) {
                             <li class="w-full mt-4">
                                 <div class="border-b-2 flex-1 p-2">
                                     {{ event.message }}
                                 </div>
                             </li>
-                        </ng-container>
-                    </ng-template>
-                </ng-container>
+                        }
+                    }
+                }
             </ul>
         </div>
     </div>

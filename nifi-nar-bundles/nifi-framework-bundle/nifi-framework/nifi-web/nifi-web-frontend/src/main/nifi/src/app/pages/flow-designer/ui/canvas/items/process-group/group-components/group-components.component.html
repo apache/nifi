@@ -25,8 +25,8 @@
         <mat-form-field>
             <mat-label>Parameter Context</mat-label>
             <mat-select formControlName="newProcessGroupParameterContext">
-                <ng-container *ngFor="let option of parameterContextsOptions">
-                    <ng-container *ngIf="option.description; else noDescription">
+                @for (option of parameterContextsOptions; track option) {
+                    @if (option.description) {
                         <mat-option
                             [value]="option.value"
                             nifiTooltip
@@ -35,23 +35,24 @@
                             [delayClose]="false"
                             >{{ option.text }}</mat-option
                         >
-                    </ng-container>
-                    <ng-template #noDescription>
+                    } @else {
                         <mat-option [value]="option.value">{{ option.text }}</mat-option>
-                    </ng-template>
-                </ng-container>
+                    }
+                }
             </mat-select>
         </mat-form-field>
     </mat-dialog-content>
-    <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
-        <button
-            [disabled]="!createProcessGroupForm.dirty || createProcessGroupForm.invalid || saving.value"
-            type="button"
-            color="primary"
-            (click)="createProcessGroup()"
-            mat-raised-button>
-            <span *nifiSpinner="saving.value">Add</span>
-        </button>
-    </mat-dialog-actions>
+    @if ({ value: (saving$ | async)! }; as saving) {
+        <mat-dialog-actions align="end">
+            <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+            <button
+                [disabled]="!createProcessGroupForm.dirty || createProcessGroupForm.invalid || saving.value"
+                type="button"
+                color="primary"
+                (click)="createProcessGroup()"
+                mat-raised-button>
+                <span *nifiSpinner="saving.value">Add</span>
+            </button>
+        </mat-dialog-actions>
+    }
 </form>

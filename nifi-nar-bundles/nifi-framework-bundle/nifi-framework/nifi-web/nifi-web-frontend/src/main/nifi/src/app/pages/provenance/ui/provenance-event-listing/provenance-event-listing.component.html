@@ -15,29 +15,30 @@
   ~ limitations under the License.
   -->
 
-<div class="flex flex-col h-full text-sm" *ngIf="status$ | async; let status">
-    <div class="flex-1">
-        <ng-container *ngIf="provenance$ | async as provenance; else initialLoading">
-            <provenance-event-table
-                [loading]="status === 'loading'"
-                [loadedTimestamp]="(loadedTimestamp$ | async)!"
-                [events]="provenance.results.provenanceEvents"
-                [oldestEventAvailable]="provenance.results.oldestEvent"
-                [timeOffset]="provenance.results.timeOffset"
-                [resultsMessage]="getResultsMessage(provenance)"
-                [hasRequest]="hasRequest(provenance.request)"
-                [lineage$]="lineage$"
-                (openSearchCriteria)="openSearchCriteria()"
-                (openEventDialog)="openEventDialog($event)"
-                (goToProvenanceEventSource)="goToEventSource($event)"
-                (resubmitProvenanceQuery)="resubmitProvenanceQuery()"
-                (clearRequest)="clearRequest()"
-                (queryLineage)="queryLineage($event)"
-                (clearBannerErrors)="clearBannerErrors()"
-                (resetLineage)="resetLineage()"></provenance-event-table>
-        </ng-container>
-        <ng-template #initialLoading>
-            <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
-        </ng-template>
+@if (status$ | async; as status) {
+    <div class="flex flex-col h-full text-sm">
+        <div class="flex-1">
+            @if (provenance$ | async; as provenance) {
+                <provenance-event-table
+                    [loading]="status === 'loading'"
+                    [loadedTimestamp]="(loadedTimestamp$ | async)!"
+                    [events]="provenance.results.provenanceEvents"
+                    [oldestEventAvailable]="provenance.results.oldestEvent"
+                    [timeOffset]="provenance.results.timeOffset"
+                    [resultsMessage]="getResultsMessage(provenance)"
+                    [hasRequest]="hasRequest(provenance.request)"
+                    [lineage$]="lineage$"
+                    (openSearchCriteria)="openSearchCriteria()"
+                    (openEventDialog)="openEventDialog($event)"
+                    (goToProvenanceEventSource)="goToEventSource($event)"
+                    (resubmitProvenanceQuery)="resubmitProvenanceQuery()"
+                    (clearRequest)="clearRequest()"
+                    (queryLineage)="queryLineage($event)"
+                    (clearBannerErrors)="clearBannerErrors()"
+                    (resetLineage)="resetLineage()"></provenance-event-table>
+            } @else {
+                <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+            }
+        </div>
     </div>
-</div>
+}

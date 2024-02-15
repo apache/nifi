@@ -40,8 +40,8 @@
                 <mat-form-field>
                     <mat-label>Transport Protocol</mat-label>
                     <mat-select formControlName="transportProtocol">
-                        <mat-option value="RAW"> RAW </mat-option>
-                        <mat-option value="HTTP"> HTTP </mat-option>
+                        <mat-option value="RAW"> RAW</mat-option>
+                        <mat-option value="HTTP"> HTTP</mat-option>
                     </mat-select>
                 </mat-form-field>
             </div>
@@ -95,15 +95,17 @@
             </div>
         </div>
     </mat-dialog-content>
-    <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
-        <button
-            [disabled]="!editRemoteProcessGroupForm.dirty || editRemoteProcessGroupForm.invalid || saving.value"
-            type="button"
-            color="primary"
-            (click)="submitForm()"
-            mat-raised-button>
-            <span *nifiSpinner="saving.value">Add</span>
-        </button>
-    </mat-dialog-actions>
+    @if ({ value: (saving$ | async)! }; as saving) {
+        <mat-dialog-actions align="end">
+            <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+            <button
+                [disabled]="!editRemoteProcessGroupForm.dirty || editRemoteProcessGroupForm.invalid || saving.value"
+                type="button"
+                color="primary"
+                (click)="submitForm()"
+                mat-raised-button>
+                <span *nifiSpinner="saving.value">Add</span>
+            </button>
+        </mat-dialog-actions>
+    }
 </form>

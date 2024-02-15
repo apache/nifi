@@ -60,12 +60,13 @@
                         <th mat-header-cell *matHeaderCellDef mat-sort-header>Version</th>
                         <td mat-cell *matCellDef="let item">
                             {{ formatVersion(item) }}
-                            <div
-                                class="fa fa-list"
-                                *ngIf="implementsControllerService(item)"
-                                nifiTooltip
-                                [tooltipComponentType]="ControllerServiceApiTip"
-                                [tooltipInputData]="getControllerServiceApiTipData(item)"></div>
+                            @if (implementsControllerService(item)) {
+                                <div
+                                    class="fa fa-list"
+                                    nifiTooltip
+                                    [tooltipComponentType]="ControllerServiceApiTip"
+                                    [tooltipInputData]="getControllerServiceApiTipData(item)"></div>
+                            }
                         </td>
                     </ng-container>
 
@@ -87,7 +88,7 @@
             </div>
         </div>
         <div class="flex flex-col">
-            <ng-container *ngIf="selectedType; else noSelection">
+            @if (selectedType) {
                 <div class="flex items-center">
                     <div class="selected-type-name">{{ formatType(selectedType) }}</div>
                     <div class="selected-type-bundle">{{ formatBundle(selectedType) }}</div>
@@ -95,10 +96,9 @@
                 <div class="selected-type-description" [title]="formatDescription(selectedType)">
                     {{ formatDescription(selectedType) }}
                 </div>
-            </ng-container>
-            <ng-template #noSelection>
+            } @else {
                 <div class="no-selected-type unset">No type selected</div>
-            </ng-template>
+            }
         </div>
         <div class="flex justify-end gap-x-2">
             <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>

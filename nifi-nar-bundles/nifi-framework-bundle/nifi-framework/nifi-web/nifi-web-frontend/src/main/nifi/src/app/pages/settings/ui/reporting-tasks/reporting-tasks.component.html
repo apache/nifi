@@ -15,39 +15,44 @@
   ~ limitations under the License.
   -->
 
-<ng-container *ngIf="reportingTaskState$ | async; let reportingTaskState">
-    <div *ngIf="isInitialLoading(reportingTaskState); else loaded">
-        <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
-    </div>
-    <ng-template #loaded>
-        <div class="flex flex-col h-full gap-y-2" *ngIf="currentUser$ | async; let currentUser">
-            <div class="flex justify-end" *ngIf="currentUser.controllerPermissions.canWrite">
-                <button class="nifi-button" (click)="openNewReportingTaskDialog()">
-                    <i class="fa fa-plus"></i>
-                </button>
-            </div>
-            <div class="flex-1">
-                <reporting-task-table
-                    [selectedReportingTaskId]="selectedReportingTaskId$ | async"
-                    [reportingTasks]="reportingTaskState.reportingTasks"
-                    [currentUser]="currentUser"
-                    [flowConfiguration]="(flowConfiguration$ | async)!"
-                    (configureReportingTask)="configureReportingTask($event)"
-                    (viewStateReportingTask)="viewStateReportingTask($event)"
-                    (selectReportingTask)="selectReportingTask($event)"
-                    (deleteReportingTask)="deleteReportingTask($event)"
-                    (stopReportingTask)="stopReportingTask($event)"
-                    (startReportingTask)="startReportingTask($event)"></reporting-task-table>
-            </div>
-            <div class="flex justify-between">
-                <div class="refresh-container flex items-center gap-x-2">
-                    <button class="nifi-button" (click)="refreshReportingTaskListing()">
-                        <i class="fa fa-refresh" [class.fa-spin]="reportingTaskState.status === 'loading'"></i>
-                    </button>
-                    <div>Last updated:</div>
-                    <div class="refresh-timestamp">{{ reportingTaskState.loadedTimestamp }}</div>
+@if (reportingTaskState$ | async; as reportingTaskState) {
+    @if (isInitialLoading(reportingTaskState)) {
+        <div>
+            <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+        </div>
+    } @else {
+        @if (currentUser$ | async; as currentUser) {
+            <div class="flex flex-col h-full gap-y-2">
+                @if (currentUser.controllerPermissions.canWrite) {
+                    <div class="flex justify-end">
+                        <button class="nifi-button" (click)="openNewReportingTaskDialog()">
+                            <i class="fa fa-plus"></i>
+                        </button>
+                    </div>
+                }
+                <div class="flex-1">
+                    <reporting-task-table
+                        [selectedReportingTaskId]="selectedReportingTaskId$ | async"
+                        [reportingTasks]="reportingTaskState.reportingTasks"
+                        [currentUser]="currentUser"
+                        [flowConfiguration]="(flowConfiguration$ | async)!"
+                        (configureReportingTask)="configureReportingTask($event)"
+                        (viewStateReportingTask)="viewStateReportingTask($event)"
+                        (selectReportingTask)="selectReportingTask($event)"
+                        (deleteReportingTask)="deleteReportingTask($event)"
+                        (stopReportingTask)="stopReportingTask($event)"
+                        (startReportingTask)="startReportingTask($event)"></reporting-task-table>
+                </div>
+                <div class="flex justify-between">
+                    <div class="refresh-container flex items-center gap-x-2">
+                        <button class="nifi-button" (click)="refreshReportingTaskListing()">
+                            <i class="fa fa-refresh" [class.fa-spin]="reportingTaskState.status === 'loading'"></i>
+                        </button>
+                        <div>Last updated:</div>
+                        <div class="refresh-timestamp">{{ reportingTaskState.loadedTimestamp }}</div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </ng-template>
-</ng-container>
+        }
+    }
+}

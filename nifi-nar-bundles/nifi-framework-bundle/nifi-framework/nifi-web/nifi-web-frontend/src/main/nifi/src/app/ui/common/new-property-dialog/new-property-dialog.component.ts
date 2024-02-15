@@ -33,7 +33,6 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
-import { NgIf } from '@angular/common';
 
 @Component({
     selector: 'new-property-dialog',
@@ -45,8 +44,7 @@ import { NgIf } from '@angular/common';
         MatFormFieldModule,
         MatInputModule,
         ReactiveFormsModule,
-        MatRadioModule,
-        NgIf
+        MatRadioModule
     ],
     templateUrl: './new-property-dialog.component.html',
     styleUrls: ['./new-property-dialog.component.scss']

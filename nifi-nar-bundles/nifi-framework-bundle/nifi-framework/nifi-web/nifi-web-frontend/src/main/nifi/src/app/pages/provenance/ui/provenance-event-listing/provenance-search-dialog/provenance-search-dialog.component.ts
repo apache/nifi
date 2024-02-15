@@ -21,7 +21,7 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } 
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import {
     ProvenanceRequest,
     ProvenanceSearchDialogRequest,
@@ -40,9 +40,7 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
         MatInputModule,
         MatCheckboxModule,
         MatButtonModule,
-        NgIf,
         AsyncPipe,
-        NgForOf,
         MatDatepickerModule
     ],
     styleUrls: ['./provenance-search-dialog.component.scss']

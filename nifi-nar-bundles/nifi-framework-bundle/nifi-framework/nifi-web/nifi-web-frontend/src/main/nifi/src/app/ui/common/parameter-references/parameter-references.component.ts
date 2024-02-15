@@ -19,7 +19,7 @@ import { Component, Input } from '@angular/core';
 import { MatTreeModule } from '@angular/material/tree';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { NgClass, NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
+import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatDialogModule } from '@angular/material/dialog';
 import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
@@ -42,8 +42,6 @@ import { BulletinsTip } from '../tooltips/bulletins-tip/bulletins-tip.component'
         MatTreeModule,
         MatIconModule,
         MatButtonModule,
-        NgIf,
-        NgForOf,
         NgTemplateOutlet,
         NgClass,
         NifiTooltipDirective,

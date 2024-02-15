@@ -39,7 +39,7 @@ import {
     StartComponentRequest,
     StopComponentRequest
 } from '../../../../state/flow';
-import { NgIf } from '@angular/common';
+
 import { BreadcrumbEntity } from '../../../../state/shared';
 import { ComponentType } from '../../../../../../state/shared';
 
@@ -47,7 +47,7 @@ import { ComponentType } from '../../../../../../state/shared';
     selector: 'operation-control',
     standalone: true,
     templateUrl: './operation-control.component.html',
-    imports: [NgIf],
+    imports: [],
     styleUrls: ['./operation-control.component.scss']
 })
 export class OperationControl {

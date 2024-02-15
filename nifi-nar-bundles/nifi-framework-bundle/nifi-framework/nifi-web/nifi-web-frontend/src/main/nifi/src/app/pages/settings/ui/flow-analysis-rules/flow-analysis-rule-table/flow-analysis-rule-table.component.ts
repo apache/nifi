@@ -19,7 +19,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
-import { NgClass, NgIf } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { FlowAnalysisRuleEntity } from '../../../state/flow-analysis-rules';
@@ -41,7 +41,6 @@ import { CurrentUser } from '../../../../../state/current-user';
         MatDialogModule,
         MatTableModule,
         MatSortModule,
-        NgIf,
         NgClass,
         NifiTooltipDirective,
         RouterLink

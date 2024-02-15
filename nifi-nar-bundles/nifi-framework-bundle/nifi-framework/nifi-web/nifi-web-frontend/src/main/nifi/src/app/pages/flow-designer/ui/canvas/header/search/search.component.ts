@@ -28,7 +28,7 @@ import {
     OverlayConnectionPosition
 } from '@angular/cdk/overlay';
 import { ComponentType } from '../../../../../../state/shared';
-import { NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -47,10 +47,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         ReactiveFormsModule,
         CdkOverlayOrigin,
         CdkConnectedOverlay,
-        NgIf,
         NgTemplateOutlet,
         RouterLink,
-        NgForOf,
         MatFormFieldModule,
         MatInputModule
     ]

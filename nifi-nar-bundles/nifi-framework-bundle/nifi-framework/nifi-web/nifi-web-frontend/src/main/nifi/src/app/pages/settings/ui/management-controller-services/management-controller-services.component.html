@@ -15,42 +15,47 @@
   ~ limitations under the License.
   -->
 
-<ng-container *ngIf="serviceState$ | async; let serviceState">
-    <div *ngIf="isInitialLoading(serviceState); else loaded">
-        <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
-    </div>
-    <ng-template #loaded>
-        <div class="flex flex-col h-full gap-y-2" *ngIf="currentUser$ | async; let currentUser">
-            <div class="flex justify-end" *ngIf="currentUser.controllerPermissions.canWrite">
-                <button class="nifi-button" (click)="openNewControllerServiceDialog()">
-                    <i class="fa fa-plus"></i>
-                </button>
-            </div>
-            <div class="flex-1">
-                <controller-service-table
-                    [selectedServiceId]="selectedServiceId$ | async"
-                    [controllerServices]="serviceState.controllerServices"
-                    [formatScope]="formatScope"
-                    [definedByCurrentGroup]="definedByCurrentGroup"
-                    [currentUser]="currentUser"
-                    [canModifyParent]="canModifyParent(currentUser)"
-                    [flowConfiguration]="(flowConfiguration$ | async)!"
-                    (selectControllerService)="selectControllerService($event)"
-                    (configureControllerService)="configureControllerService($event)"
-                    (enableControllerService)="enableControllerService($event)"
-                    (disableControllerService)="disableControllerService($event)"
-                    (viewStateControllerService)="viewStateControllerService($event)"
-                    (deleteControllerService)="deleteControllerService($event)"></controller-service-table>
-            </div>
-            <div class="flex justify-between">
-                <div class="refresh-container flex items-center gap-x-2">
-                    <button class="nifi-button" (click)="refreshControllerServiceListing()">
-                        <i class="fa fa-refresh" [class.fa-spin]="serviceState.status === 'loading'"></i>
-                    </button>
-                    <div>Last updated:</div>
-                    <div class="refresh-timestamp">{{ serviceState.loadedTimestamp }}</div>
+@if (serviceState$ | async; as serviceState) {
+    @if (isInitialLoading(serviceState)) {
+        <div>
+            <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+        </div>
+    } @else {
+        @if (currentUser$ | async; as currentUser) {
+            <div class="flex flex-col h-full gap-y-2">
+                @if (currentUser.controllerPermissions.canWrite) {
+                    <div class="flex justify-end">
+                        <button class="nifi-button" (click)="openNewControllerServiceDialog()">
+                            <i class="fa fa-plus"></i>
+                        </button>
+                    </div>
+                }
+                <div class="flex-1">
+                    <controller-service-table
+                        [selectedServiceId]="selectedServiceId$ | async"
+                        [controllerServices]="serviceState.controllerServices"
+                        [formatScope]="formatScope"
+                        [definedByCurrentGroup]="definedByCurrentGroup"
+                        [currentUser]="currentUser"
+                        [canModifyParent]="canModifyParent(currentUser)"
+                        [flowConfiguration]="(flowConfiguration$ | async)!"
+                        (selectControllerService)="selectControllerService($event)"
+                        (configureControllerService)="configureControllerService($event)"
+                        (enableControllerService)="enableControllerService($event)"
+                        (disableControllerService)="disableControllerService($event)"
+                        (viewStateControllerService)="viewStateControllerService($event)"
+                        (deleteControllerService)="deleteControllerService($event)"></controller-service-table>
+                </div>
+                <div class="flex justify-between">
+                    <div class="refresh-container flex items-center gap-x-2">
+                        <button class="nifi-button" (click)="refreshControllerServiceListing()">
+                            <i class="fa fa-refresh" [class.fa-spin]="serviceState.status === 'loading'"></i>
+                        </button>
+                        <div>Last updated:</div>
+                        <div class="refresh-timestamp">{{ serviceState.loadedTimestamp }}</div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </ng-template>
-</ng-container>
+        }
+    }
+}

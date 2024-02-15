@@ -16,8 +16,12 @@
   -->
 
 <div class="tooltip" [style.left.px]="left" [style.bottom.px]="bottom">
-    <div class="flex flex-col gap-y-3" *ngIf="data?.parameter; let parameter">
-        <div class="parameter-name">{{ parameter.name }}</div>
-        <div *ngIf="hasDescription(parameter)">{{ parameter.description }}</div>
-    </div>
+    @if (data?.parameter; as parameter) {
+        <div class="flex flex-col gap-y-3">
+            <div class="parameter-name">{{ parameter.name }}</div>
+            @if (hasDescription(parameter)) {
+                <div>{{ parameter.description }}</div>
+            }
+        </div>
+    }
 </div>

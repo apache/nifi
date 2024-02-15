@@ -16,10 +16,13 @@
   -->
 
 <div class="tooltip" [style.left.px]="left" [style.top.px]="top">
-    <span *ngIf="data?.isValidating; else validationErrorListing">Validating...</span>
-    <ng-template #validationErrorListing>
+    @if (data?.isValidating) {
+        <span>Validating...</span>
+    } @else {
         <ul>
-            <li *ngFor="let validationError of data?.validationErrors">{{ validationError }}</li>
+            @for (validationError of data?.validationErrors; track validationError) {
+                <li>{{ validationError }}</li>
+            }
         </ul>
-    </ng-template>
+    }
 </div>

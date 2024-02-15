@@ -20,7 +20,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
-import { AsyncPipe, NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
+import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { RouterLink } from '@angular/router';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
@@ -47,7 +47,6 @@ import {
         MatDialogModule,
         MatTableModule,
         DragDropModule,
-        NgIf,
         NgTemplateOutlet,
         CdkOverlayOrigin,
         CdkConnectedOverlay,
@@ -56,8 +55,7 @@ import {
         NifiTooltipDirective,
         ParameterReferences,
         CdkDropList,
-        CdkDrag,
-        NgForOf
+        CdkDrag
     ],
     providers: [
         {

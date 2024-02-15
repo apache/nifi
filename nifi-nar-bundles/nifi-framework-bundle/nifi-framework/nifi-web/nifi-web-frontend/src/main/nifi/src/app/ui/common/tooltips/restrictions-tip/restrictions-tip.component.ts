@@ -17,14 +17,14 @@
 
 import { Component, Input } from '@angular/core';
 import { RestrictionsTipInput } from '../../../../state/shared';
-import { NgForOf, NgIf } from '@angular/common';
+
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 
 @Component({
     selector: 'restrictions-tip',
     standalone: true,
     templateUrl: './restrictions-tip.component.html',
-    imports: [NgForOf, NgIf],
+    imports: [],
     styleUrls: ['./restrictions-tip.component.scss']
 })
 export class RestrictionsTip {

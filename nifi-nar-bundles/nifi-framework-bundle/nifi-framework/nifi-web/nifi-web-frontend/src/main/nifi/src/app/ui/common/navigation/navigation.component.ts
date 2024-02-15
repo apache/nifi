@@ -16,7 +16,7 @@
  */
 
 import { Component } from '@angular/core';
-import { AsyncPipe, NgIf, NgOptimizedImage } from '@angular/common';
+import { AsyncPipe, NgOptimizedImage } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
@@ -44,7 +44,6 @@ import { OS_SETTING, LIGHT_THEME, DARK_THEME, ThemingService } from '../../../se
         AsyncPipe,
         MatDividerModule,
         MatMenuModule,
-        NgIf,
         RouterLink,
         MatButtonModule,
         FormsModule,

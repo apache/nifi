@@ -45,14 +45,16 @@
                             <div>Supports Controller Service</div>
                             <div class="value">
                                 <ul>
-                                    <li
-                                        *ngFor="
-                                            let serviceApi of request.controllerService.component.controllerServiceApis
-                                        ">
-                                        <controller-service-api
-                                            [type]="serviceApi.type"
-                                            [bundle]="serviceApi.bundle"></controller-service-api>
-                                    </li>
+                                    @for (
+                                        serviceApi of request.controllerService.component.controllerServiceApis;
+                                        track serviceApi
+                                    ) {
+                                        <li>
+                                            <controller-service-api
+                                                [type]="serviceApi.type"
+                                                [bundle]="serviceApi.bundle"></controller-service-api>
+                                        </li>
+                                    }
                                 </ul>
                             </div>
                         </div>
@@ -60,9 +62,11 @@
                             <mat-form-field>
                                 <mat-label>Bulletin Level</mat-label>
                                 <mat-select formControlName="bulletinLevel">
-                                    <mat-option *ngFor="let option of bulletinLevels" [value]="option.value">
-                                        {{ option.text }}
-                                    </mat-option>
+                                    @for (option of bulletinLevels; track option) {
+                                        <mat-option [value]="option.value">
+                                            {{ option.text }}
+                                        </mat-option>
+                                    }
                                 </mat-select>
                             </mat-form-field>
                         </div>
@@ -103,15 +107,17 @@
             </mat-tab>
         </mat-tab-group>
     </mat-dialog-content>
-    <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
-        <button
-            [disabled]="!editControllerServiceForm.dirty || editControllerServiceForm.invalid || saving.value"
-            type="button"
-            color="primary"
-            (click)="submitForm()"
-            mat-raised-button>
-            <span *nifiSpinner="saving.value">Apply</span>
-        </button>
-    </mat-dialog-actions>
+    @if ({ value: (saving$ | async)! }; as saving) {
+        <mat-dialog-actions align="end">
+            <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+            <button
+                [disabled]="!editControllerServiceForm.dirty || editControllerServiceForm.invalid || saving.value"
+                type="button"
+                color="primary"
+                (click)="submitForm()"
+                mat-raised-button>
+                <span *nifiSpinner="saving.value">Apply</span>
+            </button>
+        </mat-dialog-actions>
+    }
 </form>

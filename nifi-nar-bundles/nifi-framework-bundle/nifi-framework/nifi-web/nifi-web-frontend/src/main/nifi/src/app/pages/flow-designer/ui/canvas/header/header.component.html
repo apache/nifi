@@ -17,7 +17,7 @@
 
 <header class="nifi-header">
     <navigation>
-        <ng-container *ngIf="canvasPermissions$ | async; let canvasPermissions">
+        @if (canvasPermissions$ | async; as canvasPermissions) {
             <new-canvas-item
                 [type]="ComponentType.Processor"
                 [disabled]="!canvasPermissions.canWrite"
@@ -58,7 +58,7 @@
                 [disabled]="!canvasPermissions.canWrite"
                 iconClass="icon-label"
                 iconHoverClass="icon-label-add"></new-canvas-item>
-        </ng-container>
+        }
     </navigation>
     <flow-status
         [controllerStatus]="(controllerStatus$ | async)!"

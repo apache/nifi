@@ -22,7 +22,7 @@ import { CanvasState } from '../../../../../state';
 import { createRemoteProcessGroup } from '../../../../../state/flow/flow.actions';
 import { TextTipInput } from '../../../../../../../state/shared';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -45,12 +45,10 @@ import { CreateComponentRequest } from '../../../../../state/flow';
         MatDialogModule,
         MatFormFieldModule,
         MatInputModule,
-        NgIf,
         NifiSpinnerDirective,
         ReactiveFormsModule,
         MatOptionModule,
         MatSelectModule,
-        NgForOf,
         NifiTooltipDirective,
         MatIconModule
     ],

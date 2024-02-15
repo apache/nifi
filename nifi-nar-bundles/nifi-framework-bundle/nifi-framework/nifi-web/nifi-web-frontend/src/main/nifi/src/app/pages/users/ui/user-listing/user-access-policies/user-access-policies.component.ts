@@ -20,7 +20,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
-import { NgIf } from '@angular/common';
+
 import {
     AccessPolicySummaryEntity,
     ComponentReferenceEntity,
@@ -35,7 +35,7 @@ import { UserAccessPoliciesDialogRequest } from '../../../state/user-listing';
     selector: 'user-access-policies',
     standalone: true,
     templateUrl: './user-access-policies.component.html',
-    imports: [MatButtonModule, MatDialogModule, MatTableModule, MatSortModule, NgIf, RouterLink],
+    imports: [MatButtonModule, MatDialogModule, MatTableModule, MatSortModule, RouterLink],
     styleUrls: ['./user-access-policies.component.scss']
 })
 export class UserAccessPolicies {

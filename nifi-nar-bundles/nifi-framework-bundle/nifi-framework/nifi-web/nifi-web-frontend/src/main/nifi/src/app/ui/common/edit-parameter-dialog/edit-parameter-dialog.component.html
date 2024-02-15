@@ -22,7 +22,9 @@
             <mat-form-field>
                 <mat-label>Name</mat-label>
                 <input matInput formControlName="name" type="text" />
-                <mat-error *ngIf="name.invalid">{{ getNameErrorMessage() }}</mat-error>
+                @if (name.invalid) {
+                    <mat-error>{{ getNameErrorMessage() }}</mat-error>
+                }
             </mat-form-field>
         </div>
         <div>
@@ -50,14 +52,16 @@
             </mat-form-field>
         </div>
     </mat-dialog-content>
-    <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button mat-stroked-button mat-dialog-close color="primary">Cancel</button>
-        <button
-            mat-raised-button
-            [disabled]="editParameterForm.invalid || saving.value"
-            (click)="okClicked()"
-            color="primary">
-            <span *nifiSpinner="saving.value">Ok</span>
-        </button>
-    </mat-dialog-actions>
+    @if ({ value: (saving$ | async)! }; as saving) {
+        <mat-dialog-actions align="end">
+            <button mat-stroked-button mat-dialog-close color="primary">Cancel</button>
+            <button
+                mat-raised-button
+                [disabled]="editParameterForm.invalid || saving.value"
+                (click)="okClicked()"
+                color="primary">
+                <span *nifiSpinner="saving.value">Ok</span>
+            </button>
+        </mat-dialog-actions>
+    }
 </form>

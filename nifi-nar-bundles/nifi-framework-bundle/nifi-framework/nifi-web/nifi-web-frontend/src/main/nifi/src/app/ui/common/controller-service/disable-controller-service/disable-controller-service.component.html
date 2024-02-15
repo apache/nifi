@@ -16,122 +16,128 @@
   -->
 
 <h2 mat-dialog-title>Disable Controller Service</h2>
-<ng-container *ngIf="(controllerService$ | async)! as controllerService">
-    <div class="controller-service-disable-form" *ngIf="(disableRequest$ | async)! as disableRequest">
-        <ng-container *ngIf="disableRequest.currentStep === SetEnableStep.Pending; else disableInProgress">
-            <mat-dialog-content>
-                <div class="tab-content py-4 flex gap-x-4">
-                    <div class="w-96 max-w-full flex flex-col gap-y-4">
-                        <div class="flex flex-col">
-                            <div>Service</div>
-                            <div class="value">{{ controllerService.component.name }}</div>
+@if ((controllerService$ | async)!; as controllerService) {
+    @if ((disableRequest$ | async)!; as disableRequest) {
+        <div class="controller-service-disable-form">
+            @if (disableRequest.currentStep === SetEnableStep.Pending) {
+                <mat-dialog-content>
+                    <div class="tab-content py-4 flex gap-x-4">
+                        <div class="w-96 max-w-full flex flex-col gap-y-4">
+                            <div class="flex flex-col">
+                                <div>Service</div>
+                                <div class="value">{{ controllerService.component.name }}</div>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>Scope</div>
+                                <div class="value">Service and referencing components</div>
+                            </div>
                         </div>
-                        <div class="flex flex-col">
-                            <div>Scope</div>
-                            <div class="value">Service and referencing components</div>
-                        </div>
-                    </div>
-                    <div class="w-96 max-w-full flex flex-col">
-                        <div>Referencing Components</div>
-                        <div>
-                            <controller-service-references
-                                [serviceReferences]="controllerService.component.referencingComponents"
-                                [goToReferencingComponent]="goToReferencingComponent"></controller-service-references>
-                        </div>
-                    </div>
-                </div>
-            </mat-dialog-content>
-            <mat-dialog-actions align="end">
-                <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
-                <button type="button" color="primary" (click)="submitForm()" mat-raised-button>Disable</button>
-            </mat-dialog-actions>
-        </ng-container>
-        <ng-template #disableInProgress>
-            <mat-dialog-content>
-                <div class="tab-content py-4 flex gap-x-4">
-                    <div class="w-96 max-w-full flex flex-col gap-y-4">
-                        <div class="flex flex-col">
-                            <div>Service</div>
-                            <div class="value">{{ controllerService.component.name }}</div>
-                        </div>
-                        <div class="flex flex-col">
-                            <div>Steps To Disable {{ controllerService.component.name }}</div>
-                            <div class="flex flex-col gap-y-1.5">
-                                <div class="flex justify-between items-center">
-                                    <div class="value">Stopping referencing processors and reporting tasks</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            getTemplateForStep(SetEnableStep.StopReferencingComponents, disableRequest)
-                                        "></ng-container>
-                                </div>
-                                <div
-                                    *ngIf="
-                                        disableRequest.error &&
-                                        disableRequest.error.step == SetEnableStep.StopReferencingComponents
-                                    "
-                                    class="text-xs ml-2">
-                                    {{ disableRequest.error.error }}
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <div class="value">Disabling referencing controller services</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            getTemplateForStep(SetEnableStep.DisableReferencingServices, disableRequest)
-                                        "></ng-container>
-                                </div>
-                                <div
-                                    *ngIf="
-                                        disableRequest.error &&
-                                        disableRequest.error.step == SetEnableStep.DisableReferencingServices
-                                    "
-                                    class="text-xs ml-2">
-                                    {{ disableRequest.error.error }}
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <div class="value">Disabling this controller service</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            getTemplateForStep(SetEnableStep.DisableService, disableRequest)
-                                        "></ng-container>
-                                </div>
-                                <div
-                                    *ngIf="
-                                        disableRequest.error &&
-                                        disableRequest.error.step == SetEnableStep.DisableService
-                                    "
-                                    class="text-xs ml-2">
-                                    {{ disableRequest.error.error }}
-                                </div>
+                        <div class="w-96 max-w-full flex flex-col">
+                            <div>Referencing Components</div>
+                            <div>
+                                <controller-service-references
+                                    [serviceReferences]="controllerService.component.referencingComponents"
+                                    [goToReferencingComponent]="
+                                        goToReferencingComponent
+                                    "></controller-service-references>
                             </div>
                         </div>
                     </div>
-                    <div class="w-96 max-w-full flex flex-col">
-                        <div>Referencing Components</div>
-                        <div>
-                            <controller-service-references
-                                [serviceReferences]="controllerService.component.referencingComponents"
-                                [goToReferencingComponent]="goToReferencingComponent"></controller-service-references>
+                </mat-dialog-content>
+                <mat-dialog-actions align="end">
+                    <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+                    <button type="button" color="primary" (click)="submitForm()" mat-raised-button>Disable</button>
+                </mat-dialog-actions>
+            } @else {
+                <mat-dialog-content>
+                    <div class="tab-content py-4 flex gap-x-4">
+                        <div class="w-96 max-w-full flex flex-col gap-y-4">
+                            <div class="flex flex-col">
+                                <div>Service</div>
+                                <div class="value">{{ controllerService.component.name }}</div>
+                            </div>
+                            <div class="flex flex-col">
+                                <div>Steps To Disable {{ controllerService.component.name }}</div>
+                                <div class="flex flex-col gap-y-1.5">
+                                    <div class="flex justify-between items-center">
+                                        <div class="value">Stopping referencing processors and reporting tasks</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                getTemplateForStep(
+                                                    SetEnableStep.StopReferencingComponents,
+                                                    disableRequest
+                                                )
+                                            "></ng-container>
+                                    </div>
+                                    @if (
+                                        disableRequest.error &&
+                                        disableRequest.error.step == SetEnableStep.StopReferencingComponents
+                                    ) {
+                                        <div class="text-xs ml-2">
+                                            {{ disableRequest.error.error }}
+                                        </div>
+                                    }
+                                    <div class="flex justify-between items-center">
+                                        <div class="value">Disabling referencing controller services</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                getTemplateForStep(
+                                                    SetEnableStep.DisableReferencingServices,
+                                                    disableRequest
+                                                )
+                                            "></ng-container>
+                                    </div>
+                                    @if (
+                                        disableRequest.error &&
+                                        disableRequest.error.step == SetEnableStep.DisableReferencingServices
+                                    ) {
+                                        <div class="text-xs ml-2">
+                                            {{ disableRequest.error.error }}
+                                        </div>
+                                    }
+                                    <div class="flex justify-between items-center">
+                                        <div class="value">Disabling this controller service</div>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                getTemplateForStep(SetEnableStep.DisableService, disableRequest)
+                                            "></ng-container>
+                                    </div>
+                                    @if (
+                                        disableRequest.error &&
+                                        disableRequest.error.step == SetEnableStep.DisableService
+                                    ) {
+                                        <div class="text-xs ml-2">
+                                            {{ disableRequest.error.error }}
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="w-96 max-w-full flex flex-col">
+                            <div>Referencing Components</div>
+                            <div>
+                                <controller-service-references
+                                    [serviceReferences]="controllerService.component.referencingComponents"
+                                    [goToReferencingComponent]="
+                                        goToReferencingComponent
+                                    "></controller-service-references>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </mat-dialog-content>
-            <mat-dialog-actions align="end">
-                <ng-container
-                    *ngIf="
-                        disableRequest.currentStep === SetEnableStep.Completed || disableRequest.error;
-                        else updateInProgressActions
-                    ">
-                    <button color="primary" mat-raised-button mat-dialog-close>Close</button>
-                </ng-container>
-                <ng-template #updateInProgressActions>
-                    <button color="primary" (click)="cancelClicked()" mat-stroked-button mat-dialog-close>
-                        Cancel
-                    </button>
-                </ng-template>
-            </mat-dialog-actions>
-        </ng-template>
-    </div>
-</ng-container>
+                </mat-dialog-content>
+                <mat-dialog-actions align="end">
+                    @if (disableRequest.currentStep === SetEnableStep.Completed || disableRequest.error) {
+                        <button color="primary" mat-raised-button mat-dialog-close>Close</button>
+                    } @else {
+                        <button color="primary" (click)="cancelClicked()" mat-stroked-button mat-dialog-close>
+                            Cancel
+                        </button>
+                    }
+                </mat-dialog-actions>
+            }
+        </div>
+    }
+}
 <ng-template #stepInProgress>
     <div class="fa fa-spin fa-circle-o-notch"></div>
 </ng-template>

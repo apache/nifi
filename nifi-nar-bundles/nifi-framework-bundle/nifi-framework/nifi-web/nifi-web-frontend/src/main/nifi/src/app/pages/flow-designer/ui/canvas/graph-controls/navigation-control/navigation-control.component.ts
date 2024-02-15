@@ -23,14 +23,14 @@ import { leaveProcessGroup, setNavigationCollapsed } from '../../../../state/flo
 import { CanvasUtils } from '../../../../service/canvas-utils.service';
 import { initialState } from '../../../../state/flow/flow.reducer';
 import { Storage } from '../../../../../../service/storage.service';
-import { NgIf } from '@angular/common';
+
 import { Birdseye } from './birdseye/birdseye.component';
 
 @Component({
     selector: 'navigation-control',
     standalone: true,
     templateUrl: './navigation-control.component.html',
-    imports: [NgIf, Birdseye],
+    imports: [Birdseye],
     styleUrls: ['./navigation-control.component.scss']
 })
 export class NavigationControl {

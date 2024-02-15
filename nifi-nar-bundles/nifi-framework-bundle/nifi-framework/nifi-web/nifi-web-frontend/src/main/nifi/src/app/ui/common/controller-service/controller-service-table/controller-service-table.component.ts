@@ -21,7 +21,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { MatSortModule, Sort } from '@angular/material/sort';
-import { NgClass, NgIf } from '@angular/common';
+import { NgClass } from '@angular/common';
 import {
     BulletinsTipInput,
     ControllerServiceEntity,
@@ -45,7 +45,6 @@ import { CurrentUser } from '../../../../state/current-user';
         MatDialogModule,
         MatTableModule,
         MatSortModule,
-        NgIf,
         NgClass,
         NifiTooltipDirective,
         RouterLink

@@ -33,7 +33,7 @@ import {
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
 import { MatOptionModule } from '@angular/material/core';
@@ -55,11 +55,9 @@ import { ErrorBanner } from '../../error-banner/error-banner.component';
         MatInputModule,
         MatCheckboxModule,
         MatButtonModule,
-        NgIf,
         MatTabsModule,
         MatOptionModule,
         MatSelectModule,
-        NgForOf,
         PropertyTable,
         ControllerServiceApi,
         ControllerServiceReferences,

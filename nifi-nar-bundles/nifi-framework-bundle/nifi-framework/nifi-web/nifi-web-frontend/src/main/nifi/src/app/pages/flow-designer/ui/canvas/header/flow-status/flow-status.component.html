@@ -18,13 +18,12 @@
 <div class="h-8 flow-status">
     <div class="flex justify-between">
         <div class="flex flex-1 justify-around pr-20">
-            <div
-                class="flex items-center gap-x-2"
-                title="Connected nodes / Total number of nodes in the cluster"
-                *ngIf="clusterSummary.clustered">
-                <div class="fa fa-cubes" [class]="getClusterStyle()"></div>
-                <div class="text">{{ formatClusterMessage() }}</div>
-            </div>
+            @if (clusterSummary.clustered) {
+                <div class="flex items-center gap-x-2" title="Connected nodes / Total number of nodes in the cluster">
+                    <div class="fa fa-cubes" [class]="getClusterStyle()"></div>
+                    <div class="text">{{ formatClusterMessage() }}</div>
+                </div>
+            }
             <div class="flex items-center gap-x-2" [title]="getActiveThreadsTitle()">
                 <div class="icon icon-threads" [class]="getActiveThreadsStyle()"></div>
                 <div class="status-value">{{ formatActiveThreads() }}</div>
@@ -98,7 +97,7 @@
         </div>
         <div class="flex">
             <search [currentProcessGroupId]="currentProcessGroupId"></search>
-            <ng-container *ngIf="hasBulletins(); else noBulletins">
+            @if (hasBulletins()) {
                 <button
                     nifiTooltip
                     [tooltipComponentType]="BulletinsTip"
@@ -107,12 +106,11 @@
                     class="h-8 w-8 controller-bulletins has-bulletins">
                     <i class="fa fa-sticky-note-o"></i>
                 </button>
-            </ng-container>
-            <ng-template #noBulletins>
+            } @else {
                 <button class="h-8 w-8 controller-bulletins">
                     <i class="fa fa-sticky-note-o"></i>
                 </button>
-            </ng-template>
+            }
         </div>
     </div>
 </div>

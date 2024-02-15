@@ -56,15 +56,15 @@
                 "serve": {
                     "builder": "@angular-devkit/build-angular:dev-server",
                     "options": {
-                        "browserTarget": "nifi:build",
-                        "proxyConfig": "proxy.config.mjs"
+                        "proxyConfig": "proxy.config.mjs",
+                        "buildTarget": "nifi:build"
                     },
                     "configurations": {
                         "production": {
-                            "browserTarget": "nifi:build:production"
+                            "buildTarget": "nifi:build:production"
                         },
                         "development": {
-                            "browserTarget": "nifi:build:development"
+                            "buildTarget": "nifi:build:development"
                         }
                     },
                     "defaultConfiguration": "development"
@@ -72,7 +72,7 @@
                 "extract-i18n": {
                     "builder": "@angular-devkit/build-angular:extract-i18n",
                     "options": {
-                        "browserTarget": "nifi:build"
+                        "buildTarget": "nifi:build"
                     }
                 },
                 "test": {

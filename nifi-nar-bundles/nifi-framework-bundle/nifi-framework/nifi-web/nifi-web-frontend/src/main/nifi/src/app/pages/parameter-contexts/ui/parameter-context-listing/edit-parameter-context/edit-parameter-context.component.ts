@@ -21,7 +21,7 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } 
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
@@ -51,11 +51,9 @@ import { RouterLink } from '@angular/router';
         MatInputModule,
         MatCheckboxModule,
         MatButtonModule,
-        NgIf,
         MatTabsModule,
         MatOptionModule,
         MatSelectModule,
-        NgForOf,
         AsyncPipe,
         NifiSpinnerDirective,
         NifiSpinnerDirective,

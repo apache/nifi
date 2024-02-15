@@ -25,17 +25,15 @@
             [cdkDropListDisabled]="isDisabled"
             [cdkDropListData]="availablePrioritizers"
             (cdkDropListDropped)="dropAvailable($event)">
-            <div
-                class="prioritizer-draggable-item"
-                *ngFor="let item of availablePrioritizers; index as i"
-                cdkDrag
-                cdkDragPreviewContainer="parent">
-                <ng-container
-                    *ngTemplateOutlet="
-                        prioritizerItem;
-                        context: { $implicit: item, i: i, canClose: false }
-                    "></ng-container>
-            </div>
+            @for (item of availablePrioritizers; track item; let i = $index) {
+                <div class="prioritizer-draggable-item" cdkDrag cdkDragPreviewContainer="parent">
+                    <ng-container
+                        *ngTemplateOutlet="
+                            prioritizerItem;
+                            context: { $implicit: item, i: i, canClose: false }
+                        "></ng-container>
+                </div>
+            }
         </div>
     </div>
     <div class="flex flex-col">
@@ -46,31 +44,32 @@
             [cdkDropListDisabled]="isDisabled"
             [cdkDropListData]="selectedPrioritizers"
             (cdkDropListDropped)="dropSelected($event)">
-            <div
-                class="prioritizer-draggable-item"
-                *ngFor="let item of selectedPrioritizers; index as i"
-                cdkDrag
-                cdkDragPreviewContainer="parent">
-                <ng-container
-                    *ngTemplateOutlet="
-                        prioritizerItem;
-                        context: { $implicit: item, i: i, canClose: true }
-                    "></ng-container>
-            </div>
+            @for (item of selectedPrioritizers; track item; let i = $index) {
+                <div class="prioritizer-draggable-item" cdkDrag cdkDragPreviewContainer="parent">
+                    <ng-container
+                        *ngTemplateOutlet="
+                            prioritizerItem;
+                            context: { $implicit: item, i: i, canClose: true }
+                        "></ng-container>
+                </div>
+            }
         </div>
     </div>
     <ng-template #prioritizerItem let-item let-i="i" let-canClose="canClose">
         <div class="flex gap-x-3 items-center">
             <div>{{ getPrioritizerLabel(item) }}</div>
-            <div
-                *ngIf="hasDescription(item)"
-                class="fa fa-question-circle"
-                nifiTooltip
-                [tooltipComponentType]="TextTip"
-                [tooltipInputData]="getDescriptionTipData(item)"></div>
+            @if (hasDescription(item)) {
+                <div
+                    class="fa fa-question-circle"
+                    nifiTooltip
+                    [tooltipComponentType]="TextTip"
+                    [tooltipInputData]="getDescriptionTipData(item)"></div>
+            }
         </div>
-        <button type="button" *ngIf="canClose" (click)="removeSelected(item, i)" [disabled]="isDisabled">
-            <i class="fa fa-times"></i>
-        </button>
+        @if (canClose) {
+            <button type="button" (click)="removeSelected(item, i)" [disabled]="isDisabled">
+                <i class="fa fa-times"></i>
+            </button>
+        }
     </ng-template>
 </div>

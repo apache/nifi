@@ -26,15 +26,19 @@
             </mat-form-field>
         </div>
         <div>
-            <mat-form-field *ngIf="request.entity.component.allowRemoteAccess">
-                <mat-label>Concurrent Tasks</mat-label>
-                <input matInput formControlName="concurrentTasks" type="text" />
-            </mat-form-field>
+            @if (request.entity.component.allowRemoteAccess) {
+                <mat-form-field>
+                    <mat-label>Concurrent Tasks</mat-label>
+                    <input matInput formControlName="concurrentTasks" type="text" />
+                </mat-form-field>
+            }
         </div>
-        <div *ngIf="portTypeLabel == 'Output Port'" class="mb-3.5">
-            <mat-label>Failure Port</mat-label>
-            <mat-checkbox color="primary" formControlName="portFunction"></mat-checkbox>
-        </div>
+        @if (portTypeLabel == 'Output Port') {
+            <div class="mb-3.5">
+                <mat-label>Failure Port</mat-label>
+                <mat-checkbox color="primary" formControlName="portFunction"></mat-checkbox>
+            </div>
+        }
         <div>
             <mat-form-field>
                 <mat-label>Comments</mat-label>
@@ -42,15 +46,17 @@
             </mat-form-field>
         </div>
     </mat-dialog-content>
-    <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
-        <button
-            [disabled]="!editPortForm.dirty || editPortForm.invalid || saving.value"
-            type="button"
-            color="primary"
-            (click)="editPort()"
-            mat-raised-button>
-            <span *nifiSpinner="saving.value">Apply</span>
-        </button>
-    </mat-dialog-actions>
+    @if ({ value: (saving$ | async)! }; as saving) {
+        <mat-dialog-actions align="end">
+            <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+            <button
+                [disabled]="!editPortForm.dirty || editPortForm.invalid || saving.value"
+                type="button"
+                color="primary"
+                (click)="editPort()"
+                mat-raised-button>
+                <span *nifiSpinner="saving.value">Apply</span>
+            </button>
+        </mat-dialog-actions>
+    }
 </form>

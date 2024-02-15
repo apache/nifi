@@ -36,148 +36,154 @@
             [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
             (backdropClick)="backdropClicked()">
             <div class="search-results w-96 border p-2 text-sm max-h-96 overflow-y-auto">
-                <div *ngIf="searching; else renderAllResults" class="unset italic">Searching</div>
+                @if (searching) {
+                    <div class="unset italic">Searching</div>
+                } @else {
+                    @if (hasResults()) {
+                        <ul>
+                            @if (processorResults.length > 0) {
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        renderResults;
+                                        context: {
+                                            $implicit: processorResults,
+                                            header: 'Processors',
+                                            icon: 'icon-processor',
+                                            path: ComponentType.Processor
+                                        }
+                                    "></ng-container>
+                            }
+                            @if (connectionResults.length > 0) {
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        renderResults;
+                                        context: {
+                                            $implicit: connectionResults,
+                                            header: 'Connections',
+                                            icon: 'icon-connect',
+                                            path: ComponentType.Connection
+                                        }
+                                    "></ng-container>
+                            }
+                            @if (processGroupResults.length > 0) {
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        renderResults;
+                                        context: {
+                                            $implicit: processGroupResults,
+                                            header: 'Process Groups',
+                                            icon: 'icon-group',
+                                            path: ComponentType.ProcessGroup
+                                        }
+                                    "></ng-container>
+                            }
+                            @if (remoteProcessGroupResults.length > 0) {
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        renderResults;
+                                        context: {
+                                            $implicit: remoteProcessGroupResults,
+                                            header: 'Remote Process Groups',
+                                            icon: 'icon-group-remote',
+                                            path: ComponentType.RemoteProcessGroup
+                                        }
+                                    "></ng-container>
+                            }
+                            @if (inputPortResults.length > 0) {
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        renderResults;
+                                        context: {
+                                            $implicit: inputPortResults,
+                                            header: 'Input Ports',
+                                            icon: 'icon-port-in',
+                                            path: ComponentType.InputPort
+                                        }
+                                    "></ng-container>
+                            }
+                            @if (outputPortResults.length > 0) {
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        renderResults;
+                                        context: {
+                                            $implicit: outputPortResults,
+                                            header: 'Output Ports',
+                                            icon: 'icon-port-out',
+                                            path: ComponentType.OutputPort
+                                        }
+                                    "></ng-container>
+                            }
+                            @if (funnelResults.length > 0) {
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        renderResults;
+                                        context: {
+                                            $implicit: funnelResults,
+                                            header: 'Funnels',
+                                            icon: 'icon-funnel',
+                                            path: ComponentType.Funnel
+                                        }
+                                    "></ng-container>
+                            }
+                            @if (labelResults.length > 0) {
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        renderResults;
+                                        context: {
+                                            $implicit: labelResults,
+                                            header: 'Labels',
+                                            icon: 'icon-label',
+                                            path: ComponentType.Label
+                                        }
+                                    "></ng-container>
+                            }
+                            <!-- TODO - Handling linking to Controller Services, Parameter Providers, Parameter Contexts, and Parameters -->
+                            @if (controllerServiceNodeResults.length > 0) {
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        renderResults;
+                                        context: {
+                                            $implicit: controllerServiceNodeResults,
+                                            header: 'Controller Services',
+                                            icon: ''
+                                        }
+                                    "></ng-container>
+                            }
+                            @if (parameterProviderNodeResults.length > 0) {
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        renderResults;
+                                        context: {
+                                            $implicit: parameterProviderNodeResults,
+                                            header: 'Parameter Providers',
+                                            icon: ''
+                                        }
+                                    "></ng-container>
+                            }
+                            @if (parameterContextResults.length > 0) {
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        renderResults;
+                                        context: {
+                                            $implicit: parameterContextResults,
+                                            header: 'Parameter Contexts',
+                                            icon: ''
+                                        }
+                                    "></ng-container>
+                            }
+                            @if (parameterResults.length > 0) {
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        renderResults;
+                                        context: { $implicit: parameterResults, header: 'Parameters', icon: '' }
+                                    "></ng-container>
+                            }
+                        </ul>
+                    } @else {
+                        <div class="unset italic">No results matched the search terms</div>
+                    }
+                }
             </div>
-        </ng-template>
-        <ng-template #renderAllResults>
-            <ul *ngIf="hasResults(); else noResults">
-                <ng-container *ngIf="processorResults.length > 0">
-                    <ng-container
-                        *ngTemplateOutlet="
-                            renderResults;
-                            context: {
-                                $implicit: processorResults,
-                                header: 'Processors',
-                                icon: 'icon-processor',
-                                path: ComponentType.Processor
-                            }
-                        "></ng-container>
-                </ng-container>
-                <ng-container *ngIf="connectionResults.length > 0">
-                    <ng-container
-                        *ngTemplateOutlet="
-                            renderResults;
-                            context: {
-                                $implicit: connectionResults,
-                                header: 'Connections',
-                                icon: 'icon-connect',
-                                path: ComponentType.Connection
-                            }
-                        "></ng-container>
-                </ng-container>
-                <ng-container *ngIf="processGroupResults.length > 0">
-                    <ng-container
-                        *ngTemplateOutlet="
-                            renderResults;
-                            context: {
-                                $implicit: processGroupResults,
-                                header: 'Process Groups',
-                                icon: 'icon-group',
-                                path: ComponentType.ProcessGroup
-                            }
-                        "></ng-container>
-                </ng-container>
-                <ng-container *ngIf="remoteProcessGroupResults.length > 0">
-                    <ng-container
-                        *ngTemplateOutlet="
-                            renderResults;
-                            context: {
-                                $implicit: remoteProcessGroupResults,
-                                header: 'Remote Process Groups',
-                                icon: 'icon-group-remote',
-                                path: ComponentType.RemoteProcessGroup
-                            }
-                        "></ng-container>
-                </ng-container>
-                <ng-container *ngIf="inputPortResults.length > 0">
-                    <ng-container
-                        *ngTemplateOutlet="
-                            renderResults;
-                            context: {
-                                $implicit: inputPortResults,
-                                header: 'Input Ports',
-                                icon: 'icon-port-in',
-                                path: ComponentType.InputPort
-                            }
-                        "></ng-container>
-                </ng-container>
-                <ng-container *ngIf="outputPortResults.length > 0">
-                    <ng-container
-                        *ngTemplateOutlet="
-                            renderResults;
-                            context: {
-                                $implicit: outputPortResults,
-                                header: 'Output Ports',
-                                icon: 'icon-port-out',
-                                path: ComponentType.OutputPort
-                            }
-                        "></ng-container>
-                </ng-container>
-                <ng-container *ngIf="funnelResults.length > 0">
-                    <ng-container
-                        *ngTemplateOutlet="
-                            renderResults;
-                            context: {
-                                $implicit: funnelResults,
-                                header: 'Funnels',
-                                icon: 'icon-funnel',
-                                path: ComponentType.Funnel
-                            }
-                        "></ng-container>
-                </ng-container>
-                <ng-container *ngIf="labelResults.length > 0">
-                    <ng-container
-                        *ngTemplateOutlet="
-                            renderResults;
-                            context: {
-                                $implicit: labelResults,
-                                header: 'Labels',
-                                icon: 'icon-label',
-                                path: ComponentType.Label
-                            }
-                        "></ng-container>
-                </ng-container>
-                <!-- TODO - Handling linking to Controller Services, Parameter Providers, Parameter Contexts, and Parameters -->
-                <ng-container *ngIf="controllerServiceNodeResults.length > 0">
-                    <ng-container
-                        *ngTemplateOutlet="
-                            renderResults;
-                            context: {
-                                $implicit: controllerServiceNodeResults,
-                                header: 'Controller Services',
-                                icon: ''
-                            }
-                        "></ng-container>
-                </ng-container>
-                <ng-container *ngIf="parameterProviderNodeResults.length > 0">
-                    <ng-container
-                        *ngTemplateOutlet="
-                            renderResults;
-                            context: {
-                                $implicit: parameterProviderNodeResults,
-                                header: 'Parameter Providers',
-                                icon: ''
-                            }
-                        "></ng-container>
-                </ng-container>
-                <ng-container *ngIf="parameterContextResults.length > 0">
-                    <ng-container
-                        *ngTemplateOutlet="
-                            renderResults;
-                            context: { $implicit: parameterContextResults, header: 'Parameter Contexts', icon: '' }
-                        "></ng-container>
-                </ng-container>
-                <ng-container *ngIf="parameterResults.length > 0">
-                    <ng-container
-                        *ngTemplateOutlet="
-                            renderResults;
-                            context: { $implicit: parameterResults, header: 'Parameters', icon: '' }
-                        "></ng-container>
-                </ng-container>
-            </ul>
-        </ng-template>
-        <ng-template #noResults>
-            <div class="unset italic">No results matched the search terms</div>
         </ng-template>
         <ng-template #renderResults let-results let-header="header" let-icon="icon" let-path="path">
             <li class="flex items-center">
@@ -185,27 +191,27 @@
                 <span class="font-medium">{{ header }}</span>
             </li>
             <!-- TODO - Consider showing more context of match like existing UI -->
-            <li *ngFor="let result of results" class="ml-2 py-1">
-                <a *ngIf="!result.parentGroup; else componentLink" [routerLink]="['/process-groups', result.id]">
-                    {{ result.name }}
-                </a>
-                <ng-template #componentLink>
-                    <a
-                        *ngIf="
-                            result.parentGroup.id == currentProcessGroupId;
-                            else componentInDifferentProcessGroupLink
-                        "
-                        (click)="componentLinkClicked(path, result.id)"
-                        [routerLink]="['/process-groups', result.parentGroup.id, path, result.id]">
-                        {{ result.name ? result.name : result.id }}
-                    </a>
-                </ng-template>
-                <ng-template #componentInDifferentProcessGroupLink>
-                    <a [routerLink]="['/process-groups', result.parentGroup.id, path, result.id]">
-                        {{ result.name ? result.name : result.id }}
-                    </a>
-                </ng-template>
-            </li>
+            @for (result of results; track result) {
+                <li class="ml-2 py-1">
+                    @if (!result.parentGroup) {
+                        <a [routerLink]="['/process-groups', result.id]">
+                            {{ result.name }}
+                        </a>
+                    } @else {
+                        @if (result.parentGroup.id == currentProcessGroupId) {
+                            <a
+                                (click)="componentLinkClicked(path, result.id)"
+                                [routerLink]="['/process-groups', result.parentGroup.id, path, result.id]">
+                                {{ result.name ? result.name : result.id }}
+                            </a>
+                        } @else {
+                            <a [routerLink]="['/process-groups', result.parentGroup.id, path, result.id]">
+                                {{ result.name ? result.name : result.id }}
+                            </a>
+                        }
+                    }
+                </li>
+            }
         </ng-template>
     </form>
 </div>

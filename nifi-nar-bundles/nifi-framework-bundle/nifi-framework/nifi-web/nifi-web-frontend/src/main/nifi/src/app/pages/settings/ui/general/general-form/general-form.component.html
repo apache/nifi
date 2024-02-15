@@ -16,28 +16,32 @@
   -->
 
 <div class="general-form w-96">
-    <form [formGroup]="controllerForm" *ngIf="currentUser$ | async; let currentUser">
-        <div>
-            <mat-form-field>
-                <mat-label>Maximum Timer Driven Thread Count</mat-label>
-                <input
-                    matInput
-                    formControlName="timerDrivenThreadCount"
-                    [readonly]="!currentUser.controllerPermissions.canWrite"
-                    type="text" />
-            </mat-form-field>
-        </div>
-        <div *ngIf="currentUser.controllerPermissions.canWrite">
-            <ng-container *ngIf="{ value: (saving$ | async)! } as saving">
-                <button
-                    [disabled]="!controllerForm.dirty || controllerForm.invalid"
-                    type="button"
-                    color="primary"
-                    (click)="apply()"
-                    mat-raised-button>
-                    <span *nifiSpinner="saving.value">Add</span>
-                </button>
-            </ng-container>
-        </div>
-    </form>
+    @if (currentUser$ | async; as currentUser) {
+        <form [formGroup]="controllerForm">
+            <div>
+                <mat-form-field>
+                    <mat-label>Maximum Timer Driven Thread Count</mat-label>
+                    <input
+                        matInput
+                        formControlName="timerDrivenThreadCount"
+                        [readonly]="!currentUser.controllerPermissions.canWrite"
+                        type="text" />
+                </mat-form-field>
+            </div>
+            @if (currentUser.controllerPermissions.canWrite) {
+                <div>
+                    @if ({ value: (saving$ | async)! }; as saving) {
+                        <button
+                            [disabled]="!controllerForm.dirty || controllerForm.invalid"
+                            type="button"
+                            color="primary"
+                            (click)="apply()"
+                            mat-raised-button>
+                            <span *nifiSpinner="saving.value">Add</span>
+                        </button>
+                    }
+                </div>
+            }
+        </form>
+    }
 </div>

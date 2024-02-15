@@ -19,112 +19,118 @@
     <div class="operation-control-header pointer flex justify-between" (click)="toggleCollapsed()">
         <div class="flex items-center">
             <div class="fa fa-hand-o-up"></div>
-            <div *ngIf="!operationCollapsed || !shouldDockWhenCollapsed" class="operation-control-title">Operation</div>
+            @if (!operationCollapsed || !shouldDockWhenCollapsed) {
+                <div class="operation-control-title">Operation</div>
+            }
         </div>
-        <div
-            *ngIf="!operationCollapsed || !shouldDockWhenCollapsed"
-            class="fa operation-control-expansion"
-            [class.fa-minus-square-o]="!operationCollapsed"
-            [class.fa-plus-square-o]="operationCollapsed"></div>
+        @if (!operationCollapsed || !shouldDockWhenCollapsed) {
+            <div
+                class="fa operation-control-expansion"
+                [class.fa-minus-square-o]="!operationCollapsed"
+                [class.fa-plus-square-o]="operationCollapsed"></div>
+        }
     </div>
-    <ng-container *ngIf="!operationCollapsed">
-        <div *ngIf="canvasUtils.getSelection() as selection" class="w-72 px-2.5 pb-2.5 flex flex-col gap-y-2">
-            <div class="operation-context flex flex-col gap-y-1">
-                <div class="flex gap-x-1">
-                    <div class="operation-context-logo flex flex-col">
-                        <i class="icon" [class]="getContextIcon(selection)"></i>
+    @if (!operationCollapsed) {
+        @if (canvasUtils.getSelection(); as selection) {
+            <div class="w-72 px-2.5 pb-2.5 flex flex-col gap-y-2">
+                <div class="operation-context flex flex-col gap-y-1">
+                    <div class="flex gap-x-1">
+                        <div class="operation-context-logo flex flex-col">
+                            <i class="icon" [class]="getContextIcon(selection)"></i>
+                        </div>
+                        <div class="flex flex-col">
+                            <div class="operation-context-name">{{ getContextName(selection) }}</div>
+                            <div class="operation-context-type">{{ getContextType(selection) }}</div>
+                        </div>
                     </div>
-                    <div class="flex flex-col">
-                        <div class="operation-context-name">{{ getContextName(selection) }}</div>
-                        <div class="operation-context-type">{{ getContextType(selection) }}</div>
+                    <div class="operation-context-id">{{ getContextId(selection) }}</div>
+                </div>
+                <div class="flex flex-col gap-y-1">
+                    <div class="flex gap-x-1">
+                        <button
+                            class="nifi-button"
+                            type="button"
+                            [disabled]="!canConfigure(selection)"
+                            (click)="configure(selection)">
+                            <i class="fa fa-gear"></i>
+                        </button>
+                        @if (supportsManagedAuthorizer()) {
+                            <button
+                                class="nifi-button mr-2"
+                                type="button"
+                                [disabled]="!canManageAccess(selection)"
+                                (click)="manageAccess(selection)">
+                                <i class="fa fa-key"></i>
+                            </button>
+                        }
+                        <button
+                            class="nifi-button"
+                            type="button"
+                            [disabled]="!canEnable(selection)"
+                            (click)="enable(selection)">
+                            <i class="fa fa-flash"></i>
+                        </button>
+                        <button
+                            class="nifi-button mr-2"
+                            type="button"
+                            [disabled]="!canDisable(selection)"
+                            (click)="disable(selection)">
+                            <i class="ml-1 icon icon-enable-false"></i>
+                        </button>
+                        <button
+                            class="nifi-button"
+                            type="button"
+                            [disabled]="!canStart(selection)"
+                            (click)="start(selection)">
+                            <i class="fa fa-play"></i>
+                        </button>
+                        <button
+                            class="nifi-button"
+                            type="button"
+                            [disabled]="!canStop(selection)"
+                            (click)="stop(selection)">
+                            <i class="fa fa-stop"></i>
+                        </button>
+                    </div>
+                    <div class="flex gap-x-1">
+                        <button
+                            class="nifi-button"
+                            type="button"
+                            [disabled]="!canCopy(selection)"
+                            (click)="copy(selection)">
+                            <i class="fa fa-copy"></i>
+                        </button>
+                        <button
+                            class="nifi-button mr-2"
+                            type="button"
+                            [disabled]="!canPaste(selection)"
+                            (click)="paste(selection)">
+                            <i class="fa fa-paste"></i>
+                        </button>
+                        <button
+                            class="nifi-button mr-2"
+                            type="button"
+                            [disabled]="!canGroup(selection)"
+                            (click)="group(selection)">
+                            <i class="ml-1 icon icon-group"></i>
+                        </button>
+                        <button
+                            class="nifi-button mr-2"
+                            type="button"
+                            [disabled]="!canColor(selection)"
+                            (click)="color(selection)">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <button
+                            class="nifi-button"
+                            type="button"
+                            [disabled]="!canDelete(selection)"
+                            (click)="delete(selection)">
+                            <i class="fa fa-trash"></i>
+                        </button>
                     </div>
                 </div>
-                <div class="operation-context-id">{{ getContextId(selection) }}</div>
             </div>
-            <div class="flex flex-col gap-y-1">
-                <div class="flex gap-x-1">
-                    <button
-                        class="nifi-button"
-                        type="button"
-                        [disabled]="!canConfigure(selection)"
-                        (click)="configure(selection)">
-                        <i class="fa fa-gear"></i>
-                    </button>
-                    <button
-                        class="nifi-button mr-2"
-                        type="button"
-                        *ngIf="supportsManagedAuthorizer()"
-                        [disabled]="!canManageAccess(selection)"
-                        (click)="manageAccess(selection)">
-                        <i class="fa fa-key"></i>
-                    </button>
-                    <button
-                        class="nifi-button"
-                        type="button"
-                        [disabled]="!canEnable(selection)"
-                        (click)="enable(selection)">
-                        <i class="fa fa-flash"></i>
-                    </button>
-                    <button
-                        class="nifi-button mr-2"
-                        type="button"
-                        [disabled]="!canDisable(selection)"
-                        (click)="disable(selection)">
-                        <i class="ml-1 icon icon-enable-false"></i>
-                    </button>
-                    <button
-                        class="nifi-button"
-                        type="button"
-                        [disabled]="!canStart(selection)"
-                        (click)="start(selection)">
-                        <i class="fa fa-play"></i>
-                    </button>
-                    <button
-                        class="nifi-button"
-                        type="button"
-                        [disabled]="!canStop(selection)"
-                        (click)="stop(selection)">
-                        <i class="fa fa-stop"></i>
-                    </button>
-                </div>
-                <div class="flex gap-x-1">
-                    <button
-                        class="nifi-button"
-                        type="button"
-                        [disabled]="!canCopy(selection)"
-                        (click)="copy(selection)">
-                        <i class="fa fa-copy"></i>
-                    </button>
-                    <button
-                        class="nifi-button mr-2"
-                        type="button"
-                        [disabled]="!canPaste(selection)"
-                        (click)="paste(selection)">
-                        <i class="fa fa-paste"></i>
-                    </button>
-                    <button
-                        class="nifi-button mr-2"
-                        type="button"
-                        [disabled]="!canGroup(selection)"
-                        (click)="group(selection)">
-                        <i class="ml-1 icon icon-group"></i>
-                    </button>
-                    <button
-                        class="nifi-button mr-2"
-                        type="button"
-                        [disabled]="!canColor(selection)"
-                        (click)="color(selection)">
-                        <i class="fa fa-paint-brush"></i>
-                    </button>
-                    <button
-                        class="nifi-button"
-                        type="button"
-                        [disabled]="!canDelete(selection)"
-                        (click)="delete(selection)">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </ng-container>
+        }
+    }
 </div>

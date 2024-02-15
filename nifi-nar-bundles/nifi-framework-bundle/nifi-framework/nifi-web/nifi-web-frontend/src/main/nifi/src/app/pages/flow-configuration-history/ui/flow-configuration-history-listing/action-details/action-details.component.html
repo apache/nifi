@@ -25,17 +25,17 @@
                     <div class="value">{{ actionEntity.sourceId }}</div>
                 </div>
 
-                <ng-container *ngIf="actionEntity.action?.componentDetails">
-                    <div *ngIf="isRemoteProcessGroup(actionEntity); else extension">
-                        <div>Uri</div>
-                        <ng-container
-                            *ngTemplateOutlet="
-                                formatValue;
-                                context: { $implicit: getRemoteProcessGroupDetails(actionEntity)?.uri }
-                            "></ng-container>
-                    </div>
-
-                    <ng-template #extension>
+                @if (actionEntity.action.componentDetails) {
+                    @if (isRemoteProcessGroup(actionEntity)) {
+                        <div>
+                            <div>Uri</div>
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    formatValue;
+                                    context: { $implicit: getRemoteProcessGroupDetails(actionEntity)?.uri }
+                                "></ng-container>
+                        </div>
+                    } @else {
                         <div>
                             <div>Type</div>
                             <ng-container
@@ -44,13 +44,13 @@
                                     context: { $implicit: getExtensionDetails(actionEntity)?.type }
                                 "></ng-container>
                         </div>
-                    </ng-template>
-                </ng-container>
+                    }
+                }
 
-                <ng-container *ngIf="actionEntity.action?.actionDetails">
-                    <ng-container [ngSwitch]="actionEntity.action.operation">
-                        <ng-container *ngSwitchCase="'Configure'">
-                            <ng-container *ngIf="getConfigureActionDetails(actionEntity) as details">
+                @if (actionEntity.action.actionDetails) {
+                    @switch (actionEntity.action.operation) {
+                        @case ('Configure') {
+                            @if (getConfigureActionDetails(actionEntity); as details) {
                                 <div>
                                     <div>Name</div>
                                     <ng-container
@@ -75,10 +75,10 @@
                                             context: { $implicit: details.previousValue }
                                         "></ng-container>
                                 </div>
-                            </ng-container>
-                        </ng-container>
-                        <ng-container *ngSwitchCase="'Connect' || 'Disconnect'">
-                            <ng-container *ngIf="getConnectActionDetails(actionEntity) as details">
+                            }
+                        }
+                        @case ('Connect' || 'Disconnect') {
+                            @if (getConnectActionDetails(actionEntity); as details) {
                                 <div>
                                     <div>Source Id</div>
                                     <ng-container
@@ -135,10 +135,10 @@
                                             context: { $implicit: details.destinationType }
                                         "></ng-container>
                                 </div>
-                            </ng-container>
-                        </ng-container>
-                        <ng-container *ngSwitchCase="'Move'">
-                            <ng-container *ngIf="getMoveActionDetails(actionEntity) as details">
+                            }
+                        }
+                        @case ('Move') {
+                            @if (getMoveActionDetails(actionEntity); as details) {
                                 <div>
                                     <div>Group</div>
                                     <ng-container
@@ -171,10 +171,10 @@
                                             context: { $implicit: details.previousGroupId }
                                         "></ng-container>
                                 </div>
-                            </ng-container>
-                        </ng-container>
-                        <ng-container *ngSwitchCase="'Purge'">
-                            <ng-container *ngIf="getPurgeActionDetails(actionEntity) as details">
+                            }
+                        }
+                        @case ('Purge') {
+                            @if (getPurgeActionDetails(actionEntity); as details) {
                                 <div>
                                     <div>End Date</div>
                                     <ng-container
@@ -183,27 +183,26 @@
                                             context: { $implicit: details.endDate }
                                         "></ng-container>
                                 </div>
-                            </ng-container>
-                        </ng-container>
-                    </ng-container>
-                </ng-container>
+                            }
+                        }
+                    }
+                }
             </div>
 
             <ng-template #formatValue let-value let-title="title">
-                <ng-container *ngIf="value != null; else nullValue">
-                    <ng-container *ngIf="value === ''; else nonEmptyValue">
+                @if (value != null) {
+                    @if (value === '') {
                         <div class="unset">Empty string set</div>
-                    </ng-container>
-                    <ng-template #nonEmptyValue>
-                        <div class="value" *ngIf="title == null; else valueWithTitle">{{ value }}</div>
-                        <ng-template #valueWithTitle>
+                    } @else {
+                        @if (title == null) {
+                            <div class="value">{{ value }}</div>
+                        } @else {
                             <div class="value" [title]="title">{{ value }}</div>
-                        </ng-template>
-                    </ng-template>
-                </ng-container>
-                <ng-template #nullValue>
+                        }
+                    }
+                } @else {
                     <div class="unset">No value set</div>
-                </ng-template>
+                }
             </ng-template>
         </mat-dialog-content>
         <mat-dialog-actions align="end">

@@ -15,11 +15,13 @@
   ~ limitations under the License.
   -->
 
-<div class="splash h-screen p-20" *ngIf="guardLoading">
-    <div class="splash-img h-full flex items-center justify-center">
-        <mat-spinner color="primary"></mat-spinner>
+@if (guardLoading) {
+    <div class="splash h-screen p-20">
+        <div class="splash-img h-full flex items-center justify-center">
+            <mat-spinner color="primary"></mat-spinner>
+        </div>
     </div>
-</div>
+}
 
 <div class="mat-app-background">
     <router-outlet></router-outlet>

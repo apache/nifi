@@ -15,34 +15,39 @@
   ~ limitations under the License.
   -->
 
-<ng-container *ngIf="registryClientsState$ | async; let registryClientState">
-    <div *ngIf="isInitialLoading(registryClientState); else loaded">
-        <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
-    </div>
-    <ng-template #loaded>
-        <div class="flex flex-col h-full gap-y-2" *ngIf="currentUser$ | async; let currentUser">
-            <div class="flex justify-end" *ngIf="currentUser.controllerPermissions.canWrite">
-                <button class="nifi-button" (click)="openNewRegistryClientDialog()">
-                    <i class="fa fa-plus"></i>
-                </button>
-            </div>
-            <div class="flex-1">
-                <registry-client-table
-                    [selectedRegistryClientId]="selectedRegistryClientId$ | async"
-                    [registryClients]="registryClientState.registryClients"
-                    (selectRegistryClient)="selectRegistryClient($event)"
-                    (configureRegistryClient)="configureRegistryClient($event)"
-                    (deleteRegistryClient)="deleteRegistryClient($event)"></registry-client-table>
-            </div>
-            <div class="flex justify-between">
-                <div class="refresh-container flex items-center gap-x-2">
-                    <button class="nifi-button" (click)="refreshRegistryClientListing()">
-                        <i class="fa fa-refresh" [class.fa-spin]="registryClientState.status === 'loading'"></i>
-                    </button>
-                    <div>Last updated:</div>
-                    <div class="refresh-timestamp">{{ registryClientState.loadedTimestamp }}</div>
+@if (registryClientsState$ | async; as registryClientState) {
+    @if (isInitialLoading(registryClientState)) {
+        <div>
+            <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+        </div>
+    } @else {
+        @if (currentUser$ | async; as currentUser) {
+            <div class="flex flex-col h-full gap-y-2">
+                @if (currentUser.controllerPermissions.canWrite) {
+                    <div class="flex justify-end">
+                        <button class="nifi-button" (click)="openNewRegistryClientDialog()">
+                            <i class="fa fa-plus"></i>
+                        </button>
+                    </div>
+                }
+                <div class="flex-1">
+                    <registry-client-table
+                        [selectedRegistryClientId]="selectedRegistryClientId$ | async"
+                        [registryClients]="registryClientState.registryClients"
+                        (selectRegistryClient)="selectRegistryClient($event)"
+                        (configureRegistryClient)="configureRegistryClient($event)"
+                        (deleteRegistryClient)="deleteRegistryClient($event)"></registry-client-table>
+                </div>
+                <div class="flex justify-between">
+                    <div class="refresh-container flex items-center gap-x-2">
+                        <button class="nifi-button" (click)="refreshRegistryClientListing()">
+                            <i class="fa fa-refresh" [class.fa-spin]="registryClientState.status === 'loading'"></i>
+                        </button>
+                        <div>Last updated:</div>
+                        <div class="refresh-timestamp">{{ registryClientState.loadedTimestamp }}</div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </ng-template>
-</ng-container>
+        }
+    }
+}

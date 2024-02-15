@@ -45,15 +45,16 @@
                             <mat-form-field>
                                 <mat-label>Enforcement Policy</mat-label>
                                 <mat-select formControlName="enforcementPolicy">
-                                    <mat-option
-                                        *ngFor="let option of strategies"
-                                        [value]="option.value"
-                                        nifiTooltip
-                                        [tooltipComponentType]="TextTip"
-                                        [tooltipInputData]="getPropertyTipData(option)"
-                                        [delayClose]="false">
-                                        {{ option.text }}
-                                    </mat-option>
+                                    @for (option of strategies; track option) {
+                                        <mat-option
+                                            [value]="option.value"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            [tooltipInputData]="getPropertyTipData(option)"
+                                            [delayClose]="false">
+                                            {{ option.text }}
+                                        </mat-option>
+                                    }
                                 </mat-select>
                             </mat-form-field>
                         </div>
@@ -80,15 +81,17 @@
             </mat-tab>
         </mat-tab-group>
     </mat-dialog-content>
-    <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
-        <button
-            [disabled]="!editFlowAnalysisRuleForm.dirty || editFlowAnalysisRuleForm.invalid || saving.value"
-            type="button"
-            color="primary"
-            (click)="submitForm()"
-            mat-raised-button>
-            <span *nifiSpinner="saving.value">Apply</span>
-        </button>
-    </mat-dialog-actions>
+    @if ({ value: (saving$ | async)! }; as saving) {
+        <mat-dialog-actions align="end">
+            <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+            <button
+                [disabled]="!editFlowAnalysisRuleForm.dirty || editFlowAnalysisRuleForm.invalid || saving.value"
+                type="button"
+                color="primary"
+                (click)="submitForm()"
+                mat-raised-button>
+                <span *nifiSpinner="saving.value">Apply</span>
+            </button>
+        </mat-dialog-actions>
+    }
 </form>

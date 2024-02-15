@@ -26,13 +26,12 @@
     </div>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-    <ng-container *ngIf="request.controllerPermissions.canRead; else noPermissions">
+    @if (request.controllerPermissions.canRead) {
         <button mat-stroked-button mat-dialog-close color="primary">Cancel</button>
         <button mat-raised-button mat-dialog-close color="primary" [routerLink]="['/settings', 'registry-clients']">
             Configure
         </button>
-    </ng-container>
-    <ng-template #noPermissions>
+    } @else {
         <button mat-raised-button mat-dialog-close color="primary">Ok</button>
-    </ng-template>
+    }
 </mat-dialog-actions>

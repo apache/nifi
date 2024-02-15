@@ -15,12 +15,12 @@
   ~ limitations under the License.
   -->
 
-<ng-container *ngIf="general$ | async; let general">
-    <div class="w-96" *ngIf="general.status === 'pending' || general.status === 'loading'; else loaded">
-        <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
-    </div>
-
-    <ng-template #loaded>
+@if (general$ | async; as general) {
+    @if (general.status === 'pending' || general.status === 'loading') {
+        <div class="w-96">
+            <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+        </div>
+    } @else {
         <general-form [controller]="general.controller"></general-form>
-    </ng-template>
-</ng-container>
+    }
+}

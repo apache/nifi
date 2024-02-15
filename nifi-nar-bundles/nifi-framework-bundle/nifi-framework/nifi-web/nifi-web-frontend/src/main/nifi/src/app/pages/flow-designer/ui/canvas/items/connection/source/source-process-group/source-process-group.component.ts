@@ -18,7 +18,7 @@
 import { Component, forwardRef, Input } from '@angular/core';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { NgForOf, NgIf } from '@angular/common';
+
 import { TextTip } from '../../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatOptionModule } from '@angular/material/core';
@@ -33,8 +33,6 @@ import { SelectOption, TextTipInput } from '../../../../../../../../state/shared
     styleUrls: ['./source-process-group.component.scss'],
     imports: [
         MatCheckboxModule,
-        NgForOf,
-        NgIf,
         FormsModule,
         MatFormFieldModule,
         MatOptionModule,

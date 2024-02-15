@@ -15,18 +15,19 @@
   ~ limitations under the License.
   -->
 
-<ng-container *ngIf="(messages$ | async)!; let messages">
+@if ((messages$ | async)!; as messages) {
     <div class="banner-container border-t border-b px-6 py-3 flex justify-between items-center">
-        <ng-container *ngIf="messages.length === 1; else multipleMessages">
+        @if (messages.length === 1) {
             <div>{{ messages[0] }}</div>
-        </ng-container>
-        <ng-template #multipleMessages>
+        } @else {
             <ul>
-                <li *ngFor="let message of messages">{{ message }}</li>
+                @for (message of messages; track message) {
+                    <li>{{ message }}</li>
+                }
             </ul>
-        </ng-template>
+        }
         <div class="flex flex-col mt-auto">
             <button mat-stroked-button (click)="dismiss()">Dismiss</button>
         </div>
     </div>
-</ng-container>
+}

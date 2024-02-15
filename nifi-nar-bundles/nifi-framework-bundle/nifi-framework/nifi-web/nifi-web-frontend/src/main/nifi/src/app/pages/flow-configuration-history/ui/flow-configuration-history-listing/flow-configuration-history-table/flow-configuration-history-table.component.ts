@@ -16,7 +16,7 @@
  */
 
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { ActionEntity } from '../../../state/flow-configuration-history-listing';
@@ -25,7 +25,7 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
 @Component({
     selector: 'flow-configuration-history-table',
     standalone: true,
-    imports: [CommonModule, MatTableModule, MatSortModule],
+    imports: [MatTableModule, MatSortModule],
     templateUrl: './flow-configuration-history-table.component.html',
     styleUrls: ['./flow-configuration-history-table.component.scss']
 })

@@ -23,15 +23,16 @@
         <h3 class="text-xl bold settings-header">NiFi Settings</h3>
         <div class="settings-tabs">
             <nav mat-tab-nav-bar color="primary" [tabPanel]="tabPanel">
-                <a
-                    mat-tab-link
-                    *ngFor="let tab of tabLinks"
-                    [routerLink]="[tab.link]"
-                    routerLinkActive
-                    #rla="routerLinkActive"
-                    [active]="rla.isActive">
-                    {{ tab.label }}
-                </a>
+                @for (tab of tabLinks; track tab) {
+                    <a
+                        mat-tab-link
+                        [routerLink]="[tab.link]"
+                        routerLinkActive
+                        #rla="routerLinkActive"
+                        [active]="rla.isActive">
+                        {{ tab.label }}
+                    </a>
+                }
             </nav>
         </div>
         <div class="pt-4 flex-1">

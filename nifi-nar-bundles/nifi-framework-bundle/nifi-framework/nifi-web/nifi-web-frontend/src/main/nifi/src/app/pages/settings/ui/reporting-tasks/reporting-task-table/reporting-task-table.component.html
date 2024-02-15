@@ -29,36 +29,42 @@
             <ng-container matColumnDef="moreDetails">
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let item">
-                    <ng-container *ngIf="canRead(item)">
+                    @if (canRead(item)) {
                         <div class="flex items-center gap-x-3">
                             <div class="pointer fa fa-book" title="Usage"></div>
                             <!-- TODO - handle read only in configure component? -->
-                            <div *ngIf="hasComments(item)">
-                                <div
-                                    class="pointer fa fa-comment"
-                                    [delayClose]="false"
-                                    nifiTooltip
-                                    [tooltipComponentType]="TextTip"
-                                    [tooltipInputData]="getCommentsTipData(item)"></div>
-                            </div>
-                            <div *ngIf="hasErrors(item)">
-                                <div
-                                    class="pointer fa fa-warning has-errors"
-                                    [delayClose]="false"
-                                    nifiTooltip
-                                    [tooltipComponentType]="ValidationErrorsTip"
-                                    [tooltipInputData]="getValidationErrorsTipData(item)"></div>
-                            </div>
-                            <div *ngIf="hasBulletins(item)">
-                                <div
-                                    class="pointer fa fa-sticky-note-o"
-                                    [delayClose]="false"
-                                    nifiTooltip
-                                    [tooltipComponentType]="BulletinsTip"
-                                    [tooltipInputData]="getBulletinsTipData(item)"></div>
-                            </div>
+                            @if (hasComments(item)) {
+                                <div>
+                                    <div
+                                        class="pointer fa fa-comment"
+                                        [delayClose]="false"
+                                        nifiTooltip
+                                        [tooltipComponentType]="TextTip"
+                                        [tooltipInputData]="getCommentsTipData(item)"></div>
+                                </div>
+                            }
+                            @if (hasErrors(item)) {
+                                <div>
+                                    <div
+                                        class="pointer fa fa-warning has-errors"
+                                        [delayClose]="false"
+                                        nifiTooltip
+                                        [tooltipComponentType]="ValidationErrorsTip"
+                                        [tooltipInputData]="getValidationErrorsTipData(item)"></div>
+                                </div>
+                            }
+                            @if (hasBulletins(item)) {
+                                <div>
+                                    <div
+                                        class="pointer fa fa-sticky-note-o"
+                                        [delayClose]="false"
+                                        nifiTooltip
+                                        [tooltipComponentType]="BulletinsTip"
+                                        [tooltipInputData]="getBulletinsTipData(item)"></div>
+                                </div>
+                            }
                         </div>
-                    </ng-container>
+                    }
                 </td>
             </ng-container>
 
@@ -93,7 +99,9 @@
                     <div class="flex items-center gap-x-2">
                         <div [ngClass]="getStateIcon(item)"></div>
                         <div>{{ formatState(item) }}</div>
-                        <div *ngIf="hasActiveThreads(item)">({{ item.status.activeThreadCount }})</div>
+                        @if (hasActiveThreads(item)) {
+                            <div>({{ item.status.activeThreadCount }})</div>
+                        }
                     </div>
                 </td>
             </ng-container>
@@ -103,38 +111,34 @@
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let item">
                     <div class="flex items-center gap-x-3">
-                        <div
-                            class="pointer fa fa-stop"
-                            *ngIf="canStop(item)"
-                            (click)="stopClicked(item)"
-                            title="Stop"></div>
-                        <div
-                            class="pointer fa fa-pencil"
-                            *ngIf="canEdit(item)"
-                            (click)="configureClicked(item, $event)"
-                            title="Edit"></div>
-                        <div
-                            class="pointer fa fa-play"
-                            *ngIf="canStart(item)"
-                            (click)="startClicked(item)"
-                            title="Start"></div>
-                        <div class="pointer fa fa-exchange" *ngIf="canChangeVersion(item)" title="Change Version"></div>
-                        <div
-                            class="pointer fa fa-trash"
-                            *ngIf="canDelete(item)"
-                            (click)="deleteClicked(item)"
-                            title="Delete"></div>
-                        <div
-                            class="pointer fa fa-tasks"
-                            *ngIf="canViewState(item)"
-                            (click)="viewStateClicked(item)"
-                            title="View State"></div>
-                        <div
-                            class="pointer fa fa-key"
-                            *ngIf="canManageAccessPolicies()"
-                            (click)="$event.stopPropagation()"
-                            [routerLink]="getPolicyLink(item)"
-                            title="Access Policies"></div>
+                        @if (canStop(item)) {
+                            <div class="pointer fa fa-stop" (click)="stopClicked(item)" title="Stop"></div>
+                        }
+                        @if (canEdit(item)) {
+                            <div
+                                class="pointer fa fa-pencil"
+                                (click)="configureClicked(item, $event)"
+                                title="Edit"></div>
+                        }
+                        @if (canStart(item)) {
+                            <div class="pointer fa fa-play" (click)="startClicked(item)" title="Start"></div>
+                        }
+                        @if (canChangeVersion(item)) {
+                            <div class="pointer fa fa-exchange" title="Change Version"></div>
+                        }
+                        @if (canDelete(item)) {
+                            <div class="pointer fa fa-trash" (click)="deleteClicked(item)" title="Delete"></div>
+                        }
+                        @if (canViewState(item)) {
+                            <div class="pointer fa fa-tasks" (click)="viewStateClicked(item)" title="View State"></div>
+                        }
+                        @if (canManageAccessPolicies()) {
+                            <div
+                                class="pointer fa fa-key"
+                                (click)="$event.stopPropagation()"
+                                [routerLink]="getPolicyLink(item)"
+                                title="Access Policies"></div>
+                        }
                     </div>
                 </td>
             </ng-container>

@@ -29,23 +29,25 @@
             <ng-container matColumnDef="moreDetails">
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let item">
-                    <ng-container *ngIf="canRead(item)">
+                    @if (canRead(item)) {
                         <div class="flex items-center">
                             <!-- TODO - handle read only in configure component? -->
-                            <div
-                                class="mr-3 pointer fa fa-warning has-errors"
-                                *ngIf="hasErrors(item)"
-                                nifiTooltip
-                                [tooltipComponentType]="ValidationErrorsTip"
-                                [tooltipInputData]="getValidationErrorsTipData(item)"></div>
-                            <div
-                                class="mr-3 pointer fa fa-sticky-note-o"
-                                *ngIf="hasBulletins(item)"
-                                nifiTooltip
-                                [tooltipComponentType]="BulletinsTip"
-                                [tooltipInputData]="getBulletinsTipData(item)"></div>
+                            @if (hasErrors(item)) {
+                                <div
+                                    class="mr-3 pointer fa fa-warning has-errors"
+                                    nifiTooltip
+                                    [tooltipComponentType]="ValidationErrorsTip"
+                                    [tooltipInputData]="getValidationErrorsTipData(item)"></div>
+                            }
+                            @if (hasBulletins(item)) {
+                                <div
+                                    class="mr-3 pointer fa fa-sticky-note-o"
+                                    nifiTooltip
+                                    [tooltipComponentType]="BulletinsTip"
+                                    [tooltipInputData]="getBulletinsTipData(item)"></div>
+                            }
                         </div>
-                    </ng-container>
+                    }
                 </td>
             </ng-container>
 
@@ -53,12 +55,11 @@
             <ng-container matColumnDef="name">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
                 <td mat-cell *matCellDef="let item">
-                    <ng-container *ngIf="canRead(item); else nameNoPermissions">
+                    @if (canRead(item)) {
                         {{ item.component.name }}
-                    </ng-container>
-                    <ng-template #nameNoPermissions>
+                    } @else {
                         <div class="unset">{{ item.id }}</div>
-                    </ng-template>
+                    }
                 </td>
             </ng-container>
 
@@ -66,12 +67,11 @@
             <ng-container matColumnDef="description">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Description</th>
                 <td mat-cell *matCellDef="let item">
-                    <ng-container *ngIf="canRead(item); else descriptionNoPermissions">
+                    @if (canRead(item)) {
                         {{ item.component.description }}
-                    </ng-container>
-                    <ng-template #descriptionNoPermissions>
+                    } @else {
                         <div class="unset">{{ item.id }}</div>
-                    </ng-template>
+                    }
                 </td>
             </ng-container>
 
@@ -79,9 +79,9 @@
             <ng-container matColumnDef="type">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
                 <td mat-cell *matCellDef="let item">
-                    <ng-container *ngIf="canRead(item)">
+                    @if (canRead(item)) {
                         {{ formatType(item) }}
-                    </ng-container>
+                    }
                 </td>
             </ng-container>
 
@@ -89,9 +89,9 @@
             <ng-container matColumnDef="bundle">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Bundle</th>
                 <td mat-cell *matCellDef="let item">
-                    <ng-container *ngIf="canRead(item)">
+                    @if (canRead(item)) {
                         {{ formatBundle(item) }}
-                    </ng-container>
+                    }
                 </td>
             </ng-container>
 
@@ -100,16 +100,15 @@
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let item">
                     <div class="flex items-center gap-x-3">
-                        <div
-                            class="pointer fa fa-pencil"
-                            *ngIf="canConfigure(item)"
-                            (click)="configureClicked(item, $event)"
-                            title="Configure"></div>
-                        <div
-                            class="pointer fa fa-trash"
-                            *ngIf="canDelete(item)"
-                            (click)="deleteClicked(item, $event)"
-                            title="Delete"></div>
+                        @if (canConfigure(item)) {
+                            <div
+                                class="pointer fa fa-pencil"
+                                (click)="configureClicked(item, $event)"
+                                title="Configure"></div>
+                        }
+                        @if (canDelete(item)) {
+                            <div class="pointer fa fa-trash" (click)="deleteClicked(item, $event)" title="Delete"></div>
+                        }
                     </div>
                 </td>
             </ng-container>
