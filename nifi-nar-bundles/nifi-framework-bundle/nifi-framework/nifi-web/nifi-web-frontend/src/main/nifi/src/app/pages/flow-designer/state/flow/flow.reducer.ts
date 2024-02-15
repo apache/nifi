@@ -38,7 +38,7 @@ import {
     loadProcessorSuccess,
     loadRemoteProcessGroupSuccess,
     navigateWithoutTransform,
-    requestRemoteProcessGroup,
+    requestRefreshRemoteProcessGroup,
     resetFlowState,
     runOnce,
     runOnceSuccess,
@@ -154,7 +154,7 @@ export const flowReducer = createReducer(
     on(resetFlowState, () => ({
         ...initialState
     })),
-    on(requestRemoteProcessGroup, (state, { request }) => ({
+    on(requestRefreshRemoteProcessGroup, (state, { request }) => ({
         ...state,
         refreshRpgDetails: {
             request,

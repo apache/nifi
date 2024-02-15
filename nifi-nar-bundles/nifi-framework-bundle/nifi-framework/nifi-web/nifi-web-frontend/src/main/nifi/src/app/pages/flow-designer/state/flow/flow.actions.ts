@@ -235,8 +235,8 @@ export const goToRemoteProcessGroup = createAction(
 
 export const refreshRemoteProcessGroup = createAction(`${CANVAS_PREFIX} Refresh Remote Process Group`);
 
-export const requestRemoteProcessGroup = createAction(
-    `${CANVAS_PREFIX} Request Remote Process Group Polling`,
+export const requestRefreshRemoteProcessGroup = createAction(
+    `${CANVAS_PREFIX} Request Refresh Remote Process Group Polling`,
     props<{ request: RefreshRemoteProcessGroupRequest }>()
 );
 

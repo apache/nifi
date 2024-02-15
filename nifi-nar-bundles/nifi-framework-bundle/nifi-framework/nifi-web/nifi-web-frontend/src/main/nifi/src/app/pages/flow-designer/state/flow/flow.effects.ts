@@ -379,7 +379,7 @@ export class FlowEffects {
 
     requestRemoteProcessGroup$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(FlowActions.requestRemoteProcessGroup),
+            ofType(FlowActions.requestRefreshRemoteProcessGroup),
             switchMap(() => {
                 return of(FlowActions.refreshRemoteProcessGroup());
             })

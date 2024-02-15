@@ -37,7 +37,7 @@ import {
     navigateToViewStatusHistoryForComponent,
     reloadFlow,
     replayLastProvenanceEvent,
-    requestRemoteProcessGroup,
+    requestRefreshRemoteProcessGroup,
     runOnce,
     startComponents,
     startCurrentProcessGroup,
@@ -763,7 +763,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                         id,
                         refreshTimestamp
                     };
-                    this.store.dispatch(requestRemoteProcessGroup({ request }));
+                    this.store.dispatch(requestRefreshRemoteProcessGroup({ request }));
                 }
             },
             {
