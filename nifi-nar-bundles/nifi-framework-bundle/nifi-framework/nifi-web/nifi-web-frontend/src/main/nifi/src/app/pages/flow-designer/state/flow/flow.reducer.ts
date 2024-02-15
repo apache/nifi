@@ -38,7 +38,7 @@ import {
     loadProcessorSuccess,
     loadRemoteProcessGroupSuccess,
     navigateWithoutTransform,
-    requestRemoteProcessGroupPolling,
+    requestRemoteProcessGroup,
     resetFlowState,
     runOnce,
     runOnceSuccess,
@@ -50,6 +50,7 @@ import {
     setTransitionRequired,
     startComponent,
     startComponentSuccess,
+    startRemoteProcessGroupPolling,
     stopComponentSuccess,
     stopRemoteProcessGroupPolling,
     updateComponent,
@@ -129,7 +130,7 @@ export const initialState: FlowState = {
         connectedNodeCount: 0,
         totalNodeCount: 0
     },
-    rpgToPoll: null,
+    refreshRpgDetails: null,
     controllerBulletins: {
         bulletins: [],
         controllerServiceBulletins: [],
@@ -153,13 +154,23 @@ export const flowReducer = createReducer(
     on(resetFlowState, () => ({
         ...initialState
     })),
-    on(requestRemoteProcessGroupPolling, (state, { request }) => ({
+    on(requestRemoteProcessGroup, (state, { request }) => ({
         ...state,
-        rpgToPoll: request
+        refreshRpgDetails: {
+            request,
+            polling: false
+        }
     })),
+    on(startRemoteProcessGroupPolling, (state) => {
+        return produce(state, (draftState) => {
+            if (draftState.refreshRpgDetails) {
+                draftState.refreshRpgDetails.polling = true;
+            }
+        });
+    }),
     on(stopRemoteProcessGroupPolling, (state) => ({
         ...state,
-        rpgToPoll: null
+        refreshRpgDetails: null
     })),
     on(loadProcessGroup, (state, { request }) => ({
         ...state,

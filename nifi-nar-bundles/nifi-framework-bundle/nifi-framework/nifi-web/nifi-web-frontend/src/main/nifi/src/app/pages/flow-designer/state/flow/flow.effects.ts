@@ -58,7 +58,7 @@ import {
     selectProcessGroup,
     selectProcessor,
     selectRemoteProcessGroup,
-    selectRpgToPoll,
+    selectRefreshRpgDetails,
     selectSaving
 } from './flow.selectors';
 import { ConnectionManager } from '../../service/manager/connection-manager.service';
@@ -377,11 +377,11 @@ export class FlowEffects {
         )
     );
 
-    requestRemoteProcessGroupPolling$ = createEffect(() =>
+    requestRemoteProcessGroup$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(FlowActions.requestRemoteProcessGroupPolling),
+            ofType(FlowActions.requestRemoteProcessGroup),
             switchMap(() => {
-                return of(FlowActions.startRemoteProcessGroupPolling());
+                return of(FlowActions.refreshRemoteProcessGroup());
             })
         )
     );
@@ -389,29 +389,23 @@ export class FlowEffects {
     refreshRemoteProcessGroup$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.refreshRemoteProcessGroup),
-            concatLatestFrom(() => this.store.select(selectRpgToPoll).pipe(isDefinedAndNotNull())),
-            switchMap(([, rpgToPoll]) =>
+            concatLatestFrom(() => this.store.select(selectRefreshRpgDetails).pipe(isDefinedAndNotNull())),
+            switchMap(([, refreshRpgDetails]) =>
                 from(
-                    this.flowService.getRemoteProcessGroup(rpgToPoll.id).pipe(
+                    this.flowService.getRemoteProcessGroup(refreshRpgDetails.request.id).pipe(
                         map((response: any) => {
                             const entity = response;
 
-                            if (rpgToPoll.refreshTimestamp !== response.component.flowRefreshed) {
+                            if (refreshRpgDetails.request.refreshTimestamp !== entity.component.flowRefreshed) {
                                 this.store.dispatch(FlowActions.stopRemoteProcessGroupPolling());
 
                                 // reload the group's connections
-                                const connections = this.canvasUtils.getComponentConnections(entity.id);
-                                connections.forEach((connection) => {
-                                    if (connection.permissions.canRead) {
-                                        FlowActions.loadConnectionSuccess({
-                                            response: {
-                                                id: connection.id,
-                                                connection
-                                            }
-                                        });
-                                    }
-                                });
+                                this.store.dispatch(FlowActions.loadConnectionsForComponent({ id: entity.id }));
                             } else {
+                                if (!refreshRpgDetails.polling) {
+                                    this.store.dispatch(FlowActions.startRemoteProcessGroupPolling());
+                                }
+
                                 entity.component.flowRefreshed = 'Refreshing...';
                             }
 

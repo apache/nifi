@@ -213,9 +213,9 @@ export interface RefreshRemoteProcessGroupRequest {
     refreshTimestamp: string;
 }
 
-export interface RefreshRemoteProcessGroupRequestSuccess {
-    id: string;
-    entity: any;
+export interface RefreshRemoteProcessGroupPollingDetailsRequest {
+    request: RefreshRemoteProcessGroupRequest;
+    polling: boolean;
 }
 
 export interface CreateProcessorRequest extends CreateComponentRequest {
@@ -513,7 +513,7 @@ export interface FlowState {
     id: string;
     flow: ProcessGroupFlowEntity;
     flowStatus: ControllerStatusEntity;
-    rpgToPoll: RefreshRemoteProcessGroupRequest | null;
+    refreshRpgDetails: RefreshRemoteProcessGroupPollingDetailsRequest | null;
     clusterSummary: ClusterSummary;
     controllerBulletins: ControllerBulletinsEntity;
     dragging: boolean;
