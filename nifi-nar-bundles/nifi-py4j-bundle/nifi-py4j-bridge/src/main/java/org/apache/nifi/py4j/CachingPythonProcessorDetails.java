@@ -126,4 +126,8 @@ public class CachingPythonProcessorDetails implements PythonProcessorDetails {
         }
         return propertyDescriptions;
     }
+
+    @Override
+    public void free() {
+    }
 }
