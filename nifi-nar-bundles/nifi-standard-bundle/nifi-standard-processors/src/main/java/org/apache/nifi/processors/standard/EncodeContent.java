@@ -154,7 +154,7 @@ public class EncodeContent extends AbstractProcessor {
         }
 
         final boolean encode = context.getProperty(MODE).getValue().equals(EncodingMode.ENCODE.getValue());
-        final String encoding = context.getProperty(ENCODING).getValue();
+               final EncodingType encoding = EncodingType.valueOf(context.getProperty(ENCODING).getValue());
 
         final Boolean singleLineOutput = context.getProperty(LINE_OUTPUT_MODE).getValue().equals(LineOutputMode.SINGLE_LINE.getValue());
         final int lineLength = context.getProperty(ENCODED_LINE_LENGTH).evaluateAttributeExpressions(flowFile).asInteger();
@@ -175,12 +175,12 @@ public class EncodeContent extends AbstractProcessor {
         }
     }
 
-    private static StreamCallback getStreamCallback(final Boolean encode, final String encoding,
+    private static StreamCallback getStreamCallback(final Boolean encode, final EncodingType encoding,
         final int lineLength, final String lineSeparator) {
         switch(encoding) {
-            case "BASE64_ENCODING":
+            case BASE64_ENCODING:
                 return encode ? new EncodeBase64(lineLength, lineSeparator) : new DecodeBase64();
-            case "BASE32_ENCODING":
+            case BASE32_ENCODING:
                 return encode ? new EncodeBase32(lineLength, lineSeparator) : new DecodeBase32();
             default:
                 return encode ? new EncodeHex() : new DecodeHex();
