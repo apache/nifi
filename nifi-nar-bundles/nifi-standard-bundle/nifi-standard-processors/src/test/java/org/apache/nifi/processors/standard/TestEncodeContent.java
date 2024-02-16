@@ -52,11 +52,6 @@ class TestEncodeContent {
     }
 
     @Test
-    void testFailDecodeNotBase64() throws IOException {
-        runTestDecodeFailure(EncodingType.BASE64_ENCODING.getValue());
-    }
-
-    @Test
     void testFailDecodeNotBase64ButIsAMultipleOfFourBytes() {
         testRunner.setProperty(EncodeContent.MODE, EncodingMode.DECODE.getValue());
         testRunner.setProperty(EncodeContent.ENCODING, EncodingType.BASE64_ENCODING.getValue());
@@ -66,16 +61,6 @@ class TestEncodeContent {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(EncodeContent.REL_FAILURE, 1);
-    }
-
-    @Test
-    void testFailDecodeNotBase32() throws IOException {
-        runTestDecodeFailure(EncodingType.BASE32_ENCODING.getValue());
-    }
-
-    @Test
-    void testFailDecodeNotHex() throws IOException {
-        runTestDecodeFailure(EncodingType.HEX_ENCODING.getValue());
     }
 
     @ParameterizedTest
@@ -103,9 +88,11 @@ class TestEncodeContent {
         flowFile.assertContentEquals(FILE_PATH);
     }
 
-    private void runTestDecodeFailure(String encoding) throws IOException {
+    @ParameterizedTest
+    @EnumSource(value = EncodingType.class)
+    void testDecodeFailure(final EncodingType encoding) throws IOException {
         testRunner.setProperty(EncodeContent.MODE, EncodingMode.DECODE.getValue());
-        testRunner.setProperty(EncodeContent.ENCODING, encoding);
+        testRunner.setProperty(EncodeContent.ENCODING, encoding.getValue());
 
         testRunner.enqueue(FILE_PATH);
         testRunner.clearTransferState();
