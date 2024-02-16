@@ -58,6 +58,7 @@ import {
     selectProcessGroup,
     selectProcessor,
     selectRemoteProcessGroup,
+    selectRefreshRpgDetails,
     selectSaving
 } from './flow.selectors';
 import { ConnectionManager } from '../../service/manager/connection-manager.service';
@@ -67,6 +68,7 @@ import { EditPort } from '../../ui/canvas/items/port/edit-port/edit-port.compone
 import {
     BucketEntity,
     ComponentType,
+    isDefinedAndNotNull,
     RegistryClientEntity,
     VersionedFlowEntity,
     VersionedFlowSnapshotMetadataEntity
@@ -96,6 +98,7 @@ import { ImportFromRegistry } from '../../ui/canvas/items/flow/import-from-regis
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dialog/no-registry-clients-dialog.component';
 import { EditRemoteProcessGroup } from '../../ui/canvas/items/remote-process-group/edit-remote-process-group/edit-remote-process-group.component';
+import { ErrorHelper } from '../../../../service/error-helper.service';
 
 @Injectable()
 export class FlowEffects {
@@ -357,6 +360,70 @@ export class FlowEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    startRemoteProcessGroupPolling$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startRemoteProcessGroupPolling),
+            switchMap(() => {
+                return interval(3000, asyncScheduler).pipe(
+                    takeUntil(this.actions$.pipe(ofType(FlowActions.stopRemoteProcessGroupPolling)))
+                );
+            }),
+            switchMap(() => {
+                return of(FlowActions.refreshRemoteProcessGroup());
+            })
+        )
+    );
+
+    requestRefreshRemoteProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.requestRefreshRemoteProcessGroup),
+            switchMap(() => {
+                return of(FlowActions.refreshRemoteProcessGroup());
+            })
+        )
+    );
+
+    refreshRemoteProcessGroup$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.refreshRemoteProcessGroup),
+            concatLatestFrom(() => this.store.select(selectRefreshRpgDetails).pipe(isDefinedAndNotNull())),
+            switchMap(([, refreshRpgDetails]) =>
+                from(
+                    this.flowService.getRemoteProcessGroup(refreshRpgDetails.request.id).pipe(
+                        map((response: any) => {
+                            const entity = response;
+
+                            if (refreshRpgDetails.request.refreshTimestamp !== entity.component.flowRefreshed) {
+                                this.store.dispatch(FlowActions.stopRemoteProcessGroupPolling());
+
+                                // reload the group's connections
+                                this.store.dispatch(FlowActions.loadConnectionsForComponent({ id: entity.id }));
+                            } else {
+                                if (!refreshRpgDetails.polling) {
+                                    this.store.dispatch(FlowActions.startRemoteProcessGroupPolling());
+                                }
+
+                                entity.component.flowRefreshed = 'Refreshing...';
+                            }
+
+                            return FlowActions.loadRemoteProcessGroupSuccess({
+                                response: {
+                                    id: entity.id,
+                                    remoteProcessGroup: entity
+                                }
+                            });
+                        }),
+                        catchError((error) => {
+                            this.store.dispatch(FlowActions.stopRemoteProcessGroupPolling());
+
+                            return of(FlowActions.flowApiError({ error: error.error }));
+                        })
+                    )
+                )
+            )
+        )
     );
 
     openNewProcessGroupDialog$ = createEffect(
