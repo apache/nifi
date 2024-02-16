@@ -72,6 +72,8 @@ export class ControllerServiceTable {
 
     @Output() selectControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
+    @Output() viewControllerServiceDocumentation: EventEmitter<ControllerServiceEntity> =
+        new EventEmitter<ControllerServiceEntity>();
     @Output() deleteControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
     @Output() configureControllerService: EventEmitter<ControllerServiceEntity> =
@@ -115,6 +117,11 @@ export class ControllerServiceTable {
         return {
             text: entity.component.comments
         };
+    }
+
+    viewDocumentationClicked(entity: ControllerServiceEntity, event: MouseEvent): void {
+        event.stopPropagation();
+        this.viewControllerServiceDocumentation.next(entity);
     }
 
     hasErrors(entity: ControllerServiceEntity): boolean {
@@ -236,7 +243,7 @@ export class ControllerServiceTable {
             this.isDisabled(entity) &&
             this.canRead(entity) &&
             this.canWrite(entity) &&
-            entity.component.multipleVersionsAvailable === true
+            entity.component.multipleVersionsAvailable
         );
     }
 

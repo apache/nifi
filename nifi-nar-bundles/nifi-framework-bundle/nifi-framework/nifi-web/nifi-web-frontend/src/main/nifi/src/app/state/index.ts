@@ -35,6 +35,8 @@ import { componentStateFeatureKey, ComponentStateState } from './component-state
 import { componentStateReducer } from './component-state/component-state.reducer';
 import { errorFeatureKey, ErrorState } from './error';
 import { errorReducer } from './error/error.reducer';
+import { documentationFeatureKey, DocumentationState } from './documentation';
+import { documentationReducer } from './documentation/documentation.reducer';
 
 export interface NiFiState {
     router: RouterReducerState;
@@ -47,6 +49,7 @@ export interface NiFiState {
     [controllerServiceStateFeatureKey]: ControllerServiceState;
     [systemDiagnosticsFeatureKey]: SystemDiagnosticsState;
     [componentStateFeatureKey]: ComponentStateState;
+    [documentationFeatureKey]: DocumentationState;
 }
 
 export const rootReducers: ActionReducerMap<NiFiState> = {
@@ -59,5 +62,6 @@ export const rootReducers: ActionReducerMap<NiFiState> = {
     [statusHistoryFeatureKey]: statusHistoryReducer,
     [controllerServiceStateFeatureKey]: controllerServiceStateReducer,
     [systemDiagnosticsFeatureKey]: systemDiagnosticsReducer,
-    [componentStateFeatureKey]: componentStateReducer
+    [componentStateFeatureKey]: componentStateReducer,
+    [documentationFeatureKey]: documentationReducer
 };

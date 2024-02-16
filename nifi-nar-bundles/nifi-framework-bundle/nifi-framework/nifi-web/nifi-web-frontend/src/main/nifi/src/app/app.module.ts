@@ -45,6 +45,7 @@ import { ComponentStateEffects } from './state/component-state/component-state.e
 import { ErrorEffects } from './state/error/error.effects';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { PipesModule } from './pipes/pipes.module';
+import { DocumentationEffects } from './state/documentation/documentation.effects';
 
 @NgModule({
     declarations: [AppComponent],
@@ -71,7 +72,8 @@ import { PipesModule } from './pipes/pipes.module';
             StatusHistoryEffects,
             ControllerServiceStateEffects,
             SystemDiagnosticsEffects,
-            ComponentStateEffects
+            ComponentStateEffects,
+            DocumentationEffects
         ),
         StoreDevtoolsModule.instrument({
             maxAge: 25,

@@ -43,6 +43,7 @@ import { NiFiState } from '../../../../state';
 import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
+import { navigateToComponentDocumentation } from '../../../../state/documentation/documentation.actions';
 
 @Component({
     selector: 'reporting-tasks',
@@ -105,6 +106,19 @@ export class ReportingTasks implements OnInit, OnDestroy {
             selectReportingTask({
                 request: {
                     id: entity.id
+                }
+            })
+        );
+    }
+
+    viewReportingTaskDocumentation(entity: ReportingTaskEntity): void {
+        this.store.dispatch(
+            navigateToComponentDocumentation({
+                params: {
+                    select: entity.component.type,
+                    group: entity.component.bundle.group,
+                    artifact: entity.component.bundle.artifact,
+                    version: entity.component.bundle.version
                 }
             })
         );

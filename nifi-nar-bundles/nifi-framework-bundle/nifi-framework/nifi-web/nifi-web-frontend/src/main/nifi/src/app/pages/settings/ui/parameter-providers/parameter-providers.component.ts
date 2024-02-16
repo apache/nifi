@@ -34,6 +34,7 @@ import { initialParameterProvidersState } from '../../state/parameter-providers/
 import { switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { isDefinedAndNotNull } from '../../../../state/shared';
+import { navigateToComponentDocumentation } from '../../../../state/documentation/documentation.actions';
 
 @Component({
     selector: 'parameter-providers',
@@ -125,6 +126,19 @@ export class ParameterProviders implements OnInit, OnDestroy {
             ParameterProviderActions.selectParameterProvider({
                 request: {
                     id: parameterProvider.id
+                }
+            })
+        );
+    }
+
+    viewParameterProviderDocumentation(parameterProvider: ParameterProviderEntity): void {
+        this.store.dispatch(
+            navigateToComponentDocumentation({
+                params: {
+                    select: parameterProvider.component.type,
+                    group: parameterProvider.component.bundle.group,
+                    artifact: parameterProvider.component.bundle.artifact,
+                    version: parameterProvider.component.bundle.version
                 }
             })
         );

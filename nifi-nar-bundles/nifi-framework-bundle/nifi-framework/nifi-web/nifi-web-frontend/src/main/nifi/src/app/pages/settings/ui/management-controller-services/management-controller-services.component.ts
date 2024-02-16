@@ -45,6 +45,7 @@ import { selectFlowConfiguration } from '../../../../state/flow-configuration/fl
 import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
 import { CurrentUser } from '../../../../state/current-user';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
+import { navigateToComponentDocumentation } from '../../../../state/documentation/documentation.actions';
 
 @Component({
     selector: 'management-controller-services',
@@ -108,6 +109,19 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
 
     definedByCurrentGroup(): boolean {
         return true;
+    }
+
+    viewControllerServiceDocumentation(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            navigateToComponentDocumentation({
+                params: {
+                    select: entity.component.type,
+                    group: entity.component.bundle.group,
+                    artifact: entity.component.bundle.artifact,
+                    version: entity.component.bundle.version
+                }
+            })
+        );
     }
 
     configureControllerService(entity: ControllerServiceEntity): void {
