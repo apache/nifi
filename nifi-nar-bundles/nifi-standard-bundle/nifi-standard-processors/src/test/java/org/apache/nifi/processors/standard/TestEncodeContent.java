@@ -36,6 +36,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class TestEncodeContent {
@@ -48,11 +49,6 @@ class TestEncodeContent {
     @BeforeEach
     void setUp() {
         testRunner = TestRunners.newTestRunner(EncodeContent.class);
-    }
-
-    @Test
-    void testBase64RoundTrip() throws IOException {
-        runTestRoundTrip(EncodingType.BASE64_ENCODING.getValue());
     }
 
     @Test
@@ -73,18 +69,8 @@ class TestEncodeContent {
     }
 
     @Test
-    void testBase32RoundTrip() throws IOException {
-        runTestRoundTrip(EncodingType.BASE32_ENCODING.getValue());
-    }
-
-    @Test
     void testFailDecodeNotBase32() throws IOException {
         runTestDecodeFailure(EncodingType.BASE32_ENCODING.getValue());
-    }
-
-    @Test
-    void testHexRoundTrip() throws IOException {
-        runTestRoundTrip(EncodingType.HEX_ENCODING.getValue());
     }
 
     @Test
@@ -92,9 +78,11 @@ class TestEncodeContent {
         runTestDecodeFailure(EncodingType.HEX_ENCODING.getValue());
     }
 
-    private void runTestRoundTrip(String encoding) throws IOException {
+    @ParameterizedTest
+    @EnumSource(value = EncodingType.class)
+    void testRoundTrip(final EncodingType encoding) throws IOException {
         testRunner.setProperty(EncodeContent.MODE, EncodingMode.ENCODE.getValue());
-        testRunner.setProperty(EncodeContent.ENCODING, encoding);
+        testRunner.setProperty(EncodeContent.ENCODING, encoding.getValue());
 
         testRunner.enqueue(FILE_PATH);
         testRunner.clearTransferState();
