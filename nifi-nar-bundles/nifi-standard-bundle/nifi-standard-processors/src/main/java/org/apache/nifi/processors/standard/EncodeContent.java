@@ -66,7 +66,7 @@ public class EncodeContent extends AbstractProcessor {
             .description("Specifies whether the content should be encoded or decoded")
             .required(true)
             .allowableValues(EncodingMode.class)
-            .defaultValue(EncodingMode.ENCODE.getValue())
+            .defaultValue(EncodingMode.ENCODE)
             .build();
 
     public static final PropertyDescriptor ENCODING = new PropertyDescriptor.Builder()
@@ -74,7 +74,7 @@ public class EncodeContent extends AbstractProcessor {
             .description("Specifies the type of encoding used")
             .required(true)
             .allowableValues(EncodingType.class)
-            .defaultValue(EncodingType.BASE64_ENCODING.getValue())
+            .defaultValue(EncodingType.BASE64_ENCODING)
             .build();
 
     static final PropertyDescriptor LINE_OUTPUT_MODE = new PropertyDescriptor.Builder()
@@ -83,7 +83,7 @@ public class EncodeContent extends AbstractProcessor {
             .description("If set to 'single-line', the encoded FlowFile content will output as a single line. If set to 'multiple-lines', "
                 + "it will output as multiple lines. This property is only applicable when Base64 or Base32 encoding is selected.")
             .required(false)
-            .defaultValue(LineOutputMode.SINGLE_LINE.getValue())
+            .defaultValue(LineOutputMode.SINGLE_LINE)
             .allowableValues(LineOutputMode.class)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .dependsOn(MODE, EncodingMode.ENCODE)
