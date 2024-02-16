@@ -125,6 +125,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
             .required(true)
             .allowableValues(PATH_NOT_FOUND_WARN, PATH_NOT_FOUND_IGNORE, PATH_NOT_FOUND_SKIP)
             .defaultValue(PATH_NOT_FOUND_IGNORE)
+            .dependsOn(DESTINATION, DESTINATION_ATTRIBUTE)
             .build();
 
     public static final Relationship REL_MATCH = new Relationship.Builder()
