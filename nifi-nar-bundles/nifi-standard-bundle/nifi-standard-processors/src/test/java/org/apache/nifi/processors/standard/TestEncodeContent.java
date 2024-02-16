@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.stream.Stream;
 
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.processor.Relationship;
@@ -33,6 +34,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class TestEncodeContent {
 
@@ -157,15 +161,20 @@ class TestEncodeContent {
         executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.HEX_ENCODING, "foo", "666F6F");
     }
 
-    @Test
-    void testBasicEncodeBase320() {
-        executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.BASE32_ENCODING, "hello", "NBSWY3DP" + System.lineSeparator());
+    @ParameterizedTest
+    @MethodSource("encodeBase32Args")
+    void testBasicEncodeBase32(final String input, final String expectedOutput) {
+        executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.BASE32_ENCODING, input, expectedOutput);
     }
 
-    @Test
-    void testBasicEncodeBase321() {
-        executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.BASE32_ENCODING, "foo", "MZXW6===" + System.lineSeparator());
-    }
+    private static Stream<Arguments> encodeBase32Args() {
+       return Stream.of(
+               Arguments.of("hello", "NBSWY3DP" + System.lineSeparator()),
+               Arguments.of("foo", "MZXW6===" + System.lineSeparator()),
+               Arguments.of("你好", "4S62BZNFXU======" + System.lineSeparator()),
+               Arguments.of("Здравствуйте", "2CL5BNGRQDILBUFS2GA5DAWQWLIYHUFZ2GBNBNI=" + System.lineSeparator())
+       );
+   }
 
     @Test
     void testBasicEncodeBase640() {
