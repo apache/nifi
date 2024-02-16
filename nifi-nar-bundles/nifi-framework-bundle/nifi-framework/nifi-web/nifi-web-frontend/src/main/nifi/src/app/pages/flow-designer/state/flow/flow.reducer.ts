@@ -123,13 +123,6 @@ export const initialState: FlowState = {
             syncFailureCount: undefined
         }
     },
-    clusterSummary: {
-        clustered: false,
-        connectedToCluster: false,
-        connectedNodes: '',
-        connectedNodeCount: 0,
-        totalNodeCount: 0
-    },
     refreshRpgDetails: null,
     controllerBulletins: {
         bulletins: [],
@@ -182,7 +175,6 @@ export const flowReducer = createReducer(
         id: response.flow.processGroupFlow.id,
         flow: response.flow,
         flowStatus: response.flowStatus,
-        clusterSummary: response.clusterSummary,
         controllerBulletins: response.controllerBulletins,
         error: null,
         status: 'success' as const

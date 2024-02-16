@@ -17,7 +17,7 @@
 
 import { createSelector } from '@ngrx/store';
 import { ProvenanceState, selectProvenanceState } from '../index';
-import { Lineage, lineageFeatureKey, LineageState } from './index';
+import { Lineage, lineageFeatureKey, LineageRequest, LineageState } from './index';
 
 export const selectLineageState = createSelector(
     selectProvenanceState,
@@ -32,3 +32,8 @@ export const selectCompletedLineage = createSelector(
 );
 
 export const selectActiveLineageId = createSelector(selectActiveLineage, (state: Lineage | null) => state?.id);
+
+export const selectClusterNodeIdFromActiveLineage = createSelector(
+    selectActiveLineage,
+    (state: Lineage | null) => state?.request.clusterNodeId
+);

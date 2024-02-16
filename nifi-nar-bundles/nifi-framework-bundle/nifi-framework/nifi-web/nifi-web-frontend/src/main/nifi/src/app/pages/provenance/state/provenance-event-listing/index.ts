@@ -33,14 +33,15 @@ export interface ProvenanceQueryResponse {
 }
 
 export interface ProvenanceEventRequest {
-    id: string;
+    eventId: number;
     clusterNodeId?: string;
 }
 
 export interface GoToProvenanceEventSourceRequest {
-    eventId?: string;
+    eventId?: number;
     componentId?: string;
     groupId?: string;
+    clusterNodeId?: string;
 }
 
 export interface SearchableField {

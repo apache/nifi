@@ -39,6 +39,7 @@ import { GoToProvenanceEventSourceRequest, ProvenanceEventRequest } from '../../
 import { MatSliderModule } from '@angular/material/slider';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
+import { ClusterSummary } from '../../../../../state/cluster-summary';
 
 @Component({
     selector: 'provenance-event-table',
@@ -73,8 +74,10 @@ export class ProvenanceEventTable implements AfterViewInit {
                     return this.nifiCommon.stringContains(data.componentName, filterTerm, true);
                 } else if (filterColumn === this.filterColumnOptions[1]) {
                     return this.nifiCommon.stringContains(data.componentType, filterTerm, true);
-                } else {
+                } else if (filterColumn === this.filterColumnOptions[2]) {
                     return this.nifiCommon.stringContains(data.eventType, filterTerm, true);
+                } else {
+                    return this.nifiCommon.stringContains(data.clusterNodeAddress, filterTerm, true);
                 }
             };
             this.totalCount = events.length;
@@ -97,6 +100,30 @@ export class ProvenanceEventTable implements AfterViewInit {
     @Input() hasRequest!: boolean;
     @Input() loading!: boolean;
     @Input() loadedTimestamp!: string;
+
+    @Input() set clusterSummary(clusterSummary: ClusterSummary) {
+        if (clusterSummary?.connectedToCluster) {
+            // if we're connected to the cluster add a node column if it's not already present
+            if (!this.displayedColumns.includes('node')) {
+                this.displayedColumns.splice(this.displayedColumns.length - 1, 0, 'node');
+            }
+
+            if (!this.filterColumnOptions.includes('node')) {
+                this.filterColumnOptions.push('node');
+            }
+        } else {
+            // if we're not connected to the cluster remove the node column if it is present
+            const nodeIndex = this.displayedColumns.indexOf('node');
+            if (nodeIndex > -1) {
+                this.displayedColumns.splice(nodeIndex, 1);
+            }
+
+            const filterNodeIndex = this.filterColumnOptions.indexOf('node');
+            if (filterNodeIndex > -1) {
+                this.filterColumnOptions.splice(filterNodeIndex, 1);
+            }
+        }
+    }
 
     @Input() set lineage$(lineage$: Observable<Lineage | null>) {
         this.provenanceLineage$ = lineage$.pipe(
@@ -156,7 +183,6 @@ export class ProvenanceEventTable implements AfterViewInit {
     protected readonly ValidationErrorsTip = ValidationErrorsTip;
     private destroyRef: DestroyRef = inject(DestroyRef);
 
-    // TODO - conditionally include the cluster column
     displayedColumns: string[] = [
         'moreDetails',
         'eventTime',
@@ -168,7 +194,7 @@ export class ProvenanceEventTable implements AfterViewInit {
         'actions'
     ];
     dataSource: MatTableDataSource<ProvenanceEventSummary> = new MatTableDataSource<ProvenanceEventSummary>();
-    selectedEventId: string | null = null;
+    selectedId: string | null = null;
 
     @ViewChild(MatPaginator) paginator!: MatPaginator;
 
@@ -185,7 +211,7 @@ export class ProvenanceEventTable implements AfterViewInit {
 
     showLineage = false;
     provenanceLineage$!: Observable<Lineage | null>;
-    eventId: string | null = null;
+    eventId: number | null = null;
 
     minEventTimestamp = -1;
     maxEventTimestamp = -1;
@@ -253,6 +279,11 @@ export class ProvenanceEventTable implements AfterViewInit {
                 case 'componentType':
                     retVal = this.nifiCommon.compareString(a.componentType, b.componentType);
                     break;
+                case 'node':
+                    if (a.clusterNodeAddress && b.clusterNodeAddress) {
+                        retVal = this.nifiCommon.compareString(a.clusterNodeAddress, b.clusterNodeAddress);
+                    }
+                    break;
             }
 
             return retVal * (isAsc ? 1 : -1);
@@ -281,7 +312,7 @@ export class ProvenanceEventTable implements AfterViewInit {
 
     viewDetailsClicked(event: ProvenanceEventSummary) {
         this.submitProvenanceEventRequest({
-            id: event.id,
+            eventId: event.eventId,
             clusterNodeId: event.clusterNodeId
         });
     }
@@ -291,12 +322,12 @@ export class ProvenanceEventTable implements AfterViewInit {
     }
 
     select(event: ProvenanceEventSummary): void {
-        this.selectedEventId = event.id;
+        this.selectedId = event.id;
     }
 
     isSelected(event: ProvenanceEventSummary): boolean {
-        if (this.selectedEventId) {
-            return event.id == this.selectedEventId;
+        if (this.selectedId) {
+            return event.id == this.selectedId;
         }
         return false;
     }
@@ -321,7 +352,7 @@ export class ProvenanceEventTable implements AfterViewInit {
     }
 
     showLineageGraph(event: ProvenanceEventSummary): void {
-        this.eventId = event.id;
+        this.eventId = event.eventId;
         this.showLineage = true;
 
         this.clearBannerErrors.next();

@@ -15,13 +15,31 @@
  * limitations under the License.
  */
 
-import { createAction, props } from '@ngrx/store';
-import { LoadAboutResponse } from './index';
+export const clusterSummaryFeatureKey = 'clusterSummary';
 
-export const loadAbout = createAction('[About] Load About');
+export interface LoadClusterSummaryResponse {
+    clusterSummary: ClusterSummary;
+}
 
-export const loadAboutSuccess = createAction('[About] Load About Success', props<{ response: LoadAboutResponse }>());
+export interface ClusterSummary {
+    clustered: boolean;
+    connectedToCluster: boolean;
+    connectedNodes?: string;
+    connectedNodeCount: number;
+    totalNodeCount: number;
+}
 
-export const aboutApiError = createAction('[About] About Api Error', props<{ error: string }>());
+export interface NodeSearchResult {
+    id: string;
+    address: string;
+}
 
-export const clearAboutApiError = createAction('[About] Clear About Api Error');
+export interface ClusterSearchResults {
+    nodeResults: NodeSearchResult[];
+}
+
+export interface ClusterSummaryState {
+    clusterSummary: ClusterSummary | null;
+    error: string | null;
+    status: 'pending' | 'loading' | 'error' | 'success';
+}

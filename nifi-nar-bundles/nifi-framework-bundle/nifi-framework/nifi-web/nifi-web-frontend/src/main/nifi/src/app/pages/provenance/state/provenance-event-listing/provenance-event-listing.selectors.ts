@@ -78,9 +78,9 @@ export const selectCompletedProvenance = createSelector(
 
 export const selectActiveProvenanceId = createSelector(selectActiveProvenance, (state: Provenance | null) => state?.id);
 
-export const selectClusterNodeId = createSelector(
-    selectProvenanceRequest,
-    (state: ProvenanceRequest | null) => state?.clusterNodeId
+export const selectClusterNodeIdFromActiveProvenance = createSelector(
+    selectActiveProvenance,
+    (state: Provenance | null) => state?.request.clusterNodeId
 );
 
 export const selectProvenanceResults = createSelector(

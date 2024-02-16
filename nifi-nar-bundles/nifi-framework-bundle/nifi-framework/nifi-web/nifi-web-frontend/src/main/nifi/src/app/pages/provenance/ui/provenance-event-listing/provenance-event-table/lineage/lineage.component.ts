@@ -44,10 +44,12 @@ export class LineageComponent implements OnInit {
     @Input() set lineage(lineage: Lineage) {
         if (lineage && lineage.finished) {
             this.addLineage(lineage.results.nodes, lineage.results.links);
+
+            this.clusterNodeId = lineage.request.clusterNodeId;
         }
     }
 
-    @Input() eventId: string | null = null;
+    @Input() eventId: number | null = null;
 
     @Input() set eventTimestampThreshold(eventTimestampThreshold: number) {
         if (this.previousEventTimestampThreshold >= 0) {
@@ -136,9 +138,9 @@ export class LineageComponent implements OnInit {
                 action: (selection: any) => {
                     const selectionData: any = selection.datum();
 
-                    // TODO cluster node id
                     this.openEventDialog.next({
-                        id: selectionData.id
+                        eventId: Number(selectionData.id),
+                        clusterNodeId: this.clusterNodeId
                     });
                 }
             },
@@ -151,7 +153,8 @@ export class LineageComponent implements OnInit {
                 action: (selection: any) => {
                     const selectionData: any = selection.datum();
                     this.goToProvenanceEventSource.next({
-                        eventId: selectionData.id
+                        eventId: Number(selectionData.id),
+                        clusterNodeId: this.clusterNodeId
                     });
                 }
             },
@@ -169,11 +172,10 @@ export class LineageComponent implements OnInit {
                 action: (selection: any) => {
                     const selectionData: any = selection.datum();
 
-                    // TODO - cluster node id
                     this.submitLineageQuery.next({
                         lineageRequestType: 'PARENTS',
-                        eventId: selectionData.id
-                        // clusterNodeId: clusterNodeId
+                        eventId: selectionData.id,
+                        clusterNodeId: this.clusterNodeId
                     });
                 }
             },
@@ -191,11 +193,10 @@ export class LineageComponent implements OnInit {
                 action: (selection: any) => {
                     const selectionData: any = selection.datum();
 
-                    // TODO - cluster node id
                     this.submitLineageQuery.next({
                         lineageRequestType: 'CHILDREN',
-                        eventId: selectionData.id
-                        // clusterNodeId: clusterNodeId
+                        eventId: selectionData.id,
+                        clusterNodeId: this.clusterNodeId
                     });
                 }
             },
@@ -227,6 +228,7 @@ export class LineageComponent implements OnInit {
     private nodeLookup: Map<string, any> = new Map<string, any>();
     private linkLookup: Map<string, any> = new Map<string, any>();
     private previousEventTimestampThreshold = -1;
+    private clusterNodeId: string | undefined;
 
     constructor() {
         this.allMenus = new Map<string, ContextMenuDefinition>();
@@ -794,9 +796,9 @@ export class LineageComponent implements OnInit {
             })
             .on('dblclick', (event: MouseEvent, d: any) => {
                 // show the event details
-                // TODO - cluster node id
                 this.openEventDialog.next({
-                    id: d.id
+                    eventId: Number(d.id),
+                    clusterNodeId: this.clusterNodeId
                 });
             });
 
@@ -817,7 +819,7 @@ export class LineageComponent implements OnInit {
             .append('circle')
             .attr('class', 'event-circle')
             .classed('selected', (d: any) => {
-                return d.id === this.eventId;
+                return d.id === String(this.eventId);
             })
             .attr('r', 8)
             .attr('stroke-width', 1.0)

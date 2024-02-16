@@ -144,16 +144,14 @@ export class FlowEffects {
                 combineLatest([
                     this.flowService.getFlow(request.id),
                     this.flowService.getFlowStatus(),
-                    this.flowService.getClusterSummary(),
                     this.flowService.getControllerBulletins()
                 ]).pipe(
-                    map(([flow, flowStatus, clusterSummary, controllerBulletins]) => {
+                    map(([flow, flowStatus, controllerBulletins]) => {
                         return FlowActions.loadProcessGroupSuccess({
                             response: {
                                 id: request.id,
                                 flow: flow,
                                 flowStatus: flowStatus,
-                                clusterSummary: clusterSummary.clusterSummary,
                                 controllerBulletins: controllerBulletins
                             }
                         });

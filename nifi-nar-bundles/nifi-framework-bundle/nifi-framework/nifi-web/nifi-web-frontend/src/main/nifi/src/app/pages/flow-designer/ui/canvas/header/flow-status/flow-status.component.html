@@ -18,7 +18,7 @@
 <div class="h-8 flow-status">
     <div class="flex justify-between">
         <div class="flex flex-1 justify-around pr-20">
-            @if (clusterSummary.clustered) {
+            @if (clusterSummary?.clustered) {
                 <div class="flex items-center gap-x-2" title="Connected nodes / Total number of nodes in the cluster">
                     <div class="fa fa-cubes" [class]="getClusterStyle()"></div>
                     <div class="text">{{ formatClusterMessage() }}</div>

@@ -25,7 +25,7 @@
                     <input matInput formControlName="value" type="text" />
                 </mat-form-field>
                 <div class="-mt-6 mb-4">
-                    <mat-checkbox color="primary" formControlName="inverse" name="inverse"> Exclude </mat-checkbox>
+                    <mat-checkbox color="primary" formControlName="inverse" name="inverse"> Exclude</mat-checkbox>
                 </div>
             </div>
         }
@@ -65,6 +65,16 @@
                 </mat-form-field>
             </div>
         </div>
+        @if (searchLocationOptions.length > 0) {
+            <mat-form-field>
+                <mat-label>Search Location</mat-label>
+                <mat-select formControlName="searchLocation">
+                    @for (option of searchLocationOptions; track option) {
+                        <mat-option [value]="option.value">{{ option.text }}</mat-option>
+                    }
+                </mat-select>
+            </mat-form-field>
+        }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
         <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>

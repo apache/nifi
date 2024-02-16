@@ -68,10 +68,6 @@ export class FlowService implements PropertyDescriptorRetriever {
         return this.httpClient.get(`${FlowService.API}/flow/status`);
     }
 
-    getClusterSummary(): Observable<any> {
-        return this.httpClient.get(`${FlowService.API}/flow/cluster/summary`);
-    }
-
     getControllerBulletins(): Observable<any> {
         return this.httpClient.get(`${FlowService.API}/flow/controller/bulletins`);
     }

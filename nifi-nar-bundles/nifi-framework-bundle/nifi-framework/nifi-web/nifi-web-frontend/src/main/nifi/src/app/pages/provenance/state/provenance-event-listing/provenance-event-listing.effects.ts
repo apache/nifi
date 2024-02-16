@@ -18,7 +18,20 @@
 import { Injectable } from '@angular/core';
 import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ProvenanceEventListingActions from './provenance-event-listing.actions';
-import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
+import {
+    asyncScheduler,
+    catchError,
+    filter,
+    from,
+    interval,
+    map,
+    Observable,
+    of,
+    switchMap,
+    take,
+    takeUntil,
+    tap
+} from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
@@ -26,7 +39,7 @@ import { Router } from '@angular/router';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { ProvenanceService } from '../../service/provenance.service';
 import {
-    selectClusterNodeId,
+    selectClusterNodeIdFromActiveProvenance,
     selectActiveProvenanceId,
     selectProvenanceOptions,
     selectProvenanceRequest,
@@ -41,6 +54,9 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { isDefinedAndNotNull } from '../../../../state/shared';
+import { selectClusterSummary } from '../../../../state/cluster-summary/cluster-summary.selectors';
+import { ClusterService } from '../../../../service/cluster.service';
+import { NodeSearchResult } from '../../../../state/cluster-summary';
 
 @Injectable()
 export class ProvenanceEventListingEffects {
@@ -49,6 +65,7 @@ export class ProvenanceEventListingEffects {
         private store: Store<NiFiState>,
         private provenanceService: ProvenanceService,
         private errorHelper: ErrorHelper,
+        private clusterService: ClusterService,
         private dialog: MatDialog,
         private router: Router
     ) {}
@@ -166,7 +183,7 @@ export class ProvenanceEventListingEffects {
             ofType(ProvenanceEventListingActions.pollProvenanceQuery),
             concatLatestFrom(() => [
                 this.store.select(selectActiveProvenanceId).pipe(isDefinedAndNotNull()),
-                this.store.select(selectClusterNodeId)
+                this.store.select(selectClusterNodeIdFromActiveProvenance)
             ]),
             switchMap(([, id, clusterNodeId]) =>
                 from(this.provenanceService.getProvenanceQuery(id, clusterNodeId)).pipe(
@@ -216,7 +233,7 @@ export class ProvenanceEventListingEffects {
             ofType(ProvenanceEventListingActions.deleteProvenanceQuery),
             concatLatestFrom(() => [
                 this.store.select(selectActiveProvenanceId),
-                this.store.select(selectClusterNodeId)
+                this.store.select(selectClusterNodeIdFromActiveProvenance)
             ]),
             tap(([, id, clusterNodeId]) => {
                 this.dialog.closeAll();
@@ -237,9 +254,24 @@ export class ProvenanceEventListingEffects {
                     this.store.select(selectTimeOffset),
                     this.store.select(selectProvenanceOptions),
                     this.store.select(selectProvenanceRequest),
-                    this.store.select(selectAbout).pipe(isDefinedAndNotNull())
+                    this.store.select(selectAbout).pipe(isDefinedAndNotNull()),
+                    this.store.select(selectClusterSummary).pipe(isDefinedAndNotNull())
                 ]),
-                tap(([, timeOffset, options, currentRequest, about]) => {
+                tap(([, timeOffset, options, currentRequest, about, clusterSummary]) => {
+                    let clusterNodes$: Observable<NodeSearchResult[]>;
+                    if (clusterSummary.connectedToCluster) {
+                        clusterNodes$ = this.clusterService.searchCluster().pipe(
+                            tap({
+                                error: (errorResponse: HttpErrorResponse) => {
+                                    this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
+                                }
+                            }),
+                            map((response) => response.nodeResults)
+                        );
+                    } else {
+                        clusterNodes$ = of([]);
+                    }
+
                     const dialogReference = this.dialog.open(ProvenanceSearchDialog, {
                         data: {
                             timeOffset,
@@ -249,6 +281,7 @@ export class ProvenanceEventListingEffects {
                         panelClass: 'large-dialog'
                     });
 
+                    dialogReference.componentInstance.clusterNodes$ = clusterNodes$;
                     dialogReference.componentInstance.timezone = about.timezone;
 
                     dialogReference.componentInstance.submitSearchCriteria
@@ -283,7 +316,7 @@ export class ProvenanceEventListingEffects {
                 map((action) => action.request),
                 concatLatestFrom(() => this.store.select(selectAbout)),
                 tap(([request, about]) => {
-                    this.provenanceService.getProvenanceEvent(request.id).subscribe({
+                    this.provenanceService.getProvenanceEvent(request.eventId, request.clusterNodeId).subscribe({
                         next: (response) => {
                             const dialogReference = this.dialog.open(ProvenanceEventDialog, {
                                 data: {
@@ -298,7 +331,11 @@ export class ProvenanceEventListingEffects {
                             dialogReference.componentInstance.downloadContent
                                 .pipe(takeUntil(dialogReference.afterClosed()))
                                 .subscribe((direction: string) => {
-                                    this.provenanceService.downloadContent(request.id, direction);
+                                    this.provenanceService.downloadContent(
+                                        request.eventId,
+                                        direction,
+                                        request.clusterNodeId
+                                    );
                                 });
 
                             if (about) {
@@ -308,8 +345,9 @@ export class ProvenanceEventListingEffects {
                                         this.provenanceService.viewContent(
                                             about.uri,
                                             about.contentViewerUrl,
-                                            request.id,
-                                            direction
+                                            request.eventId,
+                                            direction,
+                                            request.clusterNodeId
                                         );
                                     });
                             }
@@ -319,7 +357,7 @@ export class ProvenanceEventListingEffects {
                                 .subscribe(() => {
                                     dialogReference.close();
 
-                                    this.provenanceService.replay(request.id).subscribe({
+                                    this.provenanceService.replay(request.eventId, request.clusterNodeId).subscribe({
                                         next: () => {
                                             this.store.dispatch(
                                                 ProvenanceEventListingActions.showOkDialog({
@@ -356,7 +394,7 @@ export class ProvenanceEventListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     if (request.eventId) {
-                        this.provenanceService.getProvenanceEvent(request.eventId).subscribe({
+                        this.provenanceService.getProvenanceEvent(request.eventId, request.clusterNodeId).subscribe({
                             next: (response) => {
                                 const event: any = response.provenanceEvent;
                                 this.router.navigate(this.getEventComponentLink(event.groupId, event.componentId));
