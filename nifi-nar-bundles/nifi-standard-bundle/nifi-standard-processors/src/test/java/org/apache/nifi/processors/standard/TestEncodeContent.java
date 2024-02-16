@@ -34,7 +34,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class TestEncodeContent {
+class TestEncodeContent {
 
     private static final String LOREM_IPSUM = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
 
@@ -42,22 +42,22 @@ public class TestEncodeContent {
     private TestRunner testRunner;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         testRunner = TestRunners.newTestRunner(EncodeContent.class);
     }
 
     @Test
-    public void testBase64RoundTrip() throws IOException {
+    void testBase64RoundTrip() throws IOException {
         runTestRoundTrip(EncodingType.BASE64_ENCODING.getValue());
     }
 
     @Test
-    public void testFailDecodeNotBase64() throws IOException {
+    void testFailDecodeNotBase64() throws IOException {
         runTestDecodeFailure(EncodingType.BASE64_ENCODING.getValue());
     }
 
     @Test
-    public void testFailDecodeNotBase64ButIsAMultipleOfFourBytes() {
+    void testFailDecodeNotBase64ButIsAMultipleOfFourBytes() {
         testRunner.setProperty(EncodeContent.MODE, EncodingMode.DECODE.getValue());
         testRunner.setProperty(EncodeContent.ENCODING, EncodingType.BASE64_ENCODING.getValue());
 
@@ -69,22 +69,22 @@ public class TestEncodeContent {
     }
 
     @Test
-    public void testBase32RoundTrip() throws IOException {
+    void testBase32RoundTrip() throws IOException {
         runTestRoundTrip(EncodingType.BASE32_ENCODING.getValue());
     }
 
     @Test
-    public void testFailDecodeNotBase32() throws IOException {
+    void testFailDecodeNotBase32() throws IOException {
         runTestDecodeFailure(EncodingType.BASE32_ENCODING.getValue());
     }
 
     @Test
-    public void testHexRoundTrip() throws IOException {
+    void testHexRoundTrip() throws IOException {
         runTestRoundTrip(EncodingType.HEX_ENCODING.getValue());
     }
 
     @Test
-    public void testFailDecodeNotHex() throws IOException {
+    void testFailDecodeNotHex() throws IOException {
         runTestDecodeFailure(EncodingType.HEX_ENCODING.getValue());
     }
 
@@ -122,7 +122,8 @@ public class TestEncodeContent {
         testRunner.assertAllFlowFilesTransferred(EncodeContent.REL_FAILURE, 1);
     }
 
-    @Test void testEncodeDecodeSpecialCharsBase64() {
+    @Test
+    void testEncodeDecodeSpecialCharsBase64() {
         final String specialChars = "!@#$%^&*()_+{}:\"<>?[];',./~`-=";
         final String expectedOutput = "IUAjJCVeJiooKV8re306Ijw+P1tdOycsLi9+YC09" + System.lineSeparator();
 
@@ -131,56 +132,67 @@ public class TestEncodeContent {
         executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE64_ENCODING, expectedOutput, specialChars);
     }
 
-    @Test void testBasicDecodeBase32() {
+    @Test
+    void testBasicDecodeBase32() {
         executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE32_ENCODING, "NBSWY3DP", "hello");
     }
 
-    @Test void testBasicDecodeBase64() {
+    @Test
+    void testBasicDecodeBase64() {
         executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE64_ENCODING, "Zm9v", "foo");
     }
 
-    @Test void testBasicDecodeHex() {
+    @Test
+    void testBasicDecodeHex() {
         executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.HEX_ENCODING, "666F6F", "foo");
     }
 
-    @Test void testBasicEncodeHex0() {
+    @Test
+    void testBasicEncodeHex0() {
         executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.HEX_ENCODING, "hello", "68656C6C6F");
     }
 
-    @Test void testBasicEncodeHex1() {
+    @Test
+    void testBasicEncodeHex1() {
         executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.HEX_ENCODING, "foo", "666F6F");
     }
 
-    @Test void testBasicEncodeBase320() {
+    @Test
+    void testBasicEncodeBase320() {
         executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.BASE32_ENCODING, "hello", "NBSWY3DP" + System.lineSeparator());
     }
 
-    @Test void testBasicEncodeBase321() {
+    @Test
+    void testBasicEncodeBase321() {
         executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.BASE32_ENCODING, "foo", "MZXW6===" + System.lineSeparator());
     }
 
-    @Test void testBasicEncodeBase640() {
+    @Test
+    void testBasicEncodeBase640() {
         executeTestSuccessHelper(EncodingMode.ENCODE,
             EncodingType.BASE64_ENCODING,
             "hello",
             "aGVsbG8=" + System.lineSeparator());
     }
 
-    @Test void testBasicEncodeBase641() {
+    @Test
+    void testBasicEncodeBase641() {
         executeTestSuccessHelper(EncodingMode.ENCODE,
             EncodingType.BASE64_ENCODING,
             "foo",
             "Zm9v" + System.lineSeparator());
     }
 
-    @Test void testBlankValueShouldNotFail() {
+    @Test
+    void testBlankValueShouldNotFail() {
         executeTestSuccessHelper(EncodingMode.ENCODE,
             EncodingType.BASE64_ENCODING,
             StringUtils.EMPTY,
             StringUtils.EMPTY);
     }
 
-    @Test void testEncodeContentMultipleLinesBase64() {
+    @Test
+    void testEncodeContentMultipleLinesBase64() {
         // this input is greater than 57 bytes, sure to generate multiple lines in base64
         final String expectedOutput = "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVyIGFkaXBpc2NpbmcgZWxpdCwg" + System.lineSeparator()
             + "c2VkIGRvIGVpdXNtb2QgdGVtcG9yIGluY2lkaWR1bnQgdXQgbGFib3JlIGV0IGRvbG9yZSBtYWdu" + System.lineSeparator()
@@ -195,7 +207,8 @@ public class TestEncodeContent {
             EncodeContent.REL_SUCCESS);
     }
 
-    @Test void testEncodeContentSingleLineBase64() {
+    @Test
+    void testEncodeContentSingleLineBase64() {
         // this input is greater than 57 bytes, sure to generate multiple lines in base64
         final String expectedOutput = "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVyIGFkaXBpc2NpbmcgZWxpdCwg"
             + "c2VkIGRvIGVpdXNtb2QgdGVtcG9yIGluY2lkaWR1bnQgdXQgbGFib3JlIGV0IGRvbG9yZSBtYWdu"
@@ -210,7 +223,8 @@ public class TestEncodeContent {
             EncodeContent.REL_SUCCESS);
     }
 
-    @Test void testEncodeContentSingleLineBase32() {
+    @Test
+    void testEncodeContentSingleLineBase32() {
         // this input is greater than 57 bytes, sure to generate multiple lines in base64
         final String expectedOutput = "JRXXEZLNEBUXA43VNUQGI33MN5ZCA43JOQQGC3LFOQWCAY3PNZZWKY3UMV2HK4RAMFSGS4DJONRWS3THEBSWY2LUF"
             + "QQHGZLEEBSG6IDFNF2XG3LPMQQHIZLNOBXXEIDJNZRWSZDJMR2W45BAOV2CA3DBMJXXEZJAMV2CAZDPNRXXEZJANVQWO3TBEBQWY2LROVQS4===";
@@ -224,7 +238,8 @@ public class TestEncodeContent {
             EncodeContent.REL_SUCCESS);
     }
 
-    @Test void testEncodeContentMultipleLinesBase32() {
+    @Test
+    void testEncodeContentMultipleLinesBase32() {
         // this input is greater than 57 bytes, sure to generate multiple lines in base64
         final String expectedOutput = "JRXXEZLNEBUXA43VNUQGI33MN5ZCA43JOQQGC3LFOQWCAY3PNZZWKY3UMV2HK4RAMFSGS4DJ" + System.lineSeparator()
             + "ONRWS3THEBSWY2LUFQQHGZLEEBSG6IDFNF2XG3LPMQQHIZLNOBXXEIDJNZRWSZDJMR2W45BA" + System.lineSeparator()
@@ -239,7 +254,8 @@ public class TestEncodeContent {
             EncodeContent.REL_SUCCESS);
     }
 
-    @Test void testEncodeContentMultipleLinesNonStandardLengthBase32() {
+    @Test
+    void testEncodeContentMultipleLinesNonStandardLengthBase32() {
         // this input is greater than 57 bytes, sure to generate multiple lines in base64
         final String expectedOutput = "JRXXEZLNEBUXA43VNUQGI33MN5ZCA43JOQQGC3LFOQWCAY3PNZZWKY3UMV2HK4RAMFSGS4DJONRWS3TH" + System.lineSeparator()
             + "EBSWY2LUFQQHGZLEEBSG6IDFNF2XG3LPMQQHIZLNOBXXEIDJNZRWSZDJMR2W45BAOV2CA3DBMJXXEZJA" + System.lineSeparator()
@@ -256,7 +272,8 @@ public class TestEncodeContent {
             EncodeContent.REL_SUCCESS);
     }
 
-    @Test void testThatLineLengthIsIgnoredIfSingleLineOutputTrueBase32() {
+    @Test
+    void testThatLineLengthIsIgnoredIfSingleLineOutputTrueBase32() {
         // this input is greater than 57 bytes, sure to generate multiple lines in base64
         final String expectedOutput = "JRXXEZLNEBUXA43VNUQGI33MN5ZCA43JOQQGC3LFOQWCAY3PNZZWKY3UMV2HK4RAMFSGS4DJONRWS3THEBSWY2LUFQQHGZLEEB"
             + "SG6IDFNF2XG3LPMQQHIZLNOBXXEIDJNZRWSZDJMR2W45BAOV2CA3DBMJXXEZJAMV2CAZDPNRXXEZJANVQWO3TBEBQWY2LROVQS4===";
@@ -272,7 +289,8 @@ public class TestEncodeContent {
             EncodeContent.REL_SUCCESS);
     }
 
-    @Test void testEncodeContentMultipleLinesNonStandardLengthBase64() {
+    @Test
+    void testEncodeContentMultipleLinesNonStandardLengthBase64() {
         // this input is greater than 57 bytes, sure to generate multiple lines in base64
         final String expectedOutput = "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVyIGFkaXBpc2NpbmcgZWxpdCwgc2Vk" + System.lineSeparator()
             + "IGRvIGVpdXNtb2QgdGVtcG9yIGluY2lkaWR1bnQgdXQgbGFib3JlIGV0IGRvbG9yZSBtYWduYSBhbGlx" + System.lineSeparator()
@@ -289,7 +307,8 @@ public class TestEncodeContent {
             EncodeContent.REL_SUCCESS);
     }
 
-    @Test void testOverrideLineSeparatorBase64() {
+    @Test
+    void testOverrideLineSeparatorBase64() {
         // this input is greater than 57 bytes, sure to generate multiple lines in base64
         final String expectedOutput = "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVyIGFkaXBpc2NpbmcgZWxpdCwgc2Vk" + "|"
             + "IGRvIGVpdXNtb2QgdGVtcG9yIGluY2lkaWR1bnQgdXQgbGFib3JlIGV0IGRvbG9yZSBtYWduYSBhbGlx" + "|"
@@ -306,7 +325,8 @@ public class TestEncodeContent {
             EncodeContent.REL_SUCCESS);
     }
 
-    @Test void testOverrideLineSeparatorBase32() {
+    @Test
+    void testOverrideLineSeparatorBase32() {
         // this input is greater than 57 bytes, sure to generate multiple lines in base64
         final String expectedOutput = "JRXXEZLNEBUXA43VNUQGI33MN5ZCA43JOQQGC3LFOQWCAY3PNZZWKY3UMV2HK4RAMFSGS4DJONRWS3TH" + "|"
             + "EBSWY2LUFQQHGZLEEBSG6IDFNF2XG3LPMQQHIZLNOBXXEIDJNZRWSZDJMR2W45BAOV2CA3DBMJXXEZJA" + "|"
@@ -323,7 +343,8 @@ public class TestEncodeContent {
             EncodeContent.REL_SUCCESS);
     }
 
-    @Test void testThatLineLengthIsIgnoredIfSingleLineOutputTrueBase64() {
+    @Test
+    void testThatLineLengthIsIgnoredIfSingleLineOutputTrueBase64() {
         // this input is greater than 57 bytes, sure to generate multiple lines in base64
         final String expectedOutput = "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVyIGFkaXBpc2NpbmcgZWxpdCwg"
             + "c2VkIGRvIGVpdXNtb2QgdGVtcG9yIGluY2lkaWR1bnQgdXQgbGFib3JlIGV0IGRvbG9yZSBtYWdu"
