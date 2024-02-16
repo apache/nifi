@@ -116,8 +116,7 @@ export class FlowEffects {
         private router: Router,
         private dialog: MatDialog,
         private propertyTableHelperService: PropertyTableHelperService,
-        private parameterHelperService: ParameterHelperService,
-        private errorHelper: ErrorHelper
+        private parameterHelperService: ParameterHelperService
     ) {}
 
     reloadFlow$ = createEffect(() =>
@@ -377,7 +376,7 @@ export class FlowEffects {
         )
     );
 
-    requestRemoteProcessGroup$ = createEffect(() =>
+    requestRefreshRemoteProcessGroup$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.requestRefreshRemoteProcessGroup),
             switchMap(() => {
