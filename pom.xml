@@ -126,7 +126,7 @@
         <org.apache.httpcomponents.httpcore.version>4.4.16</org.apache.httpcomponents.httpcore.version>
         <org.bouncycastle.version>1.77</org.bouncycastle.version>
         <testcontainers.version>1.19.4</testcontainers.version>
-        <org.slf4j.version>2.0.11</org.slf4j.version>
+        <org.slf4j.version>2.0.12</org.slf4j.version>
         <com.jayway.jsonpath.version>2.9.0</com.jayway.jsonpath.version>
         <derby.version>10.17.1.0</derby.version>
         <ranger.version>2.4.0</ranger.version>
