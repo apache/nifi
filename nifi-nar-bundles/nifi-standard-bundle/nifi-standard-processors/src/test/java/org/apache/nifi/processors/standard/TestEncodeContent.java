@@ -148,9 +148,11 @@ class TestEncodeContent {
         executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE64_ENCODING, "Zm9v", "foo");
     }
 
-    @Test
-    void testBasicDecodeHex() {
-        executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.HEX_ENCODING, "666F6F", "foo");
+    @ParameterizedTest
+    @MethodSource("encodeHexArgs")
+    void testBasicDecodeHex(final String input, final String expectedOutput) {
+        // we'll use the same args from `encodeHexArgs`, only flip around input and output
+        executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.HEX_ENCODING, expectedOutput, input);
     }
 
     @ParameterizedTest
