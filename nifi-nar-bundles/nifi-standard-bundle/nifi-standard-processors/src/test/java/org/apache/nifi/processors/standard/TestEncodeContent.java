@@ -136,9 +136,11 @@ class TestEncodeContent {
         executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE64_ENCODING, expectedOutput, specialChars);
     }
 
-    @Test
-    void testBasicDecodeBase32() {
-        executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE32_ENCODING, "NBSWY3DP", "hello");
+    @ParameterizedTest
+    @MethodSource("encodeBase32Args")
+    void testBasicDecodeBase32(final String input, final String expectedOutput) {
+        // we'll use the same args from `encodeBase32Args`, only flip around input and output
+        executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE32_ENCODING, expectedOutput, input);
     }
 
     @Test
@@ -151,15 +153,20 @@ class TestEncodeContent {
         executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.HEX_ENCODING, "666F6F", "foo");
     }
 
-    @Test
-    void testBasicEncodeHex0() {
-        executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.HEX_ENCODING, "hello", "68656C6C6F");
+    @ParameterizedTest
+    @MethodSource("encodeHexArgs")
+    void testBasicEncodeHex(final String input, final String expectedOutput) {
+        executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.HEX_ENCODING, input, expectedOutput);
     }
 
-    @Test
-    void testBasicEncodeHex1() {
-        executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.HEX_ENCODING, "foo", "666F6F");
-    }
+    private static Stream<Arguments> encodeHexArgs() {
+       return Stream.of(
+               Arguments.of("hello", "68656C6C6F"),
+               Arguments.of("foo", "666F6F"),
+               Arguments.of("你好", "E4BDA0E5A5BD"),
+               Arguments.of("Здравствуйте", "D097D0B4D180D0B0D0B2D181D182D0B2D183D0B9D182D0B5")
+       );
+   }
 
     @ParameterizedTest
     @MethodSource("encodeBase32Args")
