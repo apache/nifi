@@ -143,9 +143,11 @@ class TestEncodeContent {
         executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE32_ENCODING, expectedOutput, input);
     }
 
-    @Test
-    void testBasicDecodeBase64() {
-        executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE64_ENCODING, "Zm9v", "foo");
+    @ParameterizedTest
+    @MethodSource("encodeBase64Args")
+    void testBasicDecodeBase64(final String input, final String expectedOutput) {
+        // we'll use the same args from `encodeBase64Args`, only flip around input and output
+        executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE64_ENCODING, expectedOutput, input);
     }
 
     @ParameterizedTest
@@ -185,21 +187,20 @@ class TestEncodeContent {
        );
    }
 
-    @Test
-    void testBasicEncodeBase640() {
-        executeTestSuccessHelper(EncodingMode.ENCODE,
-            EncodingType.BASE64_ENCODING,
-            "hello",
-            "aGVsbG8=" + System.lineSeparator());
+    @ParameterizedTest
+    @MethodSource("encodeBase64Args")
+    void testBasicEncodeBase64(final String input, final String expectedOutput) {
+        executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.BASE64_ENCODING, input, expectedOutput);
     }
 
-    @Test
-    void testBasicEncodeBase641() {
-        executeTestSuccessHelper(EncodingMode.ENCODE,
-            EncodingType.BASE64_ENCODING,
-            "foo",
-            "Zm9v" + System.lineSeparator());
-    }
+    private static Stream<Arguments> encodeBase64Args() {
+       return Stream.of(
+               Arguments.of("hello", "aGVsbG8=" + System.lineSeparator()),
+               Arguments.of("foo", "Zm9v" + System.lineSeparator()),
+               Arguments.of("你好", "5L2g5aW9" + System.lineSeparator()),
+               Arguments.of("Здравствуйте", "0JfQtNGA0LDQstGB0YLQstGD0LnRgtC1" + System.lineSeparator())
+       );
+   }
 
     @Test
     void testBlankValueShouldNotFail() {
