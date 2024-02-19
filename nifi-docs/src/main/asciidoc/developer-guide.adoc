@@ -2699,7 +2699,6 @@ deprecationLogger.warn(
 |==================================================================================================================================================
 | Package                | Maven Profile         | Description
 | Apache Accumulo Bundle | include-accumulo      | Adds support for https://accumulo.apache.org[Apache Accumulo].
-| Apache Atlas Bundle    | include-atlas         | Adds support for the Apache Atlas data governance tool. The functionality from this bundle is based around reporting tasks that integrate with https://atlas.apache.org[Apache Atlas].
 | Apache Hadoop Bundle   | include-hadoop        | Adds support for Apache Hadoop with HDFS and Parquet components
 | Apache HBase Bundle    | include-hbase         | Adds support for Apache HBase
 | Apache Hive 3 Bundle   | include-hive3         | Adds support for Apache Hive 3.X
