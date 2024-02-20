@@ -34,8 +34,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -50,7 +49,7 @@ public class JettyServer {
 
     private static final Logger logger = LoggerFactory.getLogger(JettyServer.class);
 
-    private static final String APPLICATION_URL_FORMAT = "%s://%s:%d/nifi-registry";
+    private static final String APPLICATION_PATH = "/nifi-registry";
 
     private static final String HTTPS_SCHEME = "https";
 
@@ -143,8 +142,12 @@ public class JettyServer {
                     final String scheme = sslConnectionFactory == null ? HTTP_SCHEME : HTTPS_SCHEME;
                     final int port = serverConnector.getLocalPort();
                     final String connectorHost = serverConnector.getHost();
-                    final String host = URLEncoder.encode(StringUtils.defaultIfEmpty(connectorHost, HOST_UNSPECIFIED), StandardCharsets.UTF_8);
-                    return URI.create(String.format(APPLICATION_URL_FORMAT, scheme, host, port));
+                    final String host = StringUtils.defaultIfEmpty(connectorHost, HOST_UNSPECIFIED);
+                    try {
+                        return new URI(scheme, null, host, port, APPLICATION_PATH, null, null);
+                    } catch (URISyntaxException e) {
+                        throw new RuntimeException(e);
+                    }
                 })
                 .collect(Collectors.toList());
     }
