@@ -46,35 +46,38 @@ public class Anchored extends RecordPathSegment {
 
         return anchoredStream.flatMap(fv -> {
             final Object value = fv.getValue();
-            return evaluate(value);
+            return evaluateFieldValue(value);
         });
     }
 
-    private Stream<FieldValue> evaluate(final Object value) {
+    private Stream<FieldValue> evaluateFieldValue(final Object value) {
         if (value == null) {
             return Stream.of();
         }
+
         if (value instanceof Record) {
-            final RecordPathEvaluationContext recordPathEvaluateContext = new StandardRecordPathEvaluationContext((Record) value);
-            return evaluationPath.evaluate(recordPathEvaluateContext);
+            return evaluateAtRoot((Record) value);
         }
+
         if (value instanceof final Record[] array) {
-            return Arrays.stream(array).flatMap(element -> {
-                final RecordPathEvaluationContext recordPathEvaluateContext = new StandardRecordPathEvaluationContext(element);
-                return evaluationPath.evaluate(recordPathEvaluateContext);
-            });
+            return Arrays.stream(array).flatMap(this::evaluateAtRoot);
         }
+
         if (value instanceof final Iterable<?> iterable) {
             return StreamSupport.stream(iterable.spliterator(), false).flatMap(element -> {
                 if (!(element instanceof Record)) {
                     return Stream.of();
                 }
 
-                final RecordPathEvaluationContext recordPathEvaluateContext = new StandardRecordPathEvaluationContext((Record) element);
-                return evaluationPath.evaluate(recordPathEvaluateContext);
+                return evaluateAtRoot((Record) element);
             });
         }
 
         return Stream.of();
+    }
+
+    private Stream<FieldValue> evaluateAtRoot(final Record root) {
+        final RecordPathEvaluationContext recordPathEvaluateContext = new StandardRecordPathEvaluationContext(root);
+        return evaluationPath.evaluate(recordPathEvaluateContext);
     }
 }

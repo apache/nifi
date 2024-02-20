@@ -418,7 +418,7 @@ public class RecordPathCompiler {
 
                         final RecordPathSegment[] joinPaths = new RecordPathSegment[numArgs - 1];
                         for (int i = 0; i < numArgs - 1; i++) {
-                            joinPaths[i] = buildPath(argumentListTree.getChild(i+ 1), null, absolute);
+                            joinPaths[i] = buildPath(argumentListTree.getChild(i + 1), null, absolute);
                         }
 
                         final RecordPathSegment delimiterPath = buildPath(argumentListTree.getChild(0), null, absolute);
