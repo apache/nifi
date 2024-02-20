@@ -23,13 +23,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.distributed.cache.client.Deserializer;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
-import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -68,6 +63,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.processor.util.list.DistributedMapCacheClientSerialization.stringSerializer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -125,16 +121,15 @@ public class TestAbstractListProcessor {
     }
 
     @Test
-    public void testStateMigratedFromCacheService() throws InitializationException {
-
-        final DistributedCache cache = new DistributedCache();
+    public void testStateMigratedFromCacheService() throws InitializationException, IOException {
+        final DistributedCacheFake cache = new DistributedCacheFake();
         runner.addControllerService("cache", cache);
         runner.enableControllerService(cache);
         runner.setProperty(AbstractListProcessor.DISTRIBUTED_CACHE_SERVICE, "cache");
 
-        final String serviceState = "{\"latestTimestamp\":1492,\"matchingIdentifiers\":[\"id\"]}";
         final String cacheKey = runner.getProcessor().getIdentifier() + ".lastListingTime./path";
-        cache.stored.put(cacheKey, serviceState);
+        final String serviceState = "{\"latestTimestamp\":1492,\"matchingIdentifiers\":[\"id\"]}";
+        cache.put(cacheKey, serviceState, stringSerializer, stringSerializer);
 
         runner.run();
 
@@ -188,7 +183,7 @@ public class TestAbstractListProcessor {
     @Test
     public void testFetchOnStart() throws InitializationException {
 
-        final DistributedCache cache = new DistributedCache();
+        final DistributedCacheFake cache = new DistributedCacheFake();
         runner.addControllerService("cache", cache);
         runner.enableControllerService(cache);
         runner.setProperty(AbstractListProcessor.DISTRIBUTED_CACHE_SERVICE, "cache");
@@ -216,7 +211,7 @@ public class TestAbstractListProcessor {
 
         runner.assertAllFlowFilesTransferred(AbstractListProcessor.REL_SUCCESS, 1);
 
-        final MockFlowFile flowfile = runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(0);
+        final MockFlowFile flowfile = runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).getFirst();
         flowfile.assertAttributeEquals("record.count", "2");
         flowfile.assertContentEquals("id,name,timestamp,size\nidentifier,name,4,0\nidentifier2,name2,8,0\n");
 
@@ -227,7 +222,6 @@ public class TestAbstractListProcessor {
 
     @Test
     public void testNoTrackingEntityStrategy() throws IOException {
-
         // Firstly, choose Timestamp Strategy lists 2 entities and set state.
         // After that choose No Tracking Strategy to test if this strategy remove the state.
         ProcessSession session = runner.getProcessSessionFactory().createSession();
@@ -283,12 +277,13 @@ public class TestAbstractListProcessor {
     }
 
     @Test
-    public void testEntityTrackingStrategy() throws InitializationException {
+    public void testEntityTrackingStrategyInModeTrackingEntityTimestamp() throws InitializationException {
         runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_ENTITIES);
+        runner.setProperty(ListedEntityTracker.TRACKING_MODE, EntityTrackingMode.TRACK_ENTITY_TIMESTAMP);
         // Require a cache service.
         runner.assertNotValid();
 
-        final DistributedCache trackingCache = new DistributedCache();
+        final DistributedCacheFake trackingCache = new DistributedCacheFake();
         runner.addControllerService("tracking-cache", trackingCache);
         runner.enableControllerService(trackingCache);
 
@@ -306,21 +301,18 @@ public class TestAbstractListProcessor {
         proc.currentTimestamp.set(1L);
         runner.clearTransferState();
         // Prior to running the processor, we should expect 3 objects during verification
-        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
-                "Found 1 object.  Of that, 1 matches the filter.");
+        assertSuccessfulVerificationOutcome(1, 1);
         runner.run();
         assertEquals(1, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
         runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(0)
             .assertAttributeEquals(CoreAttributes.FILENAME.key(), "one");
         // The object is now tracked, so it's no longer considered new
-        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
-                "Found 1 object.  Of that, 1 matches the filter.");
+        assertSuccessfulVerificationOutcome(1, 1);
 
         // Should not list any entity.
         proc.currentTimestamp.set(2L);
         runner.clearTransferState();
-        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
-                "Found 1 object.  Of that, 1 matches the filter.");
+        assertSuccessfulVerificationOutcome(1, 1);
         runner.run();
         assertEquals(0, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
 
@@ -329,8 +321,7 @@ public class TestAbstractListProcessor {
         proc.addEntity("five", "five", 5, 5);
         proc.addEntity("six", "six", 6, 6);
         runner.clearTransferState();
-        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
-                "Found 3 objects.  Of those, 3 match the filter.");
+        assertSuccessfulVerificationOutcome(3, 3);
         runner.run();
         assertEquals(2, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
         runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(0)
@@ -346,8 +337,7 @@ public class TestAbstractListProcessor {
         proc.addEntity("three", "three", 3, 3);
         proc.addEntity("four", "four", 4, 4);
         runner.clearTransferState();
-        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
-                "Found 6 objects.  Of those, 6 match the filter.");
+        assertSuccessfulVerificationOutcome(6, 6);
         runner.run();
         assertEquals(2, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
         runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(0)
@@ -361,8 +351,7 @@ public class TestAbstractListProcessor {
         proc.addEntity("five", "five", 7, 5);
         proc.addEntity("six", "six", 6, 16);
         runner.clearTransferState();
-        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
-                "Found 6 objects.  Of those, 6 match the filter.");
+        assertSuccessfulVerificationOutcome(6, 6);
         runner.run();
         assertEquals(2, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
         runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(0)
@@ -379,9 +368,8 @@ public class TestAbstractListProcessor {
         runner.setProperty(ListedEntityTracker.INITIAL_LISTING_TARGET, "window");
         runner.clearTransferState();
 
-        // Prior to running the processor, we should expect 3 objects during verification
-        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
-                "Found 6 objects.  Of those, 6 match the filter.");
+        // Prior to running the processor, we should expect 6 objects during verification
+        assertSuccessfulVerificationOutcome(6, 6);
         runner.run();
 
         assertEquals(3, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
@@ -399,15 +387,13 @@ public class TestAbstractListProcessor {
         runner.setProperty(ConcreteListProcessor.RESET_STATE, "2");
         runner.clearTransferState();
 
-        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
-                "Found 6 objects.  Of those, 6 match the filter.");
+        assertSuccessfulVerificationOutcome(6, 6);
 
         runner.run();
         // All entities should be picked, one to six.
         assertEquals(6, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
         // Now all are tracked, so none are new
-        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
-                "Found 6 objects.  Of those, 6 match the filter.");
+        assertSuccessfulVerificationOutcome(6, 6);
 
         // Reset state again.
         proc.currentTimestamp.set(25L);
@@ -418,60 +404,148 @@ public class TestAbstractListProcessor {
         runner.clearTransferState();
 
         // Time window is now 5ms - 25ms, so only 5 and 6 fall in the window, so only 1 of the 2 filtered entities are considered 'new'
-        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed contents of .*.json.*" +
-                "Found 6 objects.  Of those, 2 match the filter.");
+        assertSuccessfulVerificationOutcome(6, 2);
+    }
+
+
+    @Test
+    public void testEntityTrackingStrategyInModeTrackingLastListingTime() throws InitializationException {
+        runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_ENTITIES);
+        runner.setProperty(ListedEntityTracker.TRACKING_MODE, EntityTrackingMode.TRACK_LAST_LISTING_TIME);
+        // Require a cache service.
+        runner.assertNotValid();
+
+        final DistributedCacheFake trackingCache = new DistributedCacheFake();
+        runner.addControllerService("tracking-cache", trackingCache);
+        runner.enableControllerService(trackingCache);
+
+        runner.setProperty(ListedEntityTracker.TRACKING_STATE_CACHE, "tracking-cache");
+        runner.setProperty(ListedEntityTracker.TRACKING_TIME_WINDOW, "10ms");
+
+        runner.assertValid();
+
+        proc.currentTimestamp.set(0L);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(AbstractListProcessor.REL_SUCCESS, 0);
+
+        // Should list one entity.
+        proc.addEntity("one", "one", 1, 1);
+        proc.currentTimestamp.set(1L);
+        runner.clearTransferState();
+        // Prior to running the processor, we should expect 1 object during verification
+        assertSuccessfulVerificationOutcome(1, 1);
+        runner.run();
+        final List<MockFlowFile> singleEntityListing = runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS);
+        assertEquals(1, singleEntityListing.size());
+        singleEntityListing.getFirst().assertAttributeEquals(CoreAttributes.FILENAME.key(), "one");
+        // The object is now tracked, so it's no longer considered new
+        assertSuccessfulVerificationOutcome(1, 1);
+
+        // Should not list any entity.
+        proc.currentTimestamp.set(2L);
+        runner.clearTransferState();
+        assertSuccessfulVerificationOutcome(1, 1);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(AbstractListProcessor.REL_SUCCESS, 0);
+
+        // Should list added entities.
+        proc.currentTimestamp.set(10L);
+        proc.addEntity("five", "five", 5, 5);
+        proc.addEntity("six", "six", 6, 6);
+        runner.clearTransferState();
+        assertSuccessfulVerificationOutcome(3, 3);
+        runner.run();
+        final List<MockFlowFile> addedEntitiesListing = runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS);
+        assertEquals(2, addedEntitiesListing.size());
+        addedEntitiesListing.get(0).assertAttributeEquals(CoreAttributes.FILENAME.key(), "five");
+        addedEntitiesListing.get(1).assertAttributeEquals(CoreAttributes.FILENAME.key(), "six");
+
+        // Should be able to list entities having older timestamp than the previously listed entity.
+        // Even if the entities timestamp is out of tracking window, it should be be picked.
+        // Current timestamp = 13, and window = 10ms, meaning it can pick entities having timestamp 3 to 13.
+        proc.currentTimestamp.set(13L);
+        proc.addEntity("two", "two", 2, 2);
+        proc.addEntity("three", "three", 3, 3);
+        proc.addEntity("four", "four", 4, 4);
+        runner.clearTransferState();
+        assertSuccessfulVerificationOutcome(6, 6);
+        runner.run();
+        assertEquals(3, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
+        runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(0)
+                .assertAttributeEquals(CoreAttributes.FILENAME.key(), "two");
+        runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(1)
+                .assertAttributeEquals(CoreAttributes.FILENAME.key(), "three");
+        runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(2)
+                .assertAttributeEquals(CoreAttributes.FILENAME.key(), "four");
+
+        // Can pick entity that has newer timestamp.
+        // Can pick entity that has different size.
+        proc.currentTimestamp.set(14L);
+        proc.addEntity("five", "five", 7, 5);
+        proc.addEntity("six", "six", 6, 16);
+        runner.clearTransferState();
+        assertSuccessfulVerificationOutcome(6, 6);
+        runner.run();
+        assertEquals(2, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
+        runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(0)
+                .assertAttributeEquals(CoreAttributes.FILENAME.key(), "six");
+        runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(1)
+                .assertAttributeEquals(CoreAttributes.FILENAME.key(), "five");
+
+        // Reset state - initial listing includes all entities, regardless of their entity timestamp
+        proc.currentTimestamp.set(15L);
+        // ConcreteListProcessor can reset state with any property.
+        runner.setProperty(ListedEntityTracker.TRACKING_TIME_WINDOW, "10ms");
+        runner.setProperty(ConcreteListProcessor.RESET_STATE, "1");
+        runner.clearTransferState();
+
+        // Prior to running the processor, we should expect 6 objects during verification
+        assertSuccessfulVerificationOutcome(6, 6);
+        runner.run();
+
+        List<MockFlowFile> initialListingFlowFile = runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS);
+        assertEquals(6, initialListingFlowFile.size());
+        initialListingFlowFile.get(0).assertAttributeEquals(CoreAttributes.FILENAME.key(), "one");
+        initialListingFlowFile.get(1).assertAttributeEquals(CoreAttributes.FILENAME.key(), "two");
+        initialListingFlowFile.get(2).assertAttributeEquals(CoreAttributes.FILENAME.key(), "three");
+        initialListingFlowFile.get(3).assertAttributeEquals(CoreAttributes.FILENAME.key(), "four");
+        initialListingFlowFile.get(4).assertAttributeEquals(CoreAttributes.FILENAME.key(), "six");
+        initialListingFlowFile.get(5).assertAttributeEquals(CoreAttributes.FILENAME.key(), "five");
+
+        // last listing was 15 - tracking window is 10 ms
+        //   -> at 26 the cache should be cleared, if the entities are no longer listed from source
+        proc.currentTimestamp.set(26L);
+        proc.entities.clear();
+        proc.addEntity("single-name", "single-id", 25); // ensure cache is updated
+        runner.run();
+        runner.clearTransferState();
+        proc.entities.clear();
+        // entity has been there before, but hasn't been listed for a whole tracking window
+        proc.addEntity("one", "one", 1, 1);
+        assertSuccessfulVerificationOutcome(1, 1);
+        runner.run();
+        final List<MockFlowFile> cacheExpiredEntityListing = runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS);
+        assertEquals(1, cacheExpiredEntityListing.size());
+        cacheExpiredEntityListing.getFirst().assertAttributeEquals(CoreAttributes.FILENAME.key(), "one");
     }
 
     private void assertVerificationOutcome(final Outcome expectedOutcome, final String expectedExplanationRegex) {
         final List<ConfigVerificationResult> results = proc.verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
 
         assertEquals(1, results.size());
-        final ConfigVerificationResult result = results.get(0);
+        final ConfigVerificationResult result = results.getFirst();
         assertEquals(expectedOutcome, result.getOutcome());
         assertTrue(result.getExplanation().matches(expectedExplanationRegex),
                 String.format("Expected verification result to match pattern [%s].  Actual explanation was: %s", expectedExplanationRegex, result.getExplanation()));
     }
 
-    static class DistributedCache extends AbstractControllerService implements DistributedMapCacheClient {
-        private final Map<Object, Object> stored = new HashMap<>();
-        private int fetchCount = 0;
+    private void assertSuccessfulVerificationOutcome(final int foundCount, final int matchingCount) {
+        final String expectedExplanationRegex = String.format(
+                "Successfully listed contents of .*.json.*Found %d objects?.  Of (those|that), %d match(es)? the filter.",
+                foundCount, matchingCount
+        );
 
-        @Override
-        public <K, V> boolean putIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
-            return false;
-        }
-
-        @Override
-        public <K, V> V getAndPutIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, Deserializer<V> valueDeserializer) {
-            return null;
-        }
-
-        @Override
-        public <K> boolean containsKey(K key, Serializer<K> keySerializer) throws IOException {
-            return false;
-        }
-
-        @Override
-        public <K, V> void put(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
-            stored.put(key, value);
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public <K, V> V get(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
-            fetchCount++;
-            return (V) stored.get(key);
-        }
-
-        @Override
-        public void close() throws IOException {
-        }
-
-        @Override
-        public <K> boolean remove(K key, Serializer<K> serializer) throws IOException {
-            final Object value = stored.remove(key);
-            return value != null;
-        }
+        assertVerificationOutcome(Outcome.SUCCESSFUL, expectedExplanationRegex);
     }
 
     static class ConcreteListProcessor extends AbstractListProcessor<ListableEntity> {
@@ -508,6 +582,7 @@ public class TestAbstractListProcessor {
             properties.add(TARGET_SYSTEM_TIMESTAMP_PRECISION);
             properties.add(ListedEntityTracker.TRACKING_STATE_CACHE);
             properties.add(ListedEntityTracker.TRACKING_TIME_WINDOW);
+            properties.add(ListedEntityTracker.TRACKING_MODE);
             properties.add(ListedEntityTracker.INITIAL_LISTING_TARGET);
             properties.add(RESET_STATE);
             properties.add(LISTING_FILTER);
@@ -612,19 +687,6 @@ public class TestAbstractListProcessor {
             fields.add(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
             fields.add(new RecordField("size", RecordFieldType.LONG.getDataType()));
             return new SimpleRecordSchema(fields);
-        }
-
-        private void persist(final long latestListedEntryTimestampThisCycleMillis,
-                             final long lastProcessedLatestEntryTimestampMillis,
-                             final List<String> processedIdentifiesWithLatestTimestamp,
-                             final StateManager stateManager, final Scope scope) throws IOException {
-            final Map<String, String> updatedState = new HashMap<>(processedIdentifiesWithLatestTimestamp.size() + 2);
-            updatedState.put(LATEST_LISTED_ENTRY_TIMESTAMP_KEY, String.valueOf(latestListedEntryTimestampThisCycleMillis));
-            updatedState.put(LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY, String.valueOf(lastProcessedLatestEntryTimestampMillis));
-            for (int i = 0; i < processedIdentifiesWithLatestTimestamp.size(); i++) {
-                updatedState.put(IDENTIFIER_PREFIX + "." + i, processedIdentifiesWithLatestTimestamp.get(i));
-            }
-            stateManager.setState(updatedState, scope);
         }
     }
 }

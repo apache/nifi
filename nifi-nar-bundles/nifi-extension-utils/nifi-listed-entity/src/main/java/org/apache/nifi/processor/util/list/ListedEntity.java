@@ -21,18 +21,37 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ListedEntity {
     /**
-     * Milliseconds.
+     * listing timestamp is unknown for entities listed before its introduction
+     */
+    public static final long NO_LISTING_TIMESTAMP = 0;
+
+    /**
+     * The timestamp in milliseconds associated with the entity listed (see {@link ListableEntity#getTimestamp()}).
      */
     private final long timestamp;
     /**
-     * Bytes.
+     * The size in bytes of the entity listed (see {@link ListableEntity#getSize()}).
      */
     private final long size;
+    /**
+     * The most recent timestamp in milliseconds this entity was listed.
+     */
+    private final long listingTimestamp;
 
-    @JsonCreator
-    public ListedEntity(@JsonProperty("timestamp") long timestamp, @JsonProperty("size") long size) {
+    public ListedEntity(long timestamp, long size) {
         this.timestamp = timestamp;
         this.size = size;
+        this.listingTimestamp = NO_LISTING_TIMESTAMP;
+    }
+
+    @JsonCreator
+    public ListedEntity(
+            @JsonProperty("timestamp") long timestamp,
+            @JsonProperty("size") long size,
+            @JsonProperty("listingTimestamp") long listingTimestamp) {
+        this.timestamp = timestamp;
+        this.size = size;
+        this.listingTimestamp = listingTimestamp;
     }
 
     public long getTimestamp() {
@@ -41,5 +60,9 @@ public class ListedEntity {
 
     public long getSize() {
         return size;
+    }
+
+    public long getListingTimestamp() {
+        return listingTimestamp;
     }
 }
