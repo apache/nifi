@@ -91,7 +91,6 @@
         <module>nifi-asn1-bundle</module>
         <module>nifi-pgp-bundle</module>
         <module>nifi-hashicorp-vault-bundle</module>
-        <module>nifi-stateless-processor-bundle</module>
         <module>nifi-geohash-bundle</module>
         <module>nifi-snowflake-bundle</module>
         <module>nifi-salesforce-bundle</module>
