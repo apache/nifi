@@ -778,12 +778,6 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-stateless-processor-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-salesforce-nar</artifactId>
             <version>2.0.0-SNAPSHOT</version>
             <type>nar</type>

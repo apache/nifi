@@ -73,7 +73,6 @@ env:
     -pl -:nifi-runtime-manifest
     -pl -:nifi-runtime-manifest-test
     -pl -:nifi-stateless-assembly
-    -pl -:nifi-stateless-processor-tests
     -pl -:nifi-stateless-system-test-suite
     -pl -:nifi-system-test-suite
     -pl -:nifi-nar-provider-assembly
