@@ -32,6 +32,7 @@ import {
     navigateToEditComponent,
     navigateToEditCurrentProcessGroup,
     navigateToManageComponentPolicies,
+    navigateToManageRemotePorts,
     navigateToProvenanceForComponent,
     navigateToQueueListing,
     navigateToViewStatusHistoryForComponent,
@@ -775,8 +776,16 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 },
                 clazz: 'fa fa-cloud',
                 text: 'Manage remote ports',
-                action: () => {
-                    // TODO - remotePorts
+                action: (selection: any) => {
+                    const selectionData = selection.datum();
+
+                    this.store.dispatch(
+                        navigateToManageRemotePorts({
+                            request: {
+                                id: selectionData.id
+                            }
+                        })
+                    );
                 }
             },
             {

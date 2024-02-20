@@ -17,16 +17,16 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ControllerServices } from './controller-services.component';
+import { ManageRemotePorts } from './manage-remote-ports.component';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/controller-services/controller-services.reducer';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Component } from '@angular/core';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { initialState } from '../../state/manage-remote-ports/manage-remote-ports.reducer';
 
-describe('ControllerServices', () => {
-    let component: ControllerServices;
-    let fixture: ComponentFixture<ControllerServices>;
+describe('ManageRemotePorts', () => {
+    let component: ManageRemotePorts;
+    let fixture: ComponentFixture<ManageRemotePorts>;
 
     @Component({
         selector: 'navigation',
@@ -37,7 +37,7 @@ describe('ControllerServices', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            declarations: [ControllerServices],
+            declarations: [ManageRemotePorts],
             imports: [RouterTestingModule, MockNavigation, HttpClientTestingModule],
             providers: [
                 provideMockStore({
@@ -45,7 +45,7 @@ describe('ControllerServices', () => {
                 })
             ]
         });
-        fixture = TestBed.createComponent(ControllerServices);
+        fixture = TestBed.createComponent(ManageRemotePorts);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

@@ -26,6 +26,7 @@ interface StorageEntry<T> {
     providedIn: 'root'
 })
 export class Storage {
+    private disconnectionAcknowledged: boolean = false;
     private static readonly MILLIS_PER_DAY: number = 86400000;
     private static readonly TWO_DAYS: number = Storage.MILLIS_PER_DAY * 2;
 
@@ -177,5 +178,17 @@ export class Storage {
      */
     public removeItem(key: string): void {
         localStorage.removeItem(key);
+    }
+
+    public acknowledgeDisconnection(): void {
+        this.disconnectionAcknowledged = true;
+    }
+
+    public resetDisconnectionAcknowledgement(): void {
+        this.disconnectionAcknowledged = false;
+    }
+
+    public isDisconnectionAcknowledged(): boolean {
+        return this.disconnectionAcknowledged;
     }
 }

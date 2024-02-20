@@ -41,6 +41,7 @@
 @use 'app/pages/flow-designer/ui/canvas/items/remote-process-group/create-remote-process-group/create-remote-process-group.component-theme' as create-remote-process-group;
 @use 'app/pages/flow-designer/ui/common/banner/banner.component-theme' as banner;
 @use 'app/pages/flow-designer/ui/controller-service/controller-services.component-theme' as controller-service;
+@use 'app/pages/flow-designer/ui/manage-remote-ports/manage-remote-ports.component-theme' as manage-remote-ports;
 @use 'app/pages/login/feature/login.component-theme' as login;
 @use 'app/pages/login/ui/login-form/login-form.component-theme' as login-form;
 @use 'app/pages/provenance/feature/provenance.component-theme' as provenance;
@@ -458,6 +459,10 @@ $appFontPath: '~roboto-fontface/fonts';
         cursor: pointer;
     }
 
+    .disabled {
+        cursor: not-allowed;
+    }
+
     .value,
     .refresh-timestamp {
         font-weight: 500;
@@ -481,6 +486,7 @@ $appFontPath: '~roboto-fontface/fonts';
 @include canvas.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include banner.nifi-theme($material-theme-light);
 @include controller-service.nifi-theme($material-theme-light);
+@include manage-remote-ports.nifi-theme($material-theme-light);
 @include footer.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include navigation-control.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include birdseye-control.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
@@ -531,6 +537,7 @@ $appFontPath: '~roboto-fontface/fonts';
     @include canvas.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
     @include banner.nifi-theme($material-theme-dark);
     @include controller-service.nifi-theme($material-theme-dark);
+    @include manage-remote-ports.nifi-theme($material-theme-dark);
     @include footer.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
     @include navigation-control.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
     @include birdseye-control.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);

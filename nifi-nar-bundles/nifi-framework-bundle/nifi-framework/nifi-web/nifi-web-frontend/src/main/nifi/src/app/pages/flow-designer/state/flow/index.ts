@@ -268,6 +268,11 @@ export interface EditComponentDialogRequest {
     type: ComponentType;
     uri: string;
     entity: any;
+    rpg?: any;
+}
+
+export interface RpgManageRemotePortsRequest {
+    id: string;
 }
 
 export interface NavigateToControllerServicesRequest {

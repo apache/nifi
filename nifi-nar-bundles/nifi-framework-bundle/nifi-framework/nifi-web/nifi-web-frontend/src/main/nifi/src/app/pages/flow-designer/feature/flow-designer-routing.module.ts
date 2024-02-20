@@ -39,6 +39,19 @@ const routes: Routes = [
             }
         ]
     },
+    {
+        path: 'remote-process-group/:rpgId',
+        component: FlowDesigner,
+        children: [
+            {
+                path: 'manage-remote-ports',
+                loadChildren: () =>
+                    import('../ui/manage-remote-ports/manage-remote-ports.module').then(
+                        (m) => m.ManageRemotePortsModule
+                    )
+            }
+        ]
+    },
     { path: '', component: RootGroupRedirector, canActivate: [rootGroupGuard] }
 ];
 
