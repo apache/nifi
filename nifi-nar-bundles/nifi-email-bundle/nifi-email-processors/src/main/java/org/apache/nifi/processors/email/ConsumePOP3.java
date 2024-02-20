@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.email;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -34,25 +32,11 @@ import org.springframework.integration.mail.Pop3MailReceiver;
 @Tags({ "Email", "POP3", "Get", "Ingest", "Ingress", "Message", "Consume" })
 public class ConsumePOP3 extends AbstractEmailProcessor<Pop3MailReceiver> {
 
-    static final List<PropertyDescriptor> DESCRIPTORS;
-
-    static {
-        List<PropertyDescriptor> _descriptors = new ArrayList<>();
-        _descriptors.addAll(SHARED_DESCRIPTORS);
-        DESCRIPTORS = Collections.unmodifiableList(_descriptors);
-    }
-
-    /**
-     *
-     */
     @Override
     protected String getProtocol(ProcessContext processContext) {
         return "pop3";
     }
 
-    /**
-     *
-     */
     @Override
     protected Pop3MailReceiver buildMessageReceiver(ProcessContext context) {
         final Pop3MailReceiver receiver = new Pop3MailReceiver(this.buildUrl(context));
@@ -60,11 +44,8 @@ public class ConsumePOP3 extends AbstractEmailProcessor<Pop3MailReceiver> {
         return receiver;
     }
 
-    /**
-     *
-     */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return DESCRIPTORS;
+        return SHARED_DESCRIPTORS;
     }
 }

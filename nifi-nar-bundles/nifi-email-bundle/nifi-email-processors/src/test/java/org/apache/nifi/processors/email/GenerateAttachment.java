@@ -17,15 +17,7 @@
 
 package org.apache.nifi.processors.email;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import javax.mail.MessagingException;
-import javax.mail.internet.MimeMessage;
-import org.apache.commons.mail.Email;
-import org.apache.commons.mail.EmailAttachment;
-import org.apache.commons.mail.EmailException;
-import org.apache.commons.mail.MultiPartEmail;
-import org.apache.commons.mail.SimpleEmail;
+import java.nio.charset.StandardCharsets;
 
 public class GenerateAttachment {
     String from;
@@ -33,6 +25,10 @@ public class GenerateAttachment {
     String subject;
     String message;
     String hostName;
+
+    private static final String NEWLINE = "\n";
+
+    private static final String BOUNDARY = "5A7C0449-336B-4F73-81EF-F176E4DF44B2";
 
     public GenerateAttachment(String from, String to, String subject, String message, String hostName) {
         this.from = from;
@@ -42,73 +38,72 @@ public class GenerateAttachment {
         this.hostName = hostName;
     }
 
-    public byte[] SimpleEmail() {
-        MimeMessage mimeMessage = SimpleEmailMimeMessage();
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        try {
-            mimeMessage.writeTo(output);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (MessagingException e) {
-            e.printStackTrace();
-        }
-
-        return output.toByteArray();
+    public byte[] simpleMessage() {
+        return simpleMessage(null);
     }
 
-    public MimeMessage SimpleEmailMimeMessage() {
-        Email email = new SimpleEmail();
-        try {
-            email.setFrom(from);
-            email.addTo(to);
-            email.setSubject(subject);
-            email.setMsg(message);
-            email.setHostName(hostName);
-            email.buildMimeMessage();
-        } catch (EmailException e) {
-            e.printStackTrace();
+    public byte[] simpleMessage(final String recipient) {
+        final StringBuilder builder = new StringBuilder();
+
+        builder.append("MIME-Version: 1.0");
+        builder.append(NEWLINE);
+        builder.append("Content-Type: text/plain; charset=utf-8");
+        builder.append(NEWLINE);
+        builder.append("From: ");
+        builder.append(from);
+        builder.append(NEWLINE);
+
+        if (recipient != null) {
+            builder.append("To: ");
+            builder.append(recipient);
+            builder.append(NEWLINE);
         }
 
-        return email.getMimeMessage();
+        builder.append("Subject: ");
+        builder.append(subject);
+        builder.append(NEWLINE);
+        builder.append(NEWLINE);
+        builder.append(message);
+
+        return builder.toString().getBytes(StandardCharsets.UTF_8);
     }
 
+    public byte[] withAttachments(int amount) {
+        final StringBuilder builder = new StringBuilder();
 
-    public byte[] WithAttachments(int amount) {
-        MultiPartEmail email = new MultiPartEmail();
-        try {
+        builder.append("MIME-Version: 1.0");
+        builder.append(NEWLINE);
 
-            email.setFrom(from);
-            email.addTo(to);
-            email.setSubject(subject);
-            email.setMsg(message);
-            email.setHostName(hostName);
+        builder.append("Content-Type: multipart/mixed; boundary=\"");
+        builder.append(BOUNDARY);
+        builder.append("\"");
+        builder.append(NEWLINE);
 
-            int x = 1;
-            while (x <= amount) {
-                // Create an attachment with the pom.xml being used to compile (yay!!!)
-                EmailAttachment attachment = new EmailAttachment();
-                attachment.setPath("pom.xml");
-                attachment.setDisposition(EmailAttachment.ATTACHMENT);
-                attachment.setDescription("pom.xml");
-                attachment.setName("pom.xml"+String.valueOf(x));
-                //  attach
-                email.attach(attachment);
-                x++;
-            }
-            email.buildMimeMessage();
-        } catch (EmailException e) {
-            e.printStackTrace();
+        builder.append("From: ");
+        builder.append(from);
+        builder.append(NEWLINE);
+        builder.append("To: ");
+        builder.append(to);
+        builder.append(NEWLINE);
+        builder.append("Subject: ");
+        builder.append(subject);
+        builder.append(NEWLINE);
+        builder.append(NEWLINE);
+
+        for (int i = 0; i < amount; i++) {
+            builder.append("--");
+            builder.append(BOUNDARY);
+            builder.append(NEWLINE);
+            builder.append("Content-Type: text/plain; charset=utf-8");
+            builder.append(NEWLINE);
+            builder.append("Content-Disposition: attachment; filename=\"pom.xml-%d\"".formatted(i));
+            builder.append(NEWLINE);
+            builder.append(NEWLINE);
+            builder.append("Attachment");
+            builder.append(i);
+            builder.append(NEWLINE);
         }
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        MimeMessage mimeMessage = email.getMimeMessage();
-        try {
-            mimeMessage.writeTo(output);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (MessagingException e) {
-            e.printStackTrace();
-        }
 
-        return output.toByteArray();
+        return builder.toString().getBytes(StandardCharsets.UTF_8);
     }
 }

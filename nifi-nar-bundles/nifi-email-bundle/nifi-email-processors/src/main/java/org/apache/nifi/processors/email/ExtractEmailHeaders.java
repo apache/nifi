@@ -16,29 +16,29 @@
  */
 package org.apache.nifi.processors.email;
 
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import javax.mail.Address;
-import javax.mail.Header;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.mail.util.MimeMessageParser;
+import java.util.concurrent.atomic.AtomicInteger;
+import jakarta.mail.Address;
+import jakarta.mail.BodyPart;
+import jakarta.mail.Header;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimePart;
+
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -55,9 +55,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @SupportsBatching
@@ -127,22 +125,11 @@ public class ExtractEmailHeaders extends AbstractProcessor {
             .description("Flowfiles that could not be parsed as a RFC-2822 compliant message")
             .build();
 
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> descriptors;
+    private static final String ATTACHMENT_DISPOSITION = "attachment";
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
+    private static final Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
 
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-
-        descriptors.add(CAPTURED_HEADERS);
-        descriptors.add(STRICT_PARSING);
-        this.descriptors = Collections.unmodifiableList(descriptors);
-    }
+    private static final List<PropertyDescriptor> descriptors = List.of(CAPTURED_HEADERS, STRICT_PARSING);
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
@@ -160,68 +147,64 @@ public class ExtractEmailHeaders extends AbstractProcessor {
         final List<String> capturedHeadersList = Arrays.asList(context.getProperty(CAPTURED_HEADERS).getValue().toLowerCase().split(":"));
 
         final Map<String, String> attributes = new HashMap<>();
-        session.read(originalFlowFile, new InputStreamCallback() {
-            @Override
-            public void process(final InputStream rawIn) throws IOException {
-                try (final InputStream in = new BufferedInputStream(rawIn)) {
-                    Properties props = new Properties();
-                    props.put("mail.mime.address.strict", requireStrictAddresses);
-                    Session mailSession = Session.getInstance(props);
-                    MimeMessage originalMessage = new MimeMessage(mailSession, in);
-                    MimeMessageParser parser = new MimeMessageParser(originalMessage).parse();
-                    // RFC-2822 determines that a message must have a "From:" header
-                    // if a message lacks the field, it is flagged as invalid
-                    Address[] from = originalMessage.getFrom();
-                    if (from == null) {
-                        throw new MessagingException("Message failed RFC-2822 validation: No Sender");
-                    }
-                    if (capturedHeadersList.size() > 0){
-                        Enumeration headers = originalMessage.getAllHeaders();
-                        while (headers.hasMoreElements()) {
-                            Header header = (Header) headers.nextElement();
-                            if (StringUtils.isNotEmpty(header.getValue())
-                                    && capturedHeadersList.contains(header.getName().toLowerCase())) {
-                                attributes.put("email.headers." + header.getName().toLowerCase(), header.getValue());
-                            }
+        session.read(originalFlowFile, rawIn -> {
+            try (final InputStream in = new BufferedInputStream(rawIn)) {
+                Properties props = new Properties();
+                props.put("mail.mime.address.strict", requireStrictAddresses);
+                Session mailSession = Session.getInstance(props);
+                MimeMessage originalMessage = new MimeMessage(mailSession, in);
+                // RFC-2822 determines that a message must have a "From:" header
+                // if a message lacks the field, it is flagged as invalid
+                Address[] from = originalMessage.getFrom();
+                if (from == null) {
+                    throw new MessagingException("Message failed RFC-2822 validation: No Sender");
+                }
+                if (!capturedHeadersList.isEmpty()) {
+                    Enumeration headers = originalMessage.getAllHeaders();
+                    while (headers.hasMoreElements()) {
+                        final Header header = (Header) headers.nextElement();
+                        final String headerValue = header.getValue();
+                        if (headerValue != null && !headerValue.isBlank()
+                                && capturedHeadersList.contains(header.getName().toLowerCase())) {
+                            attributes.put("email.headers." + header.getName().toLowerCase(), header.getValue());
                         }
                     }
-
-                    putAddressListInAttributes(attributes, EMAIL_HEADER_TO, originalMessage.getRecipients(Message.RecipientType.TO));
-                    putAddressListInAttributes(attributes, EMAIL_HEADER_CC, originalMessage.getRecipients(Message.RecipientType.CC));
-                    putAddressListInAttributes(attributes, EMAIL_HEADER_BCC, originalMessage.getRecipients(Message.RecipientType.BCC));
-                    putAddressListInAttributes(attributes, EMAIL_HEADER_FROM, originalMessage.getFrom()); // RFC-2822 specifies "From" as mailbox-list
-
-                    if (StringUtils.isNotEmpty(originalMessage.getMessageID())) {
-                        attributes.put(EMAIL_HEADER_MESSAGE_ID, originalMessage.getMessageID());
-                    }
-                    if (originalMessage.getReceivedDate() != null) {
-                        attributes.put(EMAIL_HEADER_RECV_DATE, originalMessage.getReceivedDate().toString());
-                    }
-                    if (originalMessage.getSentDate() != null) {
-                        attributes.put(EMAIL_HEADER_SENT_DATE, originalMessage.getSentDate().toString());
-                    }
-                    if (StringUtils.isNotEmpty(originalMessage.getSubject())) {
-                        attributes.put(EMAIL_HEADER_SUBJECT, originalMessage.getSubject());
-                    }
-                    // Zeroes EMAIL_ATTACHMENT_COUNT
-                    attributes.put(EMAIL_ATTACHMENT_COUNT, "0");
-                    // But insert correct value if attachments are present
-                    if (parser.hasAttachments()) {
-                        attributes.put(EMAIL_ATTACHMENT_COUNT, String.valueOf(parser.getAttachmentList().size()));
-                    }
-
-                } catch (Exception e) {
-                    // Message is invalid or triggered an error during parsing
-                    attributes.clear();
-                    logger.error("Could not parse the flowfile {} as an email, treating as failure", new Object[]{originalFlowFile, e});
-                    invalidFlowFilesList.add(originalFlowFile);
                 }
+
+                putAddressListInAttributes(attributes, EMAIL_HEADER_TO, originalMessage.getRecipients(Message.RecipientType.TO));
+                putAddressListInAttributes(attributes, EMAIL_HEADER_CC, originalMessage.getRecipients(Message.RecipientType.CC));
+                putAddressListInAttributes(attributes, EMAIL_HEADER_BCC, originalMessage.getRecipients(Message.RecipientType.BCC));
+                putAddressListInAttributes(attributes, EMAIL_HEADER_FROM, originalMessage.getFrom()); // RFC-2822 specifies "From" as mailbox-list
+
+                final String messageId = originalMessage.getMessageID();
+                if (messageId != null && !messageId.isEmpty()) {
+                    attributes.put(EMAIL_HEADER_MESSAGE_ID, originalMessage.getMessageID());
+                }
+                if (originalMessage.getReceivedDate() != null) {
+                    attributes.put(EMAIL_HEADER_RECV_DATE, originalMessage.getReceivedDate().toString());
+                }
+                if (originalMessage.getSentDate() != null) {
+                    attributes.put(EMAIL_HEADER_SENT_DATE, originalMessage.getSentDate().toString());
+                }
+                final String subject = originalMessage.getSubject();
+                if (subject != null && !subject.isEmpty()) {
+                    attributes.put(EMAIL_HEADER_SUBJECT, subject);
+                }
+
+                final AtomicInteger attachmentsCounter = new AtomicInteger();
+                countAttachments(attachmentsCounter, originalMessage, 0);
+                attributes.put(EMAIL_ATTACHMENT_COUNT, Integer.toString(attachmentsCounter.get()));
+            } catch (Exception e) {
+                // Message is invalid or triggered an error during parsing
+                attributes.clear();
+                logger.error("Could not parse the flowfile {} as an email, treating as failure", originalFlowFile, e);
+                invalidFlowFilesList.add(originalFlowFile);
             }
         });
 
-        if (attributes.size() > 0) {
+        if (!attributes.isEmpty()) {
             FlowFile updatedFlowFile = session.putAllAttributes(originalFlowFile, attributes);
-            logger.info("Extracted {} headers into {} file", new Object[]{attributes.size(), updatedFlowFile});
+            logger.info("Extracted {} headers into {} file", attributes.size(), updatedFlowFile);
             processedFlowFilesList.add(updatedFlowFile);
         }
 
@@ -232,7 +215,7 @@ public class ExtractEmailHeaders extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return this.relationships;
+        return relationships;
     }
 
     @Override
@@ -245,9 +228,28 @@ public class ExtractEmailHeaders extends AbstractProcessor {
             final String attributePrefix,
             Address[] addresses) {
         if (addresses != null) {
-            for (int count = 0; count < ArrayUtils.getLength(addresses); count++) {
+            for (int count = 0; count < addresses.length; count++) {
                 attributes.put(attributePrefix + "." + count, addresses[count].toString());
             }
+        }
+    }
+
+    private void countAttachments(final AtomicInteger counter, final MimePart parentPart, final int depth) throws MessagingException, IOException {
+        final String disposition = parentPart.getDisposition();
+
+        final Object parentContent = parentPart.getContent();
+        if (parentContent instanceof Multipart multipart) {
+            final int count = multipart.getCount();
+
+            final int partDepth = depth + 1;
+            for (int i = 0; i < count; i++) {
+                final BodyPart bodyPart = multipart.getBodyPart(i);
+                if (bodyPart instanceof MimeBodyPart mimeBodyPart) {
+                    countAttachments(counter, mimeBodyPart, partDepth);
+                }
+            }
+        } else if (ATTACHMENT_DISPOSITION.equalsIgnoreCase(disposition) || depth > 0) {
+            counter.getAndIncrement();
         }
     }
 }

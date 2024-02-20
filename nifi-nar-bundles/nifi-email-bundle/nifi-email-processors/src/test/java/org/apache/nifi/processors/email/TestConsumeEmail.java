@@ -28,27 +28,24 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.integration.mail.AbstractMailReceiver;
 
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-import java.lang.reflect.Field;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 import java.util.List;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-
-public class ITestConsumeEmail {
+public class TestConsumeEmail {
 
     private GreenMail mockIMAP4Server;
     private GreenMail mockPOP3Server;
     private GreenMailUser imapUser;
     private GreenMailUser popUser;
 
-    // Setup mock imap server
     @BeforeEach
     public void setUp() {
         mockIMAP4Server = new GreenMail(ServerSetupTest.IMAP);
@@ -77,7 +74,6 @@ public class ITestConsumeEmail {
         user.deliver(message);
     }
 
-    // Start the testing units
     @Test
     public void testConsumeIMAP4() throws Exception {
 
@@ -157,24 +153,4 @@ public class ITestConsumeEmail {
 
         assertEquals("pop3", consume.getProtocol(runner.getProcessContext()));
     }
-
-    @Test
-    public void validateUrl() throws Exception {
-        Field displayUrlField = AbstractEmailProcessor.class.getDeclaredField("displayUrl");
-        displayUrlField.setAccessible(true);
-
-        AbstractEmailProcessor<? extends AbstractMailReceiver> consume = new ConsumeIMAP();
-        TestRunner runner = TestRunners.newTestRunner(consume);
-        runner.setProperty(ConsumeIMAP.HOST, "foo.bar.com");
-        runner.setProperty(ConsumeIMAP.PORT, "1234");
-        runner.setProperty(ConsumeIMAP.USER, "jon");
-        runner.setProperty(ConsumeIMAP.PASSWORD, "qhgwjgehr");
-        runner.setProperty(ConsumeIMAP.FOLDER, "MYBOX");
-        runner.setProperty(ConsumeIMAP.USE_SSL, "false");
-
-        assertEquals("imap://jon:qhgwjgehr@foo.bar.com:1234/MYBOX", consume.buildUrl(runner.getProcessContext()));
-        assertEquals("imap://jon:[password]@foo.bar.com:1234/MYBOX", displayUrlField.get(consume));
-    }
-
-
 }

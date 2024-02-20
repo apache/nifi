@@ -55,16 +55,12 @@ public class ConsumeIMAP extends AbstractEmailProcessor<ImapMailReceiver> {
     static final List<PropertyDescriptor> DESCRIPTORS;
 
     static {
-        List<PropertyDescriptor> _descriptors = new ArrayList<>();
-        _descriptors.addAll(SHARED_DESCRIPTORS);
-        _descriptors.add(SHOULD_MARK_READ);
-        _descriptors.add(USE_SSL);
-        DESCRIPTORS = Collections.unmodifiableList(_descriptors);
+        List<PropertyDescriptor> descriptors = new ArrayList<>(SHARED_DESCRIPTORS);
+        descriptors.add(SHOULD_MARK_READ);
+        descriptors.add(USE_SSL);
+        DESCRIPTORS = Collections.unmodifiableList(descriptors);
     }
 
-    /**
-     *
-     */
     @Override
     protected ImapMailReceiver buildMessageReceiver(ProcessContext processContext) {
         ImapMailReceiver receiver = new ImapMailReceiver(this.buildUrl(processContext));
@@ -74,17 +70,11 @@ public class ConsumeIMAP extends AbstractEmailProcessor<ImapMailReceiver> {
         return receiver;
     }
 
-    /**
-     *
-     */
     @Override
     protected String getProtocol(ProcessContext processContext) {
         return processContext.getProperty(USE_SSL).asBoolean() ? "imaps" : "imap";
     }
 
-    /**
-     *
-     */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return DESCRIPTORS;

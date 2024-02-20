@@ -24,13 +24,12 @@ import java.net.SocketAddress;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -38,14 +37,15 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processors.email.ListenSMTP;
-import org.apache.nifi.security.cert.StandardPrincipalFormatter;
 import org.apache.nifi.stream.io.LimitingInputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 import org.subethamail.smtp.MessageContext;
 import org.subethamail.smtp.MessageHandler;
-import org.subethamail.smtp.RejectException;
 import org.subethamail.smtp.TooMuchDataException;
 import org.subethamail.smtp.server.SMTPServer;
+
+import javax.security.auth.x500.X500Principal;
 
 /**
  * A simple consumer that provides a bridge between 'push' message distribution
@@ -82,16 +82,8 @@ public class SmtpConsumer implements MessageHandler {
         this.maxMessageSize = maxMessageSize;
     }
 
-    String getFrom() {
-        return from;
-    }
-
-    List<String> getRecipients() {
-        return Collections.unmodifiableList(recipientList);
-    }
-
     @Override
-    public void data(final InputStream data) throws RejectException, TooMuchDataException, IOException {
+    public String data(final InputStream data) throws IOException {
         final ProcessSession processSession = sessionFactory.createSession();
         final StopWatch watch = new StopWatch();
         watch.start();
@@ -100,7 +92,7 @@ public class SmtpConsumer implements MessageHandler {
             final AtomicBoolean limitExceeded = new AtomicBoolean(false);
             flowFile = processSession.write(flowFile, (OutputStream out) -> {
                 final LimitingInputStream lis = new LimitingInputStream(data, maxMessageSize);
-                IOUtils.copy(lis, out);
+                StreamUtils.copy(lis, out);
                 if (lis.hasReachedLimit()) {
                     limitExceeded.set(true);
                 }
@@ -113,19 +105,21 @@ public class SmtpConsumer implements MessageHandler {
             processSession.getProvenanceReporter().receive(flowFile, "smtp://" + host + ":" + port + "/", watch.getDuration(TimeUnit.MILLISECONDS));
             processSession.transfer(flowFile, ListenSMTP.REL_SUCCESS);
             processSession.commitAsync();
-        } catch (FlowFileAccessException | IllegalStateException | RejectException | IOException ex) {
-            log.error("Unable to fully process input due to " + ex.getMessage(), ex);
-            throw ex;
+        } catch (final FlowFileAccessException | IllegalStateException | IOException e) {
+            log.error("SMTP data processing failed", e);
+            throw e;
         }
+
+        return null;
     }
 
     @Override
-    public void from(final String from) throws RejectException {
+    public void from(final String from) {
         this.from = from;
     }
 
     @Override
-    public void recipient(final String recipient) throws RejectException {
+    public void recipient(final String recipient) {
         if (recipient != null && recipient.length() < 100 && recipientList.size() < 100) {
             recipientList.add(recipient);
         }
@@ -142,7 +136,7 @@ public class SmtpConsumer implements MessageHandler {
             for (int i = 0; i < tlsPeerCertificates.length; i++) {
                 if (tlsPeerCertificates[i] instanceof final X509Certificate x509Cert) {
                     attributes.put("smtp.certificate." + i + ".serial", x509Cert.getSerialNumber().toString());
-                    attributes.put("smtp.certificate." + i + ".subjectName", StandardPrincipalFormatter.getInstance().getSubject(x509Cert));
+                    attributes.put("smtp.certificate." + i + ".subjectName", x509Cert.getSubjectX500Principal().getName(X500Principal.RFC1779));
                 }
             }
         }
@@ -156,7 +150,9 @@ public class SmtpConsumer implements MessageHandler {
             attributes.put("smtp.src", strAddress);
         }
 
-        attributes.put("smtp.helo", context.getHelo());
+        final Optional<String> helo = context.getHelo();
+        helo.ifPresent(s -> attributes.put("smtp.helo", s));
+
         attributes.put("smtp.from", from);
         for (int i = 0; i < recipientList.size(); i++) {
             attributes.put("smtp.recipient." + i, recipientList.get(i));
@@ -164,5 +160,4 @@ public class SmtpConsumer implements MessageHandler {
         attributes.put(CoreAttributes.MIME_TYPE.key(), "message/rfc822");
         return attributes;
     }
-
 }

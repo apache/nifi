@@ -33,14 +33,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.springframework.integration.mail.AbstractMailReceiver;
-import org.springframework.util.Assert;
 
-import javax.mail.Address;
-import javax.mail.Message;
-import javax.mail.MessagingException;
+import jakarta.mail.Address;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -224,17 +223,11 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         }
     }
 
-    /**
-     *
-     */
     @Override
     public Set<Relationship> getRelationships() {
         return SHARED_RELATIONSHIPS;
     }
 
-    /**
-     *
-     */
     @Override
     public void onTrigger(ProcessContext context, ProcessSession processSession) throws ProcessException {
         this.initializeIfNecessary(context, processSession);
@@ -245,9 +238,6 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         }
     }
 
-    /**
-     *
-     */
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
@@ -278,26 +268,17 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         String port = processContext.getProperty(PORT).evaluateAttributeExpressions().getValue();
         String user = processContext.getProperty(USER).evaluateAttributeExpressions().getValue();
 
-        String password = oauth2AccessTokenProviderOptional.map(oauth2AccessTokenProvider -> {
-            String accessToken = oauth2AccessTokenProvider.getAccessDetails().getAccessToken();
-
-            return accessToken;
-        }).orElse(processContext.getProperty(PASSWORD).evaluateAttributeExpressions().getValue());
+        String password = oauth2AccessTokenProviderOptional.map(oauth2AccessTokenProvider ->
+            oauth2AccessTokenProvider.getAccessDetails().getAccessToken()
+        ).orElse(processContext.getProperty(PASSWORD).evaluateAttributeExpressions().getValue());
 
         String folder = processContext.getProperty(FOLDER).evaluateAttributeExpressions().getValue();
 
         StringBuilder urlBuilder = new StringBuilder();
-        try {
-            urlBuilder.append(URLEncoder.encode(user, "UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            throw new ProcessException(e);
-        }
+        urlBuilder.append(URLEncoder.encode(user, StandardCharsets.UTF_8));
+
         urlBuilder.append(":");
-        try {
-            urlBuilder.append(URLEncoder.encode(password, "UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            throw new ProcessException(e);
-        }
+        urlBuilder.append(URLEncoder.encode(password, StandardCharsets.UTF_8));
         urlBuilder.append("@");
         urlBuilder.append(host);
         urlBuilder.append(":");
@@ -306,15 +287,15 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         urlBuilder.append(folder);
 
         String protocol = this.getProtocol(processContext);
-        String finalUrl = protocol + "://" + urlBuilder.toString();
+        String finalUrl = protocol + "://" + urlBuilder;
 
         // build display-safe URL
         int passwordStartIndex = urlBuilder.indexOf(":") + 1;
         int passwordEndIndex = urlBuilder.indexOf("@");
         urlBuilder.replace(passwordStartIndex, passwordEndIndex, "[password]");
-        this.displayUrl = protocol + "://" + urlBuilder.toString();
+        this.displayUrl = protocol + "://" + urlBuilder;
         if (this.logger.isInfoEnabled()) {
-            this.logger.info("Connecting to Email server at the following URL: " + this.displayUrl);
+            this.logger.info("Connecting to Email server at the following URL: {}", this.displayUrl);
         }
 
         return finalUrl;
@@ -388,7 +369,6 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
 
             if (messages != null) {
                 for (Object message : messages) {
-                    Assert.isTrue(message instanceof Message, "Message is not an instance of javax.mail.Message");
                     this.messageQueue.offer((Message) message);
                 }
             }
@@ -446,10 +426,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
     }
 
     /**
-     * Will flush the remaining messages when this processor is stopped. The
-     * flushed messages are disposed via
-     * {@link #disposeMessage(Message, ProcessContext, ProcessSession)}
-     * operation
+     * Will flush the remaining messages when this processor is stopped.
      */
     private void flushRemainingMessages(ProcessContext processContext) {
         Message emailMessage;

@@ -1192,7 +1192,6 @@
                                 !AzureGraphUserGroupProviderIT,
                                 !GremlinClientServiceYamlSettingsAndBytecodeIT,
                                 !GremlinClientServiceControllerSettingsIT,
-                                !ITestConsumeEmail#validateUrl,
                                 !PrometheusReportingTaskIT#testNullLabel,
                                 !SnowflakeConnectionPoolIT,
                                 !SnowflakePipeIT,
