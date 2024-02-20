@@ -16,7 +16,6 @@
 name: docker-tests
 
 on:
-  # Run every day at 02:00
   schedule:
     - cron: "0 2 * * *"
   push:
@@ -59,7 +58,6 @@ env:
     -ntp
     -ff
 
-# build assemblies (including binaries) for use in Docker Image builds
   MAVEN_BUILD_ARGUMENTS: >-
     -am
     -D skipTests
@@ -82,7 +80,6 @@ env:
     -pl -nifi-toolkit/nifi-toolkit-encrypt-config
     -pl -minifi/minifi-assembly
 
-# build and test Docker Images
   MAVEN_DOCKER_ARGUMENTS: >-
     verify
     -P docker
@@ -100,7 +97,7 @@ permissions:
 
 jobs:
   build_and_test:
-    timeout-minutes: 120
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     name: Ubuntu Java 21
     steps:
