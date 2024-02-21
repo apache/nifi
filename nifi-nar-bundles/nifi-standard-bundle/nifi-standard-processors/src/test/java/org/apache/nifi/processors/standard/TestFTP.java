@@ -295,7 +295,7 @@ public class TestFTP {
     }
 
     @Test
-    public void testListFtpHostPortVariablesFileFound() {
+    public void testListFtpHostPortVariablesFileFound() throws InterruptedException {
         final FileSystem fs = fakeFtpServer.getFileSystem();
 
         final FileEntry fileEntry = new FileEntry("c:\\data\\found");
@@ -312,6 +312,10 @@ public class TestFTP {
         runner.setProperty(ListFile.TARGET_SYSTEM_TIMESTAMP_PRECISION, ListFile.PRECISION_MILLIS);
 
         runner.enqueue(new byte[0]);
+
+        // Ensure wait for enough lag time.
+        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS.get(TimeUnit.MILLISECONDS) * 2);
+
         runner.run();
 
         runner.assertTransferCount(ListFTP.REL_SUCCESS, 1);
