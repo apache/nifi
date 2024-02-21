@@ -30,6 +30,7 @@ import java.io.StringReader;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class PythonProcessLogReaderTest {
@@ -45,6 +46,8 @@ class PythonProcessLogReaderTest {
     private static final String LINE_UNFORMATTED = "Testing message without level or logger";
 
     private static final String LINE_MISSING_SEPARATOR = "%s %s".formatted(PythonProcessLogReader.LogLevel.INFO.getLevel(), LOG_MESSAGE);
+
+    private static final String LINE_EMPTY = "";
 
     @Mock
     private Logger logger;
@@ -108,6 +111,19 @@ class PythonProcessLogReaderTest {
         }
 
         verify(logger).info(eq(LOG_MESSAGE));
+    }
+
+    @Test
+    void testEmpty() {
+        try (MockedStatic<LoggerFactory> loggerFactory = mockStatic(LoggerFactory.class)) {
+            loggerFactory.when(() -> LoggerFactory.getLogger(eq(PROCESS_LOGGER))).thenReturn(logger);
+
+            final BufferedReader reader = new BufferedReader(new StringReader(LINE_EMPTY));
+            final Runnable command = new PythonProcessLogReader(reader);
+            command.run();
+        }
+
+        verifyNoInteractions(logger);
     }
 
     private void runCommand(final PythonProcessLogReader.LogLevel logLevel) {

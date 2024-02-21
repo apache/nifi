@@ -58,7 +58,7 @@ class PythonProcessLogReader implements Runnable {
                 line = processReader.readLine();
             }
         } catch (final IOException e) {
-            processLogger.error("Read Process output failed", e);
+            processLogger.error("Failed to read output of Python Process", e);
         }
     }
 
