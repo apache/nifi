@@ -47,7 +47,7 @@ export const manageRemotePortsReducer = createReducer(
     on(loadRemotePortsSuccess, (state, { response }) => ({
         ...state,
         ports: response.ports,
-        loadedTimestamp: response.loadedTimestamp,
+        loadedTimestamp: response.rpg.component.flowRefreshed || '',
         rpg: response.rpg,
         status: 'success' as const
     })),
