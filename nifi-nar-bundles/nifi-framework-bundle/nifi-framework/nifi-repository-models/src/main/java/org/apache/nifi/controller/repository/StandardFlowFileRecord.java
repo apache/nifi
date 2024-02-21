@@ -147,7 +147,7 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
         if (this == other) {
             return true;
         }
-        if (!(other instanceof FlowFile)) {
+        if (!(other instanceof StandardFlowFileRecord)) {
             return false;
         }
         final FlowFile otherRecord = (FlowFile) other;

@@ -21,12 +21,12 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
-import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.datadog.metrics.MetricsService;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,10 +39,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 
 public class TestDataDogReportingTask {
@@ -81,7 +81,7 @@ public class TestDataDogReportingTask {
 
         initContext = mock(ReportingInitializationContext.class);
         when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
-        when(initContext.getLogger()).thenReturn(new MockComponentLogger());
+        when(initContext.getLogger()).thenReturn(new MockComponentLog("id", "TestDataDogReportingTask"));
         metricsMap = new ConcurrentHashMap<>();
         metricRegistry = mock(MetricRegistry.class);
         virtualMachineMetrics = JmxJvmMetrics.getInstance();

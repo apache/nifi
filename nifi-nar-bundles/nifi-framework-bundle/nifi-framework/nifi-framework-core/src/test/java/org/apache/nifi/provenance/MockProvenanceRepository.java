@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.provenance;
 
 import org.apache.nifi.authorization.Authorizer;
@@ -27,14 +28,12 @@ import org.apache.nifi.provenance.search.SearchableField;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MockProvenanceRepository implements ProvenanceRepository {
-
     private final List<ProvenanceEventRecord> records = new ArrayList<>();
     private final AtomicLong idGenerator = new AtomicLong(0L);
 
@@ -79,7 +78,7 @@ public class MockProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public Long getMaxEventId() {
-        return Long.valueOf(records.size() - 1);
+        return (long) (records.size() - 1);
     }
 
     @Override
@@ -172,7 +171,7 @@ public class MockProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public Set<String> getContainerNames() {
-        return new HashSet<>();
+        return Set.of();
     }
 
     @Override

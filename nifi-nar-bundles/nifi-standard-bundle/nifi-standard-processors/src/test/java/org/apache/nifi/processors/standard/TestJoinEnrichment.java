@@ -18,7 +18,6 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.json.JsonTreeReader;
-import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.reporting.InitializationException;
@@ -31,6 +30,7 @@ import org.apache.nifi.serialization.record.CommaSeparatedRecordReader;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
@@ -47,7 +47,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -145,7 +144,7 @@ public class TestJoinEnrichment {
         final List<Record> written = writer.getRecordsWritten();
         assertEquals(1, written.size());
 
-        final Record outRecord = written.get(0);
+        final Record outRecord = written.getFirst();
         assertEquals(5, outRecord.getAsInt("id"));
         assertEquals("John Doe", outRecord.getValue("name"));
 
@@ -181,7 +180,7 @@ public class TestJoinEnrichment {
         final List<Record> written = writer.getRecordsWritten();
         assertEquals(1, written.size());
 
-        final Record outRecord = written.get(0);
+        final Record outRecord = written.getFirst();
         assertEquals(5, outRecord.getAsInt("id"));
         assertEquals("John Doe", outRecord.getValue("name"));
 
@@ -278,16 +277,16 @@ public class TestJoinEnrichment {
 
         final RecordPath recordPath = RecordPath.compile("/purchase/customer/customerDetails");
 
-        final List<Object> firstCustomerDetailsList = recordPath.evaluate(written.get(0)).getSelectedFields().map(FieldValue::getValue).collect(Collectors.toList());
+        final List<Object> firstCustomerDetailsList = recordPath.evaluate(written.getFirst()).getSelectedFields().map(FieldValue::getValue).toList();
         assertEquals(1, firstCustomerDetailsList.size());
-        final Record customerDetails = (Record) firstCustomerDetailsList.get(0);
+        final Record customerDetails = (Record) firstCustomerDetailsList.getFirst();
         assertEquals(48202, customerDetails.getValue("id"));
         assertEquals("555-555-5555", customerDetails.getValue("phone"));
         assertEquals("john.doe@nifi.apache.org", customerDetails.getValue("email"));
 
-        final List<Object> secondCustomerDetailsList = recordPath.evaluate(written.get(1)).getSelectedFields().map(FieldValue::getValue).collect(Collectors.toList());
+        final List<Object> secondCustomerDetailsList = recordPath.evaluate(written.get(1)).getSelectedFields().map(FieldValue::getValue).toList();
         assertEquals(1, secondCustomerDetailsList.size());
-        final Record secondCustomerDetails = (Record) secondCustomerDetailsList.get(0);
+        final Record secondCustomerDetails = (Record) secondCustomerDetailsList.getFirst();
         assertEquals(5512, secondCustomerDetails.getValue("id"));
         assertEquals("555-555-5511", secondCustomerDetails.getValue("phone"));
         assertEquals("jane.doe@nifi.apache.org", secondCustomerDetails.getValue("email"));
@@ -322,14 +321,14 @@ public class TestJoinEnrichment {
 
         final RecordPath recordPath = RecordPath.compile("/purchase/customer/customerDetails");
 
-        final List<Object> firstCustomerDetailsList = recordPath.evaluate(written.get(0)).getSelectedFields().map(FieldValue::getValue).collect(Collectors.toList());
+        final List<Object> firstCustomerDetailsList = recordPath.evaluate(written.getFirst()).getSelectedFields().map(FieldValue::getValue).toList();
         assertEquals(1, firstCustomerDetailsList.size());
-        final Record customerDetails = (Record) firstCustomerDetailsList.get(0);
+        final Record customerDetails = (Record) firstCustomerDetailsList.getFirst();
         assertNull(customerDetails);
 
-        final List<Object> secondCustomerDetailsList = recordPath.evaluate(written.get(1)).getSelectedFields().map(FieldValue::getValue).collect(Collectors.toList());
+        final List<Object> secondCustomerDetailsList = recordPath.evaluate(written.get(1)).getSelectedFields().map(FieldValue::getValue).toList();
         assertEquals(1, secondCustomerDetailsList.size());
-        final Record secondCustomerDetails = (Record) secondCustomerDetailsList.get(0);
+        final Record secondCustomerDetails = (Record) secondCustomerDetailsList.getFirst();
         assertEquals(5512, secondCustomerDetails.getValue("id"));
         assertEquals("555-555-5511", secondCustomerDetails.getValue("phone"));
         assertEquals("jane.doe@nifi.apache.org", secondCustomerDetails.getValue("email"));
@@ -348,7 +347,7 @@ public class TestJoinEnrichment {
         try (final InputStream rawIn = new FileInputStream(file);
              final InputStream in = new BufferedInputStream(rawIn)) {
 
-            final RecordReader recordReader = readerFactory.createRecordReader(Collections.emptyMap(), in, file.length(), new MockComponentLogger());
+            final RecordReader recordReader = readerFactory.createRecordReader(Collections.emptyMap(), in, file.length(), new MockComponentLog("id", "TestJoinEnrichment"));
             Record record;
             while ((record = recordReader.nextRecord()) != null) {
                 records.add(record);

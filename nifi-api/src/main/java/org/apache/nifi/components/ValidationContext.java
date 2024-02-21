@@ -21,9 +21,13 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 public interface ValidationContext extends PropertyContext {
@@ -132,7 +136,68 @@ public interface ValidationContext extends PropertyContext {
      * @param propertyDescriptorLookup a lookup for converting from a property name to the property descriptor with that name
      * @return <code>true</code> if all dependencies of the given property descriptor are satisfied, <code>false</code> otherwise
      */
-    boolean isDependencySatisfied(PropertyDescriptor propertyDescriptor, Function<String, PropertyDescriptor> propertyDescriptorLookup);
+    default boolean isDependencySatisfied(PropertyDescriptor propertyDescriptor, Function<String, PropertyDescriptor> propertyDescriptorLookup) {
+        return isDependencySatisfied(propertyDescriptor, propertyDescriptorLookup, new HashSet<>());
+    }
+
+    private boolean isDependencySatisfied(final PropertyDescriptor propertyDescriptor, final Function<String, PropertyDescriptor> propertyDescriptorLookup, final Set<String> propertiesSeen) {
+        final Logger logger = LoggerFactory.getLogger(ValidationContext.class);
+
+        final Set<PropertyDependency> dependencies = propertyDescriptor.getDependencies();
+        if (dependencies.isEmpty()) {
+            logger.debug("Dependency for {} is satisfied because it has no dependencies", propertyDescriptor);
+            return true;
+        }
+
+        final boolean added = propertiesSeen.add(propertyDescriptor.getName());
+        if (!added) {
+            logger.debug("Dependency for {} is not satisifed because its dependency chain contains a loop: {}", propertyDescriptor, propertiesSeen);
+            return false;
+        }
+
+        try {
+            for (final PropertyDependency dependency : dependencies) {
+                final String dependencyName = dependency.getPropertyName();
+
+                // Check if the property being depended upon has its dependencies satisfied.
+                final PropertyDescriptor dependencyDescriptor = propertyDescriptorLookup.apply(dependencyName);
+                if (dependencyDescriptor == null) {
+                    logger.debug("Dependency for {} is not satisfied because it has a dependency on {}, which has no property descriptor", propertyDescriptor, dependencyName);
+                    return false;
+                }
+
+                final PropertyValue propertyValue = getProperty(dependencyDescriptor);
+                final String dependencyValue = propertyValue == null ? dependencyDescriptor.getDefaultValue() : propertyValue.getValue();
+                if (dependencyValue == null) {
+                    logger.debug("Dependency for {} is not satisfied because it has a dependency on {}, which has a null value", propertyDescriptor, dependencyName);
+                    return false;
+                }
+
+                final boolean transitiveDependencySatisfied = isDependencySatisfied(dependencyDescriptor, propertyDescriptorLookup, propertiesSeen);
+                if (!transitiveDependencySatisfied) {
+                    logger.debug("Dependency for {} is not satisfied because it has a dependency on {} and {} does not have its dependencies satisfied",
+                        propertyDescriptor, dependencyName, dependencyName);
+                    return false;
+                }
+
+                // Check if the property being depended upon is set to one of the values that satisfies this dependency.
+                // If the dependency has no dependent values, then any non-null value satisfies the dependency.
+                // The value is already known to be non-null due to the check above.
+                final Set<String> dependentValues = dependency.getDependentValues();
+                if (dependentValues != null && !dependentValues.contains(dependencyValue)) {
+                    logger.debug("Dependency for {} is not satisfied because it depends on {}, which has a value of {}. Dependent values = {}",
+                        propertyDescriptor, dependencyName, dependencyValue, dependentValues);
+                    return false;
+                }
+            }
+
+            logger.debug("All dependencies for {} are satisfied", propertyDescriptor);
+
+            return true;
+        } finally {
+            propertiesSeen.remove(propertyDescriptor.getName());
+        }
+    }
 
     /**
      * Determines whether or not incoming and outgoing connections should be validated.

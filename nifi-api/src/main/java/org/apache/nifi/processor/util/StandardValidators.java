@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.processor.util;
 
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.time.TimeFormat;
+
 import java.io.File;
 import java.net.URI;
 import java.nio.charset.Charset;
@@ -27,15 +36,6 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
-import org.apache.nifi.expression.AttributeExpression.ResultType;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.UriUtils;
 
 public class StandardValidators {
 
@@ -463,7 +463,7 @@ public class StandardValidators {
     }
 
     public static final Validator TIME_PERIOD_VALIDATOR = new Validator() {
-        private final Pattern TIME_DURATION_PATTERN = Pattern.compile(FormatUtils.TIME_DURATION_REGEX);
+        private final Pattern TIME_DURATION_PATTERN = Pattern.compile(TimeFormat.TIME_DURATION_REGEX);
 
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
@@ -540,9 +540,9 @@ public class StandardValidators {
                 }
 
                 try {
+                    // Check that we can parse the value as a URL
                     final String evaluatedInput = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
-                    final URI uri = UriUtils.create(evaluatedInput);
-                    uri.toURL();
+                    URI.create(evaluatedInput).toURL();
                     return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid URL").valid(true).build();
                 } catch (final Exception e) {
                     return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid URL").valid(false).build();
@@ -815,7 +815,7 @@ public class StandardValidators {
     //
     //
     static class TimePeriodValidator implements Validator {
-        private static final Pattern pattern = Pattern.compile(FormatUtils.TIME_DURATION_REGEX);
+        private static final Pattern pattern = Pattern.compile(TimeFormat.TIME_DURATION_REGEX);
 
         private final long minNanos;
         private final long maxNanos;
@@ -843,7 +843,7 @@ public class StandardValidators {
             final boolean validSyntax = pattern.matcher(lowerCase).matches();
             final ValidationResult.Builder builder = new ValidationResult.Builder();
             if (validSyntax) {
-                final long nanos = FormatUtils.getTimeDuration(lowerCase, TimeUnit.NANOSECONDS);
+                final long nanos = new TimeFormat().getTimeDuration(lowerCase, TimeUnit.NANOSECONDS);
 
                 if (nanos < minNanos || nanos > maxNanos) {
                     builder.subject(subject).input(input).valid(false)

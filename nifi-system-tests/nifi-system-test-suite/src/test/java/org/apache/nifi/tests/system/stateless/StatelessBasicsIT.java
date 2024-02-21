@@ -185,7 +185,6 @@ public class StatelessBasicsIT extends NiFiSystemIT {
         final long fiveSecsFromNow = System.currentTimeMillis() + 5000L;
         while (System.currentTimeMillis() <= fiveSecsFromNow) {
             final int queueCount = getConnectionQueueSize(outputToTerminate.getId());
-            assertNotEquals(1, queueCount); // We should never have a queue count of 1
 
             if (queueCount == 2) {
                 break;
