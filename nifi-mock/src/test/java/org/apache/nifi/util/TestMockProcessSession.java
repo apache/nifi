@@ -26,9 +26,9 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.state.MockStateManager;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.junit.jupiter.api.Test;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -39,8 +39,8 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestMockProcessSession {
@@ -52,7 +52,7 @@ public class TestMockProcessSession {
         FlowFile flowFile = session.createFlowFile("hello, world".getBytes());
         final InputStream in = session.read(flowFile);
         final byte[] buffer = new byte[12];
-        StreamUtils.fillBuffer(in, buffer);
+        fillBuffer(in, buffer);
 
         assertEquals("hello, world", new String(buffer));
 
@@ -64,6 +64,21 @@ public class TestMockProcessSession {
         }
     }
 
+    private int fillBuffer(final InputStream source, final byte[] destination) throws IOException {
+        int bytesRead = 0;
+        int len;
+        while (bytesRead < destination.length) {
+            len = source.read(destination, bytesRead, destination.length - bytesRead);
+            if (len < 0) {
+                throw new EOFException("Expected to read " + destination.length + " bytes but encountered EOF after " + bytesRead + " bytes");
+            }
+
+            bytesRead += len;
+        }
+
+        return bytesRead;
+    }
+
     @Test
     public void testReadWithoutCloseThrowsExceptionOnCommitAsync() throws IOException {
         final Processor processor = new PoorlyBehavedProcessor();
@@ -71,7 +86,7 @@ public class TestMockProcessSession {
         FlowFile flowFile = session.createFlowFile("hello, world".getBytes());
         final InputStream in = session.read(flowFile);
         final byte[] buffer = new byte[12];
-        StreamUtils.fillBuffer(in, buffer);
+        fillBuffer(in, buffer);
 
         assertEquals("hello, world", new String(buffer));
 

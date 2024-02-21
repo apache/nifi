@@ -71,6 +71,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.util.URLValidator;
 import org.apache.nifi.processors.standard.http.ContentEncodingStrategy;
 import org.apache.nifi.processors.standard.http.CookieStrategy;
 import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
@@ -85,7 +86,6 @@ import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.UriUtils;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
@@ -98,7 +98,6 @@ import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.Proxy;
 import java.net.Proxy.Type;
-import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -853,8 +852,7 @@ public class InvokeHTTP extends AbstractProcessor {
         FlowFile responseFlowFile = null;
         try {
             final String urlProperty = trimToEmpty(context.getProperty(HTTP_URL).evaluateAttributeExpressions(requestFlowFile).getValue());
-            final URI uri = UriUtils.create(urlProperty);
-            final URL url = uri.toURL();
+            final URL url = URLValidator.createURL(urlProperty);
 
             Request httpRequest = configureRequest(context, session, requestFlowFile, url);
             logRequest(logger, httpRequest);

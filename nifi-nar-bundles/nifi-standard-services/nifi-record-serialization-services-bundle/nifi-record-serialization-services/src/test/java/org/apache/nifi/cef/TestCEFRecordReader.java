@@ -17,7 +17,7 @@
 package org.apache.nifi.cef;
 
 import com.fluenda.parcefone.parser.CEFParser;
-import org.apache.nifi.mock.MockComponentLogger;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.Record;
@@ -415,7 +415,7 @@ public class TestCEFRecordReader {
 
     private void setReader(final String file) throws FileNotFoundException {
         inputStream = new FileInputStream(file);
-        testSubject = new CEFRecordReader(inputStream, schema, parser, new MockComponentLogger(), Locale.US, rawField, invalidField, includeCustomExtensions, acceptEmptyExtensions);
+        testSubject = new CEFRecordReader(inputStream, schema, parser, new MockComponentLog("id", "TestLogger"), Locale.US, rawField, invalidField, includeCustomExtensions, acceptEmptyExtensions);
     }
 
     private void readRecords() throws IOException, MalformedRecordException {

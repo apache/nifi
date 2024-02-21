@@ -74,7 +74,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     private volatile boolean isConnected = true;
 
     // This is only for testing purposes as we don't want to set env/sys variables in the tests
-    private Map<String, String> environmentVariables;
+    private final Map<String, String> environmentVariables;
 
     public MockProcessContext(final ConfigurableComponent component) {
         this(component, null, new MockStateManager(component), null);
@@ -208,7 +208,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
             oldValue = fullyPopulatedDescriptor.getDefaultValue();
         }
 
-        if ((value == null && oldValue != null) || (value != null && !value.equals(oldValue))) {
+        if (!Objects.equals(value, oldValue)) {
             component.onPropertyModified(fullyPopulatedDescriptor, oldValue, value);
         }
 
@@ -251,7 +251,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         return yieldCalled;
     }
 
-    public void addControllerService(final String serviceIdentifier, final ControllerService controllerService, final Map<PropertyDescriptor, String> properties, final String annotationData) {
+    public void addControllerService(final ControllerService controllerService, final Map<PropertyDescriptor, String> properties, final String annotationData) {
         requireNonNull(controllerService);
         final ControllerServiceConfiguration config = addControllerService(controllerService);
         config.setProperties(properties);

@@ -21,6 +21,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
@@ -57,7 +58,7 @@ public interface TestRunner {
     ProcessSessionFactory getProcessSessionFactory();
 
     /**
-     * @return the {@Link ProcessContext} that this <code>TestRunner</code> will
+     * @return the {@link ProcessContext} that this <code>TestRunner</code> will
      *         use to invoke the
      *         {@link Processor#onTrigger(ProcessContext, ProcessSessionFactory) onTrigger}
      *         method
@@ -881,7 +882,7 @@ public interface TestRunner {
      *
      * <p>
      * <b>See Also:
-     * </b>{@link PropertyDescriptor.Builder#expressionLanguageSupported(boolean)}
+     * </b>{@link PropertyDescriptor.Builder#expressionLanguageSupported(ExpressionLanguageScope)}
      * </p>
      *
      * @param validate whether there is any need to validate the EL was used

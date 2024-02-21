@@ -16,22 +16,25 @@
  */
 package org.apache.nifi.util;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestMockProcessContext {
 
@@ -78,18 +81,18 @@ public class TestMockProcessContext {
         static final PropertyDescriptor REQUIRED_PROP = new PropertyDescriptor.Builder()
             .name("required")
             .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(new NonEmptyValidator())
             .build();
         static final PropertyDescriptor DEFAULTED_PROP = new PropertyDescriptor.Builder()
             .name("defaulted")
             .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(new NonEmptyValidator())
             .defaultValue("default-value")
             .build();
         static final PropertyDescriptor OPTIONAL_PROP = new PropertyDescriptor.Builder()
             .name("optional")
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(new NonEmptyValidator())
             .build();
 
         private final Map<PropertyDescriptor, Integer> propertyModifiedCount = new HashMap<>();
@@ -120,6 +123,26 @@ public class TestMockProcessContext {
 
         @Override
         public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        }
+    }
+
+    private static class NonEmptyValidator implements Validator {
+        @Override
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            if (input == null || input.isEmpty()) {
+                return new ValidationResult.Builder()
+                    .subject(subject)
+                    .input(input)
+                    .valid(false)
+                    .explanation("Value cannot be empty")
+                    .build();
+            }
+
+            return new ValidationResult.Builder()
+                .subject(subject)
+                .input(input)
+                .valid(true)
+                .build();
         }
     }
 }

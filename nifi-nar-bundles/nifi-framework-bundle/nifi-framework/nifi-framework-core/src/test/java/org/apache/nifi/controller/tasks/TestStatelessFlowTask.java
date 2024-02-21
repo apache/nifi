@@ -20,6 +20,7 @@ package org.apache.nifi.controller.tasks;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.ConnectionUtils.FlowFileCloneResult;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.MockFlowFileRecord;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileEvent;
@@ -50,7 +51,6 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.TriggerResult;
-import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -192,7 +192,7 @@ public class TestStatelessFlowTask {
         task.dropInputFlowFiles(noInputInvocation);
         assertTrue(task.getOutputRepositoryRecords().isEmpty());
 
-        final FlowFileRecord inputFlowFile = new MockFlowFile(1L);
+        final FlowFileRecord inputFlowFile = new MockFlowFileRecord(1L);
         final FlowFileQueue queue = mock(FlowFileQueue.class);
         final Port port = mock(Port.class);
 
@@ -219,7 +219,7 @@ public class TestStatelessFlowTask {
         when(successPort.getConnections()).thenReturn(singleConnectionSet);
 
         final Map<String, List<FlowFile>> outputFlowFiles = new HashMap<>();
-        final FlowFileRecord flowFileRecord = new MockFlowFile(1L);
+        final FlowFileRecord flowFileRecord = new MockFlowFileRecord(1L);
         outputFlowFiles.put("success", Collections.singletonList(flowFileRecord));
         task.createOutputRecords(outputFlowFiles);
 
@@ -247,10 +247,10 @@ public class TestStatelessFlowTask {
         final Connection conn2 = mock(Connection.class);
         when(conn2.getFlowFileQueue()).thenReturn(queue2);
 
-        final Set<Connection> connectionSet = new HashSet<>(Arrays.asList(conn1, conn2));
+        final Set<Connection> connectionSet = Set.of(conn1, conn2);
         when(successPort.getConnections()).thenReturn(connectionSet);
 
-        final FlowFileRecord flowFileRecord = new MockFlowFile(1L);
+        final FlowFileRecord flowFileRecord = new MockFlowFileRecord(1L);
         final Map<String, List<FlowFile>> outputFlowFiles = new HashMap<>();
         outputFlowFiles.put("success", Collections.singletonList(flowFileRecord));
         task.createOutputRecords(outputFlowFiles);
@@ -260,7 +260,7 @@ public class TestStatelessFlowTask {
 
         final List<FlowFileCloneResult> cloneResults = task.getCloneResults();
         assertEquals(1, cloneResults.size());
-        final FlowFileCloneResult cloneResult = cloneResults.get(0);
+        final FlowFileCloneResult cloneResult = cloneResults.getFirst();
         final Map<FlowFileQueue, List<FlowFileRecord>> outputAfterClone = cloneResult.getFlowFilesToEnqueue();
         assertEquals(2, outputAfterClone.size());
 
@@ -270,15 +270,15 @@ public class TestStatelessFlowTask {
 
         final List<ProvenanceEventRecord> cloneEvents = task.getCloneProvenanceEvents();
         assertEquals(1, cloneEvents.size());
-        final ProvenanceEventRecord cloneEvent = cloneEvents.get(0);
+        final ProvenanceEventRecord cloneEvent = cloneEvents.getFirst();
 
         assertEquals(Collections.singletonList(flowFileRecord.getAttribute(CoreAttributes.UUID.key())), cloneEvent.getParentUuids());
 
         // The clone event's child UUIDs should have either the UUID of the FlowFile in queue1 or queue2 but we aren't sure which, as there's no guarantee
         // whether the original will go to queue1 and the clone to queue2 or vice versa.
-        assertTrue(cloneEvent.getChildUuids().contains(outputAfterClone.get(queue1).get(0).getAttribute(CoreAttributes.UUID.key()))
-            || cloneEvent.getChildUuids().contains(outputAfterClone.get(queue2).get(0).getAttribute(CoreAttributes.UUID.key())));
-        assertFalse(cloneEvent.getChildUuids().contains(cloneEvent.getParentUuids().get(0)));
+        assertTrue(cloneEvent.getChildUuids().contains(outputAfterClone.get(queue1).getFirst().getAttribute(CoreAttributes.UUID.key()))
+            || cloneEvent.getChildUuids().contains(outputAfterClone.get(queue2).getFirst().getAttribute(CoreAttributes.UUID.key())));
+        assertFalse(cloneEvent.getChildUuids().contains(cloneEvent.getParentUuids().getFirst()));
     }
 
     @Test
@@ -289,9 +289,9 @@ public class TestStatelessFlowTask {
         final Connection port2Connection = mockConnection();
         when(secondOutputPort.getConnections()).thenReturn(Collections.singleton(port2Connection));
 
-        final FlowFileRecord flowFileRecord = new MockFlowFile(1L);
-        final FlowFileRecord port2FlowFile1 = new MockFlowFile(2L);
-        final FlowFileRecord port2FlowFile2 = new MockFlowFile(3L);
+        final FlowFileRecord flowFileRecord = new MockFlowFileRecord(1L);
+        final FlowFileRecord port2FlowFile1 = new MockFlowFileRecord(2L);
+        final FlowFileRecord port2FlowFile2 = new MockFlowFileRecord(3L);
 
         final Map<String, List<FlowFile>> outputFlowFiles = new HashMap<>();
         outputFlowFiles.put("success", Collections.singletonList(flowFileRecord));

@@ -14,26 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.util;
 
+import org.apache.nifi.processor.util.URLValidator;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
-import java.net.URISyntaxException;
+import java.net.MalformedURLException;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class TestUriUtils {
+public class TestURLValidator {
+
     @Test
     void testValidUri() {
-        final String uri = "https://en.wikipedia.org/w/api.php?action=query&list=recentchanges&format=json&rcprop=user|comment|parsedcomment|timestamp|title|sizes|tags";
-        assertDoesNotThrow((Executable) () -> UriUtils.create(uri));
+        final String url = "https://en.wikipedia.org/w/api.php?action=query&list=recentchanges&format=json&rcprop=user|comment|parsedcomment|timestamp|title|sizes|tags";
+        assertDoesNotThrow(() -> URLValidator.createURL(url));
     }
 
     @Test
     void testInvalidUri() {
         final String uri = "http://   _";
-        assertThrows(URISyntaxException.class, () -> UriUtils.create(uri));
+        assertThrows(MalformedURLException.class, () -> URLValidator.createURL(uri));
     }
+
 }

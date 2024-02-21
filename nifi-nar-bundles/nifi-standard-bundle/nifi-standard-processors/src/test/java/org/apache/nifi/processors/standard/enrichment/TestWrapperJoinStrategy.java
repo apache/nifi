@@ -17,11 +17,12 @@
 
 package org.apache.nifi.processors.standard.enrichment;
 
-import org.apache.nifi.mock.MockComponentLogger;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.RecordDataType;
+import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -30,6 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestWrapperJoinStrategy extends TestIndexCorrelatedJoinStrategy {
+    private final ComponentLog logger = new MockComponentLog("id", "TestWrapperJoinStrategy");
+
     @Test
     public void testSimpleJoin() {
         final RecordSchema originalSchema = getOriginalSchema();
@@ -37,7 +40,7 @@ public class TestWrapperJoinStrategy extends TestIndexCorrelatedJoinStrategy {
         final Record originalRecord = createOriginalRecord(555);
         final Record enrichmentRecord = createEnrichmentRecord(555, "John Doe", 100);
 
-        final WrapperJoinStrategy strategy = new WrapperJoinStrategy(new MockComponentLogger());
+        final WrapperJoinStrategy strategy = new WrapperJoinStrategy(logger);
 
         final RecordSchema resultSchema = strategy.createResultSchema(originalRecord, enrichmentRecord);
         final List<RecordField> resultFields = resultSchema.getFields();
@@ -60,7 +63,7 @@ public class TestWrapperJoinStrategy extends TestIndexCorrelatedJoinStrategy {
         final Record originalRecord = createOriginalRecord(555);
         final Record enrichmentRecord = null;
 
-        final WrapperJoinStrategy strategy = new WrapperJoinStrategy(new MockComponentLogger());
+        final WrapperJoinStrategy strategy = new WrapperJoinStrategy(logger);
 
         final RecordSchema resultSchema = strategy.createResultSchema(originalRecord, enrichmentRecord);
         final List<RecordField> resultFields = resultSchema.getFields();
@@ -80,7 +83,7 @@ public class TestWrapperJoinStrategy extends TestIndexCorrelatedJoinStrategy {
         final Record originalRecord = null;
         final Record enrichmentRecord = createEnrichmentRecord(555, "John Doe", 100);
 
-        final WrapperJoinStrategy strategy = new WrapperJoinStrategy(new MockComponentLogger());
+        final WrapperJoinStrategy strategy = new WrapperJoinStrategy(logger);
 
         final RecordSchema resultSchema = strategy.createResultSchema(originalRecord, enrichmentRecord);
         final List<RecordField> resultFields = resultSchema.getFields();
@@ -99,7 +102,7 @@ public class TestWrapperJoinStrategy extends TestIndexCorrelatedJoinStrategy {
         final Record originalRecord = null;
         final Record enrichmentRecord = null;
 
-        final WrapperJoinStrategy strategy = new WrapperJoinStrategy(new MockComponentLogger());
+        final WrapperJoinStrategy strategy = new WrapperJoinStrategy(logger);
 
         final RecordSchema resultSchema = strategy.createResultSchema(originalRecord, enrichmentRecord);
         final List<RecordField> resultFields = resultSchema.getFields();

@@ -38,7 +38,6 @@ import org.apache.iceberg.parquet.Parquet;
 import org.apache.iceberg.relocated.com.google.common.collect.Lists;
 import org.apache.iceberg.types.Types;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.processors.iceberg.converter.ArrayElementGetter;
 import org.apache.nifi.processors.iceberg.converter.IcebergRecordConverter;
 import org.apache.nifi.processors.iceberg.converter.RecordFieldGetter;
@@ -52,13 +51,13 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
+import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-
 
 import java.io.File;
 import java.io.IOException;
@@ -103,7 +102,7 @@ public class TestIcebergRecordConverter {
     @BeforeEach
     public void setUp() throws Exception {
         tempFile = Files.localOutput(createTempFile("test", null));
-        logger = new MockComponentLogger();
+        logger = new MockComponentLog("id", "TestIcebergRecordConverter");
     }
 
     @AfterEach
@@ -605,7 +604,7 @@ public class TestIcebergRecordConverter {
     public void testPrimitivesIgnoreMissingFields(FileFormat format) throws IOException {
         RecordSchema nifiSchema = getPrimitivesSchemaMissingFields();
         Record record = setupPrimitivesTestRecordMissingFields();
-        MockComponentLogger mockComponentLogger = new MockComponentLogger();
+        MockComponentLog mockComponentLogger = new MockComponentLog("id", "TestIcebergRecordConverter");
 
         IcebergRecordConverter recordConverter = new IcebergRecordConverter(PRIMITIVES_SCHEMA, nifiSchema, format, UnmatchedColumnBehavior.IGNORE_UNMATCHED_COLUMN, mockComponentLogger);
         GenericRecord genericRecord = recordConverter.convert(record);
@@ -678,7 +677,7 @@ public class TestIcebergRecordConverter {
     @EnumSource(value = FileFormat.class, names = {"AVRO", "ORC", "PARQUET"})
     public void testPrimitivesMissingRequiredFields(FileFormat format) {
         RecordSchema nifiSchema = getPrimitivesSchemaMissingFields();
-        MockComponentLogger mockComponentLogger = new MockComponentLogger();
+        MockComponentLog mockComponentLogger = new MockComponentLog("id", "TestIcebergRecordConverter");
 
         assertThrows(IllegalArgumentException.class,
                 () -> new IcebergRecordConverter(PRIMITIVES_SCHEMA_WITH_REQUIRED_FIELDS, nifiSchema, format, UnmatchedColumnBehavior.IGNORE_UNMATCHED_COLUMN, mockComponentLogger));
@@ -690,7 +689,7 @@ public class TestIcebergRecordConverter {
     public void testPrimitivesWarnMissingFields(FileFormat format) throws IOException {
         RecordSchema nifiSchema = getPrimitivesSchemaMissingFields();
         Record record = setupPrimitivesTestRecordMissingFields();
-        MockComponentLogger mockComponentLogger = new MockComponentLogger();
+        MockComponentLog mockComponentLogger = new MockComponentLog("id", "TestIcebergRecordConverter");
 
         IcebergRecordConverter recordConverter = new IcebergRecordConverter(PRIMITIVES_SCHEMA, nifiSchema, format, UnmatchedColumnBehavior.WARNING_UNMATCHED_COLUMN, mockComponentLogger);
         GenericRecord genericRecord = recordConverter.convert(record);
@@ -736,7 +735,7 @@ public class TestIcebergRecordConverter {
     @EnumSource(value = FileFormat.class, names = {"AVRO", "ORC", "PARQUET"})
     public void testPrimitivesFailMissingFields(FileFormat format) {
         RecordSchema nifiSchema = getPrimitivesSchemaMissingFields();
-        MockComponentLogger mockComponentLogger = new MockComponentLogger();
+        MockComponentLog mockComponentLogger = new MockComponentLog("id", "TestIcebergRecordConverter");
 
         assertThrows(IllegalArgumentException.class,
                 () -> new IcebergRecordConverter(PRIMITIVES_SCHEMA, nifiSchema, format, UnmatchedColumnBehavior.FAIL_UNMATCHED_COLUMN, mockComponentLogger));

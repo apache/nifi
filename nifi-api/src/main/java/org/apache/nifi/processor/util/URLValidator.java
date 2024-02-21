@@ -14,20 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.util;
 
+package org.apache.nifi.processor.util;
+
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
+
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+public class URLValidator implements Validator {
 
-/**
- * Utility class providing java.net.URI utilities.
- * The regular expressions in this class used to capture the various components of a URI were adapted from
- * <a href="https://github.com/spring-projects/spring-framework/blob/main/spring-web/src/main/java/org/springframework/web/util/UriComponentsBuilder.java">UriComponentsBuilder</a>
- */
-public class UriUtils {
     private static final String SCHEME_PATTERN = "([^:/?#]+):";
     private static final String USERINFO_PATTERN = "([^@\\[/?#]*)";
     private static final String HOST_IPV4_PATTERN = "[^\\[/?#:]*";
@@ -40,10 +42,25 @@ public class UriUtils {
 
     // Regex patterns that matches URIs. See RFC 3986, appendix B
     private static final Pattern URI_PATTERN = Pattern.compile(
-            "^(" + SCHEME_PATTERN + ")?" + "(//(" + USERINFO_PATTERN + "@)?" + HOST_PATTERN + "(:" + PORT_PATTERN +
-                    ")?" + ")?" + PATH_PATTERN + "(\\?" + QUERY_PATTERN + ")?" + "(#" + LAST_PATTERN + ")?");
+        "^(" + SCHEME_PATTERN + ")?" + "(//(" + USERINFO_PATTERN + "@)?" + HOST_PATTERN + "(:" + PORT_PATTERN +
+        ")?" + ")?" + PATH_PATTERN + "(\\?" + QUERY_PATTERN + ")?" + "(#" + LAST_PATTERN + ")?");
 
-    private UriUtils() {}
+
+    @Override
+    public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+            return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+        }
+
+        try {
+            // Check that we can parse the value as a URL
+            final String evaluatedInput = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
+            createURL(evaluatedInput);
+            return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid URL").valid(true).build();
+        } catch (final Exception e) {
+            return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid URL").valid(false).build();
+        }
+    }
 
     /**
      * This method provides an alternative to the use of java.net.URI's single argument constructor and 'create' method.
@@ -56,12 +73,12 @@ public class UriUtils {
      *  On the other hand, java.net.URI's seven argument constructor provides these quoting capabilities. In order
      *  to take advantage of this constructor, this method parses the given string into the arguments needed
      *  thereby allowing for instantiating a java.net.URI with the quoting of all illegal characters.
-     * @param uri String representing a URI.
-     * @return Instance of java.net.URI
-     * @throws URISyntaxException Thrown on parsing failures
+     * @param url String representing a URL.
+     * @return Instance of java.net.URL
+     * @throws MalformedURLException if unable to create a URL from the given String representation
      */
-    public static URI create(String uri) throws URISyntaxException {
-        final Matcher matcher = URI_PATTERN.matcher(uri);
+    public static URL createURL(final String url) throws MalformedURLException {
+        final Matcher matcher = URI_PATTERN.matcher(url);
         if (matcher.matches()) {
             final String scheme = matcher.group(2);
             final String userInfo = matcher.group(5);
@@ -70,9 +87,14 @@ public class UriUtils {
             final String path = matcher.group(9);
             final String query = matcher.group(11);
             final String fragment = matcher.group(13);
-            return new URI(scheme, userInfo, host, port != null ? Integer.parseInt(port) : -1, path, query, fragment);
+
+            try {
+                return new URI(scheme, userInfo, host, port != null ? Integer.parseInt(port) : -1, path, query, fragment).toURL();
+            } catch (final URISyntaxException e) {
+                throw new MalformedURLException("Unable to create URL from " + url  + ": " + e.getMessage());
+            }
         } else {
-            throw new IllegalArgumentException(uri + " is not a valid URI");
+            throw new MalformedURLException(url + " is not a valid URL");
         }
     }
 }

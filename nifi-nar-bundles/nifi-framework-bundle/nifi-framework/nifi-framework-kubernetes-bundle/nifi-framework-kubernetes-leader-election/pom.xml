@@ -28,10 +28,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-utils</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-properties</artifactId>
         </dependency>
         <dependency>
@@ -47,6 +43,14 @@
         <dependency>
             <groupId>io.fabric8</groupId>
             <artifactId>kubernetes-client-api</artifactId>
+        </dependency>
+
+        <!-- Must be provided in test scope because KubernetesLeaderElectionManager depends on TrackedLeaderElectionManager, which requires it. While it is a dependency of
+             TrackedLeaderElectionManager, it has a scope of 'provided', so we must make the dependency available for testing here -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-utils</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
