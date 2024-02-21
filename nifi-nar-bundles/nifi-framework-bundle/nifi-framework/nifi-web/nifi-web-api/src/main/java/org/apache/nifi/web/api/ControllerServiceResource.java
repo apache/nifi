@@ -684,8 +684,7 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Moves the specified Controller Service to parent/child process groups.
      *
-     * @param httpServletRequest      request
-     * @param id                      The id of the controller service to update.
+     * @param id The id of the controller service to update.
      * @param requestControllerServiceEntity A controllerServiceEntity.
      * @return A controllerServiceEntity.
      */
@@ -693,26 +692,34 @@ public class ControllerServiceResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/move")
-    @ApiOperation(value = "Move Controller Service to the specified Process Group.",
-            response = ControllerServiceEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read - /flow"),
-                    @Authorization(value = "Write - /{component-type}/{uuid} or /operation/{component-type}/{uuid} - For source and destination process groups")
+    @Operation(
+            summary = "Move Controller Service to the specified Process Group.",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ControllerServiceEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /controller-services/{uuid}"),
+                    @SecurityRequirement(name = "Write - Parent Process Group if scoped by Process Group - /process-groups/{uuid}"),
+                    @SecurityRequirement(name = "Write - Controller if scoped by Controller - /controller"),
+                    @SecurityRequirement(name = "Read - any referenced Controller Services - /controller-services/{uuid}")
             })
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
             }
     )
     public Response moveControllerServices(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(value = "The controller service id.", required = true)
-            @PathParam("id") String id,
-            @ApiParam(value = "The controller service entity", required = true)
+            @Parameter(
+                    description = "The controller service id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @Parameter(
+                    description = "The controller service entity",
+                    required = true
+            )
             final ControllerServiceEntity requestControllerServiceEntity) {
 
         if (requestControllerServiceEntity == null) {
