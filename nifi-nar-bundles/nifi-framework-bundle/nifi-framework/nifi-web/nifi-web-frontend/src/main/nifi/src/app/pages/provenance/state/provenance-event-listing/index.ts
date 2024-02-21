@@ -16,6 +16,7 @@
  */
 
 import { ProvenanceEventSummary } from '../../../../state/shared';
+import { NodeSearchResult } from '../../../../state/cluster-summary';
 
 export const provenanceEventListingFeatureKey = 'provenanceEventListing';
 
@@ -55,8 +56,13 @@ export interface ProvenanceOptions {
     searchableFields: SearchableField[];
 }
 
+export interface OpenSearchRequest {
+    clusterNodes: NodeSearchResult[];
+}
+
 export interface ProvenanceSearchDialogRequest {
     timeOffset: number;
+    clusterNodes: NodeSearchResult[];
     options: ProvenanceOptions;
     currentRequest: ProvenanceRequest;
 }

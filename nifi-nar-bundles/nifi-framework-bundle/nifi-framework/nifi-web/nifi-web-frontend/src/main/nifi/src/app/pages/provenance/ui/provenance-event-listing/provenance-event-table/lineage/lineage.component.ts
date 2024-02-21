@@ -234,12 +234,11 @@ export class LineageComponent implements OnInit {
         this.allMenus = new Map<string, ContextMenuDefinition>();
         this.allMenus.set(this.ROOT_MENU.id, this.ROOT_MENU);
 
-        const self: LineageComponent = this;
         this.lineageContextmenu = {
-            getMenu(menuId: string): ContextMenuDefinition | undefined {
-                return self.allMenus.get(menuId);
+            getMenu: (menuId: string): ContextMenuDefinition | undefined => {
+                return this.allMenus.get(menuId);
             },
-            filterMenuItem(menuItem: ContextMenuItemDefinition): boolean {
+            filterMenuItem: (menuItem: ContextMenuItemDefinition): boolean => {
                 // include if the condition matches
                 if (menuItem.condition) {
                     const selection: any = d3.select('circle.context');
@@ -249,7 +248,7 @@ export class LineageComponent implements OnInit {
                 // include if there is no condition (non conditional item, separator, sub menu, etc)
                 return true;
             },
-            menuItemClicked(menuItem: ContextMenuItemDefinition) {
+            menuItemClicked: (menuItem: ContextMenuItemDefinition): void => {
                 if (menuItem.action) {
                     const selection: any = d3.select('circle.context');
                     return menuItem.action(selection);

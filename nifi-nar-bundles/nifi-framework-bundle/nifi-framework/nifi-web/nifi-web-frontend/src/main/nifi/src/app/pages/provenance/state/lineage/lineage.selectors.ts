@@ -17,7 +17,7 @@
 
 import { createSelector } from '@ngrx/store';
 import { ProvenanceState, selectProvenanceState } from '../index';
-import { Lineage, lineageFeatureKey, LineageRequest, LineageState } from './index';
+import { Lineage, lineageFeatureKey, LineageState } from './index';
 
 export const selectLineageState = createSelector(
     selectProvenanceState,

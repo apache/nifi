@@ -22,7 +22,6 @@ import {
     provenanceEventListingFeatureKey,
     ProvenanceEventListingState,
     ProvenanceQueryParams,
-    ProvenanceRequest,
     ProvenanceResults
 } from './index';
 import { selectCurrentRoute } from '../../../../state/router/router.selectors';

@@ -37,8 +37,8 @@ import { filter, map, take, tap } from 'rxjs';
 import {
     clearProvenanceRequest,
     goToProvenanceEventSource,
+    loadClusterNodesAndOpenSearchDialog,
     openProvenanceEventDialog,
-    openSearchDialog,
     resetProvenanceState,
     resubmitProvenanceQuery,
     saveProvenanceRequest
@@ -173,7 +173,7 @@ export class ProvenanceEventListing implements OnInit, OnDestroy {
     }
 
     openSearchCriteria(): void {
-        this.store.dispatch(openSearchDialog());
+        this.store.dispatch(loadClusterNodesAndOpenSearchDialog());
     }
 
     openEventDialog(request: ProvenanceEventRequest): void {

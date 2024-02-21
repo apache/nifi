@@ -18,20 +18,7 @@
 import { Injectable } from '@angular/core';
 import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ProvenanceEventListingActions from './provenance-event-listing.actions';
-import {
-    asyncScheduler,
-    catchError,
-    filter,
-    from,
-    interval,
-    map,
-    Observable,
-    of,
-    switchMap,
-    take,
-    takeUntil,
-    tap
-} from 'rxjs';
+import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
@@ -56,7 +43,6 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { isDefinedAndNotNull } from '../../../../state/shared';
 import { selectClusterSummary } from '../../../../state/cluster-summary/cluster-summary.selectors';
 import { ClusterService } from '../../../../service/cluster.service';
-import { NodeSearchResult } from '../../../../state/cluster-summary';
 
 @Injectable()
 export class ProvenanceEventListingEffects {
@@ -246,42 +232,59 @@ export class ProvenanceEventListingEffects {
         )
     );
 
+    loadClusterNodesAndOpenSearchDialog$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ProvenanceEventListingActions.loadClusterNodesAndOpenSearchDialog),
+            concatLatestFrom(() => this.store.select(selectClusterSummary).pipe(isDefinedAndNotNull())),
+            switchMap(([, clusterSummary]) => {
+                if (clusterSummary.connectedToCluster) {
+                    return from(this.clusterService.searchCluster()).pipe(
+                        map((response) =>
+                            ProvenanceEventListingActions.openSearchDialog({
+                                request: {
+                                    clusterNodes: response.nodeResults
+                                }
+                            })
+                        ),
+                        catchError((errorResponse: HttpErrorResponse) =>
+                            of(ErrorActions.snackBarError({ error: errorResponse.error }))
+                        )
+                    );
+                } else {
+                    return of(
+                        ProvenanceEventListingActions.openSearchDialog({
+                            request: {
+                                clusterNodes: []
+                            }
+                        })
+                    );
+                }
+            })
+        )
+    );
+
     openSearchDialog$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(ProvenanceEventListingActions.openSearchDialog),
+                map((action) => action.request),
                 concatLatestFrom(() => [
                     this.store.select(selectTimeOffset),
                     this.store.select(selectProvenanceOptions),
                     this.store.select(selectProvenanceRequest),
-                    this.store.select(selectAbout).pipe(isDefinedAndNotNull()),
-                    this.store.select(selectClusterSummary).pipe(isDefinedAndNotNull())
+                    this.store.select(selectAbout).pipe(isDefinedAndNotNull())
                 ]),
-                tap(([, timeOffset, options, currentRequest, about, clusterSummary]) => {
-                    let clusterNodes$: Observable<NodeSearchResult[]>;
-                    if (clusterSummary.connectedToCluster) {
-                        clusterNodes$ = this.clusterService.searchCluster().pipe(
-                            tap({
-                                error: (errorResponse: HttpErrorResponse) => {
-                                    this.store.dispatch(ErrorActions.snackBarError({ error: errorResponse.error }));
-                                }
-                            }),
-                            map((response) => response.nodeResults)
-                        );
-                    } else {
-                        clusterNodes$ = of([]);
-                    }
-
+                tap(([request, timeOffset, options, currentRequest, about]) => {
                     const dialogReference = this.dialog.open(ProvenanceSearchDialog, {
                         data: {
                             timeOffset,
+                            clusterNodes: request.clusterNodes,
                             options,
                             currentRequest
                         },
                         panelClass: 'large-dialog'
                     });
 
-                    dialogReference.componentInstance.clusterNodes$ = clusterNodes$;
                     dialogReference.componentInstance.timezone = about.timezone;
 
                     dialogReference.componentInstance.submitSearchCriteria
