@@ -2444,8 +2444,10 @@ public class StandardProcessSessionIT {
     }
 
     @Test
-    public void testMultipleReadCounts() {
-        flowFileQueue.put(new MockFlowFileRecord(1L));
+    public void testMultipleReadCounts() throws IOException {
+        final ContentClaim contentClaim = contentRepo.create("Hello there".getBytes(StandardCharsets.UTF_8));
+
+        flowFileQueue.put(new MockFlowFileRecord(Map.of(), contentClaim.getLength(), contentClaim));
 
         final FlowFile flowFile = session.get();
         final int limit = 3;
@@ -3277,7 +3279,7 @@ public class StandardProcessSessionIT {
 
         public ContentClaim create(byte[] content) throws IOException {
             final ResourceClaim resourceClaim = claimManager.newResourceClaim("container", "section", String.valueOf(idGenerator.getAndIncrement()), false, false);
-            final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);
+            final StandardContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);
 
             claimantCounts.put(contentClaim, new AtomicInteger(1));
             final Path path = getPath(contentClaim);
@@ -3288,6 +3290,7 @@ public class StandardProcessSessionIT {
 
             try (final OutputStream out = new FileOutputStream(getPath(contentClaim).toFile())) {
                 out.write(content);
+                contentClaim.setLength(content.length);
             }
             return contentClaim;
         }
