@@ -1572,7 +1572,7 @@
                 if(flow.breadcrumb.parentBreadcrumb.permissions.canRead
                     && flow.breadcrumb.parentBreadcrumb.permissions.canWrite){
                     processGroups.push({
-                        text: 'Parent(' + flow.breadcrumb.parentBreadcrumb.breadcrumb.name + ')',
+                        text: flow.breadcrumb.parentBreadcrumb.breadcrumb.name + ' (Parent)',
                         value: flow.breadcrumb.parentBreadcrumb.breadcrumb.id
                     });
                 }
