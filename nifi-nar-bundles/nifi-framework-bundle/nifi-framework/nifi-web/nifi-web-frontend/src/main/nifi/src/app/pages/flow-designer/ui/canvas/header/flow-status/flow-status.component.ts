@@ -16,13 +16,14 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { ClusterSummary, ControllerStatus } from '../../../../state/flow';
+import { ControllerStatus } from '../../../../state/flow';
 import { initialState } from '../../../../state/flow/flow.reducer';
 import { BulletinsTip } from '../../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { BulletinEntity, BulletinsTipInput } from '../../../../../../state/shared';
 
 import { Search } from '../search/search.component';
 import { NifiTooltipDirective } from '../../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { ClusterSummary } from '../../../../../../state/cluster-summary';
 
 @Component({
     selector: 'flow-status',
@@ -34,7 +35,7 @@ import { NifiTooltipDirective } from '../../../../../../ui/common/tooltips/nifi-
 export class FlowStatus {
     @Input() controllerStatus: ControllerStatus = initialState.flowStatus.controllerStatus;
     @Input() lastRefreshed: string = initialState.flow.processGroupFlow.lastRefreshed;
-    @Input() clusterSummary: ClusterSummary = initialState.clusterSummary;
+    @Input() clusterSummary: ClusterSummary | null = null;
     @Input() bulletins: BulletinEntity[] = initialState.controllerBulletins.bulletins;
     @Input() currentProcessGroupId: string = initialState.id;
     @Input() loadingStatus = false;
@@ -46,7 +47,7 @@ export class FlowStatus {
     }
 
     formatClusterMessage(): string {
-        if (this.clusterSummary.connectedToCluster && this.clusterSummary.connectedNodes) {
+        if (this.clusterSummary?.connectedToCluster && this.clusterSummary.connectedNodes) {
             return this.clusterSummary.connectedNodes;
         } else {
             return 'Disconnected';
@@ -55,8 +56,8 @@ export class FlowStatus {
 
     getClusterStyle(): string {
         if (
-            !this.clusterSummary.connectedToCluster ||
-            this.clusterSummary.connectedNodeCount != this.clusterSummary.totalNodeCount
+            this.clusterSummary?.connectedToCluster === false ||
+            this.clusterSummary?.connectedNodeCount != this.clusterSummary?.totalNodeCount
         ) {
             return 'warning';
         }

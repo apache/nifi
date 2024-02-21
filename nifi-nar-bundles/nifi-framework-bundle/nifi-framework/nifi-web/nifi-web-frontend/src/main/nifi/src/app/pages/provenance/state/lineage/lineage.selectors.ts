@@ -32,3 +32,8 @@ export const selectCompletedLineage = createSelector(
 );
 
 export const selectActiveLineageId = createSelector(selectActiveLineage, (state: Lineage | null) => state?.id);
+
+export const selectClusterNodeIdFromActiveLineage = createSelector(
+    selectActiveLineage,
+    (state: Lineage | null) => state?.request.clusterNodeId
+);

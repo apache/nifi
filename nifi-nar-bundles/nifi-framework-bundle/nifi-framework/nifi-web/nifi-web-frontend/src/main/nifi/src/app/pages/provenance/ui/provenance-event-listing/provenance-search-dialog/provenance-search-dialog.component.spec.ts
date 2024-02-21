@@ -21,13 +21,15 @@ import { ProvenanceSearchDialog } from './provenance-search-dialog.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatNativeDateModule } from '@angular/material/core';
+import { ProvenanceSearchDialogRequest } from '../../../state/provenance-event-listing';
 
 describe('ProvenanceSearchDialog', () => {
     let component: ProvenanceSearchDialog;
     let fixture: ComponentFixture<ProvenanceSearchDialog>;
 
-    const data: any = {
+    const data: ProvenanceSearchDialogRequest = {
         timeOffset: -18000000,
+        clusterNodes: [],
         options: {
             searchableFields: [
                 {

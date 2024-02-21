@@ -238,7 +238,8 @@ export class QueueListingEffects {
                     map((response) =>
                         QueueListingActions.openFlowFileDialog({
                             request: {
-                                flowfile: response.flowFile
+                                flowfile: response.flowFile,
+                                clusterNodeId: request.flowfileSummary.clusterNodeId
                             }
                         })
                     ),
@@ -274,7 +275,10 @@ export class QueueListingEffects {
                         .subscribe(() => {
                             this.store.dispatch(
                                 QueueListingActions.downloadFlowFileContent({
-                                    request: { flowfileSummary: request.flowfile }
+                                    request: {
+                                        uri: request.flowfile.uri,
+                                        clusterNodeId: request.clusterNodeId
+                                    }
                                 })
                             );
                         });
@@ -285,14 +289,19 @@ export class QueueListingEffects {
                             .subscribe(() => {
                                 this.store.dispatch(
                                     QueueListingActions.viewFlowFileContent({
-                                        request: { flowfileSummary: request.flowfile }
+                                        request: {
+                                            uri: request.flowfile.uri,
+                                            clusterNodeId: request.clusterNodeId
+                                        }
                                     })
                                 );
                             });
                     }
                 })
             ),
-        { dispatch: false }
+        {
+            dispatch: false
+        }
     );
 
     downloadFlowFileContent$ = createEffect(
@@ -300,7 +309,7 @@ export class QueueListingEffects {
             this.actions$.pipe(
                 ofType(QueueListingActions.downloadFlowFileContent),
                 map((action) => action.request),
-                tap((request) => this.queueService.downloadContent(request.flowfileSummary))
+                tap((request) => this.queueService.downloadContent(request))
             ),
         { dispatch: false }
     );
@@ -312,7 +321,7 @@ export class QueueListingEffects {
                 map((action) => action.request),
                 concatLatestFrom(() => this.store.select(selectAbout).pipe(isDefinedAndNotNull())),
                 tap(([request, about]) => {
-                    this.queueService.viewContent(request.flowfileSummary, about.contentViewerUrl);
+                    this.queueService.viewContent(request, about.contentViewerUrl);
                 })
             ),
         { dispatch: false }

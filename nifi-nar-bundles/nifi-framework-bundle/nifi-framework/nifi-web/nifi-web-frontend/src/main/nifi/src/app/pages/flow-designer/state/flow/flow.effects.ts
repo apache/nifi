@@ -98,7 +98,6 @@ import { ImportFromRegistry } from '../../ui/canvas/items/flow/import-from-regis
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dialog/no-registry-clients-dialog.component';
 import { EditRemoteProcessGroup } from '../../ui/canvas/items/remote-process-group/edit-remote-process-group/edit-remote-process-group.component';
-import { ErrorHelper } from '../../../../service/error-helper.service';
 
 @Injectable()
 export class FlowEffects {
@@ -144,16 +143,14 @@ export class FlowEffects {
                 combineLatest([
                     this.flowService.getFlow(request.id),
                     this.flowService.getFlowStatus(),
-                    this.flowService.getClusterSummary(),
                     this.flowService.getControllerBulletins()
                 ]).pipe(
-                    map(([flow, flowStatus, clusterSummary, controllerBulletins]) => {
+                    map(([flow, flowStatus, controllerBulletins]) => {
                         return FlowActions.loadProcessGroupSuccess({
                             response: {
                                 id: request.id,
                                 flow: flow,
                                 flowStatus: flowStatus,
-                                clusterSummary: clusterSummary.clusterSummary,
                                 controllerBulletins: controllerBulletins
                             }
                         });

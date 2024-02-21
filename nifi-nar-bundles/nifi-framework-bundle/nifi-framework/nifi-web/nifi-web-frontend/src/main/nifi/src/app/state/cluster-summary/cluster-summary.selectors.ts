@@ -15,13 +15,12 @@
  * limitations under the License.
  */
 
-import { createAction, props } from '@ngrx/store';
-import { LoadAboutResponse } from './index';
+import { createFeatureSelector, createSelector } from '@ngrx/store';
+import { clusterSummaryFeatureKey, ClusterSummaryState } from './index';
 
-export const loadAbout = createAction('[About] Load About');
+export const selectClusterSummaryState = createFeatureSelector<ClusterSummaryState>(clusterSummaryFeatureKey);
 
-export const loadAboutSuccess = createAction('[About] Load About Success', props<{ response: LoadAboutResponse }>());
-
-export const aboutApiError = createAction('[About] About Api Error', props<{ error: string }>());
-
-export const clearAboutApiError = createAction('[About] Clear About Api Error');
+export const selectClusterSummary = createSelector(
+    selectClusterSummaryState,
+    (state: ClusterSummaryState) => state.clusterSummary
+);

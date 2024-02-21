@@ -24,8 +24,7 @@ import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { ProvenanceService } from '../../service/provenance.service';
 import { Lineage } from './index';
-import { selectClusterNodeId } from '../provenance-event-listing/provenance-event-listing.selectors';
-import { selectActiveLineageId } from './lineage.selectors';
+import { selectActiveLineageId, selectClusterNodeIdFromActiveLineage } from './lineage.selectors';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -105,7 +104,7 @@ export class LineageEffects {
             ofType(LineageActions.pollLineageQuery),
             concatLatestFrom(() => [
                 this.store.select(selectActiveLineageId).pipe(isDefinedAndNotNull()),
-                this.store.select(selectClusterNodeId)
+                this.store.select(selectClusterNodeIdFromActiveLineage)
             ]),
             switchMap(([, id, clusterNodeId]) =>
                 from(this.provenanceService.getLineageQuery(id, clusterNodeId)).pipe(
@@ -153,7 +152,10 @@ export class LineageEffects {
     deleteLineageQuery$ = createEffect(() =>
         this.actions$.pipe(
             ofType(LineageActions.deleteLineageQuery),
-            concatLatestFrom(() => [this.store.select(selectActiveLineageId), this.store.select(selectClusterNodeId)]),
+            concatLatestFrom(() => [
+                this.store.select(selectActiveLineageId),
+                this.store.select(selectClusterNodeIdFromActiveLineage)
+            ]),
             tap(([, id, clusterNodeId]) => {
                 if (id) {
                     this.provenanceService.deleteLineageQuery(id, clusterNodeId).subscribe();

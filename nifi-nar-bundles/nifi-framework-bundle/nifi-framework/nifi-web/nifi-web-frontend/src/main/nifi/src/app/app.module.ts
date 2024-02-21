@@ -46,6 +46,7 @@ import { ErrorEffects } from './state/error/error.effects';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { PipesModule } from './pipes/pipes.module';
 import { DocumentationEffects } from './state/documentation/documentation.effects';
+import { ClusterSummaryEffects } from './state/cluster-summary/cluster-summary.effects';
 
 @NgModule({
     declarations: [AppComponent],
@@ -73,7 +74,8 @@ import { DocumentationEffects } from './state/documentation/documentation.effect
             ControllerServiceStateEffects,
             SystemDiagnosticsEffects,
             ComponentStateEffects,
-            DocumentationEffects
+            DocumentationEffects,
+            ClusterSummaryEffects
         ),
         StoreDevtoolsModule.instrument({
             maxAge: 25,

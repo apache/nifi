@@ -22,7 +22,6 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { ParameterContextEntity } from '../../../state/parameter-context-listing';
 import { FlowConfiguration } from '../../../../../state/flow-configuration';
 import { CurrentUser } from '../../../../../state/current-user';
-import { ParameterProviderConfigurationEntity } from '../../../../../state/shared';
 
 @Component({
     selector: 'parameter-context-table',

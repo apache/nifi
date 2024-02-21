@@ -67,6 +67,11 @@ import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow
 import { concatLatestFrom } from '@ngrx/effects';
 import { selectUrl } from '../../../../state/router/router.selectors';
 import { Storage } from '../../../../service/storage.service';
+import {
+    loadClusterSummary,
+    startClusterSummaryPolling,
+    stopClusterSummaryPolling
+} from '../../../../state/cluster-summary/cluster-summary.actions';
 
 @Component({
     selector: 'fd-canvas',
@@ -285,7 +290,9 @@ export class Canvas implements OnInit, OnDestroy {
         this.canvasView.init(this.viewContainerRef, this.svg, this.canvas);
 
         this.store.dispatch(loadFlowConfiguration());
+        this.store.dispatch(loadClusterSummary());
         this.store.dispatch(startProcessGroupPolling());
+        this.store.dispatch(startClusterSummaryPolling());
     }
 
     private createSvg(): void {
@@ -595,5 +602,6 @@ export class Canvas implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this.store.dispatch(resetFlowState());
         this.store.dispatch(stopProcessGroupPolling());
+        this.store.dispatch(stopClusterSummaryPolling());
     }
 }

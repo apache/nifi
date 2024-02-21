@@ -108,6 +108,16 @@
                     </td>
                 </ng-container>
 
+                <!-- Node Column -->
+                @if (displayedColumns.includes('node')) {
+                    <ng-container matColumnDef="node">
+                        <th mat-header-cell *matHeaderCellDef>Node</th>
+                        <td mat-cell *matCellDef="let item" [title]="item.clusterNodeAddress">
+                            {{ item.clusterNodeAddress }}
+                        </td>
+                    </ng-container>
+                }
+
                 <!-- Actions Column -->
                 <ng-container matColumnDef="actions">
                     <th mat-header-cell *matHeaderCellDef></th>

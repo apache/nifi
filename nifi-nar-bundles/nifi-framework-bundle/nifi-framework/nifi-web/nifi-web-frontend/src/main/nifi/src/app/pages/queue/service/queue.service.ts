@@ -17,9 +17,15 @@
 
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { NiFiCommon } from '../../../service/nifi-common.service';
-import { FlowFileSummary, ListingRequest, SubmitQueueListingRequest } from '../state/queue-listing';
+import {
+    DownloadFlowFileContentRequest,
+    FlowFileSummary,
+    ListingRequest,
+    SubmitQueueListingRequest,
+    ViewFlowFileContentRequest
+} from '../state/queue-listing';
 
 @Injectable({ providedIn: 'root' })
 export class QueueService {
@@ -35,7 +41,12 @@ export class QueueService {
     }
 
     getFlowFile(flowfileSummary: FlowFileSummary): Observable<any> {
-        return this.httpClient.get(this.nifiCommon.stripProtocol(flowfileSummary.uri));
+        let params = new HttpParams();
+        if (flowfileSummary.clusterNodeId) {
+            params = params.set('clusterNodeId', flowfileSummary.clusterNodeId);
+        }
+
+        return this.httpClient.get(this.nifiCommon.stripProtocol(flowfileSummary.uri), { params });
     }
 
     submitQueueListingRequest(queueListingRequest: SubmitQueueListingRequest): Observable<any> {
@@ -53,12 +64,14 @@ export class QueueService {
         return this.httpClient.delete(this.nifiCommon.stripProtocol(listingRequest.uri));
     }
 
-    downloadContent(flowfileSummary: FlowFileSummary): void {
-        let dataUri = `${this.nifiCommon.stripProtocol(flowfileSummary.uri)}/content`;
+    downloadContent(request: DownloadFlowFileContentRequest): void {
+        let dataUri = `${this.nifiCommon.stripProtocol(request.uri)}/content`;
 
         const queryParameters: any = {};
 
-        // TODO - flowFileSummary.clusterNodeId in query parameters
+        if (request.clusterNodeId) {
+            queryParameters['clusterNodeId'] = request.clusterNodeId;
+        }
 
         if (Object.keys(queryParameters).length > 0) {
             const query: string = new URLSearchParams(queryParameters).toString();
@@ -68,13 +81,15 @@ export class QueueService {
         window.open(dataUri);
     }
 
-    viewContent(flowfileSummary: FlowFileSummary, contentViewerUrl: string): void {
+    viewContent(request: ViewFlowFileContentRequest, contentViewerUrl: string): void {
         // build the uri to the data
-        let dataUri = `${this.nifiCommon.stripProtocol(flowfileSummary.uri)}/content`;
+        let dataUri = `${this.nifiCommon.stripProtocol(request.uri)}/content`;
 
         const dataUriParameters: any = {};
 
-        // TODO - flowFileSummary.clusterNodeId in query parameters
+        if (request.clusterNodeId) {
+            dataUriParameters['clusterNodeId'] = request.clusterNodeId;
+        }
 
         // include parameters if necessary
         if (Object.keys(dataUriParameters).length > 0) {
