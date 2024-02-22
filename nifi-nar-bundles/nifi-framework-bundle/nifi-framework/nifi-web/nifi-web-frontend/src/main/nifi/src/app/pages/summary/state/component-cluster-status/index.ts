@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,36 +15,29 @@
  * limitations under the License.
  */
 
-export const clusterSummaryFeatureKey = 'clusterSummary';
+import { ProcessorStatus } from '../index';
+import { ComponentType } from '../../../../state/shared';
 
-export interface LoadClusterSummaryResponse {
-    clusterSummary: ClusterSummary;
-}
+export const componentClusterStatusFeatureKey = 'component-cluster-status';
 
-export interface ClusterSummary {
-    clustered: boolean;
-    connectedToCluster: boolean;
-    connectedNodes?: string;
-    connectedNodeCount: number;
-    totalNodeCount: number;
-}
-
-export interface NodeSearchResult {
+export interface ComponentClusterStatusRequest {
     id: string;
-    address: string;
+    componentType: ComponentType;
 }
 
-export interface ClusterSearchResults {
-    nodeResults: NodeSearchResult[];
+export interface ComponentClusterStatusResponse {
+    clusterStatusEntity: ClusterStatusEntity;
+    componentType: ComponentType;
 }
 
-export interface ClusterSummaryState {
-    clusterSummary: ClusterSummary | null;
-    searchResults: ClusterSearchResults | null;
-    error: string | null;
-    status: 'pending' | 'loading' | 'error' | 'success';
+export interface ClusterStatusEntity {
+    canRead: boolean;
+    processorStatus?: ProcessorStatus;
 }
 
-export interface ClusterSearchRequest {
-    q?: string;
+export interface ComponentClusterStatusState {
+    clusterStatus: ClusterStatusEntity | null;
+    latestRequest: ComponentClusterStatusRequest | null;
+    loadedTimestamp: string;
+    status: 'pending' | 'loading' | 'success';
 }

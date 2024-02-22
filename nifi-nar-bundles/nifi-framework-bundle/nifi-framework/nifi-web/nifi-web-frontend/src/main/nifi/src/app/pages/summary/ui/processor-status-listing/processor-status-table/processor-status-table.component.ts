@@ -17,7 +17,6 @@
 
 import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { ProcessorStatusSnapshot, ProcessorStatusSnapshotEntity } from '../../../state/summary-listing';
 import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
 import {
     SummaryTableFilterArgs,
@@ -30,6 +29,8 @@ import { ComponentType } from '../../../../../state/shared';
 import { MultiSort } from '../../common';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { ClusterSummary, NodeSearchResult } from '../../../../../state/cluster-summary';
+import { ProcessorStatusSnapshot, ProcessorStatusSnapshotEntity } from '../../../state';
 
 export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 'in' | 'out' | 'readWrite' | 'tasks';
 
@@ -43,6 +44,7 @@ export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 
 export class ProcessorStatusTable implements AfterViewInit {
     private _initialSortColumn: SupportedColumns = 'name';
     private _initialSortDirection: SortDirection = 'asc';
+    private currentFilter: SummaryTableFilterArgs | null = null;
 
     filterableColumns: SummaryTableFilterColumn[] = [
         { key: 'name', label: 'name' },
@@ -82,6 +84,19 @@ export class ProcessorStatusTable implements AfterViewInit {
     }
 
     applyFilter(filter: SummaryTableFilterArgs) {
+        // determine if the filter changing is the selected cluster node, if so a new query needs issued to the backend
+        if (
+            filter.clusterNode &&
+            (!this.currentFilter?.clusterNode || this.currentFilter.clusterNode.id !== filter.clusterNode.id)
+        ) {
+            // need to re-issue the query with the selected cluster node id
+            this.clusterNodeSelected.next(filter.clusterNode);
+            this.currentFilter = filter;
+            return;
+        }
+
+        this.currentFilter = filter;
+
         this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
         this.resetPaginator();
@@ -142,13 +157,19 @@ export class ProcessorStatusTable implements AfterViewInit {
 
     @Input() summaryListingStatus: string | null = null;
     @Input() loadedTimestamp: string | null = null;
+    @Input() clusterSummary: ClusterSummary | null = null;
+    @Input() clusterNodes: NodeSearchResult[] | null = [];
+    @Input() selectedClusterNode: NodeSearchResult | null = null;
 
     @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
     @Output() viewStatusHistory: EventEmitter<ProcessorStatusSnapshotEntity> =
         new EventEmitter<ProcessorStatusSnapshotEntity>();
     @Output() selectProcessor: EventEmitter<ProcessorStatusSnapshotEntity> =
         new EventEmitter<ProcessorStatusSnapshotEntity>();
+    @Output() viewClusteredDetails: EventEmitter<ProcessorStatusSnapshotEntity> =
+        new EventEmitter<ProcessorStatusSnapshotEntity>();
     @Output() clearSelection: EventEmitter<void> = new EventEmitter<void>();
+    @Output() clusterNodeSelected: EventEmitter<NodeSearchResult> = new EventEmitter<NodeSearchResult>();
 
     resetPaginator(): void {
         if (this.dataSource.paginator) {
@@ -354,6 +375,11 @@ export class ProcessorStatusTable implements AfterViewInit {
     viewStatusHistoryClicked(event: MouseEvent, processor: ProcessorStatusSnapshotEntity): void {
         event.stopPropagation();
         this.viewStatusHistory.next(processor);
+    }
+
+    viewClusteredDetailsClicked(event: MouseEvent, processor: ProcessorStatusSnapshotEntity): void {
+        event.stopPropagation();
+        this.viewClusteredDetails.next(processor);
     }
 
     private selectNone() {

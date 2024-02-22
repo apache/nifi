@@ -26,13 +26,15 @@ import {
 } from '../../state/summary-listing/summary-listing.selectors';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { Store } from '@ngrx/store';
-import { RemoteProcessGroupStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
+import { SummaryListingState } from '../../state/summary-listing';
 import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
 import { ComponentType } from '../../../../state/shared';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
+import { loadClusterSummary } from '../../../../state/cluster-summary/cluster-summary.actions';
+import { RemoteProcessGroupStatusSnapshotEntity } from '../../state';
 
 @Component({
     selector: 'remote-process-group-status-listing',
@@ -80,6 +82,7 @@ export class RemoteProcessGroupStatusListing {
 
     refreshSummaryListing() {
         this.store.dispatch(SummaryListingActions.loadSummaryListing({ recursive: true }));
+        this.store.dispatch(loadClusterSummary());
     }
 
     selectRemoteProcessGroup(rpg: RemoteProcessGroupStatusSnapshotEntity): void {

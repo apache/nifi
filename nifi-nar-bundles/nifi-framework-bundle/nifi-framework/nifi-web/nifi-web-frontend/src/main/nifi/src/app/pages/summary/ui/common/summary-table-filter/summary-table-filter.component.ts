@@ -19,6 +19,7 @@ import { AfterViewInit, Component, DestroyRef, EventEmitter, inject, Input, Outp
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { debounceTime } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NodeSearchResult } from '../../../../../state/cluster-summary';
 
 export interface SummaryTableFilterColumn {
     key: string;
@@ -30,6 +31,7 @@ export interface SummaryTableFilterArgs {
     filterColumn: string;
     filterStatus?: string;
     primaryOnly?: boolean;
+    clusterNode?: NodeSearchResult;
 }
 
 @Component({
@@ -43,11 +45,60 @@ export class SummaryTableFilter implements AfterViewInit {
     private _totalCount = 0;
     private _initialFilterColumn = 'name';
     private destroyRef: DestroyRef = inject(DestroyRef);
+
     showFilterMatchedLabel = false;
+    allNodes: NodeSearchResult = {
+        id: 'All',
+        address: 'All Nodes'
+    };
+
+    private _clusterNodes: NodeSearchResult[] = [];
+    private _selectedNode: NodeSearchResult | null = this.allNodes;
 
     @Input() filterableColumns: SummaryTableFilterColumn[] = [];
     @Input() includeStatusFilter = false;
     @Input() includePrimaryNodeOnlyFilter = false;
+
+    @Input() set selectedNode(node: NodeSearchResult | null) {
+        const n: NodeSearchResult = node ? (node.id !== 'All' ? node : this.allNodes) : this.allNodes;
+        // find it in the available nodes
+        const found = this._clusterNodes.find((node) => node.id === n.id);
+        if (found) {
+            this.filterForm.get('clusterNode')?.setValue(found);
+            this._selectedNode = found;
+        }
+    }
+
+    @Input() set clusterNodes(nodes: NodeSearchResult[] | null) {
+        if (!nodes) {
+            this._clusterNodes = [];
+        } else {
+            // test if the nodes have changed
+            if (!this.areSame(this._clusterNodes, nodes)) {
+                this._clusterNodes = [this.allNodes, ...nodes];
+                if (this._selectedNode) {
+                    this.selectedNode = this._selectedNode;
+                }
+            }
+        }
+    }
+    get clusterNodes(): NodeSearchResult[] {
+        return this._clusterNodes;
+    }
+
+    private areSame(a: NodeSearchResult[], b: NodeSearchResult[]) {
+        if (a.length !== b.length) {
+            return false;
+        }
+
+        const noMatch = a.filter((node) => b.findIndex((n) => n.id === node.id) < 0);
+        return noMatch.length === 0 || (noMatch.length === 1 && noMatch[0].id === 'All');
+    }
+
+    private areEqual(a: NodeSearchResult, b: NodeSearchResult) {
+        return a.id === b.id;
+    }
+
     @Output() filterChanged: EventEmitter<SummaryTableFilterArgs> = new EventEmitter<SummaryTableFilterArgs>();
 
     @Input() set filterTerm(term: string) {
@@ -94,7 +145,8 @@ export class SummaryTableFilter implements AfterViewInit {
             filterTerm: '',
             filterColumn: this._initialFilterColumn || 'name',
             filterStatus: 'All',
-            primaryOnly: false
+            primaryOnly: false,
+            clusterNode: this.allNodes
         });
     }
 
@@ -106,7 +158,8 @@ export class SummaryTableFilter implements AfterViewInit {
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
                 const filterStatus = this.filterForm.get('filterStatus')?.value;
                 const primaryOnly = this.filterForm.get('primaryOnly')?.value;
-                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly);
+                const clusterNode = this.filterForm.get('clusterNode')?.value;
+                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode);
             });
 
         this.filterForm
@@ -116,7 +169,8 @@ export class SummaryTableFilter implements AfterViewInit {
                 const filterTerm = this.filterForm.get('filterTerm')?.value;
                 const filterStatus = this.filterForm.get('filterStatus')?.value;
                 const primaryOnly = this.filterForm.get('primaryOnly')?.value;
-                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly);
+                const clusterNode = this.filterForm.get('clusterNode')?.value;
+                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode);
             });
 
         this.filterForm
@@ -126,7 +180,8 @@ export class SummaryTableFilter implements AfterViewInit {
                 const filterTerm = this.filterForm.get('filterTerm')?.value;
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
                 const primaryOnly = this.filterForm.get('primaryOnly')?.value;
-                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly);
+                const clusterNode = this.filterForm.get('clusterNode')?.value;
+                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode);
             });
 
         this.filterForm
@@ -136,17 +191,41 @@ export class SummaryTableFilter implements AfterViewInit {
                 const filterTerm = this.filterForm.get('filterTerm')?.value;
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
                 const filterStatus = this.filterForm.get('filterStatus')?.value;
-                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly);
+                const clusterNode = this.filterForm.get('clusterNode')?.value;
+                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode);
+            });
+
+        this.filterForm
+            .get('clusterNode')
+            ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((clusterNode) => {
+                this._selectedNode = clusterNode;
+                const filterTerm = this.filterForm.get('filterTerm')?.value;
+                const filterColumn = this.filterForm.get('filterColumn')?.value;
+                const filterStatus = this.filterForm.get('filterStatus')?.value;
+                const primaryOnly = this.filterForm.get('primaryOnly')?.value;
+                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode);
             });
     }
 
-    applyFilter(filterTerm: string, filterColumn: string, filterStatus: string, primaryOnly: boolean) {
+    applyFilter(
+        filterTerm: string,
+        filterColumn: string,
+        filterStatus: string,
+        primaryOnly: boolean,
+        clusterNode: NodeSearchResult
+    ) {
         this.filterChanged.next({
             filterColumn,
             filterStatus,
             filterTerm,
-            primaryOnly
+            primaryOnly,
+            clusterNode
         });
-        this.showFilterMatchedLabel = filterTerm?.length > 0 || filterStatus !== 'All' || primaryOnly;
+        this.showFilterMatchedLabel =
+            filterTerm?.length > 0 ||
+            filterStatus !== 'All' ||
+            primaryOnly ||
+            (clusterNode ? clusterNode.id !== 'All' : false);
     }
 }

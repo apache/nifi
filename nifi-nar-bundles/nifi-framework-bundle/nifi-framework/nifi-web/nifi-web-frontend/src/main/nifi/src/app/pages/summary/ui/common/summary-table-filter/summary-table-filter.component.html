@@ -55,7 +55,20 @@
             @if (includePrimaryNodeOnlyFilter) {
                 <div>
                     <mat-checkbox color="primary" formControlName="primaryOnly"></mat-checkbox>
-                    <mat-label>Primary Node</mat-label>
+                    <mat-label class="whitespace-nowrap">Primary Node</mat-label>
+                </div>
+            }
+
+            @if (clusterNodes && clusterNodes.length > 0) {
+                <div class="cluster-node-selection flex flex-1 flex-row-reverse">
+                    <mat-form-field>
+                        <mat-label>Cluster Node</mat-label>
+                        <mat-select formControlName="clusterNode">
+                            @for (node of clusterNodes; track node) {
+                                <mat-option [value]="node">{{ node.address }}</mat-option>
+                            }
+                        </mat-select>
+                    </mat-form-field>
                 </div>
             }
         </div>

@@ -18,7 +18,7 @@
 import { Component } from '@angular/core';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
-import { ProcessGroupStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
+import { SummaryListingState } from '../../state/summary-listing';
 import { Store } from '@ngrx/store';
 import {
     selectProcessGroupIdFromRoute,
@@ -34,6 +34,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
 import { ComponentType } from '../../../../state/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
+import { loadClusterSummary } from '../../../../state/cluster-summary/cluster-summary.actions';
+import { ProcessGroupStatusSnapshotEntity } from '../../state';
 
 @Component({
     selector: 'process-group-status-listing',
@@ -82,6 +84,7 @@ export class ProcessGroupStatusListing {
 
     refreshSummaryListing() {
         this.store.dispatch(SummaryListingActions.loadSummaryListing({ recursive: true }));
+        this.store.dispatch(loadClusterSummary());
     }
 
     viewStatusHistory(pg: ProcessGroupStatusSnapshotEntity): void {

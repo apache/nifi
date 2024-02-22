@@ -25,14 +25,11 @@ import {
 } from '../../common/summary-table-filter/summary-table-filter.component';
 import { MultiSort } from '../../common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import {
-    RemoteProcessGroupStatusSnapshot,
-    RemoteProcessGroupStatusSnapshotEntity
-} from '../../../state/summary-listing';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { ComponentType } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { RemoteProcessGroupStatusSnapshot, RemoteProcessGroupStatusSnapshotEntity } from '../../../state';
 
 export type SupportedColumns = 'name' | 'uri' | 'transmitting' | 'sent' | 'received';
 

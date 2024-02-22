@@ -24,9 +24,11 @@ import {
 } from '../../state/summary-listing/summary-listing.selectors';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { Store } from '@ngrx/store';
-import { PortStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
+import { SummaryListingState } from '../../state/summary-listing';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
+import { loadClusterSummary } from '../../../../state/cluster-summary/cluster-summary.actions';
+import { PortStatusSnapshotEntity } from '../../state';
 
 @Component({
     selector: 'output-port-status-listing',
@@ -48,6 +50,7 @@ export class OutputPortStatusListing {
 
     refreshSummaryListing() {
         this.store.dispatch(SummaryListingActions.loadSummaryListing({ recursive: true }));
+        this.store.dispatch(loadClusterSummary());
     }
 
     selectPort(port: PortStatusSnapshotEntity): void {

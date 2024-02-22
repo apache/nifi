@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,17 +15,25 @@
  * limitations under the License.
  */
 
-import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { clusterSummaryFeatureKey, ClusterSummaryState } from './index';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-export const selectClusterSummaryState = createFeatureSelector<ClusterSummaryState>(clusterSummaryFeatureKey);
+import { ComponentContext } from './component-context.component';
 
-export const selectClusterSummary = createSelector(
-    selectClusterSummaryState,
-    (state: ClusterSummaryState) => state.clusterSummary
-);
+describe('ComponentContext', () => {
+    let component: ComponentContext;
+    let fixture: ComponentFixture<ComponentContext>;
 
-export const selectClusterSearchResults = createSelector(
-    selectClusterSummaryState,
-    (state: ClusterSummaryState) => state.searchResults
-);
+    beforeEach(async () => {
+        await TestBed.configureTestingModule({
+            imports: [ComponentContext]
+        }).compileComponents();
+
+        fixture = TestBed.createComponent(ComponentContext);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

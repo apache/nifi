@@ -14,3 +14,15 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
+
+.summary-table-filter-container {
+    .cluster-node-selection {
+        max-width: 100%;
+
+        .mat-mdc-form-field {
+            width: 70%;
+            min-width: 200px;
+            max-width: 600px;
+        }
+    }
+}

@@ -20,7 +20,6 @@ import { CommonModule } from '@angular/common';
 import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
 import { MultiSort } from '../index';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { PortStatusSnapshot, PortStatusSnapshotEntity } from '../../../state/summary-listing';
 import { SummaryTableFilterModule } from '../summary-table-filter/summary-table-filter.module';
 import {
     SummaryTableFilterArgs,
@@ -30,6 +29,7 @@ import { ComponentType } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { PortStatusSnapshot, PortStatusSnapshotEntity } from '../../../state';
 
 export type SupportedColumns = 'name' | 'runStatus' | 'in' | 'out';
 

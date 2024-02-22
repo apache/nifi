@@ -17,7 +17,7 @@
 
 import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { ConnectionStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
+import { SummaryListingState } from '../../state/summary-listing';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
 import {
@@ -33,6 +33,8 @@ import { filter, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
 import { ComponentType } from '../../../../state/shared';
+import { loadClusterSummary } from '../../../../state/cluster-summary/cluster-summary.actions';
+import { ConnectionStatusSnapshotEntity } from '../../state';
 
 @Component({
     selector: 'connection-status-listing',
@@ -80,6 +82,7 @@ export class ConnectionStatusListing {
 
     refreshSummaryListing() {
         this.store.dispatch(SummaryListingActions.loadSummaryListing({ recursive: true }));
+        this.store.dispatch(loadClusterSummary());
     }
 
     selectConnection(connection: ConnectionStatusSnapshotEntity): void {

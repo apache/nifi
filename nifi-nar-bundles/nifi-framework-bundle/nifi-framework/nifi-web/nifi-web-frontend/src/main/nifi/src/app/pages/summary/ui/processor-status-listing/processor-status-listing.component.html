@@ -25,10 +25,15 @@
             [selectedProcessorId]="selectedProcessorId$ | async"
             [loadedTimestamp]="loadedTimestamp$ | async"
             [summaryListingStatus]="summaryListingStatus$ | async"
+            [clusterSummary]="clusterSummary$ | async"
+            [clusterNodes]="clusterNodes$ | async"
+            [selectedClusterNode]="selectedClusterNode$ | async"
             (viewStatusHistory)="viewStatusHistory($event)"
             (selectProcessor)="selectProcessor($event)"
             (clearSelection)="clearSelection()"
             (refresh)="refreshSummaryListing()"
+            (clusterNodeSelected)="clusterNodeSelected($event)"
+            (viewClusteredDetails)="viewClusteredDetails($event)"
             initialSortColumn="name"
             initialSortDirection="asc"></processor-status-table>
     }

@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,17 +15,11 @@
  * limitations under the License.
  */
 
-import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { clusterSummaryFeatureKey, ClusterSummaryState } from './index';
+import { ComponentTypeNamePipe } from './component-type-name.pipe';
 
-export const selectClusterSummaryState = createFeatureSelector<ClusterSummaryState>(clusterSummaryFeatureKey);
-
-export const selectClusterSummary = createSelector(
-    selectClusterSummaryState,
-    (state: ClusterSummaryState) => state.clusterSummary
-);
-
-export const selectClusterSearchResults = createSelector(
-    selectClusterSummaryState,
-    (state: ClusterSummaryState) => state.searchResults
-);
+describe('ComponentTypeNamePipe', () => {
+    it('create an instance', () => {
+        const pipe = new ComponentTypeNamePipe();
+        expect(pipe).toBeTruthy();
+    });
+});

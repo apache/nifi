@@ -21,7 +21,6 @@ import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
 import { MultiSort } from '../../common';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { SummaryTableFilterModule } from '../../common/summary-table-filter/summary-table-filter.module';
-import { ProcessGroupStatusSnapshot, ProcessGroupStatusSnapshotEntity } from '../../../state/summary-listing';
 import {
     SummaryTableFilterArgs,
     SummaryTableFilterColumn
@@ -29,6 +28,7 @@ import {
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { RouterLink } from '@angular/router';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { ProcessGroupStatusSnapshot, ProcessGroupStatusSnapshotEntity } from '../../../state';
 
 export type SupportedColumns =
     | 'name'

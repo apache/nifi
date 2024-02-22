@@ -25,11 +25,11 @@ import {
     SummaryTableFilterArgs,
     SummaryTableFilterColumn
 } from '../../common/summary-table-filter/summary-table-filter.component';
-import { ConnectionStatusSnapshot, ConnectionStatusSnapshotEntity } from '../../../state/summary-listing';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { ComponentType } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { ConnectionStatusSnapshot, ConnectionStatusSnapshotEntity } from '../../../state';
 
 export type SupportedColumns = 'name' | 'queue' | 'in' | 'out' | 'threshold' | 'sourceName' | 'destinationName';
 
