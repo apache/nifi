@@ -23,24 +23,26 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class TimeFormat {
+public class DurationFormat {
     private static final String UNION = "|";
 
 
     // for Time Durations
-    private static final String NANOS = join(UNION, "ns", "nano", "nanos", "nanosecond", "nanoseconds");
-    private static final String MILLIS = join(UNION, "ms", "milli", "millis", "millisecond", "milliseconds");
-    private static final String SECS = join(UNION, "s", "sec", "secs", "second", "seconds");
-    private static final String MINS = join(UNION, "m", "min", "mins", "minute", "minutes");
-    private static final String HOURS = join(UNION, "h", "hr", "hrs", "hour", "hours");
-    private static final String DAYS = join(UNION, "d", "day", "days");
-    private static final String WEEKS = join(UNION, "w", "wk", "wks", "week", "weeks");
+    private static final String NANOS = String.join(UNION, "ns", "nano", "nanos", "nanosecond", "nanoseconds");
+    private static final String MILLIS = String.join(UNION, "ms", "milli", "millis", "millisecond", "milliseconds");
+    private static final String SECS = String.join(UNION, "s", "sec", "secs", "second", "seconds");
+    private static final String MINS = String.join(UNION, "m", "min", "mins", "minute", "minutes");
+    private static final String HOURS = String.join(UNION, "h", "hr", "hrs", "hour", "hours");
+    private static final String DAYS = String.join(UNION, "d", "day", "days");
+    private static final String WEEKS = String.join(UNION, "w", "wk", "wks", "week", "weeks");
 
-    private static final String VALID_TIME_UNITS = join(UNION, NANOS, MILLIS, SECS, MINS, HOURS, DAYS, WEEKS);
+    private static final String VALID_TIME_UNITS = String.join(UNION, NANOS, MILLIS, SECS, MINS, HOURS, DAYS, WEEKS);
     public static final String TIME_DURATION_REGEX = "([\\d.]+)\\s*(" + VALID_TIME_UNITS + ")";
     public static final Pattern TIME_DURATION_PATTERN = Pattern.compile(TIME_DURATION_REGEX);
     private static final List<Long> TIME_UNIT_MULTIPLIERS = Arrays.asList(1000L, 1000L, 1000L, 60L, 60L, 24L);
 
+    private DurationFormat() {
+    }
 
     /**
      * Returns a time duration in the requested {@link TimeUnit} after parsing the {@code String}
@@ -53,7 +55,7 @@ public class TimeFormat {
      * @return the whole number value of this duration in the requested units
      * @see #getPreciseTimeDuration(String, TimeUnit)
      */
-    public long getTimeDuration(final String value, final TimeUnit desiredUnit) {
+    public static long getTimeDuration(final String value, final TimeUnit desiredUnit) {
         return Math.round(getPreciseTimeDuration(value, desiredUnit));
     }
 
@@ -81,7 +83,7 @@ public class TimeFormat {
      * @param desiredUnit the desired output {@link TimeUnit}
      * @return the parsed and converted amount (without a unit)
      */
-    public double getPreciseTimeDuration(final String value, final TimeUnit desiredUnit) {
+    public static double getPreciseTimeDuration(final String value, final TimeUnit desiredUnit) {
         final Matcher matcher = TIME_DURATION_PATTERN.matcher(value.toLowerCase());
         if (!matcher.matches()) {
             throw new IllegalArgumentException("Value '" + value + "' is not a valid time duration");
@@ -134,7 +136,7 @@ public class TimeFormat {
      * @param timeUnit the current time unit
      * @return the time duration as a whole number ({@code long}) and the smaller time unit used
      */
-    List<Object> makeWholeNumberTime(double decimal, TimeUnit timeUnit) {
+    static List<Object> makeWholeNumberTime(double decimal, TimeUnit timeUnit) {
         // If the value is already a whole number, return it and the current time unit
         if (decimal == Math.rint(decimal)) {
             final long rounded = Math.round(decimal);
@@ -168,7 +170,7 @@ public class TimeFormat {
      * @param newTimeUnit      the destination time unit
      * @return the numerical multiplier between the units
      */
-    long calculateMultiplier(TimeUnit originalTimeUnit, TimeUnit newTimeUnit) {
+    static long calculateMultiplier(TimeUnit originalTimeUnit, TimeUnit newTimeUnit) {
         if (originalTimeUnit == newTimeUnit) {
             return 1;
         } else if (originalTimeUnit.ordinal() < newTimeUnit.ordinal()) {
@@ -190,7 +192,7 @@ public class TimeFormat {
      * @param originalUnit the TimeUnit
      * @return the next smaller TimeUnit
      */
-    TimeUnit getSmallerTimeUnit(TimeUnit originalUnit) {
+    static TimeUnit getSmallerTimeUnit(TimeUnit originalUnit) {
         if (originalUnit == null || TimeUnit.NANOSECONDS == originalUnit) {
             throw new IllegalArgumentException("Cannot determine a smaller time unit than '" + originalUnit + "'");
         } else {
@@ -204,7 +206,7 @@ public class TimeFormat {
      * @param rawUnit the String containing the desired unit
      * @return true if the unit is "weeks"; false otherwise
      */
-    private boolean isWeek(final String rawUnit) {
+    private static boolean isWeek(final String rawUnit) {
         return switch (rawUnit) {
             case "w", "wk", "wks", "week", "weeks" -> true;
             default -> false;
@@ -219,7 +221,7 @@ public class TimeFormat {
      * @param rawUnit the String to parse
      * @return the TimeUnit
      */
-    protected TimeUnit determineTimeUnit(String rawUnit) {
+    protected static TimeUnit determineTimeUnit(String rawUnit) {
         return switch (rawUnit.toLowerCase()) {
             case "ns", "nano", "nanos", "nanoseconds" -> TimeUnit.NANOSECONDS;
             case "µs", "micro", "micros", "microseconds" -> TimeUnit.MICROSECONDS;
@@ -231,21 +233,4 @@ public class TimeFormat {
             default -> throw new IllegalArgumentException("Could not parse '" + rawUnit + "' to TimeUnit");
         };
     }
-
-    private static String join(final String delimiter, final String... values) {
-        if (values.length == 0) {
-            return "";
-        } else if (values.length == 1) {
-            return values[0];
-        }
-
-        final StringBuilder sb = new StringBuilder();
-        sb.append(values[0]);
-        for (int i = 1; i < values.length; i++) {
-            sb.append(delimiter).append(values[i]);
-        }
-
-        return sb.toString();
-    }
-
 }

@@ -38,7 +38,7 @@ public class TestTimeFormat {
     @ParameterizedTest
     @MethodSource("getParse")
     public void testParse(String value, TimeUnit desiredUnit, Long expected) {
-        assertEquals(expected, new TimeFormat().getTimeDuration(value, desiredUnit));
+        assertEquals(expected, DurationFormat.getTimeDuration(value, desiredUnit));
     }
 
     private static Stream<Arguments> getParse() {
@@ -54,7 +54,7 @@ public class TestTimeFormat {
     @ParameterizedTest
     @ValueSource(strings = {"1 week", "1 wk", "1 w", "1 wks", "1 weeks"})
     public void testGetTimeDurationShouldConvertWeeks(String week) {
-        assertEquals(7L, new TimeFormat().getTimeDuration(week, TimeUnit.DAYS));
+        assertEquals(7L, DurationFormat.getTimeDuration(week, TimeUnit.DAYS));
     }
 
 
@@ -62,7 +62,7 @@ public class TestTimeFormat {
     @ValueSource(strings = {"-1 week", "-1 wk", "-1 w", "-1 weeks", "- 1 week"})
     public void testGetTimeDurationShouldHandleNegativeWeeks(String week) {
         IllegalArgumentException iae =
-            assertThrows(IllegalArgumentException.class, () -> new TimeFormat().getTimeDuration(week, TimeUnit.DAYS));
+            assertThrows(IllegalArgumentException.class, () -> DurationFormat.getTimeDuration(week, TimeUnit.DAYS));
         assertTrue(iae.getMessage().contains("Value '" + week + "' is not a valid time duration"));
     }
 
@@ -71,34 +71,34 @@ public class TestTimeFormat {
     @ValueSource(strings = {"1 work", "1 wek", "1 k"})
     public void testGetTimeDurationShouldHandleInvalidAbbreviations(String week) {
         IllegalArgumentException iae =
-            assertThrows(IllegalArgumentException.class, () -> new TimeFormat().getTimeDuration(week, TimeUnit.DAYS));
+            assertThrows(IllegalArgumentException.class, () -> DurationFormat.getTimeDuration(week, TimeUnit.DAYS));
         assertTrue(iae.getMessage().contains("Value '" + week + "' is not a valid time duration"));
     }
 
     @ParameterizedTest
     @ValueSource(strings={"1week", "1wk", "1w", "1wks", "1weeks"})
     public void testGetTimeDurationShouldHandleNoSpaceInInput(String week) {
-        assertEquals(7L, new TimeFormat().getTimeDuration(week, TimeUnit.DAYS));
+        assertEquals(7L, DurationFormat.getTimeDuration(week, TimeUnit.DAYS));
     }
 
 
     @ParameterizedTest
     @ValueSource(strings={"10 ms", "10 millis", "10 milliseconds"})
     public void testGetTimeDurationWithWholeNumbers(String whole){
-        assertEquals(10L, new TimeFormat().getTimeDuration(whole, TimeUnit.MILLISECONDS));
+        assertEquals(10L, DurationFormat.getTimeDuration(whole, TimeUnit.MILLISECONDS));
     }
 
 
     @ParameterizedTest
     @ValueSource(strings={"0.010 s", "0.010 seconds"})
     public void testGetTimeDurationWithDecimalNumbers(String decimal){
-        assertEquals(10L, new TimeFormat().getTimeDuration(decimal, TimeUnit.MILLISECONDS));
+        assertEquals(10L, DurationFormat.getTimeDuration(decimal, TimeUnit.MILLISECONDS));
     }
 
     @ParameterizedTest
     @MethodSource("getOneWeekInOtherUnits")
     public void testGetPreciseTimeDurationShouldHandleWeeks(TimeUnit timeUnit, long expected){
-        assertEquals(expected,  new TimeFormat().getPreciseTimeDuration("1 week", timeUnit));
+        assertEquals(expected,  DurationFormat.getPreciseTimeDuration("1 week", timeUnit));
     }
 
     private static Stream<Arguments> getOneWeekInOtherUnits() {
@@ -115,7 +115,7 @@ public class TestTimeFormat {
     @ParameterizedTest
     @MethodSource("getOneAndAHalfWeeksInOtherUnits")
     public void testGetPreciseTimeDurationShouldHandleDecimalWeeks(TimeUnit timeUnit, double expected) {
-        assertEquals(expected, new TimeFormat().getPreciseTimeDuration("1.5 week", timeUnit));
+        assertEquals(expected, DurationFormat.getPreciseTimeDuration("1.5 week", timeUnit));
     }
 
     private static Stream<Arguments> getOneAndAHalfWeeksInOtherUnits() {
@@ -131,19 +131,19 @@ public class TestTimeFormat {
     @ParameterizedTest
     @ValueSource(strings={"10 ms", "10 millis", "10 milliseconds"})
     public void testGetPreciseTimeDurationWithWholeNumbers(String whole) {
-        assertEquals(10.0, new TimeFormat().getPreciseTimeDuration(whole, TimeUnit.MILLISECONDS));
+        assertEquals(10.0, DurationFormat.getPreciseTimeDuration(whole, TimeUnit.MILLISECONDS));
     }
 
     @ParameterizedTest
     @ValueSource(strings={"0.010 s", "0.010 seconds"})
     public void testGetPreciseTimeDurationWithDecimalNumbers(String decimal) {
-        assertEquals(10.0, new TimeFormat().getPreciseTimeDuration(decimal, TimeUnit.MILLISECONDS));
+        assertEquals(10.0, DurationFormat.getPreciseTimeDuration(decimal, TimeUnit.MILLISECONDS));
     }
 
     @ParameterizedTest
     @MethodSource("getTinyDecimalValues")
     public void testGetPreciseTimeDurationShouldHandleSmallDecimalValues(String originalValue, TimeUnit desiredUnit, double expectedValue) {
-        assertEquals(expectedValue, new TimeFormat().getPreciseTimeDuration(originalValue, desiredUnit));
+        assertEquals(expectedValue, DurationFormat.getPreciseTimeDuration(originalValue, desiredUnit));
     }
 
     private static Stream<Arguments> getTinyDecimalValues() {
@@ -156,14 +156,14 @@ public class TestTimeFormat {
     @ParameterizedTest
     @EnumSource(TimeUnit.class)
     public void testMakeWholeNumberTimeShouldHandleWholeNumbers(TimeUnit timeUnit) {
-        assertEquals(Arrays.asList(10L, timeUnit), new TimeFormat().makeWholeNumberTime(10.0, timeUnit));
+        assertEquals(Arrays.asList(10L, timeUnit), DurationFormat.makeWholeNumberTime(10.0, timeUnit));
     }
 
     @ParameterizedTest
     @MethodSource("getNanoSecondsForMakeWholeNumber")
     public void testMakeWholeNumberTimeShouldHandleNanoseconds(double original, long expected) {
         assertEquals(Arrays.asList(expected, TimeUnit.NANOSECONDS),
-            new TimeFormat().makeWholeNumberTime(original, TimeUnit.NANOSECONDS));
+            DurationFormat.makeWholeNumberTime(original, TimeUnit.NANOSECONDS));
     }
 
     private static Stream<Arguments> getNanoSecondsForMakeWholeNumber() {
@@ -177,7 +177,7 @@ public class TestTimeFormat {
     @NullSource
     public void testGetSmallerTimeUnitWithNull(TimeUnit timeUnit) {
         IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-            () -> new TimeFormat().getSmallerTimeUnit(timeUnit));
+            () -> DurationFormat.getSmallerTimeUnit(timeUnit));
 
         assertEquals("Cannot determine a smaller time unit than 'null'", iae.getMessage());
     }
@@ -185,7 +185,7 @@ public class TestTimeFormat {
     @Test
     public void testGetSmallerTimeUnitWithNanoseconds() {
         IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-            () -> new TimeFormat().getSmallerTimeUnit(TimeUnit.NANOSECONDS));
+            () -> DurationFormat.getSmallerTimeUnit(TimeUnit.NANOSECONDS));
 
         assertEquals("Cannot determine a smaller time unit than 'NANOSECONDS'", iae.getMessage());
     }
@@ -193,7 +193,7 @@ public class TestTimeFormat {
     @ParameterizedTest
     @MethodSource("getSmallerUnits")
     public void testShouldGetSmallerTimeUnit(TimeUnit original, TimeUnit expected) {
-        assertEquals(expected, new TimeFormat().getSmallerTimeUnit(original));
+        assertEquals(expected, DurationFormat.getSmallerTimeUnit(original));
     }
 
     private static Stream<Arguments> getSmallerUnits() {
@@ -208,7 +208,7 @@ public class TestTimeFormat {
     @ParameterizedTest
     @MethodSource("getMultipliers")
     void testShouldCalculateMultiplier(TimeUnit original, TimeUnit newTimeUnit, long expected) {
-        assertEquals(expected, new TimeFormat().calculateMultiplier(original, newTimeUnit));
+        assertEquals(expected, DurationFormat.calculateMultiplier(original, newTimeUnit));
     }
 
     private static Stream<Arguments> getMultipliers() {
@@ -224,7 +224,7 @@ public class TestTimeFormat {
     @MethodSource("getIncorrectUnits")
     public void testCalculateMultiplierShouldHandleIncorrectUnits(TimeUnit original, TimeUnit newTimeUnit) {
         IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-            () -> new TimeFormat().calculateMultiplier(original, newTimeUnit));
+            () -> DurationFormat.calculateMultiplier(original, newTimeUnit));
         assertTrue(iae.getMessage().matches("The original time unit '.*' must be larger than the new time unit '.*'"));
     }
 
@@ -238,14 +238,14 @@ public class TestTimeFormat {
     @ParameterizedTest
     @MethodSource("getDecimalsForMakeWholeNumber")
     public void testMakeWholeNumberTimeShouldHandleDecimals(double decimal, TimeUnit timeUnit) {
-        assertEquals(Arrays.asList(10L, TimeUnit.NANOSECONDS), new TimeFormat().makeWholeNumberTime(decimal, timeUnit));
+        assertEquals(Arrays.asList(10L, TimeUnit.NANOSECONDS), DurationFormat.makeWholeNumberTime(decimal, timeUnit));
     }
 
     @ParameterizedTest
     @MethodSource("getDecimalsForMetricConversions")
     public void testMakeWholeNumberTimeShouldHandleMetricConversions(double originalValue, TimeUnit originalUnits, long expectedValue, TimeUnit expectedUnits) {
         assertEquals(Arrays.asList(expectedValue, expectedUnits),
-            new TimeFormat().makeWholeNumberTime(originalValue, originalUnits));
+            DurationFormat.makeWholeNumberTime(originalValue, originalUnits));
     }
 
     private static Stream<Arguments> getDecimalsForMetricConversions() {
@@ -260,7 +260,7 @@ public class TestTimeFormat {
     @MethodSource("getDecimalsForNonMetricConversions")
     public void testMakeWholeNumberTimeShouldHandleNonMetricConversions(double originalValue, TimeUnit originalUnits, long expectedValue, TimeUnit expectedUnits) {
         assertEquals(Arrays.asList(expectedValue, expectedUnits),
-            new TimeFormat().makeWholeNumberTime(originalValue, originalUnits));
+            DurationFormat.makeWholeNumberTime(originalValue, originalUnits));
     }
 
     private static Stream<Arguments> getDecimalsForNonMetricConversions() {

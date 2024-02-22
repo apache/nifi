@@ -31,7 +31,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.time.TimeFormat;
+import org.apache.nifi.time.DurationFormat;
 
 import java.time.Duration;
 import java.util.Map;
@@ -110,7 +110,7 @@ public class StandardPropertyValue implements PropertyValue {
 
     @Override
     public Long asTimePeriod(final TimeUnit timeUnit) {
-        return (rawValue == null) ? null : new TimeFormat().getTimeDuration(rawValue.trim(), timeUnit);
+        return (rawValue == null) ? null : DurationFormat.getTimeDuration(rawValue.trim(), timeUnit);
     }
 
     @Override

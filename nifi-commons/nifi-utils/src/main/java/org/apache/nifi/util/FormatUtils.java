@@ -17,7 +17,7 @@
 package org.apache.nifi.util;
 
 import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.time.TimeFormat;
+import org.apache.nifi.time.DurationFormat;
 
 import java.text.NumberFormat;
 import java.time.Instant;
@@ -35,8 +35,8 @@ import java.util.regex.Pattern;
 public class FormatUtils {
 
     // 'public static final' members defined for backward compatibility, since they were moved to TimeFormat.
-    public static final String TIME_DURATION_REGEX = TimeFormat.TIME_DURATION_REGEX;
-    public static final Pattern TIME_DURATION_PATTERN = TimeFormat.TIME_DURATION_PATTERN;
+    public static final String TIME_DURATION_REGEX = DurationFormat.TIME_DURATION_REGEX;
+    public static final Pattern TIME_DURATION_PATTERN = DurationFormat.TIME_DURATION_PATTERN;
 
     private static final LocalDate EPOCH_INITIAL_DATE = LocalDate.of(1970, 1, 1);
 
@@ -149,7 +149,7 @@ public class FormatUtils {
      * @see #getPreciseTimeDuration(String, TimeUnit)
      */
     public static long getTimeDuration(final String value, final TimeUnit desiredUnit) {
-        return new TimeFormat().getTimeDuration(value, desiredUnit);
+        return DurationFormat.getTimeDuration(value, desiredUnit);
     }
 
     /**
@@ -177,7 +177,7 @@ public class FormatUtils {
      * @return the parsed and converted amount (without a unit)
      */
     public static double getPreciseTimeDuration(final String value, final TimeUnit desiredUnit) {
-        return new TimeFormat().getPreciseTimeDuration(value, desiredUnit);
+        return DurationFormat.getPreciseTimeDuration(value, desiredUnit);
     }
 
     public static String formatUtilization(final double utilization) {

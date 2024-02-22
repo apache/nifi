@@ -23,7 +23,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.time.TimeFormat;
+import org.apache.nifi.time.DurationFormat;
 
 import java.io.File;
 import java.net.URI;
@@ -391,10 +391,8 @@ public class StandardValidators {
         }
         return new ValidationResult.Builder().input(input).subject(subject).valid(true).build();
     };
-    /**
-     * URL Validator that does not allow the Expression Language to be used
-     */
-    public static final Validator URL_VALIDATOR = createURLValidator();
+
+    public static final Validator URL_VALIDATOR = new URLValidator();
 
     public static final Validator URI_VALIDATOR = new Validator() {
         @Override
@@ -463,7 +461,7 @@ public class StandardValidators {
     }
 
     public static final Validator TIME_PERIOD_VALIDATOR = new Validator() {
-        private final Pattern TIME_DURATION_PATTERN = Pattern.compile(TimeFormat.TIME_DURATION_REGEX);
+        private final Pattern TIME_DURATION_PATTERN = Pattern.compile(DurationFormat.TIME_DURATION_REGEX);
 
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
@@ -530,27 +528,6 @@ public class StandardValidators {
     public static Validator createDirectoryExistsValidator(final boolean allowExpressionLanguage, final boolean createDirectoryIfMissing) {
         return new DirectoryExistsValidator(allowExpressionLanguage, createDirectoryIfMissing);
     }
-
-    private static Validator createURLValidator() {
-        return new Validator() {
-            @Override
-            public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-                if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
-                }
-
-                try {
-                    // Check that we can parse the value as a URL
-                    final String evaluatedInput = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
-                    URI.create(evaluatedInput).toURL();
-                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid URL").valid(true).build();
-                } catch (final Exception e) {
-                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid URL").valid(false).build();
-                }
-            }
-        };
-    }
-
 
     public static Validator createListValidator(boolean trimEntries, boolean excludeEmptyEntries,
                                                 Validator elementValidator) {
@@ -815,7 +792,7 @@ public class StandardValidators {
     //
     //
     static class TimePeriodValidator implements Validator {
-        private static final Pattern pattern = Pattern.compile(TimeFormat.TIME_DURATION_REGEX);
+        private static final Pattern pattern = Pattern.compile(DurationFormat.TIME_DURATION_REGEX);
 
         private final long minNanos;
         private final long maxNanos;
@@ -843,7 +820,7 @@ public class StandardValidators {
             final boolean validSyntax = pattern.matcher(lowerCase).matches();
             final ValidationResult.Builder builder = new ValidationResult.Builder();
             if (validSyntax) {
-                final long nanos = new TimeFormat().getTimeDuration(lowerCase, TimeUnit.NANOSECONDS);
+                final long nanos = DurationFormat.getTimeDuration(lowerCase, TimeUnit.NANOSECONDS);
 
                 if (nanos < minNanos || nanos > maxNanos) {
                     builder.subject(subject).input(input).valid(false)
