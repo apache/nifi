@@ -1918,6 +1918,7 @@ public class DataTypeUtils {
             case Types.BIGINT:
                 return RecordFieldType.BIGINT.getDataType();
             case Types.BOOLEAN:
+            case Types.BIT:
                 return RecordFieldType.BOOLEAN.getDataType();
             case Types.TINYINT:
                 return RecordFieldType.BYTE.getDataType();
