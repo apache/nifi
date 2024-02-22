@@ -493,6 +493,7 @@ public class TestDataTypeUtils {
     @Test
     public void testGetDataTypeFromSQLTypeValue() {
         assertEquals(RecordFieldType.STRING.getDataType(), DataTypeUtils.getDataTypeFromSQLTypeValue(Types.CLOB));
+        assertEquals(RecordFieldType.BOOLEAN.getDataType(), DataTypeUtils.getDataTypeFromSQLTypeValue(Types.BIT));
         assertEquals(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()), DataTypeUtils.getDataTypeFromSQLTypeValue(Types.BLOB));
         assertEquals(RecordFieldType.STRING.getDataType(), DataTypeUtils.getDataTypeFromSQLTypeValue(Types.CHAR));
     }
