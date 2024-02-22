@@ -634,7 +634,8 @@ public class ConsumeChannel {
 
         // If the message's latest reply is before our cutoff, don't bother polling for replies
         if (oldestTs != null) {
-            if (new SlackTimestamp(message.getLatestReply()).before(oldestTs)) {
+            final String latestReply = message.getLatestReply();
+            if (latestReply != null && new SlackTimestamp(latestReply).before(oldestTs)) {
                 return Collections.emptyList();
             }
         }
