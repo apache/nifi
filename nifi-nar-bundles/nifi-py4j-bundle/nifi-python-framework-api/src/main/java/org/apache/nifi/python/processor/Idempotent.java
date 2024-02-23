@@ -17,20 +17,21 @@
 
 package org.apache.nifi.python.processor;
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.python.PythonObjectProxy;
-
-import java.util.List;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Base interface for any Python based processor
+ * A marker annotation that can be added to an interface's method.
+ * When this annotation is present, the proxy that is responsible for invoking the method on the Python side
+ * may opt to cache the value and return the same value in subsequent calls.
  */
-public interface PythonProcessor extends PythonObjectProxy {
-
-    List<PropertyDescriptor> getSupportedPropertyDescriptors();
-
-    @PreserveJavaBinding
-    void setContext(ProcessContext context);
-
+@Documented
+@Target({ElementType.METHOD})
+@Retention(RetentionPolicy.RUNTIME)
+@Inherited
+public @interface Idempotent {
 }

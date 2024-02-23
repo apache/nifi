@@ -17,6 +17,8 @@
 
 package org.apache.nifi.py4j.client;
 
+import org.apache.nifi.py4j.client.NiFiPythonGateway.InvocationBindings;
+import org.apache.nifi.python.processor.Idempotent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import py4j.Protocol;
@@ -30,6 +32,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class PythonProxyInvocationHandler implements InvocationHandler {
     private static final Logger logger = LoggerFactory.getLogger(PythonProxyInvocationHandler.class);
@@ -38,6 +42,7 @@ public class PythonProxyInvocationHandler implements InvocationHandler {
     private final NiFiPythonGateway gateway;
     private final JavaObjectBindings bindings;
     private final String gcCommand;
+    private final ConcurrentMap<Method, Object> cachedValues = new ConcurrentHashMap<>();
 
     public PythonProxyInvocationHandler(final NiFiPythonGateway gateway, final String objectId) {
         this.objectId = objectId;
@@ -59,6 +64,15 @@ public class PythonProxyInvocationHandler implements InvocationHandler {
             return "PythonProxy[targetObjectId=" + objectId + "]";
         }
 
+        // Only support caching for 0-arg methods currently
+        final boolean idempotent = (args == null || args.length == 0) && method.getAnnotation(Idempotent.class) != null;
+        if (idempotent) {
+            final Object cachedValue = cachedValues.get(method);
+            if (cachedValue != null) {
+                return cachedValue;
+            }
+        }
+
         final CommandBuilder commandBuilder = new CommandBuilder(bindings, objectId, method.getName());
         final String command = commandBuilder.buildCommand(args);
 
@@ -67,23 +81,27 @@ public class PythonProxyInvocationHandler implements InvocationHandler {
             logger.debug("Invoking {} on {} with args {} using command {}", method, proxy, argList, command);
         }
 
-        gateway.beginInvocation(this.objectId, method, args);
+        final InvocationBindings invocationBindings = gateway.beginInvocation(this.objectId, method, args);
+        try {
+            final String response = gateway.getCallbackClient().sendCommand(command);
+            final Object output = Protocol.getReturnValue(response, gateway);
+            final Object result = convertOutput(method, output);
+            if (idempotent) {
+                cachedValues.putIfAbsent(method, result);
+            }
 
-        final String response = gateway.getCallbackClient().sendCommand(command);
-        final Object output = Protocol.getReturnValue(response, gateway);
-        final Object convertedOutput = convertOutput(method, output);
+            return result;
+        } finally {
+            if (invocationBindings.isUnbind()) {
+                commandBuilder.getBoundIds().forEach(bindings::unbind);
+                commandBuilder.getBoundIds().forEach(i -> logger.debug("For method invocation {} unbound {} (from command builder)", method.getName(), i));
+            } else {
+                commandBuilder.getBoundIds().forEach(i -> logger.debug("For method invocation {} will not unbind {} (from command builder) because arguments of this method are not to be unbound",
+                    method.getName(), i));
+            }
 
-        if (gateway.isUnbind(method)) {
-            commandBuilder.getBoundIds().forEach(bindings::unbind);
-            commandBuilder.getBoundIds().forEach(i -> logger.debug("For method invocation {} unbound {} (from command builder)", method.getName(), i));
-        } else {
-            commandBuilder.getBoundIds().forEach(i -> logger.debug("For method invocation {} will not unbind {} (from command builder) because arguments of this method are not to be unbound",
-                method.getName(), i));
+            gateway.endInvocation(invocationBindings);
         }
-
-        gateway.endInvocation(this.objectId, method, args);
-
-        return convertedOutput;
     }
 
 
@@ -107,7 +125,7 @@ public class PythonProxyInvocationHandler implements InvocationHandler {
             throw new Py4JException("Incompatible output type. Expected: " + returnType.getName() + " Actual: " + outputType.getName());
         }
 
-        return converters.get(0).convert(output);
+        return converters.getFirst().convert(output);
     }
 
 }

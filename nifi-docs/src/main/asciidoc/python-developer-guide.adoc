@@ -712,7 +712,7 @@ class MyProcessor(FlowFileTransform):
         version = '0.0.1-SNAPSHOT'
         dependencies = ['debugpy']
 
-    def onScheduled(context):
+    def onScheduled(self, context):
         try:
             import debugpy
             debugpy.connect(6688)
