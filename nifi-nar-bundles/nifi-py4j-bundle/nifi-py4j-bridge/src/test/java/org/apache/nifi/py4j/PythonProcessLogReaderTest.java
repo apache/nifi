@@ -56,7 +56,7 @@ class PythonProcessLogReaderTest {
 
     private static final String LINE_EMPTY = "";
 
-    private static final String MESSAGE_TRACEBACK = "Command Failed\nTrackback (most recent call last):\n  File: command.py, line 1\nError: name is not defined";
+    private static final String MESSAGE_TRACEBACK = String.format("Command Failed%nTrackback (most recent call last):%n  File: command.py, line 1%nError: name is not defined");
 
     @Mock
     private Logger processLogger;
