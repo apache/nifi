@@ -51,6 +51,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.apache.nifi.processors.azure.AzureServiceEndpoints.DEFAULT_BLOB_ENDPOINT_SUFFIX;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE;
 
 public abstract class AbstractAzureBlobStorage_v12IT extends AbstractAzureStorageIT {
     protected static final String SERVICE_ID = "credentials-service";
@@ -90,7 +91,7 @@ public abstract class AbstractAzureBlobStorage_v12IT extends AbstractAzureStorag
         runner.setProperty(service, AzureStorageUtils.ACCOUNT_KEY, getAccountKey());
         runner.enableControllerService(service);
 
-        runner.setProperty(AbstractAzureBlobProcessor_v12.STORAGE_CREDENTIALS_SERVICE, SERVICE_ID);
+        runner.setProperty(BLOB_STORAGE_CREDENTIALS_SERVICE, SERVICE_ID);
     }
 
     @BeforeEach

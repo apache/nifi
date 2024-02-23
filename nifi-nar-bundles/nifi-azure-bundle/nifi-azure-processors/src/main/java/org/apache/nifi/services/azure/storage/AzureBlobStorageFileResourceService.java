@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.getProxyOptions;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_CONTAINER;
@@ -71,18 +72,10 @@ public class AzureBlobStorageFileResourceService extends AbstractControllerServi
             .defaultValue(String.format("${%s}", ATTR_NAME_BLOBNAME))
             .build();
 
-    public static final PropertyDescriptor STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-            .name("storage-credentials-service")
-            .displayName("Storage Credentials")
-            .description("Controller Service used to obtain Azure Blob Storage Credentials.")
-            .identifiesControllerService(AzureStorageCredentialsService_v12.class)
-            .required(true)
-            .build();
-
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            BLOB_STORAGE_CREDENTIALS_SERVICE,
             CONTAINER,
-            BLOB_NAME,
-            STORAGE_CREDENTIALS_SERVICE
+            BLOB_NAME
     );
 
     private volatile BlobServiceClientFactory clientFactory;
@@ -116,7 +109,7 @@ public class AzureBlobStorageFileResourceService extends AbstractControllerServi
     }
 
     protected BlobServiceClient getStorageClient(Map<String, String> attributes) {
-        final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(STORAGE_CREDENTIALS_SERVICE)
+        final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(BLOB_STORAGE_CREDENTIALS_SERVICE)
                 .asControllerService(AzureStorageCredentialsService_v12.class);
         return clientFactory.getStorageClient(credentialsService.getCredentialsDetails(attributes));
     }

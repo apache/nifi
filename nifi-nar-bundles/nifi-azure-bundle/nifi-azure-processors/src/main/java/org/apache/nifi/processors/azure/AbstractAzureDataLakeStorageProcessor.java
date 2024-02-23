@@ -17,12 +17,8 @@
 package org.apache.nifi.processors.azure;
 
 import com.azure.storage.file.datalake.DataLakeServiceClient;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -37,7 +33,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
 
 public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProcessor {
 
@@ -79,37 +74,5 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
         final ADLSCredentialsDetails credentialsDetails = credentialsService.getCredentialsDetails(attributes);
 
         return clientFactory.getStorageClient(credentialsDetails);
-    }
-
-     public static class DirectoryValidator implements Validator {
-         private String displayName;
-
-         public DirectoryValidator() {
-             this.displayName = null;
-         }
-
-         public DirectoryValidator(String displayName) {
-             this.displayName = displayName;
-         }
-
-         @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            displayName = displayName == null ? DIRECTORY.getDisplayName() : displayName;
-            ValidationResult.Builder builder = new ValidationResult.Builder()
-                    .subject(displayName)
-                    .input(input);
-
-            if (context.isExpressionLanguagePresent(input)) {
-                builder.valid(true).explanation("Expression Language Present");
-            } else if (input.startsWith("/")) {
-                builder.valid(false).explanation(String.format("'%s' cannot contain a leading '/'", displayName));
-            } else if (StringUtils.isNotEmpty(input) && StringUtils.isWhitespace(input)) {
-                builder.valid(false).explanation(String.format("'%s' cannot contain whitespace characters only", displayName));
-            } else {
-                builder.valid(true);
-            }
-
-            return builder.build();
-        }
     }
 }

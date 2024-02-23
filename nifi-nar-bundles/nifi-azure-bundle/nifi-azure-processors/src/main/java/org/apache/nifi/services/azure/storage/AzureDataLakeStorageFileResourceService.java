@@ -44,10 +44,10 @@ import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.A
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILE;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateDirectoryProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileSystemProperty;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.getProxyOptions;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateDirectoryProperty;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileProperty;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileSystemProperty;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "file", "resource", "datalake"})
 @SeeAlso({FetchAzureDataLakeStorage.class})
@@ -96,7 +96,7 @@ public class AzureDataLakeStorageFileResourceService extends AbstractControllerS
     public FileResource getFileResource(Map<String, String> attributes) {
         final DataLakeServiceClient client = getStorageClient(attributes);
         try {
-            return fetchBlob(client, attributes);
+            return fetchFile(client, attributes);
         } catch (final DataLakeStorageException | IOException e) {
             throw new ProcessException("Failed to fetch file from ADLS Storage", e);
         }
@@ -116,10 +116,10 @@ public class AzureDataLakeStorageFileResourceService extends AbstractControllerS
      * @return fetched file as FileResource
      * @throws IOException exception caused by missing parameters or blob not found
      */
-    private FileResource fetchBlob(final DataLakeServiceClient storageClient, final Map<String, String> attributes) throws IOException {
-        final String fileSystem = validateFileSystemProperty(FILESYSTEM, context, attributes);
-        final String directory = validateDirectoryProperty(DIRECTORY, context, attributes);
-        final String file = validateFileProperty(context, attributes);
+    private FileResource fetchFile(final DataLakeServiceClient storageClient, final Map<String, String> attributes) throws IOException {
+        final String fileSystem = evaluateFileSystemProperty(FILESYSTEM, context, attributes);
+        final String directory = evaluateDirectoryProperty(DIRECTORY, context, attributes);
+        final String file = evaluateFileProperty(context, attributes);
 
         final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
         final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);

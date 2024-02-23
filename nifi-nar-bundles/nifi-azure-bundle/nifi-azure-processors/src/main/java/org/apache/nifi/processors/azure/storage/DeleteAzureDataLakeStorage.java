@@ -42,9 +42,9 @@ import java.util.List;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateDirectoryProperty;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileProperty;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileSystemProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateDirectoryProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileSystemProperty;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({PutAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
@@ -88,14 +88,14 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             final boolean isFile = context.getProperty(FILESYSTEM_OBJECT_TYPE).getValue().equals(FS_TYPE_FILE.getValue());
             final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
 
-            final String fileSystem = validateFileSystemProperty(FILESYSTEM, context, flowFile);
+            final String fileSystem = evaluateFileSystemProperty(FILESYSTEM, context, flowFile);
             final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
 
-            final String directory = validateDirectoryProperty(DIRECTORY, context, flowFile);
+            final String directory = evaluateDirectoryProperty(DIRECTORY, context, flowFile);
             final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
 
             if (isFile) {
-                final String fileName = validateFileProperty(context, flowFile);
+                final String fileName = evaluateFileProperty(context, flowFile);
                 final DataLakeFileClient fileClient = directoryClient.getFileClient(fileName);
                 fileClient.delete();
                 session.transfer(flowFile, REL_SUCCESS);

@@ -81,8 +81,8 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateDirectoryProperty;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileSystemProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateDirectoryProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileSystemProperty;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -266,8 +266,8 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
     private List<ADLSFileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode,
                                               final boolean applyFilters) throws IOException {
         try {
-            final String fileSystem = validateFileSystemProperty(FILESYSTEM, context, (FlowFile) null);
-            final String baseDirectory = validateDirectoryProperty(DIRECTORY, context, (FlowFile) null);
+            final String fileSystem = evaluateFileSystemProperty(FILESYSTEM, context, (FlowFile) null);
+            final String baseDirectory = evaluateDirectoryProperty(DIRECTORY, context, (FlowFile) null);
             final boolean recurseSubdirectories = context.getProperty(RECURSE_SUBDIRECTORIES).asBoolean();
 
             final Pattern filePattern = listingMode == ListingMode.EXECUTION ? this.filePattern : getPattern(context, FILE_FILTER);

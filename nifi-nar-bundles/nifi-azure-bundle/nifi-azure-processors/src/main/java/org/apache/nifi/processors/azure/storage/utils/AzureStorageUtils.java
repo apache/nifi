@@ -21,17 +21,18 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.proxy.SocksVersion;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
 import org.apache.nifi.services.azure.storage.AzureStorageConflictResolutionStrategy;
+import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsType;
 import reactor.netty.http.client.HttpClient;
 
@@ -41,7 +42,9 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Map;
 
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILESYSTEM;
 
 public final class AzureStorageUtils {
     public static final String STORAGE_ACCOUNT_NAME_PROPERTY_DESCRIPTOR_NAME = "storage-account-name";
@@ -54,6 +57,14 @@ public final class AzureStorageUtils {
             .displayName("ADLS Credentials")
             .description("Controller Service used to obtain Azure Credentials.")
             .identifiesControllerService(ADLSCredentialsService.class)
+            .required(true)
+            .build();
+
+    public static final PropertyDescriptor BLOB_STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+            .name("storage-credentials-service")
+            .displayName("Storage Credentials")
+            .description("Controller Service used to obtain Azure Blob Storage Credentials.")
+            .identifiesControllerService(AzureStorageCredentialsService_v12.class)
             .required(true)
             .build();
 
@@ -76,6 +87,7 @@ public final class AzureStorageUtils {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
+            .defaultValue(String.format("${%s}", ATTR_NAME_FILESYSTEM))
             .build();
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
@@ -83,9 +95,10 @@ public final class AzureStorageUtils {
             .displayName("Directory Name")
             .description("Name of the Azure Storage Directory. The Directory Name cannot contain a leading '/'. The root directory can be designated by the empty string value. " +
                     "In case of the PutAzureDataLakeStorage processor, the directory will be created if not already existing.")
-            .addValidator(new AbstractAzureDataLakeStorageProcessor.DirectoryValidator())
+            .addValidator(new DirectoryValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
+            .defaultValue(String.format("${%s}", ATTR_NAME_DIRECTORY))
             .build();
 
     public static final PropertyDescriptor FILE = new PropertyDescriptor.Builder()
@@ -258,44 +271,25 @@ public final class AzureStorageUtils {
         ProxyConfiguration.validateProxySpec(context, results, PROXY_SPECS);
     }
 
-    public static String validateFileSystemProperty(PropertyDescriptor propertyDescriptor, PropertyContext context, Map<String, String> attributeMap) {
-        final String fileSystem = getPropertyFromAttributeMap(propertyDescriptor, context, attributeMap);
-        return doValidateFileSystemValue(propertyDescriptor, fileSystem);
+    public static String evaluateFileSystemProperty(PropertyDescriptor property, PropertyContext context, FlowFile flowFile) {
+        return evaluateFileSystemProperty(property, context, flowFile.getAttributes());
     }
 
-    public static String validateFileSystemProperty(PropertyDescriptor propertyDescriptor, PropertyContext context, FlowFile flowFile) {
-        final String fileSystem = getPropertyFromFlowFile(propertyDescriptor, context, flowFile);
-        return doValidateFileSystemValue(propertyDescriptor, fileSystem);
-    }
-
-    public static String validateDirectoryProperty(PropertyDescriptor property, PropertyContext context, FlowFile flowFile) {
-        final String directory = getPropertyFromFlowFile(property, context, flowFile);
-        return doValidateDirectoryValue(property, directory);
-    }
-
-    public static String validateDirectoryProperty(PropertyDescriptor property, PropertyContext context, Map<String, String> attributes) {
-        final String directory = getPropertyFromAttributeMap(property, context, attributes);
-        return doValidateDirectoryValue(property, directory);
-    }
-
-    public static String validateFileProperty(PropertyContext context, FlowFile flowFile) {
-        final String fileName = getPropertyFromFlowFile(FILE, context, flowFile);
-        return doValidateFileValue(fileName);
-    }
-
-    public static String validateFileProperty(PropertyContext context, Map<String, String> attributes) {
-        final String fileName = getPropertyFromAttributeMap(FILE, context, attributes);
-        return doValidateFileValue(fileName);
-    }
-
-    private static String doValidateFileSystemValue(PropertyDescriptor property, String fileSystem) {
+    public static String evaluateFileSystemProperty(PropertyDescriptor property, PropertyContext context, Map<String, String> attributes) {
+        final String fileSystem = evaluateProperty(property, context, attributes);
         if (StringUtils.isBlank(fileSystem)) {
-            throw new ProcessException(String.format("'%1$s' property evaluated to blank string. '%s' must be specified as a non-blank string.", property.getDisplayName()));
+            throw new ProcessException(String.format("'%1$s' property evaluated to blank string. '%s' must be specified as a non-blank string.",
+                    property.getDisplayName()));
         }
         return fileSystem;
     }
 
-    private static String doValidateDirectoryValue(PropertyDescriptor property, String directory) {
+    public static String evaluateDirectoryProperty(PropertyDescriptor property, PropertyContext context, FlowFile flowFile) {
+        return evaluateDirectoryProperty(property, context, flowFile.getAttributes());
+    }
+
+    public static String evaluateDirectoryProperty(PropertyDescriptor property, PropertyContext context, Map<String, String> attributes) {
+        final String directory = evaluateProperty(property, context, attributes);
         if (directory.startsWith("/")) {
             throw new ProcessException(String.format("'%1$s' starts with '/'. '%s' cannot contain a leading '/'.", property.getDisplayName()));
         } else if (StringUtils.isNotEmpty(directory) && StringUtils.isWhitespace(directory)) {
@@ -304,19 +298,20 @@ public final class AzureStorageUtils {
         return directory;
     }
 
-    private static String doValidateFileValue(String fileName) {
+    public static String evaluateFileProperty(PropertyContext context, FlowFile flowFile) {
+        return evaluateFileProperty(context, flowFile.getAttributes());
+    }
+
+    public static String evaluateFileProperty(PropertyContext context, Map<String, String> attributes) {
+        final String fileName = evaluateProperty(FILE, context, attributes);
         if (StringUtils.isBlank(fileName)) {
             throw new ProcessException(String.format("'%1$s' property evaluated to blank string. '%s' must be specified as a non-blank string.", FILE.getDisplayName()));
         }
         return fileName;
     }
 
-    private static String getPropertyFromFlowFile(PropertyDescriptor propertyDescriptor, PropertyContext context, FlowFile flowFile) {
-        return context.getProperty(propertyDescriptor).evaluateAttributeExpressions(flowFile).getValue();
-    }
-
-    private static String getPropertyFromAttributeMap(PropertyDescriptor propertyDescriptor, PropertyContext context, Map<String, String> attributeMap) {
-        return context.getProperty(propertyDescriptor).evaluateAttributeExpressions(attributeMap).getValue();
+    private static String evaluateProperty(PropertyDescriptor propertyDescriptor, PropertyContext context, Map<String, String> attributes) {
+        return context.getProperty(propertyDescriptor).evaluateAttributeExpressions(attributes).getValue();
     }
 
     /**
@@ -354,6 +349,38 @@ public final class AzureStorageUtils {
             return ProxyOptions.Type.valueOf(socksVersion.name());
         } else {
             throw new IllegalArgumentException("Unsupported proxy type: " + proxyConfiguration.getProxyType());
+        }
+    }
+
+    public static class DirectoryValidator implements Validator {
+        private String displayName;
+
+        public DirectoryValidator() {
+            this.displayName = null;
+        }
+
+        public DirectoryValidator(String displayName) {
+            this.displayName = displayName;
+        }
+
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            displayName = displayName == null ? DIRECTORY.getDisplayName() : displayName;
+            ValidationResult.Builder builder = new ValidationResult.Builder()
+                    .subject(displayName)
+                    .input(input);
+
+            if (context.isExpressionLanguagePresent(input)) {
+                builder.valid(true).explanation("Expression Language Present");
+            } else if (input.startsWith("/")) {
+                builder.valid(false).explanation(String.format("'%s' cannot contain a leading '/'", displayName));
+            } else if (StringUtils.isNotEmpty(input) && StringUtils.isWhitespace(input)) {
+                builder.valid(false).explanation(String.format("'%s' cannot contain whitespace characters only", displayName));
+            } else {
+                builder.valid(true);
+            }
+
+            return builder.build();
         }
     }
 }

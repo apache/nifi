@@ -37,6 +37,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DirectoryValidator;
 
 import java.util.HashMap;
 import java.util.List;
@@ -61,9 +62,9 @@ import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.A
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILE;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateDirectoryProperty;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileProperty;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.validateFileSystemProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateDirectoryProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileProperty;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileSystemProperty;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({DeleteAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
@@ -154,11 +155,11 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
 
         final long startNanos = System.nanoTime();
         try {
-            final String sourceFileSystem = validateFileSystemProperty(SOURCE_FILESYSTEM, context, flowFile);
-            final String sourceDirectory = validateDirectoryProperty(SOURCE_DIRECTORY, context, flowFile);
-            final String destinationFileSystem = validateFileSystemProperty(DESTINATION_FILESYSTEM, context, flowFile);
-            final String destinationDirectory = validateDirectoryProperty(DESTINATION_DIRECTORY, context, flowFile);
-            final String fileName = validateFileProperty(context, flowFile);
+            final String sourceFileSystem = evaluateFileSystemProperty(SOURCE_FILESYSTEM, context, flowFile);
+            final String sourceDirectory = evaluateDirectoryProperty(SOURCE_DIRECTORY, context, flowFile);
+            final String destinationFileSystem = evaluateFileSystemProperty(DESTINATION_FILESYSTEM, context, flowFile);
+            final String destinationDirectory = evaluateDirectoryProperty(DESTINATION_DIRECTORY, context, flowFile);
+            final String fileName = evaluateFileProperty(context, flowFile);
 
             final String destinationPath;
             if (!destinationDirectory.isEmpty() && !sourceDirectory.isEmpty()) {

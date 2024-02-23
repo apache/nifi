@@ -39,7 +39,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Map;
 
-import static org.apache.nifi.services.azure.storage.AzureBlobStorageFileResourceService.STORAGE_CREDENTIALS_SERVICE;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -142,7 +142,7 @@ class AzureBlobStorageFileResourceServiceTest {
         runner.addControllerService(CONTROLLER_SERVICE, credentialsService);
         runner.enableControllerService(credentialsService);
 
-        runner.setProperty(service, STORAGE_CREDENTIALS_SERVICE, CONTROLLER_SERVICE);
+        runner.setProperty(service, BLOB_STORAGE_CREDENTIALS_SERVICE, CONTROLLER_SERVICE);
         runner.setProperty(service, AzureBlobStorageFileResourceService.BLOB_NAME, blobName);
         runner.setProperty(service, AzureBlobStorageFileResourceService.CONTAINER, container);
 
