@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TestTimeFormat {
+public class TestDurationFormat {
 
     @ParameterizedTest
     @MethodSource("getParse")
