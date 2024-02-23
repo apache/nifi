@@ -34,6 +34,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class LevelChangeListenerTest {
 
+    private static final String LOGGER_NAME = Test.class.getName();
+
     @Mock
     private Logger logger;
 
@@ -56,10 +58,10 @@ class LevelChangeListenerTest {
 
     @Test
     void testOnLevelChange() {
-        when(logger.getName()).thenReturn(Logger.ROOT_LOGGER_NAME);
+        when(logger.getName()).thenReturn(LOGGER_NAME);
 
         listener.onLevelChange(logger, Level.INFO);
 
-        verify(logLevelChangeListener).onLevelChange(eq(Logger.ROOT_LOGGER_NAME), eq(LogLevel.INFO));
+        verify(logLevelChangeListener).onLevelChange(eq(LOGGER_NAME), eq(LogLevel.INFO));
     }
 }
