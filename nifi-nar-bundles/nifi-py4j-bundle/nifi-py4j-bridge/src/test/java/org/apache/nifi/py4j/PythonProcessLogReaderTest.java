@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.py4j;
 
+import org.apache.nifi.py4j.logging.PythonLogLevel;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -25,12 +26,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.StringReader;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PythonProcessLogReaderTest {
@@ -41,103 +48,164 @@ class PythonProcessLogReaderTest {
 
     private static final String LOG_MESSAGE = "Testing Python Processing";
 
-    private static final String LINE_FORMAT = "%s %s:%s";
+    private static final String LINE_FORMAT = "PY4JLOG %s %s:%s%n";
 
     private static final String LINE_UNFORMATTED = "Testing message without level or logger";
 
-    private static final String LINE_MISSING_SEPARATOR = "%s %s".formatted(PythonProcessLogReader.LogLevel.INFO.getLevel(), LOG_MESSAGE);
+    private static final String LINE_MISSING_SEPARATOR = "%s %s".formatted(PythonLogLevel.INFO.getLevel(), LOG_MESSAGE);
 
     private static final String LINE_EMPTY = "";
 
+    private static final String MESSAGE_TRACEBACK = "Command Failed\nTrackback (most recent call last):\n  File: command.py, line 1\nError: name is not defined";
+
     @Mock
-    private Logger logger;
+    private Logger processLogger;
+
+    @Mock
+    private Logger controllerLogger;
 
     @Test
     void testDebug() {
-        runCommand(PythonProcessLogReader.LogLevel.DEBUG);
+        runCommand(PythonLogLevel.DEBUG, controllerLogger);
 
-        verify(logger).debug(eq(LOG_MESSAGE));
+        verify(controllerLogger).debug(eq(LOG_MESSAGE));
     }
 
     @Test
     void testInfo() {
-        runCommand(PythonProcessLogReader.LogLevel.INFO);
+        runCommand(PythonLogLevel.INFO, controllerLogger);
 
-        verify(logger).info(eq(LOG_MESSAGE));
+        verify(controllerLogger).info(eq(LOG_MESSAGE));
     }
 
     @Test
     void testWarning() {
-        runCommand(PythonProcessLogReader.LogLevel.WARNING);
+        runCommand(PythonLogLevel.WARNING, controllerLogger);
 
-        verify(logger).warn(eq(LOG_MESSAGE));
+        verify(controllerLogger).warn(eq(LOG_MESSAGE));
     }
 
     @Test
     void testError() {
-        runCommand(PythonProcessLogReader.LogLevel.ERROR);
+        runCommand(PythonLogLevel.ERROR, controllerLogger);
 
-        verify(logger).error(eq(LOG_MESSAGE));
+        verify(controllerLogger).error(eq(LOG_MESSAGE));
     }
 
     @Test
     void testCritical() {
-        runCommand(PythonProcessLogReader.LogLevel.CRITICAL);
+        runCommand(PythonLogLevel.CRITICAL, controllerLogger);
 
-        verify(logger).error(eq(LOG_MESSAGE));
+        verify(controllerLogger).error(eq(LOG_MESSAGE));
     }
 
     @Test
     void testUnformatted() {
         try (MockedStatic<LoggerFactory> loggerFactory = mockStatic(LoggerFactory.class)) {
-            loggerFactory.when(() -> LoggerFactory.getLogger(eq(PROCESS_LOGGER))).thenReturn(logger);
+            setupLogger(loggerFactory, processLogger, PROCESS_LOGGER);
 
             final BufferedReader reader = new BufferedReader(new StringReader(LINE_UNFORMATTED));
             final Runnable command = new PythonProcessLogReader(reader);
             command.run();
-        }
 
-        verify(logger).info(eq(LINE_UNFORMATTED));
+            verify(processLogger).info(eq(LINE_UNFORMATTED));
+        }
     }
 
     @Test
     void testMissingSeparator() {
         try (MockedStatic<LoggerFactory> loggerFactory = mockStatic(LoggerFactory.class)) {
-            loggerFactory.when(() -> LoggerFactory.getLogger(eq(PROCESS_LOGGER))).thenReturn(logger);
+            setupLogger(loggerFactory, processLogger, PROCESS_LOGGER);
 
             final BufferedReader reader = new BufferedReader(new StringReader(LINE_MISSING_SEPARATOR));
             final Runnable command = new PythonProcessLogReader(reader);
             command.run();
-        }
 
-        verify(logger).info(eq(LOG_MESSAGE));
+            verify(processLogger).info(eq(LINE_MISSING_SEPARATOR));
+        }
     }
 
     @Test
     void testEmpty() {
         try (MockedStatic<LoggerFactory> loggerFactory = mockStatic(LoggerFactory.class)) {
-            loggerFactory.when(() -> LoggerFactory.getLogger(eq(PROCESS_LOGGER))).thenReturn(logger);
+            setupLogger(loggerFactory, processLogger, PROCESS_LOGGER);
 
             final BufferedReader reader = new BufferedReader(new StringReader(LINE_EMPTY));
             final Runnable command = new PythonProcessLogReader(reader);
             command.run();
-        }
 
-        verifyNoInteractions(logger);
+            verifyNoInteractions(processLogger);
+        }
     }
 
-    private void runCommand(final PythonProcessLogReader.LogLevel logLevel) {
-        try (MockedStatic<LoggerFactory> loggerFactory = mockStatic(LoggerFactory.class)) {
-            loggerFactory.when(() -> LoggerFactory.getLogger(eq(CONTROLLER_LOGGER))).thenReturn(logger);
+    @Test
+    void testInfoMultipleMessages() {
+        final int messages = 2;
 
-            final String line = getLine(logLevel, CONTROLLER_LOGGER);
+        try (MockedStatic<LoggerFactory> loggerFactory = mockStatic(LoggerFactory.class)) {
+            setupLogger(loggerFactory, controllerLogger, CONTROLLER_LOGGER);
+
+            final StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < messages; i++) {
+                builder.append(getLine(PythonLogLevel.INFO));
+                builder.append(System.lineSeparator());
+            }
+
+            final String lines = builder.toString();
+            final BufferedReader reader = new BufferedReader(new StringReader(lines));
+            final Runnable command = new PythonProcessLogReader(reader);
+            command.run();
+        }
+
+        verify(controllerLogger, times(messages)).info(eq(LOG_MESSAGE));
+    }
+
+    @Test
+    void testErrorMultipleLines() {
+        try (MockedStatic<LoggerFactory> loggerFactory = mockStatic(LoggerFactory.class)) {
+            setupLogger(loggerFactory, controllerLogger, CONTROLLER_LOGGER);
+
+            final String lines = LINE_FORMAT.formatted(PythonLogLevel.ERROR.getLevel(), CONTROLLER_LOGGER, MESSAGE_TRACEBACK);
+
+            final BufferedReader reader = new BufferedReader(new StringReader(lines));
+            final Runnable command = new PythonProcessLogReader(reader);
+            command.run();
+        }
+
+        verify(controllerLogger).error(eq(MESSAGE_TRACEBACK));
+    }
+
+    @Test
+    void testReaderException() throws IOException {
+        try (MockedStatic<LoggerFactory> loggerFactory = mockStatic(LoggerFactory.class)) {
+            setupLogger(loggerFactory, processLogger, PROCESS_LOGGER);
+
+            final BufferedReader reader = mock(BufferedReader.class);
+            when(reader.readLine()).thenThrow(new IOException());
+
+            final Runnable command = new PythonProcessLogReader(reader);
+            command.run();
+
+            verify(processLogger).error(anyString(), isA(IOException.class));
+        }
+    }
+
+    private void runCommand(final PythonLogLevel logLevel, final Logger logger) {
+        try (MockedStatic<LoggerFactory> loggerFactory = mockStatic(LoggerFactory.class)) {
+            setupLogger(loggerFactory, logger, CONTROLLER_LOGGER);
+
+            final String line = getLine(logLevel);
             final BufferedReader reader = new BufferedReader(new StringReader(line));
             final Runnable command = new PythonProcessLogReader(reader);
             command.run();
         }
     }
 
-    private String getLine(final PythonProcessLogReader.LogLevel logLevel, final String loggerName) {
-        return LINE_FORMAT.formatted(logLevel.getLevel(), loggerName, LOG_MESSAGE);
+    private void setupLogger(final MockedStatic<LoggerFactory> loggerFactory, final Logger logger, final String loggerName) {
+        loggerFactory.when(() -> LoggerFactory.getLogger(eq(loggerName))).thenReturn(logger);
+    }
+
+    private String getLine(final PythonLogLevel logLevel) {
+        return LINE_FORMAT.formatted(logLevel.getLevel(), CONTROLLER_LOGGER, LOG_MESSAGE);
     }
 }

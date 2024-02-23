@@ -17,6 +17,10 @@
 
 package org.apache.nifi.py4j;
 
+import org.apache.nifi.py4j.logging.LogLevelChangeListener;
+import org.apache.nifi.py4j.logging.PythonLogLevel;
+import org.apache.nifi.py4j.logging.StandardLogLevelChangeHandler;
+import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.py4j.client.JavaObjectBindings;
 import org.apache.nifi.py4j.client.NiFiPythonGateway;
 import org.apache.nifi.py4j.client.StandardPythonClient;
@@ -53,7 +57,7 @@ public class PythonProcess {
     private static final Logger logger = LoggerFactory.getLogger(PythonProcess.class);
     private static final String PYTHON_CONTROLLER_FILENAME = "Controller.py";
 
-    private static final String LOG_READER_THREAD_NAME_FORMAT = "python-log-%s";
+    private static final String LOG_READER_THREAD_NAME_FORMAT = "python-log-%d";
 
     private final PythonProcessConfig processConfig;
     private final ControllerServiceTypeLookup controllerServiceTypeLookup;
@@ -70,6 +74,7 @@ public class PythonProcess {
     private volatile List<String> extensionDirs;
     private volatile String workDir;
     private Thread logReaderThread;
+    private String logListenerId;
 
 
     public PythonProcess(final PythonProcessConfig processConfig, final ControllerServiceTypeLookup controllerServiceTypeLookup, final File virtualEnvHome,
@@ -122,7 +127,7 @@ public class PythonProcess {
         this.process = launchPythonProcess(listeningPort, authToken);
         this.process.onExit().thenAccept(this::handlePythonProcessDied);
 
-        final String logReaderThreadName = LOG_READER_THREAD_NAME_FORMAT.formatted(componentType);
+        final String logReaderThreadName = LOG_READER_THREAD_NAME_FORMAT.formatted(process.pid());
         final Runnable logReaderCommand = new PythonProcessLogReader(process.inputReader(StandardCharsets.UTF_8));
         this.logReaderThread = Thread.ofVirtual().name(logReaderThreadName).start(logReaderCommand);
 
@@ -158,6 +163,9 @@ public class PythonProcess {
         if (!pingSuccessful && lastException != null) {
             throw new RuntimeException("Failed to start Python Bridge", lastException);
         }
+
+        logListenerId = Long.toString(process.pid());
+        StandardLogLevelChangeHandler.getHandler().addListener(logListenerId, new PythonProcessLogLevelChangeListener());
 
         controller.setControllerServiceTypeLookup(controllerServiceTypeLookup);
         logger.info("Successfully started and pinged Python Server. Python Process = {}", process);
@@ -335,6 +343,8 @@ public class PythonProcess {
     }
 
     private synchronized void killProcess() {
+        StandardLogLevelChangeHandler.getHandler().removeListener(logListenerId);
+
         if (server != null) {
             try {
                 server.shutdown();
@@ -443,4 +453,18 @@ public class PythonProcess {
     }
 
     private record CreatedProcessor(String identifier, String type, PythonProcessorBridge processorBridge) {}
+
+    private class PythonProcessLogLevelChangeListener implements LogLevelChangeListener {
+        /**
+         * Publish log level changes to Python Controller with conversion from framework log level to Python log level
+         *
+         * @param loggerName Name of logger with updated level
+         * @param logLevel New log level
+         */
+        @Override
+        public void onLevelChange(final String loggerName, final LogLevel logLevel) {
+            final PythonLogLevel pythonLogLevel = PythonLogLevel.valueOf(logLevel);
+            controller.setLoggerLevel(loggerName, pythonLogLevel.getLevel());
+        }
+    }
 }

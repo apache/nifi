@@ -16,12 +16,18 @@
  */
 package org.apache.nifi.py4j;
 
+import org.apache.nifi.py4j.logging.PythonLogLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
+import java.util.stream.Collectors;
 
 /**
  * Runnable Command for reading a line from Process Output Stream and writing to a Logger
@@ -33,108 +39,125 @@ class PythonProcessLogReader implements Runnable {
 
     private static final int MESSAGE_BEGIN_INDEX = 3;
 
-    private static final int MINIMUM_LINE_LENGTH = 4;
-
     private static final char NAME_MESSAGE_SEPARATOR = ':';
 
-    private static final int INDEX_NOT_FOUND = -1;
+    private static final int MINIMUM_LOGGER_NAME_INDEX = 3;
+
+    private static final String LOG_PREFIX = "PY4JLOG";
+
+    private static final int PREFIXED_LOG_LEVEL_BEGIN_INDEX = 8;
+
+    private static final String LINE_SEPARATOR = System.lineSeparator();
+
+    private static final Map<String, PythonLogLevel> PYTHON_LOG_LEVELS = Arrays.stream(PythonLogLevel.values()).collect(
+            Collectors.toUnmodifiableMap(
+                    pythonLogLevel -> Integer.toString(pythonLogLevel.getLevel()),
+                    pythonLogLevel -> pythonLogLevel
+            )
+    );
 
     private final Logger processLogger = LoggerFactory.getLogger("org.apache.nifi.py4j.ProcessLog");
 
     private final BufferedReader processReader;
 
+    /**
+     * Standard constructor with Buffered Reader connected to Python Process Output Stream
+     *
+     * @param processReader Reader from Process Output Stream
+     */
     PythonProcessLogReader(final BufferedReader processReader) {
         this.processReader = Objects.requireNonNull(processReader, "Reader required");
     }
 
+    /**
+     * Read lines from Process Reader and write log messages based on parsed level and named logger
+     */
     @Override
     public void run() {
+        final Queue<ParsedRecord> parsedRecords = new LinkedList<>();
+
         try {
             String line = processReader.readLine();
             while (line != null) {
-                if (line.length() > MINIMUM_LINE_LENGTH) {
-                    processLine(line);
+                processLine(line, parsedRecords);
+
+                if (parsedRecords.size() == 2 || !processReader.ready()) {
+                    final ParsedRecord parsedRecord = parsedRecords.remove();
+                    log(parsedRecord);
                 }
+
+                // Read and block for subsequent lines
                 line = processReader.readLine();
             }
         } catch (final IOException e) {
             processLogger.error("Failed to read output of Python Process", e);
         }
-    }
 
-    private void processLine(final String line) {
-        final String levelNumber = line.substring(LOG_LEVEL_BEGIN_INDEX, LOG_LEVEL_END_INDEX);
-        final LogLevel logLevel = getLogLevel(levelNumber);
-        if (LogLevel.NOTSET == logLevel) {
-            processLogger.info(line);
-        } else {
-            final String message = line.substring(MESSAGE_BEGIN_INDEX);
-            processMessage(logLevel, message);
+        // Handle last buffered message following closure of process stream
+        for (final ParsedRecord parsedRecord : parsedRecords) {
+            log(parsedRecord);
         }
     }
 
-    private void processMessage(final LogLevel logLevel, final String message) {
-        final int nameSeparatorIndex = message.indexOf(NAME_MESSAGE_SEPARATOR);
-        if (INDEX_NOT_FOUND == nameSeparatorIndex) {
-            log(processLogger, logLevel, message);
+    private void processLine(final String line, final Queue<ParsedRecord> parsedRecords) {
+        final int logPrefixIndex = line.indexOf(LOG_PREFIX);
+        if (logPrefixIndex == 0) {
+            final String levelLogLine = line.substring(PREFIXED_LOG_LEVEL_BEGIN_INDEX);
+            final String levelNumber = levelLogLine.substring(LOG_LEVEL_BEGIN_INDEX, LOG_LEVEL_END_INDEX);
+            final PythonLogLevel logLevel = PYTHON_LOG_LEVELS.getOrDefault(levelNumber, PythonLogLevel.NOTSET);
+            final String loggerMessage = levelLogLine.substring(MESSAGE_BEGIN_INDEX);
+
+            final int nameSeparatorIndex = loggerMessage.indexOf(NAME_MESSAGE_SEPARATOR);
+            final String message;
+            final Logger logger;
+            if (nameSeparatorIndex < MINIMUM_LOGGER_NAME_INDEX) {
+                // Set ProcessLog when named logger not found
+                logger = processLogger;
+                message = loggerMessage;
+            } else {
+                final String loggerName = loggerMessage.substring(0, nameSeparatorIndex);
+                logger = LoggerFactory.getLogger(loggerName);
+
+                final int messageBeginIndex = nameSeparatorIndex + 1;
+                message = loggerMessage.substring(messageBeginIndex);
+            }
+
+            final StringBuilder buffer = new StringBuilder(message);
+            final ParsedRecord parsedRecord = new ParsedRecord(logLevel, logger, buffer);
+            parsedRecords.add(parsedRecord);
         } else {
-            final String loggerName = message.substring(0, nameSeparatorIndex);
-            final Logger messageLogger = LoggerFactory.getLogger(loggerName);
-
-            final int messageBeginIndex = nameSeparatorIndex + 1;
-            final String logMessage = message.substring(messageBeginIndex);
-            log(messageLogger, logLevel, logMessage);
-        }
-    }
-
-    private void log(final Logger logger, final LogLevel logLevel, final String message) {
-        if (LogLevel.DEBUG == logLevel) {
-            logger.debug(message);
-        } else if (LogLevel.INFO == logLevel) {
-            logger.info(message);
-        } else if (LogLevel.WARNING == logLevel) {
-            logger.warn(message);
-        } else if (LogLevel.ERROR == logLevel) {
-            logger.error(message);
-        } else {
-            logger.error(message);
-        }
-    }
-
-    private LogLevel getLogLevel(final String levelNumber) {
-        LogLevel logLevel = LogLevel.NOTSET;
-
-        for (final LogLevel currentLogLevel : LogLevel.values()) {
-            if (currentLogLevel.level.equals(levelNumber)) {
-                logLevel = currentLogLevel;
-                break;
+            final ParsedRecord lastRecord = parsedRecords.peek();
+            if (lastRecord == null) {
+                final StringBuilder buffer = new StringBuilder(line);
+                final ParsedRecord parsedRecord = new ParsedRecord(PythonLogLevel.INFO, processLogger, buffer);
+                parsedRecords.add(parsedRecord);
+            } else if (!line.isEmpty()) {
+                // Add line separator for buffering multiple lines in the same record
+                lastRecord.buffer.append(LINE_SEPARATOR);
+                lastRecord.buffer.append(line);
             }
         }
-
-        return logLevel;
     }
 
-    enum LogLevel {
-        NOTSET("0"),
+    private void log(final ParsedRecord parsedRecord) {
+        final PythonLogLevel logLevel = parsedRecord.level;
+        final Logger logger = parsedRecord.logger;
+        final String message = parsedRecord.buffer.toString();
 
-        DEBUG("10"),
-
-        INFO("20"),
-
-        WARNING("30"),
-
-        ERROR("40"),
-
-        CRITICAL("50");
-
-        private final String level;
-
-        LogLevel(final String level) {
-            this.level = level;
-        }
-
-        String getLevel() {
-            return level;
+        if (PythonLogLevel.DEBUG == logLevel) {
+            logger.debug(message);
+        } else if (PythonLogLevel.INFO == logLevel) {
+            logger.info(message);
+        } else if (PythonLogLevel.WARNING == logLevel) {
+            logger.warn(message);
+        } else if (PythonLogLevel.ERROR == logLevel) {
+            logger.error(message);
+        } else if (PythonLogLevel.CRITICAL == logLevel) {
+            logger.error(message);
+        } else {
+            logger.warn(message);
         }
     }
+
+    private record ParsedRecord(PythonLogLevel level, Logger logger, StringBuilder buffer) {}
 }

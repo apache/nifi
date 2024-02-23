@@ -18,6 +18,9 @@
 package org.apache.nifi.py4j;
 
 import org.apache.nifi.components.AsyncLoadedProcessor;
+import org.apache.nifi.py4j.logback.LevelChangeListener;
+import org.apache.nifi.py4j.logging.LogLevelChangeHandler;
+import org.apache.nifi.py4j.logging.StandardLogLevelChangeHandler;
 import org.apache.nifi.python.BoundObjectCounts;
 import org.apache.nifi.python.ControllerServiceTypeLookup;
 import org.apache.nifi.python.PythonBridge;
@@ -71,6 +74,9 @@ public class StandardPythonBridge implements PythonBridge {
         logger.debug("{} launching Python Process", this);
 
         try {
+            final LogLevelChangeHandler logLevelChangeHandler = StandardLogLevelChangeHandler.getHandler();
+            LevelChangeListener.registerLogbackListener(logLevelChangeHandler);
+
             final File envHome = new File(processConfig.getPythonWorkingDirectory(), "controller");
             controllerProcess = new PythonProcess(processConfig, serviceTypeLookup, envHome, "Controller", "Controller");
             controllerProcess.start();

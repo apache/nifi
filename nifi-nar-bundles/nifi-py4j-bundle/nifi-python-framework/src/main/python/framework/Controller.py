@@ -30,18 +30,13 @@ import ExtensionManager
 threadpool_attrs = dir(ThreadPoolExecutor)
 processpool_attrs = dir(ProcessPoolExecutor)
 
-
-# Initialize logging
-logger = logging.getLogger("org.apache.nifi.py4j.Controller")
-logger.setLevel(logging.INFO)
-
-logging.getLogger("py4j").setLevel(logging.WARN)
-
 # Set log format with level number and separator as expected in PythonProcessReaderCommand
-logging.basicConfig(stream=sys.stdout,
-                    format='%(levelno)s %(name)s:%(message)s',
+logging.basicConfig(stream=sys.stderr,
+                    format='PY4JLOG %(levelno)s %(name)s:%(message)s',
                     encoding='utf-8',
                     level=logging.INFO)
+
+logger = logging.getLogger("org.apache.nifi.py4j.Controller")
 
 
 class Controller:
@@ -92,6 +87,9 @@ class Controller:
 
     def setControllerServiceTypeLookup(self, typeLookup):
         self.controllerServiceTypeLookup = typeLookup
+
+    def setLoggerLevel(self, loggerName, level):
+        logging.getLogger(loggerName).setLevel(level)
 
     class Java:
         implements = ["org.apache.nifi.py4j.PythonController"]

@@ -42,6 +42,12 @@
             <artifactId>py4j</artifactId>
             <version>0.10.9.7</version>
         </dependency>
+        <!-- Logback provided dependency for Log Level Change notification -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.nifi</groupId>
