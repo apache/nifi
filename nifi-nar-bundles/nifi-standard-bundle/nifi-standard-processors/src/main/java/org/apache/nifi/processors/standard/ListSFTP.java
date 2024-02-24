@@ -99,6 +99,7 @@ public class ListSFTP extends ListFileTransfer {
         properties.add(SFTPTransfer.FILE_FILTER_REGEX);
         properties.add(SFTPTransfer.PATH_FILTER_REGEX);
         properties.add(SFTPTransfer.IGNORE_DOTTED_FILES);
+        properties.add(SFTPTransfer.REMOTE_POLL_BATCH_SIZE);
         properties.add(SFTPTransfer.STRICT_HOST_KEY_CHECKING);
         properties.add(SFTPTransfer.HOST_KEY_FILE);
         properties.add(SFTPTransfer.CONNECTION_TIMEOUT);
