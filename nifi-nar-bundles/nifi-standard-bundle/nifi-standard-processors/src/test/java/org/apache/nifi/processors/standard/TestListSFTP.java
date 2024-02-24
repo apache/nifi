@@ -177,6 +177,20 @@ public class TestListSFTP {
 
         runner.assertTransferCount(ListSFTP.REL_SUCCESS, 0);
     }
+    @Test
+    public void testRemotePollBatchSizeEnforced() {
+        runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.NO_TRACKING);
+        runner.setProperty(SFTPTransfer.REMOTE_POLL_BATCH_SIZE, "1");
+
+        runner.run();
+        // Of 3 items only 1 returned due to batch size
+        runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
+
+        runner.setProperty(SFTPTransfer.REMOTE_POLL_BATCH_SIZE, "2");
+
+        runner.run();
+        runner.assertTransferCount(ListSFTP.REL_SUCCESS, 3);
+    }
 
     @Test
     public void testVerificationSuccessful() {
