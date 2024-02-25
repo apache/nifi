@@ -130,6 +130,10 @@ public class RecordPathCompiler {
                 return new RootPath();
             }
             case CHILD_REFERENCE: {
+                if (tree.getChildCount() == 0) {
+                    return new RootPath();
+                }
+
                 final Tree childTree = tree.getChild(0);
                 if (childTree == null) {
                     return new RootPath();
