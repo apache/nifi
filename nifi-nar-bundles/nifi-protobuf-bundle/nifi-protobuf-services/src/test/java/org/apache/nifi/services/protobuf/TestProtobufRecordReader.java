@@ -17,9 +17,7 @@
 package org.apache.nifi.services.protobuf;
 
 import com.google.protobuf.Descriptors;
-import com.squareup.wire.schema.Location;
 import com.squareup.wire.schema.Schema;
-import com.squareup.wire.schema.SchemaLoader;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
@@ -30,13 +28,11 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.FileSystems;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-import static org.apache.nifi.services.protobuf.ProtoTestUtil.BASE_TEST_PATH;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.generateInputDataForProto3;
+import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadProto3TestSchema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -48,9 +44,7 @@ public class TestProtobufRecordReader {
 
     @BeforeAll
     public static void setup(){
-        final SchemaLoader schemaLoader = new SchemaLoader(FileSystems.getDefault());
-        schemaLoader.initRoots(Collections.singletonList(Location.get(BASE_TEST_PATH + "test_proto3.proto")), Collections.emptyList());
-        protoSchema = schemaLoader.loadSchema();
+        protoSchema = loadProto3TestSchema();
     }
 
     @Test
@@ -58,19 +52,19 @@ public class TestProtobufRecordReader {
         final ProtobufRecordReader reader = createReader(generateInputDataForProto3(), "Proto3Message", protoSchema, generateRecordSchema());
         final Record record = reader.nextRecord(false, false);
 
-        final Object field1 = record.getValue("field1");
+        final Object field1 = record.getValue("booleanField");
         assertEquals(true, field1);
         assertInstanceOf(Boolean.class, field1);
 
-        final Object field2 = record.getValue("field2");
+        final Object field2 = record.getValue("stringField");
         assertEquals("Test text", field2);
         assertInstanceOf(String.class, field2);
 
-        final Object field3 = record.getValue("field3");
+        final Object field3 = record.getValue("int32Field");
         assertEquals(Integer.MAX_VALUE, field3);
         assertInstanceOf(Integer.class, field3);
 
-        final Object field4 = record.getValue("field4");
+        final Object field4 = record.getValue("uint32Field");
         assertNotNull(field4);
     }
 
@@ -79,19 +73,19 @@ public class TestProtobufRecordReader {
         final ProtobufRecordReader reader = createReader(generateInputDataForProto3(), "Proto3Message", protoSchema, generateRecordSchema());
         final Record record = reader.nextRecord(true, false);
 
-        final Object field1 = record.getValue("field1");
+        final Object field1 = record.getValue("booleanField");
         assertEquals("true", field1);
         assertInstanceOf(String.class, field1);
 
-        final Object field2 = record.getValue("field2");
+        final Object field2 = record.getValue("stringField");
         assertEquals("Test text", field2);
         assertInstanceOf(String.class, field2);
 
-        final Object field3 = record.getValue("field3");
+        final Object field3 = record.getValue("int32Field");
         assertEquals(String.valueOf(Integer.MAX_VALUE), field3);
         assertInstanceOf(String.class, field3);
 
-        final Object field4 = record.getValue("field4");
+        final Object field4 = record.getValue("uint32Field");
         assertNotNull(field4);
     }
 
@@ -100,19 +94,19 @@ public class TestProtobufRecordReader {
         final ProtobufRecordReader reader = createReader(generateInputDataForProto3(), "Proto3Message", protoSchema, generateRecordSchema());
         final Record record = reader.nextRecord(false, true);
 
-        final Object field1 = record.getValue("field1");
+        final Object field1 = record.getValue("booleanField");
         assertEquals(true, field1);
         assertInstanceOf(Boolean.class, field1);
 
-        final Object field2 = record.getValue("field2");
+        final Object field2 = record.getValue("stringField");
         assertEquals("Test text", field2);
         assertInstanceOf(String.class, field2);
 
-        final Object field3 = record.getValue("field3");
+        final Object field3 = record.getValue("int32Field");
         assertEquals(Integer.MAX_VALUE, field3);
         assertInstanceOf(Integer.class, field3);
 
-        final Object field4 = record.getValue("field4");
+        final Object field4 = record.getValue("uint32Field");
         assertNull(field4);
     }
 
@@ -121,31 +115,31 @@ public class TestProtobufRecordReader {
         final ProtobufRecordReader reader = createReader(generateInputDataForProto3(), "Proto3Message", protoSchema, generateRecordSchema());
         final Record record = reader.nextRecord(true, true);
 
-        final Object field1 = record.getValue("field1");
+        final Object field1 = record.getValue("booleanField");
         assertEquals("true", field1);
         assertInstanceOf(String.class, field1);
 
-        final Object field2 = record.getValue("field2");
+        final Object field2 = record.getValue("stringField");
         assertEquals("Test text", field2);
         assertInstanceOf(String.class, field2);
 
-        final Object field3 = record.getValue("field3");
+        final Object field3 = record.getValue("int32Field");
         assertEquals(String.valueOf(Integer.MAX_VALUE), field3);
         assertInstanceOf(String.class, field3);
 
-        final Object field4 = record.getValue("field4");
+        final Object field4 = record.getValue("uint32Field");
         assertNull(field4);
     }
 
     private RecordSchema generateRecordSchema() {
         final List<RecordField> fields = new ArrayList<>();
-        for (final String fieldName : new String[] {"field1", "field2", "field3"}) {
+        for (final String fieldName : new String[] {"booleanField", "stringField", "int32Field"}) {
             fields.add(new RecordField(fieldName, RecordFieldType.STRING.getDataType()));
         }
         return new SimpleRecordSchema(fields);
     }
 
     private ProtobufRecordReader createReader(InputStream in, String message, Schema schema, RecordSchema recordSchema) {
-        return new ProtobufRecordReader(in, message, schema, recordSchema);
+        return new ProtobufRecordReader(schema, message, in, recordSchema);
     }
 }

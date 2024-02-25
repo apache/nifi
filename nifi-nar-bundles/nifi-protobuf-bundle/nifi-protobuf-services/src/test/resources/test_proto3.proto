@@ -17,21 +17,21 @@
 syntax = "proto3";
 
 message Proto3Message {
-  bool field1 = 1;
-  string field2 = 2;
-  int32 field3 = 3;
-  uint32 field4 = 4;
-  sint32 field5 = 5;
-  fixed32 field6 = 6;
-  sfixed32 field7 = 7;
-  double field8 = 8;
-  float field9 = 9;
-  bytes field10 = 10;
-  int64 field11 = 11;
-  uint64 field12 = 12;
-  sint64 field13 = 13;
-  fixed64 field14 = 14;
-  sfixed64 field15 = 15;
+  bool booleanField = 1;
+  string stringField = 2;
+  int32 int32Field = 3;
+  uint32 uint32Field = 4;
+  sint32 sint32Field = 5;
+  fixed32 fixed32Field = 6;
+  sfixed32 sfixed32Field = 7;
+  double doubleField = 8;
+  float floatField = 9;
+  bytes bytesField = 10;
+  int64 int64Field = 11;
+  uint64 uint64Field = 12;
+  sint64 sint64Field = 13;
+  fixed64 fixed64Field = 14;
+  sfixed64 sfixed64Field = 15;
   NestedMessage nestedMessage = 16;
 }
 
@@ -39,9 +39,9 @@ message NestedMessage {
   TestEnum testEnum = 20;
   repeated string repeatedField = 21;
   oneof oneOfField {
-    string option1 = 22;
-    bool option2 = 23;
-    int32 option3 = 24;
+    string stringOption = 22;
+    bool booleanOption = 23;
+    int32 int32Option = 24;
   }
   map<string, int32> testMap = 25;
 }

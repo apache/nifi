@@ -29,17 +29,14 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.EnumDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.services.protobuf.FieldType;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Creates a {@link RecordSchema} for the provided proto schema.
@@ -53,13 +50,13 @@ public class ProtoSchemaParser {
     }
 
     /**
-     * Creates a {@link RecordSchema} for the provided message.
-     * @param message proto message
+     * Creates a {@link RecordSchema} for the provided message type.
+     * @param messageTypeName proto message type
      * @return record schema
      */
-    public RecordSchema createSchema(String message) {
-        final MessageType messageType = (MessageType) schema.getType(message);
-        Objects.requireNonNull(messageType, String.format("Message with name [%s] not found in the provided proto files", message));
+    public RecordSchema createSchema(String messageTypeName) {
+        final MessageType messageType = (MessageType) schema.getType(messageTypeName);
+        Objects.requireNonNull(messageType, String.format("Message type with name [%s] not found in the provided proto files", messageTypeName));
         List<RecordField> recordFields = new ArrayList<>();
 
         recordFields.addAll(processFields(messageType.getDeclaredFields()));
@@ -77,21 +74,11 @@ public class ProtoSchemaParser {
     private List<RecordField> processOneOfFields(MessageType messageType) {
         List<RecordField> recordFields = new ArrayList<>();
         for (final OneOf oneOf : messageType.getOneOfs()) {
-            List<DataType> dataTypes = new ArrayList<>();
-            Set<String> aliases = new HashSet<>();
-            DataType dataType;
 
             for (Field field : oneOf.getFields()) {
-                dataType = getDataTypeForField(field.getType());
-
-                if (field.isRepeated()) {
-                    dataType = RecordFieldType.ARRAY.getArrayDataType(dataType);
-                }
-
-                dataTypes.add(dataType);
-                aliases.add(field.getName());
+                final DataType dataType = getDataTypeForField(field.getType());
+                recordFields.add(new RecordField(field.getName(), dataType, field.getDefault(), true));
             }
-            recordFields.add(new RecordField(oneOf.getName(), new ChoiceDataType(dataTypes), aliases));
         }
 
         return recordFields;
@@ -136,14 +123,14 @@ public class ProtoSchemaParser {
      */
     private DataType getDataTypeForCompositeField(ProtoType protoType) {
         if (protoType.isMap()) {
-            DataType valueType = getDataTypeForField(protoType.getValueType());
+            final DataType valueType = getDataTypeForField(protoType.getValueType());
             return new MapDataType(valueType);
         }
 
-        Type fieldType = schema.getType(protoType);
+        final Type fieldType = schema.getType(protoType);
 
         if (fieldType instanceof MessageType) {
-            RecordSchema recordSchema = createSchema(protoType.toString());
+            final RecordSchema recordSchema = createSchema(protoType.toString());
             return new RecordDataType(recordSchema);
         } else if (fieldType instanceof EnumType) {
             return new EnumDataType(((EnumType) fieldType).getConstants().stream().map(EnumConstant::getName).toList());

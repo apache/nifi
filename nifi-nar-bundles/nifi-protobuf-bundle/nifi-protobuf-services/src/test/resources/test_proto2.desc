@@ -1,11 +1,11 @@
 
-Ö
-test_proto2.protogoogle/protobuf/any.proto"Š
-Proto2Message
-field1 (Rfield1%
-field2 (	:Missing fieldRfield20
-anyField (2.google.protobuf.AnyRanyField*d€€€€"a
-AnyValueMessage&
-anyValueField1 (	RanyValueField1&
-anyValueField2 (	RanyValueField2:6
+ð
+test_proto2.protogoogle/protobuf/any.proto" 
+Proto2Message"
+booleanField (RbooleanField/
+stringField (	:Missing fieldRstringField0
+anyField (2.google.protobuf.AnyRanyField*d€€€€"e
+AnyValueMessage(
+anyStringField1 (	RanyStringField1(
+anyStringField2 (	RanyStringField2:6
 extensionField.Proto2Messaged (RextensionField

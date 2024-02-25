@@ -25,6 +25,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -38,15 +40,18 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.SchemaRegistryService;
 import org.apache.nifi.services.protobuf.schema.ProtoSchemaStrategy;
+import org.apache.nifi.services.protobuf.validation.ProtoValidationResource;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Tags({"protobuf", "record", "reader", "parser"})
 @CapabilityDescription("Parses a Protocol Buffers message from binary format.")
@@ -62,8 +67,11 @@ public class ProtobufReader extends SchemaRegistryService implements RecordReade
     private static final AllowableValue GENERATE_FROM_PROTO_FILE = new AllowableValue("generate-from-proto-file",
             "Generate from Proto file", "The record schema is generated from the provided proto file");
 
-    private String message;
-    private Schema protoSchema;
+    private volatile String messageType;
+    private volatile Schema protoSchema;
+
+    // Holder of cached proto information so validation does not reload the same proto file over and over
+    private final AtomicReference<ProtoValidationResource> validationResourceHolder = new AtomicReference<>();
 
     public static final PropertyDescriptor PROTOBUF_DIRECTORY = new PropertyDescriptor.Builder()
             .name("Proto Directory")
@@ -92,26 +100,37 @@ public class ProtobufReader extends SchemaRegistryService implements RecordReade
         return properties;
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> problems = new ArrayList<>();
+        final String protoDirectory = validationContext.getProperty(PROTOBUF_DIRECTORY).evaluateAttributeExpressions().getValue();
+        final String messageType = validationContext.getProperty(MESSAGE_TYPE).evaluateAttributeExpressions().getValue();
+
+        if (protoDirectory != null && messageType != null) {
+            final Schema protoSchema = getSchemaForValidation(protoDirectory);
+            if (protoSchema.getType(messageType) == null) {
+                problems.add(new ValidationResult.Builder()
+                        .subject(MESSAGE_TYPE.getDisplayName())
+                        .valid(false)
+                        .explanation(String.format("'%s' message type cannot be found in the provided proto files.", messageType))
+                        .build());
+            }
+        }
+
+        return problems;
+    }
+
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         final String protoDirectory = context.getProperty(PROTOBUF_DIRECTORY).evaluateAttributeExpressions().getValue();
-        message = context.getProperty(MESSAGE_TYPE).evaluateAttributeExpressions().getValue();
-
-        final SchemaLoader schemaLoader = new SchemaLoader(FileSystems.getDefault());
-        schemaLoader.initRoots(Arrays.asList(Location.get(protoDirectory),
-                Location.get(CoreLoaderKt.WIRE_RUNTIME_JAR, ANY_PROTO),
-                Location.get(CoreLoaderKt.WIRE_RUNTIME_JAR, DURATION_PROTO),
-                Location.get(CoreLoaderKt.WIRE_RUNTIME_JAR, EMPTY_PROTO),
-                Location.get(CoreLoaderKt.WIRE_RUNTIME_JAR, STRUCT_PROTO),
-                Location.get(CoreLoaderKt.WIRE_RUNTIME_JAR, TIMESTAMP_PROTO),
-                Location.get(CoreLoaderKt.WIRE_RUNTIME_JAR, WRAPPERS_PROTO)), Collections.emptyList());
-        protoSchema = schemaLoader.loadSchema();
+        messageType = context.getProperty(MESSAGE_TYPE).evaluateAttributeExpressions().getValue();
+        protoSchema = loadProtoSchema(protoDirectory);
     }
 
     @Override
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final PropertyContext context) {
         if (allowableValue.equalsIgnoreCase(GENERATE_FROM_PROTO_FILE.getValue())) {
-            return new ProtoSchemaStrategy(message, protoSchema);
+            return new ProtoSchemaStrategy(messageType, protoSchema);
         }
 
         return SchemaAccessUtils.getSchemaAccessStrategy(allowableValue, schemaRegistry, context);
@@ -131,6 +150,28 @@ public class ProtobufReader extends SchemaRegistryService implements RecordReade
 
     @Override
     public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws IOException, SchemaNotFoundException {
-        return new ProtobufRecordReader(in, message, protoSchema, getSchema(variables, in, null));
+        return new ProtobufRecordReader(protoSchema, messageType, in, getSchema(variables, in, null));
+    }
+
+    private Schema loadProtoSchema(final String protoDirectory) {
+        final SchemaLoader schemaLoader = new SchemaLoader(FileSystems.getDefault());
+        schemaLoader.initRoots(Arrays.asList(Location.get(protoDirectory),
+                Location.get(CoreLoaderKt.WIRE_RUNTIME_JAR, ANY_PROTO),
+                Location.get(CoreLoaderKt.WIRE_RUNTIME_JAR, DURATION_PROTO),
+                Location.get(CoreLoaderKt.WIRE_RUNTIME_JAR, EMPTY_PROTO),
+                Location.get(CoreLoaderKt.WIRE_RUNTIME_JAR, STRUCT_PROTO),
+                Location.get(CoreLoaderKt.WIRE_RUNTIME_JAR, TIMESTAMP_PROTO),
+                Location.get(CoreLoaderKt.WIRE_RUNTIME_JAR, WRAPPERS_PROTO)), Collections.emptyList());
+        return schemaLoader.loadSchema();
+    }
+
+    private Schema getSchemaForValidation(final String protoDirectory) {
+        ProtoValidationResource resource = validationResourceHolder.get();
+        if (resource == null || !protoDirectory.equals(resource.getProtoFileResource())) {
+            resource = new ProtoValidationResource(protoDirectory, loadProtoSchema(protoDirectory));
+            validationResourceHolder.set(resource);
+        }
+
+        return resource.getProtoSchema();
     }
 }

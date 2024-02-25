@@ -14,22 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-syntax = "proto2";
+package org.apache.nifi.services.protobuf.validation;
 
-import "google/protobuf/any.proto";
+import com.squareup.wire.schema.Schema;
 
-message Proto2Message {
-  extensions 100 to max;
-  required bool booleanField = 1;
-  optional string stringField = 2 [default = "Missing field"];
-  optional google.protobuf.Any anyField = 3;
-}
+public class ProtoValidationResource {
 
-message AnyValueMessage {
-  optional string anyStringField1 = 1;
-  optional string anyStringField2 = 2;
-}
+    private final String protoFileResource;
+    private final Schema protoSchema;
 
-extend Proto2Message {
-  optional int32 extensionField = 100;
+    public ProtoValidationResource(String protoFileResource, Schema protoSchema) {
+        this.protoFileResource = protoFileResource;
+        this.protoSchema = protoSchema;
+    }
+
+    public String getProtoFileResource() {
+        return protoFileResource;
+    }
+
+    public Schema getProtoSchema() {
+        return protoSchema;
+    }
 }
