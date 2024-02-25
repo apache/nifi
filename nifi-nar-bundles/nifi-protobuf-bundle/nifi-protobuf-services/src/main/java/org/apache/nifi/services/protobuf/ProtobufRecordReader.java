@@ -28,22 +28,22 @@ import java.io.InputStream;
 public class ProtobufRecordReader implements RecordReader {
 
     private final Schema protoSchema;
-    private final String message;
+    private final String messageType;
     private final InputStream inputStream;
     private RecordSchema recordSchema;
     private boolean inputProcessed;
 
-    public ProtobufRecordReader(InputStream inputStream, String message, Schema protoSchema, RecordSchema recordSchema) {
+    public ProtobufRecordReader(Schema protoSchema, String messageType, InputStream inputStream, RecordSchema recordSchema) {
         this.protoSchema = protoSchema;
-        this.message = message;
-        this.recordSchema = recordSchema;
+        this.messageType = messageType;
         this.inputStream = inputStream;
+        this.recordSchema = recordSchema;
     }
 
     @Override
     public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws IOException {
         if (!inputProcessed) {
-            final ProtobufDataConverter dataConverter = new ProtobufDataConverter(protoSchema, message, recordSchema, coerceTypes, dropUnknownFields);
+            final ProtobufDataConverter dataConverter = new ProtobufDataConverter(protoSchema, messageType, recordSchema, coerceTypes, dropUnknownFields);
             final Record record = dataConverter.createRecord(inputStream);
             inputProcessed = true;
             recordSchema = record.getSchema();

@@ -25,16 +25,18 @@ public class ProtoField {
     private final ProtoType protoType;
     private final boolean repeatable;
 
-    public ProtoField(String fieldName, ProtoType protoType, boolean repeatable) {
+    public ProtoField(Field field) {
+        this(field.getName(), field.getType(), field.isRepeated());
+    }
+
+    public ProtoField(String fieldName, ProtoType protoType) {
+        this(fieldName, protoType, false);
+    }
+
+    private ProtoField(String fieldName, ProtoType protoType, boolean repeatable) {
         this.fieldName = fieldName;
         this.protoType = protoType;
         this.repeatable = repeatable;
-    }
-
-    public ProtoField(Field field) {
-        this.fieldName = field.getName();
-        this.protoType = field.getType();
-        this.repeatable = field.isRepeated();
     }
 
     public String getFieldName() {

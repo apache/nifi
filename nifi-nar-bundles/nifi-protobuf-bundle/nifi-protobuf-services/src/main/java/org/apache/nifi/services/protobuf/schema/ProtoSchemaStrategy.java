@@ -28,18 +28,18 @@ import java.util.Set;
 
 public class ProtoSchemaStrategy implements SchemaAccessStrategy {
 
-    private final String message;
+    private final String messageType;
     private final Schema schema;
 
-    public ProtoSchemaStrategy(String message, Schema schema) {
-        this.message = message;
+    public ProtoSchemaStrategy(String messageType, Schema schema) {
+        this.messageType = messageType;
         this.schema = schema;
     }
 
     @Override
     public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) {
         final ProtoSchemaParser schemaParser = new ProtoSchemaParser(schema);
-        return schemaParser.createSchema(message);
+        return schemaParser.createSchema(messageType);
     }
 
     @Override

@@ -19,11 +19,17 @@ package org.apache.nifi.services.protobuf;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
+import com.squareup.wire.schema.CoreLoaderKt;
+import com.squareup.wire.schema.Location;
+import com.squareup.wire.schema.Schema;
+import com.squareup.wire.schema.SchemaLoader;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.FileSystems;
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.apache.nifi.services.protobuf.converter.ProtobufDataConverter.MAP_KEY_FIELD_NAME;
 import static org.apache.nifi.services.protobuf.converter.ProtobufDataConverter.MAP_VALUE_FIELD_NAME;
@@ -31,6 +37,20 @@ import static org.apache.nifi.services.protobuf.converter.ProtobufDataConverter.
 public class ProtoTestUtil {
 
     public static final String BASE_TEST_PATH = "src/test/resources/";
+
+    public static Schema loadProto3TestSchema() {
+        final SchemaLoader schemaLoader = new SchemaLoader(FileSystems.getDefault());
+        schemaLoader.initRoots(Collections.singletonList(Location.get(BASE_TEST_PATH + "test_proto3.proto")), Collections.emptyList());
+        return schemaLoader.loadSchema();
+    }
+
+    public static Schema loadProto2TestSchema() {
+        final SchemaLoader schemaLoader = new SchemaLoader(FileSystems.getDefault());
+        schemaLoader.initRoots(Arrays.asList(
+                Location.get(BASE_TEST_PATH, "test_proto2.proto"),
+                Location.get(CoreLoaderKt.WIRE_RUNTIME_JAR, "google/protobuf/any.proto")), Collections.emptyList());
+        return schemaLoader.loadSchema();
+    }
 
     public static InputStream generateInputDataForProto3() throws IOException, Descriptors.DescriptorValidationException {
         DescriptorProtos.FileDescriptorSet descriptorSet = DescriptorProtos.FileDescriptorSet.parseFrom(new FileInputStream(BASE_TEST_PATH + "test_proto3.desc"));
