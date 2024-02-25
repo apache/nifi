@@ -56,6 +56,7 @@ import java.util.stream.IntStream;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+    import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -2031,6 +2032,17 @@ public class TestRecordPath {
         assertEquals(48, fieldValues.get(0).getValue());
     }
 
+    @Test
+    public void testRecordRootReferenceInFunction() {
+        final Record record = createSimpleRecord();
+
+        final FieldValue singleArgumentFieldValue = evaluateSingleFieldValue("escapeJson(/)", record);
+        assertEquals("{\"id\":48,\"name\":\"John Doe\",\"missing\":null}", singleArgumentFieldValue.getValue());
+        final FieldValue multipleArgumentsFieldValue = evaluateSingleFieldValue("mapOf(\"copy\",/)", record);
+        assertInstanceOf(MapRecord.class, multipleArgumentsFieldValue.getValue());
+        assertEquals(record.toString(), ((MapRecord) multipleArgumentsFieldValue.getValue()).getValue("copy"));
+    }
+
     private List<RecordField> getDefaultFields() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
@@ -2068,4 +2080,11 @@ public class TestRecordPath {
         return new MapRecord(schema, values);
     }
 
+    private static FieldValue evaluateSingleFieldValue(RecordPath recordPath, Record record) {
+        return recordPath.evaluate(record).getSelectedFields().findFirst().get();
+    }
+
+    private static FieldValue evaluateSingleFieldValue(String path, Record record) {
+        return evaluateSingleFieldValue(RecordPath.compile(path), record);
+    }
 }
