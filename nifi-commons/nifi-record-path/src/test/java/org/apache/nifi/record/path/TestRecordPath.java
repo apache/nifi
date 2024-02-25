@@ -114,20 +114,20 @@ public class TestRecordPath {
         values.put("mainAccount", accountRecord);
         final Record record = new MapRecord(schema, values);
 
-        assertEquals(48, RecordPath.compile("/id").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(record, RecordPath.compile("/id").evaluate(record).getSelectedFields().findFirst().get().getParentRecord().get());
+        assertEquals(48, evaluateSingleFieldValue("/id", record).getValue());
+        assertEquals(record, evaluateSingleFieldValue("/id", record).getParentRecord().get());
 
-        assertEquals("John Doe", RecordPath.compile("/name").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(record, RecordPath.compile("/name").evaluate(record).getSelectedFields().findFirst().get().getParentRecord().get());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name", record).getValue());
+        assertEquals(record, evaluateSingleFieldValue("/name", record).getParentRecord().get());
 
-        assertEquals(accountRecord, RecordPath.compile("/mainAccount").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(record, RecordPath.compile("/mainAccount").evaluate(record).getSelectedFields().findFirst().get().getParentRecord().get());
+        assertEquals(accountRecord, evaluateSingleFieldValue("/mainAccount", record).getValue());
+        assertEquals(record, evaluateSingleFieldValue("/mainAccount", record).getParentRecord().get());
 
-        assertEquals(1, RecordPath.compile("/mainAccount/id").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(accountRecord, RecordPath.compile("/mainAccount/id").evaluate(record).getSelectedFields().findFirst().get().getParentRecord().get());
+        assertEquals(1, evaluateSingleFieldValue("/mainAccount/id", record).getValue());
+        assertEquals(accountRecord, evaluateSingleFieldValue("/mainAccount/id", record).getParentRecord().get());
 
-        assertEquals(123.45D, RecordPath.compile("/mainAccount/balance").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(accountRecord, RecordPath.compile("/mainAccount/id").evaluate(record).getSelectedFields().findFirst().get().getParentRecord().get());
+        assertEquals(123.45D, evaluateSingleFieldValue("/mainAccount/balance", record).getValue());
+        assertEquals(accountRecord, evaluateSingleFieldValue("/mainAccount/id", record).getParentRecord().get());
     }
 
     @Test
@@ -138,7 +138,7 @@ public class TestRecordPath {
         values.put("name", "John Doe");
         final Record record = new MapRecord(schema, values);
 
-        final FieldValue fieldValue = RecordPath.compile("/").evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValue = evaluateSingleFieldValue("/", record);
         assertEquals(Optional.empty(), fieldValue.getParent());
         assertEquals(record, fieldValue.getValue());
     }
@@ -278,7 +278,7 @@ public class TestRecordPath {
         values.put("attributes", attributes);
         final Record record = new MapRecord(schema, values);
 
-        final FieldValue fieldValue = RecordPath.compile("/attributes['city']").evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValue = evaluateSingleFieldValue("/attributes['city']", record);
         assertEquals("attributes", fieldValue.getField().getFieldName());
         assertEquals("New York", fieldValue.getValue());
         assertEquals(record, fieldValue.getParentRecord().get());
@@ -298,7 +298,7 @@ public class TestRecordPath {
         values.put("attributes", attributes);
         final Record record = new MapRecord(schema, values);
 
-        final FieldValue fieldValue = RecordPath.compile("/attributes/.['city']").evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValue = evaluateSingleFieldValue("/attributes/.['city']", record);
         assertEquals("attributes", fieldValue.getField().getFieldName());
         assertEquals("New York", fieldValue.getValue());
         assertEquals(record, fieldValue.getParentRecord().get());
@@ -319,7 +319,7 @@ public class TestRecordPath {
         values.put("attributes", attributes);
         final Record record = new MapRecord(schema, values);
 
-        RecordPath.compile("/attributes['city']").evaluate(record).getSelectedFields().findFirst().get().updateValue("Boston");
+        evaluateSingleFieldValue("/attributes['city']", record).updateValue("Boston");
         assertEquals("Boston", ((Map<String, Object>) record.getValue("attributes")).get("city"));
     }
 
@@ -401,7 +401,7 @@ public class TestRecordPath {
         values.put("name,date", "John Doe");
         final Record record = new MapRecord(schema, values);
 
-        final FieldValue fieldValue = RecordPath.compile("/'name,date'").evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValue = evaluateSingleFieldValue("/'name,date'", record);
         assertEquals("name,date", fieldValue.getField().getFieldName());
         assertEquals("John Doe", fieldValue.getValue());
         assertEquals(record, fieldValue.getParentRecord().get());
@@ -416,7 +416,7 @@ public class TestRecordPath {
         values.put("numbers", new Object[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
         final Record record = new MapRecord(schema, values);
 
-        final FieldValue fieldValue = RecordPath.compile("/numbers[3]").evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValue = evaluateSingleFieldValue("/numbers[3]", record);
         assertEquals("numbers", fieldValue.getField().getFieldName());
         assertEquals(3, fieldValue.getValue());
         assertEquals(record, fieldValue.getParentRecord().get());
@@ -698,8 +698,7 @@ public class TestRecordPath {
         values.put("accounts", new Object[] {accountRecord1, accountRecord2});
         final Record record = new MapRecord(schema, values);
 
-        final RecordPath recordPath = RecordPath.compile("/accounts[0..-1][./balance > 100]/id");
-        recordPath.evaluate(record).getSelectedFields().findFirst().get().updateValue(100);
+        evaluateSingleFieldValue("/accounts[0..-1][./balance > 100]/id", record).updateValue(100);
 
         assertEquals(48, record.getValue("id"));
         assertEquals(100, accountRecord1.getValue("id"));
@@ -747,7 +746,7 @@ public class TestRecordPath {
         final FieldValue fieldValue = fieldValues.get(0);
         assertEquals("address", fieldValue.getField().getFieldName());
 
-        assertEquals("12345", RecordPath.compile("/*[./state != 'NY']/zip").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("12345", evaluateSingleFieldValue("/*[./state != 'NY']/zip", record).getValue());
     }
 
     @Test
@@ -854,14 +853,14 @@ public class TestRecordPath {
         values.put("name", "John Doe");
         final Record record = new MapRecord(schema, values);
 
-        final FieldValue fieldValue = RecordPath.compile("substring(/name, 0, 4)").evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValue = evaluateSingleFieldValue("substring(/name, 0, 4)", record);
         assertEquals("John", fieldValue.getValue());
 
-        assertEquals("John", RecordPath.compile("substring(/name, 0, -5)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("", RecordPath.compile("substring(/name, 1000, 1005)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("", RecordPath.compile("substring(/name, 4, 3)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substring(/name, 0, 10000)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("", RecordPath.compile("substring(/name, -50, -1)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John", evaluateSingleFieldValue("substring(/name, 0, -5)", record).getValue());
+        assertEquals("", evaluateSingleFieldValue("substring(/name, 1000, 1005)", record).getValue());
+        assertEquals("", evaluateSingleFieldValue("substring(/name, 4, 3)", record).getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("substring(/name, 0, 10000)", record).getValue());
+        assertEquals("", evaluateSingleFieldValue("substring(/name, -50, -1)", record).getValue());
     }
 
     @Test
@@ -877,13 +876,13 @@ public class TestRecordPath {
         values.put("name", "John Doe");
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("John", RecordPath.compile("substringBefore(/name, ' ')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substringBefore(/name, 'XYZ')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substringBefore(/name, '')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John", evaluateSingleFieldValue("substringBefore(/name, ' ')", record).getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("substringBefore(/name, 'XYZ')", record).getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("substringBefore(/name, '')", record).getValue());
 
-        assertEquals("John D", RecordPath.compile("substringBeforeLast(/name, 'o')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substringBeforeLast(/name, 'XYZ')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substringBeforeLast(/name, '')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John D", evaluateSingleFieldValue("substringBeforeLast(/name, 'o')", record).getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("substringBeforeLast(/name, 'XYZ')", record).getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("substringBeforeLast(/name, '')", record).getValue());
     }
 
     @Test
@@ -899,48 +898,48 @@ public class TestRecordPath {
         values.put("name", "John Doe");
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("hn Doe", RecordPath.compile("substringAfter(/name, 'o')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substringAfter(/name, 'XYZ')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substringAfter(/name, '')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("n Doe", RecordPath.compile("substringAfter(/name, 'oh')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("hn Doe", evaluateSingleFieldValue("substringAfter(/name, 'o')", record).getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("substringAfter(/name, 'XYZ')", record).getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("substringAfter(/name, '')", record).getValue());
+        assertEquals("n Doe", evaluateSingleFieldValue("substringAfter(/name, 'oh')", record).getValue());
 
-        assertEquals("e", RecordPath.compile("substringAfterLast(/name, 'o')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substringAfterLast(/name, 'XYZ')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substringAfterLast(/name, '')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("n Doe", RecordPath.compile("substringAfterLast(/name, 'oh')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("e", evaluateSingleFieldValue("substringAfterLast(/name, 'o')", record).getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("substringAfterLast(/name, 'XYZ')", record).getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("substringAfterLast(/name, '')", record).getValue());
+        assertEquals("n Doe", evaluateSingleFieldValue("substringAfterLast(/name, 'oh')", record).getValue());
     }
 
     @Test
     public void testContains() {
         final Record record = createSimpleRecord();
-        assertEquals("John Doe", RecordPath.compile("/name[contains(., 'o')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name[contains(., 'o')]", record).getValue());
         assertEquals(0L, RecordPath.compile("/name[contains(., 'x')]").evaluate(record).getSelectedFields().count());
 
         record.setValue("name", "John Doe 48");
-        assertEquals("John Doe 48", RecordPath.compile("/name[contains(., /id)]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe 48", evaluateSingleFieldValue("/name[contains(., /id)]", record).getValue());
     }
 
     @Test
     public void testStartsWith() {
         final Record record = createSimpleRecord();
-        assertEquals("John Doe", RecordPath.compile("/name[startsWith(., 'J')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name[startsWith(., 'J')]", record).getValue());
         assertEquals(0L, RecordPath.compile("/name[startsWith(., 'x')]").evaluate(record).getSelectedFields().count());
-        assertEquals("John Doe", RecordPath.compile("/name[startsWith(., '')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name[startsWith(., '')]", record).getValue());
     }
 
     @Test
     public void testEndsWith() {
         final Record record = createSimpleRecord();
-        assertEquals("John Doe", RecordPath.compile("/name[endsWith(., 'e')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name[endsWith(., 'e')]", record).getValue());
         assertEquals(0L, RecordPath.compile("/name[endsWith(., 'x')]").evaluate(record).getSelectedFields().count());
-        assertEquals("John Doe", RecordPath.compile("/name[endsWith(., '')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name[endsWith(., '')]", record).getValue());
     }
 
     @Test
     public void testIsEmpty() {
         final Record record = createSimpleRecord();
-        assertEquals("John Doe", RecordPath.compile("/name[isEmpty(../missing)]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("/name[isEmpty(/missing)]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name[isEmpty(../missing)]", record).getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name[isEmpty(/missing)]", record).getValue());
         assertEquals(0L, RecordPath.compile("/name[isEmpty(../id)]").evaluate(record).getSelectedFields().count());
 
         record.setValue("missing", "   ");
@@ -951,11 +950,11 @@ public class TestRecordPath {
     @Test
     public void testIsBlank() {
         final Record record = createSimpleRecord();
-        assertEquals("John Doe", RecordPath.compile("/name[isBlank(../missing)]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name[isBlank(../missing)]", record).getValue());
 
         record.setValue("missing", "   ");
-        assertEquals("John Doe", RecordPath.compile("/name[isBlank(../missing)]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("/name[isBlank(/missing)]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name[isBlank(../missing)]", record).getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name[isBlank(/missing)]", record).getValue());
         assertEquals(0L, RecordPath.compile("/name[isBlank(../id)]").evaluate(record).getSelectedFields().count());
     }
 
@@ -972,8 +971,8 @@ public class TestRecordPath {
         values.put("name", "John Doe");
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("John Doe", RecordPath.compile("/name[containsRegex(., 'o')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("/name[containsRegex(., '[xo]')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name[containsRegex(., 'o')]", record).getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name[containsRegex(., '[xo]')]", record).getValue());
         assertEquals(0L, RecordPath.compile("/name[containsRegex(., 'x')]").evaluate(record).getSelectedFields().count());
     }
 
@@ -990,9 +989,9 @@ public class TestRecordPath {
         values.put("name", "John Doe");
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("John Doe", RecordPath.compile("/name[not(contains(., 'x'))]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name[not(contains(., 'x'))]", record).getValue());
         assertEquals(0L, RecordPath.compile("/name[not(. = 'John Doe')]").evaluate(record).getSelectedFields().count());
-        assertEquals("John Doe", RecordPath.compile("/name[not(. = 'Jane Doe')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name[not(. = 'Jane Doe')]", record).getValue());
     }
 
     @Test
@@ -1008,7 +1007,7 @@ public class TestRecordPath {
         values.put("name", "John Doe");
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("John Doe", RecordPath.compile("/name[contains(substringAfter(., 'o'), 'h')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name[contains(substringAfter(., 'o'), 'h')]", record).getValue());
     }
 
 
@@ -1027,7 +1026,7 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         assertEquals(0L, RecordPath.compile("/name[matchesRegex(., 'John D')]").evaluate(record).getSelectedFields().count());
-        assertEquals("John Doe", RecordPath.compile("/name[matchesRegex(., '[John Doe]{8}')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name[matchesRegex(., '[John Doe]{8}')]", record).getValue());
     }
 
     @Test
@@ -1043,14 +1042,14 @@ public class TestRecordPath {
         values.put("name", "John Doe");
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("John Doe", RecordPath.compile("/name[replace(../id, 48, 18) = 18]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("/name[replace(../id, 48, 18) = 18]", record).getValue());
         assertEquals(0L, RecordPath.compile("/name[replace(../id, 48, 18) = 48]").evaluate(record).getSelectedFields().count());
 
-        assertEquals("Jane Doe", RecordPath.compile("replace(/name, 'ohn', 'ane')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("replace(/name, 'ohnny', 'ane')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("Jane Doe", evaluateSingleFieldValue("replace(/name, 'ohn', 'ane')", record).getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("replace(/name, 'ohnny', 'ane')", record).getValue());
 
-        assertEquals("John 48", RecordPath.compile("replace(/name, 'Doe', /id)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("23", RecordPath.compile("replace(/id, 48, 23)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John 48", evaluateSingleFieldValue("replace(/name, 'Doe', /id)", record).getValue());
+        assertEquals("23", evaluateSingleFieldValue("replace(/id, 48, 23)", record).getValue());
     }
 
     @Test
@@ -1066,16 +1065,16 @@ public class TestRecordPath {
         values.put("name", "John Doe");
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("ohn oe", RecordPath.compile("replaceRegex(/name, '[JD]', '')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("replaceRegex(/name, 'ohnny', 'ane')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("ohn oe", evaluateSingleFieldValue("replaceRegex(/name, '[JD]', '')", record).getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("replaceRegex(/name, 'ohnny', 'ane')", record).getValue());
 
-        assertEquals("11", RecordPath.compile("replaceRegex(/id, '[0-9]', 1)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("11", evaluateSingleFieldValue("replaceRegex(/id, '[0-9]', 1)", record).getValue());
 
-        assertEquals("Jxohn Dxoe", RecordPath.compile("replaceRegex(/name, '([JD])', '$1x')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("Jxohn Dxoe", evaluateSingleFieldValue("replaceRegex(/name, '([JD])', '$1x')", record).getValue());
 
-        assertEquals("Jxohn Dxoe", RecordPath.compile("replaceRegex(/name, '(?<hello>[JD])', '${hello}x')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("Jxohn Dxoe", evaluateSingleFieldValue("replaceRegex(/name, '(?<hello>[JD])', '${hello}x')", record).getValue());
 
-        assertEquals("48ohn 48oe", RecordPath.compile("replaceRegex(/name, '(?<hello>[JD])', /id)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("48ohn 48oe", evaluateSingleFieldValue("replaceRegex(/name, '(?<hello>[JD])', /id)", record).getValue());
 
     }
 
@@ -1093,23 +1092,19 @@ public class TestRecordPath {
 
         // Special character cases
         values.put("name", "John Doe");
-        assertEquals("John\nDoe", RecordPath.compile("replaceRegex(/name, '[\\s]', '\\n')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
+        assertEquals("John\nDoe", evaluateSingleFieldValue("replaceRegex(/name, '[\\s]', '\\n')", record).getValue(),
                 "Replacing whitespace to new line");
 
         values.put("name", "John\nDoe");
-        assertEquals("John Doe", RecordPath.compile("replaceRegex(/name, '\\n', ' ')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
+        assertEquals("John Doe", evaluateSingleFieldValue("replaceRegex(/name, '\\n', ' ')", record).getValue(),
                 "Replacing new line to whitespace");
 
         values.put("name", "John Doe");
-        assertEquals("John\tDoe", RecordPath.compile("replaceRegex(/name, '[\\s]', '\\t')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
+        assertEquals("John\tDoe", evaluateSingleFieldValue("replaceRegex(/name, '[\\s]', '\\t')", record).getValue(),
                 "Replacing whitespace to tab");
 
         values.put("name", "John\tDoe");
-        assertEquals("John Doe", RecordPath.compile("replaceRegex(/name, '\\t', ' ')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
+        assertEquals("John Doe", evaluateSingleFieldValue("replaceRegex(/name, '\\t', ' ')", record).getValue(),
                 "Replacing tab to whitespace");
 
     }
@@ -1131,23 +1126,19 @@ public class TestRecordPath {
         // NOTE: At Java code, a single back-slash needs to be escaped with another-back slash, but needn't do so at NiFi UI.
         //       The test record path is equivalent to replaceRegex(/name, '\'', '"')
         values.put("name", "'John' 'Doe'");
-        assertEquals("\"John\" \"Doe\"", RecordPath.compile("replaceRegex(/name, '\\'', '\"')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
+        assertEquals("\"John\" \"Doe\"", evaluateSingleFieldValue("replaceRegex(/name, '\\'', '\"')", record).getValue(),
                 "Replacing quote to double-quote");
 
         values.put("name", "\"John\" \"Doe\"");
-        assertEquals("'John' 'Doe'", RecordPath.compile("replaceRegex(/name, '\"', '\\'')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
+        assertEquals("'John' 'Doe'", evaluateSingleFieldValue("replaceRegex(/name, '\"', '\\'')", record).getValue(),
                 "Replacing double-quote to single-quote");
 
         values.put("name", "'John' 'Doe'");
-        assertEquals("\"John\" \"Doe\"", RecordPath.compile("replaceRegex(/name, \"'\", \"\\\"\")")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
+        assertEquals("\"John\" \"Doe\"", evaluateSingleFieldValue("replaceRegex(/name, \"'\", \"\\\"\")", record).getValue(),
                 "Replacing quote to double-quote, the function arguments are wrapped by double-quote");
 
         values.put("name", "\"John\" \"Doe\"");
-        assertEquals("'John' 'Doe'", RecordPath.compile("replaceRegex(/name, \"\\\"\", \"'\")")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
+        assertEquals("'John' 'Doe'", evaluateSingleFieldValue("replaceRegex(/name, \"\\\"\", \"'\")", record).getValue(),
                 "Replacing double-quote to single-quote, the function arguments are wrapped by double-quote");
 
     }
@@ -1169,13 +1160,11 @@ public class TestRecordPath {
         // NOTE: At Java code, a single back-slash needs to be escaped with another-back slash, but needn't do so at NiFi UI.
         //       The test record path is equivalent to replaceRegex(/name, '\\', '/')
         values.put("name", "John\\Doe");
-        assertEquals("John/Doe", RecordPath.compile("replaceRegex(/name, '\\\\', '/')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
+        assertEquals("John/Doe", evaluateSingleFieldValue("replaceRegex(/name, '\\\\', '/')", record).getValue(),
                 "Replacing a back-slash to forward-slash");
 
         values.put("name", "John/Doe");
-        assertEquals("John\\Doe", RecordPath.compile("replaceRegex(/name, '/', '\\\\')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
+        assertEquals("John\\Doe", evaluateSingleFieldValue("replaceRegex(/name, '/', '\\\\')", record).getValue(),
                 "Replacing a forward-slash to back-slash");
 
     }
@@ -1195,13 +1184,11 @@ public class TestRecordPath {
 
         // Brackets
         values.put("name", "J[o]hn Do[e]");
-        assertEquals("J(o)hn Do(e)", RecordPath.compile("replaceRegex(replaceRegex(/name, '\\[', '('), '\\]', ')')")
-                .evaluate(record).getSelectedFields().findFirst().get().getValue(),
+        assertEquals("J(o)hn Do(e)", evaluateSingleFieldValue("replaceRegex(replaceRegex(/name, '\\[', '('), '\\]', ')')", record).getValue(),
                 "Square brackets can be escaped with back-slash");
 
         values.put("name", "J(o)hn Do(e)");
-        assertEquals("J[o]hn Do[e]", RecordPath.compile("replaceRegex(replaceRegex(/name, '\\(', '['), '\\)', ']')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
+        assertEquals("J[o]hn Do[e]", evaluateSingleFieldValue("replaceRegex(replaceRegex(/name, '\\(', '['), '\\)', ']')", record).getValue(),
                 "Brackets can be escaped with back-slash");
     }
 
@@ -1219,9 +1206,9 @@ public class TestRecordPath {
         values.put("name", "John Doe");
         final Record record = new MapRecord(schema, values);
 
-        assertEquals(48, RecordPath.compile("replaceNull(/missing, /id)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(14, RecordPath.compile("replaceNull(/missing, 14)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(48, RecordPath.compile("replaceNull(/id, 14)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(48, evaluateSingleFieldValue("replaceNull(/missing, /id)", record).getValue());
+        assertEquals(14, evaluateSingleFieldValue("replaceNull(/missing, 14)", record).getValue());
+        assertEquals(48, evaluateSingleFieldValue("replaceNull(/id, 14)", record).getValue());
     }
 
     @Test
@@ -1238,7 +1225,7 @@ public class TestRecordPath {
         values.put("firstName", "John");
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("John Doe: 48", RecordPath.compile("concat(/firstName, ' ', /lastName, ': ', 48)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe: 48", evaluateSingleFieldValue("concat(/firstName, ' ', /lastName, ': ', 48)", record).getValue());
     }
 
     @Test
@@ -1254,7 +1241,7 @@ public class TestRecordPath {
         values.put("lastName", "Doe");
         values.put("firstName", "John");
         final Record record = new MapRecord(schema, values);
-        final FieldValue fv = RecordPath.compile("mapOf('firstName', /firstName, 'lastName', /lastName)").evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fv = evaluateSingleFieldValue("mapOf('firstName', /firstName, 'lastName', /lastName)", record);
         assertTrue(fv.getField().getDataType().getFieldType().equals(RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()).getFieldType()));
         assertEquals("MapRecord[{firstName=John, lastName=Doe}]", fv.getValue().toString());
 
@@ -1278,7 +1265,7 @@ public class TestRecordPath {
         final RecordPath recordPath = RecordPath.compile("coalesce(/id, /name)");
 
         // Test where the first value is populated
-        FieldValue fieldValue = recordPath.evaluate(record).getSelectedFields().findFirst().get();
+        FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
         assertEquals("1234", fieldValue.getValue());
         assertEquals("id", fieldValue.getField().getFieldName());
 
@@ -1288,7 +1275,7 @@ public class TestRecordPath {
         values.put("name", "John Doe");
 
         record = new MapRecord(schema, values);
-        fieldValue = recordPath.evaluate(record).getSelectedFields().findFirst().get();
+        fieldValue = evaluateSingleFieldValue(recordPath, record);
         assertEquals("John Doe", fieldValue.getValue());
         assertEquals("name", fieldValue.getField().getFieldName());
 
@@ -1306,7 +1293,7 @@ public class TestRecordPath {
         values.put("name", "John Doe");
 
         record = new MapRecord(schema, values);
-        fieldValue = recordPath.evaluate(record).getSelectedFields().findFirst().get();
+        fieldValue = evaluateSingleFieldValue(recordPath, record);
         assertEquals("1234", fieldValue.getValue());
         assertEquals("id", fieldValue.getField().getFieldName());
 
@@ -1315,7 +1302,7 @@ public class TestRecordPath {
         values.put("name", "John Doe");
 
         record = new MapRecord(schema, values);
-        fieldValue = recordPath.evaluate(record).getSelectedFields().findFirst().get();
+        fieldValue = evaluateSingleFieldValue(recordPath, record);
         assertEquals("John Doe", fieldValue.getValue());
         assertEquals("name", fieldValue.getField().getFieldName());
     }
@@ -1339,16 +1326,16 @@ public class TestRecordPath {
     public void testToUpperCase() {
         final Record record = getCaseTestRecord();
 
-        assertEquals("JOHN SMITH DOE", RecordPath.compile("toUpperCase(concat(/firstName, ' ', /middleName, ' ', /lastName))").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("", RecordPath.compile("toLowerCase(/notDefined)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("JOHN SMITH DOE", evaluateSingleFieldValue("toUpperCase(concat(/firstName, ' ', /middleName, ' ', /lastName))", record).getValue());
+        assertEquals("", evaluateSingleFieldValue("toLowerCase(/notDefined)", record).getValue());
     }
 
     @Test
     public void testToLowerCase() {
         final Record record = getCaseTestRecord();
 
-        assertEquals("john smith doe", RecordPath.compile("toLowerCase(concat(/firstName, ' ', /middleName, ' ', /lastName))").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("", RecordPath.compile("toLowerCase(/notDefined)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("john smith doe", evaluateSingleFieldValue("toLowerCase(concat(/firstName, ' ', /middleName, ' ', /lastName))", record).getValue());
+        assertEquals("", evaluateSingleFieldValue("toLowerCase(/notDefined)", record).getValue());
     }
 
     @Test
@@ -1362,8 +1349,8 @@ public class TestRecordPath {
         values.put("fullName", "   John Smith     ");
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("John Smith", RecordPath.compile("trim(/fullName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("", RecordPath.compile("trim(/missing)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Smith", evaluateSingleFieldValue("trim(/fullName)", record).getValue());
+        assertEquals("", evaluateSingleFieldValue("trim(/missing)", record).getValue());
     }
 
     @Test
@@ -1393,11 +1380,11 @@ public class TestRecordPath {
         values.put("name", "John Doe");
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("name", RecordPath.compile("fieldName(/name)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("name", RecordPath.compile("fieldName(/*)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("//*[startsWith(fieldName(.), 'na')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("name", RecordPath.compile("fieldName(//*[startsWith(fieldName(.), 'na')])").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("//name[not(startsWith(fieldName(.), 'xyz'))]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("name", evaluateSingleFieldValue("fieldName(/name)", record).getValue());
+        assertEquals("name", evaluateSingleFieldValue("fieldName(/*)", record).getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("//*[startsWith(fieldName(.), 'na')]", record).getValue());
+        assertEquals("name", evaluateSingleFieldValue("fieldName(//*[startsWith(fieldName(.), 'na')])", record).getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("//name[not(startsWith(fieldName(.), 'xyz'))]", record).getValue());
         assertEquals(0L, RecordPath.compile("//name[not(startsWith(fieldName(.), 'n'))]").evaluate(record).getSelectedFields().count());
     }
 
@@ -1416,7 +1403,7 @@ public class TestRecordPath {
         values.put("map", mapValues);
 
         final Record record = new MapRecord(schema, values);
-        assertEquals("Y", RecordPath.compile("//*[. = toUpperCase(.)]").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("Y", evaluateSingleFieldValue("//*[. = toUpperCase(.)]", record).getValue());
     }
 
     @Test
@@ -1460,10 +1447,10 @@ public class TestRecordPath {
         values.put("date", "2017-10-20T11:00:00Z");
         final Record record = new MapRecord(schema, values);
 
-        final Object evaluated = RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")").evaluate(record).getSelectedFields().findFirst().get().getValue();
+        final Object evaluated = evaluateSingleFieldValue("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")", record).getValue();
         assertInstanceOf(java.util.Date.class, evaluated);
 
-        final Object evaluatedTimeZone = RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"GMT+8:00\")").evaluate(record).getSelectedFields().findFirst().get().getValue();
+        final Object evaluatedTimeZone = evaluateSingleFieldValue("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"GMT+8:00\")", record).getValue();
         assertInstanceOf(java.util.Date.class, evaluatedTimeZone);
     }
 
@@ -1483,8 +1470,8 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         // since the field is a long it shouldn't do the conversion and should return the value unchanged
-        assertTrue(RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")").evaluate(record).getSelectedFields().findFirst().get().getValue() instanceof Long);
-        assertTrue(RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"GMT+8:00\")").evaluate(record).getSelectedFields().findFirst().get().getValue() instanceof Long);
+        assertTrue(evaluateSingleFieldValue("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")", record).getValue() instanceof Long);
+        assertTrue(evaluateSingleFieldValue("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"GMT+8:00\")", record).getValue() instanceof Long);
     }
 
     @Test
@@ -1501,9 +1488,9 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         // since the field is a string it shouldn't do the conversion and should return the value unchanged
-        final FieldValue fieldValue = RecordPath.compile("toDate(/name, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")").evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValue = evaluateSingleFieldValue("toDate(/name, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")", record);
         assertEquals("John Doe", fieldValue.getValue());
-        final FieldValue fieldValue2 = RecordPath.compile("toDate(/name, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"GMT+8:00\")").evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValue2 = evaluateSingleFieldValue("toDate(/name, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"GMT+8:00\")", record);
         assertEquals("John Doe", fieldValue2.getValue());
     }
 
@@ -1525,14 +1512,12 @@ public class TestRecordPath {
         values.put("date", localDateTimeFormatted);
         final Record record = new MapRecord(schema, values);
 
-        final FieldValue fieldValue = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValue = evaluateSingleFieldValue("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'yyyy-MM-dd' )", record);
         assertEquals(localDateFormatted, fieldValue.getValue());
-        final FieldValue fieldValue2 = RecordPath.compile(String.format("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'yyyy-MM-dd' , '%s')", TEST_TIMEZONE_OFFSET))
-            .evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValue2 = evaluateSingleFieldValue(String.format("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'yyyy-MM-dd' , '%s')", TEST_TIMEZONE_OFFSET), record);
         assertEquals(localDateFormatted, fieldValue2.getValue());
 
-        final FieldValue fieldValue3 = RecordPath.compile(String.format("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), \"yyyy-MM-dd'T'HH:mm:ss\", '%s')", TEST_TIMEZONE_OFFSET))
-            .evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValue3 = evaluateSingleFieldValue(String.format("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), \"yyyy-MM-dd'T'HH:mm:ss\", '%s')", TEST_TIMEZONE_OFFSET), record);
 
         final ZonedDateTime zonedDateTime = ZonedDateTime.of(localDateTime, ZoneOffset.systemDefault());
         final ZonedDateTime adjustedZoneDateTime = zonedDateTime.withZoneSameInstant(ZoneOffset.ofHours(TEST_OFFSET_HOURS));
@@ -1540,10 +1525,9 @@ public class TestRecordPath {
         final String adjustedDateTime = adjustedLocalDateTime.toString();
         assertEquals(adjustedDateTime, fieldValue3.getValue());
 
-        final FieldValue fieldValueUnchanged = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValueUnchanged = evaluateSingleFieldValue("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'INVALID' )", record);
         assertInstanceOf(java.util.Date.class, fieldValueUnchanged.getValue());
-        final FieldValue fieldValueUnchanged2 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'INVALID' , 'INVALID')")
-            .evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValueUnchanged2 = evaluateSingleFieldValue("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'INVALID' , 'INVALID')", record);
         assertInstanceOf(java.util.Date.class, fieldValueUnchanged2.getValue());
     }
 
@@ -1564,12 +1548,12 @@ public class TestRecordPath {
         values.put("date", epochMillis);
         final Record record = new MapRecord(schema, values);
 
-        assertEquals(localDate, RecordPath.compile("format(/date, 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(instantFormatted, RecordPath.compile("format(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(localDate, evaluateSingleFieldValue("format(/date, 'yyyy-MM-dd' )", record).getValue());
+        assertEquals(instantFormatted, evaluateSingleFieldValue("format(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')", record).getValue());
 
-        final FieldValue fieldValueUnchanged = RecordPath.compile("format(/date, 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValueUnchanged = evaluateSingleFieldValue("format(/date, 'INVALID' )", record);
         assertEquals(epochMillis, fieldValueUnchanged.getValue());
-        final FieldValue fieldValueUnchanged2 = RecordPath.compile("format(/date, 'INVALID', 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValueUnchanged2 = evaluateSingleFieldValue("format(/date, 'INVALID', 'INVALID' )", record);
         assertEquals(epochMillis, fieldValueUnchanged2.getValue());
     }
 
@@ -1591,12 +1575,12 @@ public class TestRecordPath {
         values.put("date", dateValue);
         final Record record = new MapRecord(schema, values);
 
-        assertEquals(localDate, RecordPath.compile("format(/date, 'yyyy-MM-dd')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(instantFormatted, RecordPath.compile("format(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(localDate, evaluateSingleFieldValue("format(/date, 'yyyy-MM-dd')", record).getValue());
+        assertEquals(instantFormatted, evaluateSingleFieldValue("format(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')", record).getValue());
 
-        final FieldValue fieldValueUnchanged = RecordPath.compile("format(/date, 'INVALID')").evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValueUnchanged = evaluateSingleFieldValue("format(/date, 'INVALID')", record);
         assertEquals(dateValue, fieldValueUnchanged.getValue());
-        final FieldValue fieldValueUnchanged2 = RecordPath.compile("format(/date, 'INVALID', 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValueUnchanged2 = evaluateSingleFieldValue("format(/date, 'INVALID', 'INVALID' )", record);
         assertEquals(dateValue, fieldValueUnchanged2.getValue());
     }
 
@@ -1613,8 +1597,8 @@ public class TestRecordPath {
         values.put("name", "John Doe");
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("John Doe", RecordPath.compile("format(/name, 'yyyy-MM')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("format(/name, 'yyyy-MM', 'GMT+8:00')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("format(/name, 'yyyy-MM')", record).getValue());
+        assertEquals("John Doe", evaluateSingleFieldValue("format(/name, 'yyyy-MM', 'GMT+8:00')", record).getValue());
     }
 
     @Test
@@ -1630,7 +1614,7 @@ public class TestRecordPath {
         values.put("bytes", "Hello World!".getBytes(StandardCharsets.UTF_16));
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("Hello World!", RecordPath.compile("toString(/bytes, \"UTF-16\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("Hello World!", evaluateSingleFieldValue("toString(/bytes, \"UTF-16\")", record).getValue());
     }
 
     @Test
@@ -1647,8 +1631,7 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         assertThrows(IllegalCharsetNameException.class, () ->
-                RecordPath.compile("toString(/bytes, \"NOT A REAL CHARSET\")").evaluate(record)
-                        .getSelectedFields().findFirst().get().getValue());
+                evaluateSingleFieldValue("toString(/bytes, \"NOT A REAL CHARSET\")", record).getValue());
     }
 
     @Test
@@ -1665,7 +1648,7 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         assertArrayEquals("Hello World!".getBytes(StandardCharsets.UTF_16LE),
-                (byte[]) RecordPath.compile("toBytes(/s, \"UTF-16LE\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+                (byte[]) evaluateSingleFieldValue("toBytes(/s, \"UTF-16LE\")", record).getValue());
     }
 
     @Test
@@ -1681,8 +1664,7 @@ public class TestRecordPath {
         values.put("s", "Hello World!");
         final Record record = new MapRecord(schema, values);
 
-        assertThrows(IllegalCharsetNameException.class, () -> RecordPath.compile("toBytes(/s, \"NOT A REAL CHARSET\")").evaluate(record)
-                .getSelectedFields().findFirst().get().getValue());
+        assertThrows(IllegalCharsetNameException.class, () -> evaluateSingleFieldValue("toBytes(/s, \"NOT A REAL CHARSET\")", record).getValue());
     }
 
     @Test
@@ -1705,11 +1687,11 @@ public class TestRecordPath {
         final Record record = new MapRecord(schema, values);
 
         assertEquals(Base64.getEncoder().encodeToString("John".getBytes(StandardCharsets.UTF_8)),
-                RecordPath.compile("base64Encode(/firstName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+                evaluateSingleFieldValue("base64Encode(/firstName)", record).getValue());
         assertEquals(Base64.getEncoder().encodeToString("Doe".getBytes(StandardCharsets.UTF_8)),
-                RecordPath.compile("base64Encode(/lastName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+                evaluateSingleFieldValue("base64Encode(/lastName)", record).getValue());
         assertArrayEquals(Base64.getEncoder().encode("xyz".getBytes(StandardCharsets.UTF_8)),
-                (byte[]) RecordPath.compile("base64Encode(/b)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+                (byte[]) evaluateSingleFieldValue("base64Encode(/b)", record).getValue());
         List<Object> actualValues = RecordPath.compile("base64Encode(/*)").evaluate(record).getSelectedFields().map(FieldValue::getValue).collect(Collectors.toList());
         IntStream.range(0, 3).forEach(i -> {
             Object expectedObject = expectedValues.get(i);
@@ -1737,9 +1719,9 @@ public class TestRecordPath {
         values.put("b", Base64.getEncoder().encode("xyz".getBytes(StandardCharsets.UTF_8)));
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("John", RecordPath.compile("base64Decode(/firstName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("Doe", RecordPath.compile("base64Decode(/lastName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertArrayEquals("xyz".getBytes(StandardCharsets.UTF_8), (byte[]) RecordPath.compile("base64Decode(/b)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("John", evaluateSingleFieldValue("base64Decode(/firstName)", record).getValue());
+        assertEquals("Doe", evaluateSingleFieldValue("base64Decode(/lastName)", record).getValue());
+        assertArrayEquals("xyz".getBytes(StandardCharsets.UTF_8), (byte[]) evaluateSingleFieldValue("base64Decode(/b)", record).getValue());
         List<Object> actualValues = RecordPath.compile("base64Decode(/*)").evaluate(record).getSelectedFields().map(FieldValue::getValue).collect(Collectors.toList());
         IntStream.range(0, 3).forEach(i -> {
             Object expectedObject = expectedValues.get(i);
@@ -1911,15 +1893,14 @@ public class TestRecordPath {
     @Test
     public void testHash() {
         final Record record = getCaseTestRecord();
-        assertEquals("61409aa1fd47d4a5332de23cbf59a36f", RecordPath.compile("hash(/firstName, 'MD5')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("5753a498f025464d72e088a9d5d6e872592d5f91", RecordPath.compile("hash(/firstName, 'SHA-1')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("61409aa1fd47d4a5332de23cbf59a36f", evaluateSingleFieldValue("hash(/firstName, 'MD5')", record).getValue());
+        assertEquals("5753a498f025464d72e088a9d5d6e872592d5f91", evaluateSingleFieldValue("hash(/firstName, 'SHA-1')", record).getValue());
     }
 
     @Test
     public void testHashFailure() {
         final Record record = getCaseTestRecord();
-        assertThrows(RecordPathException.class, () -> RecordPath.compile("hash(/firstName, 'NOT_A_ALGO')").evaluate(record)
-                .getSelectedFields().findFirst().get().getValue());
+        assertThrows(RecordPathException.class, () -> evaluateSingleFieldValue("hash(/firstName, 'NOT_A_ALGO')", record).getValue());
     }
 
     @Test
@@ -1936,15 +1917,15 @@ public class TestRecordPath {
         values.put("nullString", null);
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("##MyString", RecordPath.compile("padLeft(/someString, 10, '#')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("__MyString", RecordPath.compile("padLeft(/someString, 10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("MyString", RecordPath.compile("padLeft(/someString, 3)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("MyString", RecordPath.compile("padLeft(/someString, -10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("@@@@@@@@@@", RecordPath.compile("padLeft(/emptyString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertNull(RecordPath.compile("padLeft(/nullString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("xyMyString", RecordPath.compile("padLeft(/someString, 10, \"xy\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("aVMyString", RecordPath.compile("padLeft(/someString, 10, \"aVeryLongPadding\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("fewfewfewfewMyString", RecordPath.compile("padLeft(/someString, 20, \"few\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("##MyString", evaluateSingleFieldValue("padLeft(/someString, 10, '#')", record).getValue());
+        assertEquals("__MyString", evaluateSingleFieldValue("padLeft(/someString, 10)", record).getValue());
+        assertEquals("MyString", evaluateSingleFieldValue("padLeft(/someString, 3)", record).getValue());
+        assertEquals("MyString", evaluateSingleFieldValue("padLeft(/someString, -10)", record).getValue());
+        assertEquals("@@@@@@@@@@", evaluateSingleFieldValue("padLeft(/emptyString, 10, '@')", record).getValue());
+        assertNull(evaluateSingleFieldValue("padLeft(/nullString, 10, '@')", record).getValue());
+        assertEquals("xyMyString", evaluateSingleFieldValue("padLeft(/someString, 10, \"xy\")", record).getValue());
+        assertEquals("aVMyString", evaluateSingleFieldValue("padLeft(/someString, 10, \"aVeryLongPadding\")", record).getValue());
+        assertEquals("fewfewfewfewMyString", evaluateSingleFieldValue("padLeft(/someString, 20, \"few\")", record).getValue());
     }
 
     @Test
@@ -1961,15 +1942,15 @@ public class TestRecordPath {
         values.put("nullString", null);
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("MyString##", RecordPath.compile("padRight(/someString, 10, \"#\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("MyString__", RecordPath.compile("padRight(/someString, 10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("MyString", RecordPath.compile("padRight(/someString, 3)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("MyString", RecordPath.compile("padRight(/someString, -10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("@@@@@@@@@@", RecordPath.compile("padRight(/emptyString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertNull(RecordPath.compile("padRight(/nullString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("MyStringxy", RecordPath.compile("padRight(/someString, 10, \"xy\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("MyStringaV", RecordPath.compile("padRight(/someString, 10, \"aVeryLongPadding\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("MyStringfewfewfewfew", RecordPath.compile("padRight(/someString, 20, \"few\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals("MyString##", evaluateSingleFieldValue("padRight(/someString, 10, \"#\")", record).getValue());
+        assertEquals("MyString__", evaluateSingleFieldValue("padRight(/someString, 10)", record).getValue());
+        assertEquals("MyString", evaluateSingleFieldValue("padRight(/someString, 3)", record).getValue());
+        assertEquals("MyString", evaluateSingleFieldValue("padRight(/someString, -10)", record).getValue());
+        assertEquals("@@@@@@@@@@", evaluateSingleFieldValue("padRight(/emptyString, 10, '@')", record).getValue());
+        assertNull(evaluateSingleFieldValue("padRight(/nullString, 10, '@')", record).getValue());
+        assertEquals("MyStringxy", evaluateSingleFieldValue("padRight(/someString, 10, \"xy\")", record).getValue());
+        assertEquals("MyStringaV", evaluateSingleFieldValue("padRight(/someString, 10, \"aVeryLongPadding\")", record).getValue());
+        assertEquals("MyStringfewfewfewfew", evaluateSingleFieldValue("padRight(/someString, 20, \"few\")", record).getValue());
     }
 
     @Test
@@ -2027,13 +2008,13 @@ public class TestRecordPath {
         values.put("name", null);
         final Record record = new MapRecord(schema, values);
 
-        assertEquals(Boolean.TRUE, RecordPath.compile("isEmpty( /name )").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(Boolean.FALSE, RecordPath.compile("isEmpty( /id )").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(Boolean.TRUE, evaluateSingleFieldValue("isEmpty( /name )", record).getValue());
+        assertEquals(Boolean.FALSE, evaluateSingleFieldValue("isEmpty( /id )", record).getValue());
 
-        assertEquals(Boolean.TRUE, RecordPath.compile("/id = 48").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(Boolean.FALSE, RecordPath.compile("/id > 48").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(Boolean.TRUE, evaluateSingleFieldValue("/id = 48", record).getValue());
+        assertEquals(Boolean.FALSE, evaluateSingleFieldValue("/id > 48", record).getValue());
 
-        assertEquals(Boolean.FALSE, RecordPath.compile("not(/id = 48)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(Boolean.FALSE, evaluateSingleFieldValue("not(/id = 48)", record).getValue());
     }
 
     @Test
@@ -2078,6 +2059,17 @@ public class TestRecordPath {
         assertEquals(48, fieldValues.get(0).getValue());
     }
 
+    @Test
+    public void testRecordRootReferenceInFunction() {
+        final Record record = createSimpleRecord();
+
+        final FieldValue singleArgumentFieldValue = evaluateSingleFieldValue("escapeJson(/)", record);
+        assertEquals("{\"id\":48,\"name\":\"John Doe\",\"missing\":null}", singleArgumentFieldValue.getValue());
+        final FieldValue multipleArgumentsFieldValue = evaluateSingleFieldValue("mapOf(\"copy\",/)", record);
+        assertInstanceOf(MapRecord.class, multipleArgumentsFieldValue.getValue());
+        assertEquals(record.toString(), ((MapRecord) multipleArgumentsFieldValue.getValue()).getValue("copy"));
+    }
+
     private List<RecordField> getDefaultFields() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
@@ -2115,4 +2107,11 @@ public class TestRecordPath {
         return new MapRecord(schema, values);
     }
 
+    private static FieldValue evaluateSingleFieldValue(RecordPath recordPath, Record record) {
+        return recordPath.evaluate(record).getSelectedFields().findFirst().get();
+    }
+
+    private static FieldValue evaluateSingleFieldValue(String path, Record record) {
+        return evaluateSingleFieldValue(RecordPath.compile(path), record);
+    }
 }
