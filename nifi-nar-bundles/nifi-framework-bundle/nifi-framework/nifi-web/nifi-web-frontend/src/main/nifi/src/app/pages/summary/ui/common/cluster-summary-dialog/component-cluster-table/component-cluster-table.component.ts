@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { MultiSort } from '../../index';
 import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -26,7 +26,7 @@ import { NodeStatusSnapshot } from '../../../../state';
     imports: [MatTableModule, MatSortModule],
     template: ''
 })
-export abstract class ComponentClusterTable<T extends NodeStatusSnapshot> {
+export abstract class ComponentClusterTable<T extends NodeStatusSnapshot> implements OnChanges {
     private _initialSortColumn!: string;
     private _initialSortDirection: SortDirection = 'asc';
 
@@ -62,9 +62,18 @@ export abstract class ComponentClusterTable<T extends NodeStatusSnapshot> {
 
     abstract supportsMultiValuedSort(sort: Sort): boolean;
 
-    @Input({}) set components(components: T[]) {
+    @Input() components: T[] = [];
+    private setComponents(components: T[]) {
         if (components) {
             this.dataSource.data = this.sortEntities(components, this.multiSort);
+        }
+    }
+
+    ngOnChanges(changes: SimpleChanges) {
+        // Due to the generic nature of the component, handle the changes to the components in ngOnChanges
+        // rather than in a setter. This avoids IDE reporting @Input types cannot be converted to T[].
+        if (changes['components'].currentValue !== changes['components'].previousValue) {
+            this.setComponents(changes['components'].currentValue);
         }
     }
 

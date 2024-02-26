@@ -23,6 +23,7 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { initialComponentClusterStatusState } from '../../../state/component-cluster-status/component-cluster-status.reducer';
 import { ComponentClusterStatusRequest, ComponentClusterStatusState } from '../../../state/component-cluster-status';
 import { ComponentType } from '../../../../../state/shared';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('ClusterSummaryDialog', () => {
     let component: ClusterSummaryDialog;
@@ -33,7 +34,7 @@ describe('ClusterSummaryDialog', () => {
     };
     beforeEach(async () => {
         await TestBed.configureTestingModule({
-            imports: [ClusterSummaryDialog, MatDialogModule],
+            imports: [ClusterSummaryDialog, MatDialogModule, NoopAnimationsModule],
             providers: [
                 {
                     provide: MAT_DIALOG_DATA,

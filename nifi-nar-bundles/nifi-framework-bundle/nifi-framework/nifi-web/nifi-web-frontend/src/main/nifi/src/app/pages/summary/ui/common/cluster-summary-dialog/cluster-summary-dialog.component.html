@@ -25,11 +25,45 @@
                 [name]="componentHelper.getName()"
                 [id]="componentId"></component-context>
             <div class="flex flex-1 flex-col cluster-summary-table-container">
-                @if (clusterStatusEntity?.processorStatus?.nodeSnapshots) {
-                    <processor-cluster-table
-                        [components]="clusterStatusEntity?.processorStatus?.nodeSnapshots || []"
-                        initialSortColumn="node"
-                        initialSortDirection="asc"></processor-cluster-table>
+                @switch (componentType) {
+                    @case (ComponentType.Processor) {
+                        <processor-cluster-table
+                            [components]="clusterStatusEntity?.processorStatus?.nodeSnapshots || []"
+                            initialSortColumn="node"
+                            initialSortDirection="asc"></processor-cluster-table>
+                    }
+                    @case (ComponentType.InputPort) {
+                        <port-cluster-table
+                            [components]="clusterStatusEntity?.portStatus?.nodeSnapshots || []"
+                            portType="input"
+                            initialSortColumn="node"
+                            initialSortDirection="asc"></port-cluster-table>
+                    }
+                    @case (ComponentType.OutputPort) {
+                        <port-cluster-table
+                            [components]="clusterStatusEntity?.portStatus?.nodeSnapshots || []"
+                            portType="output"
+                            initialSortColumn="node"
+                            initialSortDirection="asc"></port-cluster-table>
+                    }
+                    @case (ComponentType.RemoteProcessGroup) {
+                        <remote-process-group-cluster-table
+                            [components]="clusterStatusEntity?.remoteProcessGroupStatus?.nodeSnapshots || []"
+                            initialSortColumn="node"
+                            initialSortDirection="asc"></remote-process-group-cluster-table>
+                    }
+                    @case (ComponentType.Connection) {
+                        <connection-cluster-table
+                            [components]="clusterStatusEntity?.connectionStatus?.nodeSnapshots || []"
+                            initialSortColumn="node"
+                            initialSortDirection="asc"></connection-cluster-table>
+                    }
+                    @case (ComponentType.ProcessGroup) {
+                        <process-group-cluster-table
+                            [components]="clusterStatusEntity?.processGroupStatus?.nodeSnapshots || []"
+                            initialSortColumn="node"
+                            initialSortDirection="asc"></process-group-cluster-table>
+                    }
                 }
             </div>
         </div>

@@ -36,7 +36,7 @@ export class ProcessorClusterTable extends ComponentClusterTable<NodeProcessorSt
         super();
     }
 
-    supportsMultiValuedSort(sort: Sort): boolean {
+    override supportsMultiValuedSort(sort: Sort): boolean {
         switch (sort.active) {
             case 'in':
             case 'out':
@@ -48,7 +48,7 @@ export class ProcessorClusterTable extends ComponentClusterTable<NodeProcessorSt
         }
     }
 
-    sortEntities(data: NodeProcessorStatusSnapshot[], sort: Sort): NodeProcessorStatusSnapshot[] {
+    override sortEntities(data: NodeProcessorStatusSnapshot[], sort: Sort): NodeProcessorStatusSnapshot[] {
         if (!data) {
             return [];
         }

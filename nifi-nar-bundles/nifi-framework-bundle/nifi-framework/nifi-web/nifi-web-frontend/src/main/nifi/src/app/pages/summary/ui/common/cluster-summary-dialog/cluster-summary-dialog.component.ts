@@ -43,6 +43,10 @@ import { Store } from '@ngrx/store';
 import * as ClusterStatusActions from '../../../state/component-cluster-status/component-cluster-status.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ProcessorClusterTable } from './processor-cluster-table/processor-cluster-table.component';
+import { PortClusterTable } from './port-cluster-table/port-cluster-table.component';
+import { RemoteProcessGroupClusterTable } from './remote-process-group-cluster-table/remote-process-group-cluster-table.component';
+import { ConnectionClusterTable } from './connection-cluster-table/connection-cluster-table.component';
+import { ProcessGroupClusterTable } from './process-group-cluster-table/process-group-cluster-table.component';
 
 interface Helper {
     getName: () => string;
@@ -60,7 +64,11 @@ interface Helper {
         ComponentContext,
         MatPaginator,
         AsyncPipe,
-        ProcessorClusterTable
+        ProcessorClusterTable,
+        PortClusterTable,
+        RemoteProcessGroupClusterTable,
+        ConnectionClusterTable,
+        ProcessGroupClusterTable
     ],
     templateUrl: './cluster-summary-dialog.component.html',
     styleUrl: './cluster-summary-dialog.component.scss'
@@ -127,4 +135,6 @@ export class ClusterSummaryDialog {
             })
         );
     }
+
+    protected readonly ComponentType = ComponentType;
 }

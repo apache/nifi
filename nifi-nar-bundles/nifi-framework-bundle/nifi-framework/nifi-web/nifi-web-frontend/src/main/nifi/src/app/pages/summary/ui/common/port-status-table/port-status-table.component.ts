@@ -50,9 +50,9 @@ export class PortStatusTable extends ComponentStatusTable<PortStatusSnapshotEnti
 
     @Input() set portType(type: 'input' | 'output') {
         if (type === 'input') {
-            this.displayedColumns = ['moreDetails', 'name', 'runStatus', 'in', 'actions'];
-        } else {
             this.displayedColumns = ['moreDetails', 'name', 'runStatus', 'out', 'actions'];
+        } else {
+            this.displayedColumns = ['moreDetails', 'name', 'runStatus', 'in', 'actions'];
         }
         this._portType = type;
     }
