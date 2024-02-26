@@ -40,7 +40,6 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.storage.utils.ADLSFileInfo;
@@ -266,8 +265,8 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
     private List<ADLSFileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode,
                                               final boolean applyFilters) throws IOException {
         try {
-            final String fileSystem = evaluateFileSystemProperty(FILESYSTEM, context, (FlowFile) null);
-            final String baseDirectory = evaluateDirectoryProperty(DIRECTORY, context, (FlowFile) null);
+            final String fileSystem = evaluateFileSystemProperty(FILESYSTEM, context);
+            final String baseDirectory = evaluateDirectoryProperty(DIRECTORY, context);
             final boolean recurseSubdirectories = context.getProperty(RECURSE_SUBDIRECTORIES).asBoolean();
 
             final Pattern filePattern = listingMode == ListingMode.EXECUTION ? this.filePattern : getPattern(context, FILE_FILTER);

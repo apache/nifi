@@ -267,6 +267,10 @@ public final class AzureStorageUtils {
         ProxyConfiguration.validateProxySpec(context, results, PROXY_SPECS);
     }
 
+    public static String evaluateFileSystemProperty(PropertyDescriptor property, PropertyContext context) {
+        return evaluateFileSystemProperty(property, context, (Map<String, String>) null);
+    }
+
     public static String evaluateFileSystemProperty(PropertyDescriptor property, PropertyContext context, FlowFile flowFile) {
         return evaluateFileSystemProperty(property, context, flowFile.getAttributes());
     }
@@ -278,6 +282,10 @@ public final class AzureStorageUtils {
                     property.getDisplayName()));
         }
         return fileSystem;
+    }
+
+    public static String evaluateDirectoryProperty(PropertyDescriptor property, PropertyContext context) {
+        return evaluateDirectoryProperty(property, context, (Map<String, String>) null);
     }
 
     public static String evaluateDirectoryProperty(PropertyDescriptor property, PropertyContext context, FlowFile flowFile) {
