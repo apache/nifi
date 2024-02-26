@@ -55,8 +55,22 @@ public class TestAbstractAzureDataLakeStorage {
     }
 
     @Test
+    public void testNotValidWhenNoFilesystemSpecified() {
+        runner.removeProperty(FILESYSTEM);
+
+        runner.assertNotValid();
+    }
+
+    @Test
     public void testNotValidWhenFilesystemIsEmptyString() {
         runner.setProperty(FILESYSTEM, "");
+
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testNotValidWhenNoDirectorySpecified() {
+        runner.removeProperty(DIRECTORY);
 
         runner.assertNotValid();
     }

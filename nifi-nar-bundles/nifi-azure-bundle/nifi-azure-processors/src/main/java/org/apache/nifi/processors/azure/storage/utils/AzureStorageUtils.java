@@ -42,9 +42,7 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Map;
 
-import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
-import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILESYSTEM;
 
 public final class AzureStorageUtils {
     public static final String STORAGE_ACCOUNT_NAME_PROPERTY_DESCRIPTOR_NAME = "storage-account-name";
@@ -87,7 +85,6 @@ public final class AzureStorageUtils {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
-            .defaultValue(String.format("${%s}", ATTR_NAME_FILESYSTEM))
             .build();
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
@@ -98,7 +95,6 @@ public final class AzureStorageUtils {
             .addValidator(new DirectoryValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
-            .defaultValue(String.format("${%s}", ATTR_NAME_DIRECTORY))
             .build();
 
     public static final PropertyDescriptor FILE = new PropertyDescriptor.Builder()

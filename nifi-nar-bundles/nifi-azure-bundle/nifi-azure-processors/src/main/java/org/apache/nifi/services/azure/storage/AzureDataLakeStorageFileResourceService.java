@@ -34,16 +34,17 @@ import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.fileresource.service.api.FileResourceService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.storage.FetchAzureDataLakeStorage;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.azure.storage.utils.DataLakeServiceClientFactory;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_DIRECTORY;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateDirectoryProperty;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileProperty;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileSystemProperty;
@@ -64,6 +65,16 @@ import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.g
                 """
 )
 public class AzureDataLakeStorageFileResourceService extends AbstractControllerService implements FileResourceService {
+
+    public static final PropertyDescriptor FILESYSTEM = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AzureStorageUtils.FILESYSTEM)
+            .defaultValue(String.format("${%s}", ATTR_NAME_FILESYSTEM))
+            .build();
+
+    public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AzureStorageUtils.DIRECTORY)
+            .defaultValue(String.format("${%s}", ATTR_NAME_DIRECTORY))
+            .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
             ADLS_CREDENTIALS_SERVICE,
