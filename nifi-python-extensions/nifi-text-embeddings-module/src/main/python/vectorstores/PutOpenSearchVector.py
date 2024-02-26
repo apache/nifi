@@ -16,10 +16,9 @@
 from langchain.vectorstores import OpenSearchVectorSearch
 from nifiapi.flowfiletransform import FlowFileTransform, FlowFileTransformResult
 from nifiapi.properties import PropertyDescriptor, StandardValidators, ExpressionLanguageScope, PropertyDependency
-from OpenSearchVectorUtils import (OPENAI_API_KEY, OPENAI_API_MODEL, HUGGING_FACE_API_KEY, HUGGING_FACE_MODEL,
-                                   HTTP_HOST,
-                                   USERNAME, PASSWORD, VERIFY_CERTIFICATES, INDEX_NAME, VECTOR_FIELD, TEXT_FIELD,
-                                   create_authentication_params, parse_documents)
+from OpenSearchVectorUtils import (L2, L1, LINF, COSINESIMIL, OPENAI_API_KEY, OPENAI_API_MODEL, HUGGING_FACE_API_KEY,
+                                   HUGGING_FACE_MODEL,HTTP_HOST, USERNAME, PASSWORD, INDEX_NAME, VECTOR_FIELD,
+                                   TEXT_FIELD, create_authentication_params, parse_documents)
 from EmbeddingUtils import EMBEDDING_MODEL, create_embedding_service
 from nifiapi.documentation import use_case, multi_processor_use_case, ProcessorConfiguration
 
@@ -32,8 +31,8 @@ from nifiapi.documentation import use_case, multi_processor_use_case, ProcessorC
                 Configure 'Embedding Model' to indicate whether OpenAI embeddings should be used or a HuggingFace embedding model should be used: 'Hugging Face Model' or 'OpenAI Model'
                 Configure the 'OpenAI API Key' or 'HuggingFace API Key', depending on the chosen Embedding Model.
                 Set 'Index Name' to the name of your OpenSearch Index.
-                Set 'Vector Field Name' to the name of the field in the Document which will store the vector data.
-                Set 'Text Field Name' to the name of the field in the Document which will store the text data.
+                Set 'Vector Field Name' to the name of the field in the document which will store the vector data.
+                Set 'Text Field Name' to the name of the field in the document which will store the text data.
 
                 If the documents to send to OpenSearch contain a unique identifier, set the 'Document ID Field Name' property to the name of the field that contains the document ID.
                 This property can be left blank, in which case a unique ID will be generated based on the FlowFile's filename.
@@ -49,8 +48,8 @@ from nifiapi.documentation import use_case, multi_processor_use_case, ProcessorC
                 Configure 'Embedding Model' to indicate whether OpenAI embeddings should be used or a HuggingFace embedding model should be used: 'Hugging Face Model' or 'OpenAI Model'
                 Configure the 'OpenAI API Key' or 'HuggingFace API Key', depending on the chosen Embedding Model.
                 Set 'Index Name' to the name of your OpenSearch Index.
-                Set 'Vector Field Name' to the name of the field in the Document which will store the vector data.
-                Set 'Text Field Name' to the name of the field in the Document which will store the text data.
+                Set 'Vector Field Name' to the name of the field in the document which will store the vector data.
+                Set 'Text Field Name' to the name of the field in the document which will store the text data.
                 Set the 'Document ID Field Name' property to the name of the field that contains the identifier of the document in OpenSearch to update.
                 """)
 class PutOpenSearchVector(FlowFileTransform):
@@ -72,10 +71,6 @@ class PutOpenSearchVector(FlowFileTransform):
     ENGINE_VALUES = dict([NMSLIB, FAISS, LUCENE])
 
     # Space types
-    L2 = ("L2 (Euclidean distance)", "l2")
-    L1 = ("L1 (Manhattan distance)", "l1")
-    LINF = ("L-infinity (chessboard) distance", "linf")
-    COSINESIMIL = ("Cosine similarity", "cosinesimil")
     INNERPRODUCT = ("Inner product", "innerproduct")
 
     NMSLIB_SPACE_TYPE_VALUES = dict([L2, L1, LINF, COSINESIMIL, INNERPRODUCT])
@@ -142,7 +137,7 @@ class PutOpenSearchVector(FlowFileTransform):
         description="The size of the dynamic list used during k-NN searches. Higher values lead to more accurate but slower searches.",
         default_value="512",
         required=False,
-        validators=[StandardValidators.NUMBER_VALIDATOR],
+        validators=[StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR],
         dependencies=[PropertyDependency(NEW_INDEX_STRATEGY, CUSTOM_INDEX_MAPPING)]
     )
     EF_CONSTRUCTION = PropertyDescriptor(
@@ -150,7 +145,7 @@ class PutOpenSearchVector(FlowFileTransform):
         description="The size of the dynamic list used during k-NN graph creation. Higher values lead to a more accurate graph but slower indexing speed.",
         default_value="512",
         required=False,
-        validators=[StandardValidators.NUMBER_VALIDATOR],
+        validators=[StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR],
         dependencies=[PropertyDependency(NEW_INDEX_STRATEGY, CUSTOM_INDEX_MAPPING)]
     )
     M = PropertyDescriptor(
@@ -159,7 +154,7 @@ class PutOpenSearchVector(FlowFileTransform):
                     "decreasing this value can have a large impact on memory consumption. Keep this value between 2 and 100.",
         default_value="16",
         required=False,
-        validators=[StandardValidators.NUMBER_VALIDATOR],
+        validators=[StandardValidators.create_long_validator(2, 100, True)],
         dependencies=[PropertyDependency(NEW_INDEX_STRATEGY, CUSTOM_INDEX_MAPPING)]
     )
 
@@ -171,7 +166,6 @@ class PutOpenSearchVector(FlowFileTransform):
                   HTTP_HOST,
                   USERNAME,
                   PASSWORD,
-                  VERIFY_CERTIFICATES,
                   INDEX_NAME,
                   DOC_ID_FIELD_NAME,
                   VECTOR_FIELD,

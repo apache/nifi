@@ -49,6 +49,10 @@ class StandardValidators:
     DATA_SIZE_VALIDATOR = _standard_validators.DATA_SIZE_VALIDATOR
     FILE_EXISTS_VALIDATOR = _standard_validators.FILE_EXISTS_VALIDATOR
 
+    @staticmethod
+    def create_long_validator(minimum, maximum, inclusive):
+        return StandardValidators._standard_validators.createLongValidator(minimum, maximum, inclusive)
+
 
 
 class PropertyDependency:

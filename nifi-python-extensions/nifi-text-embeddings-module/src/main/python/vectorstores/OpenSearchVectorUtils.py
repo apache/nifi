@@ -16,6 +16,12 @@
 from nifiapi.properties import PropertyDescriptor, StandardValidators, ExpressionLanguageScope, PropertyDependency
 from EmbeddingUtils import OPENAI, HUGGING_FACE, EMBEDDING_MODEL
 
+# Space types
+L2 = ("L2 (Euclidean distance)", "l2")
+L1 = ("L1 (Manhattan distance)", "l1")
+LINF = ("L-infinity (chessboard) distance", "linf")
+COSINESIMIL = ("Cosine similarity", "cosinesimil")
+
 HUGGING_FACE_API_KEY = PropertyDescriptor(
     name="HuggingFace API Key",
     description="The API Key for interacting with HuggingFace",
@@ -53,7 +59,7 @@ HTTP_HOST = PropertyDescriptor(
     description="URL where OpenSearch is hosted.",
     default_value="http://localhost:9200",
     required=True,
-    validators=[StandardValidators.NON_EMPTY_VALIDATOR]
+    validators=[StandardValidators.URL_VALIDATOR]
 )
 USERNAME = PropertyDescriptor(
     name="Username",
@@ -68,14 +74,6 @@ PASSWORD = PropertyDescriptor(
     sensitive=True,
     validators=[StandardValidators.NON_EMPTY_VALIDATOR]
 )
-VERIFY_CERTIFICATES = PropertyDescriptor(
-    name="Verify Certificates",
-    description="The password to use for authenticating to OpenSearch server",
-    allowable_values=["true", "false"],
-    default_value="false",
-    required=False,
-    validators=[StandardValidators.NON_EMPTY_VALIDATOR]
-)
 INDEX_NAME = PropertyDescriptor(
     name="Index Name",
     description="The name of the OpenSearch index.",
@@ -86,7 +84,7 @@ INDEX_NAME = PropertyDescriptor(
 )
 VECTOR_FIELD = PropertyDescriptor(
     name="Vector Field Name",
-    description="The name of Document field where the embeddings are stored. This field need to be a 'knn_vector' typed field.",
+    description="The name of field in the document where the embeddings are stored. This field need to be a 'knn_vector' typed field.",
     default_value="vector_field",
     required=True,
     validators=[StandardValidators.NON_EMPTY_VALIDATOR],
@@ -94,7 +92,7 @@ VECTOR_FIELD = PropertyDescriptor(
 )
 TEXT_FIELD = PropertyDescriptor(
     name="Text Field Name",
-    description="The name of Document field where the text of the document is stored.",
+    description="The name of field in the document where the text is stored.",
     default_value="text",
     required=True,
     validators=[StandardValidators.NON_EMPTY_VALIDATOR],
@@ -105,9 +103,8 @@ TEXT_FIELD = PropertyDescriptor(
 def create_authentication_params(context):
     username = context.getProperty(USERNAME).getValue()
     password = context.getProperty(PASSWORD).getValue()
-    verify_certificates = context.getProperty(VERIFY_CERTIFICATES).getValue()
 
-    params = {"verify_certs": verify_certificates}
+    params = {"verify_certs": "true"}
 
     if username is not None and password is not None:
         params["http_auth"] = (username, password)
@@ -132,11 +129,7 @@ def parse_documents(json_lines, id_field_name, file_name):
         texts.append(text)
 
         # Remove any null values, or it will cause the embedding to fail
-        filtered_metadata = {}
-        for key, value in metadata.items():
-            if value is not None:
-                filtered_metadata[key] = value
-
+        filtered_metadata = {key: value for key, value in metadata.items() if value is not None}
         metadatas.append(filtered_metadata)
 
         doc_id = None

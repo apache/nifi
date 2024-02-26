@@ -16,8 +16,8 @@
 from langchain.vectorstores import OpenSearchVectorSearch
 from nifiapi.flowfiletransform import FlowFileTransform, FlowFileTransformResult
 from nifiapi.properties import PropertyDescriptor, StandardValidators, ExpressionLanguageScope, PropertyDependency
-from OpenSearchVectorUtils import (OPENAI_API_KEY, OPENAI_API_MODEL, HUGGING_FACE_API_KEY, HUGGING_FACE_MODEL, HTTP_HOST,
-                                   USERNAME, PASSWORD, VERIFY_CERTIFICATES, INDEX_NAME, VECTOR_FIELD, TEXT_FIELD, create_authentication_params)
+from OpenSearchVectorUtils import (L2, L1, LINF, COSINESIMIL, OPENAI_API_KEY, OPENAI_API_MODEL, HUGGING_FACE_API_KEY, HUGGING_FACE_MODEL, HTTP_HOST,
+                                   USERNAME, PASSWORD, INDEX_NAME, VECTOR_FIELD, TEXT_FIELD, create_authentication_params)
 from QueryUtils import OUTPUT_STRATEGY, RESULTS_FIELD, INCLUDE_METADATAS, INCLUDE_DISTANCES, QueryUtils
 import json
 from EmbeddingUtils import EMBEDDING_MODEL, create_embedding_service
@@ -40,10 +40,6 @@ class QueryOpenSearchVector(FlowFileTransform):
     SEARCH_TYPE_VALUES = dict([APPROXIMATE_SEARCH, SCRIPT_SCORING_SEARCH, PAINLESS_SCRIPTING_SEARCH])
 
     # Script Scoring Search space types
-    L2 = ("L2 (Euclidean distance)", "l2")
-    L1 = ("L1 (Manhattan distance)", "l1")
-    LINF = ("L-infinity (chessboard) distance", "linf")
-    COSINESIMIL = ("Cosine similarity", "cosinesimil")
     HAMMINGBIT = ("Hamming distance", "hammingbit")
 
     SCRIPT_SCORING_SPACE_TYPE_VALUES = dict([L2, L1, LINF, COSINESIMIL, HAMMINGBIT])
@@ -128,7 +124,6 @@ class QueryOpenSearchVector(FlowFileTransform):
                   HTTP_HOST,
                   USERNAME,
                   PASSWORD,
-                  VERIFY_CERTIFICATES,
                   INDEX_NAME,
                   QUERY,
                   VECTOR_FIELD,
