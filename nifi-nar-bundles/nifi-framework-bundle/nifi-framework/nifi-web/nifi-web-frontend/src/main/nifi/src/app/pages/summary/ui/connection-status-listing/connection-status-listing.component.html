@@ -22,14 +22,19 @@
         </div>
     } @else {
         <connection-status-table
-            [connections]="(connectionStatusSnapshots$ | async)!"
-            [selectedConnectionId]="selectedConnectionId$ | async"
+            [components]="(connectionStatusSnapshots$ | async)!"
+            [selectedId]="selectedConnectionId$ | async"
             [loadedTimestamp]="loadedTimestamp$ | async"
             [summaryListingStatus]="summaryListingStatus$ | async"
-            (selectConnection)="selectConnection($event)"
+            [connectedToCluster]="(connectedToCluster$ | async) || false"
+            [clusterNodes]="clusterNodes$ | async"
+            [selectedClusterNode]="selectedClusterNode$ | async"
+            (selectComponent)="selectConnection($event)"
             (clearSelection)="clearSelection()"
             (viewStatusHistory)="viewStatusHistory($event)"
             (refresh)="refreshSummaryListing()"
+            (clusterNodeSelected)="clusterNodeSelected($event)"
+            (viewClusteredDetails)="viewClusteredDetails($event)"
             initialSortColumn="sourceName"
             initialSortDirection="asc"></connection-status-table>
     }

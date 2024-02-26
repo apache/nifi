@@ -49,6 +49,19 @@ export const componentClusterStatusReducer = createReducer(
                 case ComponentType.Processor:
                     loadedTimestamp = response.clusterStatusEntity.processorStatus?.statsLastRefreshed || '';
                     break;
+                case ComponentType.RemoteProcessGroup:
+                    loadedTimestamp = response.clusterStatusEntity.remoteProcessGroupStatus?.statsLastRefreshed || '';
+                    break;
+                case ComponentType.ProcessGroup:
+                    loadedTimestamp = response.clusterStatusEntity.processGroupStatus?.statsLastRefreshed || '';
+                    break;
+                case ComponentType.InputPort:
+                case ComponentType.OutputPort:
+                    loadedTimestamp = response.clusterStatusEntity.portStatus?.statsLastRefreshed || '';
+                    break;
+                case ComponentType.Connection:
+                    loadedTimestamp = response.clusterStatusEntity.connectionStatus?.statsLastRefreshed || '';
+                    break;
                 default:
                     loadedTimestamp = '';
             }

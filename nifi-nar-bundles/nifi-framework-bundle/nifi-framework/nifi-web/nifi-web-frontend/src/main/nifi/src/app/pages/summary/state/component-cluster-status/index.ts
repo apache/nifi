@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { ProcessorStatus } from '../index';
+import { ConnectionStatus, PortStatus, ProcessGroupStatus, ProcessorStatus, RemoteProcessGroupStatus } from '../index';
 import { ComponentType } from '../../../../state/shared';
 
 export const componentClusterStatusFeatureKey = 'component-cluster-status';
@@ -33,6 +33,10 @@ export interface ComponentClusterStatusResponse {
 export interface ClusterStatusEntity {
     canRead: boolean;
     processorStatus?: ProcessorStatus;
+    portStatus?: PortStatus;
+    processGroupStatus?: ProcessGroupStatus;
+    remoteProcessGroupStatus?: RemoteProcessGroupStatus;
+    connectionStatus?: ConnectionStatus;
 }
 
 export interface ComponentClusterStatusState {

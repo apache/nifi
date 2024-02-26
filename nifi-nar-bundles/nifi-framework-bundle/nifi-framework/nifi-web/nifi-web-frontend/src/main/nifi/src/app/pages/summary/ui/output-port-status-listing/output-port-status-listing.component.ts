@@ -19,6 +19,7 @@ import { Component } from '@angular/core';
 import {
     selectOutputPortIdFromRoute,
     selectOutputPortStatusSnapshots,
+    selectSelectedClusterNode,
     selectSummaryListingLoadedTimestamp,
     selectSummaryListingStatus
 } from '../../state/summary-listing/summary-listing.selectors';
@@ -29,6 +30,14 @@ import { initialState } from '../../state/summary-listing/summary-listing.reduce
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
 import { loadClusterSummary } from '../../../../state/cluster-summary/cluster-summary.actions';
 import { PortStatusSnapshotEntity } from '../../state';
+import {
+    selectClusterSearchResults,
+    selectClusterSummary
+} from '../../../../state/cluster-summary/cluster-summary.selectors';
+import { ComponentType, isDefinedAndNotNull } from '../../../../state/shared';
+import { map } from 'rxjs';
+import { NodeSearchResult } from '../../../../state/cluster-summary';
+import * as ClusterStatusActions from '../../state/component-cluster-status/component-cluster-status.actions';
 
 @Component({
     selector: 'output-port-status-listing',
@@ -41,6 +50,15 @@ export class OutputPortStatusListing {
     summaryListingStatus$ = this.store.select(selectSummaryListingStatus);
     currentUser$ = this.store.select(selectCurrentUser);
     selectedPortId$ = this.store.select(selectOutputPortIdFromRoute);
+    connectedToCluster$ = this.store.select(selectClusterSummary).pipe(
+        isDefinedAndNotNull(),
+        map((cluster) => cluster.connectedToCluster)
+    );
+    clusterNodes$ = this.store.select(selectClusterSearchResults).pipe(
+        isDefinedAndNotNull(),
+        map((results) => results.nodeResults)
+    );
+    selectedClusterNode$ = this.store.select(selectSelectedClusterNode);
 
     constructor(private store: Store<SummaryListingState>) {}
 
@@ -65,5 +83,20 @@ export class OutputPortStatusListing {
 
     clearSelection() {
         this.store.dispatch(SummaryListingActions.clearOutputPortStatusSelection());
+    }
+
+    clusterNodeSelected(clusterNode: NodeSearchResult) {
+        this.store.dispatch(SummaryListingActions.selectClusterNode({ clusterNode }));
+    }
+
+    viewClusteredDetails(port: PortStatusSnapshotEntity): void {
+        this.store.dispatch(
+            ClusterStatusActions.loadComponentClusterStatusAndOpenDialog({
+                request: {
+                    id: port.id,
+                    componentType: ComponentType.OutputPort
+                }
+            })
+        );
     }
 }

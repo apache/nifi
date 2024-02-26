@@ -20,6 +20,7 @@ import {
     selectRemoteProcessGroupIdFromRoute,
     selectRemoteProcessGroupStatus,
     selectRemoteProcessGroupStatusSnapshots,
+    selectSelectedClusterNode,
     selectSummaryListingLoadedTimestamp,
     selectSummaryListingStatus,
     selectViewStatusHistory
@@ -27,14 +28,20 @@ import {
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { Store } from '@ngrx/store';
 import { SummaryListingState } from '../../state/summary-listing';
-import { filter, switchMap, take } from 'rxjs';
+import { filter, map, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
-import { ComponentType } from '../../../../state/shared';
+import { ComponentType, isDefinedAndNotNull } from '../../../../state/shared';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
 import { loadClusterSummary } from '../../../../state/cluster-summary/cluster-summary.actions';
 import { RemoteProcessGroupStatusSnapshotEntity } from '../../state';
+import {
+    selectClusterSearchResults,
+    selectClusterSummary
+} from '../../../../state/cluster-summary/cluster-summary.selectors';
+import * as ClusterStatusActions from '../../state/component-cluster-status/component-cluster-status.actions';
+import { NodeSearchResult } from '../../../../state/cluster-summary';
 
 @Component({
     selector: 'remote-process-group-status-listing',
@@ -47,6 +54,15 @@ export class RemoteProcessGroupStatusListing {
     currentUser$ = this.store.select(selectCurrentUser);
     rpgStatusSnapshots$ = this.store.select(selectRemoteProcessGroupStatusSnapshots);
     selectedRpgId$ = this.store.select(selectRemoteProcessGroupIdFromRoute);
+    connectedToCluster$ = this.store.select(selectClusterSummary).pipe(
+        isDefinedAndNotNull(),
+        map((cluster) => cluster.connectedToCluster)
+    );
+    clusterNodes$ = this.store.select(selectClusterSearchResults).pipe(
+        isDefinedAndNotNull(),
+        map((results) => results.nodeResults)
+    );
+    selectedClusterNode$ = this.store.select(selectSelectedClusterNode);
 
     constructor(private store: Store<SummaryListingState>) {
         this.store
@@ -105,5 +121,20 @@ export class RemoteProcessGroupStatusListing {
                 id: rpg.id
             })
         );
+    }
+
+    viewClusteredDetails(processor: RemoteProcessGroupStatusSnapshotEntity): void {
+        this.store.dispatch(
+            ClusterStatusActions.loadComponentClusterStatusAndOpenDialog({
+                request: {
+                    id: processor.id,
+                    componentType: ComponentType.RemoteProcessGroup
+                }
+            })
+        );
+    }
+
+    clusterNodeSelected(clusterNode: NodeSearchResult) {
+        this.store.dispatch(SummaryListingActions.selectClusterNode({ clusterNode }));
     }
 }

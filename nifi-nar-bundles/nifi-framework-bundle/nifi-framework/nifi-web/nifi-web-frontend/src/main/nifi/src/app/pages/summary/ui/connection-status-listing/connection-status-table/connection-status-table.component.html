@@ -26,6 +26,8 @@
                     [includeStatusFilter]="false"
                     [includePrimaryNodeOnlyFilter]="false"
                     filterColumn="sourceName"
+                    [clusterNodes]="clusterNodes"
+                    [selectedNode]="selectedClusterNode"
                     (filterChanged)="applyFilter($event)"></summary-table-filter>
 
                 <div class="flex-1 relative">
@@ -213,6 +215,13 @@
                                             class="pointer fa fa-area-chart"
                                             title="View Status History"
                                             (click)="viewStatusHistoryClicked($event, item)"></div>
+
+                                        @if (connectedToCluster) {
+                                            <div
+                                                class="pointer fa fa-cubes"
+                                                title="View Clustered Connection Details"
+                                                (click)="viewClusteredDetailsClicked($event, item)"></div>
+                                        }
                                     </div>
                                 </td>
                             </ng-container>

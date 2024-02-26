@@ -187,14 +187,71 @@ export interface NodeStatusSnapshot {
 export interface NodeProcessorStatusSnapshot extends NodeStatusSnapshot {
     statusSnapshot: ProcessorStatusSnapshot;
 }
+export interface NodePortStatusSnapshot extends NodeStatusSnapshot {
+    statusSnapshot: PortStatusSnapshot;
+}
+
+export interface NodeProcessGroupStatusSnapshot extends NodeStatusSnapshot {
+    statusSnapshot: ProcessGroupStatusSnapshot;
+}
+
+export interface NodeRemoteProcessGroupStatusSnapshot extends NodeStatusSnapshot {
+    statusSnapshot: RemoteProcessGroupStatusSnapshot;
+}
+
+export interface NodeConnectionStatusSnapshot extends NodeStatusSnapshot {
+    statusSnapshot: ConnectionStatusSnapshot;
+}
 
 export interface ProcessorStatus {
     groupId: string;
     id: string;
     name: string;
-    type: string;
     runStatus: string;
     statsLastRefreshed: string;
     aggregateSnapshot: ProcessorStatusSnapshot;
     nodeSnapshots: NodeProcessorStatusSnapshot[];
+}
+
+export interface PortStatus {
+    groupId: string;
+    id: string;
+    name: string;
+    runStatus: string;
+    statsLastRefreshed: string;
+    aggregateSnapshot: PortStatusSnapshot;
+    nodeSnapshots: NodePortStatusSnapshot[];
+}
+
+export interface ProcessGroupStatus {
+    id: string;
+    name: string;
+    statsLastRefreshed: string;
+    aggregateSnapshot: ProcessGroupStatusSnapshot;
+    nodeSnapshots: NodeProcessGroupStatusSnapshot[];
+}
+
+export interface RemoteProcessGroupStatus {
+    groupId: string;
+    id: string;
+    name: string;
+    statsLastRefreshed: string;
+    targetUri: string;
+    transmissionStatus: string;
+    validationStatus: string;
+    aggregateSnapshot: RemoteProcessGroupStatusSnapshot;
+    nodeSnapshots: NodeRemoteProcessGroupStatusSnapshot[];
+}
+
+export interface ConnectionStatus {
+    groupId: string;
+    id: string;
+    name: string;
+    destinationId: string;
+    destinationName: string;
+    sourceId: string;
+    sourceName: string;
+    statsLastRefreshed: string;
+    aggregateSnapshot: ConnectionStatusSnapshot;
+    nodeSnapshots: NodeConnectionStatusSnapshot[];
 }

@@ -34,6 +34,10 @@ export interface SummaryTableFilterArgs {
     clusterNode?: NodeSearchResult;
 }
 
+export interface SummaryTableFilterContext extends SummaryTableFilterArgs {
+    changedField: string;
+}
+
 @Component({
     selector: 'summary-table-filter',
     templateUrl: './summary-table-filter.component.html',
@@ -44,6 +48,7 @@ export class SummaryTableFilter implements AfterViewInit {
     private _filteredCount = 0;
     private _totalCount = 0;
     private _initialFilterColumn = 'name';
+    private _filterableColumns: SummaryTableFilterColumn[] = [];
     private destroyRef: DestroyRef = inject(DestroyRef);
 
     showFilterMatchedLabel = false;
@@ -55,7 +60,13 @@ export class SummaryTableFilter implements AfterViewInit {
     private _clusterNodes: NodeSearchResult[] = [];
     private _selectedNode: NodeSearchResult | null = this.allNodes;
 
-    @Input() filterableColumns: SummaryTableFilterColumn[] = [];
+    @Input() set filterableColumns(filterableColumns: SummaryTableFilterColumn[]) {
+        this._filterableColumns = filterableColumns;
+    }
+    get filterableColumns(): SummaryTableFilterColumn[] {
+        return this._filterableColumns;
+    }
+
     @Input() includeStatusFilter = false;
     @Input() includePrimaryNodeOnlyFilter = false;
 
@@ -99,7 +110,9 @@ export class SummaryTableFilter implements AfterViewInit {
         return a.id === b.id;
     }
 
-    @Output() filterChanged: EventEmitter<SummaryTableFilterArgs> = new EventEmitter<SummaryTableFilterArgs>();
+    @Output() filterChanged: EventEmitter<SummaryTableFilterContext> = new EventEmitter<SummaryTableFilterContext>();
+    @Output() clusterFilterChanged: EventEmitter<SummaryTableFilterContext> =
+        new EventEmitter<SummaryTableFilterContext>();
 
     @Input() set filterTerm(term: string) {
         this.filterForm.get('filterTerm')?.value(term);
@@ -159,7 +172,7 @@ export class SummaryTableFilter implements AfterViewInit {
                 const filterStatus = this.filterForm.get('filterStatus')?.value;
                 const primaryOnly = this.filterForm.get('primaryOnly')?.value;
                 const clusterNode = this.filterForm.get('clusterNode')?.value;
-                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode);
+                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode, 'filterTerm');
             });
 
         this.filterForm
@@ -170,7 +183,7 @@ export class SummaryTableFilter implements AfterViewInit {
                 const filterStatus = this.filterForm.get('filterStatus')?.value;
                 const primaryOnly = this.filterForm.get('primaryOnly')?.value;
                 const clusterNode = this.filterForm.get('clusterNode')?.value;
-                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode);
+                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode, 'filterColumn');
             });
 
         this.filterForm
@@ -181,7 +194,7 @@ export class SummaryTableFilter implements AfterViewInit {
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
                 const primaryOnly = this.filterForm.get('primaryOnly')?.value;
                 const clusterNode = this.filterForm.get('clusterNode')?.value;
-                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode);
+                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode, 'filterStatus');
             });
 
         this.filterForm
@@ -192,19 +205,21 @@ export class SummaryTableFilter implements AfterViewInit {
                 const filterColumn = this.filterForm.get('filterColumn')?.value;
                 const filterStatus = this.filterForm.get('filterStatus')?.value;
                 const clusterNode = this.filterForm.get('clusterNode')?.value;
-                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode);
+                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode, 'primaryOnly');
             });
 
         this.filterForm
             .get('clusterNode')
             ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((clusterNode) => {
-                this._selectedNode = clusterNode;
-                const filterTerm = this.filterForm.get('filterTerm')?.value;
-                const filterColumn = this.filterForm.get('filterColumn')?.value;
-                const filterStatus = this.filterForm.get('filterStatus')?.value;
-                const primaryOnly = this.filterForm.get('primaryOnly')?.value;
-                this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode);
+                if (this._selectedNode?.id !== clusterNode.id) {
+                    this._selectedNode = clusterNode;
+                    const filterTerm = this.filterForm.get('filterTerm')?.value;
+                    const filterColumn = this.filterForm.get('filterColumn')?.value;
+                    const filterStatus = this.filterForm.get('filterStatus')?.value;
+                    const primaryOnly = this.filterForm.get('primaryOnly')?.value;
+                    this.applyFilter(filterTerm, filterColumn, filterStatus, primaryOnly, clusterNode, 'clusterNode');
+                }
             });
     }
 
@@ -213,14 +228,16 @@ export class SummaryTableFilter implements AfterViewInit {
         filterColumn: string,
         filterStatus: string,
         primaryOnly: boolean,
-        clusterNode: NodeSearchResult
+        clusterNode: NodeSearchResult,
+        changedField: string
     ) {
         this.filterChanged.next({
             filterColumn,
             filterStatus,
             filterTerm,
             primaryOnly,
-            clusterNode
+            clusterNode,
+            changedField
         });
         this.showFilterMatchedLabel =
             filterTerm?.length > 0 ||

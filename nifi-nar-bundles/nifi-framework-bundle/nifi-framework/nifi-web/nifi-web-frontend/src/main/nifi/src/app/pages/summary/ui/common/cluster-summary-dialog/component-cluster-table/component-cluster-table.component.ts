@@ -22,7 +22,6 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { NodeStatusSnapshot } from '../../../../state';
 
 @Component({
-    selector: 'component-cluster-table',
     standalone: true,
     imports: [MatTableModule, MatSortModule],
     template: ''

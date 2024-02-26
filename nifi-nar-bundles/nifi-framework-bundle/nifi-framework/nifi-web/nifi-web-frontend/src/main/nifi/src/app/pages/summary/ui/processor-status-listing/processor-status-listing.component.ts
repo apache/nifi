@@ -55,7 +55,10 @@ export class ProcessorStatusListing implements AfterViewInit {
     loadedTimestamp$ = this.store.select(selectSummaryListingLoadedTimestamp);
     summaryListingStatus$ = this.store.select(selectSummaryListingStatus);
     selectedProcessorId$ = this.store.select(selectProcessorIdFromRoute);
-    clusterSummary$ = this.store.select(selectClusterSummary);
+    connectedToCluster$ = this.store.select(selectClusterSummary).pipe(
+        isDefinedAndNotNull(),
+        map((cluster) => cluster.connectedToCluster)
+    );
     clusterNodes$ = this.store.select(selectClusterSearchResults).pipe(
         isDefinedAndNotNull(),
         map((results) => results.nodeResults)

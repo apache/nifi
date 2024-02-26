@@ -260,7 +260,7 @@
                                             title="View Status History"
                                             (click)="viewStatusHistoryClicked($event, item)"></div>
 
-                                        @if (clusterSummary?.connectedToCluster) {
+                                        @if (connectedToCluster) {
                                             <div
                                                 class="pointer fa fa-cubes"
                                                 title="View Clustered Processor Details"

@@ -15,21 +15,18 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SummaryTableFilterModule } from '../../common/summary-table-filter/summary-table-filter.module';
-import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
-import {
-    SummaryTableFilterArgs,
-    SummaryTableFilterColumn
-} from '../../common/summary-table-filter/summary-table-filter.component';
-import { MultiSort } from '../../common';
-import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatSortModule, Sort } from '@angular/material/sort';
+import { SummaryTableFilterColumn } from '../../common/summary-table-filter/summary-table-filter.component';
+import { MatTableModule } from '@angular/material/table';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { ComponentType } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { MatPaginatorModule } from '@angular/material/paginator';
 import { RemoteProcessGroupStatusSnapshot, RemoteProcessGroupStatusSnapshotEntity } from '../../../state';
+import { ComponentStatusTable } from '../../common/component-status-table/component-status-table.component';
 
 export type SupportedColumns = 'name' | 'uri' | 'transmitting' | 'sent' | 'received';
 
@@ -40,105 +37,28 @@ export type SupportedColumns = 'name' | 'uri' | 'transmitting' | 'sent' | 'recei
     templateUrl: './remote-process-group-status-table.component.html',
     styleUrls: ['./remote-process-group-status-table.component.scss']
 })
-export class RemoteProcessGroupStatusTable implements AfterViewInit {
-    private _initialSortColumn: SupportedColumns = 'name';
-    private _initialSortDirection: SortDirection = 'asc';
-
+export class RemoteProcessGroupStatusTable extends ComponentStatusTable<RemoteProcessGroupStatusSnapshotEntity> {
     filterableColumns: SummaryTableFilterColumn[] = [
         { key: 'name', label: 'name' },
         { key: 'targetUri', label: 'uri' }
     ];
-
-    totalCount = 0;
-    filteredCount = 0;
-
-    multiSort: MultiSort = {
-        active: this._initialSortColumn,
-        direction: this._initialSortDirection,
-        sortValueIndex: 0,
-        totalValues: 2
-    };
-
     displayedColumns: string[] = ['moreDetails', 'name', 'uri', 'transmitting', 'sent', 'received', 'actions'];
 
-    dataSource: MatTableDataSource<RemoteProcessGroupStatusSnapshotEntity> =
-        new MatTableDataSource<RemoteProcessGroupStatusSnapshotEntity>();
-
-    @ViewChild(MatPaginator) paginator!: MatPaginator;
-
-    ngAfterViewInit(): void {
-        this.dataSource.paginator = this.paginator;
+    constructor(private nifiCommon: NiFiCommon) {
+        super();
     }
 
-    constructor(private nifiCommon: NiFiCommon) {}
+    override filterPredicate(data: RemoteProcessGroupStatusSnapshotEntity, filter: string): boolean {
+        const { filterTerm, filterColumn } = JSON.parse(filter);
 
-    @Input() set initialSortColumn(initialSortColumn: SupportedColumns) {
-        this._initialSortColumn = initialSortColumn;
-        this.multiSort = { ...this.multiSort, active: initialSortColumn };
-    }
-
-    get initialSortColumn() {
-        return this._initialSortColumn;
-    }
-
-    @Input() set initialSortDirection(initialSortDirection: SortDirection) {
-        this._initialSortDirection = initialSortDirection;
-        this.multiSort = { ...this.multiSort, direction: initialSortDirection };
-    }
-
-    get initialSortDirection() {
-        return this._initialSortDirection;
-    }
-
-    @Input() selectedRemoteProcessGroupId!: string;
-
-    @Input() set remoteProcessGroups(rpgs: RemoteProcessGroupStatusSnapshotEntity[]) {
-        if (rpgs) {
-            this.dataSource.data = this.sortEntities(rpgs, this.multiSort);
-            this.dataSource.filterPredicate = (data: RemoteProcessGroupStatusSnapshotEntity, filter: string) => {
-                const { filterTerm, filterColumn } = JSON.parse(filter);
-
-                if (filterTerm === '') {
-                    return true;
-                }
-
-                const field: string = data.remoteProcessGroupStatusSnapshot[
-                    filterColumn as keyof RemoteProcessGroupStatusSnapshot
-                ] as string;
-                return this.nifiCommon.stringContains(field, filterTerm, true);
-            };
-
-            this.totalCount = rpgs.length;
-            this.filteredCount = rpgs.length;
+        if (filterTerm === '') {
+            return true;
         }
-    }
 
-    @Input() summaryListingStatus: string | null = null;
-    @Input() loadedTimestamp: string | null = null;
-
-    @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
-    @Output() viewStatusHistory: EventEmitter<RemoteProcessGroupStatusSnapshotEntity> =
-        new EventEmitter<RemoteProcessGroupStatusSnapshotEntity>();
-    @Output() selectRemoteProcessGroup: EventEmitter<RemoteProcessGroupStatusSnapshotEntity> =
-        new EventEmitter<RemoteProcessGroupStatusSnapshotEntity>();
-    @Output() clearSelection: EventEmitter<void> = new EventEmitter<void>();
-
-    applyFilter(filter: SummaryTableFilterArgs) {
-        this.dataSource.filter = JSON.stringify(filter);
-        this.filteredCount = this.dataSource.filteredData.length;
-        this.resetPaginator();
-        this.selectNone();
-    }
-
-    resetPaginator(): void {
-        if (this.dataSource.paginator) {
-            this.dataSource.paginator.firstPage();
-        }
-    }
-
-    paginationChanged(): void {
-        // clear out any selection
-        this.selectNone();
+        const field: string = data.remoteProcessGroupStatusSnapshot[
+            filterColumn as keyof RemoteProcessGroupStatusSnapshot
+        ] as string;
+        return this.nifiCommon.stringContains(field, filterTerm, true);
     }
 
     getRemoteProcessGroupLink(rpg: RemoteProcessGroupStatusSnapshotEntity): string[] {
@@ -150,33 +70,8 @@ export class RemoteProcessGroupStatusTable implements AfterViewInit {
         ];
     }
 
-    select(rpg: RemoteProcessGroupStatusSnapshotEntity) {
-        this.selectRemoteProcessGroup.next(rpg);
-    }
-
-    private selectNone() {
-        this.clearSelection.next();
-    }
-
-    isSelected(rpg: RemoteProcessGroupStatusSnapshotEntity): boolean {
-        if (this.selectedRemoteProcessGroupId) {
-            return rpg.id === this.selectedRemoteProcessGroupId;
-        }
-        return false;
-    }
-
     canRead(rpg: RemoteProcessGroupStatusSnapshotEntity): boolean {
         return rpg.canRead;
-    }
-
-    sortData(sort: Sort) {
-        this.setMultiSort(sort);
-        this.dataSource.data = this.sortEntities(this.dataSource.data, sort);
-    }
-
-    viewStatusHistoryClicked(event: MouseEvent, rpg: RemoteProcessGroupStatusSnapshotEntity): void {
-        event.stopPropagation();
-        this.viewStatusHistory.next(rpg);
     }
 
     formatName(rpg: RemoteProcessGroupStatusSnapshotEntity): string {
@@ -211,7 +106,7 @@ export class RemoteProcessGroupStatusTable implements AfterViewInit {
         }
     }
 
-    private supportsMultiValuedSort(sort: Sort): boolean {
+    override supportsMultiValuedSort(sort: Sort): boolean {
         switch (sort.active) {
             case 'sent':
             case 'received':
@@ -221,29 +116,7 @@ export class RemoteProcessGroupStatusTable implements AfterViewInit {
         }
     }
 
-    private setMultiSort(sort: Sort) {
-        const { active, direction, sortValueIndex, totalValues } = this.multiSort;
-
-        if (this.supportsMultiValuedSort(sort)) {
-            if (active === sort.active) {
-                // previous sort was of the same column
-                if (direction === 'desc' && sort.direction === 'asc') {
-                    // change from previous index to the next
-                    const newIndex = sortValueIndex + 1 >= totalValues ? 0 : sortValueIndex + 1;
-                    this.multiSort = { ...sort, sortValueIndex: newIndex, totalValues };
-                } else {
-                    this.multiSort = { ...sort, sortValueIndex, totalValues };
-                }
-            } else {
-                // sorting a different column, just reset
-                this.multiSort = { ...sort, sortValueIndex: 0, totalValues };
-            }
-        } else {
-            this.multiSort = { ...sort, sortValueIndex: 0, totalValues };
-        }
-    }
-
-    private sortEntities(
+    override sortEntities(
         data: RemoteProcessGroupStatusSnapshotEntity[],
         sort: Sort
     ): RemoteProcessGroupStatusSnapshotEntity[] {

@@ -99,10 +99,17 @@ export class ClusterSummaryDialog {
                     this.componentHelper.getName = () => this.clusterStatusEntity?.processorStatus?.name || '';
                     break;
                 case ComponentType.RemoteProcessGroup:
+                    this.componentHelper.getName = () => this.clusterStatusEntity?.remoteProcessGroupStatus?.name || '';
+                    break;
                 case ComponentType.ProcessGroup:
+                    this.componentHelper.getName = () => this.clusterStatusEntity?.processGroupStatus?.name || '';
+                    break;
                 case ComponentType.InputPort:
                 case ComponentType.OutputPort:
+                    this.componentHelper.getName = () => this.clusterStatusEntity?.portStatus?.name || '';
+                    break;
                 case ComponentType.Connection:
+                    this.componentHelper.getName = () => this.clusterStatusEntity?.connectionStatus?.name || '';
                     break;
                 default:
                     throw 'Unsupported Component Type';
