@@ -30,8 +30,15 @@ export const NIFI_NODE_CONFIG = {
     nifiInstanceLabel: 'NiFi'
 };
 
+export interface StatsNode {
+    id: string;
+    label: string;
+    color: string;
+}
+
 export interface Stats {
     min: string;
     max: string;
     mean: string;
+    nodes?: StatsNode[];
 }
