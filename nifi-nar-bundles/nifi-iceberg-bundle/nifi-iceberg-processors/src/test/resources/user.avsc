@@ -15,12 +15,25 @@
  * limitations under the License.
  */
 {
- "namespace": "nifi",
- "type": "record",
- "name": "User",
- "fields": [
-     {"name": "id",  "type": ["long", "null"]},
-     {"name": "name", "type": ["string", "null"]},
-     {"name": "department", "type": ["string", "null"]}
- ]
+  "namespace": "nifi",
+  "type": "record",
+  "name": "User",
+  "fields": [
+    {
+      "name": "id",
+      "type": ["long", "null"]
+    },
+    {
+      "name": "name",
+      "type": ["string", "null"]
+    },
+    {
+      "name": "department",
+      "type": {
+        "name": "Department",
+        "type": "enum",
+        "symbols": ["Finance", "Marketing", "Sales"]
+      }
+    }
+  ]
 }
