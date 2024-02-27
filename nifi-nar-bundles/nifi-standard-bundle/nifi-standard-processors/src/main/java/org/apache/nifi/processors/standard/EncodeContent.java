@@ -78,7 +78,7 @@ public class EncodeContent extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor LINE_OUTPUT_MODE = new PropertyDescriptor.Builder()
-            .name("line-output-mode")
+            .name("Line Output Mode")
             .displayName("Line Output Mode")
             .description("If set to 'single-line', the encoded FlowFile content will output as a single line. If set to 'multiple-lines', "
                 + "it will output as multiple lines. This property is only applicable when Base64 or Base32 encoding is selected.")
@@ -91,7 +91,7 @@ public class EncodeContent extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor ENCODED_LINE_SEPARATOR = new PropertyDescriptor.Builder()
-        .name("line-separator")
+        .name("Encoded Content Line Separator")
         .displayName("Encoded Content Line Separator")
         .description("Each line of encoded data will be terminated with this byte sequence (e.g. \\r\\n"
                 + "). This property defaults to the system-dependent line separator string.  If `line-length` <= 0, "
@@ -105,7 +105,7 @@ public class EncodeContent extends AbstractProcessor {
         .build();
 
     static final PropertyDescriptor ENCODED_LINE_LENGTH = new PropertyDescriptor.Builder()
-        .name("encoded-line-length")
+        .name("Encoded Content Line Length")
         .displayName("Encoded Content Line Length")
         .description("Each line of encoded data will contain `encoded-line-length` characters (rounded down to the nearest multiple of 4). "
             + "If `encoded-line-length` <= 0, the encoded data is not divided into lines. This property is "
@@ -155,8 +155,7 @@ public class EncodeContent extends AbstractProcessor {
 
         final boolean encode = context.getProperty(MODE).getValue().equals(EncodingMode.ENCODE.getValue());
         final EncodingType encoding = EncodingType.valueOf(context.getProperty(ENCODING).getValue());
-
-        final Boolean singleLineOutput = context.getProperty(LINE_OUTPUT_MODE).getValue().equals(LineOutputMode.SINGLE_LINE.getValue());
+        final boolean singleLineOutput = context.getProperty(LINE_OUTPUT_MODE).getValue().equals(LineOutputMode.SINGLE_LINE.getValue());
         final int lineLength = context.getProperty(ENCODED_LINE_LENGTH).evaluateAttributeExpressions(flowFile).asInteger();
         final String lineSeparator = context.getProperty(ENCODED_LINE_SEPARATOR).evaluateAttributeExpressions(flowFile).getValue();
 

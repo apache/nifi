@@ -53,8 +53,8 @@ class TestEncodeContent {
 
     @Test
     void testFailDecodeNotBase64ButIsAMultipleOfFourBytes() {
-        testRunner.setProperty(EncodeContent.MODE, EncodingMode.DECODE.getValue());
-        testRunner.setProperty(EncodeContent.ENCODING, EncodingType.BASE64_ENCODING.getValue());
+        testRunner.setProperty(EncodeContent.MODE, EncodingMode.DECODE);
+        testRunner.setProperty(EncodeContent.ENCODING, EncodingType.BASE64_ENCODING);
 
         testRunner.enqueue("four@@@@multiple".getBytes());
         testRunner.clearTransferState();
@@ -66,8 +66,8 @@ class TestEncodeContent {
     @ParameterizedTest
     @EnumSource(value = EncodingType.class)
     void testRoundTrip(final EncodingType encoding) throws IOException {
-        testRunner.setProperty(EncodeContent.MODE, EncodingMode.ENCODE.getValue());
-        testRunner.setProperty(EncodeContent.ENCODING, encoding.getValue());
+        testRunner.setProperty(EncodeContent.MODE, EncodingMode.ENCODE);
+        testRunner.setProperty(EncodeContent.ENCODING, encoding);
 
         testRunner.enqueue(FILE_PATH);
         testRunner.clearTransferState();
@@ -78,7 +78,7 @@ class TestEncodeContent {
         MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(EncodeContent.REL_SUCCESS).get(0);
         testRunner.assertQueueEmpty();
 
-        testRunner.setProperty(EncodeContent.MODE, EncodingMode.DECODE.getValue());
+        testRunner.setProperty(EncodeContent.MODE, EncodingMode.DECODE);
         testRunner.enqueue(flowFile);
         testRunner.clearTransferState();
         testRunner.run();
@@ -91,8 +91,8 @@ class TestEncodeContent {
     @ParameterizedTest
     @EnumSource(value = EncodingType.class)
     void testDecodeFailure(final EncodingType encoding) throws IOException {
-        testRunner.setProperty(EncodeContent.MODE, EncodingMode.DECODE.getValue());
-        testRunner.setProperty(EncodeContent.ENCODING, encoding.getValue());
+        testRunner.setProperty(EncodeContent.MODE, EncodingMode.DECODE);
+        testRunner.setProperty(EncodeContent.ENCODING, encoding);
 
         testRunner.enqueue(FILE_PATH);
         testRunner.clearTransferState();
@@ -395,9 +395,9 @@ class TestEncodeContent {
         final String expectedOutput,
         final Relationship routedTo) {
 
-        testRunner.setProperty(EncodeContent.MODE, mode.getValue());
-        testRunner.setProperty(EncodeContent.ENCODING, encodingType.getValue());
-        testRunner.setProperty(EncodeContent.LINE_OUTPUT_MODE, outputToSingleLine.getValue());
+        testRunner.setProperty(EncodeContent.MODE, mode);
+        testRunner.setProperty(EncodeContent.ENCODING, encodingType);
+        testRunner.setProperty(EncodeContent.LINE_OUTPUT_MODE, outputToSingleLine);
         testRunner.setProperty(EncodeContent.ENCODED_LINE_LENGTH, Integer.toString(lineLength));
         testRunner.setProperty(EncodeContent.ENCODED_LINE_SEPARATOR, lineSeparator);
 
