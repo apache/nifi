@@ -109,7 +109,7 @@ public class TestPutIcebergWithHiveCatalog {
         RecordSchema recordSchema = AvroTypeUtil.createSchema(inputSchema);
 
         for (RecordField recordField : recordSchema.getFields()) {
-            readerFactory.addSchemaField(recordField.getFieldName(), recordField.getDataType().getFieldType(), recordField.isNullable());
+            readerFactory.addSchemaField(recordField);
         }
 
         readerFactory.addRecord(0, "John", "Finance");

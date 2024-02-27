@@ -1089,7 +1089,7 @@ public class DataTypeUtils {
         return enumType.getEnums() != null && enumType.getEnums().contains(value);
     }
 
-    private static Object toEnum(Object value, EnumDataType dataType, String fieldName) {
+    public static Object toEnum(Object value, EnumDataType dataType, String fieldName) {
         if(dataType.getEnums() != null && dataType.getEnums().contains(value)) {
             return value.toString();
         }

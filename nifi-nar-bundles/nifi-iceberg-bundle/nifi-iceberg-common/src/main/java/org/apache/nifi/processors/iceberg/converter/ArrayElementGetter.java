@@ -20,6 +20,7 @@ package org.apache.nifi.processors.iceberg.converter;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.EnumDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
@@ -81,6 +82,9 @@ public class ArrayElementGetter {
                 break;
             case TIMESTAMP:
                 elementGetter = element -> DataTypeUtils.toTimestamp(element, () -> DataTypeUtils.getDateFormat(dataType.getFormat()), ARRAY_FIELD_NAME);
+                break;
+            case ENUM:
+                elementGetter = element -> DataTypeUtils.toEnum(element, (EnumDataType) dataType, ARRAY_FIELD_NAME);
                 break;
             case UUID:
                 elementGetter = DataTypeUtils::toUUID;
