@@ -21,7 +21,6 @@ import { HttpClient } from '@angular/common/http';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { ConfigureRemotePortRequest, ToggleRemotePortTransmissionRequest } from '../state/manage-remote-ports';
 import { Client } from '../../../service/client.service';
-import { Storage } from '../../../service/storage.service';
 import { ComponentType } from '../../../state/shared';
 
 @Injectable({ providedIn: 'root' })
@@ -31,7 +30,6 @@ export class ManageRemotePortService {
     constructor(
         private httpClient: HttpClient,
         private client: Client,
-        private storage: Storage,
         private nifiCommon: NiFiCommon
     ) {}
 
@@ -39,41 +37,35 @@ export class ManageRemotePortService {
         return this.httpClient.get(`${ManageRemotePortService.API}/remote-process-groups/${rpgId}`);
     }
 
-    updateRemotePort(configureManageRemotePort: ConfigureRemotePortRequest): Observable<any> {
+    updateRemotePort(configureRemotePortRequest: ConfigureRemotePortRequest): Observable<any> {
         const type =
-            configureManageRemotePort.payload.type === ComponentType.InputPort ? 'input-ports' : 'output-ports';
+            configureRemotePortRequest.payload.type === ComponentType.InputPort ? 'input-ports' : 'output-ports';
         return this.httpClient.put(
-            `${this.nifiCommon.stripProtocol(configureManageRemotePort.uri)}/${type}/${
-                configureManageRemotePort.payload.remoteProcessGroupPort.id
+            `${this.nifiCommon.stripProtocol(configureRemotePortRequest.uri)}/${type}/${
+                configureRemotePortRequest.payload.remoteProcessGroupPort.id
             }`,
             {
-                revision: configureManageRemotePort.payload.revision,
-                remoteProcessGroupPort: configureManageRemotePort.payload.remoteProcessGroupPort,
-                disconnectedNodeAcknowledged: configureManageRemotePort.payload.disconnectedNodeAcknowledged
+                revision: configureRemotePortRequest.payload.revision,
+                remoteProcessGroupPort: configureRemotePortRequest.payload.remoteProcessGroupPort,
+                disconnectedNodeAcknowledged: configureRemotePortRequest.payload.disconnectedNodeAcknowledged
             }
         );
     }
 
-    togglePortTransmission(toggleRemotePortTransmissionRequest: ToggleRemotePortTransmissionRequest): Observable<any> {
-        let isTransmitting = false;
-        if (toggleRemotePortTransmissionRequest.port.connected) {
-            if (!toggleRemotePortTransmissionRequest.port.transmitting) {
-                if (toggleRemotePortTransmissionRequest.port.exists) {
-                    isTransmitting = true;
-                }
-            }
-        }
-
+    updateRemotePortTransmission(
+        toggleRemotePortTransmissionRequest: ToggleRemotePortTransmissionRequest
+    ): Observable<any> {
         const payload: any = {
             revision: this.client.getRevision(toggleRemotePortTransmissionRequest.rpg),
-            disconnectedNodeAcknowledged: this.storage.isDisconnectionAcknowledged(),
-            state: isTransmitting ? 'TRANSMITTING' : 'STOPPED'
+            disconnectedNodeAcknowledged: toggleRemotePortTransmissionRequest.disconnectedNodeAcknowledged,
+            state: toggleRemotePortTransmissionRequest.state
         };
 
         const type =
-            toggleRemotePortTransmissionRequest.port.type === ComponentType.InputPort ? 'input-ports' : 'output-ports';
+            toggleRemotePortTransmissionRequest.type === ComponentType.InputPort ? 'input-ports' : 'output-ports';
+
         return this.httpClient.put(
-            `${ManageRemotePortService.API}/remote-process-groups/${toggleRemotePortTransmissionRequest.rpg.id}/${type}/${toggleRemotePortTransmissionRequest.port.id}/run-status`,
+            `${ManageRemotePortService.API}/remote-process-groups/${toggleRemotePortTransmissionRequest.rpg.id}/${type}/${toggleRemotePortTransmissionRequest.portId}/run-status`,
             payload
         );
     }

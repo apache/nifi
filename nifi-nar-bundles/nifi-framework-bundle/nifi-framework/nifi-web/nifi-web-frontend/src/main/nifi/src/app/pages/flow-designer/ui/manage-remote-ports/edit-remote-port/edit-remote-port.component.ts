@@ -30,7 +30,6 @@ import { EditComponentDialogRequest } from '../../../state/flow';
 import { Client } from '../../../../../service/client.service';
 import { ComponentType } from '../../../../../state/shared';
 import { PortSummary } from '../../../state/manage-remote-ports';
-import { Storage } from '../../../../../service/storage.service';
 import { configureRemotePort } from '../../../state/manage-remote-ports/manage-remote-ports.actions';
 
 @Component({
@@ -58,7 +57,6 @@ export class EditRemotePortComponent {
         @Inject(MAT_DIALOG_DATA) public request: EditComponentDialogRequest,
         private formBuilder: FormBuilder,
         private store: Store<CanvasState>,
-        private storage: Storage,
         private client: Client
     ) {
         // set the port type name
@@ -81,7 +79,7 @@ export class EditRemotePortComponent {
     editRemotePort() {
         const payload: any = {
             revision: this.client.getRevision(this.request.rpg),
-            disconnectedNodeAcknowledged: this.storage.isDisconnectionAcknowledged(),
+            disconnectedNodeAcknowledged: false,
             type: this.request.type,
             remoteProcessGroupPort: {
                 concurrentlySchedulableTaskCount: this.editPortForm.get('concurrentTasks')?.value,

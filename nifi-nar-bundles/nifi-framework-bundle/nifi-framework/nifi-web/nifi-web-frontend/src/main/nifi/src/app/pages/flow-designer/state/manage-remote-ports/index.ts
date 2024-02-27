@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { ComponentReferenceEntity, ComponentType } from '../../../../state/shared';
+import { ComponentType } from '../../../../state/shared';
 
 export const remotePortsFeatureKey = 'remotePortListing';
 
@@ -43,11 +43,24 @@ export interface PortSummary {
 export interface EditRemotePortDialogRequest {
     id: string;
     port: PortSummary;
-    rpg: ComponentReferenceEntity;
+    rpg: any;
 }
 
 export interface ToggleRemotePortTransmissionRequest {
-    rpg: ComponentReferenceEntity;
+    rpg: any;
+    portId: string;
+    disconnectedNodeAcknowledged: boolean;
+    state: string;
+    type: ComponentType.InputPort | ComponentType.OutputPort | undefined;
+}
+
+export interface StartRemotePortTransmissionRequest {
+    rpg: any;
+    port: PortSummary;
+}
+
+export interface StopRemotePortTransmissionRequest {
+    rpg: any;
     port: PortSummary;
 }
 
@@ -57,8 +70,7 @@ export interface LoadRemotePortsRequest {
 
 export interface LoadRemotePortsResponse {
     ports: PortSummary[];
-    loadedTimestamp: string;
-    rpg: ComponentReferenceEntity;
+    rpg: any;
 }
 
 export interface ConfigureRemotePortRequest {
@@ -81,7 +93,7 @@ export interface SelectRemotePortRequest {
 export interface RemotePortsState {
     ports: PortSummary[];
     saving: boolean;
-    rpg: ComponentReferenceEntity | null;
+    rpg: any;
     loadedTimestamp: string;
     status: 'pending' | 'loading' | 'success';
 }

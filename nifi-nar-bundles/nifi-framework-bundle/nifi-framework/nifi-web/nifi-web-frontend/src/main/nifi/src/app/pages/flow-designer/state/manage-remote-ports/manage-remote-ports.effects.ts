@@ -18,7 +18,7 @@
 import { Injectable } from '@angular/core';
 import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ManageRemotePortsActions from './manage-remote-ports.actions';
-import { catchError, combineLatest, from, map, of, switchMap, tap } from 'rxjs';
+import { catchError, from, map, of, switchMap, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
@@ -30,7 +30,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ManageRemotePortService } from '../../service/manage-remote-port.service';
 import { PortSummary } from './index';
 import { EditRemotePortComponent } from '../../ui/manage-remote-ports/edit-remote-port/edit-remote-port.component';
-import { EditComponentDialogRequest } from '../flow';
+import { EditRemotePortDialogRequest } from '../flow';
 import { ComponentType, isDefinedAndNotNull } from '../../../../state/shared';
 
 @Injectable()
@@ -50,8 +50,8 @@ export class ManageRemotePortsEffects {
             map((action) => action.request),
             concatLatestFrom(() => this.store.select(selectStatus)),
             switchMap(([request, status]) => {
-                return combineLatest([this.manageRemotePortService.getRemotePorts(request.rpgId)]).pipe(
-                    map(([response]) => {
+                return this.manageRemotePortService.getRemotePorts(request.rpgId).pipe(
+                    map((response) => {
                         const ports: PortSummary[] = [];
 
                         response.component.contents.inputPorts.forEach((inputPort: PortSummary) => {
@@ -75,7 +75,6 @@ export class ManageRemotePortsEffects {
                         return ManageRemotePortsActions.loadRemotePortsSuccess({
                             response: {
                                 ports,
-                                loadedTimestamp: response.loadedTimestamp,
                                 rpg: response
                             }
                         });
@@ -109,29 +108,60 @@ export class ManageRemotePortsEffects {
         )
     );
 
-    toggleRemotePortTransmission$ = createEffect(() =>
+    startRemotePortTransmission$ = createEffect(() =>
         this.actions$.pipe(
-            ofType(ManageRemotePortsActions.toggleRemotePortTransmission),
+            ofType(ManageRemotePortsActions.startRemotePortTransmission),
             map((action) => action.request),
-            concatLatestFrom(() => this.store.select(selectStatus)),
-            switchMap(([request, status]) => {
-                return combineLatest([
-                    this.manageRemotePortService.togglePortTransmission({
+            switchMap((request) => {
+                return this.manageRemotePortService
+                    .updateRemotePortTransmission({
+                        portId: request.port.id,
                         rpg: request.rpg,
-                        port: request.port
+                        disconnectedNodeAcknowledged: false,
+                        type: request.port.type,
+                        state: 'TRANSMITTING'
                     })
-                ]).pipe(
-                    map(([response]) => {
-                        return ManageRemotePortsActions.loadRemotePorts({
-                            request: {
-                                rpgId: response.remoteProcessGroupPort.groupId
-                            }
-                        });
-                    }),
-                    catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(status, errorResponse))
-                    )
-                );
+                    .pipe(
+                        map((response) => {
+                            return ManageRemotePortsActions.loadRemotePorts({
+                                request: {
+                                    rpgId: response.remoteProcessGroupPort.groupId
+                                }
+                            });
+                        }),
+                        catchError((errorResponse: HttpErrorResponse) =>
+                            of(ErrorActions.snackBarError({ error: errorResponse.error }))
+                        )
+                    );
+            })
+        )
+    );
+
+    stopRemotePortTransmission$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ManageRemotePortsActions.stopRemotePortTransmission),
+            map((action) => action.request),
+            switchMap((request) => {
+                return this.manageRemotePortService
+                    .updateRemotePortTransmission({
+                        portId: request.port.id,
+                        rpg: request.rpg,
+                        disconnectedNodeAcknowledged: false,
+                        type: request.port.type,
+                        state: 'STOPPED'
+                    })
+                    .pipe(
+                        map((response) => {
+                            return ManageRemotePortsActions.loadRemotePorts({
+                                request: {
+                                    rpgId: response.remoteProcessGroupPort.groupId
+                                }
+                            });
+                        }),
+                        catchError((errorResponse: HttpErrorResponse) =>
+                            of(ErrorActions.snackBarError({ error: errorResponse.error }))
+                        )
+                    );
             })
         )
     );
@@ -162,7 +192,7 @@ export class ManageRemotePortsEffects {
                             type: request.port.type,
                             entity: request.port,
                             rpg
-                        } as EditComponentDialogRequest,
+                        } as EditRemotePortDialogRequest,
                         id: portId
                     });
 

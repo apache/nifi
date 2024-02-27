@@ -451,8 +451,6 @@ export interface ComponentReference {
     id: string;
     parentGroupId?: string;
     name: string;
-    targetUri?: string;
-    flowRefreshed?: string;
 }
 
 export interface DocumentedType {

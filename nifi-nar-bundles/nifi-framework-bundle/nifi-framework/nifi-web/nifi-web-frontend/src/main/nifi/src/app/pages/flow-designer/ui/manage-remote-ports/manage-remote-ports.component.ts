@@ -35,10 +35,11 @@ import {
     openConfigureRemotePortDialog,
     resetRemotePortsState,
     selectRemotePort,
-    toggleRemotePortTransmission
+    startRemotePortTransmission,
+    stopRemotePortTransmission
 } from '../../state/manage-remote-ports/manage-remote-ports.actions';
 import { initialState } from '../../state/manage-remote-ports/manage-remote-ports.reducer';
-import { ComponentReferenceEntity, isDefinedAndNotNull, TextTipInput } from '../../../../state/shared';
+import { isDefinedAndNotNull, TextTipInput } from '../../../../state/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NiFiState } from '../../../../state';
 import { NiFiCommon } from '../../../../service/nifi-common.service';
@@ -77,7 +78,7 @@ export class ManageRemotePorts implements OnDestroy {
     protected readonly TextTip = TextTip;
 
     private currentRpgId!: string;
-    protected currentRpg: ComponentReferenceEntity | null = null;
+    protected currentRpg: any | null = null;
 
     constructor(
         private store: Store<NiFiState>,
@@ -87,7 +88,7 @@ export class ManageRemotePorts implements OnDestroy {
         this.store
             .select(selectRpgIdFromRoute)
             .pipe(
-                filter((rpgId) => rpgId != null),
+                isDefinedAndNotNull(),
                 tap((rpgId) => (this.currentRpgId = rpgId)),
                 takeUntilDestroyed()
             )
@@ -104,10 +105,7 @@ export class ManageRemotePorts implements OnDestroy {
         // track selection using the port id from the route
         this.store
             .select(selectPortIdFromRoute)
-            .pipe(
-                filter((portId) => portId != null),
-                takeUntilDestroyed()
-            )
+            .pipe(isDefinedAndNotNull(), takeUntilDestroyed())
             .subscribe((portId) => {
                 this.selectedPortId = portId;
             });
@@ -115,10 +113,7 @@ export class ManageRemotePorts implements OnDestroy {
         // data for table
         this.store
             .select(selectPorts)
-            .pipe(
-                filter((ports) => ports != null),
-                takeUntilDestroyed()
-            )
+            .pipe(isDefinedAndNotNull(), takeUntilDestroyed())
             .subscribe((ports) => {
                 this.dataSource = new MatTableDataSource<PortSummary>(ports);
             });
@@ -127,7 +122,7 @@ export class ManageRemotePorts implements OnDestroy {
         this.store
             .select(selectRpg)
             .pipe(
-                filter((rpg) => rpg != null),
+                isDefinedAndNotNull(),
                 tap((rpg) => (this.currentRpg = rpg)),
                 takeUntilDestroyed()
             )
@@ -137,7 +132,7 @@ export class ManageRemotePorts implements OnDestroy {
         this.store
             .select(selectSingleEditedPort)
             .pipe(
-                filter((id: string) => id != null),
+                isDefinedAndNotNull(),
                 switchMap((id: string) =>
                     this.store.select(selectPort(id)).pipe(
                         filter((entity) => entity != null),
@@ -228,7 +223,7 @@ export class ManageRemotePorts implements OnDestroy {
         if (this.currentRpg) {
             if (port.transmitting) {
                 this.store.dispatch(
-                    toggleRemotePortTransmission({
+                    stopRemotePortTransmission({
                         request: {
                             rpg: this.currentRpg,
                             port
@@ -238,7 +233,7 @@ export class ManageRemotePorts implements OnDestroy {
             } else {
                 if (port.connected && port.exists) {
                     this.store.dispatch(
-                        toggleRemotePortTransmission({
+                        startRemotePortTransmission({
                             request: {
                                 rpg: this.currentRpg,
                                 port
@@ -266,17 +261,6 @@ export class ManageRemotePorts implements OnDestroy {
             return entity.id == this.selectedPortId;
         }
         return false;
-    }
-
-    selectControllerService(entity: any): void {
-        this.store.dispatch(
-            selectRemotePort({
-                request: {
-                    rpgId: this.currentRpgId,
-                    id: entity.id
-                }
-            })
-        );
     }
 
     sortData(sort: Sort) {

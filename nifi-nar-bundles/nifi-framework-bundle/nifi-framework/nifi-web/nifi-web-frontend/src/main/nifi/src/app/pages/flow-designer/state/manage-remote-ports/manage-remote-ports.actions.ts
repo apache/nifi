@@ -23,7 +23,8 @@ import {
     LoadRemotePortsRequest,
     LoadRemotePortsResponse,
     SelectRemotePortRequest,
-    ToggleRemotePortTransmissionRequest
+    StartRemotePortTransmissionRequest,
+    StopRemotePortTransmissionRequest
 } from './index';
 
 export const resetRemotePortsState = createAction('[Manage Remote Ports] Reset Remote Ports State');
@@ -60,9 +61,14 @@ export const configureRemotePortSuccess = createAction(
     props<{ response: ConfigureRemotePortSuccess }>()
 );
 
-export const toggleRemotePortTransmission = createAction(
-    '[Manage Remote Ports] Toggle Port Transmission',
-    props<{ request: ToggleRemotePortTransmissionRequest }>()
+export const startRemotePortTransmission = createAction(
+    '[Manage Remote Ports] Start Port Transmission',
+    props<{ request: StartRemotePortTransmissionRequest }>()
+);
+
+export const stopRemotePortTransmission = createAction(
+    '[Manage Remote Ports] Stop Port Transmission',
+    props<{ request: StopRemotePortTransmissionRequest }>()
 );
 
 export const selectRemotePort = createAction(
