@@ -17,43 +17,38 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../../../../../../assets/utils.scss' as utils;
 
 @mixin nifi-theme($material-theme, $canvas-theme) {
     // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
     $canvas-color-config: mat.get-color-config($canvas-theme);
 
-    // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
-
     // Get hues from palette
-    $primary-palette-300: mat.get-color-from-palette($primary-palette, 300);
-    $canvas-primary-palette-900: mat.get-color-from-palette($canvas-primary-palette, 900);
-    $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
-    $canvas-primary-palette-A700: mat.get-color-from-palette($canvas-primary-palette, 'A700');
-    $canvas-primary-palette-contrast-300: mat.get-color-from-palette($canvas-primary-palette, '300-contrast');
+    $surface: utils.get-surface($canvas-color-config);
+    $on-surface: utils.get-on-surface($canvas-color-config);
+    $on-surface-medium: utils.get-on-surface($canvas-color-config, medium);
+    $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
 
     .search-container {
-        border-left: 1px solid $primary-palette-300;
+        border-left: 1px solid $on-surface-lighter;
 
         &:hover,
         &.open {
-            background-color: $canvas-primary-palette-900;
-            border-left: 1px solid $canvas-primary-palette-A700;
+            background-color: $surface;
+            border-left: 1px solid $on-surface-lighter;
         }
 
         .search-input {
-            color: $canvas-primary-palette-A200;
-            background-color: $canvas-primary-palette-900;
+            color: $on-surface;
+            background-color: $surface;
         }
 
         .fa {
-            color: $canvas-primary-palette-A700;
+            color: $on-surface-medium;
         }
     }
 
     .search-results {
-        background-color: $canvas-primary-palette-900;
+        background-color: $surface;
     }
 }

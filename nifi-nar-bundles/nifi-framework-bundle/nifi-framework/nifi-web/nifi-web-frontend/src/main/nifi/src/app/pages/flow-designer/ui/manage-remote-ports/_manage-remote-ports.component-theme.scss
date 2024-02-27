@@ -25,20 +25,20 @@
 
     // Get the color palette from the color-config.
     $primary-palette: map.get($color-config, 'primary');
-    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
+    $canvas-warn-palette: map.get($canvas-color-config, 'warn');
 
     // Get hues from palette
-    $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
-    $canvas-accent-palette-A200: mat.get-color-from-palette($canvas-accent-palette, 'A200');
+    $primary-palette-default: mat.get-color-from-palette($primary-palette, default);
+    $canvas-warn-palette-A200: mat.get-color-from-palette($canvas-warn-palette, 'A200');
 
     .manage-remote-ports-header {
-        color: $primary-palette-500;
+        color: $primary-palette-default;
     }
 
     .manage-remote-ports-table {
         .listing-table {
             .fa.fa-warning {
-                color: $canvas-accent-palette-A200;
+                color: $canvas-warn-palette-A200;
             }
         }
     }
