@@ -166,7 +166,8 @@ public class TestIcebergRecordConverter {
             Types.NestedField.optional(11, "timestamp", Types.TimestampType.withZone()),
             Types.NestedField.optional(12, "timestampTz", Types.TimestampType.withoutZone()),
             Types.NestedField.optional(13, "uuid", Types.UUIDType.get()),
-            Types.NestedField.optional(14, "choice", Types.IntegerType.get())
+            Types.NestedField.optional(14, "choice", Types.IntegerType.get()),
+            Types.NestedField.optional(15, "enum", Types.StringType.get())
     );
 
     private static final Schema PRIMITIVES_SCHEMA_WITH_REQUIRED_FIELDS = new Schema(
@@ -294,6 +295,7 @@ public class TestIcebergRecordConverter {
         fields.add(new RecordField("timestampTz", RecordFieldType.TIMESTAMP.getDataType()));
         fields.add(new RecordField("uuid", RecordFieldType.UUID.getDataType()));
         fields.add(new RecordField("choice", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.STRING.getDataType(), RecordFieldType.INT.getDataType())));
+        fields.add(new RecordField("enum", RecordFieldType.ENUM.getEnumDataType(Arrays.asList("red", "blue", "yellow"))));
 
         return new SimpleRecordSchema(fields);
     }
@@ -469,6 +471,7 @@ public class TestIcebergRecordConverter {
         values.put("timestampTz", Timestamp.valueOf(LOCAL_DATE_TIME));
         values.put("uuid", UUID.fromString("0000-00-00-00-000000"));
         values.put("choice", "10");
+        values.put("enum", "blue");
 
         return new MapRecord(getPrimitivesSchema(), values);
     }
@@ -590,6 +593,7 @@ public class TestIcebergRecordConverter {
         assertEquals(offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC), resultRecord.get(11, OffsetDateTime.class));
         assertEquals(LOCAL_DATE_TIME, resultRecord.get(12, LocalDateTime.class));
         assertEquals(Integer.valueOf(10), resultRecord.get(14, Integer.class));
+        assertEquals("blue", resultRecord.get(15, String.class));
 
         if (format.equals(PARQUET)) {
             assertArrayEquals(new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, resultRecord.get(13, byte[].class));
