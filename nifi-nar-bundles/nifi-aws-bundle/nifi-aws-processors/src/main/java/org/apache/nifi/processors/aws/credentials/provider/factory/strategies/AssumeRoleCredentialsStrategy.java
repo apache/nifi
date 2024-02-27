@@ -67,6 +67,8 @@ import static org.apache.nifi.processors.aws.signer.AwsSignerType.DEFAULT_SIGNER
  */
 public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
 
+    private static final String VPCE_ENDPOINT_SUFFIX = ".vpce.amazonaws.com";
+
     public AssumeRoleCredentialsStrategy() {
         super("Assume Role", new PropertyDescriptor[] {
                 ASSUME_ROLE_ARN,
@@ -178,6 +180,8 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         AWSSecurityTokenServiceClient securityTokenService = new AWSSecurityTokenServiceClient(primaryCredentialsProvider, config);
         if (assumeRoleSTSEndpoint != null && !assumeRoleSTSEndpoint.isEmpty()) {
             if (assumeRoleSTSSignerType == CUSTOM_SIGNER) {
+                securityTokenService.setEndpoint(assumeRoleSTSEndpoint, securityTokenService.getServiceName(), assumeRoleSTSRegion);
+            } else if (assumeRoleSTSEndpoint.endsWith(VPCE_ENDPOINT_SUFFIX)) {
                 securityTokenService.setEndpoint(assumeRoleSTSEndpoint, securityTokenService.getServiceName(), assumeRoleSTSRegion);
             } else {
                 securityTokenService.setEndpoint(assumeRoleSTSEndpoint);
