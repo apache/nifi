@@ -159,7 +159,7 @@ public class EncodeContent extends AbstractProcessor {
         final int lineLength = context.getProperty(ENCODED_LINE_LENGTH).evaluateAttributeExpressions(flowFile).asInteger();
         final String lineSeparator = context.getProperty(ENCODED_LINE_SEPARATOR).evaluateAttributeExpressions(flowFile).getValue();
 
-        final StreamCallback callback = getStreamCallback(encode, encoding, Boolean.TRUE.equals(singleLineOutput) ? -1 : lineLength, lineSeparator);
+        final StreamCallback callback = getStreamCallback(encode, encoding, (singleLineOutput ? -1 : lineLength), lineSeparator);
 
         try {
             final StopWatch stopWatch = new StopWatch(true);
@@ -174,7 +174,7 @@ public class EncodeContent extends AbstractProcessor {
         }
     }
 
-    private static StreamCallback getStreamCallback(final Boolean encode, final EncodingType encoding,
+    private static StreamCallback getStreamCallback(final boolean encode, final EncodingType encoding,
         final int lineLength, final String lineSeparator) {
         switch(encoding) {
             case BASE64_ENCODING:
