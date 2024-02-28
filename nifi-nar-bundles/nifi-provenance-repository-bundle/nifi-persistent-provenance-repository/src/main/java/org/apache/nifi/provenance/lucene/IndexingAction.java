@@ -56,7 +56,7 @@ public class IndexingAction {
     public void index(final StandardProvenanceEventRecord record, final IndexWriter indexWriter, final Integer blockIndex) throws IOException {
         final Document doc = new Document();
         addField(doc, SearchableFields.FlowFileUUID, record.getFlowFileUuid(), Store.NO);
-        addField(doc, SearchableFields.Filename, record.getAttribute(CoreAttributes.FILENAME.key()), Store.NO);
+        addField(doc, SearchableFields.Filename, LuceneUtil.truncateIndexField(record.getAttribute(CoreAttributes.FILENAME.key())), Store.NO);
         addField(doc, SearchableFields.ComponentID, record.getComponentId(), Store.NO);
         addField(doc, SearchableFields.AlternateIdentifierURI, record.getAlternateIdentifierUri(), Store.NO);
         addField(doc, SearchableFields.EventType, record.getEventType().name(), Store.NO);
