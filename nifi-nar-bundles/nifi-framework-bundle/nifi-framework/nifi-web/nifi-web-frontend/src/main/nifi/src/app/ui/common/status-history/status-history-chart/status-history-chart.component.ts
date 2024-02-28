@@ -462,7 +462,12 @@ export class StatusHistoryChart {
             this.nodeStats$.next({
                 min: nodeMinValue,
                 max: nodeMaxValue,
-                mean: nodeMeanValue
+                mean: nodeMeanValue,
+                nodes: nodes.map((n) => ({
+                    id: n.id,
+                    label: n.label,
+                    color: color(n.label)
+                }))
             });
 
             // only consider the cluster with data in the brush
@@ -482,7 +487,12 @@ export class StatusHistoryChart {
             this.clusterStats$.next({
                 min: clusterMinValue,
                 max: clusterMaxValue,
-                mean: clusterMeanValue
+                mean: clusterMeanValue,
+                nodes: cluster.map((n) => ({
+                    id: n.id,
+                    label: n.label,
+                    color: color(n.label)
+                }))
             });
         };
 
