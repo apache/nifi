@@ -397,7 +397,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
         }
 
         if (topicType.equals(TOPIC_NAME.getValue())) {
-            for (final String topic : topicListing.split(",", 100)) {
+            for (final String topic : topicListing.split(",")) {
                 final String trimmedName = topic.trim();
                 if (!trimmedName.isEmpty()) {
                     topics.add(trimmedName);
