@@ -936,7 +936,12 @@ The following record path expression would convert the record into an escaped JS
 === unescapeJson
 
 Converts a stringified JSON element to a Record, Array or simple field (e.g. String), using the UTF-8 character set.
-Optionally convert JSON Objects parsed as Maps into Records (defaults to false), recursively (defaults to false).
+
+This function takes up to three arguments:
+
+1. The Record Path of the stringified JSON element to be parsed
+2. (optional) whether to convert parsed JSON Objects from Maps to Records, default = `false`
+3. (optional) whether to recursively convert nested JSON Objects from Maps to Records, default = `false`
 
 *Note*: RecordSetWriters will not be able to serialise Maps, so fields may be omitted if not converted to Records.
 For example, using `unescapeJson` to replace the root ("/") of a Record in `UpdateRecord` without using the Record conversion,
@@ -991,8 +996,6 @@ The following record path expression would return:
 | `unescapeJson(/json_str)` | {"name"="John", "age"=30} (as a Map)
 |==========================================================
 
-*Note* that Maps cannot be serialised with a RecordSetWriter.
-
 Given a record such as:
 
 ----
@@ -1005,12 +1008,10 @@ The following record path expression would return:
 
 |==========================================================
 | RecordPath | Return value
-| `unescapeJson(/json_str, 'false')` | {"name"="John", "age"=30, "addresses"=[{address_1"="123 Fake Street"}]} (as a Map, with each entry in "addresses" as a Map)
-| `unescapeJson(/json_str, 'true', 'false')` | {"name": "John", "age": 30, "addresses"=[{address_1"="123 Fake Street"}]} (as a Record, with each entry in "addresses" as a Map)
+| `unescapeJson(/json_str, 'false')` | {"name"="John", "age"=30, "addresses"=[{"address_1"="123 Fake Street"}]} (as a Map, with each entry in "addresses" as a Map)
+| `unescapeJson(/json_str, 'true', 'false')` | {"name": "John", "age": 30, "addresses"=[{"address_1"="123 Fake Street"}]} (as a Record, with each entry in "addresses" as a Map)
 | `unescapeJson(/json_str, 'true', 'true')` | {"name": "John", "age": 30, "addresses": [{"address_1": "123 Fake Street"}]} (as a Record, with each entry in "addresses" as a Record)
 |==========================================================
-
-*Note* that Maps cannot be serialised with a RecordSetWriter.
 
 Given a record such as:
 
