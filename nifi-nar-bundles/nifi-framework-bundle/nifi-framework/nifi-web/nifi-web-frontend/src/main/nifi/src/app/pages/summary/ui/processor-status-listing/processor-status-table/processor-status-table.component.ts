@@ -15,21 +15,18 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
-import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { ProcessorStatusSnapshot, ProcessorStatusSnapshotEntity } from '../../../state/summary-listing';
-import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
-import {
-    SummaryTableFilterArgs,
-    SummaryTableFilterColumn
-} from '../../common/summary-table-filter/summary-table-filter.component';
+import { Component } from '@angular/core';
+import { MatTableModule } from '@angular/material/table';
+import { MatSortModule, Sort } from '@angular/material/sort';
+import { SummaryTableFilterColumn } from '../../common/summary-table-filter/summary-table-filter.component';
 import { RouterLink } from '@angular/router';
 import { SummaryTableFilterModule } from '../../common/summary-table-filter/summary-table-filter.module';
 import { NgClass } from '@angular/common';
 import { ComponentType } from '../../../../../state/shared';
-import { MultiSort } from '../../common';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { ProcessorStatusSnapshot, ProcessorStatusSnapshotEntity } from '../../../state';
+import { ComponentStatusTable } from '../../common/component-status-table/component-status-table.component';
 
 export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 'in' | 'out' | 'readWrite' | 'tasks';
 
@@ -40,23 +37,11 @@ export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 
     standalone: true,
     imports: [RouterLink, SummaryTableFilterModule, MatTableModule, MatSortModule, NgClass, MatPaginatorModule]
 })
-export class ProcessorStatusTable implements AfterViewInit {
-    private _initialSortColumn: SupportedColumns = 'name';
-    private _initialSortDirection: SortDirection = 'asc';
-
+export class ProcessorStatusTable extends ComponentStatusTable<ProcessorStatusSnapshotEntity> {
     filterableColumns: SummaryTableFilterColumn[] = [
         { key: 'name', label: 'name' },
         { key: 'type', label: 'type' }
     ];
-    totalCount = 0;
-    filteredCount = 0;
-
-    multiSort: MultiSort = {
-        active: this._initialSortColumn,
-        direction: this._initialSortDirection,
-        sortValueIndex: 0,
-        totalValues: 2
-    };
 
     displayedColumns: string[] = [
         'moreDetails',
@@ -70,95 +55,9 @@ export class ProcessorStatusTable implements AfterViewInit {
         'tasks',
         'actions'
     ];
-    dataSource: MatTableDataSource<ProcessorStatusSnapshotEntity> =
-        new MatTableDataSource<ProcessorStatusSnapshotEntity>();
 
-    @ViewChild(MatPaginator) paginator!: MatPaginator;
-
-    constructor(private nifiCommon: NiFiCommon) {}
-
-    ngAfterViewInit(): void {
-        this.dataSource.paginator = this.paginator;
-    }
-
-    applyFilter(filter: SummaryTableFilterArgs) {
-        this.dataSource.filter = JSON.stringify(filter);
-        this.filteredCount = this.dataSource.filteredData.length;
-        this.resetPaginator();
-        this.selectNone();
-    }
-
-    @Input() selectedProcessorId!: string;
-
-    @Input() set initialSortColumn(initialSortColumn: SupportedColumns) {
-        this._initialSortColumn = initialSortColumn;
-        this.multiSort = { ...this.multiSort, active: initialSortColumn };
-    }
-
-    get initialSortColumn() {
-        return this._initialSortColumn;
-    }
-
-    @Input() set initialSortDirection(initialSortDirection: SortDirection) {
-        this._initialSortDirection = initialSortDirection;
-        this.multiSort = { ...this.multiSort, direction: initialSortDirection };
-    }
-
-    get initialSortDirection() {
-        return this._initialSortDirection;
-    }
-
-    @Input() set processors(processors: ProcessorStatusSnapshotEntity[]) {
-        if (processors) {
-            this.dataSource.data = this.sortEntities(processors, this.multiSort);
-            this.dataSource.filterPredicate = (data: ProcessorStatusSnapshotEntity, filter: string): boolean => {
-                const { filterTerm, filterColumn, filterStatus, primaryOnly } = JSON.parse(filter);
-                const matchOnStatus: boolean = filterStatus !== 'All';
-
-                if (primaryOnly) {
-                    if (data.processorStatusSnapshot.executionNode !== 'PRIMARY') {
-                        return false;
-                    }
-                }
-                if (matchOnStatus) {
-                    if (data.processorStatusSnapshot.runStatus !== filterStatus) {
-                        return false;
-                    }
-                }
-                if (filterTerm === '') {
-                    return true;
-                }
-
-                const field: string = data.processorStatusSnapshot[
-                    filterColumn as keyof ProcessorStatusSnapshot
-                ] as string;
-                return this.nifiCommon.stringContains(field, filterTerm, true);
-            };
-
-            this.totalCount = processors.length;
-            this.filteredCount = processors.length;
-        }
-    }
-
-    @Input() summaryListingStatus: string | null = null;
-    @Input() loadedTimestamp: string | null = null;
-
-    @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
-    @Output() viewStatusHistory: EventEmitter<ProcessorStatusSnapshotEntity> =
-        new EventEmitter<ProcessorStatusSnapshotEntity>();
-    @Output() selectProcessor: EventEmitter<ProcessorStatusSnapshotEntity> =
-        new EventEmitter<ProcessorStatusSnapshotEntity>();
-    @Output() clearSelection: EventEmitter<void> = new EventEmitter<void>();
-
-    resetPaginator(): void {
-        if (this.dataSource.paginator) {
-            this.dataSource.paginator.firstPage();
-        }
-    }
-
-    paginationChanged(): void {
-        // clear out any selection
-        this.selectNone();
+    constructor(private nifiCommon: NiFiCommon) {
+        super();
     }
 
     formatName(processor: ProcessorStatusSnapshotEntity): string {
@@ -220,12 +119,7 @@ export class ProcessorStatusTable implements AfterViewInit {
         }
     }
 
-    sortData(sort: Sort) {
-        this.setMultiSort(sort);
-        this.dataSource.data = this.sortEntities(this.dataSource.data, sort);
-    }
-
-    private sortEntities(data: ProcessorStatusSnapshotEntity[], sort: Sort): ProcessorStatusSnapshotEntity[] {
+    override sortEntities(data: ProcessorStatusSnapshotEntity[], sort: Sort): ProcessorStatusSnapshotEntity[] {
         if (!data) {
             return [];
         }
@@ -302,11 +196,7 @@ export class ProcessorStatusTable implements AfterViewInit {
         });
     }
 
-    private compare(a: number | string, b: number | string, isAsc: boolean) {
-        return (a < b ? -1 : a > b ? 1 : 0) * (isAsc ? 1 : -1);
-    }
-
-    private supportsMultiValuedSort(sort: Sort): boolean {
+    override supportsMultiValuedSort(sort: Sort): boolean {
         switch (sort.active) {
             case 'in':
             case 'out':
@@ -318,45 +208,25 @@ export class ProcessorStatusTable implements AfterViewInit {
         }
     }
 
-    private setMultiSort(sort: Sort) {
-        const { active, direction, sortValueIndex, totalValues } = this.multiSort;
+    override filterPredicate(data: ProcessorStatusSnapshotEntity, filter: string): boolean {
+        const { filterTerm, filterColumn, filterStatus, primaryOnly } = JSON.parse(filter);
+        const matchOnStatus: boolean = filterStatus !== 'All';
 
-        if (this.supportsMultiValuedSort(sort)) {
-            if (active === sort.active) {
-                // previous sort was of the same column
-                if (direction === 'desc' && sort.direction === 'asc') {
-                    // change from previous index to the next
-                    const newIndex = sortValueIndex + 1 >= totalValues ? 0 : sortValueIndex + 1;
-                    this.multiSort = { ...sort, sortValueIndex: newIndex, totalValues };
-                } else {
-                    this.multiSort = { ...sort, sortValueIndex, totalValues };
-                }
-            } else {
-                // sorting a different column, just reset
-                this.multiSort = { ...sort, sortValueIndex: 0, totalValues };
+        if (primaryOnly) {
+            if (data.processorStatusSnapshot.executionNode !== 'PRIMARY') {
+                return false;
             }
-        } else {
-            this.multiSort = { ...sort, sortValueIndex: 0, totalValues };
         }
-    }
-
-    select(processor: ProcessorStatusSnapshotEntity): void {
-        this.selectProcessor.next(processor);
-    }
-
-    isSelected(processor: ProcessorStatusSnapshotEntity): boolean {
-        if (this.selectedProcessorId) {
-            return processor.id === this.selectedProcessorId;
+        if (matchOnStatus) {
+            if (data.processorStatusSnapshot.runStatus !== filterStatus) {
+                return false;
+            }
         }
-        return false;
-    }
+        if (filterTerm === '') {
+            return true;
+        }
 
-    viewStatusHistoryClicked(event: MouseEvent, processor: ProcessorStatusSnapshotEntity): void {
-        event.stopPropagation();
-        this.viewStatusHistory.next(processor);
-    }
-
-    private selectNone() {
-        this.clearSelection.next();
+        const field: string = data.processorStatusSnapshot[filterColumn as keyof ProcessorStatusSnapshot] as string;
+        return this.nifiCommon.stringContains(field, filterTerm, true);
     }
 }

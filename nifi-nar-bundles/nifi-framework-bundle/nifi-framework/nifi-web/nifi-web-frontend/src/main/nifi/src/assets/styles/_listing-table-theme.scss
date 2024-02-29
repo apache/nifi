@@ -54,6 +54,7 @@
             th {
                 background-color: $primary-palette-500 !important;
                 color: $canvas-primary-palette-900;
+                user-select: none;
             }
 
             tr:hover {

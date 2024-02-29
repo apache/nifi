@@ -62,6 +62,8 @@
 @use 'app/ui/common/status-history/status-history.component-theme' as status-history;
 @use 'app/ui/common/tooltips/property-hint-tip/property-hint-tip.component-theme' as property-hint-tip;
 @use 'app/ui/common/provenance-event-dialog/provenance-event-dialog.component-theme' as provenance-event-dialog;
+@use 'app/pages/summary/ui/processor-status-listing/processor-status-table/processor-status-table.component-theme' as processor-status-table;
+@use 'app/ui/common/component-context/component-context.component-theme' as component-context;
 
 // Plus imports for other components in your app.
 @use 'roboto-fontface/css/roboto/roboto-fontface.css';
@@ -513,6 +515,8 @@ $appFontPath: '~roboto-fontface/fonts';
 @include status-history.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include property-hint-tip.nifi-theme($material-theme-light);
 @include provenance-event-dialog.nifi-theme($material-theme-light);
+@include processor-status-table.nifi-theme($material-theme-light);
+@include component-context.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 
 .dark-theme {
     // Include the dark theme color styles.
@@ -563,4 +567,6 @@ $appFontPath: '~roboto-fontface/fonts';
     @include status-history.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
     @include property-hint-tip.nifi-theme($material-theme-dark);
     @include provenance-event-dialog.nifi-theme($material-theme-dark);
+    @include processor-status-table.nifi-theme($material-theme-dark);
+    @include component-context.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
 }

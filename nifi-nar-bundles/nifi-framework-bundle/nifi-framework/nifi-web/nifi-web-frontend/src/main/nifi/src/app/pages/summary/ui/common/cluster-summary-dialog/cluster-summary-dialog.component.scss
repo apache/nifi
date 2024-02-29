@@ -1,4 +1,4 @@
-/*
+/*!
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -15,17 +15,25 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+@use '@angular/material' as mat;
 
-@Injectable({ providedIn: 'root' })
-export class ClusterSummaryService {
-    private static readonly API: string = '../nifi-api';
+.cluster-summary {
+    @include mat.button-density(-1);
+    overflow-y: auto;
 
-    constructor(private httpClient: HttpClient) {}
+    .cluster-summary-content {
+        .mdc-dialog__content {
+            padding: 0 16px;
+            font-size: 14px;
 
-    getClusterSummary(): Observable<any> {
-        return this.httpClient.get(`${ClusterSummaryService.API}/flow/cluster/summary`);
+            .dialog-content {
+                min-height: 523px;
+                overflow-y: auto;
+            }
+        }
+
+        .cluster-summary-table-container {
+            min-height: 440px;
+        }
     }
 }

@@ -22,14 +22,19 @@
         </div>
     } @else {
         <port-status-table
-            [ports]="(portStatusSnapshots$ | async)!"
-            [selectedPortId]="selectedPortId$ | async"
+            [components]="(portStatusSnapshots$ | async)!"
+            [selectedId]="selectedPortId$ | async"
             [loadedTimestamp]="loadedTimestamp$ | async"
             [summaryListingStatus]="summaryListingStatus$ | async"
+            [connectedToCluster]="(connectedToCluster$ | async) || false"
+            [clusterNodes]="clusterNodes$ | async"
+            [selectedClusterNode]="selectedClusterNode$ | async"
             portType="input"
-            (selectPort)="selectPort($event)"
+            (selectComponent)="selectPort($event)"
             (clearSelection)="clearSelection()"
             (refresh)="refreshSummaryListing()"
+            (clusterNodeSelected)="clusterNodeSelected($event)"
+            (viewClusteredDetails)="viewClusteredDetails($event)"
             initialSortColumn="name"
             initialSortDirection="asc"></port-status-table>
     }

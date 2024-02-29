@@ -24,3 +24,8 @@ export const selectClusterSummary = createSelector(
     selectClusterSummaryState,
     (state: ClusterSummaryState) => state.clusterSummary
 );
+
+export const selectClusterSearchResults = createSelector(
+    selectClusterSummaryState,
+    (state: ClusterSummaryState) => state.searchResults
+);

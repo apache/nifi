@@ -21,20 +21,29 @@ import {
     selectProcessorIdFromRoute,
     selectProcessorStatus,
     selectProcessorStatusSnapshots,
+    selectSelectedClusterNode,
     selectSummaryListingLoadedTimestamp,
     selectSummaryListingStatus,
     selectViewStatusHistory
 } from '../../state/summary-listing/summary-listing.selectors';
-import { ProcessorStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
+import { SummaryListingState } from '../../state/summary-listing';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
-import { ComponentType } from '../../../../state/shared';
-import { combineLatest, delay, filter, Subject, switchMap, take } from 'rxjs';
+import { ComponentType, isDefinedAndNotNull } from '../../../../state/shared';
+import { combineLatest, delay, filter, map, Subject, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
+import * as ClusterStatusActions from '../../state/component-cluster-status/component-cluster-status.actions';
 import { MatPaginator } from '@angular/material/paginator';
 import { ProcessorStatusTable } from './processor-status-table/processor-status-table.component';
+import {
+    selectClusterSearchResults,
+    selectClusterSummary
+} from '../../../../state/cluster-summary/cluster-summary.selectors';
+import { loadClusterSummary } from '../../../../state/cluster-summary/cluster-summary.actions';
+import { ProcessorStatusSnapshotEntity } from '../../state';
+import { NodeSearchResult } from '../../../../state/cluster-summary';
 
 @Component({
     selector: 'processor-status-listing',
@@ -46,6 +55,15 @@ export class ProcessorStatusListing implements AfterViewInit {
     loadedTimestamp$ = this.store.select(selectSummaryListingLoadedTimestamp);
     summaryListingStatus$ = this.store.select(selectSummaryListingStatus);
     selectedProcessorId$ = this.store.select(selectProcessorIdFromRoute);
+    connectedToCluster$ = this.store.select(selectClusterSummary).pipe(
+        isDefinedAndNotNull(),
+        map((cluster) => cluster.connectedToCluster)
+    );
+    clusterNodes$ = this.store.select(selectClusterSearchResults).pipe(
+        isDefinedAndNotNull(),
+        map((results) => results.nodeResults)
+    );
+    selectedClusterNode$ = this.store.select(selectSelectedClusterNode);
 
     currentUser$ = this.store.select(selectCurrentUser);
 
@@ -104,6 +122,7 @@ export class ProcessorStatusListing implements AfterViewInit {
 
     refreshSummaryListing() {
         this.store.dispatch(SummaryListingActions.loadSummaryListing({ recursive: true }));
+        this.store.dispatch(loadClusterSummary());
     }
 
     viewStatusHistory(processor: ProcessorStatusSnapshotEntity): void {
@@ -126,5 +145,20 @@ export class ProcessorStatusListing implements AfterViewInit {
 
     clearSelection() {
         this.store.dispatch(SummaryListingActions.clearProcessorStatusSelection());
+    }
+
+    viewClusteredDetails(processor: ProcessorStatusSnapshotEntity): void {
+        this.store.dispatch(
+            ClusterStatusActions.loadComponentClusterStatusAndOpenDialog({
+                request: {
+                    id: processor.id,
+                    componentType: ComponentType.Processor
+                }
+            })
+        );
+    }
+
+    clusterNodeSelected(clusterNode: NodeSearchResult) {
+        this.store.dispatch(SummaryListingActions.selectClusterNode({ clusterNode }));
     }
 }

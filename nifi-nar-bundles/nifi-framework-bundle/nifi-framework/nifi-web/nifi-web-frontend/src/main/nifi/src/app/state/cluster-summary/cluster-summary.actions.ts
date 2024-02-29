@@ -16,7 +16,7 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { LoadClusterSummaryResponse } from './index';
+import { ClusterSearchRequest, ClusterSearchResults, LoadClusterSummaryResponse } from './index';
 
 const CLUSTER_SUMMARY_STATE_PREFIX = '[Cluster Summary State]';
 
@@ -37,3 +37,13 @@ export const clusterSummaryApiError = createAction(
 );
 
 export const clearClusterSummaryApiError = createAction(`${CLUSTER_SUMMARY_STATE_PREFIX} Clear About Api Error`);
+
+export const searchCluster = createAction(
+    `${CLUSTER_SUMMARY_STATE_PREFIX} Search Cluster`,
+    props<{ request: ClusterSearchRequest }>()
+);
+
+export const searchClusterSuccess = createAction(
+    `${CLUSTER_SUMMARY_STATE_PREFIX} Search Cluster Success`,
+    props<{ response: ClusterSearchResults }>()
+);
