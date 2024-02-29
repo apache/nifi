@@ -87,7 +87,6 @@ export class ManageRemotePorts implements OnInit, OnDestroy {
 
     private currentRpgId!: string;
     protected currentRpg: any | null = null;
-    timeOffset = 0;
 
     constructor(
         private store: Store<NiFiState>,
@@ -199,45 +198,35 @@ export class ManageRemotePorts implements OnInit, OnDestroy {
 
     formatCount(entity: PortSummary): string {
         if (!this.isCountBlank(entity)) {
-            return `${entity.batchSettings?.count}`;
+            return `${entity.batchSettings.count}`;
         }
         return 'No value set';
     }
 
     isCountBlank(entity: PortSummary): boolean {
-        return (
-            entity.batchSettings &&
-            (!this.nifiCommon.isDefinedAndNotNull(entity.batchSettings.count) || entity.batchSettings.count === '')
-        );
+        return this.nifiCommon.isUndefined(entity.batchSettings.count);
     }
 
     formatSize(entity: PortSummary): string {
         if (!this.isSizeBlank(entity)) {
-            return `${entity.batchSettings?.size}`;
+            return `${entity.batchSettings.size}`;
         }
         return 'No value set';
     }
 
     isSizeBlank(entity: PortSummary): boolean {
-        return (
-            entity.batchSettings &&
-            (!this.nifiCommon.isDefinedAndNotNull(entity.batchSettings.size) || entity.batchSettings.size === '')
-        );
+        return this.nifiCommon.isBlank(entity.batchSettings.size);
     }
 
     formatDuration(entity: PortSummary): string {
         if (!this.isSizeBlank(entity)) {
-            return `${entity.batchSettings?.duration}`;
+            return `${entity.batchSettings.duration}`;
         }
         return 'No value set';
     }
 
     isDurationBlank(entity: PortSummary): boolean {
-        return (
-            entity.batchSettings &&
-            (!this.nifiCommon.isDefinedAndNotNull(entity.batchSettings.duration) ||
-                entity.batchSettings.duration === '')
-        );
+        return this.nifiCommon.isBlank(entity.batchSettings.duration);
     }
 
     formatCompression(entity: PortSummary): string {
