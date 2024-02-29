@@ -23,7 +23,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { Router } from '@angular/router';
-import { selectRpg, selectRpgIdFromRoute, selectSaving, selectStatus } from './manage-remote-ports.selectors';
+import { selectRpg, selectRpgIdFromRoute, selectStatus } from './manage-remote-ports.selectors';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -32,6 +32,8 @@ import { PortSummary } from './index';
 import { EditRemotePortComponent } from '../../ui/manage-remote-ports/edit-remote-port/edit-remote-port.component';
 import { EditRemotePortDialogRequest } from '../flow';
 import { ComponentType, isDefinedAndNotNull } from '../../../../state/shared';
+import { selectTimeOffset } from '../../../../state/flow-configuration/flow-configuration.selectors';
+import { selectAbout } from '../../../../state/about/about.selectors';
 
 @Injectable()
 export class ManageRemotePortsEffects {
@@ -48,10 +50,23 @@ export class ManageRemotePortsEffects {
         this.actions$.pipe(
             ofType(ManageRemotePortsActions.loadRemotePorts),
             map((action) => action.request),
-            concatLatestFrom(() => this.store.select(selectStatus)),
-            switchMap(([request, status]) => {
+            concatLatestFrom(() => [
+                this.store.select(selectStatus),
+                this.store.select(selectTimeOffset).pipe(isDefinedAndNotNull()),
+                this.store.select(selectAbout).pipe(isDefinedAndNotNull())
+            ]),
+            switchMap(([request, status, timeOffset, about]) => {
                 return this.manageRemotePortService.getRemotePorts(request.rpgId).pipe(
                     map((response) => {
+                        // get the current user time to properly convert the server time
+                        const now: Date = new Date();
+
+                        // convert the user offset to millis
+                        const userTimeOffset: number = now.getTimezoneOffset() * 60 * 1000;
+
+                        // create the proper date by adjusting by the offsets
+                        const date: Date = new Date(Date.now() + userTimeOffset + timeOffset);
+
                         const ports: PortSummary[] = [];
 
                         response.component.contents.inputPorts.forEach((inputPort: PortSummary) => {
@@ -75,7 +90,10 @@ export class ManageRemotePortsEffects {
                         return ManageRemotePortsActions.loadRemotePortsSuccess({
                             response: {
                                 ports,
-                                rpg: response
+                                rpg: response,
+                                loadedTimestamp: `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()} ${
+                                    about.timezone
+                                }`
                             }
                         });
                     }),
@@ -196,9 +214,8 @@ export class ManageRemotePortsEffects {
                         id: portId
                     });
 
-                    editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
-
                     editDialogReference.afterClosed().subscribe((response) => {
+                        this.store.dispatch(ErrorActions.clearBannerErrors());
                         if (response != 'ROUTED') {
                             this.store.dispatch(
                                 ManageRemotePortsActions.selectRemotePort({

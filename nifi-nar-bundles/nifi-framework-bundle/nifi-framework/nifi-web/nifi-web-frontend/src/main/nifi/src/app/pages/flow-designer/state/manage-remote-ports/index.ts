@@ -21,9 +21,9 @@ export const remotePortsFeatureKey = 'remotePortListing';
 
 export interface PortSummary {
     batchSettings: {
-        count?: number;
-        size?: number;
-        duration?: number;
+        count?: number | string;
+        size?: number | string;
+        duration?: number | string;
     };
     comments: string;
     concurrentlySchedulableTaskCount: number;
@@ -71,6 +71,7 @@ export interface LoadRemotePortsRequest {
 export interface LoadRemotePortsResponse {
     ports: PortSummary[];
     rpg: any;
+    loadedTimestamp: string;
 }
 
 export interface ConfigureRemotePortRequest {

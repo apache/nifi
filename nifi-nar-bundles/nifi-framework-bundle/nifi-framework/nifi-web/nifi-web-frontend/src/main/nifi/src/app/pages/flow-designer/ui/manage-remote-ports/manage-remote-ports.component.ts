@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { filter, switchMap, take, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -47,12 +47,19 @@ import { MatTableDataSource } from '@angular/material/table';
 import { Sort } from '@angular/material/sort';
 import { TextTip } from '../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { concatLatestFrom } from '@ngrx/effects';
+import { loadFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.actions';
+import {
+    selectFlowConfiguration,
+    selectTimeOffset
+} from '../../../../state/flow-configuration/flow-configuration.selectors';
+import { selectAbout } from '../../../../state/about/about.selectors';
+import { loadAbout } from '../../../../state/about/about.actions';
 
 @Component({
     templateUrl: './manage-remote-ports.component.html',
     styleUrls: ['./manage-remote-ports.component.scss']
 })
-export class ManageRemotePorts implements OnDestroy {
+export class ManageRemotePorts implements OnInit, OnDestroy {
     initialSortColumn: 'name' | 'type' | 'tasks' | 'count' | 'size' | 'duration' | 'compression' | 'actions' = 'name';
     initialSortDirection: 'asc' | 'desc' = 'asc';
     activeSort: Sort = {
@@ -63,6 +70,7 @@ export class ManageRemotePorts implements OnDestroy {
     selectedRpgId$ = this.store.select(selectRpgIdFromRoute);
     selectedPortId!: string;
     currentUser$ = this.store.select(selectCurrentUser);
+    flowConfiguration$ = this.store.select(selectFlowConfiguration).pipe(isDefinedAndNotNull());
     displayedColumns: string[] = [
         'moreDetails',
         'name',
@@ -79,16 +87,20 @@ export class ManageRemotePorts implements OnDestroy {
 
     private currentRpgId!: string;
     protected currentRpg: any | null = null;
+    timeOffset = 0;
 
     constructor(
         private store: Store<NiFiState>,
         private nifiCommon: NiFiCommon
     ) {
-        // load the ports using the rpg id from the route
+        // load the ports after the flow configuration `timeOffset` and about `timezone` are loaded into the store
         this.store
-            .select(selectRpgIdFromRoute)
+            .select(selectTimeOffset)
             .pipe(
                 isDefinedAndNotNull(),
+                switchMap(() => this.store.select(selectAbout)),
+                isDefinedAndNotNull(),
+                switchMap(() => this.store.select(selectRpgIdFromRoute)),
                 tap((rpgId) => (this.currentRpgId = rpgId)),
                 takeUntilDestroyed()
             )
@@ -115,7 +127,7 @@ export class ManageRemotePorts implements OnDestroy {
             .select(selectPorts)
             .pipe(isDefinedAndNotNull(), takeUntilDestroyed())
             .subscribe((ports) => {
-                this.dataSource = new MatTableDataSource<PortSummary>(ports);
+                this.dataSource = new MatTableDataSource<PortSummary>(this.sortEntities(ports, this.activeSort));
             });
 
         // the current RPG Entity
@@ -157,6 +169,11 @@ export class ManageRemotePorts implements OnDestroy {
             });
     }
 
+    ngOnInit(): void {
+        this.store.dispatch(loadFlowConfiguration());
+        this.store.dispatch(loadAbout());
+    }
+
     isInitialLoading(state: RemotePortsState): boolean {
         // using the current timestamp to detect the initial load event
         return state.loadedTimestamp == initialState.loadedTimestamp;
@@ -181,15 +198,46 @@ export class ManageRemotePorts implements OnDestroy {
     }
 
     formatCount(entity: PortSummary): string {
-        return entity.batchSettings?.count ? `${entity.batchSettings?.count}` : 'No value set';
+        if (!this.isCountBlank(entity)) {
+            return `${entity.batchSettings?.count}`;
+        }
+        return 'No value set';
+    }
+
+    isCountBlank(entity: PortSummary): boolean {
+        return (
+            entity.batchSettings &&
+            (!this.nifiCommon.isDefinedAndNotNull(entity.batchSettings.count) || entity.batchSettings.count === '')
+        );
     }
 
     formatSize(entity: PortSummary): string {
-        return entity.batchSettings?.size ? `${entity.batchSettings?.size}` : 'No value set';
+        if (!this.isSizeBlank(entity)) {
+            return `${entity.batchSettings?.size}`;
+        }
+        return 'No value set';
+    }
+
+    isSizeBlank(entity: PortSummary): boolean {
+        return (
+            entity.batchSettings &&
+            (!this.nifiCommon.isDefinedAndNotNull(entity.batchSettings.size) || entity.batchSettings.size === '')
+        );
     }
 
     formatDuration(entity: PortSummary): string {
-        return entity.batchSettings?.duration ? `${entity.batchSettings?.duration}` : 'No value set';
+        if (!this.isSizeBlank(entity)) {
+            return `${entity.batchSettings?.duration}`;
+        }
+        return 'No value set';
+    }
+
+    isDurationBlank(entity: PortSummary): boolean {
+        return (
+            entity.batchSettings &&
+            (!this.nifiCommon.isDefinedAndNotNull(entity.batchSettings.duration) ||
+                entity.batchSettings.duration === '')
+        );
     }
 
     formatCompression(entity: PortSummary): string {
@@ -213,9 +261,19 @@ export class ManageRemotePorts implements OnDestroy {
         return !this.nifiCommon.isBlank(entity.comments);
     }
 
+    portExists(entity: PortSummary): boolean {
+        return !entity.exists;
+    }
+
     getCommentsTipData(entity: PortSummary): TextTipInput {
         return {
             text: entity.comments
+        };
+    }
+
+    getDisconnectedTipData(): TextTipInput {
+        return {
+            text: 'This port has been removed.'
         };
     }
 

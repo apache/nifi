@@ -51,8 +51,8 @@
             } @else {
                 <div class="flex flex-col h-full gap-y-2">
                     <div class="flex-1">
-                        <div class="relative h-full border">
-                            <div class="manage-remote-ports-table listing-table absolute inset-0 overflow-y-auto">
+                        <div class="manage-remote-ports-table relative h-full border">
+                            <div class="listing-table absolute inset-0 overflow-y-auto">
                                 <table
                                     mat-table
                                     [dataSource]="dataSource"
@@ -76,6 +76,16 @@
                                                             [tooltipInputData]="getCommentsTipData(item)"></div>
                                                     </div>
                                                 }
+                                                @if (portExists(item)) {
+                                                    <div>
+                                                        <div
+                                                            class="pointer fa fa-warning"
+                                                            nifiTooltip
+                                                            [delayClose]="false"
+                                                            [tooltipComponentType]="TextTip"
+                                                            [tooltipInputData]="getDisconnectedTipData()"></div>
+                                                    </div>
+                                                }
                                             </div>
                                         </td>
                                     </ng-container>
@@ -83,9 +93,7 @@
                                     <!-- Name Column -->
                                     <ng-container matColumnDef="name">
                                         <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                            <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                                Name
-                                            </div>
+                                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatName(item)">
                                             {{ formatName(item) }}
@@ -95,9 +103,7 @@
                                     <!-- Type Column -->
                                     <ng-container matColumnDef="type">
                                         <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                            <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                                Type
-                                            </div>
+                                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Type</div>
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatType(item)">
                                             {{ formatType(item) }}
@@ -107,7 +113,7 @@
                                     <!-- Tasks Column -->
                                     <ng-container matColumnDef="tasks">
                                         <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                            <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
                                                 Concurrent Tasks
                                             </div>
                                         </th>
@@ -121,7 +127,7 @@
                                     <!-- Compression Column -->
                                     <ng-container matColumnDef="compression">
                                         <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                            <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
                                                 Compressed
                                             </div>
                                         </th>
@@ -133,12 +139,12 @@
                                     <!-- Batch Count Column -->
                                     <ng-container matColumnDef="count">
                                         <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                            <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
                                                 Batch Count
                                             </div>
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatCount(item)">
-                                            <span [class.blank]="!item.batchSettings?.count">
+                                            <span [class.blank]="isCountBlank(item)">
                                                 {{ formatCount(item) }}
                                             </span>
                                         </td>
@@ -147,12 +153,12 @@
                                     <!-- Batch Size Column -->
                                     <ng-container matColumnDef="size">
                                         <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                            <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
                                                 Batch Size
                                             </div>
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatSize(item)">
-                                            <span [class.blank]="!item.batchSettings?.size">
+                                            <span [class.blank]="isSizeBlank(item)">
                                                 {{ formatSize(item) }}
                                             </span>
                                         </td>
@@ -161,12 +167,12 @@
                                     <!-- Batch Duration Column -->
                                     <ng-container matColumnDef="duration">
                                         <th mat-header-cell *matHeaderCellDef mat-sort-header>
-                                            <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                            <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
                                                 Batch Duration
                                             </div>
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatDuration(item)">
-                                            <span [class.blank]="!item.batchSettings?.duration">
+                                            <span [class.blank]="isDurationBlank(item)">
                                                 {{ formatDuration(item) }}
                                             </span>
                                         </td>
@@ -183,7 +189,7 @@
                                                     port.transmitting === false
                                                 ) {
                                                     <div
-                                                        class="pointer fa fa-edit"
+                                                        class="pointer fa fa-pencil"
                                                         (click)="configureClicked(port, $event)"
                                                         title="Edit Port"></div>
                                                 }

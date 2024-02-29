@@ -268,7 +268,6 @@ export interface EditComponentDialogRequest {
     type: ComponentType;
     uri: string;
     entity: any;
-    rpg?: any;
 }
 
 export interface EditRemotePortDialogRequest extends EditComponentDialogRequest {

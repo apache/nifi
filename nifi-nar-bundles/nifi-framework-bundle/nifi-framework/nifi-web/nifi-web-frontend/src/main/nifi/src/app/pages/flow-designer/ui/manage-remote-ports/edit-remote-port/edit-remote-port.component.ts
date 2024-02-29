@@ -26,7 +26,7 @@ import { AsyncPipe } from '@angular/common';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { selectSaving } from '../../../state/manage-remote-ports/manage-remote-ports.selectors';
-import { EditComponentDialogRequest } from '../../../state/flow';
+import { EditRemotePortDialogRequest } from '../../../state/flow';
 import { Client } from '../../../../../service/client.service';
 import { ComponentType } from '../../../../../state/shared';
 import { PortSummary } from '../../../state/manage-remote-ports';
@@ -54,7 +54,7 @@ export class EditRemotePortComponent {
     portTypeLabel: string;
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) public request: EditComponentDialogRequest,
+        @Inject(MAT_DIALOG_DATA) public request: EditRemotePortDialogRequest,
         private formBuilder: FormBuilder,
         private store: Store<CanvasState>,
         private client: Client
@@ -69,10 +69,10 @@ export class EditRemotePortComponent {
         // build the form
         this.editPortForm = this.formBuilder.group({
             concurrentTasks: new FormControl(request.entity.concurrentlySchedulableTaskCount, Validators.required),
-            compressed: new FormControl(request.entity.useCompression || false),
-            count: new FormControl(request.entity.batchSettings.count || ''),
-            size: new FormControl(request.entity.batchSettings.size || ''),
-            duration: new FormControl(request.entity.batchSettings.duration || '')
+            compressed: new FormControl(request.entity.useCompression),
+            count: new FormControl(request.entity.batchSettings.count),
+            size: new FormControl(request.entity.batchSettings.size),
+            duration: new FormControl(request.entity.batchSettings.duration)
         });
     }
 
