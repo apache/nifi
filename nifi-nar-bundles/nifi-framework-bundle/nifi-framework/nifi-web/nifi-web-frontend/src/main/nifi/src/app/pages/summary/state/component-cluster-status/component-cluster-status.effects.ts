@@ -27,6 +27,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { ClusterSummaryDialog } from '../../ui/common/cluster-summary-dialog/cluster-summary-dialog.component';
 import { selectComponentClusterStatusLatestRequest } from './component-cluster-status.selectors';
 import { isDefinedAndNotNull } from '../../../../state/shared';
+import { HttpErrorResponse } from '@angular/common/http';
+import * as ErrorActions from '../../../../state/error/error.actions';
 
 @Injectable()
 export class ComponentClusterStatusEffects {
@@ -42,8 +44,8 @@ export class ComponentClusterStatusEffects {
         this.actions$.pipe(
             ofType(ClusterStatusActions.loadComponentClusterStatusAndOpenDialog),
             map((action) => action.request),
-            switchMap((request) =>
-                from(this.clusterStatusService.getClusterStatus(request.id, request.componentType)).pipe(
+            switchMap((request) => {
+                return from(this.clusterStatusService.getClusterStatus(request.id, request.componentType)).pipe(
                     map((response) => {
                         return ClusterStatusActions.openComponentClusterStatusDialog({
                             response: {
@@ -52,9 +54,14 @@ export class ComponentClusterStatusEffects {
                             }
                         });
                     }),
-                    catchError((error) => of(this.errorHelper.handleLoadingError(error.error, error)))
-                )
-            )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                            return of(ErrorActions.snackBarError({ error: errorResponse.error }));
+                        }
+                        return of(this.errorHelper.fullScreenError(errorResponse));
+                    })
+                );
+            })
         )
     );
 
@@ -72,7 +79,12 @@ export class ComponentClusterStatusEffects {
                             }
                         });
                     }),
-                    catchError((error) => of(this.errorHelper.handleLoadingError(error.error, error)))
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                            return of(ErrorActions.snackBarError({ error: errorResponse.error }));
+                        }
+                        return of(this.errorHelper.fullScreenError(errorResponse));
+                    })
                 )
             )
         )

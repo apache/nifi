@@ -39,7 +39,6 @@ export abstract class ComponentStatusTable<T extends BaseSnapshotEntity> impleme
     private _clusterNodes: NodeSearchResult[] | null = null;
     private _selectedClusterNode: NodeSearchResult | null = null;
     private _selectedId: string | null = null;
-    private currentFilter: SummaryTableFilterContext | null = null;
 
     totalCount = 0;
     filteredCount = 0;
@@ -74,8 +73,6 @@ export abstract class ComponentStatusTable<T extends BaseSnapshotEntity> impleme
             // need to re-issue the query with the selected cluster node id
             this.clusterNodeSelected.next(filter.clusterNode);
         }
-
-        this.currentFilter = filter;
 
         this.dataSource.filter = JSON.stringify(filter);
         this.filteredCount = this.dataSource.filteredData.length;
