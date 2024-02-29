@@ -2180,8 +2180,9 @@ public class DataTypeUtils {
         switch (sqlType) {
             case Types.BIGINT:
                 return RecordFieldType.BIGINT.getDataType();
-            case Types.BOOLEAN:
             case Types.BIT:
+                return RecordFieldType.INT.getDataType();
+            case Types.BOOLEAN:
                 return RecordFieldType.BOOLEAN.getDataType();
             case Types.TINYINT:
                 return RecordFieldType.BYTE.getDataType();
