@@ -219,7 +219,7 @@ export class ManageRemotePorts implements OnInit, OnDestroy {
     }
 
     formatDuration(entity: PortSummary): string {
-        if (!this.isSizeBlank(entity)) {
+        if (!this.isDurationBlank(entity)) {
             return `${entity.batchSettings.duration}`;
         }
         return 'No value set';
