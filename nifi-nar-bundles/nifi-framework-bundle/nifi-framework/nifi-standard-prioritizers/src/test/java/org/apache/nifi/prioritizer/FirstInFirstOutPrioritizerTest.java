@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.prioritizer;
 
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -26,16 +26,17 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SuppressWarnings("EqualsWithItself")
-public class NewestFirstPrioritizerTest {
+public class FirstInFirstOutPrioritizerTest {
 
     private final TestRunner testRunner = TestRunners.newTestRunner(NoOpProcessor.class);
-    private final FlowFilePrioritizer prioritizer = new NewestFlowFileFirstPrioritizer();
+    private final FlowFilePrioritizer prioritizer = new FirstInFirstOutPrioritizer();
 
     @Test
-    public void testPrioritizer() throws InterruptedException {
-        final FlowFile flowFile1 = testRunner.enqueue("flowFile1");
-        Thread.sleep(2); // guarantee the FlowFile entryDate for flowFile2 is different than flowFile1
-        final FlowFile flowFile2 = testRunner.enqueue("flowFile1");
+    public void testPrioritizer() {
+        MockFlowFile flowFile1 = testRunner.enqueue("created first but 'enqueued' later");
+        flowFile1.setLastEnqueuedDate(830822400000L);
+        MockFlowFile flowFile2 = testRunner.enqueue("created second but 'enqueued' earlier");
+        flowFile2.setLastEnqueuedDate(795916800000L);
 
         assertEquals(0, prioritizer.compare(null, null));
         assertEquals(-1, prioritizer.compare(flowFile1, null));
