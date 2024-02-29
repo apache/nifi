@@ -24,7 +24,7 @@
             <div>
                 <mat-form-field>
                     <mat-label>Filter</mat-label>
-                    <input matInput type="text" class="small" formControlName="filterTerm" />
+                    <input matInput type="text" class="small" formControlName="filterTerm"/>
                 </mat-form-field>
             </div>
             <div>
@@ -32,7 +32,7 @@
                     <mat-label>Filter By</mat-label>
                     <mat-select formControlName="filterColumn">
                         @for (option of filterableColumns; track option) {
-                            <mat-option [value]="option.key"> {{ option.label }} </mat-option>
+                            <mat-option [value]="option.key"> {{ option.label }}</mat-option>
                         }
                     </mat-select>
                 </mat-form-field>
@@ -42,12 +42,12 @@
                     <mat-form-field>
                         <mat-label>Status</mat-label>
                         <mat-select formControlName="filterStatus">
-                            <mat-option value="All"> All Statuses </mat-option>
-                            <mat-option value="Running"> Running </mat-option>
-                            <mat-option value="Stopped"> Stopped </mat-option>
-                            <mat-option value="Validating"> Validating </mat-option>
-                            <mat-option value="Disabled"> Disabled </mat-option>
-                            <mat-option value="Invalid"> Invalid </mat-option>
+                            <mat-option value="All"> All Statuses</mat-option>
+                            <mat-option value="Running"> Running</mat-option>
+                            <mat-option value="Stopped"> Stopped</mat-option>
+                            <mat-option value="Validating"> Validating</mat-option>
+                            <mat-option value="Disabled"> Disabled</mat-option>
+                            <mat-option value="Invalid"> Invalid</mat-option>
                         </mat-select>
                     </mat-form-field>
                 </div>
@@ -63,7 +63,7 @@
                 <div class="cluster-node-selection flex flex-1 flex-row-reverse">
                     <mat-form-field>
                         <mat-label>Cluster Node</mat-label>
-                        <mat-select formControlName="clusterNode">
+                        <mat-select formControlName="clusterNode" panelWidth="">
                             @for (node of clusterNodes; track node) {
                                 <mat-option [value]="node">{{ node.address }}</mat-option>
                             }
