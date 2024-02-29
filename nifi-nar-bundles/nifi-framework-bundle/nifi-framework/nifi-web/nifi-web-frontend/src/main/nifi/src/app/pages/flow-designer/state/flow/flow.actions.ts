@@ -76,7 +76,8 @@ import {
     ImportFromRegistryDialogRequest,
     ImportFromRegistryRequest,
     GoToRemoteProcessGroupRequest,
-    RefreshRemoteProcessGroupRequest
+    RefreshRemoteProcessGroupRequest,
+    RpgManageRemotePortsRequest
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
 
@@ -398,6 +399,11 @@ export const openEditProcessGroupDialog = createAction(
 export const openEditRemoteProcessGroupDialog = createAction(
     `${CANVAS_PREFIX} Open Edit Remote Process Group Dialog`,
     props<{ request: EditComponentDialogRequest }>()
+);
+
+export const navigateToManageRemotePorts = createAction(
+    `${CANVAS_PREFIX} Open Remote Process Group Manage Remote Ports`,
+    props<{ request: RpgManageRemotePortsRequest }>()
 );
 
 export const updateComponent = createAction(
