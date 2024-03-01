@@ -45,8 +45,8 @@
                     </div>
                 </mat-dialog-content>
                 <mat-dialog-actions align="end">
-                    <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
-                    <button type="button" color="primary" (click)="submitForm()" mat-raised-button>Disable</button>
+                    <button mat-button mat-dialog-close>Cancel</button>
+                    <button type="button" color="primary" (click)="submitForm()" mat-button>Disable</button>
                 </mat-dialog-actions>
             } @else {
                 <mat-dialog-content>
@@ -127,9 +127,9 @@
                 </mat-dialog-content>
                 <mat-dialog-actions align="end">
                     @if (disableRequest.currentStep === SetEnableStep.Completed || disableRequest.error) {
-                        <button color="primary" mat-raised-button mat-dialog-close>Close</button>
+                        <button mat-button mat-dialog-close>Close</button>
                     } @else {
-                        <button color="primary" (click)="cancelClicked()" mat-stroked-button mat-dialog-close>
+                        <button (click)="cancelClicked()" mat-button mat-dialog-close>
                             Cancel
                         </button>
                     }

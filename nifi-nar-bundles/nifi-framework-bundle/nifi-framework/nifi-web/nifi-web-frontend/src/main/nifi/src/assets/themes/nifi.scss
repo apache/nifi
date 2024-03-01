@@ -393,7 +393,7 @@ $warn-dark-palette: (
 );
 
 // Define the palettes for your theme
-$material-primary-light: mat.define-palette($material-primary-light-palette);
+$material-primary-light: mat.define-palette($material-primary-light-palette, 600, 100, 900);
 $material-accent-light: mat.define-palette($material-primary-light-palette, A400, A100, A700);
 $nifi-canvas-primary-light: mat.define-palette($nifi-canvas-light-palette);
 $nifi-canvas-accent-light: mat.define-palette($nifi-canvas-accent-light-palette, 400, 100, 700);
