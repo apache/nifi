@@ -196,6 +196,7 @@ $appFontPath: '~roboto-fontface/fonts';
     $canvas-primary-palette-50: mat.get-color-from-palette($canvas-primary-palette, 50);
     $canvas-primary-palette-200: mat.get-color-from-palette($canvas-primary-palette, 200);
     $canvas-primary-palette-400: mat.get-color-from-palette($canvas-primary-palette, 400);
+    $canvas-primary-palette-500: mat.get-color-from-palette($canvas-primary-palette, 500);
     $canvas-primary-palette-900: mat.get-color-from-palette($canvas-primary-palette, 900);
     $canvas-accent-palette-200: mat.get-color-from-palette($canvas-accent-palette, 200);
     $canvas-accent-palette-400: mat.get-color-from-palette($canvas-accent-palette, 400);
@@ -333,6 +334,9 @@ $appFontPath: '~roboto-fontface/fonts';
     .value,
     .refresh-timestamp {
         color: $warn-palette-A400;
+    }
+    .skeleton-loader{
+        background: $canvas-primary-palette-500 !important;
     }
 }
 
