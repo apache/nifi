@@ -121,14 +121,14 @@ class TestEncodeContent {
     @ParameterizedTest
     @MethodSource("encodeBase64Args")
     void testBasicDecodeBase64(final String input, final String expectedOutput) {
-        // we'll use the same args from `encodeBase64Args`, only flip around input and output
+        // use the same args from `encodeBase64Args`, only flip around input and output
         executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE64, expectedOutput, input);
     }
 
     @ParameterizedTest
     @MethodSource("encodeHexArgs")
     void testBasicDecodeHex(final String input, final String expectedOutput) {
-        // we'll use the same args from `encodeHexArgs`, only flip around input and output
+        // use the same args from `encodeHexArgs`, only flip around input and output
         executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.HEXADECIMAL, expectedOutput, input);
     }
 
