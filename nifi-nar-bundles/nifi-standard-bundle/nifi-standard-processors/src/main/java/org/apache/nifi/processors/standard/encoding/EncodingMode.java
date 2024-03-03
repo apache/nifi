@@ -22,7 +22,7 @@ public enum EncodingMode implements DescribedValue {
      ENCODE("Encode", "Transform original input to encoded representation"),
      DECODE("Decode", "Transform encoded input to original representation");
 
-     EncodingMode(String displayName, String description) {
+     EncodingMode(String value, String description) {
             this.value = value;
             this.description = description;
       }

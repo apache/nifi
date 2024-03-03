@@ -19,21 +19,23 @@ package org.apache.nifi.processors.standard.encoding;
 import org.apache.nifi.components.DescribedValue;
 
 public enum EncodingType implements DescribedValue {
-    BASE64("Base64", "Encode or decode using Base64 set of characters"),
-    BASE32("Base32", "Encode or decode using Base32 set of characters"),
-    HEXADECIMAL("Hexadecimal", "Encode or decode using hexadecimal set of characters");
+    BASE64("base64", "Base64", "Encode or decode using Base64 set of characters"),
+    BASE32("base32", "Base32", "Encode or decode using Base32 set of characters"),
+    HEXADECIMAL("hex", "Hexadecimal", "Encode or decode using hexadecimal set of characters");
 
+    private final String value;
     private final String displayName;
     private final String description;
 
-    EncodingType(String displayName, String description) {
+    EncodingType(String value, String displayName, String description) {
+        this.value;
         this.displayName = displayName;
         this.description = description;
     }
 
     @Override
     public String getValue() {
-        return name();
+        return value;
     }
 
     @Override
