@@ -19,9 +19,9 @@ package org.apache.nifi.processors.standard.encoding;
 import org.apache.nifi.components.DescribedValue;
 
 public enum EncodingType implements DescribedValue {
-    BASE64_ENCODING("Base64", "Sets the encoding type to 'Base64'."),
-    BASE32_ENCODING("Base32", "Sets the encoding type to 'Base32'."),
-    HEX_ENCODING("Hexadecimal", "Sets the encoding type to 'Hexadecimal'.");
+    BASE64("Base64", "Encode or decode using Base64 set of characters"),
+    BASE32("Base32", "Encode or decode using Base32 set of characters"),
+    HEXADECIMAL("Hexadecimal", "Encode or decode using hexadecimal set of characters");
 
     private final String displayName;
     private final String description;

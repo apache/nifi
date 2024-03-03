@@ -80,8 +80,7 @@ public class EncodeContent extends AbstractProcessor {
     static final PropertyDescriptor LINE_OUTPUT_MODE = new PropertyDescriptor.Builder()
             .name("Line Output Mode")
             .displayName("Line Output Mode")
-            .description("If set to 'single-line', the encoded FlowFile content will output as a single line. If set to 'multiple-lines', "
-                + "it will output as multiple lines. This property is only applicable when Base64 or Base32 encoding is selected.")
+            .description("Controls the line formatting for encoded content based on selected property values.")
             .required(false)
             .defaultValue(LineOutputMode.SINGLE_LINE)
             .allowableValues(LineOutputMode.class)
@@ -190,7 +189,7 @@ public class EncodeContent extends AbstractProcessor {
         private int lineLength;
         private String lineSeparator;
 
-        public EncodeBase64(final int lineLength,
+        private EncodeBase64(final int lineLength,
             final String lineSeparator) {
             this.lineLength = lineLength;
             this.lineSeparator = lineSeparator;
