@@ -19,8 +19,8 @@ package org.apache.nifi.processors.standard.encoding;
 import org.apache.nifi.components.DescribedValue;
 
 public enum LineOutputMode implements DescribedValue {
-    SINGLE_LINE("Single Line", "The encoded FlowFile content will be output as a single line."),
-    MULTIPLE_LINES("Multiple Lines", "The encoded FlowFile content will be output as multiple lines.");
+    SINGLE_LINE("Single Line", "The encoded content will be written as a single line."),
+    MULTIPLE_LINES("Multiple Lines", "The encoded content will be written as multiple lines.");
 
     private final String displayName;
     private final String description;

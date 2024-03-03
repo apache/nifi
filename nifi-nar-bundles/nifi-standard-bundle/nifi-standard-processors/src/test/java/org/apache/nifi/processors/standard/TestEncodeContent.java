@@ -114,7 +114,7 @@ class TestEncodeContent {
     @ParameterizedTest
     @MethodSource("encodeBase32Args")
     void testBasicDecodeBase32(final String input, final String expectedOutput) {
-        // we'll use the same args from `encodeBase32Args`, only flip around input and output
+        // use the same args from `encodeBase32Args`, only flip around input and output
         executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE32_ENCODING, expectedOutput, input);
     }
 
@@ -277,7 +277,7 @@ class TestEncodeContent {
             EncodingType.BASE32_ENCODING,
             LOREM_IPSUM,
             LineOutputMode.SINGLE_LINE,
-            2,                          // set a low value >= 0
+            2, // set a low value >= 0
             System.lineSeparator(),
             expectedOutput,
             EncodeContent.REL_SUCCESS);

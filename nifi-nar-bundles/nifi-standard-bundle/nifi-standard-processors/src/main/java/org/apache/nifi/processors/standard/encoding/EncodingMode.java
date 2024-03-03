@@ -19,25 +19,25 @@ package org.apache.nifi.processors.standard.encoding;
 import org.apache.nifi.components.DescribedValue;
 
 public enum EncodingMode implements DescribedValue {
-     ENCODE("Encode", "Sets the operation mode to 'encode'."),
-     DECODE("Decode", "Sets the operation mode to 'decode'.");
+     ENCODE("Encode", "Transform original input to encoded representation"),
+     DECODE("Decode", "Transform encoded input to original representation");
 
      EncodingMode(String displayName, String description) {
-            this.displayName = displayName;
+            this.value = value;
             this.description = description;
       }
 
-      private final String displayName;
+      private final String value;
       private final String description;
 
       @Override
        public String getValue() {
-            return name();
+            return value;
        }
 
        @Override
        public String getDisplayName() {
-            return displayName;
+            return value;
        }
 
        @Override
