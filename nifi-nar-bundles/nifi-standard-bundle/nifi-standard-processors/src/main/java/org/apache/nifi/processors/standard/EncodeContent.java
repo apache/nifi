@@ -63,7 +63,7 @@ public class EncodeContent extends AbstractProcessor {
 
     public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
             .name("Mode")
-            .description("Specifies whether the content should be encoded or decoded")
+            .description("Specifies whether the content should be encoded or decoded.")
             .required(true)
             .allowableValues(EncodingMode.class)
             .defaultValue(EncodingMode.ENCODE)
@@ -71,10 +71,10 @@ public class EncodeContent extends AbstractProcessor {
 
     public static final PropertyDescriptor ENCODING = new PropertyDescriptor.Builder()
             .name("Encoding")
-            .description("Specifies the type of encoding used")
+            .description("Specifies the type of encoding used.")
             .required(true)
             .allowableValues(EncodingType.class)
-            .defaultValue(EncodingType.BASE64_ENCODING)
+            .defaultValue(EncodingType.BASE64)
             .build();
 
     static final PropertyDescriptor LINE_OUTPUT_MODE = new PropertyDescriptor.Builder()
@@ -86,7 +86,7 @@ public class EncodeContent extends AbstractProcessor {
             .allowableValues(LineOutputMode.class)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .dependsOn(MODE, EncodingMode.ENCODE)
-            .dependsOn(ENCODING, EncodingType.BASE64_ENCODING, EncodingType.BASE32_ENCODING)
+            .dependsOn(ENCODING, EncodingType.BASE64, EncodingType.BASE32)
             .build();
 
     static final PropertyDescriptor ENCODED_LINE_SEPARATOR = new PropertyDescriptor.Builder()
@@ -100,7 +100,7 @@ public class EncodeContent extends AbstractProcessor {
         .defaultValue(System.lineSeparator())
         .addValidator(Validator.VALID)
         .dependsOn(MODE, EncodingMode.ENCODE)
-        .dependsOn(ENCODING, EncodingType.BASE64_ENCODING, EncodingType.BASE32_ENCODING)
+        .dependsOn(ENCODING, EncodingType.BASE64, EncodingType.BASE32)
         .build();
 
     static final PropertyDescriptor ENCODED_LINE_LENGTH = new PropertyDescriptor.Builder()
@@ -114,7 +114,7 @@ public class EncodeContent extends AbstractProcessor {
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.INTEGER_VALIDATOR)
         .dependsOn(MODE, EncodingMode.ENCODE)
-        .dependsOn(ENCODING, EncodingType.BASE64_ENCODING, EncodingType.BASE32_ENCODING)
+        .dependsOn(ENCODING, EncodingType.BASE64, EncodingType.BASE32)
         .dependsOn(LINE_OUTPUT_MODE, LineOutputMode.MULTIPLE_LINES)
         .build();
 
@@ -153,7 +153,7 @@ public class EncodeContent extends AbstractProcessor {
         }
 
         final boolean encode = context.getProperty(MODE).getValue().equals(EncodingMode.ENCODE.getValue());
-        final EncodingType encoding = EncodingType.valueOf(context.getProperty(ENCODING).getValue());
+        final EncodingType encoding = getEncodingTypeFromString(context.getProperty(ENCODING).getValue());
         final boolean singleLineOutput = context.getProperty(LINE_OUTPUT_MODE).getValue().equals(LineOutputMode.SINGLE_LINE.getValue());
         final int lineLength = singleLineOutput ? -1 : context.getProperty(ENCODED_LINE_LENGTH).evaluateAttributeExpressions(flowFile).asInteger();
         final String lineSeparator = context.getProperty(ENCODED_LINE_SEPARATOR).evaluateAttributeExpressions(flowFile).getValue();
@@ -175,9 +175,9 @@ public class EncodeContent extends AbstractProcessor {
     private static StreamCallback getStreamCallback(final boolean encode, final EncodingType encoding,
         final int lineLength, final String lineSeparator) {
         switch(encoding) {
-            case BASE64_ENCODING:
+            case BASE64:
                 return encode ? new EncodeBase64(lineLength, lineSeparator) : new DecodeBase64();
-            case BASE32_ENCODING:
+            case BASE32:
                 return encode ? new EncodeBase32(lineLength, lineSeparator) : new DecodeBase32();
             default:
                 return encode ? new EncodeHex() : new DecodeHex();
@@ -295,6 +295,16 @@ public class EncodeContent extends AbstractProcessor {
                 }
             }
             out.flush();
+        }
+    }
+
+    private static EncodingType getEncodingTypeFromString(final String encodingTypeValue) {
+        if (encodingTypeValue.compareToIgnoreCase("base64") == 0) {
+            return EncodingType.BASE64;
+        } else if (encodingTypeValue.compareToIgnoreCase("base32") == 0) {
+            return EncodingType.BASE32;
+        } else {
+            return EncodingType.HEXADECIMAL;
         }
     }
 }

@@ -54,7 +54,7 @@ class TestEncodeContent {
     @Test
     void testFailDecodeNotBase64ButIsAMultipleOfFourBytes() {
         testRunner.setProperty(EncodeContent.MODE, EncodingMode.DECODE);
-        testRunner.setProperty(EncodeContent.ENCODING, EncodingType.BASE64_ENCODING);
+        testRunner.setProperty(EncodeContent.ENCODING, EncodingType.BASE64);
 
         testRunner.enqueue("four@@@@multiple".getBytes());
         testRunner.clearTransferState();
@@ -106,36 +106,36 @@ class TestEncodeContent {
         final String specialChars = "!@#$%^&*()_+{}:\"<>?[];',./~`-=";
         final String expectedOutput = "IUAjJCVeJiooKV8re306Ijw+P1tdOycsLi9+YC09" + System.lineSeparator();
 
-        executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.BASE64_ENCODING, specialChars, expectedOutput);
+        executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.BASE64, specialChars, expectedOutput);
         testRunner.clearTransferState(); // clear the state for the next test
-        executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE64_ENCODING, expectedOutput, specialChars);
+        executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE64, expectedOutput, specialChars);
     }
 
     @ParameterizedTest
     @MethodSource("encodeBase32Args")
     void testBasicDecodeBase32(final String input, final String expectedOutput) {
         // use the same args from `encodeBase32Args`, only flip around input and output
-        executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE32_ENCODING, expectedOutput, input);
+        executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE32, expectedOutput, input);
     }
 
     @ParameterizedTest
     @MethodSource("encodeBase64Args")
     void testBasicDecodeBase64(final String input, final String expectedOutput) {
         // we'll use the same args from `encodeBase64Args`, only flip around input and output
-        executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE64_ENCODING, expectedOutput, input);
+        executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.BASE64, expectedOutput, input);
     }
 
     @ParameterizedTest
     @MethodSource("encodeHexArgs")
     void testBasicDecodeHex(final String input, final String expectedOutput) {
         // we'll use the same args from `encodeHexArgs`, only flip around input and output
-        executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.HEX_ENCODING, expectedOutput, input);
+        executeTestSuccessHelper(EncodingMode.DECODE, EncodingType.HEXADECIMAL, expectedOutput, input);
     }
 
     @ParameterizedTest
     @MethodSource("encodeHexArgs")
     void testBasicEncodeHex(final String input, final String expectedOutput) {
-        executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.HEX_ENCODING, input, expectedOutput);
+        executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.HEXADECIMAL, input, expectedOutput);
     }
 
     private static Stream<Arguments> encodeHexArgs() {
@@ -150,7 +150,7 @@ class TestEncodeContent {
     @ParameterizedTest
     @MethodSource("encodeBase32Args")
     void testBasicEncodeBase32(final String input, final String expectedOutput) {
-        executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.BASE32_ENCODING, input, expectedOutput);
+        executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.BASE32, input, expectedOutput);
     }
 
     private static Stream<Arguments> encodeBase32Args() {
@@ -165,7 +165,7 @@ class TestEncodeContent {
     @ParameterizedTest
     @MethodSource("encodeBase64Args")
     void testBasicEncodeBase64(final String input, final String expectedOutput) {
-        executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.BASE64_ENCODING, input, expectedOutput);
+        executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.BASE64, input, expectedOutput);
     }
 
     private static Stream<Arguments> encodeBase64Args() {
@@ -180,7 +180,7 @@ class TestEncodeContent {
     @Test
     void testBlankValueShouldNotFail() {
         executeTestSuccessHelper(EncodingMode.ENCODE,
-            EncodingType.BASE64_ENCODING,
+            EncodingType.BASE64,
             StringUtils.EMPTY,
             StringUtils.EMPTY);
     }
@@ -194,7 +194,7 @@ class TestEncodeContent {
 
         // Execute the test using the helper method
         executeTestHelper(EncodingMode.ENCODE,
-            EncodingType.BASE64_ENCODING,
+            EncodingType.BASE64,
             LOREM_IPSUM,
             LineOutputMode.MULTIPLE_LINES,
             expectedOutput,
@@ -210,7 +210,7 @@ class TestEncodeContent {
 
         // Execute the test using the helper method
         executeTestHelper(EncodingMode.ENCODE,
-            EncodingType.BASE64_ENCODING,
+            EncodingType.BASE64,
             LOREM_IPSUM,
             LineOutputMode.SINGLE_LINE,
             expectedOutput,
@@ -225,7 +225,7 @@ class TestEncodeContent {
 
         // Execute the test using the helper method
         executeTestHelper(EncodingMode.ENCODE,
-            EncodingType.BASE32_ENCODING,
+            EncodingType.BASE32,
             LOREM_IPSUM,
             LineOutputMode.SINGLE_LINE,
             expectedOutput,
@@ -241,7 +241,7 @@ class TestEncodeContent {
 
         // Execute the test using the helper method
         executeTestHelper(EncodingMode.ENCODE,
-            EncodingType.BASE32_ENCODING,
+            EncodingType.BASE32,
             LOREM_IPSUM,
             LineOutputMode.MULTIPLE_LINES, // set false to output multiple lines
             expectedOutput,
@@ -257,7 +257,7 @@ class TestEncodeContent {
 
         // Execute the test using the helper method
         executeTestHelper(EncodingMode.ENCODE,
-            EncodingType.BASE32_ENCODING,
+            EncodingType.BASE32,
             LOREM_IPSUM,
             LineOutputMode.MULTIPLE_LINES,
             80,
@@ -274,7 +274,7 @@ class TestEncodeContent {
 
         // Setting a low value for `lineLength` but single line true ensures that `lineLength` is ignored
         executeTestHelper(EncodingMode.ENCODE,
-            EncodingType.BASE32_ENCODING,
+            EncodingType.BASE32,
             LOREM_IPSUM,
             LineOutputMode.SINGLE_LINE,
             2, // set a low value >= 0
@@ -292,7 +292,7 @@ class TestEncodeContent {
 
         // Execute the test using the helper method
         executeTestHelper(EncodingMode.ENCODE,
-            EncodingType.BASE64_ENCODING,
+            EncodingType.BASE64,
             LOREM_IPSUM,
             LineOutputMode.MULTIPLE_LINES, // set false to output multiple lines
             80,
@@ -310,7 +310,7 @@ class TestEncodeContent {
 
         // Execute the test using the helper method
         executeTestHelper(EncodingMode.ENCODE,
-            EncodingType.BASE64_ENCODING,
+            EncodingType.BASE64,
             LOREM_IPSUM,
             LineOutputMode.MULTIPLE_LINES, // set false to output multiple lines
             80,
@@ -328,7 +328,7 @@ class TestEncodeContent {
 
         // Execute the test using the helper method
         executeTestHelper(EncodingMode.ENCODE,
-            EncodingType.BASE32_ENCODING,
+            EncodingType.BASE32,
             LOREM_IPSUM,
             LineOutputMode.MULTIPLE_LINES, // set false to output multiple lines
             80,
@@ -346,7 +346,7 @@ class TestEncodeContent {
 
         // Setting a low value for `lineLength` but single line true ensures that `lineLength` is ignored
         executeTestHelper(EncodingMode.ENCODE,
-            EncodingType.BASE64_ENCODING,
+            EncodingType.BASE64,
             LOREM_IPSUM,
             LineOutputMode.SINGLE_LINE, // set true to output single line
             2,                                      // set a low value >= 0
