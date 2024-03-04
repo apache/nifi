@@ -148,8 +148,8 @@ public class ProtobufDataConverter {
      * @param unknownField              field's value
      */
     private void collectFieldValue(Map<String, Object> fieldNameToConvertedValue, ProtoField protoField, UnknownFieldSet.Field unknownField) throws InvalidProtocolBufferException {
-        Optional<Object> fieldValue = convertFieldValues(protoField, unknownField);
-        fieldValue.ifPresent(o -> fieldNameToConvertedValue.put(protoField.getFieldName(), o));
+        final Optional<Object> fieldValue = convertFieldValues(protoField, unknownField);
+        fieldValue.ifPresent(value -> fieldNameToConvertedValue.put(protoField.getFieldName(), value));
     }
 
     private Optional<Object> convertFieldValues(ProtoField protoField, UnknownFieldSet.Field unknownField) throws InvalidProtocolBufferException {
@@ -290,7 +290,7 @@ public class ProtobufDataConverter {
         List<Object> resultValues = values.stream().map(valueConverter).toList();
 
         if (coerceTypes) {
-            Optional<RecordField> recordField = rootRecordSchema.getField(protoField.getFieldName());
+            final Optional<RecordField> recordField = rootRecordSchema.getField(protoField.getFieldName());
             if (recordField.isPresent()) {
                 resultValues = resultValues.stream().map(value -> DataTypeUtils.convertType(value, recordField.get().getDataType(), recordField.get().getFieldName())).toList();
             }
