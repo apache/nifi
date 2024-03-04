@@ -16,7 +16,13 @@
  */
 
 .flow-analysis {
+  background-color: #E3E8EB;
   padding: 0;
+}
+
+.flow-analysis:hover,
+.flow-analysis.opened {
+  background-color: #FFFFFF;
 }
 
 #flow-status .flow-analysis .fa-lightbulb-o {
@@ -103,7 +109,22 @@
 }
 
 .flow-analysis-check-now-btn:hover {
-  border: 0;
+  border: none;
+}
+
+.flow-analysis-check-now-btn:disabled {
+  border: none;
+  color: #CCDADB;
+  cursor: not-allowed;
+ }
+
+ .flow-analysis-loading-container {
+  float: left;
+  width: 16px;
+  height: 16px;
+  background-color: transparent;
+  margin-top: 4px;
+  margin-left: 3px;
 }
 
 .flow-analysis-refresh {
@@ -254,7 +275,9 @@
 }
 
 #flow-analysis-drawer .violation-menu-option.disabled,
-#flow-analysis-drawer .violation-menu-option-icon {
+#flow-analysis-drawer .rule-menu-option.disabled,
+#flow-analysis-drawer .violation-menu-option-icon,
+#flow-analysis-drawer .rule-menu-option-icon {
   float: none;
 }
 
