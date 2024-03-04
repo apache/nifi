@@ -135,7 +135,7 @@ public class ProtoSchemaParser {
         } else if (fieldType instanceof EnumType) {
             return new EnumDataType(((EnumType) fieldType).getConstants().stream().map(EnumConstant::getName).toList());
         } else {
-            throw new IllegalStateException("Unknown proto type: " + fieldType.getClass());
+            throw new IllegalStateException("Unknown proto type: " + fieldType);
         }
     }
 
@@ -145,32 +145,15 @@ public class ProtoSchemaParser {
      * @return data type
      */
     private DataType getDataTypeForScalarField(ProtoType protoType) {
-        switch (FieldType.findValue(protoType.getSimpleName())) {
-            case DOUBLE:
-                return RecordFieldType.DOUBLE.getDataType();
-            case FLOAT:
-                return RecordFieldType.FLOAT.getDataType();
-            case INT32:
-            case SFIXED32:
-                return RecordFieldType.INT.getDataType();
-            case UINT32:
-            case SINT32:
-            case FIXED32:
-            case INT64:
-            case SINT64:
-            case SFIXED64:
-                return RecordFieldType.LONG.getDataType();
-            case UINT64:
-            case FIXED64:
-                return RecordFieldType.BIGINT.getDataType();
-            case BOOL:
-                return RecordFieldType.BOOLEAN.getDataType();
-            case STRING:
-                return RecordFieldType.STRING.getDataType();
-            case BYTES:
-                return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
-            default:
-                throw new IllegalStateException("Unknown scalar type: " + protoType.getSimpleName());
-        }
+        return switch (FieldType.findValue(protoType.getSimpleName())) {
+            case DOUBLE -> RecordFieldType.DOUBLE.getDataType();
+            case FLOAT -> RecordFieldType.FLOAT.getDataType();
+            case INT32, SFIXED32 -> RecordFieldType.INT.getDataType();
+            case UINT32, SINT32, FIXED32, INT64, SINT64, SFIXED64 -> RecordFieldType.LONG.getDataType();
+            case UINT64, FIXED64 -> RecordFieldType.BIGINT.getDataType();
+            case BOOL -> RecordFieldType.BOOLEAN.getDataType();
+            case STRING -> RecordFieldType.STRING.getDataType();
+            case BYTES -> RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
+        };
     }
 }
