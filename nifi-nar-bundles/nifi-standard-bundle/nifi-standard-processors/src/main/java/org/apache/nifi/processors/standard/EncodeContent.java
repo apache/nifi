@@ -298,10 +298,10 @@ public class EncodeContent extends AbstractProcessor {
         }
     }
 
-    private static EncodingType getEncodingTypeFromString(final String encodingTypeValue) {
-        if (encodingTypeValue.compareToIgnoreCase("base64") == 0) {
+    private static EncodingType getEncodingType(final String encodingTypeValue) {
+        if (EncodingType.BASE64.getValue().equals(encodingTypeValue)) {
             return EncodingType.BASE64;
-        } else if (encodingTypeValue.compareToIgnoreCase("base32") == 0) {
+        } else if (EncodingType.BASE32.getValue().equals(encodingTypeValue)) {
             return EncodingType.BASE32;
         } else {
             return EncodingType.HEXADECIMAL;
