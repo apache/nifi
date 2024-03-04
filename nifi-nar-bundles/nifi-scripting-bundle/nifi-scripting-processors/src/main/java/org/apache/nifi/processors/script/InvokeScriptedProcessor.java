@@ -606,7 +606,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
     @OnStopped
     public void stop(ProcessContext context) {
         // If the script needs to be reloaded at this point, it is because it was empty
-        if (!scriptNeedsReload.get()) {
+        if (scriptRunner != null) {
             invokeScriptedProcessorMethod("onStopped", context);
         }
         scriptingComponentHelper.stop();
