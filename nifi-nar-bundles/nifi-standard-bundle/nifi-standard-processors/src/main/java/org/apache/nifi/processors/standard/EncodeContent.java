@@ -153,7 +153,7 @@ public class EncodeContent extends AbstractProcessor {
         }
 
         final boolean encode = context.getProperty(MODE).getValue().equals(EncodingMode.ENCODE.getValue());
-        final EncodingType encoding = getEncodingTypeFromString(context.getProperty(ENCODING).getValue());
+        final EncodingType encoding = getEncodingType(context.getProperty(ENCODING).getValue());
         final boolean singleLineOutput = context.getProperty(LINE_OUTPUT_MODE).getValue().equals(LineOutputMode.SINGLE_LINE.getValue());
         final int lineLength = singleLineOutput ? -1 : context.getProperty(ENCODED_LINE_LENGTH).evaluateAttributeExpressions(flowFile).asInteger();
         final String lineSeparator = context.getProperty(ENCODED_LINE_SEPARATOR).evaluateAttributeExpressions(flowFile).getValue();
