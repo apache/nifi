@@ -78,6 +78,7 @@
         };
 
         var previousRulesResponse = {};
+        var flowAnalysisPollingRequest;
 
         function FlowStatusCtrl() {
             this.connectedNodesCount = "-";
@@ -429,6 +430,7 @@
                     ruleViolationCountEl.empty().text('(' + violations.length + ')');
                     ruleWarningCountEl.empty().text('(' + warnings.length + ')');
                     ruleViolationListEl.empty();
+                    ruleWarningListEl.empty();
                     violations.forEach(function(violation) {
                         var rule = rules.find(function(rule) {
                             return rule.id === violation.ruleId;
@@ -685,7 +687,12 @@
                         });
 
                         // rule menu bindings
-                        $('#rule-menu-edit-rule').on('click', openRuleDetailsDialog);
+                        if (nfCommon.currentUser.controllerPermissions.canRead) {
+                            $('#rule-menu-edit-rule').removeClass('disabled');
+                            $('#rule-menu-edit-rule').on('click', openRuleDetailsDialog);
+                        } else {
+                            $('#rule-menu-edit-rule').addClass('disabled');
+                        }
                         $('#rule-menu-view-documentation').on('click', viewRuleDocumentation);
                         $(document).on('click', closeRuleWindow);
 
@@ -743,8 +750,6 @@
                         // violation menu bindings
                         $('#violation-menu-more-info').on( "click", openRuleViolationMoreInfoDialog);
                         // If the groupId and subjectId are not the same, we can select the component
-                        console.log(violationInfo.groupId !== violationInfo.subjectId);
-                        console.log(violationInfo);
                         if (violationInfo.groupId !== violationInfo.subjectId) {
                             $('#violation-menu-go-to').removeClass('disabled');
                             $('#violation-menu-go-to .violation-menu-option-icon').removeClass('disabled');
@@ -811,6 +816,7 @@
                     var flowAnalysisRefreshIntervalSeconds = nfCommon.getAutoRefreshInterval();
 
                     $('#flow-analysis').click(function () {
+                        $(this).toggleClass('opened');
                         drawer.toggleClass('opened');
                     });
                     requiredRulesEl.accordion({
@@ -877,7 +883,7 @@
                     setInterval(this.loadFlowPolicies.bind(this), flowAnalysisRefreshIntervalSeconds * 1000);
 
                     // add click event listener to refresh button
-                    newFlowAnalsysisBtnEl.on('click', this.createNewFlowAnalysisRequest);
+                    newFlowAnalsysisBtnEl.on('click', this.createNewFlowAnalysisRequest.bind(this));
                     
                     this.toggleOnlyViolations(false);
                     this.toggleOnlyWarnings(false);
@@ -946,13 +952,43 @@
                  * Submit a request for a new flow analysis report
                  */
                 createNewFlowAnalysisRequest: function () {
+                    var flowAnalysisCtrl = this;
                     var groupId = nfCanvasUtils.getGroupId();
+                    // disable check now button and show spinning loader
+                    $('#flow-analysis-check-now-btn').prop('disabled', true);
+                    $('#flow-analysis-loading-container').addClass('ajax-loading');
+
                     return $.ajax({
                         type: 'POST',
                         url: '../nifi-api/process-groups/' + groupId + '/flow-analysis-requests',
                         dataType: 'json'
                     }).done(function (response) {
+                        flowAnalysisCtrl.pollFlowAnalysisRequest(response);
                     }).fail(nfErrorHandler.handleAjaxError);
+                },
+
+                /**
+                 * Poll the flow analysis request status endpoint until the request returns complete
+                 */
+                pollFlowAnalysisRequest: function (status) {
+                    var flowAnalysisCtrl = this;
+
+                    // enable check now button and hide spinning loader when polling is finished
+                    if (status.analyzeFlowRequest.complete) {
+                        $('#flow-analysis-check-now-btn').prop('disabled', false);
+                        $('#flow-analysis-loading-container').removeClass('ajax-loading');
+                        return clearTimeout(flowAnalysisPollingRequest);
+                    }
+
+                    flowAnalysisPollingRequest = setTimeout(function () {
+                        return $.ajax({
+                            type: 'GET',
+                            url: '../nifi-api/process-groups/' + status.analyzeFlowRequest.processGroupId + '/flow-analysis-requests/' + status.analyzeFlowRequest.requestId,
+                            dataType: 'json'
+                        }).done(function (response) {
+                            flowAnalysisCtrl.pollFlowAnalysisRequest(response);
+                        }).fail(nfErrorHandler.handleAjaxError);
+                    }, 5000);
                 }
             }
 
