@@ -71,8 +71,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Tags({"asn", "ans1", "jasn.1", "jasn1", "record", "reader", "parser"})
-@CapabilityDescription("Reads ASN.1 content and creates NiFi records." +
-        "Note: Use of this controller service requires the Java JDK, not just the JRE.")
+@CapabilityDescription("Reads ASN.1 content and creates NiFi records. " +
+        "NOTE: Use of this component requires the Java JDK, not just the JRE.")
 public class JASN1Reader extends AbstractConfigurableComponent implements RecordReaderFactory {
 
     private static final PropertyDescriptor ROOT_MODEL_NAME = new PropertyDescriptor.Builder()
