@@ -71,7 +71,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Tags({"asn", "ans1", "jasn.1", "jasn1", "record", "reader", "parser"})
-@CapabilityDescription("Reads ASN.1 content and creates NiFi records.")
+@CapabilityDescription("Reads ASN.1 content and creates NiFi records. " +
+        "NOTE: ASN.1 schema preparation requires the JDK at runtime for model compilation.")
 public class JASN1Reader extends AbstractConfigurableComponent implements RecordReaderFactory {
 
     private static final PropertyDescriptor ROOT_MODEL_NAME = new PropertyDescriptor.Builder()
