@@ -24,49 +24,90 @@ import py4j.Protocol;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class JavaObjectBindings {
     private static final Logger logger = LoggerFactory.getLogger(JavaObjectBindings.class);
 
     private final AtomicLong idGenerator = new AtomicLong(0L);
-    private final Map<String, Object> bindings = new ConcurrentHashMap<>();
+    private final Map<String, Object> bindings = new HashMap<>();
+    private final Map<String, Integer> bindingCounts = new HashMap<>();
+    private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final Lock readLock = rwLock.readLock();
+    private final Lock writeLock = rwLock.writeLock();
 
 
     public JavaObjectBindings() {
-        bind(Protocol.DEFAULT_JVM_OBJECT_ID, new JVMView("default", Protocol.DEFAULT_JVM_OBJECT_ID));
+        bind(Protocol.DEFAULT_JVM_OBJECT_ID, new JVMView("default", Protocol.DEFAULT_JVM_OBJECT_ID), 1);
     }
 
-    public String bind(final Object object) {
+    public String bind(final Object object, final int count) {
         final String id = "o" + idGenerator.getAndIncrement();
-        return bind(id, object);
+        return bind(id, object, count);
     }
 
-    public String bind(final String objectId, final Object object) {
-        bindings.put(objectId, object);
+    public String bind(final String objectId, final Object object, final int count) {
+        if (count == 0) {
+            logger.debug("Will not bind {} to ID {} because count is 0", object, objectId);
+            return objectId;
+        }
 
-        logger.debug("Bound {} to ID {}", object, objectId);
+        writeLock.lock();
+        try {
+            bindings.put(objectId, object);
+            bindingCounts.put(objectId, count);
+        } finally {
+            writeLock.unlock();
+        }
+
+        logger.debug("Bound {} to ID {} with count {}", object, objectId, count);
         return objectId;
     }
 
     public Object getBoundObject(final String objectId) {
-        return bindings.get(objectId);
+        readLock.lock();
+        try {
+            return bindings.get(objectId);
+        } finally {
+            readLock.unlock();
+        }
     }
 
     public Object unbind(final String objectId) {
-        final Object unbound = bindings.remove(objectId);
-        logger.debug("Unbound {} from ID {}", unbound, objectId);
+        writeLock.lock();
+        try {
+            final Integer currentValue = bindingCounts.remove(objectId);
+            final int updatedValue = (currentValue == null) ? 0 : currentValue - 1;
+            if (updatedValue < 1) {
+                final Object unbound = bindings.remove(objectId);
+                logger.debug("Unbound {} from ID {}", unbound, objectId);
+                return unbound;
+            }
 
-        return unbound;
+            bindingCounts.put(objectId, updatedValue);
+            logger.debug("Decremented binding count for ID {} to {}", objectId, updatedValue);
+            return bindings.get(objectId);
+        } finally {
+            writeLock.unlock();
+        }
     }
+
 
     public Map<String, Integer> getCountsPerClass() {
         final Map<String, Integer> counts = new HashMap<>();
-        bindings.values().forEach(object -> {
-            final String className = (object == null) ? "<null>" : object.getClass().getName();
-            counts.merge(className, 1, Integer::sum);
-        });
+
+        readLock.lock();
+        try {
+            bindings.values().forEach(object -> {
+                final String className = (object == null) ? "<null>" : object.getClass().getName();
+                counts.merge(className, 1, Integer::sum);
+            });
+        } finally {
+            readLock.unlock();
+        }
 
         return counts;
     }

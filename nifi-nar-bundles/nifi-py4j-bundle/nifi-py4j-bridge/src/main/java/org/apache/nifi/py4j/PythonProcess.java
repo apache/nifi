@@ -380,22 +380,27 @@ public class PythonProcess {
         };
 
         // Create a PythonProcessorDetails and then call getProcessorType and getProcessorVersion to ensure that the details are cached
-        final PythonProcessorDetails processorDetails = new CachingPythonProcessorDetails(controller.getProcessorDetails(type, version));
-        processorDetails.getProcessorType();
-        processorDetails.getProcessorVersion();
+        final PythonProcessorDetails processorDetails = controller.getProcessorDetails(type, version);
+        try {
+            final String processorType = processorDetails.getProcessorType();
+            final String processorVersion = processorDetails.getProcessorVersion();
 
-        final PythonProcessorBridge processorBridge = new StandardPythonProcessorBridge.Builder()
-            .controller(controller)
-            .creationWorkflow(creationWorkflow)
-            .processorDetails(processorDetails)
-            .workingDirectory(processConfig.getPythonWorkingDirectory())
-            .moduleFile(new File(controller.getModuleFile(type, version)))
-            .build();
+            final PythonProcessorBridge processorBridge = new StandardPythonProcessorBridge.Builder()
+                .controller(controller)
+                .creationWorkflow(creationWorkflow)
+                .processorType(processorType)
+                .processorVersion(processorVersion)
+                .workingDirectory(processConfig.getPythonWorkingDirectory())
+                .moduleFile(new File(controller.getModuleFile(type, version)))
+                .build();
 
-        final CreatedProcessor createdProcessor = new CreatedProcessor(identifier, type, processorBridge);
-        createdProcessors.add(createdProcessor);
+            final CreatedProcessor createdProcessor = new CreatedProcessor(identifier, type, processorBridge);
+            createdProcessors.add(createdProcessor);
 
-        return processorBridge;
+            return processorBridge;
+        } finally {
+            processorDetails.free();
+        }
     }
 
     /**
