@@ -82,9 +82,18 @@ class PythonProcessLogReader implements Runnable {
                 try {
                     processLine(line, parsedRecords);
 
-                    if (parsedRecords.size() == 2 || !processReader.ready()) {
+                    if (parsedRecords.size() == 2) {
+                        // Log previous record after creating a new record
                         final ParsedRecord parsedRecord = parsedRecords.remove();
                         log(parsedRecord);
+                    }
+
+                    if (!processReader.ready()) {
+                        // Log queued records when Process Reader is not ready
+                        while (!parsedRecords.isEmpty()) {
+                            final ParsedRecord parsedRecord = parsedRecords.poll();
+                            log(parsedRecord);
+                        }
                     }
                 } catch (final Exception e) {
                     processLogger.error("Failed to handle log from Python Process", e);
