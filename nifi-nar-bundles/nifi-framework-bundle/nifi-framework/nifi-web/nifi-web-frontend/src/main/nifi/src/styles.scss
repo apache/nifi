@@ -317,7 +317,7 @@ $appFontPath: '~roboto-fontface/fonts';
         border-color: $accent-palette-A400;
     }
 
-    button:disabled {
+    button.nifi-button:disabled {
         color: $primary-palette-200 !important;
         cursor: not-allowed;
     }
