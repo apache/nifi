@@ -946,11 +946,12 @@
                 if (canRead) {
                     if (canWrite && isDisabled) {
                         markup += '<div class="pointer edit-controller-service fa fa-gear" title="Configure"></div>';
-                        if (canWriteControllerServiceParent(dataContext)) {
-                            markup += '<div class="pointer move-controller-service fa  fa-arrows" title="Move to Parent/Child"></div>';
-                        }
                     } else {
                         markup += '<div class="pointer view-controller-service fa fa-gear" title="View Configuration"></div>';
+                    }
+
+                    if (canWrite && canWriteControllerServiceParent(dataContext)) {
+                        markup += '<div class="pointer move-controller-service fa  fa-arrows" title="Move to Parent/Child"></div>';
                     }
                 }
 

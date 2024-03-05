@@ -2952,9 +2952,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceDTO.getId());
         final RevisionUpdate<ControllerServiceDTO> snapshot = updateComponent(revision,
                 controllerService,
-                () -> moveControllerServiceWork(controllerService, newProcessGroupID),
+                () -> {
+                    final ProcessGroup oldParentGroup = controllerService.getProcessGroup();
+                    controllerService.setMoving(true);
+                    oldParentGroup.removeControllerService(controllerService);
+                    if (!oldParentGroup.isRootGroup() && oldParentGroup.getParent().getIdentifier().equals(newProcessGroupID)) {
+                        // move to parent process group
+                        oldParentGroup.getParent().addControllerService(controllerService);
+                    } else {
+                        // move to child process group
+                        oldParentGroup.getProcessGroup(newProcessGroupID).addControllerService(controllerService);
+                    }
+                    return controllerService;
+                },
                 cs -> {
-                    awaitValidationCompletion(cs);
                     final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(cs);
                     final ControllerServiceReference ref = controllerService.getReferences();
                     final ControllerServiceReferencingComponentsEntity referencingComponentsEntity = createControllerServiceReferencingComponentsEntity(ref);
@@ -2966,93 +2977,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(controllerService));
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(controllerServiceDTO.getId()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+        controllerService.performValidation();
         return entityFactory.createControllerServiceEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, bulletinEntities);
-    }
-
-    private ControllerServiceNode moveControllerServiceWork(final ControllerServiceNode controllerService, final String newProcessGroupID) {
-        final ProcessGroup oldParentGroup = controllerService.getProcessGroup();
-        Set<ComponentNode> referencedComponents = controllerService.getReferences().getReferencingComponents();
-        isReferencesDisabled(referencedComponents);
-        oldParentGroup.removeControllerService(controllerService);
-        ProcessGroup newParent;
-        if (!oldParentGroup.isRootGroup() && oldParentGroup.getParent().getIdentifier().equals(newProcessGroupID)) {
-            // move to parent process group
-            newParent = oldParentGroup.getParent();
-            newParent.addControllerService(controllerService);
-
-            // unset any references the controller services has to other controller services that are now out of scope
-            Map<String, String> updatedProps = new HashMap<>();
-            Set<Map.Entry<PropertyDescriptor, PropertyConfiguration>> properties = controllerService.getProperties().entrySet();
-            for (var prop : properties) {
-                var value = prop.getValue();
-                if (value !=null) {
-                    ControllerServiceNode controller;
-                    try {
-                        controller = controllerServiceDAO.getControllerService((value.getRawValue()));
-                    } catch (Exception e){
-                        continue;
-                    }
-                    if (controller != null) {
-                        if (!hasProcessGroup(controller.getProcessGroup(), newParent.getIdentifier())) {
-                            controller.removeReference(controllerService, prop.getKey());
-                            updatedProps.put(prop.getKey().getName(), null);
-                        }
-                    }
-                }
-            }
-            if (!updatedProps.isEmpty())
-                controllerService.setProperties(updatedProps, true, Collections.emptySet());
-
-        } else {
-            // move to child process group
-            newParent = oldParentGroup.getProcessGroup(newProcessGroupID);
-            newParent.addControllerService(controllerService);
-
-            // unset any references for processors that are outside the new scope
-            for (ComponentNode node : referencedComponents) {
-                if (!hasProcessGroup(newParent, node.getProcessGroupIdentifier())) {
-                    Set<Map.Entry<PropertyDescriptor, PropertyConfiguration>> properties = node.getProperties().entrySet();
-                    Map<String, String> updatedProps = new HashMap<>();
-                    for (Map.Entry<PropertyDescriptor, PropertyConfiguration> prop : properties) {
-                        final PropertyConfiguration value = prop.getValue();
-                        if (value != null && value.getRawValue().equals(controllerService.getIdentifier())) {
-                            controllerService.removeReference(node, prop.getKey());
-                            node.getComponent().onPropertyModified(prop.getKey(), controllerService.getIdentifier(), null);
-                            updatedProps.put(prop.getKey().getName(), null);
-                        }
-                    }
-                    node.setProperties(updatedProps, true, Collections.emptySet());
-                }
-            }
-        }
-
-        return controllerService;
-    }
-    private boolean hasProcessGroup(ProcessGroup root, String id){
-        if (root.getProcessGroup(id) != null || root.getIdentifier().equals(id)) {
-            return true;
-        }
-
-        for (ProcessGroup child : root.getProcessGroups()) {
-            if (hasProcessGroup(child, id)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private void isReferencesDisabled(Set<ComponentNode> nodes) {
-        for (ComponentNode node : nodes) {
-            if (node instanceof ProcessorNode processorNode) {
-                if (processorNode.isRunning())
-                    throw new IllegalStateException("Cannot move controller service. Referenced processor " + processorNode + " is running");
-            }
-            if (node instanceof ControllerServiceNode controllerNode) {
-                if (controllerNode.isActive())
-                    throw new IllegalStateException("Cannot move controller service. Referenced controller services " + controllerNode + " is enabled");
-            }
-        }
     }
 
     @Override
