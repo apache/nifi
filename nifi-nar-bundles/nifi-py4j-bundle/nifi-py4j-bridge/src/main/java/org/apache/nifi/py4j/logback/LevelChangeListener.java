@@ -47,7 +47,7 @@ public class LevelChangeListener implements LoggerContextListener {
 
     private static final List<Pattern> EXCLUDED_LOGGERS = List.of(
             Pattern.compile("^$"),
-            Pattern.compile("^ROOT|org|com|net$"),
+            Pattern.compile("^org|com|net$"),
             Pattern.compile("^jetbrains.*"),
             Pattern.compile("^org\\.apache.*"),
             Pattern.compile("^org\\.eclipse.*"),
@@ -76,13 +76,13 @@ public class LevelChangeListener implements LoggerContextListener {
     }
 
     /**
-     * Reset Resistant disabled to support persistent behavior when the LoggerContext is changed
+     * Reset Resistant enabled to support persistent behavior when the LoggerContext is changed
      *
-     * @return Reset Resistant disabled
+     * @return Reset Resistant enabled
      */
     @Override
     public boolean isResetResistant() {
-        return false;
+        return true;
     }
 
     /**
