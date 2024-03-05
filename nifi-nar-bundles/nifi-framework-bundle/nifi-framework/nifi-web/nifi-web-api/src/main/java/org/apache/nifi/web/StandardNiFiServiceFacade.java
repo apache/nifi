@@ -6478,23 +6478,28 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             .map(ruleViolation -> {
                 FlowAnalysisRuleViolationDTO ruleViolationDto = new FlowAnalysisRuleViolationDTO();
 
-                ruleViolationDto.setEnforcementPolicy(ruleViolation.getEnforcementPolicy().toString());
-                ruleViolationDto.setScope(ruleViolation.getScope());
-                ruleViolationDto.setRuleId(ruleViolation.getRuleId());
-                ruleViolationDto.setIssueId(ruleViolation.getIssueId());
-                ruleViolationDto.setViolationMessage(ruleViolation.getViolationMessage());
-
                 String subjectId = ruleViolation.getSubjectId();
                 String groupId = ruleViolation.getGroupId();
 
+                ruleViolationDto.setScope(ruleViolation.getScope());
                 ruleViolationDto.setSubjectId(subjectId);
-                ruleViolationDto.setGroupId(groupId);
-                ruleViolationDto.setSubjectDisplayName(ruleViolation.getSubjectDisplayName());
-                ruleViolationDto.setSubjectPermissionDto(createPermissionDto(
+                ruleViolationDto.setRuleId(ruleViolation.getRuleId());
+                ruleViolationDto.setIssueId(ruleViolation.getIssueId());
+
+                ruleViolationDto.setEnforcementPolicy(ruleViolation.getEnforcementPolicy().toString());
+
+                PermissionsDTO subjectPermissionDto = createPermissionDto(
                         subjectId,
                         ruleViolation.getSubjectComponentType(),
                         groupId
-                ));
+                );
+                ruleViolationDto.setSubjectPermissionDto(subjectPermissionDto);
+
+                if (subjectPermissionDto.getCanRead()) {
+                    ruleViolationDto.setGroupId(groupId);
+                    ruleViolationDto.setSubjectDisplayName(ruleViolation.getSubjectDisplayName());
+                    ruleViolationDto.setViolationMessage(ruleViolation.getViolationMessage());
+                }
 
                 return ruleViolationDto;
             })
