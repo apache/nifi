@@ -319,7 +319,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String PYTHON_FRAMEWORK_SOURCE_DIRECTORY = "nifi.python.framework.source.directory";
     public static final String PYTHON_EXTENSION_DIRECTORY_PREFIX = "nifi.python.extensions.source.directory.";
     public static final String PYTHON_WORKING_DIRECTORY = "nifi.python.working.directory";
-    public static final String PYTHON_LOGS_DIRECTORY = "nifi.python.logs.directory";
     public static final String PYTHON_MAX_PROCESSES = "nifi.python.max.processes";
     public static final String PYTHON_MAX_PROCESSES_PER_TYPE = "nifi.python.max.processes.per.extension.type";
     public static final String PYTHON_COMMS_TIMEOUT = "nifi.python.comms.timeout";
@@ -327,7 +326,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String PYTHON_CONTROLLER_DEBUGPY_ENABLED = "nifi.python.controller.debugpy.enabled";
     public static final String PYTHON_CONTROLLER_DEBUGPY_PORT = "nifi.python.controller.debugpy.port";
     public static final String PYTHON_CONTROLLER_DEBUGPY_HOST = "nifi.python.controller.debugpy.host";
-    public static final String PYTHON_CONTROLLER_DEBUGPY_LOGS_DIR = "nifi.python.controller.debugpy.logs.directory";
 
     // kubernetes properties
     public static final String CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX = "nifi.cluster.leader.election.kubernetes.lease.prefix";
