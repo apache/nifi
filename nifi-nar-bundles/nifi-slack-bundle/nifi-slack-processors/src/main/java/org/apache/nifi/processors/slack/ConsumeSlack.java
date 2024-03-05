@@ -182,7 +182,7 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
         .build();
 
 
-    private final RateLimit rateLimit = new RateLimit(getLogger());
+    private RateLimit rateLimit;
     private final Queue<ConsumeChannel> channels = new LinkedBlockingQueue<>();
     private volatile App slackApp;
 
@@ -205,6 +205,7 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
 
     @OnScheduled
     public void setup(final ProcessContext context) throws IOException, SlackApiException {
+        rateLimit = new RateLimit(getLogger());
         slackApp = createSlackApp(context);
 
         final List<ConsumeChannel> consumeChannels = createChannels(context, slackApp);
@@ -212,9 +213,18 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
     }
 
     @OnStopped
-    public void onStopped() {
+    public void shutdown() {
         channels.clear();
-        slackApp.stop();
+        if (slackApp != null) {
+            slackApp.stop();
+            slackApp = null;
+        }
+        rateLimit = null;
+    }
+
+
+    public RateLimit getRateLimit() {
+        return rateLimit;
     }
 
 
