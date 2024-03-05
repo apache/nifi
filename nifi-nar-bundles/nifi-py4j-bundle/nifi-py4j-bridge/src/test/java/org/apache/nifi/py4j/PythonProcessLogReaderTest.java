@@ -34,7 +34,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -48,7 +47,7 @@ class PythonProcessLogReaderTest {
 
     private static final String LOG_MESSAGE = "Testing Python Processing";
 
-    private static final String LINE_FORMAT = "PY4JLOG %s %s:%s%n";
+    private static final String LINE_FORMAT = "PY4JLOG %s %s:%s %d%n";
 
     private static final String LINE_UNFORMATTED = "Testing message without level or logger";
 
@@ -57,6 +56,12 @@ class PythonProcessLogReaderTest {
     private static final String LINE_EMPTY = "";
 
     private static final String MESSAGE_TRACEBACK = String.format("Command Failed%nTrackback (most recent call last):%n  File: command.py, line 1%nError: name is not defined");
+
+    private static final int FIRST_LOG = 1;
+
+    private static final String FIRST_LOG_MESSAGE = String.format("%s %d", LOG_MESSAGE, FIRST_LOG);
+
+    private static final String NUMBERED_LOG_FORMAT = "%s %d";
 
     @Mock
     private Logger processLogger;
@@ -68,35 +73,35 @@ class PythonProcessLogReaderTest {
     void testDebug() {
         runCommand(PythonLogLevel.DEBUG, controllerLogger);
 
-        verify(controllerLogger).debug(eq(LOG_MESSAGE));
+        verify(controllerLogger).debug(eq(FIRST_LOG_MESSAGE));
     }
 
     @Test
     void testInfo() {
         runCommand(PythonLogLevel.INFO, controllerLogger);
 
-        verify(controllerLogger).info(eq(LOG_MESSAGE));
+        verify(controllerLogger).info(eq(FIRST_LOG_MESSAGE));
     }
 
     @Test
     void testWarning() {
         runCommand(PythonLogLevel.WARNING, controllerLogger);
 
-        verify(controllerLogger).warn(eq(LOG_MESSAGE));
+        verify(controllerLogger).warn(eq(FIRST_LOG_MESSAGE));
     }
 
     @Test
     void testError() {
         runCommand(PythonLogLevel.ERROR, controllerLogger);
 
-        verify(controllerLogger).error(eq(LOG_MESSAGE));
+        verify(controllerLogger).error(eq(FIRST_LOG_MESSAGE));
     }
 
     @Test
     void testCritical() {
         runCommand(PythonLogLevel.CRITICAL, controllerLogger);
 
-        verify(controllerLogger).error(eq(LOG_MESSAGE));
+        verify(controllerLogger).error(eq(FIRST_LOG_MESSAGE));
     }
 
     @Test
@@ -147,7 +152,7 @@ class PythonProcessLogReaderTest {
 
             final StringBuilder builder = new StringBuilder();
             for (int i = 0; i < messages; i++) {
-                builder.append(getLine(PythonLogLevel.INFO));
+                builder.append(getLine(PythonLogLevel.INFO, i));
                 builder.append(System.lineSeparator());
             }
 
@@ -157,7 +162,10 @@ class PythonProcessLogReaderTest {
             command.run();
         }
 
-        verify(controllerLogger, times(messages)).info(eq(LOG_MESSAGE));
+        for (int i = 0; i < messages; i++) {
+            final String expected = NUMBERED_LOG_FORMAT.formatted(LOG_MESSAGE, i);
+            verify(controllerLogger).info(eq(expected));
+        }
     }
 
     @Test
@@ -165,14 +173,15 @@ class PythonProcessLogReaderTest {
         try (MockedStatic<LoggerFactory> loggerFactory = mockStatic(LoggerFactory.class)) {
             setupLogger(loggerFactory, controllerLogger, CONTROLLER_LOGGER);
 
-            final String lines = LINE_FORMAT.formatted(PythonLogLevel.ERROR.getLevel(), CONTROLLER_LOGGER, MESSAGE_TRACEBACK);
+            final String lines = LINE_FORMAT.formatted(PythonLogLevel.ERROR.getLevel(), CONTROLLER_LOGGER, MESSAGE_TRACEBACK, FIRST_LOG);
 
             final BufferedReader reader = new BufferedReader(new StringReader(lines));
             final Runnable command = new PythonProcessLogReader(reader);
             command.run();
         }
 
-        verify(controllerLogger).error(eq(MESSAGE_TRACEBACK));
+        final String expected = NUMBERED_LOG_FORMAT.formatted(MESSAGE_TRACEBACK, FIRST_LOG);
+        verify(controllerLogger).error(eq(expected));
     }
 
     @Test
@@ -194,7 +203,7 @@ class PythonProcessLogReaderTest {
         try (MockedStatic<LoggerFactory> loggerFactory = mockStatic(LoggerFactory.class)) {
             setupLogger(loggerFactory, logger, CONTROLLER_LOGGER);
 
-            final String line = getLine(logLevel);
+            final String line = getLine(logLevel, FIRST_LOG);
             final BufferedReader reader = new BufferedReader(new StringReader(line));
             final Runnable command = new PythonProcessLogReader(reader);
             command.run();
@@ -205,7 +214,7 @@ class PythonProcessLogReaderTest {
         loggerFactory.when(() -> LoggerFactory.getLogger(eq(loggerName))).thenReturn(logger);
     }
 
-    private String getLine(final PythonLogLevel logLevel) {
-        return LINE_FORMAT.formatted(logLevel.getLevel(), CONTROLLER_LOGGER, LOG_MESSAGE);
+    private String getLine(final PythonLogLevel logLevel, final int number) {
+        return LINE_FORMAT.formatted(logLevel.getLevel(), CONTROLLER_LOGGER, LOG_MESSAGE, number);
     }
 }

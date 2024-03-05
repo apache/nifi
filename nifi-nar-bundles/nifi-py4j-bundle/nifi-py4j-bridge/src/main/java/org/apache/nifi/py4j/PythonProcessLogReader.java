@@ -22,8 +22,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
@@ -74,16 +74,20 @@ class PythonProcessLogReader implements Runnable {
      */
     @Override
     public void run() {
-        final Queue<ParsedRecord> parsedRecords = new LinkedList<>();
+        final Queue<ParsedRecord> parsedRecords = new ArrayDeque<>();
 
         try {
             String line = processReader.readLine();
             while (line != null) {
-                processLine(line, parsedRecords);
+                try {
+                    processLine(line, parsedRecords);
 
-                if (parsedRecords.size() == 2 || !processReader.ready()) {
-                    final ParsedRecord parsedRecord = parsedRecords.remove();
-                    log(parsedRecord);
+                    if (parsedRecords.size() == 2 || !processReader.ready()) {
+                        final ParsedRecord parsedRecord = parsedRecords.remove();
+                        log(parsedRecord);
+                    }
+                } catch (final Exception e) {
+                    processLogger.error("Failed to handle log from Python Process", e);
                 }
 
                 // Read and block for subsequent lines
