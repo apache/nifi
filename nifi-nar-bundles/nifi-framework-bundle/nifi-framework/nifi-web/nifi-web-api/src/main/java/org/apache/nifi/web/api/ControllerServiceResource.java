@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -735,23 +736,6 @@ public class ControllerServiceResource extends ApplicationResource {
         }
 
         final ControllerServiceDTO requestControllerServiceDTO = serviceFacade.getControllerService(id, true).getComponent();
-        ControllerServiceState requestControllerServiceState = null;
-        try {
-            requestControllerServiceState = ControllerServiceState.valueOf(requestControllerServiceDTO.getState());
-        } catch (final IllegalArgumentException iae) {
-            // ignore
-        }
-
-        // ensure an action has been specified
-        if (requestControllerServiceState == null) {
-            throw new IllegalArgumentException("Must specify the updated state. To update the referencing Controller Services the "
-                    + "state should be DISABLED.");
-        }
-
-        // ensure the controller service state is not DISABLING
-        if (!ControllerServiceState.DISABLED.equals(requestControllerServiceState) ) {
-            throw new IllegalArgumentException("Cannot set the referencing services to ENABLING or DISABLING");
-        }
 
         final Revision requestRevision = getRevision(requestControllerServiceEntity, id);
         return withWriteLock(
@@ -770,16 +754,34 @@ public class ControllerServiceResource extends ApplicationResource {
                     final ProcessGroupAuthorizable authorizableProcessGroupOld = lookup.getProcessGroup(requestControllerServiceDTO.getParentGroupId());
                     authorizableProcessGroupOld.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
-                    // authorize any referenced services
-                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerServiceDTO.getProperties(), authorizable, authorizer, lookup);
-                    AuthorizeParameterReference.authorizeParameterReferences(requestControllerServiceDTO.getProperties(), authorizer, authorizable.getParameterContext(),
-                            NiFiUserUtils.getNiFiUser());
-
-                    // authorize referencing components
+                    // Verify all referencing and referenced components are still within scope
+                    List<String> conflictingComponents = new ArrayList<>();
                     requestControllerServiceDTO.getReferencingComponents().forEach(e -> {
-                        final Authorizable controllerService = lookup.getControllerServiceReferencingComponent(requestControllerServiceDTO.getId(), e.getId());
-                        OperationAuthorizable.authorizeOperation(controllerService, authorizer, NiFiUserUtils.getNiFiUser());
+                        if (authorizableProcessGroupNew.getProcessGroup().findProcessor(e.getId()) == null
+                            && authorizableProcessGroupNew.getProcessGroup().findControllerService(e.getId(), true, false) == null) {
+                            conflictingComponents.add("[" + e.getComponent().getName() + "]");
+                        }
+
+                        final Authorizable referencingComponent = lookup.getControllerServiceReferencingComponent(requestControllerServiceDTO.getId(), e.getId());
+                        OperationAuthorizable.authorizeOperation(referencingComponent, authorizer, NiFiUserUtils.getNiFiUser());
                     });
+
+                    requestControllerServiceDTO.getProperties().forEach((key, value) -> {
+                        try {
+                            ControllerServiceEntity refControllerService = serviceFacade.getControllerService(value, false);
+                            if (refControllerService != null) {
+                                if (authorizableProcessGroupNew.getProcessGroup().findControllerService(value, false, true) == null) {
+                                    conflictingComponents.add("[" + refControllerService.getComponent().getName() + "]");
+                                }
+                            }
+                        } catch(Exception ignored) {}
+                    });
+
+                    if (!conflictingComponents.isEmpty()) {
+                        String errorMessage = "Could not move controller service because the following components would be out of scope: ";
+                        errorMessage += String.join(" ", conflictingComponents);
+                        throw new IllegalStateException(errorMessage);
+                    }
                 },
                 null,
                 (revision, controllerServiceEntity) -> {

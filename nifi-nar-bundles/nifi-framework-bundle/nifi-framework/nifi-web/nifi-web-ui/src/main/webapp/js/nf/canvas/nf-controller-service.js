@@ -1570,7 +1570,7 @@
             var flow = response.processGroupFlow;
             if(nfCommon.isDefinedAndNotNull(flow.breadcrumb.parentBreadcrumb)) {
                 if(flow.breadcrumb.parentBreadcrumb.permissions.canRead
-                    && flow.breadcrumb.parentBreadcrumb.permissions.canWrite){
+                    && flow.breadcrumb.parentBreadcrumb.permissions.canWrite) {
                     processGroups.push({
                         text: flow.breadcrumb.parentBreadcrumb.breadcrumb.name + ' (Parent)',
                         value: flow.breadcrumb.parentBreadcrumb.breadcrumb.id
@@ -1604,7 +1604,7 @@
            },
            handler: {
                click: function () {
-                    nfControllerService.promptToMoveController(serviceTable, controllerServiceEntity);
+                    moveToProcessGroup(serviceTable, controllerServiceEntity, $('#move-controller-service-scope').combo('getSelectedOption').value);
                }
            }
        }, {
@@ -1644,13 +1644,15 @@
             revision: nfClient.getRevision(controllerServiceEntity)
         };
 
-        $.ajax({
+        var request = $.ajax({
             type: 'PUT',
             url: controllerServiceEntity.uri + '/move',
             data: JSON.stringify(controllerServiceRequest),
             dataType: 'json',
             contentType: 'application/json'
-        }).done(function (newControllerServiceEntity) {
+        });
+
+        request.done(function (newControllerServiceEntity) {
            var controllerServicesUri;
            if (nfCommon.isDefinedAndNotNull(controllerServiceEntity.parentGroupId)) {
                controllerServicesUri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(controllerServiceEntity.parentGroupId) + '/controller-services';
@@ -1660,9 +1662,16 @@
 
            // load the controller services grid
            nfControllerServices.loadControllerServices(controllerServicesUri, serviceTable);
+
+           nfDialog.showOkDialog({
+               headerText: 'Controller Service',
+               dialogContent: 'The controller service was moved successfully'
+           });
+
            $('#move-controller-service-dialog').modal('hide');
         });
 
+        request.fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -2785,26 +2794,6 @@
         reloadReferencedServices: function (serviceTable, component) {
             $.each(getReferencedServices(component), function (_, referencedServiceId) {
                 reloadControllerService(serviceTable, referencedServiceId);
-            });
-        },
-
-        /**
-         * Prompts the user before attempting to move the specified controller service.
-         *
-         * @param {jQuery} serviceTable
-         * @param {object} controllerServiceEntity
-         */
-        promptToMoveController: function (serviceTable, controllerServiceEntity) {
-            // prompt for move
-            nfDialog.showYesNoDialog({
-                headerText: 'Move Controller Service',
-                dialogContent: 'Move controller service \'' + nfCommon.escapeHtml(controllerServiceEntity.component.name) + '\' '
-                                + 'to \'' + nfCommon.escapeHtml($('#move-controller-service-scope').combo('getSelectedOption').text) + '\'?'
-                                + '<br /><br /><i class="invalid"></i> &nbsp'
-                                + 'Any reference to this controller service by processors outside the new scope will be removed.',
-                yesHandler: function () {
-                    moveToProcessGroup(serviceTable, controllerServiceEntity, $('#move-controller-service-scope').combo('getSelectedOption').value);
-                }
             });
         },
 
