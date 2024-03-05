@@ -335,8 +335,9 @@ $appFontPath: '~roboto-fontface/fonts';
     .refresh-timestamp {
         color: $warn-palette-A400;
     }
-    .skeleton-loader{
-        background: $canvas-primary-palette-500 !important;
+
+    ngx-skeleton-loader .skeleton-loader {
+        background: $canvas-primary-palette-400;
     }
 }
 
