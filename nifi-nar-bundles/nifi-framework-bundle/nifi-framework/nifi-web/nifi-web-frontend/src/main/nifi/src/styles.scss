@@ -331,6 +331,10 @@ $appFontPath: '~roboto-fontface/fonts';
     .refresh-timestamp {
         color: $warn-palette-A400;
     }
+
+    ngx-skeleton-loader .skeleton-loader {
+        background: $canvas-primary-palette-400;
+    }
 }
 
 @mixin nifi-styles() {
