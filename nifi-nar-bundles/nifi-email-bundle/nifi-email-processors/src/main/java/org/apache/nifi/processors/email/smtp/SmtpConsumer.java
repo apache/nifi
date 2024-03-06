@@ -102,7 +102,7 @@ public class SmtpConsumer implements MessageHandler {
             }
             flowFile = processSession.putAllAttributes(flowFile, extractMessageAttributes());
             watch.stop();
-            processSession.getProvenanceReporter().receive(flowFile, "smtp://" + host + ":" + port + "/", watch.getDuration(TimeUnit.MILLISECONDS));
+            processSession.getProvenanceReporter().receive(flowFile, "smtp://" + host + ":" + port + "/", watch.getDuration(TimeUnit.MILLISECONDS), ListenSMTP.REL_SUCCESS);
             processSession.transfer(flowFile, ListenSMTP.REL_SUCCESS);
             processSession.commitAsync();
         } catch (final FlowFileAccessException | IllegalStateException | IOException e) {

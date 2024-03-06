@@ -177,7 +177,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         }
 
         session.transfer(flowFile, REL_SUCCESS);
-        session.getProvenanceReporter().send(flowFile, connection.toString() + "/E:" + exchange + "/RK:" + routingKey);
+        session.getProvenanceReporter().send(flowFile, connection.toString() + "/E:" + exchange + "/RK:" + routingKey, REL_SUCCESS);
     }
 
 

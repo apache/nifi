@@ -258,11 +258,11 @@ public class PutSolrRecord extends SolrProcessor {
 
         if (error.get() != null) {
             getLogger().error("Failed to send all the records of the {} to Solr due to {}; routing to failure",
-                    new Object[]{flowFile, error.get()});
+                    flowFile, error.get());
             session.transfer(flowFile, REL_FAILURE);
         } else if (connectionError.get() != null) {
             getLogger().error("Failed to send {} to Solr due to {}; routing to connection_failure",
-                    new Object[]{flowFile, connectionError.get()});
+                    flowFile, connectionError.get());
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_CONNECTION_FAILURE);
         } else {
@@ -273,7 +273,7 @@ public class PutSolrRecord extends SolrProcessor {
             }
 
             final long duration = timer.getDuration(TimeUnit.MILLISECONDS);
-            session.getProvenanceReporter().send(flowFile, transitUri.toString(), duration, true);
+            session.getProvenanceReporter().send(flowFile, transitUri.toString(), duration, true, REL_SUCCESS);
             getLogger().info("Successfully sent {} to Solr in {} millis", new Object[]{flowFile, duration});
             session.transfer(flowFile, REL_SUCCESS);
         }

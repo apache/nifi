@@ -338,7 +338,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
                 byte[] xmlBytes = xmlMessage.getBytes(StandardCharsets.UTF_8);
                 flowFile = session.write(flowFile, out -> out.write(xmlBytes));
                 flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), APPLICATION_XML);
-                session.getProvenanceReporter().receive(flowFile, provenanceUri);
+                session.getProvenanceReporter().receive(flowFile, provenanceUri, REL_SUCCESS);
                 session.transfer(flowFile, REL_SUCCESS);
             }
         } catch (final Throwable t) {

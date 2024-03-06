@@ -535,7 +535,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
 
             outgoingFlowFiles.forEach(ff ->
-                    session.getProvenanceReporter().receive(ff, salesforceRestService.getVersionedBaseUrl() + "/" + urlDetail, transferMillis)
+                    session.getProvenanceReporter().receive(ff, salesforceRestService.getVersionedBaseUrl() + "/" + urlDetail, transferMillis, REL_SUCCESS)
             );
         }
         if (originalFlowFile != null && !isOriginalTransferred.get()) {

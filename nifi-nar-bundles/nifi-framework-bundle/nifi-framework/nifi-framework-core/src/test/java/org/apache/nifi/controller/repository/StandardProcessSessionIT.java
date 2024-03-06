@@ -1442,10 +1442,11 @@ public class StandardProcessSessionIT {
 
         final FlowFile orig = session.get();
         final FlowFile newFlowFile = session.create(orig);
-        session.getProvenanceReporter().fork(orig, Collections.singletonList(newFlowFile), 0L);
-        session.getProvenanceReporter().fetch(newFlowFile, "nowhere://");
-        session.getProvenanceReporter().send(newFlowFile, "nowhere://");
-        session.transfer(newFlowFile, new Relationship.Builder().name("A").build());
+        final Relationship a = new Relationship.Builder().name("A").build();
+        session.getProvenanceReporter().fork(orig, Collections.singletonList(newFlowFile), 0L, a);
+        session.getProvenanceReporter().fetch(newFlowFile, "nowhere://", a);
+        session.getProvenanceReporter().send(newFlowFile, "nowhere://", a);
+        session.transfer(newFlowFile, a);
         session.commit();
 
         List<ProvenanceEventRecord> events = provenanceRepo.getEvents(0L, 100000);

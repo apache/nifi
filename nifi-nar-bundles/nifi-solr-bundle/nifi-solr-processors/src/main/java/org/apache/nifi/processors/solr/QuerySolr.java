@@ -456,7 +456,7 @@ public class QuerySolr extends SolrProcessor {
                                 }
                             });
                             flowFileFacets = session.putAttribute(flowFileFacets, CoreAttributes.MIME_TYPE.key(), MIME_TYPE_JSON);
-                            session.getProvenanceReporter().receive(flowFileFacets, transitUri.toString(), timer.getDuration(TimeUnit.MILLISECONDS));
+                            session.getProvenanceReporter().receive(flowFileFacets, transitUri.toString(), timer.getDuration(TimeUnit.MILLISECONDS), FACETS);
                             session.transfer(flowFileFacets, FACETS);
                         }
 
@@ -471,7 +471,7 @@ public class QuerySolr extends SolrProcessor {
                                 }
                             });
                             flowFileStats = session.putAttribute(flowFileStats, CoreAttributes.MIME_TYPE.key(), MIME_TYPE_JSON);
-                            session.getProvenanceReporter().receive(flowFileStats, transitUri.toString(), timer.getDuration(TimeUnit.MILLISECONDS));
+                            session.getProvenanceReporter().receive(flowFileStats, transitUri.toString(), timer.getDuration(TimeUnit.MILLISECONDS), STATS);
                             session.transfer(flowFileStats, STATS);
                         }
                         processFacetsAndStats = false;
@@ -482,7 +482,7 @@ public class QuerySolr extends SolrProcessor {
                     final Integer totalDocumentsReturned = solrQuery.getStart() + solrQuery.getRows();
                     if (totalDocumentsReturned < totalNumberOfResults) {
                         solrQuery.setStart(totalDocumentsReturned);
-                        session.getProvenanceReporter().receive(flowFileResponse, transitUri.toString(), timer.getDuration(TimeUnit.MILLISECONDS));
+                        session.getProvenanceReporter().receive(flowFileResponse, transitUri.toString(), timer.getDuration(TimeUnit.MILLISECONDS), RESULTS);
                         session.transfer(flowFileResponse, RESULTS);
                         flowFileResponse = session.create(flowFileResponse);
                     } else {
@@ -505,7 +505,7 @@ public class QuerySolr extends SolrProcessor {
         }
 
         if (!flowFileResponse.isPenalized()) {
-            session.getProvenanceReporter().receive(flowFileResponse, transitUri.toString(), timer.getDuration(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().receive(flowFileResponse, transitUri.toString(), timer.getDuration(TimeUnit.MILLISECONDS), RESULTS);
             session.transfer(flowFileResponse, RESULTS);
         }
 

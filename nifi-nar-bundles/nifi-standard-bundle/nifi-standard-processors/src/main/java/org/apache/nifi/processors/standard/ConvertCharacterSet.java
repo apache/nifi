@@ -169,9 +169,9 @@ public class ConvertCharacterSet extends AbstractProcessor {
                 }
             });
 
-            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
             logger.info("successfully converted characters from {} to {} for {}",
-                    new Object[]{inputCharset, outputCharset, flowFile});
+                    inputCharset, outputCharset, flowFile);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final Exception e) {
             throw new ProcessException(e);

@@ -186,7 +186,7 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
             error = true;
         } finally {
             if (!error) {
-                session.getProvenanceReporter().send(flowFile, getURI(context));
+                session.getProvenanceReporter().send(flowFile, getURI(context), REL_SUCCESS);
                 session.transfer(flowFile, REL_SUCCESS);
             } else {
                 session.transfer(flowFile, REL_FAILURE);

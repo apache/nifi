@@ -326,7 +326,8 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                                 context.getProperty(INDEX).evaluateAttributeExpressions(e).getValue(),
                                 context.getProperty(TYPE).evaluateAttributeExpressions(e).getValue()
                         ),
-                        "Elasticsearch _bulk operation error"
+                        "Elasticsearch _bulk operation error",
+                        REL_FAILED_DOCUMENTS
                 )
         );
 
@@ -338,7 +339,8 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                         clientService.get().getTransitUrl(
                                 context.getProperty(INDEX).evaluateAttributeExpressions(s).getValue(),
                                 context.getProperty(TYPE).evaluateAttributeExpressions(s).getValue()
-                        )
+                        ),
+                        REL_SUCCESS
                 )
         );
     }

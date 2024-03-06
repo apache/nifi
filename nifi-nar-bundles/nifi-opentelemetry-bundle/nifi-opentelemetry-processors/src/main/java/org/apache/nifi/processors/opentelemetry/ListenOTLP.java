@@ -205,7 +205,7 @@ public class ListenOTLP extends AbstractProcessor {
         try {
             flowFile = session.write(flowFile, requestCallback);
             flowFile = session.putAllAttributes(flowFile, requestCallback.getAttributes());
-            session.getProvenanceReporter().receive(flowFile, transitUri);
+            session.getProvenanceReporter().receive(flowFile, transitUri, SUCCESS);
             session.transfer(flowFile, SUCCESS);
         } catch (final Exception e) {
             getLogger().warn("Request Transit URI [{}] processing failed {}", transitUri, flowFile, e);

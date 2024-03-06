@@ -189,7 +189,7 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
             flowFile = session.write(flowFile, out -> out.write(message.getBody().toString().getBytes()));
 
             session.transfer(flowFile, REL_SUCCESS);
-            session.getProvenanceReporter().receive(flowFile, queueClient.getQueueUrl());
+            session.getProvenanceReporter().receive(flowFile, queueClient.getQueueUrl().toString(), REL_SUCCESS);
         }
 
         if (autoDelete) {

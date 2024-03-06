@@ -99,8 +99,8 @@ public class TestCreateHadoopSequenceFile {
         }
         controller.run(3);
 
-        List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
-        List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_FAILURE);
+        List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.REL_SUCCESS);
+        List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.REL_FAILURE);
 
         assertEquals(0, failedFlowFiles.size());
         assertEquals(3, successSeqFiles.size());
@@ -116,8 +116,8 @@ public class TestCreateHadoopSequenceFile {
         }
         controller.run(3);
 
-        List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
-        List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_FAILURE);
+        List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.REL_SUCCESS);
+        List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.REL_FAILURE);
 
         assertEquals(0, failedFlowFiles.size());
         assertEquals(3, successSeqFiles.size());
@@ -148,7 +148,7 @@ public class TestCreateHadoopSequenceFile {
         try (final FileInputStream fin = new FileInputStream("src/test/resources/testdata/13545312236534130.tar")) {
             controller.enqueue(fin, attributes);
             controller.run();
-            List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
+            List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.REL_SUCCESS);
             assertEquals(1, successSeqFiles.size());
             final byte[] data = successSeqFiles.iterator().next().toByteArray();
             // Data should be greater than 1000000 because that's the size of 2 of our input files,
@@ -166,7 +166,7 @@ public class TestCreateHadoopSequenceFile {
         try (FileInputStream fin = new FileInputStream("src/test/resources/testdata/13545423550275052.zip")){
             controller.enqueue(fin, attributes);
             controller.run();
-            List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
+            List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.REL_SUCCESS);
             assertEquals(1, successSeqFiles.size());
             final byte[] data = successSeqFiles.iterator().next().toByteArray();
             // Data should be greater than 1000000 because that's the size of 2 of our input files,
@@ -189,7 +189,7 @@ public class TestCreateHadoopSequenceFile {
             controller.enqueue(fin, attributes);
 
             controller.run();
-            List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
+            List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.REL_SUCCESS);
             assertEquals(1, successSeqFiles.size());
             final byte[] data = successSeqFiles.iterator().next().toByteArray();
             // Data should be greater than 1000000 because that's the size of 2 of our input files,
@@ -216,8 +216,8 @@ public class TestCreateHadoopSequenceFile {
         }
         controller.run();
 
-        List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
-        List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_FAILURE);
+        List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.REL_SUCCESS);
+        List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.REL_FAILURE);
 
         assertEquals(0, failedFlowFiles.size());
         assertEquals(1, successSeqFiles.size());
@@ -263,8 +263,8 @@ public class TestCreateHadoopSequenceFile {
         }
         controller.run();
 
-        List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
-        List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_FAILURE);
+        List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.REL_SUCCESS);
+        List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.REL_FAILURE);
 
         assertEquals(0, failedFlowFiles.size());
         assertEquals(1, successSeqFiles.size());
@@ -310,8 +310,8 @@ public class TestCreateHadoopSequenceFile {
         }
         controller.run();
 
-        List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
-        List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_FAILURE);
+        List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.REL_SUCCESS);
+        List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.REL_FAILURE);
 
         assertEquals(0, failedFlowFiles.size());
         assertEquals(1, successSeqFiles.size());

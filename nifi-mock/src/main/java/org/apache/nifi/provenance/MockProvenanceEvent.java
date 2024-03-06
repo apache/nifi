@@ -65,6 +65,8 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
 
     private volatile long eventId = -1L;
 
+    private final List<Long> previousEventIds;
+
     private MockProvenanceEvent(final Builder builder) {
         this.eventTime = builder.eventTime;
         this.entryDate = builder.entryDate;
@@ -102,11 +104,8 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
         if (builder.eventId != null) {
             eventId = builder.eventId;
         }
-    }
 
-
-    void setEventId(final long eventId) {
-        this.eventId = eventId;
+        previousEventIds = builder.previousEventIds;
     }
 
     @Override
@@ -272,6 +271,11 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
     @Override
     public Map<String, String> getUpdatedAttributes() {
         return updatedAttributes;
+    }
+
+    @Override
+    public List<Long> getPreviousEventIds() {
+        return previousEventIds;
     }
 
     @Override
@@ -458,6 +462,8 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
         private Map<String, String> previousAttributes;
         private Map<String, String> updatedAttributes;
 
+        private List<Long> previousEventIds;
+
         @Override
         public Builder fromEvent(final ProvenanceEventRecord event) {
             eventTime = event.getEventTime();
@@ -492,11 +498,19 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
 
             sourceQueueIdentifier = event.getSourceQueueIdentifier();
 
+            previousEventIds = event.getPreviousEventIds();
+
             return this;
         }
 
         public Builder setEventId(final long eventId) {
             this.eventId = eventId;
+            return this;
+        }
+
+        @Override
+        public ProvenanceEventBuilder setPreviousEventIds(List<Long> previousEventIds) {
+            this.previousEventIds = previousEventIds;
             return this;
         }
 
@@ -677,7 +691,7 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
 
         @Override
         public Builder setRelationship(Relationship relationship) {
-            this.relationship = relationship.getName();
+            this.relationship = relationship == null ? "UNKNOWN" : relationship.getName();
             return this;
         }
 

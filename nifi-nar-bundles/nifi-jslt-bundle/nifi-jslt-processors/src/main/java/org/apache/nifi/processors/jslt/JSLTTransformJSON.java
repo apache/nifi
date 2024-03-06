@@ -309,7 +309,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
 
             transformed = session.putAttribute(transformed, CoreAttributes.MIME_TYPE.key(), "application/json");
             session.transfer(transformed, REL_SUCCESS);
-            session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transform, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transform, stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
             stopWatch.stop();
             getLogger().debug("JSLT Transform completed {}", original);
         } catch (final Exception e) {

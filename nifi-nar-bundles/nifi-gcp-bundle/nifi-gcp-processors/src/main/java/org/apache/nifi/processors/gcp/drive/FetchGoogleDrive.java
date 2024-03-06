@@ -285,7 +285,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
 
             final String url = DRIVE_URL + fileMetadata.getId();
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            session.getProvenanceReporter().fetch(flowFile, url, transferMillis);
+            session.getProvenanceReporter().fetch(flowFile, url, transferMillis, REL_SUCCESS);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (GoogleJsonResponseException e) {
             handleErrorResponse(session, fileId, flowFile, e);

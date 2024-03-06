@@ -229,9 +229,9 @@ public class GetWorkdayReport extends AbstractProcessor {
                 if (responseFlowFile != null) {
                     responseFlowFile = session.putAllAttributes(responseFlowFile, commonAttributes);
                     if (flowFile == null) {
-                        session.getProvenanceReporter().receive(responseFlowFile, uri.toString(), elapsedTime);
+                        session.getProvenanceReporter().receive(responseFlowFile, uri.toString(), elapsedTime, SUCCESS);
                     } else {
-                        session.getProvenanceReporter().fetch(responseFlowFile, uri.toString(), elapsedTime);
+                        session.getProvenanceReporter().fetch(responseFlowFile, uri.toString(), elapsedTime, SUCCESS);
                     }
                 }
 

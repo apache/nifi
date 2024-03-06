@@ -30,10 +30,11 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.graph.GraphClientService;
+import org.apache.nifi.graph.GraphQuery;
+import org.apache.nifi.graph.exception.GraphQueryException;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
@@ -121,7 +122,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
     }
 
     public static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
-            CLIENT_SERVICE, READER_SERVICE, WRITER_SERVICE, SUBMISSION_SCRIPT
+            CLIENT_SERVICE, QUERY_LANGUAGE, READER_SERVICE, WRITER_SERVICE, SUBMISSION_SCRIPT
     ));
 
     public static final Relationship SUCCESS = new Relationship.Builder().name("original")
@@ -144,6 +145,8 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
     public static final String GRAPH_OPERATION_TIME = "graph.operations.took";
     private volatile RecordPathCache recordPathCache;
 
+    private volatile String language;
+
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
@@ -162,6 +165,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
     @OnScheduled
     public void onScheduled(ProcessContext context) {
         clientService = context.getProperty(CLIENT_SERVICE).asControllerService(GraphClientService.class);
+        language = context.getProperty(QUERY_LANGUAGE).getValue();
         recordReaderFactory = context.getProperty(READER_SERVICE).asControllerService(RecordReaderFactory.class);
         recordSetWriterFactory = context.getProperty(WRITER_SERVICE).asControllerService(RecordSetWriterFactory.class);
         recordPathCache = new RecordPathCache(100);
@@ -170,7 +174,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
     private Object getRecordValue(Record record, RecordPath recordPath){
         final RecordPathResult result = recordPath.evaluate(record);
         final List<FieldValue> values = result.getSelectedFields().collect(Collectors.toList());
-        if (values != null && !values.isEmpty()) {
+        if (!values.isEmpty()) {
             if (values.size() == 1) {
                 Object raw = values.get(0).getValue();
 
@@ -181,7 +185,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
 
                 return raw;
             } else {
-                return values.stream().map(fv -> fv.getValue()).collect(Collectors.toList());
+                return values.stream().map(FieldValue::getValue).collect(Collectors.toList());
             }
         } else {
             return null;
@@ -189,7 +193,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) {
         FlowFile input = session.get();
         if ( input == null ) {
             return;
@@ -215,7 +219,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
 
         long delta;
         FlowFile failedRecords = session.create(input);
-        WriteResult failedWriteResult = null;
+        WriteResult failedWriteResult;
         try (InputStream is = session.read(input);
              RecordReader reader = recordReaderFactory.createRecordReader(input, is, getLogger());
              OutputStream os = session.write(failedRecords);
@@ -238,9 +242,10 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
 
                     dynamicPropertyMap.putAll(input.getAttributes());
                     if (getLogger().isDebugEnabled()) {
-                        getLogger().debug("Dynamic Properties: {}", new Object[]{dynamicPropertyMap});
+                        getLogger().debug("Dynamic Properties: {}", dynamicPropertyMap);
                     }
-                    List<Map<String, Object>> graphResponses = new ArrayList<>(executeQuery(recordScript, dynamicPropertyMap));
+                    final GraphQuery graphQuery = new GraphQuery(recordScript, language);
+                    List<Map<String, Object>> graphResponses = new ArrayList<>(executeQuery(graphQuery, dynamicPropertyMap));
 
                     OutputStream graphOutputStream = session.write(graph);
                     String graphOutput = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(graphResponses);
@@ -271,14 +276,13 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
             return;
         }
 
-        // Generate provenance and send input flowfile to success
-        session.getProvenanceReporter().send(input, clientService.getTransitUrl(), delta*1000);
-
         if (failedWriteResult.getRecordCount() < 1) {
             // No failed records, remove the failure flowfile and send the input flowfile to success
             session.remove(failedRecords);
             input = session.putAttribute(input, GRAPH_OPERATION_TIME, String.valueOf(delta));
             session.transfer(input, SUCCESS);
+            // Generate provenance and send input flowfile to success
+            session.getProvenanceReporter().send(input, clientService.getTransitUrl(), delta*1000, REL_SUCCESS);
         } else {
             failedRecords = session.putAttribute(failedRecords, RECORD_COUNT, String.valueOf(failedWriteResult.getRecordCount()));
             session.transfer(failedRecords, FAILURE);
@@ -287,10 +291,10 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
         }
     }
 
-    private List<Map<String, Object>> executeQuery(String recordScript, Map<String, Object> parameters) {
+    private List<Map<String, Object>> executeQuery(GraphQuery graphQuery, Map<String, Object> parameters) throws GraphQueryException {
         ObjectMapper mapper = new ObjectMapper();
         List<Map<String, Object>> graphResponses = new ArrayList<>();
-        clientService.executeQuery(recordScript, parameters, (map, b) -> {
+        clientService.executeQuery(graphQuery, parameters, (map, b) -> {
             if (getLogger().isDebugEnabled()){
                 try {
                     getLogger().debug(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map));

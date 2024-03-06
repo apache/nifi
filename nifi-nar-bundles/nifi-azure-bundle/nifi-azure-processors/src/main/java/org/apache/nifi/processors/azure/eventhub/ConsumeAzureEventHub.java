@@ -735,7 +735,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
     ) {
         session.transfer(flowFile, relationship);
         final String transitUri = getTransitUri(partitionContext);
-        session.getProvenanceReporter().receive(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+        session.getProvenanceReporter().receive(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS), relationship);
     }
 
     private String createStorageConnectionString(final ProcessContext context) {

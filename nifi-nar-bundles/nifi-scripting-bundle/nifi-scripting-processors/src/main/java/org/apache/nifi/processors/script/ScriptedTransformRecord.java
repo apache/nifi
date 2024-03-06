@@ -220,12 +220,12 @@ public class ScriptedTransformRecord extends ScriptedRecordProcessor {
             session.transfer(flowFile, REL_SUCCESS);
 
             final long transformCount = counts.getRecordCount() - counts.getDroppedCount();
-            getLogger().info("Successfully transformed {} Records and dropped {} Records for {}", new Object[] {transformCount, counts.getDroppedCount(), flowFile});
+            getLogger().info("Successfully transformed {} Records and dropped {} Records for {}", transformCount, counts.getDroppedCount(), flowFile);
             session.adjustCounter("Records Transformed", transformCount, true);
             session.adjustCounter("Records Dropped", counts.getDroppedCount(), true);
 
             final long millis = System.currentTimeMillis() - startMillis;
-            session.getProvenanceReporter().modifyContent(flowFile, "Transformed " + transformCount + " Records, Dropped " + counts.getDroppedCount() + " Records", millis);
+            session.getProvenanceReporter().modifyContent(flowFile, "Transformed " + transformCount + " Records, Dropped " + counts.getDroppedCount() + " Records", millis, REL_SUCCESS);
         } catch (final ProcessException e) {
             getLogger().error("After processing {} Records, encountered failure when attempting to transform {}", counts.getRecordCount(), flowFile, e.getCause());
             session.transfer(flowFile, REL_FAILURE);

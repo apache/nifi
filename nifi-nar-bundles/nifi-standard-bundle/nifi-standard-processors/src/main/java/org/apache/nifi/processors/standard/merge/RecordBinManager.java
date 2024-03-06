@@ -154,7 +154,7 @@ public class RecordBinManager {
             throw new RuntimeException("Attempted to add " + flowFile + " to a new bin but failed. This is unexpected. Will roll back session and try again.");
         }
 
-        logger.debug("Transferred id={} to {}", new Object[] {flowFile.getId(), bin});
+        logger.debug("Transferred id={} to {}", flowFile.getId(), bin);
 
         if (!bin.isComplete()) {
             final int updatedBinCount = binCount.incrementAndGet();

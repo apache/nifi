@@ -314,7 +314,7 @@ public class ExecuteProcess extends AbstractProcessor {
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             // All was good. Generate event and transfer FlowFile.
-            session.getProvenanceReporter().create(flowFile, "Created from command: " + commandString);
+            session.getProvenanceReporter().create(flowFile, "Created from command: " + commandString, REL_SUCCESS);
             getLogger().info("Created {} and routed to success", flowFile);
             session.transfer(flowFile, REL_SUCCESS);
         }

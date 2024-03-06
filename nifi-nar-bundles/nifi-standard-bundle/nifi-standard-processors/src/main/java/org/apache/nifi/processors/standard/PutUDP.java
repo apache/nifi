@@ -60,7 +60,7 @@ public class PutUDP extends AbstractPutEventProcessor<byte[]> {
             final byte[] content = readContent(session, flowFile);
             eventSender.sendEvent(content);
 
-            session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
             session.transfer(flowFile, REL_SUCCESS);
             session.commitAsync();
         } catch (final Exception e) {

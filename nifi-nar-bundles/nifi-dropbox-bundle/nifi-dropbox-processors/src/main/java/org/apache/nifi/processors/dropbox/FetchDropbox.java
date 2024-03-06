@@ -150,7 +150,7 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
             outFlowFile = session.putAllAttributes(outFlowFile, attributes);
             String url = DROPBOX_HOME_URL + fileMetadata.getPathDisplay();
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            session.getProvenanceReporter().fetch(flowFile, url, transferMillis);
+            session.getProvenanceReporter().fetch(flowFile, url, transferMillis, REL_SUCCESS);
 
             session.transfer(outFlowFile, REL_SUCCESS);
         } catch (Exception e) {

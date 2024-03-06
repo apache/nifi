@@ -25,9 +25,9 @@ import java.util.Map;
  * A Provenance Event that is used to replace another Provenance Event when authorizations
  * are not granted for the original Provenance Event
  */
-public class PlaceholderProvenanceEvent implements ProvenanceEventRecord {
+public class PlaceholderProvenanceEvent implements UpdateableProvenanceEventRecord {
     private final String componentId;
-    private final long eventId;
+    private long eventId;
     private List<Long> previousEventIds;
     private final long eventTime;
     private final String flowFileUuid;
@@ -43,6 +43,11 @@ public class PlaceholderProvenanceEvent implements ProvenanceEventRecord {
     @Override
     public long getEventId() {
         return eventId;
+    }
+
+    @Override
+    public void setEventId(long eventId) {
+        this.eventId = eventId;
     }
 
     @Override

@@ -222,7 +222,7 @@ public class GetCouchbaseKey extends AbstractCouchbaseProcessor {
             outFile = session.putAllAttributes(outFile, updatedAttrs);
 
             final long fetchMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            session.getProvenanceReporter().fetch(outFile, getTransitUrl(bucket, docId), fetchMillis);
+            session.getProvenanceReporter().fetch(outFile, getTransitUrl(bucket, docId), fetchMillis, REL_SUCCESS);
             session.transfer(outFile, REL_SUCCESS);
 
         } catch (final CouchbaseException e) {

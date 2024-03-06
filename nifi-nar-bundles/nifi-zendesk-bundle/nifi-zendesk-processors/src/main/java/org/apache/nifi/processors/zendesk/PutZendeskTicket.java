@@ -247,7 +247,7 @@ public class PutZendeskTicket extends AbstractZendesk {
             flowFile = session.putAttribute(flowFile, MIME_TYPE.key(), APPLICATION_JSON);
             session.transfer(flowFile, REL_SUCCESS);
             long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            session.getProvenanceReporter().send(flowFile, uri.toString(), transferMillis);
+            session.getProvenanceReporter().send(flowFile, uri.toString(), transferMillis, REL_SUCCESS);
         } else {
             String errorMessage = getResponseBody(response);
             getLogger().error("Zendesk ticket creation returned with error, HTTP status={}, response={}", response.statusCode(), errorMessage);

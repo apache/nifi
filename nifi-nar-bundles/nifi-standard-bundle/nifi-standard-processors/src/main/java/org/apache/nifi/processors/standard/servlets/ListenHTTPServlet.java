@@ -377,7 +377,7 @@ public class ListenHTTPServlet extends HttpServlet {
             flowFile = session.putAllAttributes(flowFile, attributes);
             flowFile = saveRequestDetailsAsAttributes(request, session, foundSubject, foundIssuer, flowFile);
             final String details = String.format("Remote DN=%s, Issuer DN=%s", foundSubject, foundIssuer);
-            session.getProvenanceReporter().receive(flowFile, request.getRequestURL().toString(), sourceSystemFlowFileIdentifier, details, transferMillis);
+            session.getProvenanceReporter().receive(flowFile, request.getRequestURL().toString(), sourceSystemFlowFileIdentifier, details, transferMillis, ListenHTTP.RELATIONSHIP_SUCCESS);
             flowFileSet.add(flowFile);
 
             if (holdUuid == null) {

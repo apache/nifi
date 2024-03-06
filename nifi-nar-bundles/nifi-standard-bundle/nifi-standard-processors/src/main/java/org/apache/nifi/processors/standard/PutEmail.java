@@ -496,7 +496,7 @@ public class PutEmail extends AbstractProcessor {
 
             send(message);
 
-            session.getProvenanceReporter().send(flowFile, "mailto:" + message.getAllRecipients()[0].toString());
+            session.getProvenanceReporter().send(flowFile, "mailto:" + message.getAllRecipients()[0].toString(), REL_SUCCESS);
             session.transfer(flowFile, REL_SUCCESS);
             getLogger().debug("Sent email as a result of receiving {}", flowFile);
         } catch (final ProcessException | MessagingException | IOException e) {

@@ -291,9 +291,9 @@ public class FetchHBaseRow extends AbstractProcessor implements VisibilityFetchS
 
         final String transitUri = hBaseClientService.toTransitUri(tableName, rowId);
         // Regardless to where the result is written to, emit a fetch event.
-        session.getProvenanceReporter().fetch(handlerFlowFile, transitUri);
+        session.getProvenanceReporter().fetch(handlerFlowFile, transitUri, REL_SUCCESS);
         if (!destination.equals(DESTINATION_CONTENT.getValue())) {
-            session.getProvenanceReporter().modifyAttributes(handlerFlowFile, "Added attributes to FlowFile from " + transitUri);
+            session.getProvenanceReporter().modifyAttributes(handlerFlowFile, "Added attributes to FlowFile from " + transitUri, REL_SUCCESS);
         }
 
         session.transfer(handlerFlowFile, REL_SUCCESS);

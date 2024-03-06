@@ -20,6 +20,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream;
 import org.apache.nifi.util.StopWatch;
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
@@ -57,7 +58,7 @@ public class KinesisRecordProcessorRaw extends AbstractKinesisRecordProcessor {
             getLogger().debug("Sequence No: {}, Partition Key: {}, Data: {}", sequenceNumber, partitionKey, BASE_64_ENCODER.encodeToString(data));
         }
 
-        reportProvenance(session, flowFile, partitionKey, sequenceNumber, stopWatch);
+        reportProvenance(session, flowFile, partitionKey, sequenceNumber, stopWatch, ConsumeKinesisStream.REL_SUCCESS);
 
         final Map<String, String> attributes = getDefaultAttributes(sequenceNumber, partitionKey, approximateArrivalTimestamp);
         flowFile = session.putAllAttributes(flowFile, attributes);

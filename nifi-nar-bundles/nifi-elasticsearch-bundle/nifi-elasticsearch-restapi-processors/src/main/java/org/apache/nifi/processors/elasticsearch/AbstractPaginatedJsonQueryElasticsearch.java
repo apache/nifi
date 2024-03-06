@@ -130,7 +130,8 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
                 session.getProvenanceReporter().send(
                         input,
                         clientService.get().getTransitUrl(paginatedJsonQueryParameters.getIndex(), paginatedJsonQueryParameters.getType()),
-                        stopWatch.getElapsed(TimeUnit.MILLISECONDS)
+                        stopWatch.getElapsed(TimeUnit.MILLISECONDS),
+                        REL_HITS
                 );
             }
 
@@ -265,7 +266,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
             // output results if it seems we've combined all available results (i.e. no hits in this page and therefore no more expected)
             if (!hitsFlowFiles.isEmpty() && (hits == null || hits.isEmpty())) {
                 session.transfer(hitsFlowFiles, REL_HITS);
-                hitsFlowFiles.forEach(ff -> session.getProvenanceReporter().receive(ff, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS)));
+                hitsFlowFiles.forEach(ff -> session.getProvenanceReporter().receive(ff, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_HITS));
                 hitsFlowFiles.clear();
             }
         } else {

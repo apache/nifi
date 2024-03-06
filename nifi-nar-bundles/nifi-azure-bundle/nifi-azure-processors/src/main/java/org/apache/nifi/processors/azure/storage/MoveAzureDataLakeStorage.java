@@ -207,7 +207,7 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
 
                 session.transfer(flowFile, REL_SUCCESS);
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                session.getProvenanceReporter().send(flowFile, sourceFileClient.getFileUrl(), transferMillis);
+                session.getProvenanceReporter().send(flowFile, sourceFileClient.getFileUrl(), transferMillis, REL_SUCCESS);
             } catch (DataLakeStorageException dlsException) {
                 if (dlsException.getStatusCode() == 409 && conflictResolution.equals(IGNORE_RESOLUTION)) {
                     session.transfer(flowFile, REL_SUCCESS);

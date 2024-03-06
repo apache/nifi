@@ -75,11 +75,11 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
     private static final String NOT_PACKAGED = "not packaged";
 
     // Relationships.
-    public static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Generated Sequence Files are sent to this relationship")
             .build();
-    public static final Relationship RELATIONSHIP_FAILURE = new Relationship.Builder()
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("Incoming files that failed to generate a Sequence File are sent to this relationship")
             .build();
@@ -87,8 +87,8 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
 
     static {
         Set<Relationship> rels = new HashSet<>();
-        rels.add(RELATIONSHIP_SUCCESS);
-        rels.add(RELATIONSHIP_FAILURE);
+        rels.add(REL_SUCCESS);
+        rels.add(REL_FAILURE);
         relationships = Collections.unmodifiableSet(rels);
     }
     // Optional Properties.
@@ -161,7 +161,7 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
         final Configuration configuration = getConfiguration();
         if (configuration == null) {
             getLogger().error("HDFS not configured properly");
-            session.transfer(flowFile, RELATIONSHIP_FAILURE);
+            session.transfer(flowFile, REL_FAILURE);
             context.yield();
             return;
         }
@@ -178,12 +178,12 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
         try {
             StopWatch stopWatch = new StopWatch(true);
             flowFile = sequenceFileWriter.writeSequenceFile(flowFile, session, configuration, compressionType, codec);
-            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.transfer(flowFile, RELATIONSHIP_SUCCESS);
-            getLogger().info("Transferred flowfile {} to {}", new Object[]{flowFile, RELATIONSHIP_SUCCESS});
+            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
+            session.transfer(flowFile, REL_SUCCESS);
+            getLogger().info("Transferred flowfile {} to {}", flowFile, REL_SUCCESS);
         } catch (ProcessException e) {
             getLogger().error("Failed to create Sequence File. Transferring {} to 'failure'", flowFile, e);
-            session.transfer(flowFile, RELATIONSHIP_FAILURE);
+            session.transfer(flowFile, REL_FAILURE);
         }
 
     }

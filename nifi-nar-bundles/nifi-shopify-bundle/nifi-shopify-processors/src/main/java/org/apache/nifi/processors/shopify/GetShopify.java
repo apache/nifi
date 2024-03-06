@@ -327,7 +327,7 @@ public class GetShopify extends AbstractProcessor {
                     if (objectCountHolder.get() > 0) {
                         flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
                         session.transfer(flowFile, REL_SUCCESS);
-                        session.getProvenanceReporter().receive(flowFile, shopifyRestService.getBaseUriString());
+                        session.getProvenanceReporter().receive(flowFile, shopifyRestService.getBaseUriString(), REL_SUCCESS);
                     } else {
                         getLogger().debug("Empty response when requested Shopify resource: [{}]", resourceName);
                         session.remove(flowFile);

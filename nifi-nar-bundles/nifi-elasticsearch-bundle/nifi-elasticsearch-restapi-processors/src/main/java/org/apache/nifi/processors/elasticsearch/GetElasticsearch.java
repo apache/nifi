@@ -240,7 +240,7 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
             }
 
             documentFlowFile = session.putAllAttributes(documentFlowFile, attributes);
-            session.getProvenanceReporter().receive(documentFlowFile, clientService.get().getTransitUrl(index, type), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().receive(documentFlowFile, clientService.get().getTransitUrl(index, type), stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_DOC);
             session.transfer(documentFlowFile, REL_DOC);
         } catch (final ElasticsearchException ese) {
             handleElasticsearchException(ese, input, session, index, type, id);

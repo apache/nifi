@@ -52,6 +52,16 @@ abstract class AbstractGraphExecutor extends AbstractProcessor {
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
 
+    public static final PropertyDescriptor QUERY_LANGUAGE = new PropertyDescriptor.Builder()
+            .name("query-language")
+            .displayName("Query Language")
+            .description("The language that the query is written in. This property must be set to a value that the graph database accepts.")
+            .required(true)
+            .defaultValue(GraphClientService.CYPHER)
+            .allowableValues(GraphClientService.SQL, GraphClientService.CYPHER, GraphClientService.GREMLIN)
+            .build();
+
+
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("Successful FlowFiles are routed to this relationship").build();
 
@@ -82,7 +92,7 @@ abstract class AbstractGraphExecutor extends AbstractProcessor {
     public void onScheduled(ProcessContext context) {
         queryParameters = context.getProperties()
             .keySet().stream()
-            .filter(prop -> prop.isDynamic())
+            .filter(PropertyDescriptor::isDynamic)
             .collect(Collectors.toList());
     }
 

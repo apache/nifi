@@ -451,7 +451,7 @@ public class ListenTCPRecord extends AbstractProcessor {
 
                     final String senderHost = sender.startsWith("/") && sender.length() > 1 ? sender.substring(1) : sender;
                     final String transitUri = new StringBuilder().append("tcp").append("://").append(senderHost).append(":").append(port).toString();
-                    session.getProvenanceReporter().receive(flowFile, transitUri);
+                    session.getProvenanceReporter().receive(flowFile, transitUri, REL_SUCCESS);
 
                     session.transfer(flowFile, REL_SUCCESS);
                 }

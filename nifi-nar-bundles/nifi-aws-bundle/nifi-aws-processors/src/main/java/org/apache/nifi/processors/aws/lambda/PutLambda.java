@@ -164,7 +164,7 @@ public class PutLambda extends AbstractAwsSyncProcessor<LambdaClient, LambdaClie
             } else {
                 session.transfer(flowFile, REL_SUCCESS);
                 final long totalTimeMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
-                session.getProvenanceReporter().send(flowFile, functionName, totalTimeMillis);
+                session.getProvenanceReporter().send(flowFile, functionName, totalTimeMillis, REL_SUCCESS);
             }
         } catch (final InvalidRequestContentException | InvalidParameterValueException | RequestTooLargeException | ResourceNotFoundException | UnsupportedMediaTypeException unrecoverableException) {
             getLogger().error("Failed to invoke lambda {} with unrecoverable exception {} for flow file {}", functionName, unrecoverableException, flowFile);

@@ -494,7 +494,7 @@ public class GetSmbFile extends AbstractProcessor {
                             attributes.put(SHARE.getName(), shareName);
 
                             flowFile = session.putAllAttributes(flowFile, attributes);
-                            session.getProvenanceReporter().receive(flowFile, uri.toString(), importMillis);
+                            session.getProvenanceReporter().receive(flowFile, uri.toString(), importMillis, REL_SUCCESS);
 
                             session.transfer(flowFile, REL_SUCCESS);
                         } catch (SMBApiException e) {

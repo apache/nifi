@@ -176,17 +176,17 @@ public class FetchHDFS extends AbstractHadoopProcessor {
                     flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), outputFilename);
 
                     stopWatch.stop();
-                    getLogger().info("Successfully received content from {} for {} in {}", new Object[] {qualifiedPath, flowFile, stopWatch.getDuration()});
+                    getLogger().info("Successfully received content from {} for {} in {}", qualifiedPath, flowFile, stopWatch.getDuration());
                     flowFile = session.putAttribute(flowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
-                    session.getProvenanceReporter().fetch(flowFile, qualifiedPath.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
+                    session.getProvenanceReporter().fetch(flowFile, qualifiedPath.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS), getSuccessRelationship());
                     session.transfer(flowFile, getSuccessRelationship());
                 } catch (final FileNotFoundException | AccessControlException e) {
-                    getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[] {qualifiedPath, flowFile, e});
+                    getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", qualifiedPath, flowFile, e);
                     flowFile = session.putAttribute(flowFile, getAttributePrefix() + ".failure.reason", e.getMessage());
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, getFailureRelationship());
                 } catch (final IOException e) {
-                    getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to comms.failure", new Object[] {qualifiedPath, flowFile, e});
+                    getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to comms.failure", qualifiedPath, flowFile, e);
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, getCommsFailureRelationship());
                 } finally {

@@ -403,7 +403,7 @@ public class RecordBin {
             merged = session.putAllAttributes(merged, attributes);
             flowFiles.forEach(ff -> session.putAttribute(ff, MergeRecord.MERGE_UUID_ATTRIBUTE, merged.getAttribute(CoreAttributes.UUID.key())));
 
-            session.getProvenanceReporter().join(flowFiles, merged, "Records Merged due to: " + completionReason);
+            session.getProvenanceReporter().join(flowFiles, merged, "Records Merged due to: " + completionReason, MergeRecord.REL_MERGED);
             session.transfer(merged, MergeRecord.REL_MERGED);
             session.transfer(flowFiles, MergeRecord.REL_ORIGINAL);
             session.adjustCounter("Records Merged", writeResult.getRecordCount(), false);
@@ -411,7 +411,7 @@ public class RecordBin {
 
             if (logger.isDebugEnabled()) {
                 final List<String> ids = flowFiles.stream().map(ff -> "id=" + ff.getId()).collect(Collectors.toList());
-                logger.debug("Completed bin {} with {} records with Merged FlowFile {} using input FlowFiles {}", new Object[] {this, writeResult.getRecordCount(), merged, ids});
+                logger.debug("Completed bin {} with {} records with Merged FlowFile {} using input FlowFiles {}", this, writeResult.getRecordCount(), merged, ids);
             }
         } catch (final Exception e) {
             session.rollback(true);

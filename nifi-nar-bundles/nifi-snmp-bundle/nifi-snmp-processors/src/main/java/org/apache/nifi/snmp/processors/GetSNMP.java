@@ -185,12 +185,13 @@ public class GetSNMP extends AbstractSNMPProcessor {
                 final SNMPTreeResponse response = optionalResponse.get();
                 response.logErrors(getLogger());
                 flowFile = processSession.putAllAttributes(flowFile, response.getAttributes());
+                final Relationship outgoingRelationship = response.isError() ? REL_FAILURE : REL_SUCCESS;
                 if (isNewFlowFileCreated) {
-                    processSession.getProvenanceReporter().receive(flowFile, "/walk");
+                    processSession.getProvenanceReporter().receive(flowFile, "/walk", outgoingRelationship);
                 } else {
-                    processSession.getProvenanceReporter().fetch(flowFile, "/walk");
+                    processSession.getProvenanceReporter().fetch(flowFile, "/walk", outgoingRelationship);
                 }
-                processSession.transfer(flowFile, response.isError() ? REL_FAILURE : REL_SUCCESS);
+                processSession.transfer(flowFile, outgoingRelationship);
             } else {
                 getLogger().warn("No SNMP specific attributes found in flowfile.");
                 processSession.transfer(flowFile, REL_FAILURE);
@@ -216,7 +217,7 @@ public class GetSNMP extends AbstractSNMPProcessor {
             if (optionalResponse.isPresent()) {
                 final SNMPSingleResponse response = optionalResponse.get();
                 flowFile = processSession.putAllAttributes(flowFile, textualOidMap);
-                handleResponse(context, processSession, flowFile, response, REL_SUCCESS, REL_FAILURE, "/get", isNewFlowFileCreated);
+                handleResponse(context, processSession, flowFile, response, REL_SUCCESS, REL_FAILURE, "/get");
             } else {
                 getLogger().warn("No SNMP specific attributes found in flowfile.");
                 processSession.transfer(flowFile, REL_FAILURE);

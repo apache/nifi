@@ -66,7 +66,7 @@ class AbstractSNMPProcessorTest {
         when(mockResponse.getErrorStatusText()).thenReturn(errorStatus);
 
 
-        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress", true);
+        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress");
 
         final String actualLogMessage = getTestRunner.getLogger().getErrorMessages().get(0).getMsg();
         final String expectedLogMessage = String.format("SNMP request failed, response error: %s", errorStatus);
@@ -82,7 +82,7 @@ class AbstractSNMPProcessorTest {
         when(mockResponse.getVariableBindings()).thenReturn(vbs);
 
 
-        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress", true);
+        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress");
 
 
         final String actualLogMessage = getTestRunner.getLogger().getErrorMessages().get(0).getMsg();
@@ -97,7 +97,7 @@ class AbstractSNMPProcessorTest {
 
         when(mockResponse.getVariableBindings()).thenReturn(Collections.emptyList());
 
-        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress", true);
+        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress");
 
 
         final String actualLogMessage = getTestRunner.getLogger().getErrorMessages().get(0).getMsg();
@@ -116,7 +116,7 @@ class AbstractSNMPProcessorTest {
         final Map<String, String> attributes = Collections.singletonMap(TEST_OID, "testOIDValue");
         when(mockResponse.getAttributes()).thenReturn(attributes);
 
-        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress", true);
+        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress");
         final List<MockFlowFile> flowFilesForRelationship = mockProcessSession.getFlowFilesForRelationship(GetSNMP.REL_SUCCESS);
 
         assertEquals("testOIDValue", flowFilesForRelationship.get(0).getAttribute(TEST_OID));
@@ -131,7 +131,7 @@ class AbstractSNMPProcessorTest {
         when(mockResponse.getVariableBindings()).thenReturn(vbs);
 
 
-        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress", true);
+        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress");
 
 
         final String actualLogMessage = getTestRunner.getLogger().getErrorMessages().get(0).getMsg();
@@ -150,7 +150,7 @@ class AbstractSNMPProcessorTest {
         when(mockResponse.getVariableBindings()).thenReturn(vbs);
 
 
-        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress", true);
+        getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress");
 
 
         final String actualLogMessage = getTestRunner.getLogger().getErrorMessages().get(0).getMsg();

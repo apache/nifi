@@ -408,7 +408,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
                 // Create a FlowFile for this range.
                 FlowFile child = session.clone(flowFile, range.getStart(), range.getEnd() - range.getStart());
                 if (relationship == REL_SUCCESS) {
-                    session.getProvenanceReporter().send(child, transitUri, "Sent " + count + " messages");
+                    session.getProvenanceReporter().send(child, transitUri, "Sent " + count + " messages", relationship);
                     session.transfer(child, relationship);
                 } else {
                     child = session.penalize(child);
@@ -439,7 +439,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
 
             if (failedRanges.isEmpty()) {
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(completeTime - startTime);
-                session.getProvenanceReporter().send(flowFile, transitUri, "Sent " + successfulRanges.size() + " messages;", transferMillis);
+                session.getProvenanceReporter().send(flowFile, transitUri, "Sent " + successfulRanges.size() + " messages;", transferMillis, REL_SUCCESS);
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().info("Successfully sent {} messages for {} in {} millis", successfulRanges.size(), flowFile, transferMillis);
                 session.commitAsync();

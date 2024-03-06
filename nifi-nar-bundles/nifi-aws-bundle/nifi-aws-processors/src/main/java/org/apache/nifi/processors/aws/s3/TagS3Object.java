@@ -209,7 +209,7 @@ public class TagS3Object extends AbstractS3Processor {
         final String url = s3.getResourceUrl(bucket, key);
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully tagged S3 Object for {} in {} millis; routing to success", flowFile, transferMillis);
-        session.getProvenanceReporter().invokeRemoteProcess(flowFile, url, "Object tagged");
+        session.getProvenanceReporter().invokeRemoteProcess(flowFile, url, "Object tagged", REL_SUCCESS);
     }
 
     private void failFlowWithBlankEvaluatedProperty(ProcessSession session, FlowFile flowFile, PropertyDescriptor pd) {

@@ -458,7 +458,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     putFlowFile = session.putAttribute(putFlowFile, TARGET_HDFS_DIR_CREATED_ATTRIBUTE, String.valueOf(targetDirCreated));
                     final Path qualifiedPath = copyFile.makeQualified(hdfs.getUri(), hdfs.getWorkingDirectory());
                     putFlowFile = session.putAttribute(putFlowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
-                    session.getProvenanceReporter().send(putFlowFile, qualifiedPath.toString());
+                    session.getProvenanceReporter().send(putFlowFile, qualifiedPath.toString(), getSuccessRelationship());
 
                     session.transfer(putFlowFile, getSuccessRelationship());
 

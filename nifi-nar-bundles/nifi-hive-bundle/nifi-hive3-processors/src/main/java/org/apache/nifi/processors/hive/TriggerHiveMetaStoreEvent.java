@@ -283,6 +283,7 @@ public class TriggerHiveMetaStoreEvent extends AbstractProcessor {
         final String databaseName = context.getProperty(DATABASE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String path = context.getProperty(PATH).evaluateAttributeExpressions(flowFile).getValue();
+        final String hiveMetastoreUrl = context.getProperty(METASTORE_URI).evaluateAttributeExpressions(flowFile).getValue();
 
         try (final HiveMetaStoreClient metaStoreClient = new HiveMetaStoreClient(hiveConfig)) {
             final Table table = metaStoreClient.getTable(catalogName, databaseName, tableName);
@@ -316,7 +317,7 @@ public class TriggerHiveMetaStoreEvent extends AbstractProcessor {
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
-
+        session.getProvenanceReporter().invokeRemoteProcess(flowFile, hiveMetastoreUrl, REL_SUCCESS);
         session.transfer(flowFile, REL_SUCCESS);
     }
 

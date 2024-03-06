@@ -247,7 +247,7 @@ public class ModifyCompression extends AbstractProcessor {
 
             getLogger().info("Input Compression [{}] Size [{}] Output Compression [{}] Size [{}] Completed {}",
                     inputCompressionStrategy, inputFileSize, outputCompressionStrategy, flowFile.getSize(), flowFile);
-            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getDuration(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getDuration(TimeUnit.MILLISECONDS), REL_SUCCESS);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final RuntimeException e) {
             getLogger().error("Input Compression [{}] Size [{}] Output Compression [{}] Failed {}",

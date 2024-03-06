@@ -956,7 +956,7 @@ public class TailFile extends AbstractProcessor {
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.getProvenanceReporter().receive(flowFile, file.toURI().toString(), "FlowFile contains bytes " + position + " through " + positionHolder.get() + " of source file",
-                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
+                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos), REL_SUCCESS);
             session.transfer(flowFile, REL_SUCCESS);
             getLogger().debug("Created {} and routed to success", flowFile);
         }
@@ -1487,7 +1487,7 @@ public class TailFile extends AbstractProcessor {
                 flowFile = session.putAllAttributes(flowFile, attributes);
 
                 session.getProvenanceReporter().receive(flowFile, fileToTail.toURI().toString(), "FlowFile contains bytes 0 through " + position + " of source file",
-                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
+                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos), REL_SUCCESS);
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().debug("Created {} from rolled over file {} and routed to success", new Object[]{flowFile, fileToTail});
             }
@@ -1542,7 +1542,7 @@ public class TailFile extends AbstractProcessor {
     private TailFileState consumeFileFully(final File file, final ProcessContext context, final ProcessSession session, TailFileObject tfo) throws IOException {
         FlowFile flowFile = session.create();
 
-        try (final InputStream fis = new FileInputStream(file)) {
+        try (final InputStream fis = Files.newInputStream(file.toPath())) {
             flowFile = session.write(flowFile, out -> {
                 flushLinesBuffer(out, new CRC32());
                 StreamUtils.copy(fis, out);
@@ -1557,9 +1557,9 @@ public class TailFile extends AbstractProcessor {
             attributes.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
             attributes.put("tailfile.original.path", tfo.getState().getFilename());
             flowFile = session.putAllAttributes(flowFile, attributes);
-            session.getProvenanceReporter().receive(flowFile, file.toURI().toString());
+            session.getProvenanceReporter().receive(flowFile, file.toURI().toString(), REL_SUCCESS);
             session.transfer(flowFile, REL_SUCCESS);
-            getLogger().debug("Created {} from {} and routed to success", new Object[]{flowFile, file});
+            getLogger().debug("Created {} from {} and routed to success", flowFile, file);
 
             // use a timestamp of lastModified() + 1 so that we do not ingest this file again.
             cleanup(context);

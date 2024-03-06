@@ -351,7 +351,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
                 session.transfer(flowFile, REL_SUCCESS);
 
                 final String transitUri = getTransitUri(sender);
-                session.getProvenanceReporter().receive(flowFile, transitUri);
+                session.getProvenanceReporter().receive(flowFile, transitUri, REL_SUCCESS);
 
             } catch (final Exception e) {
                 getLogger().error("Unable to properly complete record set due to: " + e.getMessage(), e);
@@ -374,7 +374,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
         failureFlowFile = session.putAllAttributes(failureFlowFile, attributes);
 
         final String transitUri = getTransitUri(event.getSender());
-        session.getProvenanceReporter().receive(failureFlowFile, transitUri);
+        session.getProvenanceReporter().receive(failureFlowFile, transitUri, REL_PARSE_FAILURE);
 
         session.transfer(failureFlowFile, REL_PARSE_FAILURE);
 

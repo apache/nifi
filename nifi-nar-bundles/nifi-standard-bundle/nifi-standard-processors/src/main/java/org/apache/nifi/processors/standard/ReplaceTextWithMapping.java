@@ -207,8 +207,8 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
 
             flowFile = session.write(flowFile, new ReplaceTextCallback(context, flowFile, maxBufferSize));
 
-            logger.info("Transferred {} to 'success'", new Object[]{flowFile});
-            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            logger.info("Transferred {} to 'success'", flowFile);
+            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
             session.transfer(flowFile, REL_SUCCESS);
         }
     }

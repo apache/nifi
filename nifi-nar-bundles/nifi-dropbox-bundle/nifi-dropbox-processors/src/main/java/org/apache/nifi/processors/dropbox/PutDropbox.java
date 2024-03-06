@@ -248,7 +248,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
                 String url = DROPBOX_HOME_URL + fileMetadata.getPathDisplay();
                 flowFile = session.putAllAttributes(flowFile, attributes);
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                session.getProvenanceReporter().send(flowFile, url, transferMillis);
+                session.getProvenanceReporter().send(flowFile, url, transferMillis, REL_SUCCESS);
             }
 
             session.transfer(flowFile, REL_SUCCESS);

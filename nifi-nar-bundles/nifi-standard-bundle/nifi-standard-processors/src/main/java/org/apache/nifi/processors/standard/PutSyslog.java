@@ -255,7 +255,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
                         timer.stop();
 
                         final long duration = timer.getDuration(TimeUnit.MILLISECONDS);
-                        session.getProvenanceReporter().send(flowFile, transitUri, duration, true);
+                        session.getProvenanceReporter().send(flowFile, transitUri, duration, true, REL_SUCCESS);
 
                         getLogger().debug("Send Completed {}", flowFile);
                         session.transfer(flowFile, REL_SUCCESS);

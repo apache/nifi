@@ -74,36 +74,38 @@ public class MockProvenanceReporter implements ProvenanceReporter {
     }
 
     @Override
-    public void receive(final FlowFile flowFile, final String transitUri) {
-        receive(flowFile, transitUri, -1L);
+    public void receive(final FlowFile flowFile, final String transitUri, final Relationship relationship) {
+        receive(flowFile, transitUri, -1L, relationship);
     }
 
     @Override
-    public void receive(FlowFile flowFile, String transitUri, String details) {
-        receive(flowFile, transitUri, details, -1L);
+    public void receive(FlowFile flowFile, String transitUri, String sourceSystemFlowFileIdentifier, final Relationship relationship) {
+        receive(flowFile, transitUri, sourceSystemFlowFileIdentifier, -1L, relationship);
     }
 
     @Override
-    public void receive(final FlowFile flowFile, final String transitUri, final long transmissionMillis) {
-        receive(flowFile, transitUri, null, transmissionMillis);
+    public void receive(final FlowFile flowFile, final String transitUri, final long transmissionMillis, final Relationship relationship) {
+        receive(flowFile, transitUri, null, transmissionMillis, relationship);
     }
 
     @Override
-    public void receive(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis) {
-        receive(flowFile, transitUri, null, details, transmissionMillis);
+    public void receive(final FlowFile flowFile, final String transitUri, final String sourceSystemFlowFileIdentifier, final long transmissionMillis, final Relationship relationship) {
+        receive(flowFile, transitUri, sourceSystemFlowFileIdentifier, null, transmissionMillis, relationship);
     }
 
     @Override
-    public void receive(final FlowFile flowFile, final String transitUri, final String sourceSystemFlowFileIdentifier, final String details, final long transmissionMillis) {
+    public void receive(final FlowFile flowFile, final String transitUri, final String sourceSystemFlowFileIdentifier,
+                        final String details, final long transmissionMillis, final Relationship relationship) {
         verifyFlowFileKnown(flowFile);
 
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.RECEIVE)
-                .setTransitUri(transitUri)
-                .setSourceSystemFlowFileIdentifier(sourceSystemFlowFileIdentifier)
-                .setEventDuration(transmissionMillis)
-                .setDetails(details)
-                .build();
+                    .setTransitUri(transitUri)
+                    .setSourceSystemFlowFileIdentifier(sourceSystemFlowFileIdentifier)
+                    .setEventDuration(transmissionMillis)
+                    .setDetails(details)
+                    .setRelationship(relationship)
+                    .build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
@@ -114,25 +116,26 @@ public class MockProvenanceReporter implements ProvenanceReporter {
     }
 
     @Override
-    public void fetch(final FlowFile flowFile, final String transitUri) {
-        fetch(flowFile, transitUri, -1L);
+    public void fetch(final FlowFile flowFile, final String transitUri, final Relationship relationship) {
+        fetch(flowFile, transitUri, -1L, relationship);
     }
 
     @Override
-    public void fetch(final FlowFile flowFile, final String transitUri, final long transmissionMillis) {
-        fetch(flowFile, transitUri, null, transmissionMillis);
+    public void fetch(final FlowFile flowFile, final String transitUri, final long transmissionMillis, final Relationship relationship) {
+        fetch(flowFile, transitUri, null, transmissionMillis, relationship);
     }
 
     @Override
-    public void fetch(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis) {
+    public void fetch(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis, final Relationship relationship) {
         verifyFlowFileKnown(flowFile);
 
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.FETCH)
-                .setTransitUri(transitUri)
-                .setEventDuration(transmissionMillis)
-                .setDetails(details)
-                .build();
+                    .setTransitUri(transitUri)
+                    .setEventDuration(transmissionMillis)
+                    .setDetails(details)
+                    .setRelationship(relationship)
+                    .build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
@@ -143,39 +146,44 @@ public class MockProvenanceReporter implements ProvenanceReporter {
     }
 
     @Override
-    public void send(final FlowFile flowFile, final String transitUri, final long transmissionMillis) {
-        send(flowFile, transitUri, transmissionMillis, true);
+    public void send(final FlowFile flowFile, final String transitUri, final long transmissionMillis, final Relationship relationship) {
+        send(flowFile, transitUri, transmissionMillis, true, relationship);
     }
 
     @Override
-    public void send(final FlowFile flowFile, final String transitUri) {
-        send(flowFile, transitUri, null, -1L, true);
+    public void send(final FlowFile flowFile, final String transitUri, final Relationship relationship) {
+        send(flowFile, transitUri, null, -1L, true, relationship);
     }
 
     @Override
-    public void send(final FlowFile flowFile, final String transitUri, final String details) {
-        send(flowFile, transitUri, details, -1L, true);
+    public void send(final FlowFile flowFile, final String transitUri, final String details, final Relationship relationship) {
+        send(flowFile, transitUri, details, -1L, true, relationship);
     }
 
     @Override
-    public void send(final FlowFile flowFile, final String transitUri, final long transmissionMillis, final boolean force) {
-        send(flowFile, transitUri, null, transmissionMillis, force);
+    public void send(final FlowFile flowFile, final String transitUri, final long transmissionMillis, final boolean force, final Relationship relationship) {
+        send(flowFile, transitUri, null, transmissionMillis, force, relationship);
     }
 
     @Override
-    public void send(final FlowFile flowFile, final String transitUri, final String details, final boolean force) {
-        send(flowFile, transitUri, details, -1L, force);
+    public void send(final FlowFile flowFile, final String transitUri, final String details, final boolean force, final Relationship relationship) {
+        send(flowFile, transitUri, details, -1L, force, relationship);
     }
 
     @Override
-    public void send(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis) {
-        send(flowFile, transitUri, details, transmissionMillis, true);
+    public void send(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis, final Relationship relationship) {
+        send(flowFile, transitUri, details, transmissionMillis, true, relationship);
     }
 
     @Override
-    public void send(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis, final boolean force) {
+    public void send(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis, final boolean force, final Relationship relationship) {
         try {
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.SEND).setTransitUri(transitUri).setEventDuration(transmissionMillis).setDetails(details).build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.SEND)
+                    .setTransitUri(transitUri)
+                    .setEventDuration(transmissionMillis)
+                    .setDetails(details)
+                    .setRelationship(relationship)
+                    .build();
             if (force) {
                 sharedSessionState.addProvenanceEvents(Collections.singleton(record));
             } else {
@@ -190,14 +198,18 @@ public class MockProvenanceReporter implements ProvenanceReporter {
     }
 
     @Override
-    public void upload(final FlowFile flowFile, final long size, final String transitUri) {
-        upload(flowFile, size, transitUri, null, -1L, true);
+    public void send(final FlowFile flowFile, final String transitUri, final boolean force, final Relationship relationship) {
+        send(flowFile, transitUri, -1L, force, relationship);
+    }
 
+    @Override
+    public void upload(final FlowFile flowFile, final long size, final String transitUri, final Relationship relationship) {
+        upload(flowFile, size, transitUri, null, -1L, true, relationship);
     }
 
     @Override
     public void upload(final FlowFile flowFile, final long size, final String transitUri, final String details,
-                       final long transmissionMillis, final boolean force) {
+                       final long transmissionMillis, final boolean force, final Relationship relationship) {
         try {
             final String displayedSizeInBytes = size + " bytes";
             final String enrichedDetails = details == null ? displayedSizeInBytes : details + " " + displayedSizeInBytes;
@@ -217,20 +229,25 @@ public class MockProvenanceReporter implements ProvenanceReporter {
     }
 
     @Override
-    public void send(final FlowFile flowFile, final String transitUri, final boolean force) {
-        send(flowFile, transitUri, -1L, true);
+    public void invokeRemoteProcess(final FlowFile flowFile, final String transitUri, final Relationship relationship) {
+        invokeRemoteProcess(flowFile, transitUri, null, relationship);
     }
 
     @Override
-    public void invokeRemoteProcess(final FlowFile flowFile, final String transitUri) {
-        invokeRemoteProcess(flowFile, transitUri, null);
+    public void invokeRemoteProcess(FlowFile flowFile, String transitUri, String details, final Relationship relationship) {
+        invokeRemoteProcess(flowFile, transitUri, details, -1L, relationship);
     }
 
     @Override
-    public void invokeRemoteProcess(FlowFile flowFile, String transitUri, String details) {
+    public void invokeRemoteProcess(FlowFile flowFile, String transitUri, String details, long transmissionMillis, final Relationship relationship) {
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.REMOTE_INVOCATION)
-                    .setTransitUri(transitUri).setDetails(details).build();
+                    .setTransitUri(transitUri)
+                    .setDetails(details)
+                    .setEventDuration(transmissionMillis)
+                    .setRelationship(relationship == null ? new Relationship.Builder().name("UNKNOWN")
+                            .description("The name of this relationship was not provided").build() : relationship)
+                    .build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
@@ -241,7 +258,7 @@ public class MockProvenanceReporter implements ProvenanceReporter {
     }
 
     @Override
-    public void associate(final FlowFile flowFile, final String alternateIdentifierNamespace, final String alternateIdentifier) {
+    public void associate(final FlowFile flowFile, final String alternateIdentifierNamespace, final String alternateIdentifier, final Relationship relationship) {
         try {
             String trimmedNamespace = alternateIdentifierNamespace.trim();
             if (trimmedNamespace.endsWith(":")) {
@@ -257,7 +274,9 @@ public class MockProvenanceReporter implements ProvenanceReporter {
             }
 
             final String alternateIdentifierUri = trimmedNamespace + ":" + trimmedIdentifier;
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ADDINFO).setAlternateIdentifierUri(alternateIdentifierUri).build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ADDINFO)
+                    .setRelationship(relationship)
+                    .setAlternateIdentifierUri(alternateIdentifierUri).build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
@@ -287,25 +306,30 @@ public class MockProvenanceReporter implements ProvenanceReporter {
 
     @Override
     public void fork(final FlowFile parent, final Collection<FlowFile> children) {
-        fork(parent, children, null, -1L);
+        fork(parent, children, null, -1L, null);
     }
 
     @Override
-    public void fork(final FlowFile parent, final Collection<FlowFile> children, final long forkDuration) {
-        fork(parent, children, null, forkDuration);
+    public void fork(final FlowFile parent, final Collection<FlowFile> children, final Relationship relationship) {
+        fork(parent, children, null, -1L, relationship);
     }
 
     @Override
-    public void fork(final FlowFile parent, final Collection<FlowFile> children, final String details) {
-        fork(parent, children, details, -1L);
+    public void fork(final FlowFile parent, final Collection<FlowFile> children, final long forkDuration, final Relationship relationship) {
+        fork(parent, children, null, forkDuration, relationship);
     }
 
     @Override
-    public void fork(final FlowFile parent, final Collection<FlowFile> children, final String details, final long forkDuration) {
+    public void fork(final FlowFile parent, final Collection<FlowFile> children, final String details, final Relationship relationship) {
+        fork(parent, children, details, -1L, relationship);
+    }
+
+    @Override
+    public void fork(final FlowFile parent, final Collection<FlowFile> children, final String details, final long forkDuration, final Relationship relationship) {
         verifyFlowFileKnown(parent);
 
         try {
-            final ProvenanceEventBuilder eventBuilder = build(parent, ProvenanceEventType.FORK);
+            final ProvenanceEventBuilder eventBuilder = build(parent, ProvenanceEventType.FORK).setRelationship(relationship);
             eventBuilder.addParentFlowFile(parent);
             for (final FlowFile child : children) {
                 eventBuilder.addChildFlowFile(child);
@@ -330,27 +354,34 @@ public class MockProvenanceReporter implements ProvenanceReporter {
 
     @Override
     public void join(final Collection<FlowFile> parents, final FlowFile child) {
-        join(parents, child, null, -1L);
+        join(parents, child, null, -1L, null);
     }
 
     @Override
-    public void join(final Collection<FlowFile> parents, final FlowFile child, final long joinDuration) {
-        join(parents, child, null, joinDuration);
+    public void join(final Collection<FlowFile> parents, final FlowFile child, final Relationship relationship) {
+        join(parents, child, null, -1L, relationship);
     }
 
     @Override
-    public void join(final Collection<FlowFile> parents, final FlowFile child, final String details) {
-        join(parents, child, details, -1L);
+    public void join(final Collection<FlowFile> parents, final FlowFile child, final long joinDuration, final Relationship relationship) {
+        join(parents, child, null, joinDuration, relationship);
     }
 
     @Override
-    public void join(final Collection<FlowFile> parents, final FlowFile child, final String details, final long joinDuration) {
+    public void join(final Collection<FlowFile> parents, final FlowFile child, final String details, final Relationship relationship) {
+        join(parents, child, details, -1L, relationship);
+    }
+
+    @Override
+    public void join(final Collection<FlowFile> parents, final FlowFile child, final String details, final long joinDuration, final Relationship relationship) {
         verifyFlowFileKnown(child);
 
         try {
             final ProvenanceEventBuilder eventBuilder = build(child, ProvenanceEventType.JOIN);
             eventBuilder.addChildFlowFile(child);
             eventBuilder.setDetails(details);
+            eventBuilder.setEventDuration(joinDuration);
+            eventBuilder.setRelationship(relationship);
 
             for (final FlowFile parent : parents) {
                 eventBuilder.addParentFlowFile(parent);
@@ -383,26 +414,30 @@ public class MockProvenanceReporter implements ProvenanceReporter {
     }
 
     @Override
-    public void modifyContent(final FlowFile flowFile) {
-        modifyContent(flowFile, null, -1L);
+    public void modifyContent(final FlowFile flowFile, final Relationship relationship) {
+        modifyContent(flowFile, null, -1L, relationship);
     }
 
     @Override
-    public void modifyContent(final FlowFile flowFile, final String details) {
-        modifyContent(flowFile, details, -1L);
+    public void modifyContent(final FlowFile flowFile, final String details, final Relationship relationship) {
+        modifyContent(flowFile, details, -1L, relationship);
     }
 
     @Override
-    public void modifyContent(final FlowFile flowFile, final long processingMillis) {
-        modifyContent(flowFile, null, processingMillis);
+    public void modifyContent(final FlowFile flowFile, final long processingMillis, final Relationship relationship) {
+        modifyContent(flowFile, null, processingMillis, relationship);
     }
 
     @Override
-    public void modifyContent(final FlowFile flowFile, final String details, final long processingMillis) {
+    public void modifyContent(final FlowFile flowFile, final String details, final long processingMillis, final Relationship relationship) {
         verifyFlowFileKnown(flowFile);
 
         try {
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.CONTENT_MODIFIED).setEventDuration(processingMillis).setDetails(details).build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.CONTENT_MODIFIED)
+                    .setEventDuration(processingMillis)
+                    .setDetails(details)
+                    .setRelationship(relationship)
+                    .build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
@@ -413,16 +448,20 @@ public class MockProvenanceReporter implements ProvenanceReporter {
     }
 
     @Override
-    public void modifyAttributes(final FlowFile flowFile) {
-        modifyAttributes(flowFile, null);
+    public void modifyAttributes(final FlowFile flowFile, final Relationship relationship) {
+        modifyAttributes(flowFile, "", relationship);
     }
 
     @Override
-    public void modifyAttributes(final FlowFile flowFile, final String details) {
+    public void modifyAttributes(final FlowFile flowFile, final String details, final Relationship relationship) {
         verifyFlowFileKnown(flowFile);
 
         try {
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ATTRIBUTES_MODIFIED).setDetails(details).build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ATTRIBUTES_MODIFIED)
+                    .setDetails(details)
+                    .setRelationship(relationship == null ? new Relationship.Builder().name("UNKNOWN")
+                            .description("The name of this relationship was not provided").build() : relationship)
+                    .build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
@@ -463,16 +502,19 @@ public class MockProvenanceReporter implements ProvenanceReporter {
     }
 
     @Override
-    public void create(final FlowFile flowFile) {
-        create(flowFile, null);
+    public void create(final FlowFile flowFile, final Relationship relationship) {
+        create(flowFile, null, relationship);
     }
 
     @Override
-    public void create(final FlowFile flowFile, final String details) {
+    public void create(final FlowFile flowFile, final String details, final Relationship relationship) {
         verifyFlowFileKnown(flowFile);
 
         try {
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.CREATE).setDetails(details).build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.CREATE)
+                    .setDetails(details)
+                    .setRelationship(relationship)
+                    .build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);

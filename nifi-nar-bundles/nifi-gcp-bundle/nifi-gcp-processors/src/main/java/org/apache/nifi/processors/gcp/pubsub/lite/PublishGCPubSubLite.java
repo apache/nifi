@@ -242,7 +242,7 @@ public class PublishGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
                 session.transfer(successfulFlowFiles, REL_SUCCESS);
                 for (FlowFile flowFile : successfulFlowFiles) {
                     final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                    session.getProvenanceReporter().send(flowFile, topicName, transmissionMillis);
+                    session.getProvenanceReporter().send(flowFile, topicName, transmissionMillis, REL_SUCCESS);
                 }
             }
         }

@@ -606,7 +606,7 @@ public class PutKudu extends AbstractKuduProcessor {
                     session.transfer(flowFile, REL_FAILURE);
                 } else {
                     session.transfer(flowFile, REL_SUCCESS);
-                    session.getProvenanceReporter().send(flowFile, "Successfully added FlowFile to Kudu");
+                    session.getProvenanceReporter().send(flowFile, "Successfully added FlowFile to Kudu", REL_SUCCESS);
                 }
             }
         }

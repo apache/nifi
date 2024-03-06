@@ -22,15 +22,20 @@ import org.apache.nifi.graph.CypherQueryFromNodesBuilder;
 import org.apache.nifi.graph.GraphClientService;
 import org.apache.nifi.graph.GraphQuery;
 import org.apache.nifi.graph.GraphQueryResultCallback;
+import org.apache.nifi.graph.QueryFromNodesBuilder;
+import org.apache.nifi.graph.exception.GraphClientMethodNotSupported;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class MockCypherClientService extends AbstractControllerService implements GraphClientService {
 
+    protected volatile QueryFromNodesBuilder cypherQueryFromNodesBuilder = new CypherQueryFromNodesBuilder();
+
     @Override
-    public Map<String, String> executeQuery(String query, Map<String, Object> parameters, GraphQueryResultCallback handler) {
+    public Map<String, String> executeQuery(GraphQuery graphQuery, Map<String, Object> parameters, GraphQueryResultCallback handler) {
         handler.process(new HashMap<String, Object>(){{
             put("name", "John Smith");
             put("age", 40);
@@ -58,8 +63,44 @@ public class MockCypherClientService extends AbstractControllerService implement
     }
 
     @Override
-    public List<GraphQuery> buildQueryFromNodes(List<Map<String, Object>> eventList, Map<String, Object> parameters) {
+    public List<GraphQuery> convertActionsToQueries(final List<Map<String, Object>> nodeList) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<GraphQuery> buildFlowGraphQueriesFromNodes(List<Map<String, Object>> eventList, Map<String, Object> parameters) {
         // Build queries from event list
-        return new CypherQueryFromNodesBuilder().getQueries(eventList);
+        return cypherQueryFromNodesBuilder.getFlowGraphQueries(eventList);
+    }
+
+    @Override
+    public List<GraphQuery> buildProvenanceQueriesFromNodes(List<Map<String, Object>> eventList, Map<String, Object> parameters, final boolean includeFlowGraph) {
+        // Build queries from event list
+        return cypherQueryFromNodesBuilder.getProvenanceQueries(eventList, includeFlowGraph);
+    }
+
+    @Override
+    public List<GraphQuery> generateCreateDatabaseQueries(final String databaseName, final boolean isCompositeDatabase) throws GraphClientMethodNotSupported {
+        return cypherQueryFromNodesBuilder.generateCreateDatabaseQueries(databaseName, isCompositeDatabase);
+    }
+
+    @Override
+    public List<GraphQuery> generateCreateIndexQueries(final String databaseName, final boolean isCompositeDatabase) throws GraphClientMethodNotSupported {
+        return cypherQueryFromNodesBuilder.generateCreateIndexQueries(databaseName, isCompositeDatabase);
+    }
+
+    @Override
+    public List<GraphQuery> generateInitialVertexTypeQueries(final String databaseName, final boolean isCompositeDatabase) throws GraphClientMethodNotSupported {
+        return cypherQueryFromNodesBuilder.generateInitialVertexTypeQueries(databaseName, isCompositeDatabase);
+    }
+
+    @Override
+    public List<GraphQuery> generateInitialEdgeTypeQueries(final String databaseName, final boolean isCompositeDatabase) throws GraphClientMethodNotSupported {
+        return cypherQueryFromNodesBuilder.generateInitialEdgeTypeQueries(databaseName, isCompositeDatabase);
+    }
+
+    @Override
+    public String getDatabaseName() {
+        return "mockDB";
     }
 }

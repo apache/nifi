@@ -491,7 +491,7 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
                     session.adjustCounter("Messages Sent", msgCount, true);
 
                     final String transitUri = StandardTransitUriProvider.getTransitUri(securityProtocol, bootstrapServers, topic);
-                    session.getProvenanceReporter().send(success, transitUri, "Sent " + msgCount + " messages", transmissionMillis);
+                    session.getProvenanceReporter().send(success, transitUri, "Sent " + msgCount + " messages", transmissionMillis, REL_SUCCESS);
                     session.transfer(success, REL_SUCCESS);
                 }
             } catch (final ProducerFencedException | OutOfOrderSequenceException | AuthorizationException e) {

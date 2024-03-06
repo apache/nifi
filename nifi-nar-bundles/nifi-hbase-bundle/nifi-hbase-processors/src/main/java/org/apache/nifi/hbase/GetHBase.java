@@ -322,7 +322,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
                 attributes.put("mime.type", "application/json");
                 flowFile = session.putAllAttributes(flowFile, attributes);
 
-                session.getProvenanceReporter().receive(flowFile, hBaseClientService.toTransitUri(tableName, rowKeyString));
+                session.getProvenanceReporter().receive(flowFile, hBaseClientService.toTransitUri(tableName, rowKeyString), REL_SUCCESS);
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().debug("Received {} from HBase with row key {}", new Object[]{flowFile, rowKeyString});
 

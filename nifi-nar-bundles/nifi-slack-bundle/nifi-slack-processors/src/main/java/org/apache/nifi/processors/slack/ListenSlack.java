@@ -266,7 +266,7 @@ public class ListenSlack extends AbstractProcessor {
         }
 
         flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
-        session.getProvenanceReporter().receive(flowFile, socketModeApp.getClient().getWssUri().toString());
+        session.getProvenanceReporter().receive(flowFile, socketModeApp.getClient().getWssUri().toString(), REL_SUCCESS);
         session.transfer(flowFile, REL_SUCCESS);
 
         // Commit the session asynchronously and upon success allow the message to be acknowledged.

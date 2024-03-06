@@ -389,17 +389,17 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
                 if (!keepSourceFiles && !getUserGroupInformation().doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.delete(file, false))) {
                     getLogger().warn("Could not remove {} from HDFS. Not ingesting this file ...",
-                            new Object[]{file});
+                            file);
                     session.remove(flowFile);
                     continue;
                 }
 
-                session.getProvenanceReporter().receive(flowFile, file.toString());
+                session.getProvenanceReporter().receive(flowFile, file.toString(), REL_SUCCESS);
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().info("retrieved {} from HDFS {} in {} milliseconds at a rate of {}",
-                        new Object[]{flowFile, file, millis, dataRate});
+                        flowFile, file, millis, dataRate);
             } catch (final Throwable t) {
-                getLogger().error("Error retrieving file {} from HDFS due to {}", new Object[]{file, t});
+                getLogger().error("Error retrieving file {} from HDFS due to {}", file, t);
                 session.rollback();
                 context.yield();
             } finally {

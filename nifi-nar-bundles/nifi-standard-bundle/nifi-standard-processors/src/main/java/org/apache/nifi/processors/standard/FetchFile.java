@@ -318,7 +318,8 @@ public class FetchFile extends AbstractProcessor {
             return;
         }
 
-        session.getProvenanceReporter().fetch(flowFile, file.toURI().toString(), "Replaced content of FlowFile with contents of " + file.toURI(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+        session.getProvenanceReporter()
+                .fetch(flowFile, file.toURI().toString(), "Replaced content of FlowFile with contents of " + file.toURI(), stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
         session.transfer(flowFile, REL_SUCCESS);
 
         // It is critical that we commit the session before we perform the Completion Strategy. Otherwise, we could have a case where we

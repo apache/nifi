@@ -40,8 +40,6 @@ public interface ProvenanceEventRecord {
      */
     List<Long> getPreviousEventIds();
 
-    void setPreviousEventIds(List<Long> previousEventIds);
-
     /**
      * @return the time at which this Provenance Event was created, as the
      * number of milliseconds since epoch

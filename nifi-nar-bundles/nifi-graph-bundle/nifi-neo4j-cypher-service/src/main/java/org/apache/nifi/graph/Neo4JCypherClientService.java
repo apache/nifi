@@ -27,7 +27,8 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.graph.exception.GraphClientMethodNotSupported;
+import org.apache.nifi.graph.exception.GraphQueryException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Config;
@@ -67,6 +68,15 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .defaultValue("bolt://localhost:7687")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
+            .name("database-name")
+            .displayName("Provenance Database Name")
+            .description("The name of the database upon which queries (such as provenance queries) should be invoked. If no database name is supplied, the default database will be used.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
@@ -151,15 +161,20 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    protected Driver neo4JDriver;
-    protected String username;
-    protected String password;
-    protected String connectionUrl;
+    protected volatile Driver neo4JDriver;
+    protected volatile String username;
+    protected volatile String password;
+    protected volatile String connectionUrl;
+
+    protected volatile String databaseName;
+
+    protected final QueryFromNodesBuilder cypherQueryFromNodesBuilder = new CypherQueryFromNodesBuilder();
 
     private static final List<PropertyDescriptor> DESCRIPTORS;
     static {
         List<PropertyDescriptor> _temp = new ArrayList<>();
         _temp.add(CONNECTION_URL);
+        _temp.add(DATABASE_NAME);
         _temp.add(USERNAME);
         _temp.add(PASSWORD);
         _temp.add(CONNECTION_TIMEOUT);
@@ -231,15 +246,15 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
     }
 
     @OnEnabled
-    public void onEnabled(final ConfigurationContext context) {
+    public void onEnabled(final ConfigurationContext context) throws GraphQueryException {
         try {
             neo4JDriver = getDriver(context);
         } catch(Exception e) {
             getLogger().error("Error while getting connection " + e.getLocalizedMessage(),e);
-            throw new ProcessException("Error while getting connection" + e.getLocalizedMessage(),e);
+            throw new GraphQueryException("Error while getting connection" + e.getLocalizedMessage(),e);
         }
-        getLogger().info("Neo4JCypherExecutor connection created for url {}",
-                new Object[] {connectionUrl});
+        getLogger().info("Neo4JCypherExecutor connection created for url {}", connectionUrl);
+        databaseName = context.getProperty(DATABASE_NAME).evaluateAttributeExpressions().getValue();
     }
 
     @OnDisabled
@@ -264,7 +279,9 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
     }
 
     @Override
-    public Map<String, String> executeQuery(String query, Map<String, Object> parameters, GraphQueryResultCallback handler) {
+    public Map<String, String> executeQuery(GraphQuery graphQuery, Map<String, Object> parameters, GraphQueryResultCallback handler) throws GraphQueryException {
+        final String query = graphQuery.getQuery();
+        getLogger().info("Executing Query:\n" + query);
         try (Session session = neo4JDriver.session()) {
             Result result = session.run(query, parameters);
             long count = 0;
@@ -289,7 +306,8 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
 
             return resultAttributes;
         } catch (Exception ex) {
-            throw new ProcessException("Query execution failed", ex);
+            getLogger().error("Query execution failed", ex);
+            throw new GraphQueryException("Query execution failed", ex);
         }
     }
 
@@ -299,8 +317,44 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
     }
 
     @Override
-    public List<GraphQuery> buildQueryFromNodes(List<Map<String, Object>> eventList, Map<String, Object> parameters) {
+    public List<GraphQuery> convertActionsToQueries(final List<Map<String, Object>> nodeList) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<GraphQuery> buildFlowGraphQueriesFromNodes(List<Map<String, Object>> eventList, Map<String, Object> parameters) {
         // Build queries from event list
-        return new CypherQueryFromNodesBuilder().getQueries(eventList);
+        return cypherQueryFromNodesBuilder.getFlowGraphQueries(eventList);
+    }
+
+    @Override
+    public List<GraphQuery> buildProvenanceQueriesFromNodes(List<Map<String, Object>> eventList, Map<String, Object> parameters, final boolean includeFlowGraph) {
+        // Build queries from event list
+        return cypherQueryFromNodesBuilder.getProvenanceQueries(eventList, includeFlowGraph);
+    }
+
+    @Override
+    public List<GraphQuery> generateCreateDatabaseQueries(final String databaseName, final boolean isCompositeDatabase) throws GraphClientMethodNotSupported {
+        return cypherQueryFromNodesBuilder.generateCreateDatabaseQueries(databaseName, isCompositeDatabase);
+    }
+
+    @Override
+    public List<GraphQuery> generateCreateIndexQueries(final String databaseName, final boolean isCompositeDatabase) throws GraphClientMethodNotSupported {
+        return cypherQueryFromNodesBuilder.generateCreateIndexQueries(databaseName, isCompositeDatabase);
+    }
+
+    @Override
+    public List<GraphQuery> generateInitialVertexTypeQueries(final String databaseName, final boolean isCompositeDatabase) throws GraphClientMethodNotSupported {
+        return cypherQueryFromNodesBuilder.generateInitialVertexTypeQueries(databaseName, isCompositeDatabase);
+    }
+
+    @Override
+    public List<GraphQuery> generateInitialEdgeTypeQueries(final String databaseName, final boolean isCompositeDatabase) throws GraphClientMethodNotSupported {
+        return cypherQueryFromNodesBuilder.generateInitialEdgeTypeQueries(databaseName, isCompositeDatabase);
+    }
+
+    @Override
+    public String getDatabaseName() {
+        return databaseName;
     }
 }

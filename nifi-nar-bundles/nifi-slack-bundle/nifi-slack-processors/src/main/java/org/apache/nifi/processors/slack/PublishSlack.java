@@ -405,7 +405,7 @@ public class PublishSlack extends AbstractProcessor {
         final Map<String, String> attributes = Map.of("slack.ts", ts,
             "slack.channel.id", channelId);
         flowFile = session.putAllAttributes(flowFile, attributes);
-        session.getProvenanceReporter().send(flowFile, "https://slack.com/api/chat.postMessage");
+        session.getProvenanceReporter().send(flowFile, "https://slack.com/api/chat.postMessage", REL_SUCCESS);
         session.transfer(flowFile, REL_SUCCESS);
     }
 
@@ -472,7 +472,7 @@ public class PublishSlack extends AbstractProcessor {
             attributes.put("slack.ts", ts);
         }
         flowFile = session.putAllAttributes(flowFile, attributes);
-        session.getProvenanceReporter().send(flowFile, "https://slack.com/api/files.upload");
+        session.getProvenanceReporter().send(flowFile, "https://slack.com/api/files.upload", REL_SUCCESS);
         session.transfer(flowFile, REL_SUCCESS);
     }
 

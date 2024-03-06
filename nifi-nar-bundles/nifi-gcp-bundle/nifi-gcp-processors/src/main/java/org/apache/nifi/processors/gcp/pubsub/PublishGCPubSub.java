@@ -421,7 +421,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             attributes.put(TOPIC_NAME_ATTRIBUTE, topicName);
             final FlowFile flowFile = session.putAllAttributes(flowFileResult.getFlowFile(), attributes);
             final String transitUri = String.format(TRANSIT_URI_FORMAT_STRING, topicName);
-            session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS), relationship);
             session.transfer(flowFile, relationship);
         }
     }

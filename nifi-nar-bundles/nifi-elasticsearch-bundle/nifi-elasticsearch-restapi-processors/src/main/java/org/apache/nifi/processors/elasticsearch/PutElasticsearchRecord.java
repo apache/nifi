@@ -460,7 +460,8 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 input,
                 clientService.get().getTransitUrl(String.join(",", indices), types.isEmpty() ? null : String.join(",", types)),
                 String.format(Locale.getDefault(), "%d Elasticsearch _bulk operation batch(es) [%d error(s), %d success(es)]", batches, erroredRecords.get(), successfulRecords.get()),
-                stopWatch.getDuration(TimeUnit.MILLISECONDS)
+                stopWatch.getDuration(TimeUnit.MILLISECONDS),
+                REL_SUCCESS
         );
 
         input = session.putAllAttributes(input, new HashMap<String, String>() {{

@@ -232,7 +232,7 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
 
                 // This isn't a real URI but since Cassandra is distributed we just use the cluster name
                 String transitUri = "cassandra://" + connectionSession.getCluster().getMetadata().getClusterName();
-                session.getProvenanceReporter().send(flowFile, transitUri, transmissionMillis, true);
+                session.getProvenanceReporter().send(flowFile, transitUri, transmissionMillis, true, REL_SUCCESS);
                 session.transfer(flowFile, REL_SUCCESS);
 
             } catch (final TimeoutException e) {

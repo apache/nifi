@@ -379,9 +379,11 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
 
                                     // Report a FETCH event if there was an incoming flow file, or a RECEIVE event otherwise
                                     if (context.hasIncomingConnection()) {
-                                        session.getProvenanceReporter().fetch(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", executionTimeElapsed + fetchTimeElapsed);
+                                        session.getProvenanceReporter()
+                                                .fetch(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", executionTimeElapsed + fetchTimeElapsed, REL_SUCCESS);
                                     } else {
-                                        session.getProvenanceReporter().receive(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", executionTimeElapsed + fetchTimeElapsed);
+                                        session.getProvenanceReporter()
+                                                .receive(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", executionTimeElapsed + fetchTimeElapsed, REL_SUCCESS);
                                     }
                                     resultSetFlowFiles.add(resultSetFF);
 

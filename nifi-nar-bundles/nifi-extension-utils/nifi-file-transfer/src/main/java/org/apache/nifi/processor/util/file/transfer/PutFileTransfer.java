@@ -138,14 +138,14 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                     final String dataRate = stopWatch.calculateDataRate(flowFile.getSize());
                     final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
                     logger.info("Successfully transferred {} to {} on remote host {} in {} milliseconds at a rate of {}",
-                            new Object[]{flowFile, fullPathRef.get(), hostname, millis, dataRate});
+                            flowFile, fullPathRef.get(), hostname, millis, dataRate);
 
                     String fullPathWithSlash = fullPathRef.get();
                     if (!fullPathWithSlash.startsWith("/")) {
                         fullPathWithSlash = "/" + fullPathWithSlash;
                     }
                     final String destinationUri = transfer.getProtocolName() + "://" + hostname + fullPathWithSlash;
-                    session.getProvenanceReporter().send(flowFile, destinationUri, millis);
+                    session.getProvenanceReporter().send(flowFile, destinationUri, millis, conflictResult.getRelationship());
                 }
 
                 if (conflictResult.isPenalize()) {

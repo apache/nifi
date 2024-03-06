@@ -116,11 +116,11 @@ public class SetSNMP extends AbstractSNMPProcessor {
                     processSession.remove(flowFile);
                     final FlowFile outgoingFlowFile = processSession.create();
                     final SNMPSingleResponse response = optionalResponse.get();
-                    handleResponse(context, processSession, outgoingFlowFile, response, REL_SUCCESS, REL_FAILURE, "/set", true);
+                    handleResponse(context, processSession, outgoingFlowFile, response, REL_SUCCESS, REL_FAILURE, "/set");
                 } else {
                     getLogger().warn("No SNMP specific attributes found in flowfile.");
                     processSession.transfer(flowFile, REL_FAILURE);
-                    processSession.getProvenanceReporter().receive(flowFile, "/set");
+                    processSession.getProvenanceReporter().receive(flowFile, "/set", REL_FAILURE);
                 }
             } catch (IOException e) {
                 getLogger().error("Failed to send request to the agent. Check if the agent supports the used version.");

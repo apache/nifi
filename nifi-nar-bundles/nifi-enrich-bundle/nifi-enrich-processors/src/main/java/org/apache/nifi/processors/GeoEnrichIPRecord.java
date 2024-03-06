@@ -292,9 +292,9 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
                 }
                 session.transfer(output, REL_FOUND);
                 session.transfer(input, REL_ORIGINAL);
-                session.getProvenanceReporter().modifyContent(notFound);
+                session.getProvenanceReporter().modifyContent(notFound, REL_NOT_FOUND);
             }
-            session.getProvenanceReporter().modifyContent(output);
+            session.getProvenanceReporter().modifyContent(output, REL_FOUND);
         } catch (InvalidDatabaseException | InternalError idbe) {
             // The database was likely changed out while being read, rollback and try again
             setNeedsReload(true);

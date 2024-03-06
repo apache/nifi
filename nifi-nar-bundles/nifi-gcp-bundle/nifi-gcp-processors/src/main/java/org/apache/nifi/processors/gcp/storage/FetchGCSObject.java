@@ -300,7 +300,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
         getLogger().info("Successfully retrieved GCS Object for {} in {} millis; routing to success", new Object[]{flowFile, millis});
 
         final String transitUri = getTransitUri(storage.getOptions().getHost(), bucketName, key);
-        session.getProvenanceReporter().fetch(flowFile, transitUri, millis);
+        session.getProvenanceReporter().fetch(flowFile, transitUri, millis, REL_SUCCESS);
     }
 
     private FetchedBlob fetchBlob(final ProcessContext context, final Storage storage, final Map<String, String> attributes) throws IOException {

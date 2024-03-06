@@ -109,7 +109,7 @@ public class GetHDFSSequenceFile extends GetHDFS {
                     logger.warn("Unable to delete path " + file.toString() + " from HDFS.  Will likely be picked up over and over...");
                 }
             } catch (Throwable t) {
-                logger.error("Error retrieving file {} from HDFS due to {}", new Object[]{file, t});
+                logger.error("Error retrieving file {} from HDFS due to {}", file, t);
                 session.rollback();
                 context.yield();
             } finally {
@@ -117,14 +117,13 @@ public class GetHDFSSequenceFile extends GetHDFS {
                 long totalSize = 0;
                 for (FlowFile flowFile : flowFiles) {
                     totalSize += flowFile.getSize();
-                    session.getProvenanceReporter().receive(flowFile, file.toString());
+                    session.getProvenanceReporter().receive(flowFile, file.toString(), REL_SUCCESS);
                 }
                 if (totalSize > 0) {
                     final String dataRate = stopWatch.calculateDataRate(totalSize);
                     final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
-                    logger.info("Created {} flowFiles from SequenceFile {}. Ingested in {} milliseconds at a rate of {}", new Object[]{
-                        flowFiles.size(), file.toUri().toASCIIString(), millis, dataRate});
-                    logger.info("Transferred flowFiles {}  to success", new Object[]{flowFiles});
+                    logger.info("Created {} flowFiles from SequenceFile {}. Ingested in {} milliseconds at a rate of {}", flowFiles.size(), file.toUri().toASCIIString(), millis, dataRate);
+                    logger.info("Transferred flowFiles {}  to success", flowFiles);
                     session.transfer(flowFiles, REL_SUCCESS);
                 }
             }

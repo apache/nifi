@@ -330,7 +330,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                     fileToProcess = session.putAttribute(fileToProcess, FRAGMENT_INDEX, String.valueOf(fragmentIndex));
                 }
                 session.getProvenanceReporter().modifyContent(fileToProcess, "Retrieved " + nrOfRows.get() + " rows",
-                        stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                        stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
                 resultSetFlowFiles.add(fileToProcess);
 
                 if (outputBatchSize > 0) {

@@ -470,7 +470,7 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
             flowFile = session.putAttribute(flowFile, "scanhbase.error", (e==null?e:ioe.get()).toString());
             rel = REL_FAILURE;
         } else {
-            session.getProvenanceReporter().receive(flowFile, hBaseClientService.toTransitUri(tableName, "{ids}"));
+            session.getProvenanceReporter().receive(flowFile, hBaseClientService.toTransitUri(tableName, "{ids}"), rel);
         }
         session.transfer(flowFile, rel);
     }

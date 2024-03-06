@@ -554,7 +554,7 @@ public class ConsumeChannel {
 
         // Update provenance
         flowFile = session.putAllAttributes(flowFile, attributes);
-        session.getProvenanceReporter().receive(flowFile, CONVERSATION_HISTORY_URL);
+        session.getProvenanceReporter().receive(flowFile, CONVERSATION_HISTORY_URL, successRelationship);
         session.transfer(flowFile, successRelationship);
 
         // Update state based on the next cursor, preferably, or the timestamp of the last message if either we didn't get back

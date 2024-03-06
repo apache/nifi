@@ -191,6 +191,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
         if(!includeZeroRecordFlowFiles && recordCount.get() == 0){
             session.remove(flowFile);
         } else {
+            session.getProvenanceReporter().modifyContent(flowFile, REL_SUCCESS);
             session.transfer(flowFile, REL_SUCCESS);
         }
 

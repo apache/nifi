@@ -203,7 +203,7 @@ public class ListenBeats extends AbstractProcessor {
             session.transfer(flowFile, REL_SUCCESS);
 
             final String transitUri = getTransitUri(entry.getValue());
-            session.getProvenanceReporter().receive(flowFile, transitUri);
+            session.getProvenanceReporter().receive(flowFile, transitUri, REL_SUCCESS);
         }
     }
 

@@ -864,7 +864,7 @@ public class PutS3Object extends AbstractS3Processor {
 
             final String url = s3.getResourceUrl(bucket, key);
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            session.getProvenanceReporter().send(flowFile, url, millis);
+            session.getProvenanceReporter().send(flowFile, url, millis, REL_SUCCESS);
 
             getLogger().info("Successfully put {} to Amazon S3 in {} milliseconds", new Object[]{ff, millis});
             try {

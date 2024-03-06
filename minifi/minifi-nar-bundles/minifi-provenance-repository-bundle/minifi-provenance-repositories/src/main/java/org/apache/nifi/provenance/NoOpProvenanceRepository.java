@@ -42,8 +42,8 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
 
   @Override
   public void initialize(EventReporter eventReporter, Authorizer authorizer,
-      ProvenanceAuthorizableFactory factory, IdentifierLookup identifierLookup)
-      throws IOException {
+                         ProvenanceAuthorizableFactory factory, IdentifierLookup identifierLookup)
+          throws IOException {
 
   }
 
@@ -69,13 +69,13 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
 
   @Override
   public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxRecords)
-      throws IOException {
+          throws IOException {
     return emptyList();
   }
 
   @Override
   public List<ProvenanceEventRecord> getEvents(long firstRecordId,
-      int maxRecords, NiFiUser niFiUser) throws IOException {
+                                               int maxRecords, NiFiUser niFiUser) throws IOException {
     return emptyList();
   }
 
@@ -156,7 +156,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
 
   @Override
   public AsyncLineageSubmission retrieveLineageSubmission(final String lineageIdentifier,
-      final NiFiUser user) {
+                                                          final NiFiUser user) {
     return null;
   }
 

@@ -197,7 +197,7 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 im
 
             long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             String transitUri = attributes.get(ATTR_NAME_PRIMARY_URI);
-            session.getProvenanceReporter().fetch(flowFile, transitUri, transferMillis);
+            session.getProvenanceReporter().fetch(flowFile, transitUri, transferMillis, REL_SUCCESS);
         } catch (Exception e) {
             getLogger().error("Failure to fetch Azure blob {}", blobName, e);
             flowFile = session.penalize(flowFile);

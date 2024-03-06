@@ -18,6 +18,7 @@
 package org.apache.nifi.graph;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.graph.exception.GraphQueryException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -41,7 +42,7 @@ public class GremlinClientServiceControllerSettingsIT {
     @BeforeEach
     public void setup() throws Exception {
         clientService = new TestableGremlinClientService();
-        runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("gremlinService", clientService);
         runner.setProperty(clientService, TinkerpopClientService.CONTACT_POINTS, "localhost");
         runner.setProperty(clientService, TinkerpopClientService.PORT, "8182");
@@ -63,19 +64,21 @@ public class GremlinClientServiceControllerSettingsIT {
     }
 
     @Test
-    public void testValueMap() {
+    public void testValueMap() throws GraphQueryException {
         String gremlin = "g.V().hasLabel('dog').valueMap()";
+        GraphQuery graphQuery = new GraphQuery(gremlin, GraphClientService.GREMLIN);
         AtomicInteger integer = new AtomicInteger();
-        Map<String, String> result = clientService.executeQuery(gremlin, new HashMap<>(), (record, isMore) -> integer.incrementAndGet());
+        Map<String, String> result = clientService.executeQuery(graphQuery, new HashMap<>(), (record, isMore) -> integer.incrementAndGet());
 
         assertEquals(2, integer.get());
     }
 
     @Test
-    public void testCount() {
+    public void testCount() throws GraphQueryException {
         String gremlin = "g.V().hasLabel('dog').count()";
+        GraphQuery graphQuery = new GraphQuery(gremlin, GraphClientService.GREMLIN);
         AtomicInteger integer = new AtomicInteger();
-        Map<String, String> result = clientService.executeQuery(gremlin, new HashMap<>(), (record, isMore) -> integer.incrementAndGet());
+        Map<String, String> result = clientService.executeQuery(graphQuery, new HashMap<>(), (record, isMore) -> integer.incrementAndGet());
         assertEquals(1, integer.get());
     }
 }

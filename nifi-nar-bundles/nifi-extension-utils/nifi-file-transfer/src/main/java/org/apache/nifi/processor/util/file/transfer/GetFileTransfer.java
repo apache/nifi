@@ -203,15 +203,15 @@ public abstract class GetFileTransfer extends AbstractProcessor {
 
                     flowFile = session.putAllAttributes(flowFile, attributes);
 
-                    session.getProvenanceReporter().receive(flowFile, transfer.getProtocolName() + "://" + hostname + "/" + file.getFullPathFileName(), millis);
+                    session.getProvenanceReporter().receive(flowFile, transfer.getProtocolName() + "://" + hostname + "/" + file.getFullPathFileName(), millis, REL_SUCCESS);
                     session.transfer(flowFile, REL_SUCCESS);
                     logger.info("Successfully retrieved {} from {} in {} milliseconds at a rate of {} and transferred to success",
-                        new Object[]{flowFile, hostname, millis, dataRate});
+                            flowFile, hostname, millis, dataRate);
 
                     flowFilesReceived.put(flowFile, file.getFullPathFileName());
                 } catch (final IOException e) {
                     context.yield();
-                    logger.error("Unable to retrieve file {} due to {}", new Object[]{file.getFullPathFileName(), e});
+                    logger.error("Unable to retrieve file {} due to {}", file.getFullPathFileName(), e);
                     try {
                         transfer.close();
                     } catch (IOException e1) {

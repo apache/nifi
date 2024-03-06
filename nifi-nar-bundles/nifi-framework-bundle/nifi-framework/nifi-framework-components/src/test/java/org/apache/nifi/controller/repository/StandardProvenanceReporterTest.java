@@ -18,6 +18,7 @@ package org.apache.nifi.controller.repository;
 
 
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
@@ -38,7 +39,7 @@ class StandardProvenanceReporterTest {
         Mockito.when(mockRepo.eventBuilder()).thenReturn(new StandardProvenanceEventRecord.Builder());
 
         final FlowFile flowFile = new StandardFlowFileRecord.Builder().id(10L).addAttribute("uuid", "10").build();
-        reporter.receive(flowFile, "test://noop", "These are details", -1);
+        reporter.receive(flowFile, "test://noop", null, "These are details", -1, new Relationship.Builder().name("success").build());
         final Set<ProvenanceEventRecord> records = reporter.getEvents();
         assertNotNull(records);
         assertEquals(1, records.size());

@@ -786,5 +786,15 @@ class TestQueryNiFiReportingTask {
         @Override
         public void close() {
         }
+
+        @Override
+        public List<Long> getPreviousEventIds(String flowFileUUID) {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public void updatePreviousEventIds(ProvenanceEventRecord record, List<Long> previousIds) {
+            // Do nothing
+        }
     }
 }

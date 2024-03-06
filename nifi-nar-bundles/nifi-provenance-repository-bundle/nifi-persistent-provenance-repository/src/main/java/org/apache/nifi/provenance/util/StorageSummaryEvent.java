@@ -21,9 +21,10 @@ import java.util.List;
 import java.util.Map;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.provenance.UpdateableProvenanceEventRecord;
 import org.apache.nifi.provenance.serialization.StorageSummary;
 
-public class StorageSummaryEvent implements ProvenanceEventRecord {
+public class StorageSummaryEvent implements UpdateableProvenanceEventRecord {
     private final ProvenanceEventRecord event;
     private final StorageSummary storageSummary;
 
@@ -38,15 +39,23 @@ public class StorageSummaryEvent implements ProvenanceEventRecord {
     }
 
     @Override
+    public void setEventId(long eventId) {
+        if (event instanceof UpdateableProvenanceEventRecord) {
+            ((UpdateableProvenanceEventRecord) event).setEventId(eventId);
+        }
+    }
+
+    @Override
     public List<Long> getPreviousEventIds() {
         return event.getPreviousEventIds();
     }
 
     @Override
     public void setPreviousEventIds(List<Long> previousEventIds) {
-        event.setPreviousEventIds(previousEventIds);
+        if (event instanceof UpdateableProvenanceEventRecord) {
+            ((UpdateableProvenanceEventRecord) event).setPreviousEventIds(previousEventIds);
+        }
     }
-
     @Override
     public long getEventTime() {
         return event.getEventTime();

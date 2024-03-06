@@ -159,7 +159,7 @@ public class PutCouchbaseKey extends AbstractCouchbaseProcessor {
             updatedAttrs.put(CouchbaseAttributes.Expiry.key(), String.valueOf(doc.expiry()));
 
             flowFile = session.putAllAttributes(flowFile, updatedAttrs);
-            session.getProvenanceReporter().send(flowFile, getTransitUrl(bucket, docId));
+            session.getProvenanceReporter().send(flowFile, getTransitUrl(bucket, docId), REL_SUCCESS);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final CouchbaseException e) {
             String errMsg = String.format("Writing document %s to Couchbase Server using %s failed due to %s", docId, flowFile, e);

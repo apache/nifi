@@ -226,7 +226,7 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
                     final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
                     final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
                     final String transitUri = String.format(TRANSIT_URI_FORMAT_STRING, namespace, serviceBusEndpoint, eventHubName);
-                    session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                    session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
                     session.transfer(flowFile, REL_SUCCESS);
                 } else {
                     final Throwable processException = flowFileResult.exception();

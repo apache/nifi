@@ -139,7 +139,7 @@ public class FetchBoxFile extends AbstractProcessor {
             flowFile = fetchFile(fileId, session, flowFile);
             final String boxUrlOfFile = BoxFileUtils.BOX_URL + fileId;
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            session.getProvenanceReporter().fetch(flowFile, boxUrlOfFile, transferMillis);
+            session.getProvenanceReporter().fetch(flowFile, boxUrlOfFile, transferMillis, REL_SUCCESS);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (BoxAPIResponseException e) {
             handleErrorResponse(session, fileId, flowFile, e);

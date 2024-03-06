@@ -367,11 +367,11 @@ public class EvaluateXPath extends AbstractProcessor {
                     final Relationship destRel = xpathResults.isEmpty() ? REL_NO_MATCH : REL_MATCH;
                     logger.info("XPath evaluation on {} completed with results [{}]: content updated", flowFile, xpathResults.size());
                     session.transfer(flowFile, destRel);
-                    session.getProvenanceReporter().modifyAttributes(flowFile);
+                    session.getProvenanceReporter().modifyAttributes(flowFile, destRel);
                 } else if (DESTINATION_CONTENT.equals(destination)) {
                     logger.info("XPath evaluation on {} completed: content updated", flowFile);
                     session.transfer(flowFile, REL_MATCH);
-                    session.getProvenanceReporter().modifyContent(flowFile);
+                    session.getProvenanceReporter().modifyContent(flowFile, REL_MATCH);
                 }
             } else {
                 logger.error("XPath evaluation on {} failed", flowFile, error.get());

@@ -170,11 +170,11 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             }
 
             flowFile = session.write(flowFile, os -> fileClient.readWithResponse(os, fileRange, retryOptions, null, false, null, Context.NONE));
-            session.getProvenanceReporter().modifyContent(flowFile);
+            session.getProvenanceReporter().modifyContent(flowFile, REL_SUCCESS);
             session.transfer(flowFile, REL_SUCCESS);
 
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            session.getProvenanceReporter().fetch(flowFile, fileClient.getFileUrl(), transferMillis);
+            session.getProvenanceReporter().fetch(flowFile, fileClient.getFileUrl(), transferMillis, REL_SUCCESS);
         } catch (final DataLakeStorageException e) {
             getLogger().error("Failure to fetch file from Azure Data Lake Storage", e);
             flowFile = session.putAttribute(flowFile, "azure.datalake.storage.statusCode", String.valueOf(e.getStatusCode()));

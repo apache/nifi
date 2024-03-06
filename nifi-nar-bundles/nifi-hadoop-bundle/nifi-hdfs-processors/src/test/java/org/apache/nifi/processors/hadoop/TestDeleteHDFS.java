@@ -45,13 +45,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestDeleteHDFS {
-    private NiFiProperties mockNiFiProperties;
     private FileSystem mockFileSystem;
     private KerberosProperties kerberosProperties;
 
     @BeforeEach
     public void setup() throws Exception {
-        mockNiFiProperties = mock(NiFiProperties.class);
+        NiFiProperties mockNiFiProperties = mock(NiFiProperties.class);
         when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
         kerberosProperties = new KerberosProperties(null);
         mockFileSystem = mock(FileSystem.class);
@@ -77,7 +76,7 @@ public class TestDeleteHDFS {
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
         assertEquals(ProvenanceEventType.REMOTE_INVOCATION, provenanceEvents.get(0).getEventType());
-        assertEquals("hdfs://0.example.com:8020/some/path/to/file.txt", provenanceEvents.get(0).getTransitUri());
+        assertEquals("hdfs://0.example.com:8020", provenanceEvents.get(0).getTransitUri());
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteHDFS.REL_SUCCESS).get(0);
         assertEquals("hdfs://0.example.com:8020/some/path/to/file.txt", flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE));
@@ -150,6 +149,7 @@ public class TestDeleteHDFS {
     public void testUnsuccessfulDelete() throws Exception {
         Path filePath = new Path("/some/path/to/file.txt");
         when(mockFileSystem.exists(any(Path.class))).thenReturn(false);
+        when(mockFileSystem.getUri()).thenReturn(new URI("hdfs://0.example.com:8020"));
         DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setIncomingConnection(false);

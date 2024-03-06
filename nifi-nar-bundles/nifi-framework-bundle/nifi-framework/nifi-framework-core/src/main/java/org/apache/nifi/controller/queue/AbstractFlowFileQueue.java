@@ -426,6 +426,8 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
             builder.setPreviousContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(), contentClaim.getOffset(), flowFile.getSize());
         }
 
+        builder.setPreviousEventIds(provRepository.getPreviousEventIds(flowFile.getAttribute(CoreAttributes.UUID.key())));
+
         return builder.build();
     }
 

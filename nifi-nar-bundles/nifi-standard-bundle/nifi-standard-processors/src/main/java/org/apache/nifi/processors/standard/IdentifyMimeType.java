@@ -257,7 +257,7 @@ public class IdentifyMimeType extends AbstractProcessor {
         }
         logger.info("Identified {} as having MIME Type {}", flowFile, mediaTypeString);
 
-        session.getProvenanceReporter().modifyAttributes(flowFile);
+        session.getProvenanceReporter().modifyAttributes(flowFile, REL_SUCCESS);
         session.transfer(flowFile, REL_SUCCESS);
     }
 

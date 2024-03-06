@@ -148,7 +148,7 @@ public class PutMongoBulkOperations extends AbstractMongoProcessor {
             collection.bulkWrite(updateModels, (new BulkWriteOptions().ordered(context.getProperty(ORDERED).asBoolean())));
             getLogger().info("bulk-updated {} into MongoDB", flowFile);
 
-            session.getProvenanceReporter().send(flowFile, getURI(context));
+            session.getProvenanceReporter().send(flowFile, getURI(context), REL_SUCCESS);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (Exception e) {
             getLogger().error("Failed to bulk-update {} into MongoDB", flowFile, e);

@@ -145,7 +145,7 @@ public class PutSalesforceObject extends AbstractProcessor {
             processRecords(flowFile, objectType, context, session);
             session.transfer(flowFile, REL_SUCCESS);
             long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            session.getProvenanceReporter().send(flowFile, salesforceRestClient.getVersionedBaseUrl() + "/put/" + objectType, transferMillis);
+            session.getProvenanceReporter().send(flowFile, salesforceRestClient.getVersionedBaseUrl() + "/put/" + objectType, transferMillis, REL_SUCCESS);
         } catch (MalformedRecordException e) {
             getLogger().error("Couldn't read records from input", e);
             transferToFailure(session, flowFile, e.getMessage());

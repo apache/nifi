@@ -317,7 +317,7 @@ public class TransformXml extends AbstractProcessor {
                 }
             });
             session.transfer(transformed, REL_SUCCESS);
-            session.getProvenanceReporter().modifyContent(transformed, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().modifyContent(transformed, stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
             getLogger().info("Transformation Completed {}", original);
         } catch (final ProcessException e) {
             getLogger().error("Transformation Failed", original, e);

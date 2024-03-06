@@ -286,7 +286,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
                 final String url = DRIVE_URL + uploadedFile.getId();
                 flowFile = session.putAllAttributes(flowFile, attributes);
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                session.getProvenanceReporter().send(flowFile, url, transferMillis);
+                session.getProvenanceReporter().send(flowFile, url, transferMillis, REL_SUCCESS);
             }
             session.transfer(flowFile, REL_SUCCESS);
         } catch (GoogleJsonResponseException e) {

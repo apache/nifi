@@ -253,7 +253,8 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                                             flowFile,
                                             destinationName,
                                             String.format(eventTemplate, processedRecords),
-                                            transmissionMillis);
+                                            transmissionMillis,
+                                            REL_SUCCESS);
 
                                     processSession.transfer(flowFile, REL_SUCCESS);
                                 }
@@ -264,7 +265,8 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                                             flowFile,
                                             destinationName,
                                             String.format(PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE, processedRecords),
-                                            transmissionMillis);
+                                            transmissionMillis,
+                                            REL_FAILURE);
 
                                     handleException(context, processSession, publisher, flowFile, e);
                                 }
@@ -273,7 +275,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                 } else {
                     processStandardFlowFile(context, processSession, publisher, flowFile, destinationName, charset, attributesToSend);
                     processSession.transfer(flowFile, REL_SUCCESS);
-                    processSession.getProvenanceReporter().send(flowFile, destinationName);
+                    processSession.getProvenanceReporter().send(flowFile, destinationName, REL_SUCCESS);
                 }
             } catch (Exception e) {
                 handleException(context, processSession, publisher, flowFile, e);

@@ -98,6 +98,6 @@ public class WriteToFile extends AbstractProcessor {
         session.transfer(flowFile, REL_SUCCESS);
 
         getLogger().info("Wrote one FlowFile of size {} to {}", flowFile.getSize(), file.getAbsolutePath());
-        session.getProvenanceReporter().send(flowFile, file.toURI().toString());
+        session.getProvenanceReporter().send(flowFile, file.toURI().toString(), REL_SUCCESS);
     }
 }

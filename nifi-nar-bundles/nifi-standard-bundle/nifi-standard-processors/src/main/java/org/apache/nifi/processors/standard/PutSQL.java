@@ -460,7 +460,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             // Emit a Provenance SEND event
             final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - fc.startNanos);
             for (final FlowFile flowFile : sentFlowFiles) {
-                session.getProvenanceReporter().send(flowFile, url, transmissionMillis, true);
+                session.getProvenanceReporter().send(flowFile, url, transmissionMillis, true, REL_SUCCESS);
             }
         }
     };

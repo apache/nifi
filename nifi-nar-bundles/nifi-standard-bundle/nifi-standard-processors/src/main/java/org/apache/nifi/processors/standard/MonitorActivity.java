@@ -333,7 +333,7 @@ public class MonitorActivity extends AbstractProcessor {
                     }
                 });
 
-                session.getProvenanceReporter().create(inactiveFlowFile);
+                session.getProvenanceReporter().create(inactiveFlowFile, null, REL_INACTIVE);
                 session.transfer(inactiveFlowFile, REL_INACTIVE);
                 logger.info("Transferred {} to 'inactive'", new Object[]{inactiveFlowFile});
             } else {
@@ -411,7 +411,7 @@ public class MonitorActivity extends AbstractProcessor {
                 final byte[] outBytes = context.getProperty(ACTIVITY_RESTORED_MESSAGE).evaluateAttributeExpressions(activityRestoredFlowFile).getValue().getBytes(UTF8);
                 activityRestoredFlowFile = session.write(activityRestoredFlowFile, out -> out.write(outBytes));
 
-                session.getProvenanceReporter().create(activityRestoredFlowFile);
+                session.getProvenanceReporter().create(activityRestoredFlowFile, null, REL_ACTIVITY_RESTORED);
                 session.transfer(activityRestoredFlowFile, REL_ACTIVITY_RESTORED);
                 logger.info("Transferred {} to 'activity.restored'", new Object[]{activityRestoredFlowFile});
             }

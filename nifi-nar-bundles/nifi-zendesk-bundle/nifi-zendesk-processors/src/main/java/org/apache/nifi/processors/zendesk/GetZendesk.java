@@ -173,7 +173,7 @@ public class GetZendesk extends AbstractZendesk {
             int recordCount = resultCount.get();
             if (recordCount > 0) {
                 FlowFile updatedFlowFile = session.putAttribute(createdFlowFile, RECORD_COUNT_ATTRIBUTE_NAME, Integer.toString(recordCount));
-                session.getProvenanceReporter().receive(updatedFlowFile, uri.toString());
+                session.getProvenanceReporter().receive(updatedFlowFile, uri.toString(), REL_SUCCESS);
                 session.transfer(updatedFlowFile, REL_SUCCESS);
             } else {
                 session.remove(createdFlowFile);

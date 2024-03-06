@@ -201,7 +201,7 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
 
             long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             String transitUri = attributes.get(ATTR_NAME_PRIMARY_URI);
-            session.getProvenanceReporter().send(flowFile, transitUri, transferMillis);
+            session.getProvenanceReporter().send(flowFile, transitUri, transferMillis, REL_SUCCESS);
         } catch (Exception e) {
             getLogger().error("Failed to create blob on Azure Blob Storage", e);
             flowFile = session.penalize(flowFile);

@@ -450,7 +450,7 @@ public class GetFile extends AbstractProcessor {
                     flowFile = session.putAllAttributes(flowFile, attributes);
                 }
 
-                session.getProvenanceReporter().receive(flowFile, file.toURI().toString(), importMillis);
+                session.getProvenanceReporter().receive(flowFile, file.toURI().toString(), importMillis, REL_SUCCESS);
                 session.transfer(flowFile, REL_SUCCESS);
                 logger.info("added {} to flow", flowFile);
 

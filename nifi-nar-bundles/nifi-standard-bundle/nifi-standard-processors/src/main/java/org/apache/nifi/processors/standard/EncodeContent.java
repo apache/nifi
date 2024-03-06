@@ -121,7 +121,7 @@ public class EncodeContent extends AbstractProcessor {
             flowFile = session.write(flowFile, callback);
 
             getLogger().info("{} completed {}", encode ? "Encoding" : "Decoding", flowFile);
-            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final Exception e) {
             getLogger().error("{} failed {}", encode ? "Encoding" : "Decoding", flowFile, e);

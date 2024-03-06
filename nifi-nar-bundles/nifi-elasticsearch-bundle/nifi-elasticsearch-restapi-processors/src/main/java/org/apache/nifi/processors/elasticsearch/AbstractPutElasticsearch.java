@@ -216,10 +216,12 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
     void transferFlowFilesOnException(final Exception ex, final Relationship rel, final ProcessSession session,
                                       final boolean penalize, final FlowFile... flowFiles) {
         for (FlowFile flowFile : flowFiles) {
-            flowFile = session.putAttribute(flowFile, "elasticsearch.put.error", ex.getMessage() == null ? "null" : ex.getMessage());
+            final String errorMessage = ex.getMessage() == null ? "null" : ex.getMessage();
+            flowFile = session.putAttribute(flowFile, "elasticsearch.put.error", errorMessage);
             if (penalize) {
                 session.penalize(flowFile);
             }
+            session.getProvenanceReporter().route(flowFile, rel, errorMessage);
             session.transfer(flowFile, rel);
         }
     }

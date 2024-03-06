@@ -99,11 +99,11 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
                 final DataLakeFileClient fileClient = directoryClient.getFileClient(fileName);
                 fileClient.delete();
                 session.transfer(flowFile, REL_SUCCESS);
-                session.getProvenanceReporter().invokeRemoteProcess(flowFile, fileClient.getFileUrl(), "File deleted");
+                session.getProvenanceReporter().invokeRemoteProcess(flowFile, fileClient.getFileUrl(), "File deleted", REL_SUCCESS);
             } else {
                 directoryClient.deleteWithResponse(true, new DataLakeRequestConditions(), Duration.ofSeconds(10), Context.NONE);
                 session.transfer(flowFile, REL_SUCCESS);
-                session.getProvenanceReporter().invokeRemoteProcess(flowFile, directoryClient.getDirectoryUrl(), "Directory deleted");
+                session.getProvenanceReporter().invokeRemoteProcess(flowFile, directoryClient.getDirectoryUrl(), "Directory deleted", REL_SUCCESS);
             }
         } catch (Exception e) {
             getLogger().error("Failed to delete the specified file from Azure Data Lake Storage", e);

@@ -479,15 +479,15 @@ public class SelectHive3QL extends AbstractHive3QLProcessor {
                         flowfile = session.putAllAttributes(flowfile, attributes);
 
                         logger.info("{} contains {} " + outputFormat + " records; transferring to 'success'",
-                                new Object[]{flowfile, nrOfRows.get()});
+                                flowfile, nrOfRows.get());
 
                         if (context.hasIncomingConnection()) {
                             // If the flow file came from an incoming connection, issue a Fetch provenance event
                             session.getProvenanceReporter().fetch(flowfile, dbcpService.getConnectionURL(),
-                                    "Retrieved " + nrOfRows.get() + " rows", stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                                    "Retrieved " + nrOfRows.get() + " rows", stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
                         } else {
                             // If we created a flow file from rows received from Hive, issue a Receive provenance event
-                            session.getProvenanceReporter().receive(flowfile, dbcpService.getConnectionURL(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                            session.getProvenanceReporter().receive(flowfile, dbcpService.getConnectionURL(), stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
                         }
                         resultSetFlowFiles.add(flowfile);
                     } else {

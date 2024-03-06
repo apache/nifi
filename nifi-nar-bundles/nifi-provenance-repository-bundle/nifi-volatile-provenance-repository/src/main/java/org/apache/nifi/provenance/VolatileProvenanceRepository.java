@@ -786,7 +786,7 @@ public class VolatileProvenanceRepository extends AbstractProvenanceRepository {
         }
     }
 
-    private static class IdEnrichedProvEvent implements ProvenanceEventRecord {
+    private static class IdEnrichedProvEvent implements UpdateableProvenanceEventRecord {
 
         private final ProvenanceEventRecord record;
         private final long id;
@@ -802,13 +802,22 @@ public class VolatileProvenanceRepository extends AbstractProvenanceRepository {
         }
 
         @Override
+        public void setEventId(long eventId) {
+            if (record instanceof UpdateableProvenanceEventRecord) {
+                ((UpdateableProvenanceEventRecord) record).setEventId(eventId);
+            }
+        }
+
+        @Override
         public List<Long> getPreviousEventIds() {
             return record.getPreviousEventIds();
         }
 
         @Override
         public void setPreviousEventIds(List<Long> previousEventIds) {
-            record.setPreviousEventIds(previousEventIds);
+            if (record instanceof UpdateableProvenanceEventRecord) {
+                ((UpdateableProvenanceEventRecord) record).setPreviousEventIds(previousEventIds);
+            }
         }
 
         @Override

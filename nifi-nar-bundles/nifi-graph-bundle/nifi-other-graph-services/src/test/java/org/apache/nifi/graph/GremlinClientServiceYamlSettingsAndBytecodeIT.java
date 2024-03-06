@@ -46,7 +46,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 @Testcontainers
 public class GremlinClientServiceYamlSettingsAndBytecodeIT {
-    private TestRunner runner;
     private TestableGremlinClientService clientService;
 
     @BeforeEach
@@ -55,7 +54,7 @@ public class GremlinClientServiceYamlSettingsAndBytecodeIT {
         String remoteYamlFile = "src/test/resources/gremlin.yml";
         String customJarFile = "src/test/resources/gremlin-util-3.7.0.jar";
         clientService = new TestableGremlinClientService();
-        runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("gremlinService", clientService);
         runner.setProperty(clientService, TinkerpopClientService.CONNECTION_SETTINGS, "yaml-settings");
         runner.setProperty(clientService, TinkerpopClientService.SUBMISSION_TYPE, "bytecode-submission");
@@ -84,7 +83,7 @@ public class GremlinClientServiceYamlSettingsAndBytecodeIT {
 
     @Test
     public void testValueMap() {
-        String gremlin = "[result: g.V().hasLabel('dog').valueMap().collect()]";
+        final GraphQuery gremlin = new GraphQuery("[result: g.V().hasLabel('dog').valueMap().collect()]", GraphClientService.GREMLIN);
         AtomicInteger integer = new AtomicInteger();
         Map<String, String> result = clientService.executeQuery(gremlin, new HashMap<>(), (record, isMore) -> {
             Assertions.assertTrue(record.containsKey("result"));
@@ -97,7 +96,7 @@ public class GremlinClientServiceYamlSettingsAndBytecodeIT {
 
     @Test
     public void testCount() {
-        String gremlin = "[result: g.V().hasLabel('dog').count().next()]";
+        final GraphQuery gremlin = new GraphQuery("[result: g.V().hasLabel('dog').count().next()]", GraphClientService.GREMLIN);
         AtomicLong dogCount = new AtomicLong();
         Map<String, String> result = clientService.executeQuery(gremlin, new HashMap<>(), (record, isMore) -> {
             Assertions.assertTrue(record.containsKey("result"));
@@ -108,8 +107,8 @@ public class GremlinClientServiceYamlSettingsAndBytecodeIT {
 
     @Test
     public void testSubGraph() {
-        String gremlin = "[dogInE: g.V().hasLabel('dog').inE().count().next(), dogOutE: g.V().hasLabel('dog').outE().count().next(), " +
-                "dogProps: g.V().hasLabel('dog').valueMap().collect()]";
+        final GraphQuery gremlin = new GraphQuery("[dogInE: g.V().hasLabel('dog').inE().count().next(), dogOutE: g.V().hasLabel('dog').outE().count().next(), " +
+                "dogProps: g.V().hasLabel('dog').valueMap().collect()]", GraphClientService.GREMLIN);
         List<Map<String, Object>> recordSet = new ArrayList<>();
         Map<String, String> result = clientService.executeQuery(gremlin, new HashMap<>(), (record, isMore) -> {
             recordSet.add(record);

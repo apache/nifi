@@ -50,4 +50,11 @@ public class GraphQuery {
     public int hashCode() {
         return Objects.hash(query, language);
     }
+
+    @Override
+    public String toString() {
+        return "QueryRecord ["
+                + "language=" + language
+                + ", query=" + query;
+    }
 }

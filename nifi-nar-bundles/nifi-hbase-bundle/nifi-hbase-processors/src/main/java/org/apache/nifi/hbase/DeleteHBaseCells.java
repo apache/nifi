@@ -135,7 +135,7 @@ public class DeleteHBaseCells extends AbstractDeleteHBase {
             is.close();
             clientService.deleteCells(tableName, deletes);
             for (int index = 0; index < rowKeys.size(); index++) { //Could be many row keys in one flowfile.
-                session.getProvenanceReporter().invokeRemoteProcess(input, clientService.toTransitUri(tableName, rowKeys.get(index)));
+                session.getProvenanceReporter().invokeRemoteProcess(input, clientService.toTransitUri(tableName, rowKeys.get(index)), REL_SUCCESS);
             }
 
             session.transfer(input, REL_SUCCESS);

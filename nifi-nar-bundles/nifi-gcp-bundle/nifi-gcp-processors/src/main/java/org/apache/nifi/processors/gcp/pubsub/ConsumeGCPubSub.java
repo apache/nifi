@@ -237,7 +237,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubWithProxyProcessor {
                 flowFile = session.write(flowFile, out -> out.write(message.getMessage().getData().toByteArray()));
 
                 session.transfer(flowFile, REL_SUCCESS);
-                session.getProvenanceReporter().receive(flowFile, subscriptionName);
+                session.getProvenanceReporter().receive(flowFile, subscriptionName, REL_SUCCESS);
             }
         }
 

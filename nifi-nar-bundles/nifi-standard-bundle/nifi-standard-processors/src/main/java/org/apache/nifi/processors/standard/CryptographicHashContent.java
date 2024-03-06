@@ -144,17 +144,17 @@ public class CryptographicHashContent extends AbstractProcessor {
 
             // Determine the destination attribute name
             final String attributeName = "content_" + algorithmName;
-            logger.debug("Writing {} hash to attribute '{}'", new Object[]{algorithmName, attributeName});
+            logger.debug("Writing {} hash to attribute '{}'", algorithmName, attributeName);
 
             // Write the attribute
             flowFile = session.putAttribute(flowFile, attributeName, hashValueHolder.get());
             logger.info("Successfully added attribute '{}' to {} with a value of {}; routing to success", new Object[]{attributeName, flowFile, hashValueHolder.get()});
 
             // Update provenance and route to success
-            session.getProvenanceReporter().modifyAttributes(flowFile);
+            session.getProvenanceReporter().modifyAttributes(flowFile, REL_SUCCESS);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (ProcessException e) {
-            logger.error("Failed to process {} due to {}; routing to failure", new Object[]{flowFile, e});
+            logger.error("Failed to process {} due to {}; routing to failure", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }

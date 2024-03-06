@@ -314,7 +314,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
 
         flowFile = session.putAttribute(flowFile, ICEBERG_RECORD_COUNT, String.valueOf(recordCount));
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        session.getProvenanceReporter().send(flowFile, table.location(), transferMillis);
+        session.getProvenanceReporter().send(flowFile, table.location(), transferMillis, REL_SUCCESS);
         session.transfer(flowFile, REL_SUCCESS);
     }
 

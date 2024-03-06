@@ -175,7 +175,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
                 flowFile = session.putAllAttributes(flowFile, attributes);
 
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                session.getProvenanceReporter().send(flowFile, fileUrl, transferMillis);
+                session.getProvenanceReporter().send(flowFile, fileUrl, transferMillis, REL_SUCCESS);
             }
 
             session.transfer(flowFile, REL_SUCCESS);

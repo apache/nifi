@@ -470,7 +470,7 @@ public class ExtractText extends AbstractProcessor {
 
         if (!regexResults.isEmpty()) {
             flowFile = session.putAllAttributes(flowFile, regexResults);
-            session.getProvenanceReporter().modifyAttributes(flowFile);
+            session.getProvenanceReporter().modifyAttributes(flowFile, REL_MATCH);
             session.transfer(flowFile, REL_MATCH);
             logger.info("Matched {} Regular Expressions and added attributes to FlowFile {}", new Object[]{regexResults.size(), flowFile});
         } else {

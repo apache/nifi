@@ -213,7 +213,7 @@ public class ConsumeGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
         flowFile = session.write(flowFile, out -> out.write(message.getMessage().getData().toStringUtf8().getBytes()));
 
         session.transfer(flowFile, REL_SUCCESS);
-        session.getProvenanceReporter().receive(flowFile, context.getProperty(SUBSCRIPTION).evaluateAttributeExpressions().getValue());
+        session.getProvenanceReporter().receive(flowFile, context.getProperty(SUBSCRIPTION).evaluateAttributeExpressions().getValue(), REL_SUCCESS);
 
         message.getConsumer().ack();
     }

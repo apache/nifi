@@ -141,7 +141,7 @@ public class PutTCP extends AbstractPutEventProcessor<InputStream> {
             }
 
             final FlowFile processedFlowFile = session.putAttribute(flowFile, RECORD_COUNT_TRANSMITTED, Integer.toString(recordCount));
-            session.getProvenanceReporter().send(processedFlowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().send(processedFlowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
             session.transfer(processedFlowFile, REL_SUCCESS);
             session.commitAsync();
         } catch (final Exception e) {

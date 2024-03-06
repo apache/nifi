@@ -554,7 +554,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         failureFlowFile = session.putAllAttributes(failureFlowFile, attributes);
 
         final String transitUri = StandardTransitUriProvider.getTransitUri(securityProtocol, bootstrapServers, consumerRecord.topic());
-        session.getProvenanceReporter().receive(failureFlowFile, transitUri);
+        session.getProvenanceReporter().receive(failureFlowFile, transitUri, REL_PARSE_FAILURE);
 
         session.transfer(failureFlowFile, REL_PARSE_FAILURE);
 
@@ -843,7 +843,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         final FlowFile newFlowFile = getProcessSession().putAllAttributes(tracker.flowFile, kafkaAttrs);
         final long executionDurationMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - leaseStartNanos);
         final String transitUri = StandardTransitUriProvider.getTransitUri(securityProtocol, bootstrapServers, tracker.topic);
-        getProcessSession().getProvenanceReporter().receive(newFlowFile, transitUri, executionDurationMillis);
+        getProcessSession().getProvenanceReporter().receive(newFlowFile, transitUri, executionDurationMillis, REL_SUCCESS);
         tracker.updateFlowFile(newFlowFile);
     }
 

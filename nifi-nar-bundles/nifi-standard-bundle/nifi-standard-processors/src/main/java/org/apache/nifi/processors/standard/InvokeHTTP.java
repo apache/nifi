@@ -858,7 +858,7 @@ public class InvokeHTTP extends AbstractProcessor {
             logRequest(logger, httpRequest);
 
             if (httpRequest.body() != null) {
-                session.getProvenanceReporter().send(requestFlowFile, url.toExternalForm(), true);
+                session.getProvenanceReporter().send(requestFlowFile, url.toExternalForm(), true, RESPONSE);
             }
 
             final long startNanos = System.nanoTime();
@@ -950,9 +950,9 @@ public class InvokeHTTP extends AbstractProcessor {
                             // emit provenance event
                             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
                             if (requestFlowFile != null) {
-                                session.getProvenanceReporter().fetch(responseFlowFile, url.toExternalForm(), millis);
+                                session.getProvenanceReporter().fetch(responseFlowFile, url.toExternalForm(), millis, RESPONSE);
                             } else {
-                                session.getProvenanceReporter().receive(responseFlowFile, url.toExternalForm(), millis);
+                                session.getProvenanceReporter().receive(responseFlowFile, url.toExternalForm(), millis, RESPONSE);
                             }
                         }
                     }
@@ -978,7 +978,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
                         final long processingDuration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
                         final String eventDetails = String.format("Response Body Attribute Added [%s] Processing Duration [%d ms]", attributeKey, processingDuration);
-                        session.getProvenanceReporter().modifyAttributes(requestFlowFile, eventDetails);
+                        session.getProvenanceReporter().modifyAttributes(requestFlowFile, eventDetails, null); // TODO
                     }
                 } finally {
                     if (outputStreamToRequestAttribute != null) {

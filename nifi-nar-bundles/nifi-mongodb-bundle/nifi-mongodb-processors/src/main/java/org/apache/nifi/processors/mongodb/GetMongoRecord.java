@@ -188,7 +188,7 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
 
             output = session.putAllAttributes(output, attributes);
 
-            session.getProvenanceReporter().fetch(output, getURI(context));
+            session.getProvenanceReporter().fetch(output, getURI(context), REL_SUCCESS);
             session.transfer(output, REL_SUCCESS);
             if (input != null) {
                 session.transfer(input, REL_ORIGINAL);

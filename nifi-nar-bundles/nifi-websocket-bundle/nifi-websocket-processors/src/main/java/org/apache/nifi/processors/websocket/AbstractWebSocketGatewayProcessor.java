@@ -248,16 +248,17 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
                 );
             }
 
-            session.getProvenanceReporter().receive(messageFlowFile, getTransitUri(sessionInfo));
-
             if (incomingMessage instanceof WebSocketConnectedMessage) {
+                session.getProvenanceReporter().receive(messageFlowFile, getTransitUri(sessionInfo), REL_CONNECTED);
                 session.transfer(messageFlowFile, REL_CONNECTED);
             } else {
                 switch (Objects.requireNonNull(messageType)) {
                     case TEXT:
+                        session.getProvenanceReporter().receive(messageFlowFile, getTransitUri(sessionInfo), REL_MESSAGE_TEXT);
                         session.transfer(messageFlowFile, REL_MESSAGE_TEXT);
                         break;
                     case BINARY:
+                        session.getProvenanceReporter().receive(messageFlowFile, getTransitUri(sessionInfo), REL_MESSAGE_BINARY);
                         session.transfer(messageFlowFile, REL_MESSAGE_BINARY);
                         break;
                 }

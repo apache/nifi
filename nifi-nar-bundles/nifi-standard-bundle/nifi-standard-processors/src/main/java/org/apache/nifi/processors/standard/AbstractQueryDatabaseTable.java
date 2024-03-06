@@ -384,7 +384,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                         logger.debug("{} contains {} records; transferring to 'success'",
                                 new Object[]{fileToProcess, nrOfRows.get()});
 
-                        session.getProvenanceReporter().receive(fileToProcess, jdbcURL, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                        session.getProvenanceReporter().receive(fileToProcess, jdbcURL, stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
                         resultSetFlowFiles.add(fileToProcess);
                         // If we've reached the batch size, send out the flow files
                         if (outputBatchSize > 0 && resultSetFlowFiles.size() >= outputBatchSize) {

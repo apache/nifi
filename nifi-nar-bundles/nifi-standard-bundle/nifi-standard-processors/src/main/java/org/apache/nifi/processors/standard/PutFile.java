@@ -389,7 +389,7 @@ public class PutFile extends AbstractProcessor {
                 logger.info("Produced copy of {} at location {}", new Object[]{flowFile, finalCopyFile});
             }
 
-            session.getProvenanceReporter().send(flowFile, finalCopyFile.toFile().toURI().toString(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().send(flowFile, finalCopyFile.toFile().toURI().toString(), stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final Throwable t) {
             if (tempDotCopyFile != null) {

@@ -200,6 +200,6 @@ public class FetchGridFS extends AbstractGridFSProcessor implements QueryHelper 
         output = session.write(output, out -> bucket.downloadToStream(input.getObjectId(), out));
         output = session.putAllAttributes(output, attrs);
         session.transfer(output, REL_SUCCESS);
-        session.getProvenanceReporter().receive(output, getTransitUri(input.getObjectId(), output, context));
+        session.getProvenanceReporter().receive(output, getTransitUri(input.getObjectId(), output, context), REL_SUCCESS);
     }
 }

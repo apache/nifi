@@ -27,7 +27,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.graph.exception.GraphClientMethodNotSupported;
+import org.apache.nifi.graph.exception.GraphQueryException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
@@ -38,9 +39,9 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,7 +57,7 @@ public class ArcadeDBClientService extends AbstractControllerService implements 
             .displayName("API URL")
             .description("HTTP API URL including a scheme of http or https, as well as a hostname or IP address with optional port and path elements, for example 'http://localhost:2480/api/v1'")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
@@ -86,20 +87,11 @@ public class ArcadeDBClientService extends AbstractControllerService implements 
             .build();
     public static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
             .name("database-name")
-            .displayName("Database name")
-            .description("The name of the database the query should be invoked on.")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .displayName("Provenance Database Name")
+            .description("The name of the database upon which queries (such as provenance queries) should be invoked. If no database name is supplied, the default database will be used.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor QUERY_LANGUAGE = new PropertyDescriptor.Builder()
-            .name("query-language")
-            .displayName("Query language")
-            .description("Query language to use with ArcadeDB.")
-            .required(true)
-            .defaultValue("gremlin")
-            .allowableValues("sql", "cypher", "gremlin")
             .build();
 
     private static final String NOT_SUPPORTED = "NOT_SUPPORTED";
@@ -111,15 +103,17 @@ public class ArcadeDBClientService extends AbstractControllerService implements 
     private String databaseName;
     private String userName;
     private String password;
-    private String language;
     static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Arrays.asList(
             API_URL,
             WEB_CLIENT_SERVICE_PROVIDER,
             REQUEST_USERNAME,
             REQUEST_PASSWORD,
-            DATABASE_NAME,
-            QUERY_LANGUAGE
+            DATABASE_NAME
     );
+
+    private final QueryFromNodesBuilder cypherQueryFromNodesBuilder = new CypherQueryFromNodesBuilder();
+    private final QueryFromNodesBuilder sqlQueryFromNodesBuilder = new SqlQueryFromNodesBuilder();
+    private final QueryFromNodesBuilder gremlinQueryFromNodesBuilder = new GremlinQueryFromNodesBuilder();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -127,20 +121,22 @@ public class ArcadeDBClientService extends AbstractControllerService implements 
     }
 
     @OnEnabled
-    public void onEnabled(final ConfigurationContext context) {
+    public void onEnabled(final ConfigurationContext context) throws GraphQueryException {
         webClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE_PROVIDER).asControllerService(WebClientServiceProvider.class);
         apiUrl = context.getProperty(API_URL).evaluateAttributeExpressions().getValue();
         databaseName = context.getProperty(DATABASE_NAME).evaluateAttributeExpressions().getValue();
         userName = context.getProperty(REQUEST_USERNAME).getValue();
         password = context.getProperty(REQUEST_PASSWORD).getValue();
-        language = context.getProperty(QUERY_LANGUAGE).getValue();
         uri = getUri();
+
+        // TODO add a USE statement for the database name
     }
 
     @Override
-    public Map<String, String> executeQuery(final String query, final Map<String, Object> parameters, final GraphQueryResultCallback handler) {
+    public Map<String, String> executeQuery(final GraphQuery graphQuery, final Map<String, Object> parameters, final GraphQueryResultCallback handler) throws GraphQueryException {
+        final String query = graphQuery.getQuery();
         getLogger().info("Executing Query:\n" + query);
-        final ArcadeDbRequestBody body = new ArcadeDbRequestBody(language, query, parameters);
+        final ArcadeDbRequestBody body = new ArcadeDbRequestBody(graphQuery.getLanguage(), query, parameters);
         final HttpResponseEntity httpResponseEntity = getHttpResponseEntity(body);
 
         final int responseStatusCode = httpResponseEntity.statusCode();
@@ -153,7 +149,7 @@ public class ArcadeDBClientService extends AbstractControllerService implements 
             } catch (IOException ioe) {
                 getLogger().error("Error reading body of response", ioe);
             }
-            throw new ProcessException("Query execution failed with status code " + responseStatusCode + " and error message " + response);
+            throw new GraphQueryException("Query execution failed with status code " + responseStatusCode + " and error message " + response);
         }
 
         try (final JsonParser jsonParser = MAPPER.getFactory().createParser(httpResponseEntity.body())) {
@@ -189,11 +185,11 @@ public class ArcadeDBClientService extends AbstractControllerService implements 
 
             return resultAttributes;
         } catch (IOException e) {
-            throw new ProcessException("Failed to process request " + body.getCommand(), e);
+            throw new GraphQueryException("Failed to process request " + body.getCommand(), e);
         }
     }
 
-    private HttpResponseEntity getHttpResponseEntity(final ArcadeDbRequestBody body) {
+    private HttpResponseEntity getHttpResponseEntity(final ArcadeDbRequestBody body) throws GraphQueryException {
         final String valueToEncode = String.format("%s:%s", userName, password);
         final String credential = "Basic " + Base64.getEncoder().encodeToString(valueToEncode.getBytes());
 
@@ -207,15 +203,15 @@ public class ArcadeDBClientService extends AbstractControllerService implements 
                     .retrieve();
 
         } catch (IOException e) {
-            throw new ProcessException("Failed to execute query " + body.getCommand(), e);
+            throw new GraphQueryException("Failed to execute query " + body.getCommand(), e);
         }
     }
 
-    private URI getUri() {
+    private URI getUri() throws GraphQueryException {
         try {
             return new URI(normalizeURL(apiUrl + "/command/" + databaseName));
         } catch (URISyntaxException e) {
-            throw new ProcessException("Invalid url", e);
+            throw new GraphQueryException("Invalid url", e);
         }
     }
 
@@ -225,21 +221,51 @@ public class ArcadeDBClientService extends AbstractControllerService implements 
     }
 
     @Override
-    public List<GraphQuery> buildQueryFromNodes(final List<Map<String, Object>> nodeList, final Map<String, Object> parameters) {
-        // Build queries from event list
-        if (GraphClientService.GREMLIN.equals(language)) {
-            return new GremlinQueryFromNodesBuilder().getQueries(nodeList);
-        } else if (GraphClientService.SQL.equals(language)) {
-            return new SqlQueryFromNodesBuilder().getQueries(nodeList);
-        } else if (GraphClientService.CYPHER.equals(language)) {
-            return new CypherQueryFromNodesBuilder().getQueries(nodeList);
-        }
-        return Collections.emptyList();
+    public List<GraphQuery> convertActionsToQueries(final List<Map<String, Object>> nodeList) {
+        return new ArrayList<>(0);
+    }
+    @Override
+    public List<GraphQuery> buildFlowGraphQueriesFromNodes(List<Map<String, Object>> nodeList, Map<String, Object> parameters) {
+        // Use Cypher
+        return cypherQueryFromNodesBuilder.getFlowGraphQueries(nodeList);
+    }
+
+    @Override
+    public List<GraphQuery> buildProvenanceQueriesFromNodes(final List<Map<String, Object>> nodeList, final Map<String, Object> parameters, final boolean includeFlowGraph) {
+        return cypherQueryFromNodesBuilder.getProvenanceQueries(nodeList, includeFlowGraph);
+    }
+
+    @Override
+    public List<GraphQuery> generateCreateDatabaseQueries(final String databaseName, final boolean isCompositeDatabase) throws GraphClientMethodNotSupported {
+        // Cypher for Gremlin (used by ArcadeDB) doesn't support creating DBs
+        // Return an empty list for now, TODO use server REST API rather than a query language
+        getLogger().warn(this.getClass().getSimpleName() + " does not support creating databases from queries, will use default database");
+        return new ArrayList<>(0);
+    }
+
+    @Override
+    public List<GraphQuery> generateCreateIndexQueries(final String databaseName, final boolean isCompositeDatabase) throws GraphClientMethodNotSupported {
+        return cypherQueryFromNodesBuilder.generateCreateIndexQueries(databaseName, isCompositeDatabase);
+    }
+
+    @Override
+    public List<GraphQuery> generateInitialVertexTypeQueries(final String databaseName, final boolean isCompositeDatabase) throws GraphClientMethodNotSupported {
+        return cypherQueryFromNodesBuilder.generateInitialVertexTypeQueries(databaseName, isCompositeDatabase);
+    }
+
+    @Override
+    public List<GraphQuery> generateInitialEdgeTypeQueries(final String databaseName, final boolean isCompositeDatabase) throws GraphClientMethodNotSupported {
+        return cypherQueryFromNodesBuilder.generateInitialEdgeTypeQueries(databaseName, isCompositeDatabase);
+    }
+
+    public String getDatabaseName() {
+        return databaseName;
     }
 
     private String normalizeURL(final String url) {
         return url.replaceAll("(?<!http:|https:)/+/", "/");
     }
+
 
     private static class ArcadeDbRequestBody {
         private final String language;

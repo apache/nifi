@@ -222,7 +222,7 @@ public class ResizeImage extends AbstractProcessor {
             return;
         }
 
-        session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+        session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
         session.transfer(flowFile, REL_SUCCESS);
     }
 

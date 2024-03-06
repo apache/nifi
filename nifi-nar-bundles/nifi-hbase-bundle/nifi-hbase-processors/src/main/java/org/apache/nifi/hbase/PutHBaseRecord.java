@@ -282,7 +282,7 @@ public class PutHBaseRecord extends AbstractPutHBase {
 
         if (!failed) {
             if (columns > 0) {
-                sendProvenance(session, flowFile, columns, System.nanoTime() - start, last);
+                sendProvenance(session, flowFile, columns, System.nanoTime() - start, last, REL_SUCCESS);
             }
             flowFile = session.removeAttribute(flowFile, "restart.index");
             session.transfer(flowFile, REL_SUCCESS);
@@ -290,16 +290,16 @@ public class PutHBaseRecord extends AbstractPutHBase {
             String restartIndex = Integer.toString(index - flowFiles.size());
             flowFile = session.putAttribute(flowFile, "restart.index", restartIndex);
             if (columns > 0) {
-                sendProvenance(session, flowFile, columns, System.nanoTime() - start, last);
+                sendProvenance(session, flowFile, columns, System.nanoTime() - start, last, REL_FAILURE);
             }
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
 
-    private void sendProvenance(ProcessSession session, FlowFile flowFile, int columns, long time, PutFlowFile pff) {
+    private void sendProvenance(ProcessSession session, FlowFile flowFile, int columns, long time, PutFlowFile pff, Relationship relationship) {
         final String details = String.format("Put %d cells to HBase.", columns);
-        session.getProvenanceReporter().send(flowFile, getTransitUri(pff), details, time);
+        session.getProvenanceReporter().send(flowFile, getTransitUri(pff), details, time, relationship);
     }
 
     @Override

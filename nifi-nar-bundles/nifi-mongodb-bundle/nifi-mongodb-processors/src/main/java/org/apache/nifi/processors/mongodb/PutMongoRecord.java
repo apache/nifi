@@ -60,6 +60,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.nifi.mongodb.MongoDBClientService.URI;
+
 @Tags({"mongodb", "insert", "update", "upsert", "record", "put"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("This processor is a record-aware processor for inserting/upserting data into MongoDB. It uses a configured record reader and " +
@@ -267,7 +269,10 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             error = true;
         } finally {
             if (!error) {
-                session.getProvenanceReporter().send(flowFile, clientService.getURI(), String.format("Written %d documents to MongoDB.", written));
+                String url = clientService != null
+                        ? clientService.getURI()
+                        : context.getProperty(URI).evaluateAttributeExpressions().getValue();
+                session.getProvenanceReporter().send(flowFile, url, String.format("Written %d documents to MongoDB.", written), REL_SUCCESS);
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().info("Written {} records into MongoDB", new Object[]{ written });
             }

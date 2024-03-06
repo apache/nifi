@@ -329,7 +329,7 @@ public class ParseCEF extends AbstractProcessor {
                     flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
 
                     // Update the provenance for good measure
-                    session.getProvenanceReporter().modifyContent(flowFile, "Replaced content with parsed CEF fields and values");
+                    session.getProvenanceReporter().modifyContent(flowFile, "Replaced content with parsed CEF fields and values", REL_SUCCESS);
                     break;
             }
 

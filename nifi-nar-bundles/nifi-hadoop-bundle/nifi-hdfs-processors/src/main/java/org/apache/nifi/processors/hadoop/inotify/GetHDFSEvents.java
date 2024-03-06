@@ -216,7 +216,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
                         final String transitUri = path.startsWith("/") ? "hdfs:/" + path : "hdfs://" + path;
                         getLogger().debug("Transferring flow file {} and creating provenance event with URI {}.", new Object[]{flowFile, transitUri});
                         session.transfer(flowFile, REL_SUCCESS);
-                        session.getProvenanceReporter().receive(flowFile, transitUri);
+                        session.getProvenanceReporter().receive(flowFile, transitUri, REL_SUCCESS);
                     }
                 }
 

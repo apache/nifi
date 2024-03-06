@@ -288,7 +288,7 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
 
             if (!aggsFlowFiles.isEmpty()) {
                 session.transfer(aggsFlowFiles, REL_AGGREGATIONS);
-                aggsFlowFiles.forEach(ff -> session.getProvenanceReporter().receive(ff, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS)));
+                aggsFlowFiles.forEach(ff -> session.getProvenanceReporter().receive(ff, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_AGGREGATIONS));
             }
         }
     }
@@ -380,7 +380,7 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
         // output any results
         if (!hitsFlowFiles.isEmpty()) {
             session.transfer(hitsFlowFiles, REL_HITS);
-            hitsFlowFiles.forEach(ff -> session.getProvenanceReporter().receive(ff, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS)));
+            hitsFlowFiles.forEach(ff -> session.getProvenanceReporter().receive(ff, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_HITS));
             hitsFlowFiles.clear();
         }
     }

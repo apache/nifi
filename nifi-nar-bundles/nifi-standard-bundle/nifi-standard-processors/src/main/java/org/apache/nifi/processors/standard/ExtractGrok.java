@@ -320,7 +320,7 @@ public class ExtractGrok extends AbstractProcessor {
                 }
 
                 flowFile = session.putAllAttributes(flowFile, grokResults);
-                session.getProvenanceReporter().modifyAttributes(flowFile);
+                session.getProvenanceReporter().modifyAttributes(flowFile, REL_MATCH);
                 session.transfer(flowFile, REL_MATCH);
                 getLogger().info("Matched {} Grok Expressions and added attributes to FlowFile {}", grokResults.size(), flowFile);
 
@@ -328,7 +328,7 @@ public class ExtractGrok extends AbstractProcessor {
             case FLOWFILE_CONTENT:
                 FlowFile conFlowfile = session.write(flowFile, outputStream -> objectMapper.writeValue(outputStream, captureMap));
                 conFlowfile = session.putAttribute(conFlowfile, CoreAttributes.MIME_TYPE.key(), APPLICATION_JSON);
-                session.getProvenanceReporter().modifyContent(conFlowfile, "Replaced content with parsed Grok fields and values", stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                session.getProvenanceReporter().modifyContent(conFlowfile, "Replaced content with parsed Grok fields and values", stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_MATCH);
                 session.transfer(conFlowfile, REL_MATCH);
 
                 break;

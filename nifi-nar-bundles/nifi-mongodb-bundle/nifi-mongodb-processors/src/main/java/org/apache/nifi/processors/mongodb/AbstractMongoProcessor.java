@@ -221,7 +221,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         flowFile = session.importFrom(new ByteArrayInputStream(payload.getBytes(charset)), flowFile);
         flowFile = session.putAllAttributes(flowFile, extraAttributes);
         if (parent == null) {
-            session.getProvenanceReporter().receive(flowFile, getURI(context));
+            session.getProvenanceReporter().receive(flowFile, getURI(context), rel);
         }
         session.transfer(flowFile, rel);
     }

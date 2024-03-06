@@ -36,9 +36,9 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
-import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.graph.exception.GraphClientMethodNotSupported;
 import org.apache.nifi.graph.gremlin.SimpleEntry;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -72,7 +72,7 @@ import java.util.concurrent.ConcurrentHashMap;
         "Bytecode submission allows much more flexibility. When providing a jar, custom serializers can be used and pre-compiled graph logic can be utilized by groovy scripts" +
         "provided by processors such as the ExecuteGraphQueryRecord.")
 @RequiresInstanceClassLoading
-public class TinkerpopClientService extends AbstractControllerService implements GraphClientService {
+public class TinkerpopClientService extends AbstractTinkerpopClientService implements GraphClientService {
     public static final String NOT_SUPPORTED = "NOT_SUPPORTED";
     private static final AllowableValue BYTECODE_SUBMISSION = new AllowableValue("bytecode-submission", "ByteCode Submission",
             "Groovy scripts are compiled within NiFi, with the GraphTraversalSource injected as a variable 'g'. Effectively allowing " +
@@ -106,38 +106,6 @@ public class TinkerpopClientService extends AbstractControllerService implements
             .allowableValues(SERVICE_SETTINGS, YAML_SETTINGS)
             .defaultValue("service-settings")
             .required(true)
-            .build();
-
-    public static final PropertyDescriptor CONTACT_POINTS = new PropertyDescriptor.Builder()
-            .name("tinkerpop-contact-points")
-            .displayName("Contact Points")
-            .description("A comma-separated list of hostnames or IP addresses where an Gremlin-enabled server can be found.")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .dependsOn(CONNECTION_SETTINGS, SERVICE_SETTINGS)
-            .build();
-
-    public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
-            .name("tinkerpop-port")
-            .displayName("Port")
-            .description("The port where Gremlin Server is running on each host listed as a contact point.")
-            .required(true)
-            .defaultValue("8182")
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .dependsOn(CONNECTION_SETTINGS, SERVICE_SETTINGS)
-            .build();
-
-    public static final PropertyDescriptor PATH = new PropertyDescriptor.Builder()
-            .name("tinkerpop-path")
-            .displayName("Path")
-            .description("The URL path where Gremlin Server is running on each host listed as a contact point.")
-            .required(true)
-            .defaultValue("/gremlin")
-            .addValidator(Validator.VALID)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .dependsOn(CONNECTION_SETTINGS, SERVICE_SETTINGS)
             .build();
 
     public static final PropertyDescriptor TRAVERSAL_SOURCE_NAME = new PropertyDescriptor.Builder()
@@ -232,6 +200,14 @@ public class TinkerpopClientService extends AbstractControllerService implements
             SSL_CONTEXT_SERVICE
     ));
 
+    protected Client client;
+    private ConfigurationContext context;
+
+    private String databaseName;
+
+    protected final QueryFromNodesBuilder gremlinQueryFromNodesBuilder = new GremlinQueryFromNodesBuilder();
+
+
     private GroovyShell groovyShell;
     private Map<String, Script> compiledCode;
     protected Cluster cluster;
@@ -254,8 +230,9 @@ public class TinkerpopClientService extends AbstractControllerService implements
         }
 
         scriptSubmission = context.getProperty(SUBMISSION_TYPE).getValue().equals(SCRIPT_SUBMISSION.getValue());
-
+        this.context = context;
         cluster = buildCluster(context);
+        client = cluster.connect();
     }
 
     @OnDisabled
@@ -268,24 +245,38 @@ public class TinkerpopClientService extends AbstractControllerService implements
         } catch (Exception e) {
             throw new ProcessException(e);
         } finally {
+            if (client != null) {
+                client.close();
+            }
             if (cluster != null) {
                 cluster.close();
             }
+            client = null;
             cluster = null;
             traversalSource = null;
         }
     }
 
     @Override
-    public Map<String, String> executeQuery(String s, Map<String, Object> map, GraphQueryResultCallback graphQueryResultCallback) {
+    public Map<String, String> executeQuery(GraphQuery graphQuery, Map<String, Object> map, GraphQueryResultCallback graphQueryResultCallback) {
+        final String query = graphQuery.getQuery();
         try {
             if (scriptSubmission) {
-                return scriptSubmission(s, map, graphQueryResultCallback);
+                return scriptSubmission(query, map, graphQueryResultCallback);
             } else {
-                return bytecodeSubmission(s, map, graphQueryResultCallback);
+                return bytecodeSubmission(query, map, graphQueryResultCallback);
             }
         } catch (Exception ex) {
-            throw new ProcessException(ex);
+            // Attempt to reconnect
+            cluster.close();
+            client.close();
+            cluster = buildCluster(context);
+            client = cluster.connect();
+            if (scriptSubmission) {
+                return scriptSubmission(query, map, graphQueryResultCallback);
+            } else {
+                return bytecodeSubmission(query, map, graphQueryResultCallback);
+            }
         }
     }
 
@@ -472,16 +463,16 @@ public class TinkerpopClientService extends AbstractControllerService implements
             if (result instanceof Map) {
                 Map<String, Object> resultMap = (Map<String, Object>) result;
                 if (!resultMap.isEmpty()) {
-                    Iterator outerResultSet = resultMap.entrySet().iterator();
+                    Iterator<?> outerResultSet = resultMap.entrySet().iterator();
                     while (outerResultSet.hasNext()) {
                         Map.Entry<String, Object> innerResultSet = (Map.Entry<String, Object>) outerResultSet.next();
                         if (innerResultSet.getValue() instanceof Map) {
-                            Iterator resultSet = ((Map) innerResultSet.getValue()).entrySet().iterator();
+                            Iterator<?> resultSet = ((Map<?,?>) innerResultSet.getValue()).entrySet().iterator();
                             while (resultSet.hasNext()) {
                                 Map.Entry<String, Object> tempResult = (Map.Entry<String, Object>) resultSet.next();
                                 Map<String, Object> tempRetObject = new HashMap<>();
                                 tempRetObject.put(tempResult.getKey(), tempResult.getValue());
-                                SimpleEntry returnObject = new SimpleEntry<String, Object>(tempResult.getKey(), tempRetObject);
+                                SimpleEntry<String, Object> returnObject = new SimpleEntry<>(tempResult.getKey(), tempRetObject);
                                 Map<String, Object> resultReturnMap = new HashMap<>();
                                 resultReturnMap.put(innerResultSet.getKey(), returnObject);
                                 if (getLogger().isDebugEnabled()) {
@@ -520,8 +511,48 @@ public class TinkerpopClientService extends AbstractControllerService implements
         } catch (Exception e) {
             throw new ProcessException(e);
         }
-
-
         return traversal;
+    }
+
+    @Override
+    public List<GraphQuery> convertActionsToQueries(final List<Map<String, Object>> nodeList) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<GraphQuery> buildFlowGraphQueriesFromNodes(List<Map<String, Object>> eventList, Map<String, Object> parameters) {
+        // Build queries from event list
+        return gremlinQueryFromNodesBuilder.getFlowGraphQueries(eventList);
+    }
+
+    @Override
+    public List<GraphQuery> buildProvenanceQueriesFromNodes(List<Map<String, Object>> eventList, Map<String, Object> parameters, final boolean includeFlowGraph) {
+        // Build queries from event list
+        return gremlinQueryFromNodesBuilder.getProvenanceQueries(eventList, includeFlowGraph);
+    }
+
+    @Override
+    public List<GraphQuery> generateCreateDatabaseQueries(final String databaseName, final boolean isCompositeDatabase) throws GraphClientMethodNotSupported {
+        return gremlinQueryFromNodesBuilder.generateCreateDatabaseQueries(databaseName, isCompositeDatabase);
+    }
+
+    @Override
+    public List<GraphQuery> generateCreateIndexQueries(final String databaseName, final boolean isCompositeDatabase) throws GraphClientMethodNotSupported {
+        return gremlinQueryFromNodesBuilder.generateCreateIndexQueries(databaseName, isCompositeDatabase);
+    }
+
+    @Override
+    public List<GraphQuery> generateInitialVertexTypeQueries(final String databaseName, final boolean isCompositeDatabase) throws GraphClientMethodNotSupported {
+        return gremlinQueryFromNodesBuilder.generateInitialVertexTypeQueries(databaseName, isCompositeDatabase);
+    }
+
+    @Override
+    public List<GraphQuery> generateInitialEdgeTypeQueries(final String databaseName, final boolean isCompositeDatabase) throws GraphClientMethodNotSupported {
+        return gremlinQueryFromNodesBuilder.generateInitialEdgeTypeQueries(databaseName, isCompositeDatabase);
+    }
+
+    @Override
+    public String getDatabaseName() {
+        return databaseName;
     }
 }

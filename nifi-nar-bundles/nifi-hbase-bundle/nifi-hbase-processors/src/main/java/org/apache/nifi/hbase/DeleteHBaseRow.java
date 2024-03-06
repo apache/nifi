@@ -151,12 +151,12 @@ public class DeleteHBaseRow extends AbstractDeleteHBase {
                         } else {
                             final String transitUrl = clientService.toTransitUri(tableName, flowFile.getAttribute(ROWKEY_END));
                             session.transfer(flowFile, REL_SUCCESS);
-                            session.getProvenanceReporter().invokeRemoteProcess(flowFile, transitUrl);
+                            session.getProvenanceReporter().invokeRemoteProcess(flowFile, transitUrl, REL_SUCCESS);
                         }
                     } else {
                         String transitUrl = doDeleteFromAttribute(flowFile, context, tableName, charset, visibility);
                         session.transfer(flowFile, REL_SUCCESS);
-                        session.getProvenanceReporter().invokeRemoteProcess(flowFile, transitUrl);
+                        session.getProvenanceReporter().invokeRemoteProcess(flowFile, transitUrl, REL_SUCCESS);
                     }
                 } catch (Exception ex) {
                     getLogger().error(ex.getMessage(), ex);

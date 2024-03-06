@@ -112,7 +112,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
             // write raw Kinesis Record to the parse failure relationship
             getLogger().error("Failed to parse message from Kinesis Stream using configured Record Reader and Writer due to {}",
                     e.getLocalizedMessage(), e);
-            outputRawRecordOnException(firstOutputRecord, flowFile, flowFiles, session, data, kinesisRecord, e);
+            outputRawRecordOnException(firstOutputRecord, flowFile, flowFiles, session, data, kinesisRecord, e, stopWatch);
         }
 
         if (getLogger().isDebugEnabled()) {
@@ -152,7 +152,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
             }
         }
 
-        reportProvenance(session, flowFiles.get(0), null, null, stopWatch);
+        reportProvenance(session, flowFiles.get(0), null, null, stopWatch, ConsumeKinesisStream.REL_SUCCESS);
 
         final Map<String, String> attributes = getDefaultAttributes(lastRecord);
         attributes.put("record.count", String.valueOf(recordCount));
@@ -166,7 +166,8 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
 
     private void outputRawRecordOnException(final boolean firstOutputRecord, final FlowFile flowFile,
                                             final List<FlowFile> flowFiles, final ProcessSession session,
-                                            final byte[] data, final KinesisClientRecord kinesisRecord, final Exception e) {
+                                            final byte[] data, final KinesisClientRecord kinesisRecord,
+                                            final Exception e, final StopWatch stopWatch) {
         if (firstOutputRecord && flowFile != null) {
             session.remove(flowFile);
             flowFiles.remove(0);
@@ -185,7 +186,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         final Throwable c = e.getCause() != null ? e.getCause() : e;
         attributes.put("record.error.message", (c.getLocalizedMessage() != null) ? c.getLocalizedMessage() : c.getClass().getCanonicalName() + " Thrown");
         failed = session.putAllAttributes(failed, attributes);
-        transferTo(ConsumeKinesisStream.REL_PARSE_FAILURE, session, 0, 0, Collections.singletonList(failed));
+        transferTo(ConsumeKinesisStream.REL_PARSE_FAILURE, session, 0, 0, Collections.singletonList(failed), stopWatch);
     }
 
     private Map<String, String> getDefaultAttributes(final KinesisClientRecord kinesisRecord) {

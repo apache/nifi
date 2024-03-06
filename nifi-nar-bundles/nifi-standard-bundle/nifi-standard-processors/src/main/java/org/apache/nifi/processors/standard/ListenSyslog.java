@@ -405,7 +405,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
             session.adjustCounter(SUCCESS_COUNTER, 1L, false);
 
             final String transitUri = getTransitUri(flowFile);
-            session.getProvenanceReporter().receive(flowFile, transitUri);
+            session.getProvenanceReporter().receive(flowFile, transitUri, REL_SUCCESS);
         }
     }
 

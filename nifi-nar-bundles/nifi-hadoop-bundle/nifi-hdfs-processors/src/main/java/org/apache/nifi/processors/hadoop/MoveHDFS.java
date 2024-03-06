@@ -431,7 +431,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                         final Path qualifiedPath = newFile.makeQualified(hdfs.getUri(), hdfs.getWorkingDirectory());
                         flowFile = session.putAttribute(flowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
                         final String transitUri = hdfs.getUri() + StringUtils.prependIfMissing(outputPath, "/");
-                        session.getProvenanceReporter().send(flowFile, transitUri);
+                        session.getProvenanceReporter().send(flowFile, transitUri, REL_SUCCESS);
                         session.transfer(flowFile, REL_SUCCESS);
 
                     } catch (final Throwable t) {

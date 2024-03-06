@@ -97,10 +97,10 @@ public class ConvertEventToLuceneDocument {
         final List<Long> previousEventIDs = record.getPreviousEventIds();
         if (previousEventIDs != null) {
             for (Long previousEventID : previousEventIDs) {
-                doc.add(new UnIndexedLongField(SearchableFields.PreviousEventIdentifiers.getSearchableFieldName(), previousEventID));
+                doc.add(new StringField(SearchableFields.PreviousEventIdentifiers.getSearchableFieldName(), String.valueOf(previousEventID), Store.YES));
             }
         } else {
-            doc.add(new UnIndexedLongField(SearchableFields.PreviousEventIdentifiers.getSearchableFieldName(), -1L));
+            doc.add(new StringField(SearchableFields.PreviousEventIdentifiers.getSearchableFieldName(), "-1", Store.YES));
         }
 
         // If it's event is a FORK, or JOIN, add the FlowFileUUID for all child/parent UUIDs.

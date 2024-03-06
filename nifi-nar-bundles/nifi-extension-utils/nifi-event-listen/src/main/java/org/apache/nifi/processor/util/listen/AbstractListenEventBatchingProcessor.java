@@ -110,7 +110,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
 
             // the sender and command will be the same for all events based on the batch key
             final String transitUri = getTransitUri(entry.getValue());
-            session.getProvenanceReporter().receive(flowFile, transitUri);
+            session.getProvenanceReporter().receive(flowFile, transitUri, REL_SUCCESS);
 
             allEvents.addAll(events);
         }

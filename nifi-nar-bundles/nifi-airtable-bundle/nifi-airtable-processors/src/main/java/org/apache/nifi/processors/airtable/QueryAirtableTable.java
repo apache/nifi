@@ -323,7 +323,7 @@ public class QueryAirtableTable extends AbstractProcessor {
     private void transferFlowFiles(final ProcessSession session, final List<FlowFile> flowFiles, final int totalRecordCount) {
         final String transitUri = airtableRestService.createUriBuilder().build().toString();
         for (final FlowFile flowFile : flowFiles) {
-            session.getProvenanceReporter().receive(flowFile, transitUri);
+            session.getProvenanceReporter().receive(flowFile, transitUri, REL_SUCCESS);
             session.transfer(flowFile, REL_SUCCESS);
         }
         session.adjustCounter("Records Processed", totalRecordCount, false);

@@ -163,6 +163,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                 }
 
                 int failedPath = 0;
+                Path qualifiedPath = null;
                 for (Path path : pathList) {
                     if (fileSystem.exists(path)) {
                         try {
@@ -172,10 +173,9 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                             flowFile = session.putAllAttributes(flowFile, attributes);
 
                             fileSystem.delete(path, isRecursive(context, session));
-                            getLogger().debug("For flowfile {} Deleted file at path {} with name {}", new Object[]{originalFlowFile, path.getParent().toString(), path.getName()});
-                            final Path qualifiedPath = path.makeQualified(fileSystem.getUri(), fileSystem.getWorkingDirectory());
+                            getLogger().debug("For flowfile {} Deleted file at path {} with name {}", originalFlowFile, path.getParent().toString(), path.getName());
+                            qualifiedPath = path.makeQualified(fileSystem.getUri(), fileSystem.getWorkingDirectory());
                             flowFile = session.putAttribute(flowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
-                            session.getProvenanceReporter().invokeRemoteProcess(flowFile, qualifiedPath.toString());
                         } catch (IOException ioe) {
                             // One possible scenario is that the IOException is permissions based, however it would be impractical to check every possible
                             // external HDFS authorization tool (Ranger, Sentry, etc). Local ACLs could be checked but the operation would be expensive.
@@ -185,6 +185,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                             // The error message is helpful in understanding at a flowfile level what caused the IOException (which ACL is denying the operation, e.g.)
                             attributes.put(getAttributePrefix() + ".error.message", ioe.getMessage());
 
+                            session.getProvenanceReporter().invokeRemoteProcess(flowFile, qualifiedPath == null ? "" : qualifiedPath.toString(), getFailureRelationship());
                             session.transfer(session.putAllAttributes(session.clone(flowFile), attributes), getFailureRelationship());
                             failedPath++;
                         }
@@ -192,6 +193,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                 }
 
                 if (failedPath == 0) {
+                    session.getProvenanceReporter().invokeRemoteProcess(flowFile, fileSystem.getUri().toString(), getFailureRelationship());
                     session.transfer(flowFile, getSuccessRelationship());
                 } else {
                     // If any path has been failed to be deleted, remove the FlowFile as it's been cloned and sent to failure.

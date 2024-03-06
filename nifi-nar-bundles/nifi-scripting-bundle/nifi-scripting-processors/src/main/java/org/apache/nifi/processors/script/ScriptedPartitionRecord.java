@@ -225,7 +225,7 @@ public class ScriptedPartitionRecord extends ScriptedRecordProcessor {
 
                         final long millis = System.currentTimeMillis() - startMillis;
                         session.adjustCounter("Records Processed", counts.getRecordCount(), true);
-                        session.getProvenanceReporter().fork(incomingFlowFile, outgoingFlowFiles.values(), "Processed " + counts.getRecordCount() + " Records", millis);
+                        session.getProvenanceReporter().fork(incomingFlowFile, outgoingFlowFiles.values(), "Processed " + counts.getRecordCount() + " Records", millis, RELATIONSHIP_SUCCESS);
 
                     } catch (final ScriptException | SchemaNotFoundException | MalformedRecordException e) {
                         throw new ProcessException("After processing " + counts.getRecordCount() +  " Records, encountered failure when attempting to process " + incomingFlowFile, e);

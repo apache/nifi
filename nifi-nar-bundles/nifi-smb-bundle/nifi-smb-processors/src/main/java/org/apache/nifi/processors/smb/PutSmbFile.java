@@ -403,7 +403,7 @@ public class PutSmbFile extends AbstractProcessor {
                 final URI provenanceUri = new URI("smb", hostname, "/" + destinationFullPath.replace('\\', '/'), null);
                 final long processingTimeInNano = System.nanoTime() - processingStartTime;
                 final long processingTimeInMilli = TimeUnit.MILLISECONDS.convert(processingTimeInNano, TimeUnit.NANOSECONDS);
-                session.getProvenanceReporter().send(flowFile, provenanceUri.toString(), processingTimeInMilli);
+                session.getProvenanceReporter().send(flowFile, provenanceUri.toString(), processingTimeInMilli, REL_SUCCESS);
                 session.transfer(flowFile, REL_SUCCESS);
             }
         } catch (Exception e) {

@@ -346,7 +346,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             try {
                 final FlowFile flowFile = createFlowFileFromMessage(processSession, destinationName, response);
 
-                processSession.getProvenanceReporter().receive(flowFile, destinationName);
+                processSession.getProvenanceReporter().receive(flowFile, destinationName, REL_SUCCESS);
                 processSession.transfer(flowFile, REL_SUCCESS);
                 processSession.commitAsync(
                         () -> withLog(() -> acknowledge(response)),
@@ -392,7 +392,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             flowFileWriter.write(session, jmsResponses, new FlowFileWriterCallback<>() {
                 @Override
                 public void onSuccess(FlowFile flowFile, List<JMSResponse> processedMessages, List<JMSResponse> failedMessages) {
-                    session.getProvenanceReporter().receive(flowFile, destinationName);
+                    session.getProvenanceReporter().receive(flowFile, destinationName, REL_SUCCESS);
                     session.adjustCounter(COUNTER_RECORDS_RECEIVED, processedMessages.size() + failedMessages.size(), false);
                     session.adjustCounter(COUNTER_RECORDS_PROCESSED, processedMessages.size(), false);
 

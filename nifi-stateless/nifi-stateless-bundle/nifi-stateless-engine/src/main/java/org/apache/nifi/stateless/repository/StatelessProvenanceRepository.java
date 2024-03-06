@@ -28,6 +28,7 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
+import org.apache.nifi.provenance.UpdateableProvenanceEventRecord;
 import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QuerySubmission;
@@ -107,12 +108,7 @@ public class StatelessProvenanceRepository extends AbstractProvenanceRepository 
     }
 
     public ProvenanceEventRecord getEvent(final String identifier) throws IOException {
-        final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(new RingBuffer.Filter<ProvenanceEventRecord>() {
-            @Override
-            public boolean select(final ProvenanceEventRecord event) {
-                return identifier.equals(event.getFlowFileUuid());
-            }
-        }, 1);
+        final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(event -> identifier.equals(event.getFlowFileUuid()), 1);
         return records.isEmpty() ? null : records.get(0);
     }
 
@@ -208,7 +204,7 @@ public class StatelessProvenanceRepository extends AbstractProvenanceRepository 
         return null;
     }
 
-    private static class IdEnrichedProvEvent implements ProvenanceEventRecord {
+    private static class IdEnrichedProvEvent implements UpdateableProvenanceEventRecord {
 
         private final ProvenanceEventRecord record;
         private final long id;
@@ -224,13 +220,22 @@ public class StatelessProvenanceRepository extends AbstractProvenanceRepository 
         }
 
         @Override
+        public void setEventId(long eventId) {
+            if (record instanceof UpdateableProvenanceEventRecord) {
+                ((UpdateableProvenanceEventRecord) record).setEventId(eventId);
+            }
+        }
+
+        @Override
         public List<Long> getPreviousEventIds() {
             return record.getPreviousEventIds();
         }
 
         @Override
         public void setPreviousEventIds(List<Long> previousEventIds) {
-            record.setPreviousEventIds(previousEventIds);
+            if (record instanceof UpdateableProvenanceEventRecord) {
+                ((UpdateableProvenanceEventRecord) record).setPreviousEventIds(previousEventIds);
+            }
         }
 
         @Override

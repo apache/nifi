@@ -28,6 +28,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.graph.GraphClientService;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.graph.GraphQuery;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -79,6 +80,7 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
         final List<PropertyDescriptor> tempDescriptors = new ArrayList<>();
         tempDescriptors.add(CLIENT_SERVICE);
         tempDescriptors.add(QUERY);
+        tempDescriptors.add(QUERY_LANGUAGE);
 
         propertyDescriptors = Collections.unmodifiableList(tempDescriptors);
     }
@@ -97,10 +99,13 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
 
     private volatile GraphClientService clientService;
 
+    private volatile String language;
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
         clientService = context.getProperty(CLIENT_SERVICE).asControllerService(GraphClientService.class);
+        language = context.getProperty(QUERY_LANGUAGE).getValue();
     }
 
     @Override
@@ -109,11 +114,11 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
 
         FlowFile output = flowFile != null ? session.create(flowFile) : session.create();
         try (OutputStream os = session.write(output)) {
-            String query = getQuery(context, session, flowFile);
+            GraphQuery graphQuery = getQuery(context, session, flowFile);
             long startTimeMillis = System.currentTimeMillis();
 
             os.write("[".getBytes());
-            Map<String, String> resultAttrs = clientService.executeQuery(query, getParameters(context, output), (record, hasMore) -> {
+            Map<String, String> resultAttrs = clientService.executeQuery(graphQuery, getParameters(context, output), (record, hasMore) -> {
                 try {
                     String obj = mapper.writeValueAsString(record);
                     os.write(obj.getBytes());
@@ -135,7 +140,9 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
             output = session.putAllAttributes(output, resultAttrs);
             session.transfer(output, REL_SUCCESS);
             session.getProvenanceReporter().invokeRemoteProcess(output, clientService.getTransitUrl(),
-                String.format("The following query was executed in %s milliseconds: \"%s\"", executionTime, query)
+                    String.format("The following query in %s language was executed in %s milliseconds: \"%s\"",
+                            graphQuery.getLanguage(), executionTime, graphQuery.getQuery()),
+                    REL_SUCCESS
             );
             if (flowFile != null) {
                 session.transfer(flowFile, REL_ORIGINAL);
@@ -152,9 +159,12 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
         }
     }
 
-    protected String getQuery(ProcessContext context, ProcessSession session, FlowFile input) {
-        String query = context.getProperty(QUERY).evaluateAttributeExpressions(input).getValue();
-        if (StringUtils.isEmpty(query) && input != null) {
+    protected GraphQuery getQuery(ProcessContext context, ProcessSession session, FlowFile input) {
+        final String queryString = context.getProperty(QUERY).evaluateAttributeExpressions(input).getValue();
+        if (!StringUtils.isEmpty(queryString)) {
+            return new GraphQuery(queryString, language);
+        }
+        if (input != null) {
             try {
                 if (input.getSize() > (64 * 1024)) {
                     throw new Exception("Input bigger than 64kb. Cannot assume this is a valid query for Gremlin Server " +
@@ -171,12 +181,11 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
                 session.exportTo(input, out);
                 out.close();
 
-
-                query = new String(out.toByteArray());
+                return new GraphQuery(out.toString(), language);
             } catch (Exception ex) {
                 throw new ProcessException(ex);
             }
         }
-        return query;
+        throw new IllegalArgumentException(QUERY.getDisplayName() + " must be set");
     }
 }

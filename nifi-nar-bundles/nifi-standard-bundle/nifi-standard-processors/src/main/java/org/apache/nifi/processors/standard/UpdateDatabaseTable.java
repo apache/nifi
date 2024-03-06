@@ -442,7 +442,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 }
                 attributes.put(ATTR_OUTPUT_TABLE, tableName);
                 flowFile = session.putAllAttributes(flowFile, attributes);
-                session.getProvenanceReporter().invokeRemoteProcess(flowFile, getJdbcUrl(connection));
+                session.getProvenanceReporter().invokeRemoteProcess(flowFile, getJdbcUrl(connection), REL_SUCCESS);
                 session.transfer(flowFile, REL_SUCCESS);
             }
         } catch (IOException | SQLException e) {

@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,24 +39,46 @@ public class TestNeo4JCypherClientService {
     @Test
     public void testBuildQueryFromNodes() {
         final List<Map<String, Object>> nodeList = new ArrayList<>(3);
-        nodeList.add(Collections.singletonMap("name", "Matt"));
+        final Map<String,Object> node1 = new HashMap<>();
+        node1.put("entityId", "Joe");
+        node1.put("eventOrdinal", 40);
+        node1.put("entityType", "male");
+        nodeList.add(node1);
         final Map<String,Object> node2 = new HashMap<>();
-        node2.put("name", "Joe");
-        node2.put("age", 40);
-        node2.put("color", "blue");
+        node2.put("entityId", "Mary");
+        node2.put("eventOrdinal", 40);
+        node2.put("entityType", "female");
         nodeList.add(node2);
-        final Map<String,Object> node3 = new HashMap<>();
-        node3.put("name", "Mary");
-        node3.put("age", 40);
-        node3.put("state", "FL");
-        nodeList.add(node3);
 
         final List<GraphQuery> expectedQueryList = Arrays.asList(
-                new GraphQuery("MERGE (p:NiFiProvenanceEvent {name: \"Matt\"})", GraphClientService.CYPHER),
-                new GraphQuery("MERGE (p:NiFiProvenanceEvent {color: \"blue\",name: \"Joe\",age: \"40\"})", GraphClientService.CYPHER),
-                new GraphQuery("MERGE (p:NiFiProvenanceEvent {name: \"Mary\",state: \"FL\",age: \"40\"})", GraphClientService.CYPHER)
+                new GraphQuery("MERGE (p:`null`: NiFiProvenanceEvent {id: 'null'})\n" +
+                        "ON CREATE SET \n" +
+                        "\tp.eventOrdinal =40,\n" +
+                        "\tp.entityType ='male',\n" +
+                        "\tp.entityId ='Joe'\n" +
+                        "ON MATCH SET \n" +
+                        "\tp.eventOrdinal =40,\n" +
+                        "\tp.entityType ='male',\n" +
+                        "\tp.entityId ='Joe'", GraphClientService.CYPHER),
+                new GraphQuery("MERGE (ff:`male` {id: 'Joe', type:'male'})", GraphClientService.CYPHER),
+                new GraphQuery("MATCH (x:`male` {id: 'Joe'}),\n" +
+                        "(y:NiFiProvenanceEvent {eventOrdinal: '40'})\n" +
+                        "MERGE(x) <-[:entity]- (y)", GraphClientService.CYPHER),
+                new GraphQuery("MERGE (p:`null`: NiFiProvenanceEvent {id: 'null'})\n" +
+                        "ON CREATE SET \n" +
+                        "\tp.eventOrdinal =40,\n" +
+                        "\tp.entityType ='female',\n" +
+                        "\tp.entityId ='Mary'\n" +
+                        "ON MATCH SET \n" +
+                        "\tp.eventOrdinal =40,\n" +
+                        "\tp.entityType ='female',\n" +
+                        "\tp.entityId ='Mary'", GraphClientService.CYPHER),
+                new GraphQuery("MERGE (ff:`female` {id: 'Mary', type:'female'})", GraphClientService.CYPHER),
+                new GraphQuery("MATCH (x:`female` {id: 'Mary'}),\n" +
+                        "(y:NiFiProvenanceEvent {eventOrdinal: '40'})\n" +
+                        "MERGE(x) <-[:entity]- (y)", GraphClientService.CYPHER)
         );
-        final List<GraphQuery> queryList = clientService.buildQueryFromNodes(nodeList, new HashMap<>());
+        final List<GraphQuery> queryList = clientService.buildProvenanceQueriesFromNodes(nodeList, new HashMap<>(), false);
         assertEquals(expectedQueryList, queryList);
     }
 }

@@ -227,7 +227,7 @@ public class JoltTransformRecord extends AbstractJoltTransform {
 
                 final String transformType = context.getProperty(JOLT_TRANSFORM).getValue();
                 transformed = session.putAllAttributes(transformed, attributes);
-                session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transformType, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transformType, stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
                 logger.debug("Transform completed {}", original);
             }
         } catch (final Exception e) {

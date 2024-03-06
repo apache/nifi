@@ -490,7 +490,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             }
 
             session.transfer(flowFile, REL_SUCCESS);
-            session.getProvenanceReporter().send(flowFile, getJdbcUrl(connection));
+            session.getProvenanceReporter().send(flowFile, getJdbcUrl(connection), REL_SUCCESS);
         } catch (final Exception e) {
             // When an Exception is thrown, we want to route to 'retry' if we expect that attempting the same request again
             // might work. Otherwise, route to failure. SQLTransientException is a specific type that indicates that a retry may work.

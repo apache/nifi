@@ -526,9 +526,9 @@ public class PutGCSObject extends AbstractGCSProcessor {
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
 
             final String transitUri = getTransitUri(storage.getOptions().getHost(), bucket, key);
-            session.getProvenanceReporter().send(flowFile, transitUri, millis);
+            session.getProvenanceReporter().send(flowFile, transitUri, millis, REL_SUCCESS);
             getLogger().info("Successfully put {} to Google Cloud Storage in {} milliseconds",
-                    new Object[]{ff, millis});
+                    ff, millis);
 
         } catch (final ProcessException | StorageException | IOException e) {
             getLogger().error("Failed to put {} to Google Cloud Storage due to {}", flowFile, e.getMessage(), e);

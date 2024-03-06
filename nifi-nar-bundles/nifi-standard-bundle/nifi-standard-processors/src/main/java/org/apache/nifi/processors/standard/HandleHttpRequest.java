@@ -777,7 +777,7 @@ public class HandleHttpRequest extends AbstractProcessor {
       final long receiveMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
       final String subjectDn = flowFile.getAttribute(CertificateAttribute.HTTP_SUBJECT_DN.getName());
       session.getProvenanceReporter().receive(flowFile, HTTPUtils.getURI(flowFile.getAttributes()),
-          "Received from " + request.getRemoteAddr() + (subjectDn == null ? "" : " with DN=" + subjectDn), receiveMillis);
+          "Received from " + request.getRemoteAddr() + (subjectDn == null ? "" : " with DN=" + subjectDn), receiveMillis, REL_SUCCESS);
       session.transfer(flowFile, REL_SUCCESS);
       getLogger().debug("Transferred {} to [{}] Remote Address [{}] ", flowFile, REL_SUCCESS, request.getRemoteAddr());
     }

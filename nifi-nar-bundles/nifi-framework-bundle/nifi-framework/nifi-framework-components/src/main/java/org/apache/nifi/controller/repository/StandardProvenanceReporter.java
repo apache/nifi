@@ -122,7 +122,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
      * be created by the session itself, as well as by the Processor
      *
      * @param parents parents
-     * @param child child
+     * @param child   child
      * @return record
      */
     @Override
@@ -145,7 +145,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     @Override
     public ProvenanceEventRecord generateDropEvent(final FlowFile flowFile, final String details) {
         final String flowFileUUID = flowFile.getAttribute(CoreAttributes.UUID.key());
-        final ProvenanceEventRecord record =  build(flowFile, ProvenanceEventType.DROP)
+        final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.DROP)
                 .setDetails(details)
                 .setPreviousEventIds(repository.getPreviousEventIds(flowFileUUID))
                 .build();
@@ -156,7 +156,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     @Override
     public ProvenanceEventRecord generateModifyContentEvent(final FlowFile flowFile, final String details) {
         final String flowFileUUID = flowFile.getAttribute(CoreAttributes.UUID.key());
-        final ProvenanceEventRecord record =  build(flowFile, ProvenanceEventType.CONTENT_MODIFIED)
+        final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.CONTENT_MODIFIED)
                 .setDetails(details)
                 .setPreviousEventIds(repository.getPreviousEventIds(flowFileUUID))
                 .build();
@@ -167,7 +167,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     @Override
     public ProvenanceEventRecord generateModifyAttributesEvent(final FlowFile flowFile, final String details) {
         final String flowFileUUID = flowFile.getAttribute(CoreAttributes.UUID.key());
-        final ProvenanceEventRecord record =  build(flowFile, ProvenanceEventType.ATTRIBUTES_MODIFIED)
+        final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ATTRIBUTES_MODIFIED)
                 .setDetails(details)
                 .setPreviousEventIds(repository.getPreviousEventIds(flowFileUUID))
                 .build();
@@ -177,7 +177,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
 
     @Override
     public ProvenanceEventRecord generateCreateEvent(final FlowFile flowFile, final String details) {
-        final ProvenanceEventRecord record =  build(flowFile, ProvenanceEventType.CREATE)
+        final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.CREATE)
                 .setDetails(details)
                 .setPreviousEventIds(Collections.emptyList())
                 .build();
@@ -192,27 +192,28 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
-    public void receive(final FlowFile flowFile, final String transitUri) {
-        receive(flowFile, transitUri, -1L);
+    public void receive(final FlowFile flowFile, final String transitUri, final Relationship relationship) {
+        receive(flowFile, transitUri, -1L, relationship);
     }
 
     @Override
-    public void receive(FlowFile flowFile, String transitUri, String details) {
-        receive(flowFile, transitUri, details, -1L);
+    public void receive(FlowFile flowFile, String transitUri, String sourceSystemFlowFileIdentifier, final Relationship relationship) {
+        receive(flowFile, transitUri, sourceSystemFlowFileIdentifier, -1L, relationship);
     }
 
     @Override
-    public void receive(final FlowFile flowFile, final String transitUri, final long transmissionMillis) {
-        receive(flowFile, transitUri, null, transmissionMillis);
+    public void receive(final FlowFile flowFile, final String transitUri, final long transmissionMillis, final Relationship relationship) {
+        receive(flowFile, transitUri, null, transmissionMillis, relationship);
     }
 
     @Override
-    public void receive(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis) {
-        receive(flowFile, transitUri, null, details, transmissionMillis);
+    public void receive(final FlowFile flowFile, final String transitUri, final String sourceSystemFlowFileIdentifier, final long transmissionMillis, final Relationship relationship) {
+        receive(flowFile, transitUri, sourceSystemFlowFileIdentifier, null, transmissionMillis, relationship);
     }
 
     @Override
-    public void receive(final FlowFile flowFile, final String transitUri, final String sourceSystemFlowFileIdentifier, final String details, final long transmissionMillis) {
+    public void receive(final FlowFile flowFile, final String transitUri, final String sourceSystemFlowFileIdentifier, final String details,
+                        final long transmissionMillis, final Relationship relationship) {
         verifyFlowFileKnown(flowFile);
 
         try {
@@ -220,6 +221,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
                     .setTransitUri(transitUri)
                     .setSourceSystemFlowFileIdentifier(sourceSystemFlowFileIdentifier)
                     .setEventDuration(transmissionMillis)
+                    .setRelationship(relationship)
                     .setDetails(details)
                     .setPreviousEventIds(Collections.singletonList(-1L))
                     .build();
@@ -237,17 +239,17 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
-    public void fetch(final FlowFile flowFile, final String transitUri) {
-        fetch(flowFile, transitUri, -1L);
+    public void fetch(final FlowFile flowFile, final String transitUri, final Relationship relationship) {
+        fetch(flowFile, transitUri, -1L, relationship);
     }
 
     @Override
-    public void fetch(final FlowFile flowFile, final String transitUri, final long transmissionMillis) {
-        fetch(flowFile, transitUri, null, transmissionMillis);
+    public void fetch(final FlowFile flowFile, final String transitUri, final long transmissionMillis, final Relationship relationship) {
+        fetch(flowFile, transitUri, null, transmissionMillis, relationship);
     }
 
     @Override
-    public void fetch(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis) {
+    public void fetch(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis, final Relationship relationship) {
         verifyFlowFileKnown(flowFile);
 
         try {
@@ -256,6 +258,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
                     .setTransitUri(transitUri)
                     .setEventDuration(transmissionMillis)
                     .setDetails(details)
+                    .setRelationship(relationship)
                     .setPreviousEventIds(repository.getPreviousEventIds(flowFileUUID))
                     .build();
 
@@ -273,47 +276,43 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
-    public void send(final FlowFile flowFile, final String transitUri, final long transmissionMillis) {
-        send(flowFile, transitUri, transmissionMillis, true);
+    public void send(final FlowFile flowFile, final String transitUri, final long transmissionMillis, final Relationship relationship) {
+        send(flowFile, transitUri, transmissionMillis, true, relationship);
     }
 
     @Override
-    public void send(final FlowFile flowFile, final String transitUri, final boolean force) {
-        send(flowFile, transitUri, -1L, force);
+    public void send(final FlowFile flowFile, final String transitUri, final Relationship relationship) {
+        send(flowFile, transitUri, null, -1L, true, relationship);
     }
 
     @Override
-    public void send(final FlowFile flowFile, final String transitUri) {
-        send(flowFile, transitUri, null, -1L, true);
+    public void send(final FlowFile flowFile, final String transitUri, final String details, final Relationship relationship) {
+        send(flowFile, transitUri, details, -1L, true, relationship);
     }
 
     @Override
-    public void send(final FlowFile flowFile, final String transitUri, final String details) {
-        send(flowFile, transitUri, details, -1L, true);
+    public void send(final FlowFile flowFile, final String transitUri, final long transmissionMillis, final boolean force, final Relationship relationship) {
+        send(flowFile, transitUri, null, transmissionMillis, force, relationship);
     }
 
     @Override
-    public void send(final FlowFile flowFile, final String transitUri, final long transmissionMillis, final boolean force) {
-        send(flowFile, transitUri, null, transmissionMillis, force);
+    public void send(final FlowFile flowFile, final String transitUri, final String details, final boolean force, final Relationship relationship) {
+        send(flowFile, transitUri, details, -1L, force, relationship);
     }
 
     @Override
-    public void send(final FlowFile flowFile, final String transitUri, final String details, final boolean force) {
-        send(flowFile, transitUri, details, -1L, force);
+    public void send(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis, final Relationship relationship) {
+        send(flowFile, transitUri, details, transmissionMillis, true, relationship);
     }
 
     @Override
-    public void send(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis) {
-        send(flowFile, transitUri, details, transmissionMillis, true);
-    }
-
-    @Override
-    public void send(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis, final boolean force) {
+    public void send(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis, final boolean force, final Relationship relationship) {
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.SEND)
                     .setTransitUri(transitUri)
                     .setEventDuration(transmissionMillis)
                     .setDetails(details)
+                    .setRelationship(relationship)
                     .setPreviousEventIds(repository.getPreviousEventIds(flowFile.getAttribute(CoreAttributes.UUID.key())))
                     .build();
             // If the transmissionMillis field has been populated, use zero as the value of commitNanos (the call to System.nanoTime() is expensive but the value will be ignored).
@@ -338,12 +337,18 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
-    public void upload(final FlowFile flowFile, final long size, final String transitUri) {
-        upload(flowFile, size, transitUri, null, -1L, true);
+    public void send(final FlowFile flowFile, final String transitUri, final boolean force, final Relationship relationship) {
+        send(flowFile, transitUri, -1L, force, relationship);
     }
 
     @Override
-    public void upload(final FlowFile flowFile, final long size, final String transitUri, final String details, final long transmissionMillis, final boolean force) {
+    public void upload(final FlowFile flowFile, final long size, final String transitUri, final Relationship relationship) {
+        upload(flowFile, size, transitUri, null, -1L, true, relationship);
+    }
+
+    @Override
+    public void upload(final FlowFile flowFile, final long size, final String transitUri, final String details, final long transmissionMillis,
+                       final boolean force, final Relationship relationship) {
         try {
             final String displayedSizeInBytes = size + " bytes";
             final String enrichedDetails = details == null ? displayedSizeInBytes : details + " " + displayedSizeInBytes;
@@ -351,7 +356,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
                     .setTransitUri(transitUri)
                     .setEventDuration(transmissionMillis)
                     .setDetails(enrichedDetails)
-                    .setPreviousEventIds(repository.getPreviousEventIds(flowFileUUID))
+                    .setRelationship(relationship)
                     .build();
             // If the transmissionMillis field has been populated, use zero as the value of commitNanos (the call to System.nanoTime() is expensive but the value will be ignored).
             final long commitNanos = transmissionMillis < 0 ? System.nanoTime() : 0L;
@@ -372,16 +377,23 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
-    public void invokeRemoteProcess(final FlowFile flowFile, final String transitUri) {
-        invokeRemoteProcess(flowFile, transitUri, null);
+    public void invokeRemoteProcess(final FlowFile flowFile, final String transitUri, final Relationship relationship) {
+        invokeRemoteProcess(flowFile, transitUri, null, relationship);
     }
 
     @Override
-    public void invokeRemoteProcess(FlowFile flowFile, String transitUri, String details) {
+    public void invokeRemoteProcess(FlowFile flowFile, String transitUri, String details, final Relationship relationship) {
+        invokeRemoteProcess(flowFile, transitUri, details, -1L, relationship);
+    }
+
+    @Override
+    public void invokeRemoteProcess(FlowFile flowFile, String transitUri, String details, long transmissionMillis, final Relationship relationship) {
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.REMOTE_INVOCATION)
                     .setTransitUri(transitUri)
                     .setDetails(details)
+                    .setEventDuration(transmissionMillis)
+                    .setRelationship(relationship)
                     .setPreviousEventIds(repository.getPreviousEventIds(flowFile.getAttribute(CoreAttributes.UUID.key())))
                     .build();
             events.add(record);
@@ -395,7 +407,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
-    public void associate(final FlowFile flowFile, final String alternateIdentifierNamespace, final String alternateIdentifier) {
+    public void associate(final FlowFile flowFile, final String alternateIdentifierNamespace, final String alternateIdentifier, final Relationship relationship) {
         try {
             String trimmedNamespace = alternateIdentifierNamespace.trim();
             if (trimmedNamespace.endsWith(":")) {
@@ -465,25 +477,29 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
 
     @Override
     public void fork(final FlowFile parent, final Collection<FlowFile> children) {
-        fork(parent, children, null, -1L);
+        fork(parent, children, null, -1L, null);
+    }
+
+    public void fork(final FlowFile parent, final Collection<FlowFile> children, final Relationship relationship) {
+        fork(parent, children, null, -1L, null);
     }
 
     @Override
-    public void fork(final FlowFile parent, final Collection<FlowFile> children, final long forkDuration) {
-        fork(parent, children, null, forkDuration);
+    public void fork(final FlowFile parent, final Collection<FlowFile> children, final long forkDuration, final Relationship relationship) {
+        fork(parent, children, null, forkDuration, relationship);
     }
 
     @Override
-    public void fork(final FlowFile parent, final Collection<FlowFile> children, final String details) {
-        fork(parent, children, details, -1L);
+    public void fork(final FlowFile parent, final Collection<FlowFile> children, final String details, final Relationship relationship) {
+        fork(parent, children, details, -1L, relationship);
     }
 
     @Override
-    public void fork(final FlowFile parent, final Collection<FlowFile> children, final String details, final long forkDuration) {
+    public void fork(final FlowFile parent, final Collection<FlowFile> children, final String details, final long forkDuration, final Relationship relationship) {
         verifyFlowFileKnown(parent);
 
         try {
-            final ProvenanceEventBuilder eventBuilder = build(parent, ProvenanceEventType.FORK);
+            final ProvenanceEventBuilder eventBuilder = build(parent, ProvenanceEventType.FORK).setRelationship(relationship);
             eventBuilder.addParentFlowFile(parent);
             for (final FlowFile child : children) {
                 eventBuilder.addChildFlowFile(child);
@@ -515,21 +531,26 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
 
     @Override
     public void join(final Collection<FlowFile> parents, final FlowFile child) {
-        join(parents, child, null, -1L);
+        join(parents, child, null, -1L, null);
     }
 
     @Override
-    public void join(final Collection<FlowFile> parents, final FlowFile child, final long joinDuration) {
-        join(parents, child, null, joinDuration);
+    public void join(final Collection<FlowFile> parents, final FlowFile child, final Relationship relationship) {
+        join(parents, child, null, -1L, null);
     }
 
     @Override
-    public void join(final Collection<FlowFile> parents, final FlowFile child, final String details) {
-        join(parents, child, details, -1L);
+    public void join(final Collection<FlowFile> parents, final FlowFile child, final long joinDuration, final Relationship relationship) {
+        join(parents, child, null, joinDuration, relationship);
     }
 
     @Override
-    public void join(final Collection<FlowFile> parents, final FlowFile child, final String details, final long joinDuration) {
+    public void join(final Collection<FlowFile> parents, final FlowFile child, final String details, final Relationship relationship) {
+        join(parents, child, details, -1L, relationship);
+    }
+
+    @Override
+    public void join(final Collection<FlowFile> parents, final FlowFile child, final String details, final long joinDuration, final Relationship relationship) {
         verifyFlowFileKnown(child);
 
         try {
@@ -543,6 +564,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
                 parentEventIds.addAll(repository.getPreviousEventIds(parent.getAttribute(CoreAttributes.UUID.key())));
             }
             eventBuilder.setPreviousEventIds(parentEventIds);
+            eventBuilder.setEventDuration(joinDuration).setRelationship(relationship);
 
             final ProvenanceEventRecord record = eventBuilder.build();
             events.add(record);
@@ -584,28 +606,29 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
-    public void modifyContent(final FlowFile flowFile) {
-        modifyContent(flowFile, null, -1L);
+    public void modifyContent(final FlowFile flowFile, final Relationship relationship) {
+        modifyContent(flowFile, null, -1L, relationship);
     }
 
     @Override
-    public void modifyContent(final FlowFile flowFile, final String details) {
-        modifyContent(flowFile, details, -1L);
+    public void modifyContent(final FlowFile flowFile, final String details, final Relationship relationship) {
+        modifyContent(flowFile, details, -1L, relationship);
     }
 
     @Override
-    public void modifyContent(final FlowFile flowFile, final long processingMillis) {
-        modifyContent(flowFile, null, processingMillis);
+    public void modifyContent(final FlowFile flowFile, final long processingMillis, final Relationship relationship) {
+        modifyContent(flowFile, null, processingMillis, relationship);
     }
 
     @Override
-    public void modifyContent(final FlowFile flowFile, final String details, final long processingMillis) {
+    public void modifyContent(final FlowFile flowFile, final String details, final long processingMillis, final Relationship relationship) {
         verifyFlowFileKnown(flowFile);
 
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.CONTENT_MODIFIED)
                     .setEventDuration(processingMillis)
                     .setDetails(details)
+                    .setRelationship(relationship)
                     .setPreviousEventIds(repository.getPreviousEventIds(flowFile.getAttribute(CoreAttributes.UUID.key())))
                     .build();
             events.add(record);
@@ -619,17 +642,18 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
-    public void modifyAttributes(final FlowFile flowFile) {
-        modifyAttributes(flowFile, null);
+    public void modifyAttributes(final FlowFile flowFile, final Relationship relationship) {
+        modifyAttributes(flowFile, null, relationship);
     }
 
     @Override
-    public void modifyAttributes(final FlowFile flowFile, final String details) {
+    public void modifyAttributes(final FlowFile flowFile, final String details, final Relationship relationship) {
         verifyFlowFileKnown(flowFile);
 
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ATTRIBUTES_MODIFIED)
                     .setDetails(details)
+                    .setRelationship(relationship)
                     .setPreviousEventIds(repository.getPreviousEventIds(flowFile.getAttribute(CoreAttributes.UUID.key())))
                     .build();
             events.add(record);
@@ -662,7 +686,8 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
         verifyFlowFileKnown(flowFile);
 
         try {
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ROUTE).setRelationship(relationship)
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ROUTE)
+                    .setRelationship(relationship)
                     .setDetails(details)
                     .setEventDuration(processingDuration)
                     .setPreviousEventIds(repository.getPreviousEventIds(flowFile.getAttribute(CoreAttributes.UUID.key())))
@@ -678,16 +703,20 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
-    public void create(final FlowFile flowFile) {
-        create(flowFile, null);
+    public void create(final FlowFile flowFile, final Relationship relationship) {
+        create(flowFile, null, relationship);
     }
 
     @Override
-    public void create(final FlowFile flowFile, final String details) {
+    public void create(final FlowFile flowFile, final String details, final Relationship relationship) {
         verifyFlowFileKnown(flowFile);
 
         try {
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.CREATE).setDetails(details).setPreviousEventIds(Collections.emptyList()).build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.CREATE)
+                    .setDetails(details)
+                    .setRelationship(relationship)
+                    .setPreviousEventIds(Collections.emptyList())
+                    .build();
             events.add(record);
             repository.updatePreviousEventIds(record, Collections.singletonList(record.getEventId()));
         } catch (final Exception e) {

@@ -102,7 +102,10 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
         int totalBytes = 0;
 
         for (final ProvenanceEventRecord event : events) {
-            event.setPreviousEventIds(this.previousEventIdsMap.get(event.getFlowFileUuid()));
+            final long recordIdentifier = event.getEventId() == -1 ? getIdGenerator().getAndIncrement() : event.getEventId();
+            if (event instanceof UpdateableProvenanceEventRecord) {
+                updateEvent((UpdateableProvenanceEventRecord) event, recordIdentifier);
+            }
 
             final byte[] serialized = serializeEvent(event);
             serializedEvents.put(event, serialized);
@@ -142,7 +145,6 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
 
             try {
                 recordIdentifier = event.getEventId() == -1 ? getIdGenerator().getAndIncrement() : event.getEventId();
-                updateEvent(event, recordIdentifier);
                 startBytes = getBytesWritten();
 
                 ensureStreamState(recordIdentifier, startBytes);
@@ -230,7 +232,8 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
         return SERIALIZATION_NAME;
     }
 
-    private void updateEvent(ProvenanceEventRecord event, long recordIdentifier) {
+    private void updateEvent(UpdateableProvenanceEventRecord event, long recordIdentifier) {
+        event.setEventId(recordIdentifier);
         final String flowFileUUID = event.getFlowFileUuid();
         List<Long> previousEventIds = previousEventIdsMap.get(flowFileUUID);
         switch (event.getEventType()) {

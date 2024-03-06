@@ -17,6 +17,7 @@
 
 package org.apache.nifi.graph;
 
+import org.apache.nifi.graph.exception.GraphQueryException;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -128,11 +129,12 @@ public class ITNeo4JCypherClientServiceSSL {
     }
 
     @Test
-    public void testQuery() {
+    public void testQuery() throws GraphQueryException {
         String query = "create (n { name:'abc' }) return n.name";
+        final GraphQuery graphQuery = new GraphQuery(query, GraphClientService.CYPHER);
 
         final List<Map<String, Object>> result = new ArrayList<>();
-        Map<String, String> attributes = clientService.executeQuery(query, new HashMap<>(), (record, hasMore) -> result.add(record));
+        Map<String, String> attributes = clientService.executeQuery(graphQuery, new HashMap<>(), (record, hasMore) -> result.add(record));
         assertEquals("0",attributes.get(GraphClientService.LABELS_ADDED));
         assertEquals("1",attributes.get(GraphClientService.NODES_CREATED));
         assertEquals("0",attributes.get(GraphClientService.NODES_DELETED));
@@ -184,7 +186,7 @@ public class ITNeo4JCypherClientServiceSSL {
     }
 
     @Test
-    public void testBuildQueryFromNodes() {
+    public void testBuildQueryFromNodes() throws GraphQueryException {
         final List<Map<String, Object>> nodeList = new ArrayList<>();
         nodeList.add(Collections.singletonMap("name", "Matt"));
         final Map<String,Object> node2 = new LinkedHashMap<>();
@@ -203,11 +205,11 @@ public class ITNeo4JCypherClientServiceSSL {
                 new GraphQuery("MERGE (p:NiFiProvenanceEvent {color: \"blue\",name: \"Joe\",age: \"40\"})", GraphClientService.CYPHER),
                 new GraphQuery("MERGE (p:NiFiProvenanceEvent {name: \"Mary\",state: \"FL\",age: \"40\"})", GraphClientService.CYPHER)
         );
-        final List<GraphQuery> queryList = clientService.buildQueryFromNodes(nodeList, new HashMap<>());
+        final List<GraphQuery> queryList = clientService.buildProvenanceQueriesFromNodes(nodeList, new HashMap<>(), false);
         assertEquals(expectedQuery, queryList);
         final List<Map<String, Object>> result = new ArrayList<>();
         for (GraphQuery query : queryList) {
-            Map<String, String> attributes = clientService.executeQuery(query.getQuery(), new HashMap<>(), (record, hasMore) -> result.add(record));
+            Map<String, String> attributes = clientService.executeQuery(query, new HashMap<>(), (record, hasMore) -> result.add(record));
             assertEquals("0", attributes.get(GraphClientService.LABELS_ADDED));
             assertEquals("1", attributes.get(GraphClientService.NODES_CREATED));
             assertEquals("0", attributes.get(GraphClientService.NODES_DELETED));

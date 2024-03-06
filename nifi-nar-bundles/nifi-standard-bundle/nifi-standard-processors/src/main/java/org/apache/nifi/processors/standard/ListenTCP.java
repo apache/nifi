@@ -260,7 +260,7 @@ public class ListenTCP extends AbstractProcessor {
             session.adjustCounter("FlowFiles Transferred to Success", 1L, false);
 
             final String transitUri = getTransitUri(entry.getValue());
-            session.getProvenanceReporter().receive(flowFile, transitUri);
+            session.getProvenanceReporter().receive(flowFile, transitUri, REL_SUCCESS);
         }
     }
 

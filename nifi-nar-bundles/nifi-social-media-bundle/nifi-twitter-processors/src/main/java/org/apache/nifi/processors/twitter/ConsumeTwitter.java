@@ -340,7 +340,7 @@ public class ConsumeTwitter extends AbstractProcessor {
         final String endpointName = context.getProperty(ENDPOINT).getValue();
         final String transitUri = tweetStreamService.getTransitUri(endpointName);
 
-        session.getProvenanceReporter().receive(flowFile, transitUri);
+        session.getProvenanceReporter().receive(flowFile, transitUri, REL_SUCCESS);
     }
 
     @OnPrimaryNodeStateChange

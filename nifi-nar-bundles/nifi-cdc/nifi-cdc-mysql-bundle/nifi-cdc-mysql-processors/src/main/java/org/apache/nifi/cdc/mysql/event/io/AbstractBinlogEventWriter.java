@@ -111,7 +111,7 @@ public abstract class AbstractBinlogEventWriter<T extends BinlogEventInfo> exten
             }
             flowFile = session.putAllAttributes(flowFile, getCommonAttributes(seqId, eventInfo));
             session.transfer(flowFile, relationship);
-            session.getProvenanceReporter().receive(flowFile, transitUri);
+            session.getProvenanceReporter().receive(flowFile, transitUri, relationship);
 
             eventWriterConfiguration.cleanUp();
         } catch (IOException ioe) {

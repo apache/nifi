@@ -319,7 +319,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
                 long duration = stopWatch.getDuration(TimeUnit.MILLISECONDS);
                 String transitUri = "cassandra://" + connectionSession.getCluster().getMetadata().getClusterName() + "." + cassandraTable;
 
-                session.getProvenanceReporter().send(inputFlowFile, transitUri, "Inserted " + recordsAdded.get() + " records", duration);
+                session.getProvenanceReporter().send(inputFlowFile, transitUri, "Inserted " + recordsAdded.get() + " records", duration, REL_SUCCESS);
                 session.transfer(inputFlowFile, REL_SUCCESS);
             }
         }

@@ -240,7 +240,7 @@ public class PublishMQTT extends AbstractMQTTProcessor {
                 provenanceEventDetails = String.format(processStrategy.getSuccessTemplateMessage(), processedRecords.get());
             }
 
-            session.getProvenanceReporter().send(flowfile, clientProperties.getRawBrokerUris(), provenanceEventDetails, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().send(flowfile, clientProperties.getRawBrokerUris(), provenanceEventDetails, stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
             session.transfer(successFlowFile, REL_SUCCESS);
         } catch (Exception e) {
             logger.error("An error happened during publishing records. Routing to failure.", e);
@@ -252,7 +252,8 @@ public class PublishMQTT extends AbstractMQTTProcessor {
                         failedFlowFile,
                         clientProperties.getRawBrokerUris(),
                         String.format(processStrategy.getFailureTemplateMessage(), processedRecords.get()),
-                        stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                        stopWatch.getElapsed(TimeUnit.MILLISECONDS),
+                        REL_FAILURE);
             }
 
             session.transfer(failedFlowFile, REL_FAILURE);
@@ -266,7 +267,7 @@ public class PublishMQTT extends AbstractMQTTProcessor {
 
             final StopWatch stopWatch = new StopWatch(true);
             publishMessage(context, flowfile, topic, messageContent);
-            session.getProvenanceReporter().send(flowfile, clientProperties.getRawBrokerUris(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().send(flowfile, clientProperties.getRawBrokerUris(), stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
             session.transfer(flowfile, REL_SUCCESS);
         } catch (Exception e) {
             logger.error("An error happened during publishing a message. Routing to failure.", e);

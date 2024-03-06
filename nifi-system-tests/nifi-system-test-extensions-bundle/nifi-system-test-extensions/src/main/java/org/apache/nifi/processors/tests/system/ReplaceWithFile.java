@@ -73,7 +73,7 @@ public class ReplaceWithFile extends AbstractProcessor {
         }
 
         flowFile = session.importFrom(file.toPath(), true, flowFile);
-        session.getProvenanceReporter().fetch(flowFile, file.toURI().toString());
+        session.getProvenanceReporter().fetch(flowFile, file.toURI().toString(), REL_SUCCESS);
         session.transfer(flowFile, REL_SUCCESS);
 
         getLogger().info("Successfully imported replacement file {}", file.getAbsolutePath());

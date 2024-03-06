@@ -157,7 +157,7 @@ public class PutRecord extends AbstractProcessor {
             final long transmissionMillis = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
             // Only record provenance if we sent any records
             if (writeResult.getRecordCount() > 0 || transmitZeroRecords) {
-                session.getProvenanceReporter().send(flowFile, recordSinkURL, transmissionMillis);
+                session.getProvenanceReporter().send(flowFile, recordSinkURL, transmissionMillis, REL_SUCCESS);
             }
 
         } catch (RetryableIOException rioe) {

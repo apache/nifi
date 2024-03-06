@@ -185,7 +185,7 @@ public class PutGridFS extends AbstractGridFSProcessor {
             if (id != null) {
                 input = session.putAttribute(input, ID_ATTRIBUTE, id.toString());
                 session.transfer(input, REL_SUCCESS);
-                session.getProvenanceReporter().send(input, getTransitUri(id, input, context));
+                session.getProvenanceReporter().send(input, getTransitUri(id, input, context), REL_SUCCESS);
             } else {
                 getLogger().error("ID was null, assuming failure.");
                 session.transfer(input, REL_FAILURE);

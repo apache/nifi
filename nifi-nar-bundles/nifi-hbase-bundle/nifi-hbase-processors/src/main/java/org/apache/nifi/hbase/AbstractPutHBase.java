@@ -193,14 +193,14 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
                 session.transfer(flowFile, REL_FAILURE);
             } else if (!putFlowFile.isValid()) {
                 if (StringUtils.isBlank(putFlowFile.getTableName())) {
-                    getLogger().error("Missing table name for FlowFile {}; routing to failure", new Object[]{flowFile});
+                    getLogger().error("Missing table name for FlowFile {}; routing to failure", flowFile);
                 } else if (null == putFlowFile.getRow()) {
-                    getLogger().error("Missing row id for FlowFile {}; routing to failure", new Object[]{flowFile});
+                    getLogger().error("Missing row id for FlowFile {}; routing to failure", flowFile);
                 } else if (putFlowFile.getColumns() == null || putFlowFile.getColumns().isEmpty()) {
-                    getLogger().error("No columns provided for FlowFile {}; routing to failure", new Object[]{flowFile});
+                    getLogger().error("No columns provided for FlowFile {}; routing to failure", flowFile);
                 } else {
                     // really shouldn't get here, but just in case
-                    getLogger().error("Failed to produce a put for FlowFile {}; routing to failure", new Object[]{flowFile});
+                    getLogger().error("Failed to produce a put for FlowFile {}; routing to failure", flowFile);
                 }
                 session.transfer(flowFile, REL_FAILURE);
             } else {
@@ -213,7 +213,7 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             }
         }
 
-        getLogger().debug("Sending {} FlowFiles to HBase in {} put operations", new Object[]{flowFiles.size(), tablePuts.size()});
+        getLogger().debug("Sending {} FlowFiles to HBase in {} put operations", flowFiles.size(), tablePuts.size());
 
         final long start = System.nanoTime();
         final List<PutFlowFile> successes = new ArrayList<>();
@@ -228,7 +228,7 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             } catch (final Exception e) {
                 getLogger().error(e.getMessage(), e);
                 for (PutFlowFile putFlowFile : entry.getValue()) {
-                    getLogger().error("Failed to send {} to HBase due to {}; routing to failure", new Object[]{putFlowFile.getFlowFile(), e});
+                    getLogger().error("Failed to send {} to HBase due to {}; routing to failure", putFlowFile.getFlowFile(), e);
                     final FlowFile failure = session.penalize(putFlowFile.getFlowFile());
                     session.transfer(failure, REL_FAILURE);
                 }
@@ -236,12 +236,12 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
         }
 
         final long sendMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-        getLogger().debug("Sent {} FlowFiles to HBase successfully in {} milliseconds", new Object[]{successes.size(), sendMillis});
+        getLogger().debug("Sent {} FlowFiles to HBase successfully in {} milliseconds", successes.size(), sendMillis);
 
         for (PutFlowFile putFlowFile : successes) {
             session.transfer(putFlowFile.getFlowFile(), REL_SUCCESS);
             final String details = "Put " + putFlowFile.getColumns().size() + " cells to HBase";
-            session.getProvenanceReporter().send(putFlowFile.getFlowFile(), getTransitUri(putFlowFile), details, sendMillis);
+            session.getProvenanceReporter().send(putFlowFile.getFlowFile(), getTransitUri(putFlowFile), details, sendMillis, REL_SUCCESS);
         }
     }
 

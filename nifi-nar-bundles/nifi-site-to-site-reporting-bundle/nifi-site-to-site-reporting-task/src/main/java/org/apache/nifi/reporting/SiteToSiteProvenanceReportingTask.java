@@ -384,6 +384,15 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         addField(builder, "alternateIdentifier", event.getAlternateIdentifierUri(), allowNullValues);
         addField(builder, "platform", platform, allowNullValues);
         addField(builder, "application", applicationName, allowNullValues);
+        List<String> previousEventIdsStringList = new ArrayList<>();
+        List<Long> previousEventIds = event.getPreviousEventIds();
+        if (previousEventIds != null) {
+            for (Long previousEventId : event.getPreviousEventIds()) {
+                previousEventIdsStringList.add(String.valueOf(previousEventId));
+            }
+        }
+
+        addField(builder, "previousEventIds", String.join(",", previousEventIdsStringList), allowNullValues);
 
         return builder.build();
     }

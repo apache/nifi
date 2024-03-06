@@ -577,7 +577,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         }
 
         for(FlowFile toTransfer: flowFilesToTransfer) {
-            session.getProvenanceReporter().modifyAttributes(toTransfer);
+            session.getProvenanceReporter().modifyAttributes(toTransfer, REL_SUCCESS);
         }
         session.transfer(flowFilesToTransfer, REL_SUCCESS);
     }
@@ -753,7 +753,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                 final String namespace = uri.getScheme();
                 if (namespace != null) {
                     final String identifier = alternateIdentifierAdd.substring(Math.min(namespace.length() + 1, alternateIdentifierAdd.length() - 1));
-                    session.getProvenanceReporter().associate(flowfile, namespace, identifier);
+                    session.getProvenanceReporter().associate(flowfile, namespace, identifier, REL_SUCCESS);
                 }
             } catch (final URISyntaxException e) {
             }

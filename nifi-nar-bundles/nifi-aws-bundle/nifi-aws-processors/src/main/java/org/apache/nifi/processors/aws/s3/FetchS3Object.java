@@ -447,7 +447,7 @@ public class FetchS3Object extends AbstractS3Processor {
         final String url = client.getResourceUrl(bucket, key);
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully retrieved S3 Object for {} in {} millis; routing to success", new Object[]{flowFile, transferMillis});
-        session.getProvenanceReporter().fetch(flowFile, url, transferMillis);
+        session.getProvenanceReporter().fetch(flowFile, url, transferMillis, REL_SUCCESS);
     }
 
     private GetObjectMetadataRequest createGetObjectMetadataRequest(final ProcessContext context, final Map<String, String> attributes) {

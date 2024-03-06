@@ -390,7 +390,7 @@ public class GetSolr extends SolrProcessor {
                         transitUri.append(":").append(context.getProperty(COLLECTION).evaluateAttributeExpressions().getValue());
                     }
                     final long duration = timer.getDuration(TimeUnit.MILLISECONDS);
-                    session.getProvenanceReporter().receive(flowFile, transitUri.toString(), duration);
+                    session.getProvenanceReporter().receive(flowFile, transitUri.toString(), duration, REL_SUCCESS);
 
                     session.transfer(flowFile, REL_SUCCESS);
                 }

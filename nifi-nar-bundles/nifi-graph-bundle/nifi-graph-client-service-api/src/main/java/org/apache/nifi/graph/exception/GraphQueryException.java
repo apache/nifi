@@ -14,12 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.graph.exception;
 
-package org.apache.nifi.graph;
+import java.io.IOException;
 
 /**
- * This interface is meant to make it easier for anyone who wants to write components to target TinkerPop/OpenCypher
- * client services only.
+ * This class represents an exception that happens while issuing a query to the graph database.
  */
-public interface TinkerPopClientService extends GraphClientService {
+public class GraphQueryException extends IOException {
+    public GraphQueryException(String message) {
+        super(message);
+    }
+
+    public GraphQueryException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public GraphQueryException(Throwable cause) {
+        super(cause);
+    }
 }

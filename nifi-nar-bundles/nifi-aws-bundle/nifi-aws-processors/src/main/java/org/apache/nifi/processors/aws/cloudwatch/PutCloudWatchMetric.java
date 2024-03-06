@@ -335,6 +335,7 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
                     .build();
 
             putMetricData(context, metricDataRequest);
+            session.getProvenanceReporter().send(flowFile,"TODO", REL_SUCCESS); // TODO transitUri
             session.transfer(flowFile, REL_SUCCESS);
             getLogger().info("Successfully published cloudwatch metric for {}", flowFile);
         } catch (final Exception e) {

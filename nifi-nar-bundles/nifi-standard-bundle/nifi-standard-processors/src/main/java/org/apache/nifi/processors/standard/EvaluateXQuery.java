@@ -350,7 +350,7 @@ public class EvaluateXQuery extends AbstractProcessor {
                 final Relationship destRel = xQueryResults.isEmpty() ? REL_NO_MATCH : REL_MATCH;
                 logger.info("XQuery results found [{}] for {}", xQueryResults.size(), flowFile);
                 session.transfer(flowFile, destRel);
-                session.getProvenanceReporter().modifyAttributes(flowFile);
+                session.getProvenanceReporter().modifyAttributes(flowFile, destRel);
             } else { // if (DESTINATION_CONTENT.equals(destination)) {
                 if (!childrenFlowFiles.isEmpty()) {
                     logger.info("XQuery results found [{}] for {} FlowFiles created [{}]", xQueryResults.size(), flowFile, childrenFlowFiles.size());
@@ -359,7 +359,7 @@ public class EvaluateXQuery extends AbstractProcessor {
                 } else {
                     logger.info("XQuery results found for {} content updated", flowFile);
                     session.transfer(flowFile, REL_MATCH);
-                    session.getProvenanceReporter().modifyContent(flowFile);
+                    session.getProvenanceReporter().modifyContent(flowFile, REL_MATCH);
                 }
             }
         } // end flowFileLoop

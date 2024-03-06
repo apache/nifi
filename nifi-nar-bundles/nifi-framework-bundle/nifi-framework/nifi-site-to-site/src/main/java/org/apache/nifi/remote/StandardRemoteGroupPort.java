@@ -338,7 +338,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
                 final String transitUri = transaction.getCommunicant().createTransitUri(flowFile.getAttribute(CoreAttributes.UUID.key()));
                 flowFile = session.putAttribute(flowFile, SiteToSiteAttributes.S2S_PORT_ID.key(), getTargetIdentifier());
-                session.getProvenanceReporter().send(flowFile, transitUri, "Remote DN=" + userDn, transferMillis, false);
+                session.getProvenanceReporter().send(flowFile, transitUri, "Remote DN=" + userDn, transferMillis, false, null);
                 session.remove(flowFile);
 
                 final long sendingNanos = System.nanoTime() - startSendingNanos;
@@ -419,7 +419,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
             final String transitUri = transaction.getCommunicant().createTransitUri(sourceFlowFileIdentifier);
             session.getProvenanceReporter().receive(flowFile, transitUri, "urn:nifi:" + sourceFlowFileIdentifier,
-                    "Remote DN=" + userDn, TimeUnit.NANOSECONDS.toMillis(receiveNanos));
+                    "Remote DN=" + userDn, TimeUnit.NANOSECONDS.toMillis(receiveNanos), Relationship.ANONYMOUS);
 
             session.transfer(flowFile, Relationship.ANONYMOUS);
             bytesReceived += dataPacket.getSize();

@@ -86,7 +86,7 @@ public class IngestFile extends AbstractProcessor {
         FlowFile flowFile = session.create();
         flowFile = session.importFrom(file.toPath(), true, flowFile);
         session.transfer(flowFile, REL_SUCCESS);
-        session.getProvenanceReporter().receive(flowFile, file.toURI().toString());
+        session.getProvenanceReporter().receive(flowFile, file.toURI().toString(), REL_SUCCESS);
 
         final boolean deleteFile = context.getProperty(DELETE_FILE).asBoolean();
 

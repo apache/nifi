@@ -398,7 +398,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
             final FlowFile messageFlowfile = session.write(createFlowFileAndPopulateAttributes(session, mqttMessage),
                     out -> out.write(mqttMessage.getPayload() == null ? new byte[0] : mqttMessage.getPayload()));
 
-            session.getProvenanceReporter().receive(messageFlowfile, getTransitUri(mqttMessage.getTopic()));
+            session.getProvenanceReporter().receive(messageFlowfile, getTransitUri(mqttMessage.getTopic()), REL_MESSAGE);
             session.transfer(messageFlowfile, REL_MESSAGE);
             session.commitAsync();
             mqttQueue.remove(mqttMessage);
@@ -424,7 +424,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
             }
         });
 
-        session.getProvenanceReporter().receive(messageFlowfile, getTransitUri(topicPrefix, topicFilter));
+        session.getProvenanceReporter().receive(messageFlowfile, getTransitUri(topicPrefix, topicFilter), REL_MESSAGE);
         session.transfer(messageFlowfile, REL_MESSAGE);
         session.commitAsync();
     }
@@ -433,7 +433,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
         final FlowFile messageFlowfile = session.write(createFlowFileAndPopulateAttributes(session, mqttMessage),
                 out -> out.write(mqttMessage.getPayload()));
 
-        session.getProvenanceReporter().receive(messageFlowfile, getTransitUri(mqttMessage.getTopic()));
+        session.getProvenanceReporter().receive(messageFlowfile, getTransitUri(mqttMessage.getTopic()), REL_PARSE_FAILURE);
         session.transfer(messageFlowfile, REL_PARSE_FAILURE);
         session.adjustCounter(COUNTER_PARSE_FAILURES, 1, false);
     }
@@ -586,7 +586,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
         }
 
         session.putAllAttributes(flowFile, attributes);
-        session.getProvenanceReporter().receive(flowFile, getTransitUri(topicPrefix, topicFilter));
+        session.getProvenanceReporter().receive(flowFile, getTransitUri(topicPrefix, topicFilter), REL_MESSAGE);
         session.transfer(flowFile, REL_MESSAGE);
 
         final int count = recordCount.get();

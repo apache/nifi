@@ -153,6 +153,6 @@ public class PutAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
 
         session.transfer(flowFile, REL_SUCCESS);
         final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        session.getProvenanceReporter().send(flowFile, queueClient.getQueueUrl().toString(), transmissionMillis);
+        session.getProvenanceReporter().send(flowFile, queueClient.getQueueUrl().toString(), transmissionMillis, REL_SUCCESS);
     }
 }

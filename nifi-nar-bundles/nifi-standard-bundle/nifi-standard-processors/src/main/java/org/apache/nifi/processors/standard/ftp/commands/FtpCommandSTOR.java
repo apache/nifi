@@ -194,7 +194,7 @@ public class FtpCommandSTOR extends AbstractCommand {
             processSession.putAttribute(flowFile, CoreAttributes.FILENAME.key(), ftpFile.getName());
             processSession.putAttribute(flowFile, CoreAttributes.PATH.key(), getPath(ftpFile));
 
-            processSession.getProvenanceReporter().modifyContent(flowFile);
+            processSession.getProvenanceReporter().modifyContent(flowFile, relationshipSuccess);
 
             processSession.transfer(flowFile, relationshipSuccess);
         } catch (Exception exception) {

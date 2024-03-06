@@ -235,22 +235,22 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
 
                 final Path qualifiedPath = path.makeQualified(fileSystem.getUri(), fileSystem.getWorkingDirectory());
                 successFlowFile = session.putAttribute(successFlowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
-                getLogger().info("Successfully received content from {} for {} in {} milliseconds", new Object[] {qualifiedPath, successFlowFile, stopWatch.getDuration()});
-                session.getProvenanceReporter().fetch(successFlowFile, qualifiedPath.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
+                getLogger().info("Successfully received content from {} for {} in {} milliseconds", qualifiedPath, successFlowFile, stopWatch.getDuration());
+                session.getProvenanceReporter().fetch(successFlowFile, qualifiedPath.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS), REL_SUCCESS);
                 session.transfer(successFlowFile, REL_SUCCESS);
                 session.remove(originalFlowFile);
                 return null;
 
             } catch (final FileNotFoundException | AccessControlException e) {
-                getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[] {filenameValue, originalFlowFile, e});
+                getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", filenameValue, originalFlowFile, e);
                 final FlowFile failureFlowFile = session.putAttribute(originalFlowFile, FETCH_FAILURE_REASON_ATTR, e.getMessage() == null ? e.toString() : e.getMessage());
                 session.transfer(failureFlowFile, REL_FAILURE);
             } catch (final IOException | FlowFileAccessException e) {
-                getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to retry", new Object[] {filenameValue, originalFlowFile, e});
+                getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to retry", filenameValue, originalFlowFile, e);
                 session.transfer(session.penalize(originalFlowFile), REL_RETRY);
                 context.yield();
             } catch (final Throwable t) {
-                getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[] {filenameValue, originalFlowFile, t});
+                getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", filenameValue, originalFlowFile, t);
                 final FlowFile failureFlowFile = session.putAttribute(originalFlowFile, FETCH_FAILURE_REASON_ATTR, t.getMessage() == null ? t.toString() : t.getMessage());
                 session.transfer(failureFlowFile, REL_FAILURE);
             }

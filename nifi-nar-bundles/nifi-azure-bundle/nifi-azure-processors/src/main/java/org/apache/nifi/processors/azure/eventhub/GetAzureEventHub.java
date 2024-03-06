@@ -289,7 +289,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
                 session.transfer(flowFile, REL_SUCCESS);
 
                 final String transitUri = getTransitUri(partitionId);
-                session.getProvenanceReporter().receive(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                session.getProvenanceReporter().receive(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS), REL_SUCCESS);
 
                 lastSequenceNumber = eventData.getSequenceNumber();
             }

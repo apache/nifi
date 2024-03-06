@@ -230,7 +230,7 @@ public class PutWebSocket extends AbstractProcessor {
 
             final FlowFile updatedFlowFile = processSession.putAllAttributes(flowfile, attrs);
             final long transmissionMillis = System.currentTimeMillis() - startSending;
-            processSession.getProvenanceReporter().send(updatedFlowFile, transitUri.get(), transmissionMillis);
+            processSession.getProvenanceReporter().send(updatedFlowFile, transitUri.get(), transmissionMillis, REL_SUCCESS);
 
             processSession.transfer(updatedFlowFile, REL_SUCCESS);
 
