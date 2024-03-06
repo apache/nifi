@@ -919,7 +919,6 @@ public class InvokeHTTPTest {
     }
 
     private void setUrlProperty() {
-        System.out.println(getMockWebServerUrl());
         runner.setProperty(InvokeHTTP.HTTP_URL, getMockWebServerUrl());
     }
 
