@@ -199,6 +199,27 @@ public class TestPutS3Object {
     }
 
     @Test
+    public void testObjectUserMetadata() {
+        runner.setProperty(PutS3Object.OBJECT_METADATA_PREFIX, "metadataS3");
+        runner.setProperty(PutS3Object.REMOVE_METADATA_PREFIX, "false");
+        prepareTest();
+
+        runner.run(1);
+
+        ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
+        verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture());
+        PutObjectRequest request = captureRequest.getValue();
+
+        Map<String,String> userMetadata = request.getMetadata().getUserMetadata();
+
+        assertEquals(1, userMetadata.size());
+
+        Map.Entry<String, String> entry = userMetadata.entrySet().iterator().next();
+        assertEquals("metadataS3PII", entry.getKey());
+        assertEquals("true", entry.getValue());
+    }
+
+    @Test
     public void testStorageClasses() {
         for (StorageClass storageClass : StorageClass.values()) {
             runner.setProperty(PutS3Object.STORAGE_CLASS, storageClass.name());
@@ -253,6 +274,7 @@ public class TestPutS3Object {
         Map<String, String> ffAttributes = new HashMap<>();
         ffAttributes.put("filename", filename);
         ffAttributes.put("tagS3PII", "true");
+        ffAttributes.put("metadataS3PII", "true");
         runner.enqueue("Test Content", ffAttributes);
 
         initMocks();
