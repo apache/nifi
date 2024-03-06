@@ -129,9 +129,7 @@
                     @if (disableRequest.currentStep === SetEnableStep.Completed || disableRequest.error) {
                         <button mat-button mat-dialog-close>Close</button>
                     } @else {
-                        <button (click)="cancelClicked()" mat-button mat-dialog-close>
-                            Cancel
-                        </button>
+                        <button (click)="cancelClicked()" mat-button mat-dialog-close>Cancel</button>
                     }
                 </mat-dialog-actions>
             }

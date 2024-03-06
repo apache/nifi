@@ -320,9 +320,6 @@ $appFontPath: '~roboto-fontface/fonts';
     button.nifi-button:disabled {
         color: $primary-palette-200 !important;
         cursor: not-allowed;
-    }
-
-    button.nifi-button:disabled {
         border: 1px solid $primary-palette-200;
 
         i {
