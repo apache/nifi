@@ -30,6 +30,8 @@ import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
 import org.apache.nifi.processors.standard.http.CookieStrategy;
 import org.apache.nifi.processors.standard.http.HttpHeader;
 import org.apache.nifi.processors.standard.http.HttpMethod;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
@@ -40,6 +42,7 @@ import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.util.UriUtils;
 import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.mockito.Answers;
 
@@ -76,6 +79,7 @@ import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -581,6 +585,35 @@ public class InvokeHTTPTest {
         final RecordedRequest request = takeRequestCompleted();
         final String userAgentHeader = request.getHeader(USER_AGENT_HEADER);
         assertEquals(userAgent, userAgentHeader);
+    }
+
+    @Test
+    void testRunGetHttp200SuccessWithEncodableUrl() throws Exception {
+        final String partialEncodableUrl = "/gitlab/ftp%2Fstage%2F15m%2FsomeFile.yaml/raw?ref=main";
+        final String nonEncodedUrl = mockWebServer.url(partialEncodableUrl).newBuilder().host(LOCALHOST).build().toString();
+        final String encodedUrl = UriUtils.create(nonEncodedUrl).toURL().toExternalForm();
+
+        runner.setProperty(InvokeHTTP.HTTP_URL, nonEncodedUrl);
+        mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_OK));
+        runner.enqueue(FLOW_FILE_CONTENT);
+        runner.run();
+
+        assertResponseSuccessRelationships();
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
+
+        MockFlowFile flowFile = getResponseFlowFile();
+        final String actualUrl = flowFile.getAttribute(InvokeHTTP.REQUEST_URL);
+        assertNotEquals(encodedUrl, actualUrl);
+        assertTrue(actualUrl.endsWith(partialEncodableUrl));
+
+        final ProvenanceEventRecord event = runner.getProvenanceEvents().stream()
+                .filter(record -> record.getEventType() == ProvenanceEventType.FETCH)
+                .findFirst()
+                .orElse(null);
+        assertNotNull(event);
+        final String transitUri = event.getTransitUri();
+        assertNotEquals(encodedUrl, transitUri);
+        assertTrue(transitUri.endsWith(partialEncodableUrl));
     }
 
     @Test
