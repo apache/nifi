@@ -141,13 +141,13 @@
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+        <button mat-button mat-dialog-close>Cancel</button>
         <button
             [disabled]="importFromRegistryForm.invalid || saving.value"
             type="button"
             color="primary"
             (click)="importFromRegistry()"
-            mat-raised-button>
+            mat-button>
             <span *nifiSpinner="saving.value">Import</span>
         </button>
     </mat-dialog-actions>

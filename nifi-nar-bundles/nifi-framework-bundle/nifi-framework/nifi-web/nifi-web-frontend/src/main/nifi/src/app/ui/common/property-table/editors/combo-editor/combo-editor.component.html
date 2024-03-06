@@ -94,12 +94,7 @@
                 </ng-template>
             </div>
             <div class="flex justify-end items-center gap-x-2">
-                <button
-                    color="primary"
-                    mat-stroked-button
-                    type="button"
-                    (mousedown)="preventDrag($event)"
-                    (click)="cancelClicked()">
+                <button mat-button type="button" (mousedown)="preventDrag($event)" (click)="cancelClicked()">
                     Cancel
                 </button>
                 <button
@@ -108,7 +103,7 @@
                     type="button"
                     color="primary"
                     (click)="okClicked()"
-                    mat-raised-button>
+                    mat-button>
                     Ok
                 </button>
             </div>
