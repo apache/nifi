@@ -446,7 +446,7 @@
 
                         // add text content and button data
                         $(violationRuleEl).text(rule.name);
-                        $(violationListItemNameEl).text(violation.subjectDisplayName);
+                        violation.subjectPermissionDto.canRead ? $(violationListItemNameEl).text(violation.subjectDisplayName) : $(violationListItemNameEl).text('Unauthorized').addClass('unauthorized');
                         $(violationListItemIdEl).text(violation.subjectId);
                         $(violationListItemEl).append(violationRuleEl).append(violationListItemWrapperEl);
                         $(violationInfoButtonEl).data('violationInfo', violation);
@@ -473,7 +473,7 @@
 
                         // add text content and button data
                         $(warningRuleEl).text(rule.name);
-                        $(warningListItemNameEl).text(warning.subjectDisplayName);
+                        warning.subjectPermissionDto.canRead ? $(warningListItemNameEl).text(warning.subjectDisplayName) : $(warningListItemNameEl).text('Unauthorized').addClass('unauthorized');
                         $(warningListItemIdEl).text(warning.subjectId);
                         $(warningListItemEl).append(warningRuleEl).append(warningListItemWrapperEl);
                         $(warningInfoButtonEl).data('violationInfo', warning);
@@ -529,7 +529,7 @@
                             var violationInfoButtonEl = $('<button class="violation-menu-btn"><i class="fa fa-ellipsis-v rules-list-item-menu-target" aria-hidden="true"></i></button>');
 
                             // add text content and button data
-                            violationNameEl.text(violation.subjectDisplayName);
+                            violation.subjectPermissionDto.canRead ? violationNameEl.text(violation.subjectDisplayName) : violationNameEl.text('Unauthorized');
                             violationIdEl.text(violation.subjectId);
 
                             // build list DOM structure
@@ -748,9 +748,19 @@
                         });
 
                         // violation menu bindings
-                        $('#violation-menu-more-info').on( "click", openRuleViolationMoreInfoDialog);
+                        if (violationInfo.subjectPermissionDto.canRead) {
+                            $('#violation-menu-more-info').removeClass('disabled');
+                            $('#violation-menu-more-info .violation-menu-option-icon').removeClass('disabled');
+                            $('#violation-menu-more-info').on( "click", openRuleViolationMoreInfoDialog);
+                        } else {
+                            $('#violation-menu-more-info').addClass('disabled');
+                            $('#violation-menu-more-info .violation-menu-option-icon').addClass('disabled');
+                        }
+                        
                         // If the groupId and subjectId are not the same, we can select the component
-                        if (violationInfo.groupId !== violationInfo.subjectId) {
+                        var isRootGroup = violationInfo.groupId === violationInfo.subjectId;
+                        var isControllerService = violationInfo.subjectComponentType === 'CONTROLLER_SERVICE';
+                        if (!isRootGroup && !isControllerService) {
                             $('#violation-menu-go-to').removeClass('disabled');
                             $('#violation-menu-go-to .violation-menu-option-icon').removeClass('disabled');
                             $('#violation-menu-go-to').on('click', goToComponent);
@@ -977,6 +987,7 @@
                     if (status.analyzeFlowRequest.complete) {
                         $('#flow-analysis-check-now-btn').prop('disabled', false);
                         $('#flow-analysis-loading-container').removeClass('ajax-loading');
+                        flowAnalysisCtrl.loadFlowPolicies();
                         return clearTimeout(flowAnalysisPollingRequest);
                     }
 
