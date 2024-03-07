@@ -318,13 +318,19 @@ public class RestLookupService extends AbstractControllerService implements Reco
         Request request = buildRequest(mimeType, method, body, endpoint, context);
         try {
             Response response = executeRequest(request);
+            final ResponseBody responseBody = response.body();
 
             if (getLogger().isDebugEnabled()) {
                 getLogger().debug("Response code {} was returned for coordinate {}",
                         new Object[]{response.code(), coordinates});
             }
 
-            final ResponseBody responseBody = response.body();
+            if (!response.isSuccessful()) {
+                final String responseText = responseBody == null ? "<No Message Received from Server>" : responseBody.string();
+                throw new IOException("Failed to download content from URL " + request.url() +
+                        ": Response code was " + response.code() + ": " + responseText);
+            }
+
             if (responseBody == null) {
                 return Optional.empty();
             }
