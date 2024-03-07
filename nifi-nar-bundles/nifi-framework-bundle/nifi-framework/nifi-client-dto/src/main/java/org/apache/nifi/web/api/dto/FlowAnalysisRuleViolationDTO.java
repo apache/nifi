@@ -35,6 +35,8 @@ public class FlowAnalysisRuleViolationDTO {
     private String issueId;
     private String violationMessage;
 
+    private String subjectComponentType;
+
     private PermissionsDTO subjectPermissionDto;
 
     private boolean enabled;
@@ -128,6 +130,17 @@ public class FlowAnalysisRuleViolationDTO {
         this.violationMessage = violationMessage;
     }
 
+
+    /**
+     * @return the type of the subject that violated the rule
+     */
+    public String getSubjectComponentType() {
+        return subjectComponentType;
+    }
+
+    public void setSubjectComponentType(String subjectComponentType) {
+        this.subjectComponentType = subjectComponentType;
+    }
 
     /**
      * @return true if this result should be in effect, false otherwise

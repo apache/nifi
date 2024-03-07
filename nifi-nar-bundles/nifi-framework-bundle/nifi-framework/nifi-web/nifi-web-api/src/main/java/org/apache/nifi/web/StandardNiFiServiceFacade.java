@@ -6486,6 +6486,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 ruleViolationDto.setRuleId(ruleViolation.getRuleId());
                 ruleViolationDto.setIssueId(ruleViolation.getIssueId());
 
+                ruleViolationDto.setSubjectComponentType(ruleViolation.getSubjectComponentType().name());
                 ruleViolationDto.setEnforcementPolicy(ruleViolation.getEnforcementPolicy().toString());
 
                 PermissionsDTO subjectPermissionDto = createPermissionDto(
