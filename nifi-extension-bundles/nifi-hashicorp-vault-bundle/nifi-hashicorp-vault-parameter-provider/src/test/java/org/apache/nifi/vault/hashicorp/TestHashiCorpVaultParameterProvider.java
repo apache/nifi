@@ -22,7 +22,6 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parameter.Parameter;
-import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterGroup;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -157,6 +156,9 @@ public class TestHashiCorpVaultParameterProvider {
     }
 
     private Parameter createParameter(final String name, final String value) {
-        return new Parameter(new ParameterDescriptor.Builder().name(name).build(), value);
+        return new Parameter.Builder()
+            .name(name)
+            .value(value)
+            .build();
     }
 }

@@ -16,22 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -55,6 +39,9 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.asset.Asset;
+import org.apache.nifi.asset.AssetManager;
+import org.apache.nifi.asset.AssetRequestReplicator;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
@@ -62,8 +49,11 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.service.StandardControllerServiceNode;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
 import org.apache.nifi.web.NiFiServiceFacade;
@@ -84,6 +74,7 @@ import org.apache.nifi.web.api.dto.ParameterContextValidationRequestDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultsEntity;
 import org.apache.nifi.web.api.entity.Entity;
@@ -96,11 +87,30 @@ import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.util.ComponentLifecycle;
 import org.apache.nifi.web.util.ParameterUpdateManager;
+import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Controller
 @Path("/parameter-contexts")
@@ -114,12 +124,14 @@ public class ParameterContextResource extends AbstractParameterResource {
     private DtoFactory dtoFactory;
     private ComponentLifecycle clusterComponentLifecycle;
     private ComponentLifecycle localComponentLifecycle;
+    private AssetManager assetManager;
+    private AssetRequestReplicator assetRequestReplicator;
 
     private ParameterUpdateManager parameterUpdateManager;
-    private RequestManager<List<ParameterContextEntity>, List<ParameterContextEntity>> updateRequestManager
-            = new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Parameter Context Update Thread");
-    private RequestManager<ParameterContextValidationRequestEntity, ComponentValidationResultsEntity> validationRequestManager = new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L),
-            "Parameter Context Validation Thread");
+    private final RequestManager<List<ParameterContextEntity>, List<ParameterContextEntity>> updateRequestManager =
+        new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Parameter Context Update Thread");
+    private final RequestManager<ParameterContextValidationRequestEntity, ComponentValidationResultsEntity> validationRequestManager =
+        new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Parameter Context Validation Thread");
 
     @PostConstruct
     public void init() {
@@ -257,8 +269,7 @@ public class ParameterContextResource extends AbstractParameterResource {
             summary = "Modifies a Parameter Context",
             responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ParameterContextEntity.class))),
             description = "This endpoint will update a Parameter Context to match the provided entity. However, this request will fail if any component is running and is referencing a Parameter in " +
-                    "the " +
-                    "Parameter Context. Generally, this endpoint is not called directly. Instead, an update request should be submitted by making a POST to the " +
+                    "the Parameter Context. Generally, this endpoint is not called directly. Instead, an update request should be submitted by making a POST to the " +
                     "/parameter-contexts/update-requests endpoint. That endpoint will, in turn, call this endpoint.",
             security = {
                     @SecurityRequirement(name = "Read - /parameter-contexts/{id}"),
@@ -325,6 +336,92 @@ public class ParameterContextResource extends AbstractParameterResource {
 
 
     @POST
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{contextId}/assets")
+    @Operation(
+            summary = "Creates a new Asset in the given Parameter Context",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = AssetEntity.class))),
+            description = "This endpoint will create a new Asset in the given Parameter Context. The Asset will be created with the given name and the contents of the file that is uploaded. " +
+                    "The Asset will be created in the given Parameter Context, and will be available for use by any component that references the Parameter Context.",
+            security = {
+                @SecurityRequirement(name = "Read - /parameter-contexts/{parameterContextId}"),
+                @SecurityRequirement(name = "Write - /parameter-contexts/{parameterContextId}"),
+                @SecurityRequirement(name = "Read - for every component that is affected by the update"),
+                @SecurityRequirement(name = "Write - for every component that is affected by the update"),
+                @SecurityRequirement(name = "Read - for every currently inherited parameter context")
+            }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+            @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+            @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+            @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+        }
+    )
+    public Response createAsset(
+            @PathParam("contextId") final String contextId,
+
+            @FormDataParam("assetName") final String assetName,
+            @FormDataParam("file") final InputStream assetContents) throws IOException {
+
+        // Validate input
+        if (assetName == null) {
+            throw new IllegalArgumentException("Asset name must be specified.");
+        }
+        if (assetContents == null) {
+            throw new IllegalArgumentException("Asset contents must be specified.");
+        }
+
+        // If clustered and not all nodes are connected, do not allow creating an asset.
+        // Generally, we allow the flow to be modified when nodes are disconnected, but we do not allow creating an asset because
+        // the cluster has no mechanism for synchronizing those assets after the upload.
+        final ClusterCoordinator clusterCoordinator = getClusterCoordinator();
+        if (clusterCoordinator != null) {
+            final Set<NodeIdentifier> disconnectedNodes = clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTING, NodeConnectionState.DISCONNECTED, NodeConnectionState.DISCONNECTING);
+            if (!disconnectedNodes.isEmpty()) {
+                throw new IllegalStateException("Cannot create an Asset because the following %s nodes are not currently connected: %s".formatted(disconnectedNodes.size(), disconnectedNodes));
+            }
+        }
+
+        // Authorize the request
+        serviceFacade.authorizeAccess(lookup -> {
+            final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+            // Get the context or throw ResourceNotFoundException
+            final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(contextId, false, NiFiUserUtils.getNiFiUser());
+            final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByParameterContextUpdate(Collections.singletonList(contextEntity.getComponent()));
+
+            // Verify READ and WRITE permissions for user, for the Parameter Context itself
+            final ParameterContext parameterContext = lookup.getParameterContext(contextId);
+            parameterContext.authorize(authorizer, RequestAction.READ, user);
+            parameterContext.authorize(authorizer, RequestAction.WRITE, user);
+
+            // Verify READ and WRITE permissions for user, for every component that is affected
+            affectedComponents.forEach(component -> parameterUpdateManager.authorizeAffectedComponent(component, lookup, user, true, true));
+        });
+
+        // If we need to replicate the request, we do so using the Asset Request Replicator, rather than the typical replicate() method.
+        // This is because Asset Request Replication works differently in that it needs to be able to replicate the InputStream multiple times,
+        // so it must create a file on disk to do so and then use multipart/form-data to replicate the request. It also bypasses the two-phase
+        // commit process that is used for other requests because doing so would result in uploading the file twice to each node or providing a
+        // different request for each of the two phases.
+        final Asset asset;
+        if (isReplicateRequest()) {
+            asset = assetRequestReplicator.createAsset(assetName, assetContents, getAbsolutePath());
+        } else {
+            // Delegate to the Asset Manager to create the asset
+            asset = assetManager.createAsset(contextId, assetName, assetContents);
+        }
+
+        final AssetEntity assetEntity = dtoFactory.createAssetEntity(asset);
+        return generateOkResponse(assetEntity).build();
+    }
+
+
+    @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{contextId}/update-requests")
@@ -382,6 +479,7 @@ public class ParameterContextResource extends AbstractParameterResource {
         }
 
         validateParameterNames(contextDto);
+        validateAssetReferences(contextDto);
 
         // We will perform the updating of the Parameter Context in a background thread because it can be a long-running process.
         // In order to do this, we will need some objects that are only available as Thread-Local variables to the current
@@ -422,58 +520,7 @@ public class ParameterContextResource extends AbstractParameterResource {
                     // Verify READ and WRITE permissions for user, for every component that is affected
                     affectedComponents.forEach(component -> parameterUpdateManager.authorizeAffectedComponent(component, lookup, user, true, true));
 
-                    Set<ParameterEntity> parametersEntities = requestEntity.getComponent().getParameters();
-                    for (ParameterEntity parameterEntity : parametersEntities) {
-                        String parameterName = parameterEntity.getParameter().getName();
-                        List<ParameterReferencedControllerServiceData> referencedControllerServiceDataSet = parameterContext
-                                .getParameterReferenceManager()
-                                .getReferencedControllerServiceData(parameterContext, parameterName);
-
-                        Set<? extends Class<? extends ControllerService>> referencedControllerServiceTypes = referencedControllerServiceDataSet
-                                .stream()
-                                .map(ParameterReferencedControllerServiceData::getReferencedControllerServiceType)
-                                .collect(Collectors.toSet());
-
-                        if (referencedControllerServiceTypes.size() > 1) {
-                            throw new IllegalStateException("Parameter is used by multiple different types of controller service references");
-                        } else if (!referencedControllerServiceTypes.isEmpty()) {
-                            Optional<org.apache.nifi.parameter.Parameter> parameterOptional = parameterContext.getParameter(parameterName);
-                            if (parameterOptional.isPresent()) {
-                                String currentParameterValue = parameterOptional.get().getValue();
-                                if (currentParameterValue != null) {
-                                    ComponentAuthorizable currentControllerService = lookup.getControllerService(currentParameterValue);
-                                    if (currentControllerService != null) {
-                                        Authorizable currentControllerServiceAuthorizable = currentControllerService.getAuthorizable();
-                                        if (currentControllerServiceAuthorizable != null) {
-                                            currentControllerServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
-                                            currentControllerServiceAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
-                                        }
-                                    }
-                                }
-                            }
-
-                            String newParameterValue = parameterEntity.getParameter().getValue();
-                            if (newParameterValue != null) {
-                                ComponentAuthorizable newControllerService = lookup.getControllerService(newParameterValue);
-                                if (newControllerService != null) {
-                                    Authorizable newControllerServiceAuthorizable = newControllerService.getAuthorizable();
-                                    if (newControllerServiceAuthorizable != null) {
-                                        newControllerServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
-                                        newControllerServiceAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
-
-                                        if (
-                                                !referencedControllerServiceTypes.iterator().next()
-                                                        .isAssignableFrom(
-                                                                ((StandardControllerServiceNode) newControllerServiceAuthorizable).getComponent().getClass()
-                                                        )
-                                        ) {
-                                            throw new IllegalArgumentException("New Parameter value attempts to reference an incompatible controller service");
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    validateControllerServiceReferences(requestEntity, lookup, parameterContext, user);
                 },
                 () -> {
                     // Verify Request
@@ -481,6 +528,81 @@ public class ParameterContextResource extends AbstractParameterResource {
                 },
                 this::submitUpdateRequest
         );
+    }
+
+    private void validateControllerServiceReferences(final ParameterContextEntity requestEntity, final AuthorizableLookup lookup, final ParameterContext parameterContext, final NiFiUser user) {
+        final Set<ParameterEntity> parametersEntities = requestEntity.getComponent().getParameters();
+        for (ParameterEntity parameterEntity : parametersEntities) {
+            final String parameterName = parameterEntity.getParameter().getName();
+            final List<ParameterReferencedControllerServiceData> referencedControllerServiceDataSet =
+                parameterContext.getParameterReferenceManager().getReferencedControllerServiceData(parameterContext, parameterName);
+
+            final Set<? extends Class<? extends ControllerService>> referencedControllerServiceTypes = referencedControllerServiceDataSet.stream()
+                .map(ParameterReferencedControllerServiceData::getReferencedControllerServiceType)
+                .collect(Collectors.toSet());
+
+            if (referencedControllerServiceTypes.size() > 1) {
+                throw new IllegalStateException("Parameter is used by multiple different types of controller service references");
+            } else if (!referencedControllerServiceTypes.isEmpty()) {
+                final Optional<org.apache.nifi.parameter.Parameter> parameterOptional = parameterContext.getParameter(parameterName);
+                if (parameterOptional.isPresent()) {
+                    final String currentParameterValue = parameterOptional.get().getValue();
+                    if (currentParameterValue != null) {
+                        final ComponentAuthorizable currentControllerService = lookup.getControllerService(currentParameterValue);
+                        if (currentControllerService != null) {
+                            final Authorizable currentControllerServiceAuthorizable = currentControllerService.getAuthorizable();
+                            currentControllerServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
+                            currentControllerServiceAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
+                        }
+                    }
+                }
+
+                final String newParameterValue = parameterEntity.getParameter().getValue();
+                if (newParameterValue != null) {
+                    final ComponentAuthorizable newControllerService = lookup.getControllerService(newParameterValue);
+                    if (newControllerService != null) {
+                        final Authorizable newControllerServiceAuthorizable = newControllerService.getAuthorizable();
+                        if (newControllerServiceAuthorizable != null) {
+                            newControllerServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
+                            newControllerServiceAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
+
+                            final Class<?> firstClass = referencedControllerServiceTypes.iterator().next();
+                            final ComponentNode componentNode = (ComponentNode) newControllerServiceAuthorizable;
+                            final Class<?> componentClass = componentNode.getComponent().getClass();
+
+                            if (!firstClass.isAssignableFrom(componentClass)) {
+                                throw new IllegalArgumentException("New Parameter value attempts to reference an incompatible controller service");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    private void validateAssetReferences(final ParameterContextDTO parameterContextDto) {
+        if (parameterContextDto.getParameters() != null) {
+            for (final ParameterEntity entity : parameterContextDto.getParameters()) {
+                final List<String> assetIds = entity.getParameter().getReferencedAssets();
+                if (assetIds == null) {
+                    continue;
+                }
+
+                for (final String assetId : assetIds) {
+                    final Optional<Asset> asset = assetManager.getAsset(assetId);
+                    if (asset.isEmpty()) {
+                        throw new IllegalArgumentException("Request contains a reference to an Asset (%s) that does not exist".formatted(assetId));
+                    }
+                }
+
+                if (!assetIds.isEmpty() && entity.getParameter().getValue() != null) {
+                    throw new IllegalArgumentException(
+                        "Request contains a Parameter (%s) with both a value and a reference to an Asset. A Parameter may have either a value or a reference to an Asset, but not both."
+                            .formatted(entity.getParameter().getName()));
+                }
+            }
+        }
     }
 
     private void validateParameterNames(final ParameterContextDTO parameterContextDto) {
@@ -873,10 +995,10 @@ public class ParameterContextResource extends AbstractParameterResource {
         // Submit the request to be performed in the background
         final Consumer<AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>>> updateTask = asyncRequest -> {
             try {
-                final List<ParameterContextEntity> updatedParameterContextEntities = parameterUpdateManager
-                        .updateParameterContexts(asyncRequest, requestWrapper.getComponentLifecycle(), requestWrapper.getExampleUri(),
-                                requestWrapper.getReferencingComponents(), requestWrapper.isReplicateRequest(), requestRevision,
-                                Collections.singletonList(requestWrapper.getParameterContextEntity()));
+                final List<ParameterContextEntity> updatedParameterContextEntities = parameterUpdateManager.updateParameterContexts(
+                    asyncRequest, requestWrapper.getComponentLifecycle(), requestWrapper.getExampleUri(),
+                    requestWrapper.getReferencingComponents(), requestWrapper.isReplicateRequest(), requestRevision,
+                    List.of(requestWrapper.getParameterContextEntity()));
 
                 asyncRequest.markStepComplete(updatedParameterContextEntities);
             } catch (final ResumeFlowException rfe) {
@@ -1117,4 +1239,13 @@ public class ParameterContextResource extends AbstractParameterResource {
         this.dtoFactory = dtoFactory;
     }
 
+    @Autowired
+    public void setAssetManager(final AssetManager assetManager) {
+        this.assetManager = assetManager;
+    }
+
+    @Autowired
+    public void setAssetRequestReplicator(final AssetRequestReplicator assetRequestReplicator) {
+        this.assetRequestReplicator = assetRequestReplicator;
+    }
 }

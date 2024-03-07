@@ -230,7 +230,8 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             statelessEngine.getReloadComponent(),
             new StatelessNodeTypeProvider(),
             null,
-            group -> null);
+            group -> null,
+            statelessEngine.getAssetManager());
     }
 
     @Override

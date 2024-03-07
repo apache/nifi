@@ -249,8 +249,8 @@ public class TestStandardPreparedQuery {
     @Test
     public void testSensitiveParameter() {
         final Map<String, Parameter> parameters = new HashMap<>();
-        parameters.put("param", new Parameter(new ParameterDescriptor.Builder().name("param").build(), "value"));
-        parameters.put("sensi", new Parameter(new ParameterDescriptor.Builder().name("sensi").sensitive(true).build(), "secret"));
+        parameters.put("param", new Parameter.Builder().name("param").value("value").build());
+        parameters.put("sensi", new Parameter.Builder().name("sensi").sensitive(true).value("secret").build());
 
         final ParameterLookup parameterLookup = new ParameterLookup() {
             @Override
@@ -286,7 +286,7 @@ public class TestStandardPreparedQuery {
 
         final ParameterLookup parameterLookup = mock(ParameterLookup.class);
         final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(parameterName).sensitive(true).build();
-        final Parameter parameter = new Parameter(parameterDescriptor, parameterValue);
+        final Parameter parameter = new Parameter.Builder().descriptor(parameterDescriptor).value(parameterValue).build();
         when(parameterLookup.getParameter(eq(parameterName))).thenReturn(Optional.of(parameter));
         when(parameterLookup.isEmpty()).thenReturn(false);
 

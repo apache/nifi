@@ -125,6 +125,9 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String PROVENANCE_JOURNAL_COUNT = "nifi.provenance.repository.journal.count";
     public static final String PROVENANCE_REPO_DEBUG_FREQUENCY = "nifi.provenance.repository.debug.frequency";
 
+    public static final String ASSET_MANAGER_IMPLEMENTATION = "nifi.asset.manager.implementation";
+    public static final String ASSET_MANAGER_PREFIX = "nifi.asset.manager.properties.";
+
     // status repository properties
     public static final String COMPONENT_STATUS_REPOSITORY_IMPLEMENTATION = "nifi.components.status.repository.implementation";
     public static final String COMPONENT_STATUS_SNAPSHOT_FREQUENCY = "nifi.components.status.snapshot.frequency";

@@ -16,17 +16,22 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MediaType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
+import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterContextsEntity;
+import org.glassfish.jersey.media.multipart.FormDataBodyPart;
+import org.glassfish.jersey.media.multipart.FormDataMultiPart;
 
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.MediaType;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class JerseyParamContextClient extends AbstractJerseyClient implements ParamContextClient {
@@ -163,5 +168,56 @@ public class JerseyParamContextClient extends AbstractJerseyClient implements Pa
                     .resolveTemplate("request-id", updateRequestId);
             return getRequestBuilder(target).delete(ParameterContextUpdateRequestEntity.class);
         });
+    }
+
+    @Override
+    public AssetEntity createAsset(final String contextId, final String assetName, final File file) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(contextId)) {
+            throw new IllegalArgumentException("Parameter context id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(assetName)) {
+            throw new IllegalArgumentException("Asset name cannot be null or blank");
+        }
+        if (file == null) {
+            throw new IllegalArgumentException("File cannot be null");
+        }
+        if (!file.exists()) {
+            throw new FileNotFoundException(file.getAbsolutePath());
+        }
+
+        try (final FormDataMultiPart formDataMultiPart = new FormDataMultiPart()) {
+            formDataMultiPart.bodyPart(new FormDataBodyPart("assetName", assetName));
+            formDataMultiPart.bodyPart(new FormDataBodyPart("file", file, MediaType.APPLICATION_OCTET_STREAM_TYPE));
+
+            return executeAction("Error Creating Asset " + assetName + " for Parameter Context " + contextId, () -> {
+                final WebTarget target = paramContextTarget.path("{context_id}/assets")
+                    .resolveTemplate("context_id", contextId);
+
+                return getRequestBuilder(target).post(
+                    Entity.entity(formDataMultiPart, MediaType.MULTIPART_FORM_DATA_TYPE),
+                    AssetEntity.class);
+            });
+        }
+    }
+
+    private static class AssetPojo {
+        private String assetName;
+        private byte[] file;
+
+        public String getAssetName() {
+            return assetName;
+        }
+
+        public void setAssetName(final String assetName) {
+            this.assetName = assetName;
+        }
+
+        public byte[] getFile() {
+            return file;
+        }
+
+        public void setFile(final byte[] file) {
+            this.file = file;
+        }
     }
 }

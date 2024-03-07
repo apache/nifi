@@ -21,7 +21,6 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.parameter.AbstractParameterProvider;
 import org.apache.nifi.parameter.Parameter;
-import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterGroup;
 import org.apache.nifi.parameter.ParameterProvider;
 
@@ -51,12 +50,13 @@ public class PlaceholderParameterProvider extends AbstractParameterProvider impl
     @Override
     public List<ParameterGroup> fetchParameters(final ConfigurationContext context) {
         final List<Parameter> parameters = Arrays.stream(STATIC_PARAMETERS)
-                .map(parameterName -> {
-                    final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()
-                            .name(parameterName)
-                            .build();
-                    return new Parameter(parameterDescriptor, parameterName + "-value", null, true);
-                })
+                .map(parameterName ->
+                    new Parameter.Builder()
+                        .name(parameterName)
+                        .value(parameterName + "-value")
+                        .provided(true)
+                        .build()
+                )
                 .collect(Collectors.toList());
         return Collections.singletonList(new ParameterGroup("Group", parameters));
     }

@@ -18,6 +18,7 @@ package org.apache.nifi.flow;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.util.List;
 import java.util.Objects;
 
 public class VersionedParameter {
@@ -27,6 +28,7 @@ public class VersionedParameter {
     private boolean sensitive;
     private boolean provided;
     private String value;
+    private List<VersionedAsset> referencedAssets;
 
     @Schema(description = "The name of the parameter")
     public String getName() {
@@ -71,6 +73,15 @@ public class VersionedParameter {
 
     public void setValue(String value) {
         this.value = value;
+    }
+
+    @Schema(description = "The ID's of assets that are referenced by this parameter")
+    public List<VersionedAsset> getReferencedAssets() {
+        return referencedAssets;
+    }
+
+    public void setReferencedAssets(final List<VersionedAsset> referencedAssets) {
+        this.referencedAssets = referencedAssets;
     }
 
     @Override

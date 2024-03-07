@@ -40,6 +40,7 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.asset.Asset;
 import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
@@ -232,6 +233,7 @@ import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
+import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
@@ -1509,6 +1511,20 @@ public final class DtoFactory {
        return config;
    }
 
+   public AssetEntity createAssetEntity(final Asset asset) {
+         final AssetEntity entity = new AssetEntity();
+         entity.setAsset(createAssetDto(asset));
+         return entity;
+   }
+
+   public AssetDTO createAssetDto(final Asset asset) {
+       final AssetDTO dto = new AssetDTO();
+       dto.setName(asset.getName());
+       dto.setId(asset.getIdentifier());
+       dto.setFilename(asset.getFile().getAbsolutePath());
+       return dto;
+   }
+
    public ParameterEntity createParameterEntity(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager,
                                                 final ParameterContextLookup parameterContextLookup) {
        final ParameterDTO dto = createParameterDto(parameterContext, parameter, revisionManager, parameterContextLookup);
@@ -1533,6 +1549,8 @@ public final class DtoFactory {
            dto.setValue(descriptor.isSensitive() ? SENSITIVE_VALUE_MASK : parameter.getValue());
        }
        dto.setProvided(parameter.isProvided());
+       final List<Asset> assets = parameter.getReferencedAssets();
+       dto.setReferencedAssets(assets == null ? List.of() : parameter.getReferencedAssets().stream().map(Asset::getIdentifier).toList());
 
        final ParameterReferenceManager parameterReferenceManager = parameterContext.getParameterReferenceManager();
 

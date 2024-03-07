@@ -16,27 +16,40 @@
  */
 package org.apache.nifi.parameter;
 
+import org.apache.nifi.asset.Asset;
+
+import java.io.File;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class Parameter {
     private final ParameterDescriptor descriptor;
     private final String value;
     private final String parameterContextId;
     private final boolean provided;
+    private final List<Asset> referencedAssets;
 
-    public Parameter(final ParameterDescriptor descriptor, final String value, final String parameterContextId, final Boolean provided) {
-        this.descriptor = descriptor;
-        this.value = value;
-        this.parameterContextId = parameterContextId;
-        this.provided = provided == null ? false : provided.booleanValue();
-    }
 
-    public Parameter(final Parameter parameter, final String parameterContextId) {
-        this(parameter.getDescriptor(), parameter.getValue(), parameterContextId, parameter.isProvided());
-    }
+    private Parameter(final Builder builder) {
+        this.descriptor = new ParameterDescriptor.Builder()
+            .name(builder.name)
+            .description(builder.description)
+            .sensitive(builder.sensitive)
+            .build();
 
-    public Parameter(final ParameterDescriptor descriptor, final String value) {
-        this(descriptor, value, null, false);
+        this.parameterContextId = builder.parameterContextId;
+        this.provided = builder.provided;
+
+        this.referencedAssets = builder.referencedAssets;
+        if (this.referencedAssets == null || this.referencedAssets.isEmpty()) {
+            this.value = builder.value;
+        } else {
+            this.value = referencedAssets.stream()
+                .map(Asset::getFile)
+                .map(File::getAbsolutePath)
+                .collect(Collectors.joining(","));
+        }
     }
 
     public ParameterDescriptor getDescriptor() {
@@ -45,6 +58,10 @@ public class Parameter {
 
     public String getValue() {
         return value;
+    }
+
+    public List<Asset> getReferencedAssets() {
+        return referencedAssets;
     }
 
     public String getParameterContextId() {
@@ -62,7 +79,10 @@ public class Parameter {
         }
 
         final Parameter parameter = (Parameter) o;
-        return Objects.equals(descriptor, parameter.descriptor) && Objects.equals(value, parameter.value);
+        return Objects.equals(descriptor, parameter.descriptor)
+               && Objects.equals(value, parameter.value)
+               && Objects.equals(parameterContextId, parameter.parameterContextId)
+               && Objects.equals(referencedAssets, parameter.referencedAssets);
     }
 
     @Override
@@ -76,5 +96,85 @@ public class Parameter {
      */
     public boolean isProvided() {
         return provided;
+    }
+
+    public static class Builder {
+        private String name;
+        private String description;
+        private boolean sensitive;
+        private String value;
+        private String parameterContextId;
+        private boolean provided;
+        private List<Asset> referencedAssets = List.of();
+
+        public Builder fromParameter(final Parameter parameter) {
+            descriptor(parameter.getDescriptor());
+            this.parameterContextId = parameter.getParameterContextId();
+            this.provided = parameter.isProvided();
+            this.referencedAssets = parameter.getReferencedAssets() == null ? List.of() : parameter.getReferencedAssets();
+            if (this.referencedAssets.isEmpty()) {
+                this.value = parameter.getValue();
+            }
+
+            return this;
+        }
+
+        public Builder descriptor(final ParameterDescriptor descriptor) {
+            this.name = descriptor.getName();
+            this.description = descriptor.getDescription();
+            this.sensitive = descriptor.isSensitive();
+            return this;
+        }
+
+        public Builder name(final String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder description(final String description) {
+            this.description = description;
+            return this;
+        }
+
+        public Builder sensitive(final boolean sensitive) {
+            this.sensitive = sensitive;
+            return this;
+        }
+
+        public Builder value(final String value) {
+            this.value = value;
+            this.referencedAssets = List.of();
+            return this;
+        }
+
+        public Builder parameterContextId(final String parameterContextId) {
+            this.parameterContextId = parameterContextId;
+            return this;
+        }
+
+        public Builder provided(final Boolean provided) {
+            this.provided = provided;
+            return this;
+        }
+
+        public Builder referencedAssets(final List<Asset> referencedAssets) {
+            this.referencedAssets = referencedAssets == null ? List.of() : referencedAssets;
+            if (!this.referencedAssets.isEmpty()) {
+                this.value = null;
+            }
+
+            return this;
+        }
+
+        public Parameter build() {
+            if (name == null) {
+                throw new IllegalStateException("Name or Descriptor is required");
+            }
+            if (value != null && referencedAssets != null && !referencedAssets.isEmpty()) {
+                throw new IllegalStateException("A Parameter's value or referenced assets may be set but not both");
+            }
+
+            return new Parameter(this);
+        }
     }
 }

@@ -583,8 +583,16 @@ public class NiFiClientUtil {
         return entity;
     }
 
-    public ParameterContextEntity getParameterContext(final String contextId) throws NiFiClientException, IOException {
-        return nifiClient.getParamContextClient().getParamContext(contextId, false);
+    public ParameterEntity createAssetReferenceParameterEntity(final String name, final List<String> referencedAssets) {
+        final ParameterDTO dto = new ParameterDTO();
+        dto.setName(name);
+        dto.setReferencedAssets(referencedAssets);
+        dto.setValue(null);
+        dto.setProvided(false);
+
+        final ParameterEntity entity = new ParameterEntity();
+        entity.setParameter(dto);
+        return entity;
     }
 
     public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters) {
@@ -712,6 +720,26 @@ public class NiFiClientUtil {
 
         final ParameterContextEntity entityUpdate = createParameterContextEntity(existingEntity.getComponent().getName(), existingEntity.getComponent().getDescription(),
                 parameterEntities, inheritedParameterContextIds, null);
+        entityUpdate.setId(existingEntity.getId());
+        entityUpdate.setRevision(existingEntity.getRevision());
+        entityUpdate.getComponent().setId(existingEntity.getComponent().getId());
+
+        return nifiClient.getParamContextClient().updateParamContext(entityUpdate);
+    }
+
+    public ParameterContextUpdateRequestEntity updateParameterAssetReferences(final ParameterContextEntity existingEntity, final Map<String, List<String>> assetReferences)
+                throws NiFiClientException, IOException {
+
+        final ParameterContextDTO component = existingEntity.getComponent();
+        final List<String> inheritedParameterContextIds = component.getInheritedParameterContexts() == null ? null :
+            component.getInheritedParameterContexts().stream().map(ParameterContextReferenceEntity::getId).collect(Collectors.toList());
+
+        final Set<ParameterEntity> parameterEntities = new HashSet<>();
+        assetReferences.forEach((paramName, references) -> parameterEntities.add(createAssetReferenceParameterEntity(paramName, references)));
+        existingEntity.getComponent().setParameters(parameterEntities);
+
+        final ParameterContextEntity entityUpdate = createParameterContextEntity(existingEntity.getComponent().getName(), existingEntity.getComponent().getDescription(),
+            parameterEntities, inheritedParameterContextIds, null);
         entityUpdate.setId(existingEntity.getId());
         entityUpdate.setRevision(existingEntity.getRevision());
         entityUpdate.getComponent().setId(existingEntity.getComponent().getId());

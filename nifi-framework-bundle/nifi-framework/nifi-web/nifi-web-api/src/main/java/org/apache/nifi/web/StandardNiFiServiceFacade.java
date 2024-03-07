@@ -1400,18 +1400,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     private Parameter createParameter(final ParameterDTO dto) {
-        if (dto.getDescription() == null && dto.getSensitive() == null && dto.getValue() == null) {
+        if (dto.getDescription() == null && dto.getSensitive() == null && dto.getValue() == null && dto.getReferencedAssets() == null) {
             return null; // null description, sensitivity flag, and value indicates a deletion, which we want to represent as a null Parameter.
         }
 
-        final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
+        final String parameterContextId = dto.getParameterContext() == null ? null : dto.getParameterContext().getId();
+        return new Parameter.Builder()
             .name(dto.getName())
             .description(dto.getDescription())
             .sensitive(Boolean.TRUE.equals(dto.getSensitive()))
+            .value(dto.getValue())
+            .parameterContextId(parameterContextId)
+            .provided(dto.getProvided())
             .build();
-
-        final String parameterContextId = dto.getParameterContext() == null ? null : dto.getParameterContext().getId();
-        return new Parameter(descriptor, dto.getValue(), parameterContextId, dto.getProvided());
     }
 
     @Override

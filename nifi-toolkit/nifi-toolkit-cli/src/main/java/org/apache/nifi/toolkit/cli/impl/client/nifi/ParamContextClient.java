@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
+import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterContextsEntity;
 
+import java.io.File;
 import java.io.IOException;
 
 public interface ParamContextClient {
@@ -40,4 +42,5 @@ public interface ParamContextClient {
 
     ParameterContextUpdateRequestEntity deleteParamContextUpdateRequest(String contextId, String updateRequestId) throws NiFiClientException, IOException;
 
+    AssetEntity createAsset(String contextId, String assetName, File file) throws NiFiClientException, IOException;
 }

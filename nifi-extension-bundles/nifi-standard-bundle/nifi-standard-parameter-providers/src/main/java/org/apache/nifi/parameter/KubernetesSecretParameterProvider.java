@@ -203,8 +203,11 @@ public class KubernetesSecretParameterProvider extends AbstractParameterProvider
                     getLogger().warn("Parameter {} may be truncated at {} bytes", parameterName, parameterValue.length());
                 }
 
-                final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(parameterName).build();
-                parameters.add(new Parameter(parameterDescriptor, parameterValue, null, true));
+                parameters.add(new Parameter.Builder()
+                    .name(parameterName)
+                    .value(parameterValue)
+                    .provided(true)
+                    .build());
             } catch (final IOException e) {
                 throw new RuntimeException(String.format("Failed to read file [%s]", file), e);
             }
