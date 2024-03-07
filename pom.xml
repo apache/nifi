@@ -134,7 +134,7 @@
         <json.smart.version>2.5.0</json.smart.version>
         <nifi.groovy.version>3.0.19</nifi.groovy.version>
         <groovy.eclipse.batch.version>3.0.8-01</groovy.eclipse.batch.version>
-        <surefire.version>3.1.2</surefire.version>
+        <surefire.version>3.2.5</surefire.version>
         <hadoop.version>3.3.6</hadoop.version>
         <ozone.version>1.2.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
