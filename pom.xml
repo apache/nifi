@@ -137,7 +137,7 @@
         <jakarta.xml.bind-api.version>4.0.1</jakarta.xml.bind-api.version>
         <jakarta.ws.rs-api.version>3.1.0</jakarta.ws.rs-api.version>
         <json.smart.version>2.5.0</json.smart.version>
-        <nifi.groovy.version>4.0.18</nifi.groovy.version>
+        <groovy.version>4.0.19</groovy.version>
         <surefire.version>3.1.2</surefire.version>
         <hadoop.version>3.3.6</hadoop.version>
         <ozone.version>1.2.1</ozone.version>
@@ -339,7 +339,7 @@
             <dependency>
                 <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
-                <version>${nifi.groovy.version}</version>
+                <version>${groovy.version}</version>
                 <type>pom</type>
                 <exclusions>
                     <exclusion>
