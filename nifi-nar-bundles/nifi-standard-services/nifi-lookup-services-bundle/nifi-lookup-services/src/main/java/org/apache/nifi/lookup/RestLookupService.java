@@ -172,6 +172,15 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .build();
 
+    public static final PropertyDescriptor RESPONSE_HANDLING_STRATEGY = new PropertyDescriptor.Builder()
+        .name("rest-lookup-response-handling-strategy")
+        .displayName("Response Handling Strategy")
+        .description("Whether to return all responses or throw errors for unsuccessful HTTP status codes.")
+        .required(true)
+        .defaultValue(ResponseHandlingStrategy.RETURNED)
+        .allowableValues(ResponseHandlingStrategy.class)
+        .build();
+
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
             = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
@@ -190,6 +199,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             URL,
             RECORD_READER,
             RECORD_PATH,
+            RESPONSE_HANDLING_STRATEGY,
             SSL_CONTEXT_SERVICE,
             PROXY_CONFIGURATION_SERVICE,
             PROP_BASIC_AUTH_USERNAME,
@@ -214,6 +224,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
     private volatile String basicUser;
     private volatile String basicPass;
     private volatile boolean isDigest;
+    private volatile ResponseHandlingStrategy responseHandlingStrategy;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
@@ -251,6 +262,8 @@ public class RestLookupService extends AbstractControllerService implements Reco
         buildHeaders(context);
 
         urlTemplate = context.getProperty(URL);
+
+        responseHandlingStrategy = context.getProperty(RESPONSE_HANDLING_STRATEGY).asAllowableValue(ResponseHandlingStrategy.class);
     }
 
     @OnDisabled
@@ -320,13 +333,19 @@ public class RestLookupService extends AbstractControllerService implements Reco
         Request request = buildRequest(mimeType, method, body, endpoint, context);
         try {
             Response response = executeRequest(request);
+            final ResponseBody responseBody = response.body();
 
             if (getLogger().isDebugEnabled()) {
                 getLogger().debug("Response code {} was returned for coordinate {}",
                         new Object[]{response.code(), coordinates});
             }
 
-            final ResponseBody responseBody = response.body();
+            if (!response.isSuccessful()
+                    && responseHandlingStrategy.equals(ResponseHandlingStrategy.EVALUATED)) {
+                final String responseText = responseBody == null ? "[No Message Received]" : responseBody.string();
+                throw new IOException("Request failed with HTTP %d for [%s]: %s".formatted(response.code(), request.url(), responseText));
+            }
+
             if (responseBody == null) {
                 return Optional.empty();
             }
