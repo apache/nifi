@@ -92,6 +92,7 @@ import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
 import org.apache.nifi.web.api.entity.ConfigurationAnalysisEntity;
@@ -2909,5 +2910,25 @@ public interface NiFiServiceFacade {
      * @throws IOException if an I/O error occurs deleting the NAR
      */
     NarSummaryEntity deleteNar(String identifier) throws IOException;
+
+    // ----------------------------------------
+    // Asset Manager methods
+    // ----------------------------------------
+
+    /**
+     * Verifies the given asset can be deleted from the given parameter context.
+     *
+     * @param parameterContextId the parameter context id
+     * @param assetId the asset id
+     */
+    void verifyDeleteAsset(String parameterContextId, String assetId);
+
+    /**
+     * Deletes the given asset from the given parameter context.
+     *
+     * @param parameterContextId the parameter context id
+     * @param assetId the asset id
+     */
+    AssetEntity deleteAsset(String parameterContextId, String assetId);
 
 }

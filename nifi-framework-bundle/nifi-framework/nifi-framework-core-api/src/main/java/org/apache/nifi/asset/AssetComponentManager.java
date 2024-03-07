@@ -15,18 +15,25 @@
  *  limitations under the License.
  */
 
-package org.apache.nifi.nar;
+package org.apache.nifi.asset;
 
 /**
- * Thrown from {@link NarRestApiClient} to indicate an error for a request that should be retried.
+ * Manages restarting components which reference a given Asset through a Parameter.
  */
-public class NarRestApiRetryableException extends RuntimeException {
+public interface AssetComponentManager {
 
-    public NarRestApiRetryableException(final String message) {
-        super(message);
-    }
+    /**
+     * Asynchronously restarts any components referencing the given asset.
+     *
+     * @param asset the asset
+     */
+    void restartReferencingComponentsAsync(Asset asset);
 
-    public NarRestApiRetryableException(final String message, final Throwable cause) {
-        super(message, cause);
-    }
+    /**
+     * Synchronously restarts any components referencing the given asset.
+     *
+     * @param asset the asset
+     */
+    void restartReferencingComponents(Asset asset);
+
 }

@@ -17,6 +17,8 @@
 
 package org.apache.nifi.flow.synchronization;
 
+import org.apache.nifi.asset.Asset;
+import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
@@ -53,6 +55,7 @@ import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.ConnectableComponentType;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ParameterProviderReference;
+import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
@@ -457,9 +460,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 restoreConnectionDestinations(group, proposed, connectionsByVersionedId, connectionsWithTempDestination);
             }
 
-            Map<String, Parameter> newParameters = new HashMap<>();
+            final Map<String, Parameter> newParameters = new HashMap<>();
             if (!proposedParameterContextExistsBeforeSynchronize && this.context.getFlowMappingOptions().isMapControllerServiceReferencesToVersionedId()) {
-                Map<String, String> controllerServiceVersionedIdToId = group.getControllerServices(false)
+                final Map<String, String> controllerServiceVersionedIdToId = group.getControllerServices(false)
                     .stream()
                     .filter(controllerServiceNode -> controllerServiceNode.getVersionedComponentId().isPresent())
                     .collect(Collectors.toMap(
@@ -467,18 +470,22 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                         ComponentNode::getIdentifier
                     ));
 
-                ParameterContext parameterContext = group.getParameterContext();
+                final ParameterContext parameterContext = group.getParameterContext();
 
                 if (parameterContext != null) {
                     parameterContext.getParameters().forEach((descriptor, parameter) -> {
-                        List<ParameterReferencedControllerServiceData> referencedControllerServiceData = parameterContext
+                        final List<ParameterReferencedControllerServiceData> referencedControllerServiceData = parameterContext
                             .getParameterReferenceManager()
                             .getReferencedControllerServiceData(parameterContext, descriptor.getName());
 
                         if (referencedControllerServiceData.isEmpty()) {
                             newParameters.put(descriptor.getName(), parameter);
                         } else {
-                            final Parameter adjustedParameter = new Parameter(parameter.getDescriptor(), controllerServiceVersionedIdToId.get(parameter.getValue()));
+                            final Parameter adjustedParameter = new Parameter.Builder()
+                                .fromParameter(parameter)
+                                .value(controllerServiceVersionedIdToId.get(parameter.getValue()))
+                                .build();
+
                             newParameters.put(descriptor.getName(), adjustedParameter);
                         }
                     });
@@ -1677,15 +1684,15 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     protected Set<String> getUpdatedParameterNames(final ParameterContext parameterContext, final VersionedParameterContext proposed) {
-        final Map<String, String> originalValues = new HashMap<>();
-        parameterContext.getParameters().values().forEach(param -> originalValues.put(param.getDescriptor().getName(), param.getValue()));
+        final Map<String, ParameterValueAndReferences> originalValues = new HashMap<>();
+        parameterContext.getParameters().values().forEach(param -> originalValues.put(param.getDescriptor().getName(), getValueAndReferences(param)));
 
-        final Map<String, String> proposedValues = new HashMap<>();
+        final Map<String, ParameterValueAndReferences> proposedValues = new HashMap<>();
         if (proposed != null) {
-            proposed.getParameters().forEach(versionedParam -> proposedValues.put(versionedParam.getName(), versionedParam.getValue()));
+            proposed.getParameters().forEach(versionedParam -> proposedValues.put(versionedParam.getName(), getValueAndReferences(versionedParam)));
         }
 
-        final Map<String, String> copyOfOriginalValues = new HashMap<>(originalValues);
+        final Map<String, ParameterValueAndReferences> copyOfOriginalValues = new HashMap<>(originalValues);
         proposedValues.forEach(originalValues::remove);
         copyOfOriginalValues.forEach(proposedValues::remove);
 
@@ -1693,6 +1700,24 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         updatedParameterNames.addAll(proposedValues.keySet());
 
         return updatedParameterNames;
+    }
+
+    private ParameterValueAndReferences getValueAndReferences(final Parameter parameter) {
+        final List<Asset> assets = parameter.getReferencedAssets();
+        if (assets == null || assets.isEmpty()) {
+            return new ParameterValueAndReferences(parameter.getValue(), null);
+        }
+        final List<String> assetIds = assets.stream().map(Asset::getIdentifier).toList();
+        return new ParameterValueAndReferences(null, assetIds);
+    }
+
+    private ParameterValueAndReferences getValueAndReferences(final VersionedParameter parameter) {
+        final List<VersionedAsset> assets = parameter.getReferencedAssets();
+        if (assets == null || assets.isEmpty()) {
+            return new ParameterValueAndReferences(parameter.getValue(), null);
+        }
+        final List<String> assetIds = assets.stream().map(VersionedAsset::getIdentifier).toList();
+        return new ParameterValueAndReferences(null, assetIds);
     }
 
     @Override
@@ -2033,13 +2058,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             if (versionedParameter == null) {
                 continue;
             }
-            final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
-                .name(versionedParameter.getName())
-                .description(versionedParameter.getDescription())
-                .sensitive(versionedParameter.isSensitive())
-                .build();
 
-            final Parameter parameter = new Parameter(descriptor, versionedParameter.getValue(), null, versionedParameter.isProvided());
+            final Parameter parameter = createParameter(null, versionedParameter);
             parameters.put(versionedParameter.getName(), parameter);
         }
 
@@ -2068,8 +2088,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final AtomicReference<ParameterContext> contextReference = new AtomicReference<>();
         context.getFlowManager().withParameterContextResolution(() -> {
             final ParameterContext created = context.getFlowManager().createParameterContext(parameterContextId, versionedParameterContext.getName(),
-                                                                                             versionedParameterContext.getDescription(), parameters, parameterContextRefs,
-                    getParameterProviderConfiguration(versionedParameterContext));
+                    versionedParameterContext.getDescription(), parameters, parameterContextRefs, getParameterProviderConfiguration(versionedParameterContext));
+
             contextReference.set(created);
         });
 
@@ -2079,13 +2099,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     private Map<String, Parameter> createParameterMap(final Collection<VersionedParameter> versionedParameters) {
         final Map<String, Parameter> parameters = new HashMap<>();
         for (final VersionedParameter versionedParameter : versionedParameters) {
-            final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
-                .name(versionedParameter.getName())
-                .description(versionedParameter.getDescription())
-                .sensitive(versionedParameter.isSensitive())
-                .build();
-
-            final Parameter parameter = new Parameter(descriptor, versionedParameter.getValue(), null, versionedParameter.isProvided());
+            final Parameter parameter = createParameter(null, versionedParameter);
             parameters.put(versionedParameter.getName(), parameter);
         }
 
@@ -2129,13 +2143,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 continue;
             }
 
-            final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
-                    .name(versionedParameter.getName())
-                    .description(versionedParameter.getDescription())
-                    .sensitive(versionedParameter.isSensitive())
-                    .build();
-
-            final Parameter parameter = new Parameter(descriptor, versionedParameter.getValue(), null, versionedParameter.isProvided());
+            final Parameter parameter = createParameter(currentParameterContext.getIdentifier(), versionedParameter);
             parameters.put(versionedParameter.getName(), parameter);
         }
 
@@ -2149,10 +2157,38 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 .map(name -> selectParameterContext(versionedParameterContexts.get(name), versionedParameterContexts, parameterProviderReferences, componentIdGenerator))
                 .collect(Collectors.toList()));
         }
+
         if (versionedParameterContext.getParameterProvider() != null && currentParameterContext.getParameterProvider() == null) {
             createMissingParameterProvider(versionedParameterContext, versionedParameterContext.getParameterProvider(), parameterProviderReferences, componentIdGenerator);
             currentParameterContext.configureParameterProvider(getParameterProviderConfiguration(versionedParameterContext));
         }
+    }
+
+    private Parameter createParameter(final String contextId, final VersionedParameter versionedParameter) {
+        final List<VersionedAsset> referencedAssets = versionedParameter.getReferencedAssets();
+
+        final List<Asset> assets;
+        if (referencedAssets == null || referencedAssets.isEmpty()) {
+            assets = null;
+        } else {
+            final AssetManager assetManager = context.getAssetManager();
+            assets = new ArrayList<>();
+            for (final VersionedAsset reference : referencedAssets) {
+                final Optional<Asset> assetOption = assetManager.getAsset(reference.getIdentifier());
+                final Asset asset = assetOption.orElseGet(() -> assetManager.createMissingAsset(contextId, reference.getName()));
+                assets.add(asset);
+            }
+        }
+
+        return new Parameter.Builder()
+            .name(versionedParameter.getName())
+            .description(versionedParameter.getDescription())
+            .sensitive(versionedParameter.isSensitive())
+            .value(versionedParameter.getValue())
+            .referencedAssets(assets)
+            .provided(versionedParameter.isProvided())
+            .parameterContextId(contextId)
+            .build();
     }
 
     private boolean isEqual(final BundleCoordinate coordinate, final Bundle bundle) {
@@ -3769,4 +3805,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private record CreatedExtension(ComponentNode extension, Map<String, String> propertyValues) {
     }
+
+    private record ParameterValueAndReferences(String value, List<String> assetIds) { }
 }

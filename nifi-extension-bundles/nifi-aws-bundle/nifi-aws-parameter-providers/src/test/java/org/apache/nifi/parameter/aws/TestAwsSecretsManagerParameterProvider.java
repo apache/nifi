@@ -28,7 +28,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.parameter.Parameter;
-import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterGroup;
 import org.apache.nifi.parameter.VerifiableParameterProvider;
 import org.apache.nifi.reporting.InitializationException;
@@ -187,7 +186,10 @@ public class TestAwsSecretsManagerParameterProvider {
     }
 
     private static Parameter parameter(final String name, final String value) {
-        return new Parameter(new ParameterDescriptor.Builder().name(name).build(), value);
+        return new Parameter.Builder()
+            .name(name)
+            .value(value)
+            .build();
     }
 
     private static ArgumentMatcher<GetSecretValueRequest> matchesGetSecretValueRequest(final String groupName) {

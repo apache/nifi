@@ -44,20 +44,19 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parameter.AbstractParameterProvider;
 import org.apache.nifi.parameter.Parameter;
-import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterGroup;
 import org.apache.nifi.parameter.VerifiableParameterProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
 import org.apache.nifi.ssl.SSLContextService;
 
-import javax.net.ssl.SSLContext;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import javax.net.ssl.SSLContext;
 
 /**
  * Reads secrets from AWS Secrets Manager to provide parameter values.  Secrets must be created similar to the following AWS cli command: <br/><br/>
@@ -232,8 +231,11 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
     }
 
     private Parameter createParameter(final String parameterName, final String parameterValue) {
-        final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(parameterName).build();
-        return new Parameter(parameterDescriptor, parameterValue, null, true);
+        return new Parameter.Builder()
+            .name(parameterName)
+            .value(parameterValue)
+            .provided(true)
+            .build();
     }
 
     protected ClientConfiguration createConfiguration(final ConfigurationContext context) {

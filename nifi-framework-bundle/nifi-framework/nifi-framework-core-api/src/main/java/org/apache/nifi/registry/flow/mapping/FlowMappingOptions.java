@@ -28,6 +28,8 @@ public class FlowMappingOptions {
     private final boolean mapInstanceIds;
     private final boolean mapControllerServiceReferencesToVersionedId;
     private final boolean mapFlowRegistryClientId;
+    private final boolean mapAssetReferences;
+
 
     private FlowMappingOptions(final Builder builder) {
         encryptor = builder.encryptor;
@@ -38,6 +40,7 @@ public class FlowMappingOptions {
         mapInstanceIds = builder.mapInstanceId;
         mapControllerServiceReferencesToVersionedId = builder.mapControllerServiceReferencesToVersionedId;
         mapFlowRegistryClientId = builder.mapFlowRegistryClientId;
+        mapAssetReferences = builder.mapAssetReferences;
     }
 
     public SensitiveValueEncryptor getSensitiveValueEncryptor() {
@@ -72,6 +75,10 @@ public class FlowMappingOptions {
         return mapFlowRegistryClientId;
     }
 
+    public boolean isMapAssetReferences() {
+        return mapAssetReferences;
+    }
+
     public static class Builder {
         private SensitiveValueEncryptor encryptor;
         private VersionedComponentStateLookup stateLookup;
@@ -81,6 +88,7 @@ public class FlowMappingOptions {
         private boolean mapInstanceId = false;
         private boolean mapControllerServiceReferencesToVersionedId = true;
         private boolean mapFlowRegistryClientId = false;
+        private boolean mapAssetReferences = false;
 
         /**
          * Sets the SensitiveValueEncryptor to use for encrypting sensitive values. This value must be set
@@ -177,6 +185,11 @@ public class FlowMappingOptions {
             return this;
         }
 
+        public Builder mapAssetReferences(final boolean mapAssetReferences) {
+            this.mapAssetReferences = mapAssetReferences;
+            return this;
+        }
+
         /**
          * Creates a FlowMappingOptions object, or throws an Exception if not all required configuration has been provided
          *
@@ -210,6 +223,7 @@ public class FlowMappingOptions {
         .mapInstanceIdentifiers(false)
         .mapControllerServiceReferencesToVersionedId(true)
         .mapFlowRegistryClientId(false)
+        .mapAssetReferences(false)
         .build();
 
 }

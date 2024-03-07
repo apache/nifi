@@ -17,6 +17,7 @@
 
 package org.apache.nifi.stateless.engine;
 
+import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.ProcessScheduler;
@@ -71,4 +72,6 @@ public interface StatelessEngine {
     CounterRepository getCounterRepository();
 
     Duration getStatusTaskInterval();
+
+    AssetManager getAssetManager();
 }

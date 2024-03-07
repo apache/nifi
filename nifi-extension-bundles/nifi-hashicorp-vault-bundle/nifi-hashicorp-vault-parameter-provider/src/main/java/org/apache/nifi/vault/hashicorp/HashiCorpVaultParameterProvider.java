@@ -25,7 +25,6 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parameter.AbstractParameterProvider;
 import org.apache.nifi.parameter.Parameter;
-import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterGroup;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.VerifiableParameterProvider;
@@ -104,8 +103,11 @@ public class HashiCorpVaultParameterProvider extends AbstractParameterProvider i
             final Map<String, String> keyValues = vaultCommunicationService.readKeyValueSecretMap(kvPath, secretName);
             final List<Parameter> parameters = new ArrayList<>();
             keyValues.forEach( (key, value) -> {
-                final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(key).build();
-                parameters.add(new Parameter(parameterDescriptor, value, null, true));
+                parameters.add(new Parameter.Builder()
+                        .name(key)
+                        .value(value)
+                        .provided(true)
+                        .build());
             });
             parameterGroups.add(new ParameterGroup(secretName, parameters));
         }

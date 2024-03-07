@@ -150,8 +150,11 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
         environmentVariables
                 .forEach( (key, value) -> {
                     if (inclusionStrategy.include(key)) {
-                        final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(key).build();
-                        parameters.add(new Parameter(parameterDescriptor, value, null, true));
+                        parameters.add(new Parameter.Builder()
+                            .name(key)
+                            .value(value)
+                            .provided(true)
+                            .build());
                     }
         });
         return Collections.singletonList(new ParameterGroup(parameterGroupName, parameters));

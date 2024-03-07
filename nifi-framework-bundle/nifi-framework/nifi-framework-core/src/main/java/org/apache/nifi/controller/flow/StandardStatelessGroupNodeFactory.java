@@ -140,6 +140,7 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
             .mapSensitiveConfiguration(true)
             .sensitiveValueEncryptor(value -> value)    // No need to encrypt, since we won't be persisting the flow
             .stateLookup(VersionedComponentStateLookup.IDENTITY_LOOKUP)
+            .mapAssetReferences(true)
             .build();
 
         final StatelessGroupFactory statelessGroupFactory = new StatelessGroupFactory() {
@@ -234,6 +235,7 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
             .counterRepository(flowController.getCounterRepository())
             .encryptor(flowController.getEncryptor())
             .extensionManager(flowController.getExtensionManager())
+            .assetManager(flowController.getAssetManager())
             .extensionRepository(extensionRepository)
             .flowFileEventRepository(flowFileEventRepository)
             .processScheduler(statelessScheduler)

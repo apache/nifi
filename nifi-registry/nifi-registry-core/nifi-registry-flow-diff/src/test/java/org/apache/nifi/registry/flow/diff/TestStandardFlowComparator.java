@@ -17,6 +17,7 @@
 
 package org.apache.nifi.registry.flow.diff;
 
+import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
@@ -27,12 +28,14 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 public class TestStandardFlowComparator {
@@ -110,11 +113,59 @@ public class TestStandardFlowComparator {
         assertEquals(1, numContainingValue);
     }
 
+    @Test
+    public void testAssetReferencesChanged() {
+        final VersionedAsset assetA = createAsset("assetA", "assetA-file.txt");
+        final VersionedAsset assetB = createAsset("assetB", "assetB-file.txt");
+        final VersionedAsset assetC = createAsset("assetC", "assetC-file.txt");
+
+        final Set<VersionedParameter> parametersA = new HashSet<>();
+        parametersA.add(createParameter("Param 1", null, false, List.of(assetA, assetB, assetC)));
+        parametersA.add(createParameter("Param 2", "Param 2 Value", false));
+
+        final Set<VersionedParameter> parametersB = new HashSet<>();
+        parametersB.add(createParameter("Param 1", null, false, List.of(assetA, assetC)));
+        parametersB.add(createParameter("Param 2", "Param 2 Value", false));
+
+        final VersionedParameterContext contextA = new VersionedParameterContext();
+        contextA.setIdentifier("contextA");
+        contextA.setInstanceIdentifier("contextAInstanceId");
+        contextA.setParameters(parametersA);
+
+        final VersionedParameterContext contextB = new VersionedParameterContext();
+        contextB.setIdentifier("contextB");
+        contextB.setInstanceIdentifier("contextBInstanceId");
+        contextB.setParameters(parametersB);
+
+        final Set<FlowDifference> differences = new HashSet<>();
+        comparator.compare(contextA, contextB, differences);
+
+        assertEquals(1, differences.size());
+
+        final FlowDifference difference = differences.iterator().next();
+        assertNotNull(difference);
+        assertEquals(DifferenceType.PARAMETER_ASSET_REFERENCES_CHANGED, difference.getDifferenceType());
+        assertEquals(contextA.getIdentifier(), difference.getComponentA().getIdentifier());
+        assertEquals(contextB.getIdentifier(), difference.getComponentB().getIdentifier());
+    }
+
     private VersionedParameter createParameter(final String name, final String value, final boolean sensitive) {
+        return createParameter(name, value, sensitive, null);
+    }
+
+    private VersionedParameter createParameter(final String name, final String value, final boolean sensitive, final List<VersionedAsset> referencedAssets) {
         final VersionedParameter parameter = new VersionedParameter();
         parameter.setName(name);
         parameter.setValue(sensitive ? "enc{" + decryptedToEncrypted.get(value) + "}" : value);
         parameter.setSensitive(sensitive);
+        parameter.setReferencedAssets(referencedAssets);
         return parameter;
+    }
+
+    private VersionedAsset createAsset(final String id, final String name) {
+        final VersionedAsset asset = new VersionedAsset();
+        asset.setIdentifier(id);
+        asset.setName(name);
+        return asset;
     }
 }

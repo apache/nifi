@@ -18,6 +18,7 @@
 package org.apache.nifi.registry.flow.mapping;
 
 import org.apache.commons.lang3.ClassUtils;
+import org.apache.nifi.asset.Asset;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.resource.ResourceCardinality;
@@ -50,6 +51,7 @@ import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.PortType;
 import org.apache.nifi.flow.Position;
+import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedFlowAnalysisRule;
@@ -964,9 +966,24 @@ public class NiFiRegistryFlowMapper {
         versionedParameter.setSensitive(descriptor.isSensitive());
         versionedParameter.setProvided(parameter.isProvided());
 
-        final String mapped = parameterValueMapper.getMapped(parameter, value);
-        versionedParameter.setValue(mapped);
+        final List<Asset> referencedAssets = parameter.getReferencedAssets();
+        if (referencedAssets == null || referencedAssets.isEmpty()) {
+            final String mapped = parameterValueMapper.getMapped(parameter, value);
+            versionedParameter.setValue(mapped);
+        } else if (flowMappingOptions.isMapAssetReferences()) {
+            final List<VersionedAsset> assetIds = referencedAssets.stream()
+                    .map(this::createVersionedAsset)
+                    .toList();
+            versionedParameter.setReferencedAssets(assetIds);
+        }
         return versionedParameter;
+    }
+
+    private VersionedAsset createVersionedAsset(final Asset asset) {
+        final VersionedAsset versionedAsset = new VersionedAsset();
+        versionedAsset.setIdentifier(asset.getIdentifier());
+        versionedAsset.setName(asset.getName());
+        return versionedAsset;
     }
 
     private org.apache.nifi.flow.ScheduledState mapScheduledState(final ScheduledState scheduledState) {
