@@ -3825,6 +3825,13 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     @ApiImplicitParams(
             value = {
                     @ApiImplicitParam(
+                            name = DISCONNECTED_NODE_ACKNOWLEDGED,
+                            value ="Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                            required = false,
+                            defaultValue = "false",
+                            type = "boolean",
+                            paramType = "formData"),
+                    @ApiImplicitParam(
                             name = "template",
                             value = "The binary content of the template file being uploaded.",
                             required = true,
@@ -3848,10 +3855,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     required = true
             )
             @PathParam("id") final String groupId,
-            @ApiParam(
-                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
-                    required = false
-            )
             @FormDataParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
             @FormDataParam("template") final InputStream in) throws InterruptedException {
 
@@ -4225,6 +4228,47 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     @Authorization(value = "Write - /process-groups/{uuid}")
             }
     )
+    @ApiImplicitParams(
+            value = {
+                    @ApiImplicitParam(
+                            name = "groupName",
+                            value = "The process group name.",
+                            required = true,
+                            type = "string",
+                            paramType = "formData"),
+                    @ApiImplicitParam(
+                            name = "positionX",
+                            value = "The process group X position.",
+                            required = true,
+                            type = "number",
+                            paramType = "formData"),
+                    @ApiImplicitParam(
+                            name = "positionY",
+                            value = "The process group Y position.",
+                            required = true,
+                            type = "number",
+                            paramType = "formData"),
+                    @ApiImplicitParam(
+                            name = "clientId",
+                            value = "The client id.",
+                            required = true,
+                            type = "string",
+                            paramType = "formData"),
+                    @ApiImplicitParam(
+                            name = DISCONNECTED_NODE_ACKNOWLEDGED,
+                            value ="Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                            required = false,
+                            defaultValue = "false",
+                            type = "boolean",
+                            paramType = "formData"),
+                    @ApiImplicitParam(
+                            name = "file",
+                            value = "The binary content of the versioned flow definition file being uploaded.",
+                            required = true,
+                            type = "file",
+                            paramType = "formData")
+            }
+    )
     @ApiResponses(
             value = {
                     @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -4240,30 +4284,10 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     required = true
             )
             @PathParam("id") final String groupId,
-            @ApiParam(
-                    value = "The process group name.",
-                    required = true
-            )
             @FormDataParam("groupName") final String groupName,
-            @ApiParam(
-                    value = "The process group X position.",
-                    required = true
-            )
             @FormDataParam("positionX") final Double positionX,
-            @ApiParam(
-                    value = "The process group Y position.",
-                    required = true
-            )
             @FormDataParam("positionY") final Double positionY,
-            @ApiParam(
-                    value = "The client id.",
-                    required = true
-            )
             @FormDataParam("clientId") final String clientId,
-            @ApiParam(
-                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
-                    required = false
-            )
             @FormDataParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
             @FormDataParam("file") final InputStream in) throws InterruptedException {
 
