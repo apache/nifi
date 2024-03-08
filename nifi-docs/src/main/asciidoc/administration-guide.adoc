@@ -3839,7 +3839,7 @@ For example, to provide two additional network interfaces, a user could also spe
 `nifi.web.http.network.interface.eth1=eth1` +
 +
 Providing three total network interfaces, including  `nifi.web.http.network.interface.default`.
-|`nifi.web.https.host`|The HTTPS host. The default value is `127.0.0.1`.
+|`nifi.web.https.host`|The HTTPS host. The default value is `localhost`.
 |`nifi.web.https.port`|The HTTPS port. The default value is `8443`.
 |`nifi.web.https.port.forwarding`|Same as `nifi.web.http.port.forwarding`, but with HTTPS for secure communication. It is blank by default.
 |`nifi.web.https.ciphersuites.include`|Cipher suites used to initialize the SSLContext of the Jetty HTTPS port.  If unspecified, the runtime SSLContext defaults are used.
