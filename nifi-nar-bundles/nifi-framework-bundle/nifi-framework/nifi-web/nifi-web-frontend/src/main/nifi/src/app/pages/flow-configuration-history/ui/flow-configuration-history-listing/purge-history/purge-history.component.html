@@ -50,12 +50,12 @@
             </mat-dialog-content>
 
             <mat-dialog-actions align="end">
-                <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+                <button mat-button mat-dialog-close>Cancel</button>
                 <button
                     color="primary"
                     (click)="submit()"
                     [disabled]="!purgeHistoryForm.valid"
-                    mat-raised-button
+                    mat-button
                     mat-dialog-close>
                     Ok
                 </button>

@@ -20,6 +20,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
+import org.apache.nifi.hbase.scan.HBaseRegion;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
 
@@ -42,6 +43,7 @@ public class MockHBaseClientService extends AbstractControllerService implements
     private int numScans = 0;
     private int numPuts  = 0;
     private int linesBeforeException = -1;
+    private List<HBaseRegion> regionsToReturn = new ArrayList<>();
 
     @Override
     public void put(String tableName, Collection<PutFlowFile> puts) throws IOException {
@@ -242,6 +244,19 @@ public class MockHBaseClientService extends AbstractControllerService implements
 
     public int getNumScans() {
         return numScans;
+    }
+
+    @Override
+    public List<HBaseRegion> listHBaseRegions(final String tableName) throws HBaseClientException {
+        return regionsToReturn;
+    }
+
+    public void addHBaseRegion(final HBaseRegion region) {
+        regionsToReturn.add(region);
+    }
+
+    public void addHBaseRegions(final List<HBaseRegion> regions) {
+        regionsToReturn.addAll(regions);
     }
 
     @Override

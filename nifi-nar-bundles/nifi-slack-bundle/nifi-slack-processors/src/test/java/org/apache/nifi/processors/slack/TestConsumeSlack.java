@@ -35,6 +35,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -55,14 +56,14 @@ public class TestConsumeSlack {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private TestRunner testRunner;
     private MockConsumeSlackClient client;
-
+    ConsumeSlack processor;
 
     @BeforeEach
     public void setup() {
         client = new MockConsumeSlackClient();
 
         // Create an instance of the processor that mocks out the initialize() method to return a client we can use for testing
-        final ConsumeSlack processor = new ConsumeSlack() {
+        processor = new ConsumeSlack() {
             @Override
             protected ConsumeSlackClient initializeClient(final App slackApp) {
                 return client;
@@ -75,6 +76,23 @@ public class TestConsumeSlack {
         testRunner.setProperty(ConsumeSlack.BATCH_SIZE, "5");
     }
 
+    @Test
+    public void testRequestRateLimited() {
+        testRunner.setProperty(ConsumeSlack.CHANNEL_IDS, "cid1,cid2");
+        final Message message = createMessage("U12345", "Hello world", "1683903832.350");
+        client.addHistoryResponse(noMore(createSuccessfulHistoryResponse(message)));
+
+        testRunner.run(1, false, true);
+        testRunner.assertAllFlowFilesTransferred(ConsumeSlack.REL_SUCCESS, 1);
+        testRunner.clearTransferState();
+
+        // Create another HttpResponse because each response can only be read once.
+        client.addHistoryResponse(noMore(createSuccessfulHistoryResponse(message)));
+        // Set processor to be in rate limited state, therefore it will process 0 flowfiles
+        processor.getRateLimit().retryAfter(Duration.ofSeconds(30));
+        testRunner.run(1, true, false);
+        testRunner.assertAllFlowFilesTransferred(ConsumeSlack.REL_SUCCESS, 0);
+    }
 
     @Test
     public void testSuccessfullyReceivedSingleMessage() throws JsonProcessingException {

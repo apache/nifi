@@ -30,20 +30,17 @@ public class PythonProcessConfig {
     private final File pythonFrameworkDirectory;
     private final List<File> pythonExtensionsDirectories;
     private final File pythonWorkingDirectory;
-    private final File pythonLogsDirectory;
     private final Duration commsTimeout;
     private final int maxPythonProcesses;
     private final int maxPythonProcessesPerType;
     private final boolean debugController;
     private final String debugHost;
     private final int debugPort;
-    private final File debugLogsDirectory;
 
     private PythonProcessConfig(final Builder builder) {
         this.pythonCommand = builder.pythonCommand;
         this.pythonFrameworkDirectory = builder.pythonFrameworkDirectory;
         this.pythonExtensionsDirectories = builder.pythonExtensionsDirectories;
-        this.pythonLogsDirectory = builder.pythonLogsDirectory;
         this.pythonWorkingDirectory = builder.pythonWorkingDirectory;
         this.commsTimeout = builder.commsTimeout;
         this.maxPythonProcesses = builder.maxProcesses;
@@ -51,7 +48,6 @@ public class PythonProcessConfig {
         this.debugController = builder.debugController;
         this.debugPort = builder.debugPort;
         this.debugHost = builder.debugHost;
-        this.debugLogsDirectory = builder.debugLogsDirectory;
     }
 
     public String getPythonCommand() {
@@ -64,10 +60,6 @@ public class PythonProcessConfig {
 
     public List<File> getPythonExtensionsDirectories() {
         return pythonExtensionsDirectories;
-    }
-
-    public File getPythonLogsDirectory() {
-        return pythonLogsDirectory;
     }
 
     public File getPythonWorkingDirectory() {
@@ -98,15 +90,10 @@ public class PythonProcessConfig {
         return debugPort;
     }
 
-    public File getDebugLogsDirectory() {
-        return debugLogsDirectory;
-    }
-
     public static class Builder {
         private String pythonCommand = "python3";
         private File pythonFrameworkDirectory = new File("python/framework");
         private List<File> pythonExtensionsDirectories = Collections.singletonList(new File("python/extensions"));
-        private File pythonLogsDirectory = new File("./logs");
         private File pythonWorkingDirectory = new File("python");
         private Duration commsTimeout = Duration.ofSeconds(0);
         private int maxProcesses;
@@ -114,8 +101,6 @@ public class PythonProcessConfig {
         private boolean debugController = false;
         private String debugHost = "localhost";
         private int debugPort = 5678;
-        private File debugLogsDirectory = new File("logs/");
-
 
         public Builder pythonCommand(final String command) {
             this.pythonCommand = command;
@@ -164,11 +149,6 @@ public class PythonProcessConfig {
             return this;
         }
 
-        public Builder pythonLogsDirectory(final File logsDirectory) {
-            this.pythonLogsDirectory = logsDirectory;
-            return this;
-        }
-
         public Builder enableControllerDebug(final boolean enableDebug) {
             this.debugController = enableDebug;
             return this;
@@ -181,11 +161,6 @@ public class PythonProcessConfig {
 
         public Builder debugHost(final String debugHost) {
             this.debugHost = debugHost;
-            return this;
-        }
-
-        public Builder debugLogsDirectory(final File debugLogsDirectory) {
-            this.debugLogsDirectory = debugLogsDirectory;
             return this;
         }
 

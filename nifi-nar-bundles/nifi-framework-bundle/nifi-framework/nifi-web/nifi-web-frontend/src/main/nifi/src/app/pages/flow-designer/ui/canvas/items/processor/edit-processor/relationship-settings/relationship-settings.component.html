@@ -37,15 +37,16 @@
                                 name="autoTerminate-{{ i }}"
                                 (change)="handleChanged()"
                                 [disabled]="isDisabled"
-                                >terminate</mat-checkbox
-                            >
+                                >terminate
+                            </mat-checkbox>
                             <mat-checkbox
+                                color="primary"
                                 [(ngModel)]="relationship.retry"
                                 name="retry-{{ i }}"
                                 (change)="handleChanged()"
                                 [disabled]="isDisabled"
-                                >retry</mat-checkbox
-                            >
+                                >retry
+                            </mat-checkbox>
                         </div>
                         @if (hasDescription(relationship)) {
                             <div class="ml-2">{{ relationship.description }}</div>

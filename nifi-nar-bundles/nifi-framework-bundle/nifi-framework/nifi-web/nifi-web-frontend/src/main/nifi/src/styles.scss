@@ -317,12 +317,9 @@ $appFontPath: '~roboto-fontface/fonts';
         border-color: $accent-palette-A400;
     }
 
-    button:disabled {
+    button.nifi-button:disabled {
         color: $primary-palette-200 !important;
         cursor: not-allowed;
-    }
-
-    button.nifi-button:disabled {
         border: 1px solid $primary-palette-200;
 
         i {
@@ -333,6 +330,10 @@ $appFontPath: '~roboto-fontface/fonts';
     .value,
     .refresh-timestamp {
         color: $warn-palette-A400;
+    }
+
+    ngx-skeleton-loader .skeleton-loader {
+        background: $canvas-primary-palette-400;
     }
 }
 
