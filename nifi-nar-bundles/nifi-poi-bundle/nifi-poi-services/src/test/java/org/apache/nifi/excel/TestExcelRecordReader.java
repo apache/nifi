@@ -25,6 +25,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.poi.openxml4j.exceptions.OpenXML4JRuntimeException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -59,7 +60,8 @@ public class TestExcelRecordReader {
                 .build();
 
         MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> new ExcelRecordReader(configuration, getInputStream("notExcel.txt"), logger));
-        assertTrue(ExceptionUtils.getStackTrace(mre).contains("this is not a valid OOXML"));
+        final Throwable cause = mre.getCause();
+        assertInstanceOf(OpenXML4JRuntimeException.class, cause);
     }
 
     @Test

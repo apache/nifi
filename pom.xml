@@ -117,7 +117,7 @@
         <okio.version>3.8.0</okio.version>
         <org.apache.commons.cli.version>1.6.0</org.apache.commons.cli.version>
         <org.apache.commons.codec.version>1.16.1</org.apache.commons.codec.version>
-        <org.apache.commons.compress.version>1.25.0</org.apache.commons.compress.version>
+        <org.apache.commons.compress.version>1.26.1</org.apache.commons.compress.version>
         <org.apache.commons.lang3.version>3.14.0</org.apache.commons.lang3.version>
         <org.apache.commons.net.version>3.10.0</org.apache.commons.net.version>
         <org.apache.commons.io.version>2.15.1</org.apache.commons.io.version>
