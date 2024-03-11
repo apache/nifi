@@ -232,7 +232,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
     public void onTrigger(ProcessContext context, ProcessSession processSession) throws ProcessException {
         this.initializeIfNecessary(context, processSession);
 
-        Message emailMessage = this.receiveMessage();
+        Message emailMessage = this.receiveMessage(context);
         if (emailMessage != null) {
             this.transfer(emailMessage, context, processSession);
         }
@@ -309,19 +309,26 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
     private synchronized void initializeIfNecessary(ProcessContext context, ProcessSession processSession) {
         if (this.messageReceiver == null) {
             this.processSession = processSession;
-            this.messageReceiver = this.buildMessageReceiver(context);
 
             this.shouldSetDeleteFlag = context.getProperty(SHOULD_DELETE_MESSAGES).asBoolean();
+
+            createReceiver(context);
+
             int fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
-
-            this.messageReceiver.setMaxFetchSize(fetchSize);
-            this.messageReceiver.setJavaMailProperties(this.buildJavaMailProperties(context));
-            // need to avoid spring warning messages
-            this.messageReceiver.setBeanFactory(new StaticListableBeanFactory());
-            this.messageReceiver.afterPropertiesSet();
-
             this.messageQueue = new ArrayBlockingQueue<>(fetchSize);
         }
+    }
+
+    private void createReceiver(ProcessContext context) {
+        this.messageReceiver = this.buildMessageReceiver(context);
+
+        int fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
+
+        this.messageReceiver.setMaxFetchSize(fetchSize);
+        this.messageReceiver.setJavaMailProperties(this.buildJavaMailProperties(context));
+        // need to avoid spring warning messages
+        this.messageReceiver.setBeanFactory(new StaticListableBeanFactory());
+        this.messageReceiver.afterPropertiesSet();
     }
 
     /**
@@ -355,11 +362,18 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
      * the fact that per single session there may be multiple messages retrieved
      * from the email server (see FETCH_SIZE).
      */
-    private synchronized void fillMessageQueueIfNecessary() {
+    private synchronized void fillMessageQueueIfNecessary(ProcessContext context) {
         if (this.messageQueue.isEmpty()) {
             Object[] messages;
             try {
-                messages = this.messageReceiver.receive();
+                try {
+                    messages = this.messageReceiver.receive();
+                } catch (Exception e) {
+                    this.getLogger().debug("Exception encountered while trying to receive messages from Email server", e);
+                    this.getLogger().debug("Recreating message receiver and trying again.");
+                    createReceiver(context);
+                    messages = this.messageReceiver.receive();
+                }
             } catch (MessagingException e) {
                 String errorMsg = "Failed to receive messages from Email server: [" + e.getClass().getName()
                         + " - " + e.getMessage();
@@ -413,10 +427,10 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
      * Receives message from the internal queue filling up the queue if
      * necessary.
      */
-    private Message receiveMessage() {
+    private Message receiveMessage(ProcessContext context) {
         Message emailMessage = null;
         try {
-            this.fillMessageQueueIfNecessary();
+            this.fillMessageQueueIfNecessary(context);
             emailMessage = this.messageQueue.poll(1, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
