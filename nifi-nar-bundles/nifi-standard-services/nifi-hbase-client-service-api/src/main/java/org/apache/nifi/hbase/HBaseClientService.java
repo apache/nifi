@@ -22,6 +22,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
+import org.apache.nifi.hbase.scan.HBaseRegion;
 import org.apache.nifi.hbase.scan.ResultHandler;
 
 import java.io.IOException;
@@ -168,6 +169,13 @@ public interface HBaseClientService extends ControllerService {
      */
     void scan(String tableName, String startRow, String endRow, String filterExpression, Long timerangeMin, Long timerangeMax, Integer limitRows,
             Boolean isReversed, Boolean blockCache, Collection<Column> columns, List<String> authorizations, ResultHandler handler) throws IOException;
+
+    /**
+     * Returns a {@link List} of {@link HBaseRegion} objects that represent information about the HBase table
+     * regions for all regions in the HBase table.
+     * @param tableName the name of the HBase table to fetch region information for
+     */
+    List<HBaseRegion> listHBaseRegions(String tableName) throws HBaseClientException;
 
     /**
      * Converts the given boolean to it's byte representation.

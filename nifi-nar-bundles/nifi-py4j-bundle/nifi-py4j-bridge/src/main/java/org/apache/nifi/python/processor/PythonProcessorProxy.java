@@ -54,6 +54,7 @@ public abstract class PythonProcessorProxy<T extends PythonProcessor> extends Ab
     private volatile Boolean supportsDynamicProperties;
 
     private volatile T currentTransform;
+    private volatile PythonProcessorAdapter currentAdapter;
     private volatile ProcessContext currentProcessContext;
 
 
@@ -112,25 +113,23 @@ public abstract class PythonProcessorProxy<T extends PythonProcessor> extends Ab
     }
 
 
-    @OnScheduled
-    public void setContext(final ProcessContext context) {
-        this.currentProcessContext = context;
-    }
-
-    protected T getTransform() {
+    protected synchronized T getTransform() {
         final PythonProcessorBridge bridge = getBridge().orElseThrow(() -> new IllegalStateException(this + " is not finished initializing"));
         final Optional<PythonProcessorAdapter> optionalAdapter = bridge.getProcessorAdapter();
         if (optionalAdapter.isEmpty()) {
             throw new IllegalStateException(this + " is not finished initializing");
         }
 
-        final T transform = (T) optionalAdapter.get().getProcessor();
-        if (transform != currentTransform) {
+        final PythonProcessorAdapter adapter = optionalAdapter.get();
+        if (adapter != currentAdapter) {
+            final T transform = (T) adapter.getProcessor();
             transform.setContext(currentProcessContext);
+
             currentTransform = transform;
+            currentAdapter = adapter;
         }
 
-        return transform;
+        return currentTransform;
     }
 
     protected Optional<PythonProcessorBridge> getBridge() {
@@ -257,8 +256,7 @@ public abstract class PythonProcessorProxy<T extends PythonProcessor> extends Ab
         return supported;
     }
 
-    @OnScheduled
-    public void cacheRelationships() {
+    private void cacheRelationships() {
         // Get the Relationships from the Python side. Then make a defensive copy and make that copy immutable.
         // We cache this to avoid having to call into the Python side while the Processor is running. However, once
         // it is stopped, its relationships may change due to properties, etc.
@@ -266,8 +264,7 @@ public abstract class PythonProcessorProxy<T extends PythonProcessor> extends Ab
         this.cachedRelationships = Set.copyOf(relationships);
     }
 
-    @OnScheduled
-    public void cacheDynamicPropertyDescriptors(final ProcessContext context) {
+    private void cacheDynamicPropertyDescriptors(final ProcessContext context) {
         final Map<String, PropertyDescriptor> dynamicDescriptors = new HashMap<>();
 
         final Set<PropertyDescriptor> descriptors = context.getProperties().keySet();
@@ -299,8 +296,8 @@ public abstract class PythonProcessorProxy<T extends PythonProcessor> extends Ab
         Set<Relationship> processorRelationships;
         try {
             processorRelationships = bridge.getProcessorAdapter()
-                    .map(PythonProcessorAdapter::getRelationships)
-                    .orElseGet(HashSet::new);
+                .map(PythonProcessorAdapter::getRelationships)
+                .orElseGet(HashSet::new);
         } catch (final Exception e) {
             getLogger().warn("Failed to obtain list of Relationships from Python Processor {}; assuming no explicit relationships", this, e);
             processorRelationships = new HashSet<>();
@@ -313,14 +310,23 @@ public abstract class PythonProcessorProxy<T extends PythonProcessor> extends Ab
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
+        this.currentProcessContext = context;
+
         if (bridge == null) {
             throw new IllegalStateException("Processor is not yet initialized");
         }
 
         reload();
-        bridge.getProcessorAdapter()
-            .orElseThrow(() -> new IllegalStateException("Processor has not finished initializing"))
-            .onScheduled(context);
+
+        final PythonProcessorAdapter adapter = bridge.getProcessorAdapter()
+            .orElseThrow(() -> new IllegalStateException("Processor has not finished initializing"));
+
+        adapter.onScheduled(context);
+
+        adapter.getProcessor().setContext(context);
+
+        cacheRelationships();
+        cacheDynamicPropertyDescriptors(context);
     }
 
     @OnStopped

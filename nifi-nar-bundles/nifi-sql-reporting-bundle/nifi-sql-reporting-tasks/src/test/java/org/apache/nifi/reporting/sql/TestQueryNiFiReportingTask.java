@@ -32,8 +32,10 @@ import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.provenance.MockProvenanceRepository;
+import org.apache.nifi.provenance.MockProvenanceEvent;
+import org.apache.nifi.provenance.ProvenanceEventBuilder;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.record.sink.MockRecordSinkService;
 import org.apache.nifi.record.sink.RecordSinkService;
@@ -488,7 +490,7 @@ class TestQueryNiFiReportingTask {
         Map<String, Object> row = rows.get(0);
         assertEquals(24, row.size());
         // Verify the first row contents
-        assertEquals(0L, row.get("eventId"));
+        final Long firstEventId = (Long) row.get("eventId");
         assertEquals("CREATE", row.get("eventType"));
         assertEquals(12L, row.get("entitySize"));
 
@@ -508,14 +510,14 @@ class TestQueryNiFiReportingTask {
         row = rows.get(1);
         assertEquals(24, row.size());
         // Verify the second row contents
-        assertEquals(1L, row.get("eventId"));
+        assertEquals(firstEventId + 1, row.get("eventId"));
         assertEquals("DROP", row.get("eventType"));
 
         // Verify some fields in the last row
         row = rows.get(1000);
         assertEquals(24, row.size());
         // Verify the last row contents
-        assertEquals(1000L, row.get("eventId"));
+        assertEquals(firstEventId + 1000L, row.get("eventId"));
         assertEquals("DROP", row.get("eventType"));
     }
 
@@ -736,6 +738,53 @@ class TestQueryNiFiReportingTask {
         public List<Bulletin> findBulletinsForController() {
             return Optional.ofNullable(bulletins.get("controller"))
                     .orElse(Collections.emptyList());
+        }
+    }
+
+    private static class MockProvenanceRepository implements ProvenanceEventRepository {
+        private final List<ProvenanceEventRecord> events = new ArrayList<>();
+
+        @Override
+        public ProvenanceEventBuilder eventBuilder() {
+            return new MockProvenanceEvent.Builder();
+        }
+
+        @Override
+        public void registerEvent(final ProvenanceEventRecord event) {
+            events.add(event);
+        }
+
+        @Override
+        public void registerEvents(final Iterable<ProvenanceEventRecord> events) {
+            events.forEach(this::registerEvent);
+        }
+
+        @Override
+        public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxRecords) {
+            return events.stream()
+                    .filter(event -> event.getEventId() >= firstRecordId)
+                    .limit(maxRecords)
+                    .collect(Collectors.toList());
+        }
+
+        @Override
+        public Long getMaxEventId() {
+            return events.stream()
+                    .map(ProvenanceEventRecord::getEventId)
+                    .max(Long::compareTo)
+                    .orElse(null);
+        }
+
+        @Override
+        public ProvenanceEventRecord getEvent(final long id) {
+            return events.stream()
+                    .filter(event -> event.getEventId() == id)
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        @Override
+        public void close() {
         }
     }
 }

@@ -22,6 +22,7 @@ import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.DeleteVersionRequest;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +57,7 @@ public class TestDeleteS3Object {
 
     @Test
     public void testDeleteObjectSimple() {
-        runner.setProperty(DeleteS3Object.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
         runner.setProperty(DeleteS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "delete-key");
@@ -75,7 +76,7 @@ public class TestDeleteS3Object {
 
     @Test
     public void testDeleteObjectSimpleRegionFromFlowFileAttribute() {
-        runner.setProperty(DeleteS3Object.S3_REGION, "attribute-defined-region");
+        runner.setProperty(RegionUtilV1.S3_REGION, "attribute-defined-region");
         runner.setProperty(DeleteS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "delete-key");
@@ -89,7 +90,7 @@ public class TestDeleteS3Object {
 
     @Test
     public void testDeleteObjectS3Exception() {
-        runner.setProperty(DeleteS3Object.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
         runner.setProperty(DeleteS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "delete-key");
@@ -105,7 +106,7 @@ public class TestDeleteS3Object {
 
     @Test
     public void testDeleteVersionSimple() {
-        runner.setProperty(DeleteS3Object.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
         runner.setProperty(DeleteS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(DeleteS3Object.VERSION_ID, "test-version");
         final Map<String, String> attrs = new HashMap<>();
@@ -126,7 +127,7 @@ public class TestDeleteS3Object {
 
     @Test
     public void testDeleteVersionFromExpressions() {
-        runner.setProperty(DeleteS3Object.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
         runner.setProperty(DeleteS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "${s3.bucket}");
         runner.setProperty(DeleteS3Object.VERSION_ID, "${s3.version}");
         final Map<String, String> attrs = new HashMap<>();

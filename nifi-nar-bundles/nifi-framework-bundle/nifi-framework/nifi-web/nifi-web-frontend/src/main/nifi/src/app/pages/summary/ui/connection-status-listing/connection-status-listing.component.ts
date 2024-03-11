@@ -17,22 +17,31 @@
 
 import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { ConnectionStatusSnapshotEntity, SummaryListingState } from '../../state/summary-listing';
+import { SummaryListingState } from '../../state/summary-listing';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';
 import {
     selectConnectionIdFromRoute,
     selectConnectionStatus,
     selectConnectionStatusSnapshots,
+    selectSelectedClusterNode,
     selectSummaryListingLoadedTimestamp,
     selectSummaryListingStatus,
     selectViewStatusHistory
 } from '../../state/summary-listing/summary-listing.selectors';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
-import { filter, switchMap, take } from 'rxjs';
+import { filter, map, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
-import { ComponentType } from '../../../../state/shared';
+import { ComponentType, isDefinedAndNotNull } from '../../../../state/shared';
+import { loadClusterSummary } from '../../../../state/cluster-summary/cluster-summary.actions';
+import { ConnectionStatusSnapshotEntity } from '../../state';
+import {
+    selectClusterSearchResults,
+    selectClusterSummary
+} from '../../../../state/cluster-summary/cluster-summary.selectors';
+import * as ClusterStatusActions from '../../state/component-cluster-status/component-cluster-status.actions';
+import { NodeSearchResult } from '../../../../state/cluster-summary';
 
 @Component({
     selector: 'connection-status-listing',
@@ -45,6 +54,15 @@ export class ConnectionStatusListing {
     currentUser$ = this.store.select(selectCurrentUser);
     connectionStatusSnapshots$ = this.store.select(selectConnectionStatusSnapshots);
     selectedConnectionId$ = this.store.select(selectConnectionIdFromRoute);
+    connectedToCluster$ = this.store.select(selectClusterSummary).pipe(
+        isDefinedAndNotNull(),
+        map((cluster) => cluster.connectedToCluster)
+    );
+    clusterNodes$ = this.store.select(selectClusterSearchResults).pipe(
+        isDefinedAndNotNull(),
+        map((results) => results.nodeResults)
+    );
+    selectedClusterNode$ = this.store.select(selectSelectedClusterNode);
 
     constructor(private store: Store<SummaryListingState>) {
         this.store
@@ -80,6 +98,7 @@ export class ConnectionStatusListing {
 
     refreshSummaryListing() {
         this.store.dispatch(SummaryListingActions.loadSummaryListing({ recursive: true }));
+        this.store.dispatch(loadClusterSummary());
     }
 
     selectConnection(connection: ConnectionStatusSnapshotEntity): void {
@@ -102,5 +121,20 @@ export class ConnectionStatusListing {
                 id: connection.id
             })
         );
+    }
+
+    viewClusteredDetails(processor: ConnectionStatusSnapshotEntity): void {
+        this.store.dispatch(
+            ClusterStatusActions.loadComponentClusterStatusAndOpenDialog({
+                request: {
+                    id: processor.id,
+                    componentType: ComponentType.Connection
+                }
+            })
+        );
+    }
+
+    clusterNodeSelected(clusterNode: NodeSearchResult) {
+        this.store.dispatch(SummaryListingActions.selectClusterNode({ clusterNode }));
     }
 }

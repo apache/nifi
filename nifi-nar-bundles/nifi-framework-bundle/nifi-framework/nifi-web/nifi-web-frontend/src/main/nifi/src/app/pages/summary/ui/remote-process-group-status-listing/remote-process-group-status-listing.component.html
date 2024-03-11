@@ -22,14 +22,19 @@
         </div>
     } @else {
         <remote-process-group-status-table
-            [remoteProcessGroups]="(rpgStatusSnapshots$ | async)!"
-            [selectedRemoteProcessGroupId]="selectedRpgId$ | async"
+            [components]="(rpgStatusSnapshots$ | async)!"
+            [selectedId]="selectedRpgId$ | async"
             [loadedTimestamp]="loadedTimestamp$ | async"
             [summaryListingStatus]="summaryListingStatus$ | async"
-            (selectRemoteProcessGroup)="selectRemoteProcessGroup($event)"
+            [connectedToCluster]="(connectedToCluster$ | async) || false"
+            [clusterNodes]="clusterNodes$ | async"
+            [selectedClusterNode]="selectedClusterNode$ | async"
+            (selectComponent)="selectRemoteProcessGroup($event)"
             (clearSelection)="clearSelection()"
             (viewStatusHistory)="viewStatusHistory($event)"
             (refresh)="refreshSummaryListing()"
+            (clusterNodeSelected)="clusterNodeSelected($event)"
+            (viewClusteredDetails)="viewClusteredDetails($event)"
             initialSortColumn="name"
             initialSortDirection="asc"></remote-process-group-status-table>
     }

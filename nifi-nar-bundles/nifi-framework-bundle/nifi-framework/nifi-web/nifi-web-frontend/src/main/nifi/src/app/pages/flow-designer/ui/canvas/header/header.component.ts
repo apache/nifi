@@ -21,7 +21,6 @@ import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
 import {
     selectCanvasPermissions,
-    selectClusterSummary,
     selectControllerBulletins,
     selectControllerStatus,
     selectCurrentProcessGroupId,
@@ -36,6 +35,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { RouterLink } from '@angular/router';
 import { FlowStatus } from './flow-status/flow-status.component';
 import { Navigation } from '../../../../../ui/common/navigation/navigation.component';
+import { selectClusterSummary } from '../../../../../state/cluster-summary/cluster-summary.selectors';
 
 @Component({
     selector: 'fd-header',

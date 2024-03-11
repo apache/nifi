@@ -1,0 +1,85 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="cluster-summary flex flex-col" tabindex="0">
+    <h2 mat-dialog-title>Cluster {{ componentType }} Summary</h2>
+
+    <mat-dialog-content class="cluster-summary-content flex flex-1 h-full grow">
+        <div class="dialog-content flex flex-1 flex-col grow">
+            <component-context
+                [type]="componentType"
+                [name]="componentHelper.getName()"
+                [id]="componentId"></component-context>
+            <div class="flex flex-1 flex-col cluster-summary-table-container">
+                @switch (componentType) {
+                    @case (ComponentType.Processor) {
+                        <processor-cluster-table
+                            [components]="clusterStatusEntity?.processorStatus?.nodeSnapshots || []"
+                            initialSortColumn="node"
+                            initialSortDirection="asc"></processor-cluster-table>
+                    }
+                    @case (ComponentType.InputPort) {
+                        <port-cluster-table
+                            [components]="clusterStatusEntity?.portStatus?.nodeSnapshots || []"
+                            portType="input"
+                            initialSortColumn="node"
+                            initialSortDirection="asc"></port-cluster-table>
+                    }
+                    @case (ComponentType.OutputPort) {
+                        <port-cluster-table
+                            [components]="clusterStatusEntity?.portStatus?.nodeSnapshots || []"
+                            portType="output"
+                            initialSortColumn="node"
+                            initialSortDirection="asc"></port-cluster-table>
+                    }
+                    @case (ComponentType.RemoteProcessGroup) {
+                        <remote-process-group-cluster-table
+                            [components]="clusterStatusEntity?.remoteProcessGroupStatus?.nodeSnapshots || []"
+                            initialSortColumn="node"
+                            initialSortDirection="asc"></remote-process-group-cluster-table>
+                    }
+                    @case (ComponentType.Connection) {
+                        <connection-cluster-table
+                            [components]="clusterStatusEntity?.connectionStatus?.nodeSnapshots || []"
+                            initialSortColumn="node"
+                            initialSortDirection="asc"></connection-cluster-table>
+                    }
+                    @case (ComponentType.ProcessGroup) {
+                        <process-group-cluster-table
+                            [components]="clusterStatusEntity?.processGroupStatus?.nodeSnapshots || []"
+                            initialSortColumn="node"
+                            initialSortDirection="asc"></process-group-cluster-table>
+                    }
+                }
+            </div>
+        </div>
+    </mat-dialog-content>
+
+    <mat-dialog-actions>
+        <div class="flex justify-between align-middle w-full">
+            <div class="refresh-container flex items-center gap-x-2">
+                <button class="nifi-button" (click)="refresh()">
+                    <i class="fa fa-refresh" [class.fa-spin]="loading$ | async"></i>
+                </button>
+                <div>Last updated:</div>
+                <div class="refresh-timestamp">{{ loadedTimestamp$ | async }}</div>
+            </div>
+
+            <button mat-button mat-dialog-close tabindex="0">Close</button>
+        </div>
+    </mat-dialog-actions>
+</div>

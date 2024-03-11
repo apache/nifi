@@ -64,7 +64,7 @@ It's not guaranteed in all circumstances that the migration will result in a cor
 # <a id="encrypt-sensitive-properties-in-bootstrapconf" href="#encrypt-sensitive-properties-in-bootstrapconf">Encrypting Sensitive Properties in bootstrap.conf</a>
 
 ## MiNiFi Encrypt-Config Tool
-The encrypt-config command line tool (invoked in minifi-toolkit as ./bin/encrypt-config.sh or bin\encrypt-config.bat) reads from a bootstrap.conf file with plaintext sensitive configuration values and encrypts each value using a random encryption key. It replaces the plain values with the protected value in the same file, or writes to a new bootstrap.conf file if specified.
+The encrypt-config command line tool (invoked in minifi-toolkit as ./bin/encrypt-config.sh or bin\encrypt-config.bat) reads from a bootstrap.conf file with plaintext sensitive configuration values and encrypts each value using a random encryption key. It replaces the plain values with the protected value in the same file, or writes to a new bootstrap.conf file if specified. Additionally it can be used to encrypt the unencrypted sensitive properties (if any) in the flow.json.raw. For using this functionality `nifi.minifi.sensitive.props.key` and `nifi.minifi.sensitive.props.algorithm` has to be provided in bootstrap.conf. 
 
 The supported encryption algorithm utilized is AES/GCM 256-bit.
 
@@ -78,9 +78,12 @@ To show help:
 The following are the available options:
 * -b, --bootstrapConf <bootstrapConfPath> Path to file containing Bootstrap Configuration [bootstrap.conf]
 * -B, --outputBootstrapConf <outputBootstrapConf> Path to output file for Bootstrap Configuration [bootstrap.conf] with root key configured
+* -x, --encryptRawFlowJsonOnly Process Raw Flow Configuration [flow.json.raw] sensitive property values without modifying other configuration files
+* -f, --rawFlowJson <flowConfigurationPath> Path to file containing Raw Flow Configuration [flow.json.raw] that will be updated unless the output argument is provided
+* -g, --outputRawFlowJson <outputFlowConfigurationPath> ath to output file for Raw Flow Configuration [flow.json.raw] with property protection applied
 * -h, --help          Show help message and exit.
 
-### Example
+### Example 1
 As an example of how the tool works with the following existing values in the bootstrap.conf file:
 ```
 nifi.sensitive.props.key=thisIsABadSensitiveKeyPassword
@@ -141,6 +144,18 @@ Sensitive configuration values are encrypted by the tool by default, however you
 
 If the bootstrap.conf file already has valid protected values, those property values are not modified by the tool.
 
+### Example 2
+An example to encrypt non encrypted sensitive properties in flow.json.raw
+```
+nifi.sensitive.props.key=sensitivePropsKey
+nifi.sensitive.props.algorithm=NIFI_PBKDF2_AES_GCM_256
+```
+Enter the following arguments when using the tool:
+```
+encrypt-config.sh -x -f flow.json.raw
+```
+As a result, the flow.json.raw file is overwritten with encrypted sensitive properties
+The algorithm uses the property descriptors in the flow.json.raw to determine if a property is sensitive or not. If that information is missing, no properties will be encrypted even if it is defined sensitive in the agent manifest.
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org

@@ -117,7 +117,7 @@
         <okio.version>3.8.0</okio.version>
         <org.apache.commons.cli.version>1.6.0</org.apache.commons.cli.version>
         <org.apache.commons.codec.version>1.16.1</org.apache.commons.codec.version>
-        <org.apache.commons.compress.version>1.25.0</org.apache.commons.compress.version>
+        <org.apache.commons.compress.version>1.26.1</org.apache.commons.compress.version>
         <org.apache.commons.lang3.version>3.14.0</org.apache.commons.lang3.version>
         <org.apache.commons.net.version>3.10.0</org.apache.commons.net.version>
         <org.apache.commons.io.version>2.15.1</org.apache.commons.io.version>
@@ -137,14 +137,14 @@
         <jakarta.xml.bind-api.version>4.0.1</jakarta.xml.bind-api.version>
         <jakarta.ws.rs-api.version>3.1.0</jakarta.ws.rs-api.version>
         <json.smart.version>2.5.0</json.smart.version>
-        <nifi.groovy.version>4.0.18</nifi.groovy.version>
-        <surefire.version>3.1.2</surefire.version>
+        <groovy.version>4.0.19</groovy.version>
+        <surefire.version>3.2.5</surefire.version>
         <hadoop.version>3.3.6</hadoop.version>
         <ozone.version>1.2.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.21</aspectj.version>
         <jersey.bom.version>3.1.4</jersey.bom.version>
-        <log4j2.version>2.20.0</log4j2.version>
+        <log4j2.version>2.23.0</log4j2.version>
         <logback.version>1.4.14</logback.version>
         <mockito.version>5.8.0</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
@@ -339,7 +339,7 @@
             <dependency>
                 <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
-                <version>${nifi.groovy.version}</version>
+                <version>${groovy.version}</version>
                 <type>pom</type>
                 <exclusions>
                     <exclusion>

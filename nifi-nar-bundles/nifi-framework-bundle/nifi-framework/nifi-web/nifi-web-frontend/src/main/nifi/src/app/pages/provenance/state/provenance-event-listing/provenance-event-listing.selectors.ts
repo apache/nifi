@@ -22,7 +22,6 @@ import {
     provenanceEventListingFeatureKey,
     ProvenanceEventListingState,
     ProvenanceQueryParams,
-    ProvenanceRequest,
     ProvenanceResults
 } from './index';
 import { selectCurrentRoute } from '../../../../state/router/router.selectors';
@@ -78,9 +77,9 @@ export const selectCompletedProvenance = createSelector(
 
 export const selectActiveProvenanceId = createSelector(selectActiveProvenance, (state: Provenance | null) => state?.id);
 
-export const selectClusterNodeId = createSelector(
-    selectProvenanceRequest,
-    (state: ProvenanceRequest | null) => state?.clusterNodeId
+export const selectClusterNodeIdFromActiveProvenance = createSelector(
+    selectActiveProvenance,
+    (state: Provenance | null) => state?.request.clusterNodeId
 );
 
 export const selectProvenanceResults = createSelector(

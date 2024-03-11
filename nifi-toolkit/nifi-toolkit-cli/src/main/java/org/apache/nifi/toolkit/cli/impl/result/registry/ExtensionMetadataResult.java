@@ -34,7 +34,7 @@ public class ExtensionMetadataResult extends AbstractWritableResult<List<Extensi
 
     public ExtensionMetadataResult(final ResultType resultType, final List<ExtensionMetadata> extensionMetadata) {
         super(resultType);
-        this.extensionMetadata = Objects.requireNonNull(this.extensionMetadata);
+        this.extensionMetadata = Objects.requireNonNull(extensionMetadata);
     }
 
     @Override

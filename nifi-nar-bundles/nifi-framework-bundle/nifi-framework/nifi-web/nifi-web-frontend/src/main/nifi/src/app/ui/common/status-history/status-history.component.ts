@@ -18,7 +18,7 @@
 import { AfterViewInit, Component, DestroyRef, inject, Inject, OnInit } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { StatusHistoryService } from '../../../service/status-history.service';
-import { AsyncPipe } from '@angular/common';
+import { AsyncPipe, NgStyle } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import {
     FieldDescriptor,
@@ -45,7 +45,7 @@ import * as d3 from 'd3';
 import { NiFiCommon } from '../../../service/nifi-common.service';
 import { TextTip } from '../tooltips/text-tip/text-tip.component';
 import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
-import { TextTipInput } from '../../../state/shared';
+import { isDefinedAndNotNull, TextTipInput } from '../../../state/shared';
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
 import { Resizable } from '../resizable/resizable.component';
 import { Instance, NIFI_NODE_CONFIG, Stats } from './index';
@@ -67,7 +67,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         NifiTooltipDirective,
         MatCheckboxModule,
         Resizable,
-        StatusHistoryChart
+        StatusHistoryChart,
+        NgStyle
     ],
     styleUrls: ['./status-history.component.scss']
 })
@@ -79,6 +80,8 @@ export class StatusHistory implements OnInit, AfterViewInit {
     fieldDescriptors$ = this.store.select(selectStatusHistoryFieldDescriptors);
     fieldDescriptors: FieldDescriptor[] = [];
 
+    details: { key: string; value: string }[] = [];
+
     minDate = '';
     maxDate = '';
     statusHistoryForm: FormGroup;
@@ -86,12 +89,14 @@ export class StatusHistory implements OnInit, AfterViewInit {
     nodeStats: Stats = {
         max: 'NA',
         min: 'NA',
-        mean: 'NA'
+        mean: 'NA',
+        nodes: []
     };
     clusterStats: Stats = {
         max: 'NA',
         min: 'NA',
-        mean: 'NA'
+        mean: 'NA',
+        nodes: []
     };
 
     nodes: any[] = [];
@@ -186,6 +191,10 @@ export class StatusHistory implements OnInit, AfterViewInit {
                 this.statusHistoryForm.get('fieldDescriptor')?.setValue(descriptors[0]);
                 this.selectedDescriptor = descriptors[0];
             });
+
+        this.componentDetails$.pipe(isDefinedAndNotNull(), take(1)).subscribe((details) => {
+            this.details = Object.entries(details).map((entry) => ({ key: entry[0], value: entry[1] }));
+        });
     }
 
     ngAfterViewInit(): void {
@@ -254,4 +263,16 @@ export class StatusHistory implements OnInit, AfterViewInit {
             this.selectedDescriptor = { ...this.selectedDescriptor };
         }
     }
+
+    getColor(stats: Stats, nodeId: string): string {
+        if (stats.nodes && stats.nodes.length > 0) {
+            const nodeColor = stats.nodes?.find((c) => c.id === nodeId);
+            if (nodeColor) {
+                return nodeColor.color;
+            }
+        }
+        return 'unset';
+    }
+
+    protected readonly NIFI_NODE_CONFIG = NIFI_NODE_CONFIG;
 }

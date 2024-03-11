@@ -684,7 +684,7 @@ public class StandardProcessorTestRunner implements TestRunner {
             throw new InitializationException(e);
         }
 
-        context.addControllerService(identifier, service, resolvedProps, null);
+        context.addControllerService(service, resolvedProps, null);
     }
 
     @Override
@@ -695,7 +695,8 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager).getControllerServiceValidationContext(service);
-        final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(validationContext);
+        final ControllerService canonicalService = context.getControllerService(service.getIdentifier());
+        final Collection<ValidationResult> results = canonicalService.validate(validationContext);
 
         for (final ValidationResult result : results) {
             if (!result.isValid()) {

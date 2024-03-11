@@ -18,6 +18,7 @@ package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.MockFlowFileRecord;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueSize;
@@ -377,7 +378,7 @@ public class TestWriteAheadFlowFileRepository {
                         for (int i = 0; i < numBatches; i++) {
                             records.clear();
                             for (int k = 0; k < batchSize; k++) {
-                                final FlowFileRecord flowFile = new MockFlowFile(i % 100_000, baseFlowFile);
+                                final MockFlowFileRecord flowFile = new MockFlowFileRecord(baseFlowFile.getAttributes(), baseFlowFile.getSize());
                                 final String uuid = flowFile.getAttribute("uuid");
 
                                 final StandardRepositoryRecord record = new StandardRepositoryRecord(null, flowFile);

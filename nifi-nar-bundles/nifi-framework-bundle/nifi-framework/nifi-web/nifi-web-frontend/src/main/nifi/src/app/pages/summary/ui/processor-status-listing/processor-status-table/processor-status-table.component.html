@@ -25,6 +25,8 @@
                     [filterableColumns]="filterableColumns"
                     [includeStatusFilter]="true"
                     [includePrimaryNodeOnlyFilter]="true"
+                    [clusterNodes]="clusterNodes"
+                    [selectedNode]="selectedClusterNode"
                     (filterChanged)="applyFilter($event)"></summary-table-filter>
 
                 <div class="flex-1 relative">
@@ -60,7 +62,16 @@
                                     <div class="flex-1 overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
                                 </th>
                                 <td mat-cell *matCellDef="let item" [title]="formatName(item)">
-                                    {{ formatName(item) }}
+                                    <div class="flex align-middle">
+                                        @if (item.processorStatusSnapshot.executionNode === 'PRIMARY') {
+                                            <div
+                                                class="primary-node-only mt-0.5 mr-1"
+                                                title="This component is only scheduled to execute on the Primary Node">
+                                                P
+                                            </div>
+                                        }
+                                        <div>{{ formatName(item) }}</div>
+                                    </div>
                                 </td>
                             </ng-container>
 
@@ -248,6 +259,13 @@
                                             class="pointer fa fa-area-chart"
                                             title="View Status History"
                                             (click)="viewStatusHistoryClicked($event, item)"></div>
+
+                                        @if (connectedToCluster) {
+                                            <div
+                                                class="pointer fa fa-cubes"
+                                                title="View Clustered Processor Details"
+                                                (click)="viewClusteredDetailsClicked($event, item)"></div>
+                                        }
                                     </div>
                                 </td>
                             </ng-container>

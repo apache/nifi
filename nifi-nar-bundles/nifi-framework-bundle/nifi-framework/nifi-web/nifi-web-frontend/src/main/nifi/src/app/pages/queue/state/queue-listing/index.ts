@@ -89,15 +89,18 @@ export interface ViewFlowFileRequest {
 }
 
 export interface DownloadFlowFileContentRequest {
-    flowfileSummary: FlowFileSummary;
+    uri: string;
+    clusterNodeId?: string;
 }
 
 export interface ViewFlowFileContentRequest {
-    flowfileSummary: FlowFileSummary;
+    uri: string;
+    clusterNodeId?: string;
 }
 
 export interface FlowFileDialogRequest {
     flowfile: FlowFile;
+    clusterNodeId?: string;
 }
 
 export interface QueueListingState {

@@ -75,7 +75,7 @@
         <dependency>
             <groupId>org.clojure</groupId>
             <artifactId>clojure</artifactId>
-            <version>1.11.1</version>
+            <version>1.11.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -102,26 +102,26 @@
         <dependency>
             <groupId>org.apache.groovy</groupId>
             <artifactId>groovy-json</artifactId>
-            <version>${nifi.groovy.version}</version>
+            <version>${groovy.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.groovy</groupId>
             <artifactId>groovy-jsr223</artifactId>
-            <version>${nifi.groovy.version}</version>
+            <version>${groovy.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.groovy</groupId>
             <artifactId>groovy-xml</artifactId>
-            <version>${nifi.groovy.version}</version>
+            <version>${groovy.version}</version>
             <scope>provided</scope>
         </dependency>
         <!-- groovy-all does not include groovy-dateutil by default, so must explicitly include it here -->
         <dependency>
             <groupId>org.apache.groovy</groupId>
             <artifactId>groovy-dateutil</artifactId>
-            <version>${nifi.groovy.version}</version>
+            <version>${groovy.version}</version>
         </dependency>
     </dependencies>
     <build>

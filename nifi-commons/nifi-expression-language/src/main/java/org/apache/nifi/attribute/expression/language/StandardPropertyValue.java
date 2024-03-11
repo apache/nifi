@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
-import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -35,8 +31,11 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.registry.EnvironmentVariables;
-import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.time.DurationFormat;
+
+import java.time.Duration;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class StandardPropertyValue implements PropertyValue {
 
@@ -59,9 +58,7 @@ public class StandardPropertyValue implements PropertyValue {
      * Constructs a new StandardPropertyValue with the given value & service
      * lookup and indicates whether or not the rawValue contains any NiFi
      * Expressions. If it is unknown whether or not the value contains any NiFi
-     * Expressions, the
-     * {@link #StandardPropertyValue(ResourceContext, String, ControllerServiceLookup, ParameterLookup, EnvironmentVariables)}
-     * constructor should be used or <code>true</code> should be passed.
+     * Expressions, the StandardPropertyValue constructor should be used or <code>true</code> should be passed.
      * However, if it is known that the value contains no NiFi Expression, that
      * information should be provided so that calls to
      * {@link #evaluateAttributeExpressions()} are much more efficient
@@ -113,7 +110,7 @@ public class StandardPropertyValue implements PropertyValue {
 
     @Override
     public Long asTimePeriod(final TimeUnit timeUnit) {
-        return (rawValue == null) ? null : FormatUtils.getTimeDuration(rawValue.trim(), timeUnit);
+        return (rawValue == null) ? null : DurationFormat.getTimeDuration(rawValue.trim(), timeUnit);
     }
 
     @Override

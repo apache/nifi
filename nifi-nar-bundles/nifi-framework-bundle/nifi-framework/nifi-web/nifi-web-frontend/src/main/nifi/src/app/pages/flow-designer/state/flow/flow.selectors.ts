@@ -228,8 +228,6 @@ export const selectLastRefreshed = createSelector(
     (state: FlowState) => state.flow.processGroupFlow.lastRefreshed
 );
 
-export const selectClusterSummary = createSelector(selectFlowState, (state: FlowState) => state.clusterSummary);
-
 export const selectControllerBulletins = createSelector(
     selectFlowState,
     (state: FlowState) => state.controllerBulletins.bulletins // TODO - include others?

@@ -25,8 +25,8 @@
         </mat-radio-group>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-        <button mat-stroked-button mat-dialog-close color="primary">Cancel</button>
-        <button mat-raised-button [disabled]="overridePolicyForm.invalid" (click)="overrideClicked()" color="primary">
+        <button mat-button mat-dialog-close>Cancel</button>
+        <button mat-button [disabled]="overridePolicyForm.invalid" (click)="overrideClicked()" color="primary">
             Override
         </button>
     </mat-dialog-actions>

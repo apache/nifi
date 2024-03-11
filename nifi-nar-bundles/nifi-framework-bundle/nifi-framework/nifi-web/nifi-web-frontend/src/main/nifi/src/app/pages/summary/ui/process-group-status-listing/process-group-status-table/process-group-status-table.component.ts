@@ -15,20 +15,17 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
-import { MultiSort } from '../../common';
-import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatSortModule, Sort } from '@angular/material/sort';
+import { MatTableModule } from '@angular/material/table';
 import { SummaryTableFilterModule } from '../../common/summary-table-filter/summary-table-filter.module';
-import { ProcessGroupStatusSnapshot, ProcessGroupStatusSnapshotEntity } from '../../../state/summary-listing';
-import {
-    SummaryTableFilterArgs,
-    SummaryTableFilterColumn
-} from '../../common/summary-table-filter/summary-table-filter.component';
+import { SummaryTableFilterColumn } from '../../common/summary-table-filter/summary-table-filter.component';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { RouterLink } from '@angular/router';
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { ProcessGroupStatusSnapshot, ProcessGroupStatusSnapshotEntity } from '../../../state';
+import { ComponentStatusTable } from '../../common/component-status-table/component-status-table.component';
 
 export type SupportedColumns =
     | 'name'
@@ -49,20 +46,8 @@ export type SupportedColumns =
     templateUrl: './process-group-status-table.component.html',
     styleUrls: ['./process-group-status-table.component.scss']
 })
-export class ProcessGroupStatusTable implements AfterViewInit {
-    private _initialSortColumn: SupportedColumns = 'name';
-    private _initialSortDirection: SortDirection = 'asc';
-
+export class ProcessGroupStatusTable extends ComponentStatusTable<ProcessGroupStatusSnapshotEntity> {
     filterableColumns: SummaryTableFilterColumn[] = [{ key: 'name', label: 'name' }];
-    totalCount = 0;
-    filteredCount = 0;
-
-    multiSort: MultiSort = {
-        active: this._initialSortColumn,
-        direction: this._initialSortDirection,
-        sortValueIndex: 0,
-        totalValues: 2
-    };
 
     displayedColumns: string[] = [
         'moreDetails',
@@ -79,87 +64,23 @@ export class ProcessGroupStatusTable implements AfterViewInit {
         'actions'
     ];
 
-    dataSource: MatTableDataSource<ProcessGroupStatusSnapshotEntity> =
-        new MatTableDataSource<ProcessGroupStatusSnapshotEntity>();
-
-    constructor(private nifiCommon: NiFiCommon) {}
-
-    applyFilter(filter: SummaryTableFilterArgs) {
-        this.dataSource.filter = JSON.stringify(filter);
-        this.filteredCount = this.dataSource.filteredData.length;
-        this.resetPaginator();
-        this.selectNone();
-    }
-
-    @Input() selectedProcessGroupId!: string;
-
-    @Input() set initialSortColumn(initialSortColumn: SupportedColumns) {
-        this._initialSortColumn = initialSortColumn;
-        this.multiSort = { ...this.multiSort, active: initialSortColumn };
-    }
-
-    get initialSortColumn() {
-        return this._initialSortColumn;
-    }
-
-    @Input() set initialSortDirection(initialSortDirection: SortDirection) {
-        this._initialSortDirection = initialSortDirection;
-        this.multiSort = { ...this.multiSort, direction: initialSortDirection };
-    }
-
-    get initialSortDirection() {
-        return this._initialSortDirection;
+    constructor(private nifiCommon: NiFiCommon) {
+        super();
     }
 
     @Input() rootProcessGroup!: ProcessGroupStatusSnapshot;
 
-    @Input() set processGroups(processGroups: ProcessGroupStatusSnapshotEntity[]) {
-        if (processGroups) {
-            this.dataSource.data = this.sortEntities(processGroups, this.multiSort);
+    override filterPredicate(data: ProcessGroupStatusSnapshotEntity, filter: string): boolean {
+        const { filterTerm, filterColumn } = JSON.parse(filter);
 
-            this.dataSource.filterPredicate = (data: ProcessGroupStatusSnapshotEntity, filter: string): boolean => {
-                const { filterTerm, filterColumn } = JSON.parse(filter);
-
-                if (filterTerm === '') {
-                    return true;
-                }
-
-                const field: string = data.processGroupStatusSnapshot[
-                    filterColumn as keyof ProcessGroupStatusSnapshot
-                ] as string;
-                return this.nifiCommon.stringContains(field, filterTerm, true);
-            };
-
-            this.totalCount = processGroups.length;
-            this.filteredCount = processGroups.length;
+        if (filterTerm === '') {
+            return true;
         }
-    }
 
-    @Input() summaryListingStatus: string | null = null;
-    @Input() loadedTimestamp: string | null = null;
-
-    @Output() viewStatusHistory: EventEmitter<ProcessGroupStatusSnapshotEntity> =
-        new EventEmitter<ProcessGroupStatusSnapshotEntity>();
-    @Output() selectProcessGroup: EventEmitter<ProcessGroupStatusSnapshotEntity> =
-        new EventEmitter<ProcessGroupStatusSnapshotEntity>();
-    @Output() clearSelection: EventEmitter<void> = new EventEmitter<void>();
-    @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
-
-    @ViewChild(MatPaginator) paginator!: MatPaginator;
-
-    ngAfterViewInit(): void {
-        this.dataSource.paginator = this.paginator;
-    }
-
-    resetPaginator(): void {
-        if (this.dataSource.paginator) {
-            this.dataSource.paginator.firstPage();
-        }
-    }
-
-    paginationChanged(): void {
-        // clear out any selection
-        this.selectNone();
+        const field: string = data.processGroupStatusSnapshot[
+            filterColumn as keyof ProcessGroupStatusSnapshot
+        ] as string;
+        return this.nifiCommon.stringContains(field, filterTerm, true);
     }
 
     formatName(pg: ProcessGroupStatusSnapshotEntity): string {
@@ -252,7 +173,7 @@ export class ProcessGroupStatusTable implements AfterViewInit {
         return 0;
     }
 
-    private supportsMultiValuedSort(sort: Sort): boolean {
+    override supportsMultiValuedSort(sort: Sort): boolean {
         switch (sort.active) {
             case 'transferred':
             case 'in':
@@ -268,34 +189,7 @@ export class ProcessGroupStatusTable implements AfterViewInit {
         }
     }
 
-    private setMultiSort(sort: Sort) {
-        const { active, direction, sortValueIndex, totalValues } = this.multiSort;
-
-        if (this.supportsMultiValuedSort(sort)) {
-            if (active === sort.active) {
-                // previous sort was of the same column
-                if (direction === 'desc' && sort.direction === 'asc') {
-                    // change from previous index to the next
-                    const newIndex = sortValueIndex + 1 >= totalValues ? 0 : sortValueIndex + 1;
-                    this.multiSort = { ...sort, sortValueIndex: newIndex, totalValues };
-                } else {
-                    this.multiSort = { ...sort, sortValueIndex, totalValues };
-                }
-            } else {
-                // sorting a different column, just reset
-                this.multiSort = { ...sort, sortValueIndex: 0, totalValues };
-            }
-        } else {
-            this.multiSort = { ...sort, sortValueIndex: 0, totalValues };
-        }
-    }
-
-    sortData(sort: Sort) {
-        this.setMultiSort(sort);
-        this.dataSource.data = this.sortEntities(this.dataSource.data, sort);
-    }
-
-    private sortEntities(data: ProcessGroupStatusSnapshotEntity[], sort: Sort): ProcessGroupStatusSnapshotEntity[] {
+    override sortEntities(data: ProcessGroupStatusSnapshotEntity[], sort: Sort): ProcessGroupStatusSnapshotEntity[] {
         if (!data) {
             return [];
         }
@@ -437,25 +331,5 @@ export class ProcessGroupStatusTable implements AfterViewInit {
 
     getProcessGroupLink(pg: ProcessGroupStatusSnapshotEntity): string[] {
         return ['/process-groups', pg.id];
-    }
-
-    select(pg: ProcessGroupStatusSnapshotEntity): void {
-        this.selectProcessGroup.next(pg);
-    }
-
-    isSelected(pg: ProcessGroupStatusSnapshotEntity): boolean {
-        if (this.selectedProcessGroupId) {
-            return pg.id === this.selectedProcessGroupId;
-        }
-        return false;
-    }
-
-    viewStatusHistoryClicked(event: MouseEvent, pg: ProcessGroupStatusSnapshotEntity): void {
-        event.stopPropagation();
-        this.viewStatusHistory.next(pg);
-    }
-
-    private selectNone() {
-        this.clearSelection.next();
     }
 }

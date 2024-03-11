@@ -26,6 +26,7 @@ import org.apache.nifi.apicurio.schemaregistry.client.SchemaRegistryClient;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -43,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 
 @Tags({"schema", "registry", "apicurio", "avro"})
 @CapabilityDescription("Provides a Schema Registry that interacts with the Apicurio Schema Registry so that those Schemas that are stored in the Apicurio Schema "
-        + "Registry can be used in NiFi. When a Schema is looked up by name by this registry, it will find a Schema in the Apicurio Schema Registry with their names.")
+        + "Registry can be used in NiFi. When a Schema is looked up by name by this registry, it will find a Schema in the Apicurio Schema Registry with their artifact identifiers.")
 public class ApicurioSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
 
     private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_TEXT,
@@ -54,6 +55,15 @@ public class ApicurioSchemaRegistry extends AbstractControllerService implements
             .displayName("Schema Registry URL")
             .description("The URL of the Schema Registry e.g. http://localhost:8080")
             .addValidator(StandardValidators.URL_VALIDATOR)
+            .required(true)
+            .build();
+    static final PropertyDescriptor SCHEMA_GROUP_ID = new PropertyDescriptor.Builder()
+            .name("Schema Group ID")
+            .displayName("Schema Group ID")
+            .description("The artifact Group ID for the schemas")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .defaultValue("default")
             .required(true)
             .build();
     static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
@@ -86,6 +96,7 @@ public class ApicurioSchemaRegistry extends AbstractControllerService implements
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
             SCHEMA_REGISTRY_URL,
+            SCHEMA_GROUP_ID,
             CACHE_SIZE,
             CACHE_EXPIRATION,
             WEB_CLIENT_PROVIDER
@@ -102,29 +113,26 @@ public class ApicurioSchemaRegistry extends AbstractControllerService implements
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         final String schemaRegistryUrl = context.getProperty(SCHEMA_REGISTRY_URL).getValue();
+        final String schemaGroupId = context.getProperty(SCHEMA_GROUP_ID).getValue();
         final int cacheSize = context.getProperty(CACHE_SIZE).asInteger();
         final long cacheExpiration = context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.NANOSECONDS);
 
         final WebClientServiceProvider webClientServiceProvider =
                 context.getProperty(WEB_CLIENT_PROVIDER).asControllerService(WebClientServiceProvider.class);
 
-        final SchemaRegistryApiClient apiClient = new SchemaRegistryApiClient(webClientServiceProvider, schemaRegistryUrl);
+        final SchemaRegistryApiClient apiClient = new SchemaRegistryApiClient(webClientServiceProvider, schemaRegistryUrl, schemaGroupId);
         final SchemaRegistryClient schemaRegistryClient = new ApicurioSchemaRegistryClient(apiClient);
         client = new CachingSchemaRegistryClient(schemaRegistryClient, cacheSize, cacheExpiration);
     }
 
     @Override
     public RecordSchema retrieveSchema(SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
-        final String schemaName = schemaIdentifier.getName().orElseThrow(
+        final String schemaId = schemaIdentifier.getName().orElseThrow(
                 () -> new SchemaNotFoundException("Cannot retrieve schema because Schema Name is not present")
         );
         final OptionalInt version = schemaIdentifier.getVersion();
 
-        if (version.isPresent()) {
-            return client.getSchema(schemaName, version.getAsInt());
-        } else {
-            return client.getSchema(schemaName);
-        }
+        return client.getSchema(schemaId, version);
     }
 
     @Override

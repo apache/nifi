@@ -62,7 +62,6 @@ export interface LoadProcessGroupResponse {
     id: string;
     flow: ProcessGroupFlowEntity;
     flowStatus: ControllerStatusEntity;
-    clusterSummary: ClusterSummary;
     controllerBulletins: ControllerBulletinsEntity;
 }
 
@@ -269,6 +268,14 @@ export interface EditComponentDialogRequest {
     type: ComponentType;
     uri: string;
     entity: any;
+}
+
+export interface EditRemotePortDialogRequest extends EditComponentDialogRequest {
+    rpg?: any;
+}
+
+export interface RpgManageRemotePortsRequest {
+    id: string;
 }
 
 export interface NavigateToControllerServicesRequest {
@@ -493,14 +500,6 @@ export interface ControllerStatusEntity {
     controllerStatus: ControllerStatus;
 }
 
-export interface ClusterSummary {
-    clustered: boolean;
-    connectedToCluster: boolean;
-    connectedNodes?: string;
-    connectedNodeCount: number;
-    totalNodeCount: number;
-}
-
 export interface ControllerBulletinsEntity {
     bulletins: BulletinEntity[];
     controllerServiceBulletins: BulletinEntity[];
@@ -514,7 +513,6 @@ export interface FlowState {
     flow: ProcessGroupFlowEntity;
     flowStatus: ControllerStatusEntity;
     refreshRpgDetails: RefreshRemoteProcessGroupPollingDetailsRequest | null;
-    clusterSummary: ClusterSummary;
     controllerBulletins: ControllerBulletinsEntity;
     dragging: boolean;
     transitionRequired: boolean;

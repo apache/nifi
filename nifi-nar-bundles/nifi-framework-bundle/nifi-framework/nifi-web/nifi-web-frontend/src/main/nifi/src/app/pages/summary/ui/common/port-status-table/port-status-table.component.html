@@ -25,6 +25,8 @@
                     [filterableColumns]="filterableColumns"
                     [includeStatusFilter]="true"
                     [includePrimaryNodeOnlyFilter]="false"
+                    [clusterNodes]="clusterNodes"
+                    [selectedNode]="selectedClusterNode"
                     (filterChanged)="applyFilter($event)"></summary-table-filter>
 
                 <div class="flex-1 relative">
@@ -143,7 +145,13 @@
                                             class="pointer fa fa-long-arrow-right"
                                             [routerLink]="getPortLink(item)"
                                             (click)="$event.stopPropagation()"
-                                            title="Go to {{ portType }}} port"></div>
+                                            title="Go to {{ portType }} port"></div>
+                                        @if (connectedToCluster) {
+                                            <div
+                                                class="pointer fa fa-cubes"
+                                                title="View Clustered {{ portType | titlecase }} Port Details"
+                                                (click)="viewClusteredDetailsClicked($event, item)"></div>
+                                        }
                                     </div>
                                 </td>
                             </ng-container>

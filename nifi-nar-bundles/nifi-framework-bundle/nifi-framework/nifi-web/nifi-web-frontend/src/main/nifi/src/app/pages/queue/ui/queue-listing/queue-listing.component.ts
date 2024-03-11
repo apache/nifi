@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { distinctUntilChanged, filter } from 'rxjs';
 import {
@@ -41,19 +41,22 @@ import { selectAbout } from '../../../../state/about/about.selectors';
 import { About } from '../../../../state/about';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { clearBannerErrors } from '../../../../state/error/error.actions';
+import { selectClusterSummary } from '../../../../state/cluster-summary/cluster-summary.selectors';
+import { loadClusterSummary } from '../../../../state/cluster-summary/cluster-summary.actions';
 
 @Component({
     selector: 'queue-listing',
     templateUrl: './queue-listing.component.html',
     styleUrls: ['./queue-listing.component.scss']
 })
-export class QueueListing implements OnDestroy {
+export class QueueListing implements OnInit, OnDestroy {
     status$ = this.store.select(selectStatus);
     connectionLabel$ = this.store.select(selectConnectionLabel);
     loadedTimestamp$ = this.store.select(selectLoadedTimestamp);
     listingRequest$ = this.store.select(selectCompletedListingRequest);
     currentUser$ = this.store.select(selectCurrentUser);
     about$ = this.store.select(selectAbout);
+    clusterSummary$ = this.store.select(selectClusterSummary);
 
     constructor(private store: Store<NiFiState>) {
         this.store
@@ -81,6 +84,10 @@ export class QueueListing implements OnDestroy {
             });
     }
 
+    ngOnInit(): void {
+        this.store.dispatch(loadClusterSummary());
+    }
+
     refreshClicked(): void {
         this.store.dispatch(resubmitQueueListingRequest());
     }
@@ -94,11 +101,25 @@ export class QueueListing implements OnDestroy {
     }
 
     downloadContent(flowfileSummary: FlowFileSummary): void {
-        this.store.dispatch(downloadFlowFileContent({ request: { flowfileSummary } }));
+        this.store.dispatch(
+            downloadFlowFileContent({
+                request: {
+                    uri: flowfileSummary.uri,
+                    clusterNodeId: flowfileSummary.clusterNodeId
+                }
+            })
+        );
     }
 
     viewContent(flowfileSummary: FlowFileSummary): void {
-        this.store.dispatch(viewFlowFileContent({ request: { flowfileSummary } }));
+        this.store.dispatch(
+            viewFlowFileContent({
+                request: {
+                    uri: flowfileSummary.uri,
+                    clusterNodeId: flowfileSummary.clusterNodeId
+                }
+            })
+        );
     }
 
     ngOnDestroy(): void {

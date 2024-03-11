@@ -79,6 +79,7 @@ import static com.azure.storage.blob.specialized.BlockBlobClient.MAX_STAGE_BLOCK
 import static com.azure.storage.blob.specialized.BlockBlobClient.MAX_UPLOAD_BLOB_BYTES_LONG;
 import static com.azure.storage.common.implementation.Constants.STORAGE_SCOPE;
 import static java.net.HttpURLConnection.HTTP_ACCEPTED;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBTYPE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_CONTAINER;
@@ -148,7 +149,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             .build();
 
     public static final PropertyDescriptor DESTINATION_STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(STORAGE_CREDENTIALS_SERVICE)
+            .fromPropertyDescriptor(BLOB_STORAGE_CREDENTIALS_SERVICE)
             .displayName("Destination Storage Credentials")
             .build();
 

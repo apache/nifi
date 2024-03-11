@@ -16,25 +16,22 @@
  */
 package org.apache.nifi.prioritizer;
 
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.SharedSessionState;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 public class NewestFirstPrioritizerTest {
 
     @Test
     public void testPrioritizer() {
-        final Processor processor = new SimpleProcessor();
+        final Processor processor = new NoOpProcessor();
         final AtomicLong idGenerator = new AtomicLong(0L);
         final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator), Mockito.mock(Processor.class));
 
@@ -53,14 +50,6 @@ public class NewestFirstPrioritizerTest {
         assertEquals(0, prioritizer.compare(flowFile2, flowFile2));
         assertEquals(1, prioritizer.compare(flowFile1, flowFile2));
         assertEquals(-1, prioritizer.compare(flowFile2, flowFile1));
-    }
-
-    public class SimpleProcessor extends AbstractProcessor {
-
-        @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        }
-
     }
 
 }

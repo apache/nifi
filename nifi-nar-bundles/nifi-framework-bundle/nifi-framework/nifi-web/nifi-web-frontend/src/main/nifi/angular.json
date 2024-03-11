@@ -64,7 +64,8 @@
                             "buildTarget": "nifi:build:production"
                         },
                         "development": {
-                            "buildTarget": "nifi:build:development"
+                            "buildTarget": "nifi:build:development",
+                            "servePath": "/nifi"
                         }
                     },
                     "defaultConfiguration": "development"

@@ -59,7 +59,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12.STORAGE_CREDENTIALS_SERVICE;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.getProxyOptions;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBTYPE;
@@ -135,7 +135,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            STORAGE_CREDENTIALS_SERVICE,
+            BLOB_STORAGE_CREDENTIALS_SERVICE,
             CONTAINER,
             BLOB_NAME_PREFIX,
             RECORD_WRITER,
@@ -202,7 +202,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
 
     @Override
     protected boolean isListingResetNecessary(final PropertyDescriptor property) {
-        return STORAGE_CREDENTIALS_SERVICE.equals(property)
+        return BLOB_STORAGE_CREDENTIALS_SERVICE.equals(property)
                 || CONTAINER.equals(property)
                 || BLOB_NAME_PREFIX.equals(property)
                 || LISTING_STRATEGY.equals(property);
@@ -217,7 +217,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
         try {
             final List<BlobInfo> listing = new ArrayList<>();
 
-            final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
+            final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(BLOB_STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
             final AzureStorageCredentialsDetails_v12 credentialsDetails = credentialsService.getCredentialsDetails(Collections.emptyMap());
             final BlobServiceClient storageClient = clientFactory.getStorageClient(credentialsDetails);
 

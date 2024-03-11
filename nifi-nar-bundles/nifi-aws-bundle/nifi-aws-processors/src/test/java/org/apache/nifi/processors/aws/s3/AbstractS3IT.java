@@ -37,6 +37,7 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -251,7 +252,7 @@ public abstract class AbstractS3IT {
             Assertions.fail("Could not set security properties");
         }
 
-        runner.setProperty(AbstractS3Processor.S3_REGION, getRegion());
+        runner.setProperty(RegionUtilV1.S3_REGION, getRegion());
         runner.setProperty(AbstractS3Processor.ENDPOINT_OVERRIDE, getEndpointOverride());
         runner.setProperty(AbstractS3Processor.BUCKET_WITHOUT_DEFAULT_VALUE, BUCKET_NAME);
 

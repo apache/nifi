@@ -37,6 +37,8 @@ import { errorFeatureKey, ErrorState } from './error';
 import { errorReducer } from './error/error.reducer';
 import { documentationFeatureKey, DocumentationState } from './documentation';
 import { documentationReducer } from './documentation/documentation.reducer';
+import { clusterSummaryFeatureKey, ClusterSummaryState } from './cluster-summary';
+import { clusterSummaryReducer } from './cluster-summary/cluster-summary.reducer';
 
 export interface NiFiState {
     router: RouterReducerState;
@@ -50,6 +52,7 @@ export interface NiFiState {
     [systemDiagnosticsFeatureKey]: SystemDiagnosticsState;
     [componentStateFeatureKey]: ComponentStateState;
     [documentationFeatureKey]: DocumentationState;
+    [clusterSummaryFeatureKey]: ClusterSummaryState;
 }
 
 export const rootReducers: ActionReducerMap<NiFiState> = {
@@ -63,5 +66,6 @@ export const rootReducers: ActionReducerMap<NiFiState> = {
     [controllerServiceStateFeatureKey]: controllerServiceStateReducer,
     [systemDiagnosticsFeatureKey]: systemDiagnosticsReducer,
     [componentStateFeatureKey]: componentStateReducer,
-    [documentationFeatureKey]: documentationReducer
+    [documentationFeatureKey]: documentationReducer,
+    [clusterSummaryFeatureKey]: clusterSummaryReducer
 };

@@ -26,15 +26,15 @@
                                 <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
                             </div>
                         } @else {
-                            @if (instances.length > 0) {
+                            @if (instances.length > 0 && fieldDescriptors.length > 0) {
                                 @if (componentDetails$ | async; as componentDetails) {
                                     <div class="flex flex-1 w-full gap-x-4">
                                         <div class="component-details flex flex-col gap-y-3">
-                                            @for (entry of Object.entries(componentDetails); track entry) {
-                                                @if (entry[0] && entry[1]) {
+                                            @for (detail of details; track detail) {
+                                                @if (detail.key && detail.value) {
                                                     <div class="flex flex-col">
-                                                        <div>{{ entry[0] }}</div>
-                                                        <div class="value">{{ entry[1] }}</div>
+                                                        <div>{{ detail.key }}</div>
+                                                        <div class="value">{{ detail.value }}</div>
                                                     </div>
                                                 }
                                             }
@@ -63,7 +63,12 @@
                                                         [checked]="
                                                             !!instanceVisibility['nifi-instance-id']
                                                         "></mat-checkbox>
-                                                    <mat-label>NiFi</mat-label>
+                                                    <mat-label
+                                                        [ngStyle]="{
+                                                            color: getColor(nodeStats, NIFI_NODE_CONFIG.nifiInstanceId)
+                                                        }"
+                                                        >NiFi</mat-label
+                                                    >
                                                 </div>
                                             </div>
                                             @if (!!nodes && nodes.length > 0) {
@@ -76,17 +81,25 @@
                                                             {{ nodeStats.mean }}
                                                         </div>
                                                     </div>
-                                                    <!-- TODO display nodes to select from-->
                                                     <div class="legend-entry">
                                                         @for (node of nodes; track node) {
-                                                            <mat-checkbox
-                                                                color="primary"
-                                                                [value]="node.id"
-                                                                (change)="selectNode($event)"
-                                                                [checked]="
-                                                                    !!instanceVisibility['nifi-instance-id']
-                                                                "></mat-checkbox>
-                                                            <mat-label>{{ node.label }}</mat-label>
+                                                            @if (node.snapshots?.length) {
+                                                                <div class="flex">
+                                                                    <mat-checkbox
+                                                                        color="primary"
+                                                                        [value]="node.id"
+                                                                        (change)="selectNode($event)"
+                                                                        [checked]="
+                                                                            !!instanceVisibility[node.id]
+                                                                        "></mat-checkbox>
+                                                                    <mat-label
+                                                                        [ngStyle]="{
+                                                                            color: getColor(nodeStats, node.id)
+                                                                        }"
+                                                                        >{{ node.label }}</mat-label
+                                                                    >
+                                                                </div>
+                                                            }
                                                         }
                                                     </div>
                                                 </div>
@@ -159,7 +172,7 @@
                         }
                     </div>
                     <div>
-                        <button color="primary" mat-raised-button mat-dialog-close>Close</button>
+                        <button mat-button mat-dialog-close>Close</button>
                     </div>
                 </div>
             </mat-dialog-actions>

@@ -41,6 +41,7 @@
 @use 'app/pages/flow-designer/ui/canvas/items/remote-process-group/create-remote-process-group/create-remote-process-group.component-theme' as create-remote-process-group;
 @use 'app/pages/flow-designer/ui/common/banner/banner.component-theme' as banner;
 @use 'app/pages/flow-designer/ui/controller-service/controller-services.component-theme' as controller-service;
+@use 'app/pages/flow-designer/ui/manage-remote-ports/manage-remote-ports.component-theme' as manage-remote-ports;
 @use 'app/pages/login/feature/login.component-theme' as login;
 @use 'app/pages/login/ui/login-form/login-form.component-theme' as login-form;
 @use 'app/pages/provenance/feature/provenance.component-theme' as provenance;
@@ -62,6 +63,8 @@
 @use 'app/ui/common/status-history/status-history.component-theme' as status-history;
 @use 'app/ui/common/tooltips/property-hint-tip/property-hint-tip.component-theme' as property-hint-tip;
 @use 'app/ui/common/provenance-event-dialog/provenance-event-dialog.component-theme' as provenance-event-dialog;
+@use 'app/pages/summary/ui/processor-status-listing/processor-status-table/processor-status-table.component-theme' as processor-status-table;
+@use 'app/ui/common/component-context/component-context.component-theme' as component-context;
 
 // Plus imports for other components in your app.
 @use 'roboto-fontface/css/roboto/roboto-fontface.css';
@@ -314,12 +317,9 @@ $appFontPath: '~roboto-fontface/fonts';
         border-color: $accent-palette-A400;
     }
 
-    button:disabled {
+    button.nifi-button:disabled {
         color: $primary-palette-200 !important;
         cursor: not-allowed;
-    }
-
-    button.nifi-button:disabled {
         border: 1px solid $primary-palette-200;
 
         i {
@@ -330,6 +330,10 @@ $appFontPath: '~roboto-fontface/fonts';
     .value,
     .refresh-timestamp {
         color: $warn-palette-A400;
+    }
+
+    ngx-skeleton-loader .skeleton-loader {
+        background: $canvas-primary-palette-400;
     }
 }
 
@@ -458,6 +462,10 @@ $appFontPath: '~roboto-fontface/fonts';
         cursor: pointer;
     }
 
+    .disabled {
+        cursor: not-allowed;
+    }
+
     .value,
     .refresh-timestamp {
         font-weight: 500;
@@ -481,6 +489,7 @@ $appFontPath: '~roboto-fontface/fonts';
 @include canvas.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include banner.nifi-theme($material-theme-light);
 @include controller-service.nifi-theme($material-theme-light);
+@include manage-remote-ports.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include footer.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include navigation-control.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include birdseye-control.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
@@ -513,6 +522,8 @@ $appFontPath: '~roboto-fontface/fonts';
 @include status-history.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include property-hint-tip.nifi-theme($material-theme-light);
 @include provenance-event-dialog.nifi-theme($material-theme-light);
+@include processor-status-table.nifi-theme($material-theme-light);
+@include component-context.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 
 .dark-theme {
     // Include the dark theme color styles.
@@ -531,6 +542,7 @@ $appFontPath: '~roboto-fontface/fonts';
     @include canvas.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
     @include banner.nifi-theme($material-theme-dark);
     @include controller-service.nifi-theme($material-theme-dark);
+    @include manage-remote-ports.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
     @include footer.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
     @include navigation-control.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
     @include birdseye-control.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
@@ -563,4 +575,6 @@ $appFontPath: '~roboto-fontface/fonts';
     @include status-history.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
     @include property-hint-tip.nifi-theme($material-theme-dark);
     @include provenance-event-dialog.nifi-theme($material-theme-dark);
+    @include processor-status-table.nifi-theme($material-theme-dark);
+    @include component-context.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
 }

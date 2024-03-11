@@ -1432,12 +1432,15 @@ The following prioritizers are available:
 
 - *FirstInFirstOutPrioritizer*: Given two FlowFiles, the one that reached the connection first will be processed first.
 - *NewestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is newest in the dataflow will be processed first.
-- *OldestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is oldest in the dataflow will be processed first. 'This is the default scheme that is used if no prioritizers are selected'.
+- *OldestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is oldest in the dataflow will be processed first.
 - *PriorityAttributePrioritizer*: Given two FlowFiles, an attribute called “priority” will be extracted. The one that has the lowest priority value will be processed first.
 ** Note that an UpdateAttribute processor should be used to add the "priority" attribute to the FlowFiles before they reach a connection that has this prioritizer set.
 ** If only one has that attribute it will go first.
 ** Values for the "priority" attribute can be alphanumeric, where "a" will come before "z" and "1" before "9"
 ** If "priority" attribute cannot be parsed as a long, unicode string ordering will be used. For example: "99" and "100" will be ordered so the FlowFile with "99" comes first, but "A-99" and "A-100" will sort so the FlowFile with "A-100" comes first.
+
+In case no prioritizers are selected or the selected prioritizers do not differentiate between the compared FlowFiles,
+processing order is not further specified but an implementation detail that might change between versions of NiFi.
 
 NOTE: With a <<load_balance_strategy>> configured, the connection has a queue per node in addition to the local queue. The prioritizer will sort the data in each queue independently.
 

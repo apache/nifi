@@ -24,4 +24,4 @@ export const loadAboutSuccess = createAction('[About] Load About Success', props
 
 export const aboutApiError = createAction('[About] About Api Error', props<{ error: string }>());
 
-export const clearAboutApiError = createAction('[User] Clear About Api Error');
+export const clearAboutApiError = createAction('[About] Clear About Api Error');

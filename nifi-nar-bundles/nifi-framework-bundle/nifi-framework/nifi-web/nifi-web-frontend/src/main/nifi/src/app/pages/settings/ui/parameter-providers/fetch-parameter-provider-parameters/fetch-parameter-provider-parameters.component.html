@@ -322,18 +322,18 @@
         <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
             <ng-container *ngIf="updateRequest | async; else normalActions">
                 <!-- an update to the associated parameter context(s) has been triggered -->
-                <button color="primary" mat-stroked-button mat-dialog-close>
+                <button mat-button mat-dialog-close>
                     <span *nifiSpinner="saving.value">Close</span>
                 </button>
             </ng-container>
             <ng-template #normalActions>
-                <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+                <button mat-button mat-dialog-close>Cancel</button>
                 <button
                     [disabled]="!canSubmitForm() || saving.value"
                     type="button"
                     color="primary"
                     (click)="submitForm()"
-                    mat-raised-button>
+                    mat-button>
                     <span *nifiSpinner="saving.value">Apply</span>
                 </button>
             </ng-template>

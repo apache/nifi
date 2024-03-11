@@ -20,6 +20,7 @@ import com.azure.storage.file.datalake.DataLakeDirectoryClient;
 import com.azure.storage.file.datalake.DataLakeFileClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
@@ -66,7 +67,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         runner.setProperty(MoveAzureDataLakeStorage.SOURCE_DIRECTORY, SOURCE_DIRECTORY);
         runner.setProperty(MoveAzureDataLakeStorage.DESTINATION_FILESYSTEM, fileSystemName);
         runner.setProperty(MoveAzureDataLakeStorage.DESTINATION_DIRECTORY, DESTINATION_DIRECTORY);
-        runner.setProperty(MoveAzureDataLakeStorage.FILE, FILE_NAME);
+        runner.setProperty(AzureStorageUtils.FILE, FILE_NAME);
     }
 
     @Test
@@ -187,7 +188,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void testMoveFileWithInvalidFileName() {
         createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
 
-        runner.setProperty(MoveAzureDataLakeStorage.FILE, "/file1");
+        runner.setProperty(AzureStorageUtils.FILE, "/file1");
 
         runProcessor(FILE_DATA);
 
@@ -203,7 +204,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         runner.setProperty(MoveAzureDataLakeStorage.SOURCE_DIRECTORY, sourceDirectory);
         runner.setProperty(MoveAzureDataLakeStorage.DESTINATION_DIRECTORY, destinationDirectory);
-        runner.setProperty(MoveAzureDataLakeStorage.FILE, fileName);
+        runner.setProperty(AzureStorageUtils.FILE, fileName);
 
         runProcessor(FILE_DATA);
 
@@ -296,7 +297,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     private void setELProperties() {
         runner.setProperty(MoveAzureDataLakeStorage.SOURCE_FILESYSTEM, String.format("${%s}", EL_FILESYSTEM));
         runner.setProperty(MoveAzureDataLakeStorage.SOURCE_DIRECTORY, String.format("${%s}", EL_DIRECTORY));
-        runner.setProperty(MoveAzureDataLakeStorage.FILE, String.format("${%s}", EL_FILE_NAME));
+        runner.setProperty(AzureStorageUtils.FILE, String.format("${%s}", EL_FILE_NAME));
     }
 
     private void runProcessor(byte[] fileData) {

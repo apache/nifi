@@ -15,21 +15,18 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
-import { MultiSort } from '../index';
-import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { PortStatusSnapshot, PortStatusSnapshotEntity } from '../../../state/summary-listing';
+import { MatSortModule, Sort } from '@angular/material/sort';
+import { MatTableModule } from '@angular/material/table';
 import { SummaryTableFilterModule } from '../summary-table-filter/summary-table-filter.module';
-import {
-    SummaryTableFilterArgs,
-    SummaryTableFilterColumn
-} from '../summary-table-filter/summary-table-filter.component';
+import { SummaryTableFilterColumn } from '../summary-table-filter/summary-table-filter.component';
 import { ComponentType } from '../../../../../state/shared';
 import { RouterLink } from '@angular/router';
 import { NiFiCommon } from '../../../../../service/nifi-common.service';
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { PortStatusSnapshot, PortStatusSnapshotEntity } from '../../../state';
+import { ComponentStatusTable } from '../component-status-table/component-status-table.component';
 
 export type SupportedColumns = 'name' | 'runStatus' | 'in' | 'out';
 
@@ -40,40 +37,22 @@ export type SupportedColumns = 'name' | 'runStatus' | 'in' | 'out';
     templateUrl: './port-status-table.component.html',
     styleUrls: ['./port-status-table.component.scss']
 })
-export class PortStatusTable implements AfterViewInit {
-    private _initialSortColumn: SupportedColumns = 'name';
-    private _initialSortDirection: SortDirection = 'asc';
+export class PortStatusTable extends ComponentStatusTable<PortStatusSnapshotEntity> {
     private _portType!: 'input' | 'output';
 
     filterableColumns: SummaryTableFilterColumn[] = [{ key: 'name', label: 'name' }];
 
-    totalCount = 0;
-    filteredCount = 0;
-
-    multiSort: MultiSort = {
-        active: this._initialSortColumn,
-        direction: this._initialSortDirection,
-        sortValueIndex: 0,
-        totalValues: 2
-    };
-
     displayedColumns: string[] = [];
 
-    dataSource: MatTableDataSource<PortStatusSnapshotEntity> = new MatTableDataSource<PortStatusSnapshotEntity>();
-
-    @ViewChild(MatPaginator) paginator!: MatPaginator;
-
-    constructor(private nifiCommon: NiFiCommon) {}
-
-    ngAfterViewInit(): void {
-        this.dataSource.paginator = this.paginator;
+    constructor(private nifiCommon: NiFiCommon) {
+        super();
     }
 
     @Input() set portType(type: 'input' | 'output') {
         if (type === 'input') {
-            this.displayedColumns = ['moreDetails', 'name', 'runStatus', 'in', 'actions'];
-        } else {
             this.displayedColumns = ['moreDetails', 'name', 'runStatus', 'out', 'actions'];
+        } else {
+            this.displayedColumns = ['moreDetails', 'name', 'runStatus', 'in', 'actions'];
         }
         this._portType = type;
     }
@@ -82,74 +61,21 @@ export class PortStatusTable implements AfterViewInit {
         return this._portType;
     }
 
-    @Input() selectedPortId!: string;
+    override filterPredicate(data: PortStatusSnapshotEntity, filter: string): boolean {
+        const { filterTerm, filterColumn, filterStatus } = JSON.parse(filter);
+        const matchOnStatus: boolean = filterStatus !== 'All';
 
-    @Input() set initialSortColumn(initialSortColumn: SupportedColumns) {
-        this._initialSortColumn = initialSortColumn;
-        this.multiSort = { ...this.multiSort, active: initialSortColumn };
-    }
-
-    get initialSortColumn() {
-        return this._initialSortColumn;
-    }
-
-    @Input() set initialSortDirection(initialSortDirection: SortDirection) {
-        this._initialSortDirection = initialSortDirection;
-        this.multiSort = { ...this.multiSort, direction: initialSortDirection };
-    }
-
-    get initialSortDirection() {
-        return this._initialSortDirection;
-    }
-
-    @Input() set ports(ports: PortStatusSnapshotEntity[]) {
-        if (ports) {
-            this.dataSource.data = this.sortEntities(ports, this.multiSort);
-            this.dataSource.filterPredicate = (data: PortStatusSnapshotEntity, filter: string) => {
-                const { filterTerm, filterColumn, filterStatus } = JSON.parse(filter);
-                const matchOnStatus: boolean = filterStatus !== 'All';
-
-                if (matchOnStatus) {
-                    if (data.portStatusSnapshot.runStatus !== filterStatus) {
-                        return false;
-                    }
-                }
-                if (filterTerm === '') {
-                    return true;
-                }
-
-                const field: string = data.portStatusSnapshot[filterColumn as keyof PortStatusSnapshot] as string;
-                return this.nifiCommon.stringContains(field, filterTerm, true);
-            };
-
-            this.totalCount = ports.length;
-            this.filteredCount = ports.length;
+        if (matchOnStatus) {
+            if (data.portStatusSnapshot.runStatus !== filterStatus) {
+                return false;
+            }
         }
-    }
-
-    @Input() summaryListingStatus: string | null = null;
-    @Input() loadedTimestamp: string | null = null;
-
-    @Output() refresh: EventEmitter<void> = new EventEmitter<void>();
-    @Output() selectPort: EventEmitter<PortStatusSnapshotEntity> = new EventEmitter<PortStatusSnapshotEntity>();
-    @Output() clearSelection: EventEmitter<void> = new EventEmitter<void>();
-
-    applyFilter(filter: SummaryTableFilterArgs) {
-        this.dataSource.filter = JSON.stringify(filter);
-        this.filteredCount = this.dataSource.filteredData.length;
-        this.resetPaginator();
-        this.selectNone();
-    }
-
-    resetPaginator(): void {
-        if (this.dataSource.paginator) {
-            this.dataSource.paginator.firstPage();
+        if (filterTerm === '') {
+            return true;
         }
-    }
 
-    paginationChanged(): void {
-        // clear out any selection
-        this.selectNone();
+        const field: string = data.portStatusSnapshot[filterColumn as keyof PortStatusSnapshot] as string;
+        return this.nifiCommon.stringContains(field, filterTerm, true);
     }
 
     formatName(port: PortStatusSnapshotEntity): string {
@@ -193,31 +119,11 @@ export class PortStatusTable implements AfterViewInit {
         return ['/process-groups', port.portStatusSnapshot.groupId, componentType, port.id];
     }
 
-    select(port: PortStatusSnapshotEntity): void {
-        this.selectPort.next(port);
-    }
-
-    private selectNone() {
-        this.clearSelection.next();
-    }
-
-    isSelected(port: PortStatusSnapshotEntity): boolean {
-        if (this.selectedPortId) {
-            return port.id === this.selectedPortId;
-        }
-        return false;
-    }
-
-    sortData(sort: Sort) {
-        this.setMultiSort(sort);
-        this.dataSource.data = this.sortEntities(this.dataSource.data, sort);
-    }
-
     canRead(port: PortStatusSnapshotEntity) {
         return port.canRead;
     }
 
-    private supportsMultiValuedSort(sort: Sort): boolean {
+    override supportsMultiValuedSort(sort: Sort): boolean {
         switch (sort.active) {
             case 'in':
             case 'out':
@@ -227,29 +133,7 @@ export class PortStatusTable implements AfterViewInit {
         }
     }
 
-    private setMultiSort(sort: Sort) {
-        const { active, direction, sortValueIndex, totalValues } = this.multiSort;
-
-        if (this.supportsMultiValuedSort(sort)) {
-            if (active === sort.active) {
-                // previous sort was of the same column
-                if (direction === 'desc' && sort.direction === 'asc') {
-                    // change from previous index to the next
-                    const newIndex = sortValueIndex + 1 >= totalValues ? 0 : sortValueIndex + 1;
-                    this.multiSort = { ...sort, sortValueIndex: newIndex, totalValues };
-                } else {
-                    this.multiSort = { ...sort, sortValueIndex, totalValues };
-                }
-            } else {
-                // sorting a different column, just reset
-                this.multiSort = { ...sort, sortValueIndex: 0, totalValues };
-            }
-        } else {
-            this.multiSort = { ...sort, sortValueIndex: 0, totalValues };
-        }
-    }
-
-    private sortEntities(data: PortStatusSnapshotEntity[], sort: Sort): PortStatusSnapshotEntity[] {
+    override sortEntities(data: PortStatusSnapshotEntity[], sort: Sort): PortStatusSnapshotEntity[] {
         if (!data) {
             return [];
         }

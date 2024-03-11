@@ -456,6 +456,48 @@ Concatenates all the arguments together.
 |==========================================================
 
 
+=== join
+
+Joins together multiple values with a separator.
+
+|==========================================================
+| RecordPath | Return value
+| `join(', ', /workAddress/* )` | 123, 5th Avenue, New York, NY, 10020
+|==========================================================
+
+
+=== anchored
+
+Allows evaluating a RecordPath while anchoring the root context to a child record.
+
+|==========================================================
+| RecordPath | Return value
+| `anchored(/homeAddress, /city)` | Jersey City
+|==========================================================
+
+Additionally, this can be used in conjunction with arrays. For example, if we have the following record:
+----
+{
+    "id": "1234",
+    "elements": [{
+        "name": "book",
+        "color": "red"
+    }, {
+        "name": "computer",
+        "color": "black"
+    }]
+}
+----
+
+We can evaluate hte following Record paths:
+
+|==========================================================
+| RecordPath | Return value
+| `anchored(/elements, /name)` | The array containing `book` and `computer`
+| `anchored(/elements, concat(/name, ': ', /color))` | The array containing `book: red` and `computer: black`
+|==========================================================
+
+
 === fieldName
 
 Normally, when a path is given to a particular field in a Record, what is returned is the value of that field. It

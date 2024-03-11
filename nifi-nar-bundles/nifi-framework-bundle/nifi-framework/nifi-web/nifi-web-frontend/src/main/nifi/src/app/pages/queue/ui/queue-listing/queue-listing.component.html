@@ -24,6 +24,7 @@
                         [connectionLabel]="(connectionLabel$ | async)!"
                         [listingRequest]="listingRequest"
                         [currentUser]="(currentUser$ | async)!"
+                        [clusterSummary]="(clusterSummary$ | async)!"
                         [contentViewerAvailable]="contentViewerAvailable(about)"
                         (viewFlowFile)="viewFlowFile($event)"
                         (downloadContent)="downloadContent($event)"

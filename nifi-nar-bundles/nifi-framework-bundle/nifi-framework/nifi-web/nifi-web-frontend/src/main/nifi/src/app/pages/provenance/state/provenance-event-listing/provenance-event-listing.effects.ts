@@ -26,7 +26,7 @@ import { Router } from '@angular/router';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { ProvenanceService } from '../../service/provenance.service';
 import {
-    selectClusterNodeId,
+    selectClusterNodeIdFromActiveProvenance,
     selectActiveProvenanceId,
     selectProvenanceOptions,
     selectProvenanceRequest,
@@ -41,6 +41,8 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { isDefinedAndNotNull } from '../../../../state/shared';
+import { selectClusterSummary } from '../../../../state/cluster-summary/cluster-summary.selectors';
+import { ClusterService } from '../../../../service/cluster.service';
 
 @Injectable()
 export class ProvenanceEventListingEffects {
@@ -49,6 +51,7 @@ export class ProvenanceEventListingEffects {
         private store: Store<NiFiState>,
         private provenanceService: ProvenanceService,
         private errorHelper: ErrorHelper,
+        private clusterService: ClusterService,
         private dialog: MatDialog,
         private router: Router
     ) {}
@@ -166,7 +169,7 @@ export class ProvenanceEventListingEffects {
             ofType(ProvenanceEventListingActions.pollProvenanceQuery),
             concatLatestFrom(() => [
                 this.store.select(selectActiveProvenanceId).pipe(isDefinedAndNotNull()),
-                this.store.select(selectClusterNodeId)
+                this.store.select(selectClusterNodeIdFromActiveProvenance)
             ]),
             switchMap(([, id, clusterNodeId]) =>
                 from(this.provenanceService.getProvenanceQuery(id, clusterNodeId)).pipe(
@@ -216,7 +219,7 @@ export class ProvenanceEventListingEffects {
             ofType(ProvenanceEventListingActions.deleteProvenanceQuery),
             concatLatestFrom(() => [
                 this.store.select(selectActiveProvenanceId),
-                this.store.select(selectClusterNodeId)
+                this.store.select(selectClusterNodeIdFromActiveProvenance)
             ]),
             tap(([, id, clusterNodeId]) => {
                 this.dialog.closeAll();
@@ -229,20 +232,53 @@ export class ProvenanceEventListingEffects {
         )
     );
 
+    loadClusterNodesAndOpenSearchDialog$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ProvenanceEventListingActions.loadClusterNodesAndOpenSearchDialog),
+            concatLatestFrom(() => this.store.select(selectClusterSummary).pipe(isDefinedAndNotNull())),
+            switchMap(([, clusterSummary]) => {
+                if (clusterSummary.connectedToCluster) {
+                    return from(this.clusterService.searchCluster()).pipe(
+                        map((response) =>
+                            ProvenanceEventListingActions.openSearchDialog({
+                                request: {
+                                    clusterNodes: response.nodeResults
+                                }
+                            })
+                        ),
+                        catchError((errorResponse: HttpErrorResponse) =>
+                            of(ErrorActions.snackBarError({ error: errorResponse.error }))
+                        )
+                    );
+                } else {
+                    return of(
+                        ProvenanceEventListingActions.openSearchDialog({
+                            request: {
+                                clusterNodes: []
+                            }
+                        })
+                    );
+                }
+            })
+        )
+    );
+
     openSearchDialog$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(ProvenanceEventListingActions.openSearchDialog),
+                map((action) => action.request),
                 concatLatestFrom(() => [
                     this.store.select(selectTimeOffset),
                     this.store.select(selectProvenanceOptions),
                     this.store.select(selectProvenanceRequest),
                     this.store.select(selectAbout).pipe(isDefinedAndNotNull())
                 ]),
-                tap(([, timeOffset, options, currentRequest, about]) => {
+                tap(([request, timeOffset, options, currentRequest, about]) => {
                     const dialogReference = this.dialog.open(ProvenanceSearchDialog, {
                         data: {
                             timeOffset,
+                            clusterNodes: request.clusterNodes,
                             options,
                             currentRequest
                         },
@@ -283,7 +319,7 @@ export class ProvenanceEventListingEffects {
                 map((action) => action.request),
                 concatLatestFrom(() => this.store.select(selectAbout)),
                 tap(([request, about]) => {
-                    this.provenanceService.getProvenanceEvent(request.id).subscribe({
+                    this.provenanceService.getProvenanceEvent(request.eventId, request.clusterNodeId).subscribe({
                         next: (response) => {
                             const dialogReference = this.dialog.open(ProvenanceEventDialog, {
                                 data: {
@@ -298,7 +334,11 @@ export class ProvenanceEventListingEffects {
                             dialogReference.componentInstance.downloadContent
                                 .pipe(takeUntil(dialogReference.afterClosed()))
                                 .subscribe((direction: string) => {
-                                    this.provenanceService.downloadContent(request.id, direction);
+                                    this.provenanceService.downloadContent(
+                                        request.eventId,
+                                        direction,
+                                        request.clusterNodeId
+                                    );
                                 });
 
                             if (about) {
@@ -308,8 +348,9 @@ export class ProvenanceEventListingEffects {
                                         this.provenanceService.viewContent(
                                             about.uri,
                                             about.contentViewerUrl,
-                                            request.id,
-                                            direction
+                                            request.eventId,
+                                            direction,
+                                            request.clusterNodeId
                                         );
                                     });
                             }
@@ -319,7 +360,7 @@ export class ProvenanceEventListingEffects {
                                 .subscribe(() => {
                                     dialogReference.close();
 
-                                    this.provenanceService.replay(request.id).subscribe({
+                                    this.provenanceService.replay(request.eventId, request.clusterNodeId).subscribe({
                                         next: () => {
                                             this.store.dispatch(
                                                 ProvenanceEventListingActions.showOkDialog({
@@ -356,7 +397,7 @@ export class ProvenanceEventListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     if (request.eventId) {
-                        this.provenanceService.getProvenanceEvent(request.eventId).subscribe({
+                        this.provenanceService.getProvenanceEvent(request.eventId, request.clusterNodeId).subscribe({
                             next: (response) => {
                                 const event: any = response.provenanceEvent;
                                 this.router.navigate(this.getEventComponentLink(event.groupId, event.componentId));

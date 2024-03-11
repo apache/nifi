@@ -18,8 +18,8 @@
 package org.apache.nifi.processors.aws.sqs;
 
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processors.aws.s3.AbstractS3Processor;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.processors.aws.v2.AbstractAwsProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
@@ -84,8 +84,8 @@ public abstract class AbstractSQSIT {
         TestRunner runner = TestRunners.newTestRunner(processorClass);
         AuthUtils.enableAccessKey(runner, localstack.getAccessKey(), localstack.getSecretKey());
 
-        runner.setProperty(AbstractS3Processor.S3_REGION, localstack.getRegion());
-        runner.setProperty(AbstractS3Processor.ENDPOINT_OVERRIDE, localstack.getEndpointOverride(LocalStackContainer.Service.SQS).toString());
+        runner.setProperty(AbstractAwsProcessor.REGION, localstack.getRegion());
+        runner.setProperty(AbstractAwsProcessor.ENDPOINT_OVERRIDE, localstack.getEndpointOverride(LocalStackContainer.Service.SQS).toString());
         runner.setProperty("Queue URL", queueUrl);
         return runner;
     }

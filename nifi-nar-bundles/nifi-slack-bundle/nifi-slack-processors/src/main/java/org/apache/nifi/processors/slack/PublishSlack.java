@@ -241,7 +241,7 @@ public class PublishSlack extends AbstractProcessor {
         REL_RATE_LIMITED,
         REL_FAILURE);
 
-    private final RateLimit rateLimit = new RateLimit(getLogger());
+    private RateLimit rateLimit;
 
     private volatile ChannelMapper channelMapper;
     private volatile App slackApp;
@@ -259,6 +259,7 @@ public class PublishSlack extends AbstractProcessor {
 
     @OnScheduled
     public void setup(final ProcessContext context) {
+        rateLimit = new RateLimit(getLogger());
         slackApp = createSlackApp(context);
         client = slackApp.client();
 
@@ -267,9 +268,13 @@ public class PublishSlack extends AbstractProcessor {
 
     @OnStopped
     public void shutdown() {
+        channelMapper = null;
+        client = null;
         if (slackApp != null) {
             slackApp.stop();
+            slackApp = null;
         }
+        rateLimit = null;
     }
 
     private App createSlackApp(final ProcessContext context) {
