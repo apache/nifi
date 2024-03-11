@@ -46,7 +46,7 @@ This process is used to discover available Processors and to create Processors. 
 The following properties may be added to nifi.properties in order to enable remote debugging
 of the Controller process:
 
-`nifi.python.controller.debugpy.enable` : Indicates whether or not DebugPy should be used when launching hte Controller.
+`nifi.python.controller.debugpy.enabled` : Indicates whether DebugPy should be used when launching the Controller.
 Defaults to `false`. If set to `true`, the Python process that is responsible for discovering and creating Processors
 will be launched using DebugPy.
 
