@@ -47,6 +47,7 @@ import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
+import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.util.TestRunner;
@@ -162,12 +163,12 @@ public class PutBigQueryTest {
             }
 
             @Override
-            protected StreamWriter createStreamWriter(String streamName, Descriptors.Descriptor descriptor, GoogleCredentials credentials) {
+            protected StreamWriter createStreamWriter(String streamName, Descriptors.Descriptor descriptor, GoogleCredentials credentials, ProxyConfiguration proxyConfiguration) {
                 return streamWriter;
             }
 
             @Override
-            protected BigQueryWriteClient createWriteClient(GoogleCredentials credentials) {
+            protected BigQueryWriteClient createWriteClient(GoogleCredentials credentials, ProxyConfiguration proxyConfiguration) {
                 return writeClient;
             }
         };
@@ -410,12 +411,12 @@ public class PutBigQueryTest {
             }
 
             @Override
-            protected StreamWriter createStreamWriter(String streamName, Descriptors.Descriptor descriptor, GoogleCredentials credentials) throws IOException {
+            protected StreamWriter createStreamWriter(String streamName, Descriptors.Descriptor descriptor, GoogleCredentials credentials, ProxyConfiguration proxyConfiguration) throws IOException {
                 throw new IOException();
             }
 
             @Override
-            protected BigQueryWriteClient createWriteClient(GoogleCredentials credentials) {
+            protected BigQueryWriteClient createWriteClient(GoogleCredentials credentials, ProxyConfiguration proxyConfiguration) {
                 return writeClient;
             }
         };
