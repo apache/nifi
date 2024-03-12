@@ -61,6 +61,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1687,6 +1688,88 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
+    void testInsertHexStringIntoBinary() throws Exception {
+        runner.setProperty(PutDatabaseRecord.BINARY_STRING_FORMAT, PutDatabaseRecord.BINARY_STRING_FORMAT_HEX_STRING);
+
+        String tableName = "HEX_STRING_TEST";
+        String createTable = "CREATE TABLE " + tableName + " (id integer primary key, binary_data blob)";
+        String hexStringData = "abCDef";
+
+        recreateTable(tableName, createTable);
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("binaryData", RecordFieldType.STRING);
+
+        parser.addRecord(1, hexStringData);
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, tableName);
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1);
+        final Connection conn = dbcp.getConnection();
+        final Statement stmt = conn.createStatement();
+
+        final ResultSet resultSet = stmt.executeQuery("SELECT * FROM " + tableName);
+        assertTrue(resultSet.next());
+
+        assertEquals(1, resultSet.getInt(1));
+
+        Blob blob = resultSet.getBlob(2);
+        assertArrayEquals(new byte[]{(byte)171, (byte)205, (byte)239}, blob.getBytes(1, (int)blob.length()));
+
+        stmt.close();
+        conn.close();
+    }
+
+    @Test
+    void testInsertBase64StringIntoBinary() throws Exception {
+        runner.setProperty(PutDatabaseRecord.BINARY_STRING_FORMAT, PutDatabaseRecord.BINARY_STRING_FORMAT_BASE64);
+
+        String tableName = "BASE64_STRING_TEST";
+        String createTable = "CREATE TABLE " + tableName + " (id integer primary key, binary_data blob)";
+        byte[] binaryData = {(byte) 10, (byte) 103, (byte) 234};
+
+        recreateTable(tableName, createTable);
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("binaryData", RecordFieldType.STRING);
+
+        parser.addRecord(1, Base64.getEncoder().encodeToString(binaryData));
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, tableName);
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1);
+        final Connection conn = dbcp.getConnection();
+        final Statement stmt = conn.createStatement();
+
+        final ResultSet resultSet = stmt.executeQuery("SELECT * FROM " + tableName);
+        assertTrue(resultSet.next());
+
+        assertEquals(1, resultSet.getInt(1));
+
+        Blob blob = resultSet.getBlob(2);
+        assertArrayEquals(binaryData, blob.getBytes(1, (int)blob.length()));
+
+        stmt.close();
+        conn.close();
+    }
+
+    @Test
     void testInsertWithBlobClobObjectArraySource() throws Exception {
         String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
                 "content blob, code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000))";
@@ -1959,10 +2042,14 @@ public class PutDatabaseRecordTest {
     }
 
     private void recreateTable(String createSQL) throws ProcessException, SQLException {
+        recreateTable("PERSONS", createSQL);
+    }
+
+    private void recreateTable(String tableName, String createSQL) throws ProcessException, SQLException {
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
         try {
-            stmt.execute("drop table PERSONS");
+            stmt.execute("drop table " + tableName);
         } catch (SQLException ignore) {
             // Do nothing, may not have existed
         }

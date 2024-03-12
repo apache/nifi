@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.io.BaseEncoding;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -238,6 +239,34 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    static final AllowableValue BINARY_STRING_FORMAT_UTF8 = new AllowableValue(
+            "UTF8",
+            "UTF8",
+            "String values for binary columns contain the original value as text via UTF-8 character encoding"
+    );
+
+    static final AllowableValue BINARY_STRING_FORMAT_HEX_STRING = new AllowableValue(
+            "Hex String",
+            "Hex String",
+            "String values for binary columns contain the original value in hexadecimal format"
+    );
+
+    static final AllowableValue BINARY_STRING_FORMAT_BASE64 = new AllowableValue(
+            "Base64-encoded String",
+            "Base64-encoded String",
+            "String values for binary columns contain the original value in Base64 encoded format"
+    );
+
+    static final PropertyDescriptor BINARY_STRING_FORMAT = new Builder()
+            .name("put-db-record-binary-format")
+            .displayName("Binary String Format")
+            .description("How to interpret string data for binary columns.")
+            .required(false)
+            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
+            .allowableValues(BINARY_STRING_FORMAT_UTF8, BINARY_STRING_FORMAT_HEX_STRING, BINARY_STRING_FORMAT_BASE64)
+            .defaultValue(BINARY_STRING_FORMAT_UTF8.getValue())
+            .build();
+
     static final PropertyDescriptor TRANSLATE_FIELD_NAMES = new Builder()
             .name("put-db-record-translate-field-names")
             .displayName("Translate Field Names")
@@ -388,6 +417,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         pds.add(CATALOG_NAME);
         pds.add(SCHEMA_NAME);
         pds.add(TABLE_NAME);
+        pds.add(BINARY_STRING_FORMAT);
         pds.add(TRANSLATE_FIELD_NAMES);
         pds.add(UNMATCHED_FIELD_BEHAVIOR);
         pds.add(UNMATCHED_COLUMN_BEHAVIOR);
@@ -606,6 +636,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
         final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
         final int timeoutMillis = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
+        final String binaryStringFormat = context.getProperty(BINARY_STRING_FORMAT).evaluateAttributeExpressions(flowFile).getValue();
+
         // Ensure the table name has been set, the generated SQL statements (and TableSchema cache) will need it
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException(format("Cannot process %s because Table Name is null or empty", flowFile));
@@ -764,7 +796,15 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                             }
                                             currentValue = dest;
                                         } else if (currentValue instanceof String) {
-                                            currentValue = ((String) currentValue).getBytes(StandardCharsets.UTF_8);
+                                            final String stringValue = (String) currentValue;
+
+                                            if (BINARY_STRING_FORMAT_BASE64.getValue().equals(binaryStringFormat)) {
+                                                currentValue = BaseEncoding.base64().decode(stringValue);
+                                            } else if (BINARY_STRING_FORMAT_HEX_STRING.getValue().equals(binaryStringFormat)) {
+                                                currentValue = BaseEncoding.base16().decode(stringValue.toUpperCase());
+                                            } else {
+                                                currentValue = stringValue.getBytes(StandardCharsets.UTF_8);
+                                            }
                                         } else if (currentValue != null && !(currentValue instanceof byte[])) {
                                             throw new IllegalTypeConversionException("Cannot convert value " + currentValue + " to BLOB/BINARY/VARBINARY/LONGVARBINARY");
                                         }
