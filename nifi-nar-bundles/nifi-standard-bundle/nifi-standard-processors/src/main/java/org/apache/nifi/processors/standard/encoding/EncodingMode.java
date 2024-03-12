@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,29 +19,29 @@ package org.apache.nifi.processors.standard.encoding;
 import org.apache.nifi.components.DescribedValue;
 
 public enum EncodingMode implements DescribedValue {
-     ENCODE("Encode", "Transform original input to encoded representation"),
-         DECODE("Decode", "Transform encoded input to original representation");
- 
-     EncodingMode(String value, String description) {
-         this.value = value;
-         this.description = description;
-     }
- 
-     private final String value;
-     private final String description;
- 
-     @Override
-     public String getValue() {
-         return value;
-     }
- 
-     @Override
-     public String getDisplayName() {
-         return value;
-     }
- 
-     @Override
-     public String getDescription() {
-         return description;
-     }
+    ENCODE("Encode", "Transform original input to encoded representation"),
+    DECODE("Decode", "Transform encoded input to original representation");
+
+    EncodingMode(String value, String description) {
+        this.value = value;
+        this.description = description;
+    }
+
+    private final String value;
+    private final String description;
+
+    @Override
+    public String getValue() {
+        return value;
+    }
+
+    @Override
+    public String getDisplayName() {
+        return value;
+    }
+
+    @Override
+    public String getDescription() {
+        return description;
+    }
  }
