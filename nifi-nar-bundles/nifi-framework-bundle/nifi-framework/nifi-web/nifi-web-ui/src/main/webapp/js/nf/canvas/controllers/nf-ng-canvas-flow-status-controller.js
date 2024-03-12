@@ -759,8 +759,8 @@
                         
                         // If the groupId and subjectId are not the same, we can select the component
                         var isRootGroup = violationInfo.groupId === violationInfo.subjectId;
-                        var isControllerService = violationInfo.subjectComponentType === 'CONTROLLER_SERVICE';
-                        if (!isRootGroup && !isControllerService) {
+                        var isProcessor = violationInfo.subjectComponentType === 'PROCESSOR';
+                        if (!isRootGroup && isProcessor) {
                             $('#violation-menu-go-to').removeClass('disabled');
                             $('#violation-menu-go-to .violation-menu-option-icon').removeClass('disabled');
                             $('#violation-menu-go-to').on('click', goToComponent);
