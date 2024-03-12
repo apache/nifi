@@ -89,20 +89,6 @@ public class EncodeContent extends AbstractProcessor {
             .dependsOn(ENCODING, EncodingType.BASE64, EncodingType.BASE32)
             .build();
 
-    static final PropertyDescriptor ENCODED_LINE_SEPARATOR = new PropertyDescriptor.Builder()
-        .name("Encoded Content Line Separator")
-        .displayName("Encoded Content Line Separator")
-        .description("Each line of encoded data will be terminated with this byte sequence (e.g. \\r\\n"
-                + "). This property defaults to the system-dependent line separator string.  If `line-length` <= 0, "
-                + "the `line-separator` property is not used. This property is not used for `hex` encoding.")
-        .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .defaultValue(System.lineSeparator())
-        .addValidator(Validator.VALID)
-        .dependsOn(MODE, EncodingMode.ENCODE)
-        .dependsOn(ENCODING, EncodingType.BASE64, EncodingType.BASE32)
-        .build();
-
     static final PropertyDescriptor ENCODED_LINE_LENGTH = new PropertyDescriptor.Builder()
         .name("Encoded Content Line Length")
         .displayName("Encoded Content Line Length")
@@ -130,7 +116,7 @@ public class EncodeContent extends AbstractProcessor {
     private static final int BUFFER_SIZE = 8192;
 
     private static final List<PropertyDescriptor> properties = List.of(MODE,
-        ENCODING, LINE_OUTPUT_MODE, ENCODED_LINE_SEPARATOR, ENCODED_LINE_LENGTH);
+        ENCODING, LINE_OUTPUT_MODE, ENCODED_LINE_LENGTH);
 
     private static final Set<Relationship> relationships = Set.of(REL_SUCCESS,
         REL_FAILURE);
@@ -156,8 +142,10 @@ public class EncodeContent extends AbstractProcessor {
         final EncodingType encoding = getEncodingType(context.getProperty(ENCODING).getValue());
         final boolean singleLineOutput = context.getProperty(LINE_OUTPUT_MODE).getValue().equals(LineOutputMode.SINGLE_LINE.getValue());
         final int lineLength = singleLineOutput ? -1 : context.getProperty(ENCODED_LINE_LENGTH).evaluateAttributeExpressions(flowFile).asInteger();
-        final String lineSeparator = context.getProperty(ENCODED_LINE_SEPARATOR).evaluateAttributeExpressions(flowFile).getValue();
-        final StreamCallback callback = getStreamCallback(encode, encoding, lineLength, lineSeparator);
+
+        // `\n` is hard-coded here until a use-case could be made to make this into a property.
+        // Also, by hard-coding `\n`, we guarantee that Nifi output will be standardized across systems.
+        final StreamCallback callback = getStreamCallback(encode, encoding, lineLength, "\n");
 
         try {
             final StopWatch stopWatch = new StopWatch(true);

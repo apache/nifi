@@ -104,7 +104,7 @@ class TestEncodeContent {
     @Test
     void testEncodeDecodeSpecialCharsBase64() {
         final String specialChars = "!@#$%^&*()_+{}:\"<>?[];',./~`-=";
-        final String expectedOutput = "IUAjJCVeJiooKV8re306Ijw+P1tdOycsLi9+YC09" + System.lineSeparator();
+        final String expectedOutput = "IUAjJCVeJiooKV8re306Ijw+P1tdOycsLi9+YC09\n";
 
         executeTestSuccessHelper(EncodingMode.ENCODE, EncodingType.BASE64, specialChars, expectedOutput);
         testRunner.clearTransferState(); // clear the state for the next test
@@ -155,10 +155,10 @@ class TestEncodeContent {
 
     private static Stream<Arguments> encodeBase32Args() {
        return Stream.of(
-               Arguments.of("hello", "NBSWY3DP" + System.lineSeparator()),
-               Arguments.of("foo", "MZXW6===" + System.lineSeparator()),
-               Arguments.of("你好", "4S62BZNFXU======" + System.lineSeparator()),
-               Arguments.of("Здравствуйте", "2CL5BNGRQDILBUFS2GA5DAWQWLIYHUFZ2GBNBNI=" + System.lineSeparator())
+               Arguments.of("hello", "NBSWY3DP\n"),
+               Arguments.of("foo", "MZXW6===\n"),
+               Arguments.of("你好", "4S62BZNFXU======\n"),
+               Arguments.of("Здравствуйте", "2CL5BNGRQDILBUFS2GA5DAWQWLIYHUFZ2GBNBNI=\n")
        );
    }
 
@@ -170,10 +170,10 @@ class TestEncodeContent {
 
     private static Stream<Arguments> encodeBase64Args() {
        return Stream.of(
-               Arguments.of("hello", "aGVsbG8=" + System.lineSeparator()),
-               Arguments.of("foo", "Zm9v" + System.lineSeparator()),
-               Arguments.of("你好", "5L2g5aW9" + System.lineSeparator()),
-               Arguments.of("Здравствуйте", "0JfQtNGA0LDQstGB0YLQstGD0LnRgtC1" + System.lineSeparator())
+               Arguments.of("hello", "aGVsbG8=\n"),
+               Arguments.of("foo", "Zm9v\n"),
+               Arguments.of("你好", "5L2g5aW9\n"),
+               Arguments.of("Здравствуйте", "0JfQtNGA0LDQstGB0YLQstGD0LnRgtC1\n")
        );
    }
 
@@ -188,9 +188,9 @@ class TestEncodeContent {
     @Test
     void testEncodeContentMultipleLinesBase64() {
         // this input is greater than 57 bytes, sure to generate multiple lines in base64
-        final String expectedOutput = "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVyIGFkaXBpc2NpbmcgZWxpdCwg" + System.lineSeparator()
-            + "c2VkIGRvIGVpdXNtb2QgdGVtcG9yIGluY2lkaWR1bnQgdXQgbGFib3JlIGV0IGRvbG9yZSBtYWdu" + System.lineSeparator()
-            + "YSBhbGlxdWEu" + System.lineSeparator();
+        final String expectedOutput = "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVyIGFkaXBpc2NpbmcgZWxpdCwg\n"
+            + "c2VkIGRvIGVpdXNtb2QgdGVtcG9yIGluY2lkaWR1bnQgdXQgbGFib3JlIGV0IGRvbG9yZSBtYWdu\n"
+            + "YSBhbGlxdWEu\n";
 
         // Execute the test using the helper method
         executeTestHelper(EncodingMode.ENCODE,
@@ -235,9 +235,9 @@ class TestEncodeContent {
     @Test
     void testEncodeContentMultipleLinesBase32() {
         // this input is greater than 57 bytes, sure to generate multiple lines in base64
-        final String expectedOutput = "JRXXEZLNEBUXA43VNUQGI33MN5ZCA43JOQQGC3LFOQWCAY3PNZZWKY3UMV2HK4RAMFSGS4DJ" + System.lineSeparator()
-            + "ONRWS3THEBSWY2LUFQQHGZLEEBSG6IDFNF2XG3LPMQQHIZLNOBXXEIDJNZRWSZDJMR2W45BA" + System.lineSeparator()
-            + "OV2CA3DBMJXXEZJAMV2CAZDPNRXXEZJANVQWO3TBEBQWY2LROVQS4===" + System.lineSeparator();
+        final String expectedOutput = "JRXXEZLNEBUXA43VNUQGI33MN5ZCA43JOQQGC3LFOQWCAY3PNZZWKY3UMV2HK4RAMFSGS4DJ\n"
+            + "ONRWS3THEBSWY2LUFQQHGZLEEBSG6IDFNF2XG3LPMQQHIZLNOBXXEIDJNZRWSZDJMR2W45BA\n"
+            + "OV2CA3DBMJXXEZJAMV2CAZDPNRXXEZJANVQWO3TBEBQWY2LROVQS4===\n";
 
         // Execute the test using the helper method
         executeTestHelper(EncodingMode.ENCODE,
@@ -251,9 +251,9 @@ class TestEncodeContent {
     @Test
     void testEncodeContentMultipleLinesNonStandardLengthBase32() {
         // this input is greater than 57 bytes, sure to generate multiple lines in base64
-        final String expectedOutput = "JRXXEZLNEBUXA43VNUQGI33MN5ZCA43JOQQGC3LFOQWCAY3PNZZWKY3UMV2HK4RAMFSGS4DJONRWS3TH" + System.lineSeparator()
-            + "EBSWY2LUFQQHGZLEEBSG6IDFNF2XG3LPMQQHIZLNOBXXEIDJNZRWSZDJMR2W45BAOV2CA3DBMJXXEZJA" + System.lineSeparator()
-            + "MV2CAZDPNRXXEZJANVQWO3TBEBQWY2LROVQS4===" + System.lineSeparator();
+        final String expectedOutput = "JRXXEZLNEBUXA43VNUQGI33MN5ZCA43JOQQGC3LFOQWCAY3PNZZWKY3UMV2HK4RAMFSGS4DJONRWS3TH\n"
+            + "EBSWY2LUFQQHGZLEEBSG6IDFNF2XG3LPMQQHIZLNOBXXEIDJNZRWSZDJMR2W45BAOV2CA3DBMJXXEZJA\n"
+            + "MV2CAZDPNRXXEZJANVQWO3TBEBQWY2LROVQS4===\n";
 
         // Execute the test using the helper method
         executeTestHelper(EncodingMode.ENCODE,
@@ -261,7 +261,6 @@ class TestEncodeContent {
             LOREM_IPSUM,
             LineOutputMode.MULTIPLE_LINES,
             80,
-            System.lineSeparator(),
             expectedOutput,
             EncodeContent.REL_SUCCESS);
     }
@@ -278,7 +277,6 @@ class TestEncodeContent {
             LOREM_IPSUM,
             LineOutputMode.SINGLE_LINE,
             2, // set a low value >= 0
-            System.lineSeparator(),
             expectedOutput,
             EncodeContent.REL_SUCCESS);
     }
@@ -286,9 +284,9 @@ class TestEncodeContent {
     @Test
     void testEncodeContentMultipleLinesNonStandardLengthBase64() {
         // this input is greater than 57 bytes, sure to generate multiple lines in base64
-        final String expectedOutput = "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVyIGFkaXBpc2NpbmcgZWxpdCwgc2Vk" + System.lineSeparator()
-            + "IGRvIGVpdXNtb2QgdGVtcG9yIGluY2lkaWR1bnQgdXQgbGFib3JlIGV0IGRvbG9yZSBtYWduYSBhbGlx" + System.lineSeparator()
-            + "dWEu" + System.lineSeparator();
+        final String expectedOutput = "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVyIGFkaXBpc2NpbmcgZWxpdCwgc2Vk\n"
+            + "IGRvIGVpdXNtb2QgdGVtcG9yIGluY2lkaWR1bnQgdXQgbGFib3JlIGV0IGRvbG9yZSBtYWduYSBhbGlx\n"
+            + "dWEu\n";
 
         // Execute the test using the helper method
         executeTestHelper(EncodingMode.ENCODE,
@@ -296,43 +294,6 @@ class TestEncodeContent {
             LOREM_IPSUM,
             LineOutputMode.MULTIPLE_LINES, // set false to output multiple lines
             80,
-            System.lineSeparator(),
-            expectedOutput,
-            EncodeContent.REL_SUCCESS);
-    }
-
-    @Test
-    void testOverrideLineSeparatorBase64() {
-        // this input is greater than 57 bytes, sure to generate multiple lines in base64
-        final String expectedOutput = "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVyIGFkaXBpc2NpbmcgZWxpdCwgc2Vk" + "|"
-            + "IGRvIGVpdXNtb2QgdGVtcG9yIGluY2lkaWR1bnQgdXQgbGFib3JlIGV0IGRvbG9yZSBtYWduYSBhbGlx" + "|"
-            + "dWEu" + "|";
-
-        // Execute the test using the helper method
-        executeTestHelper(EncodingMode.ENCODE,
-            EncodingType.BASE64,
-            LOREM_IPSUM,
-            LineOutputMode.MULTIPLE_LINES, // set false to output multiple lines
-            80,
-            "|",
-            expectedOutput,
-            EncodeContent.REL_SUCCESS);
-    }
-
-    @Test
-    void testOverrideLineSeparatorBase32() {
-        // this input is greater than 57 bytes, sure to generate multiple lines in base64
-        final String expectedOutput = "JRXXEZLNEBUXA43VNUQGI33MN5ZCA43JOQQGC3LFOQWCAY3PNZZWKY3UMV2HK4RAMFSGS4DJONRWS3TH" + "|"
-            + "EBSWY2LUFQQHGZLEEBSG6IDFNF2XG3LPMQQHIZLNOBXXEIDJNZRWSZDJMR2W45BAOV2CA3DBMJXXEZJA" + "|"
-            + "MV2CAZDPNRXXEZJANVQWO3TBEBQWY2LROVQS4===" + "|";
-
-        // Execute the test using the helper method
-        executeTestHelper(EncodingMode.ENCODE,
-            EncodingType.BASE32,
-            LOREM_IPSUM,
-            LineOutputMode.MULTIPLE_LINES, // set false to output multiple lines
-            80,
-            "|",
             expectedOutput,
             EncodeContent.REL_SUCCESS);
     }
@@ -350,7 +311,6 @@ class TestEncodeContent {
             LOREM_IPSUM,
             LineOutputMode.SINGLE_LINE, // set true to output single line
             2,                                      // set a low value >= 0
-            System.lineSeparator(),
             expectedOutput,
             EncodeContent.REL_SUCCESS);
     }
@@ -381,7 +341,6 @@ class TestEncodeContent {
             input,
             outputToSingleLine,
             76,
-            System.lineSeparator(),
             expectedOutput,
             routedTo);
     }
@@ -391,7 +350,6 @@ class TestEncodeContent {
         final String input,
         final DescribedValue outputToSingleLine,
         final Integer lineLength,
-        final String lineSeparator,
         final String expectedOutput,
         final Relationship routedTo) {
 
@@ -399,7 +357,6 @@ class TestEncodeContent {
         testRunner.setProperty(EncodeContent.ENCODING, encodingType);
         testRunner.setProperty(EncodeContent.LINE_OUTPUT_MODE, outputToSingleLine);
         testRunner.setProperty(EncodeContent.ENCODED_LINE_LENGTH, Integer.toString(lineLength));
-        testRunner.setProperty(EncodeContent.ENCODED_LINE_SEPARATOR, lineSeparator);
 
         testRunner.enqueue(input);
         testRunner.run();
