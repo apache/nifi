@@ -246,21 +246,21 @@ public class PutDatabaseRecord extends AbstractProcessor {
     );
 
     static final AllowableValue BINARY_STRING_FORMAT_HEX_STRING = new AllowableValue(
-            "Hex String",
-            "Hex String",
+            "Hexadecimal",
+            "Hexadecimal",
             "String values for binary columns contain the original value in hexadecimal format"
     );
 
     static final AllowableValue BINARY_STRING_FORMAT_BASE64 = new AllowableValue(
-            "Base64-encoded String",
-            "Base64-encoded String",
+            "Base64",
+            "Base64",
             "String values for binary columns contain the original value in Base64 encoded format"
     );
 
     static final PropertyDescriptor BINARY_STRING_FORMAT = new Builder()
             .name("put-db-record-binary-format")
             .displayName("Binary String Format")
-            .description("How to interpret string data for binary columns.")
+            .description("The format to be applied when decoding string values to binary.")
             .required(false)
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
             .allowableValues(BINARY_STRING_FORMAT_UTF8, BINARY_STRING_FORMAT_HEX_STRING, BINARY_STRING_FORMAT_BASE64)
