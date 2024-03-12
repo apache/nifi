@@ -20,28 +20,28 @@ import org.apache.nifi.components.DescribedValue;
 
 public enum EncodingMode implements DescribedValue {
      ENCODE("Encode", "Transform original input to encoded representation"),
-     DECODE("Decode", "Transform encoded input to original representation");
-
+         DECODE("Decode", "Transform encoded input to original representation");
+ 
      EncodingMode(String value, String description) {
-            this.value = value;
-            this.description = description;
-      }
-
-      private final String value;
-      private final String description;
-
-      @Override
-       public String getValue() {
-            return value;
-       }
-
-       @Override
-       public String getDisplayName() {
-            return value;
-       }
-
-       @Override
-       public String getDescription() {
-            return description;
-       }
-}
+         this.value = value;
+         this.description = description;
+     }
+ 
+     private final String value;
+     private final String description;
+ 
+     @Override
+     public String getValue() {
+         return value;
+     }
+ 
+     @Override
+     public String getDisplayName() {
+         return value;
+     }
+ 
+     @Override
+     public String getDescription() {
+         return description;
+     }
+ }
