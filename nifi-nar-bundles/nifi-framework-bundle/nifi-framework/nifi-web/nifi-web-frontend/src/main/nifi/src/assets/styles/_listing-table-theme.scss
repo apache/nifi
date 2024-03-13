@@ -17,6 +17,7 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../assets/utils.scss' as utils;
 
 @mixin nifi-theme($material-theme, $canvas-theme) {
     // Get the color config from the theme.
@@ -25,17 +26,22 @@
 
     // Get the color palette from the color-config.
     $primary-palette: map.get($color-config, 'primary');
-    $accent-palette: map.get($color-config, 'accent');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
-    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
 
     // Get hues from palette
-    $primary-palette-100: mat.get-color-from-palette($primary-palette, 100);
-    $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
-    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
-    $canvas-primary-palette-800: mat.get-color-from-palette($canvas-primary-palette, 800);
-    $canvas-primary-palette-900: mat.get-color-from-palette($canvas-primary-palette, 900);
-    $canvas-accent-palette-A100: mat.get-color-from-palette($canvas-accent-palette, 'A100');
+    $primary-palette-default: mat.get-color-from-palette($primary-palette, 'default');
+    $primary-palette-default-contrast: mat.get-color-from-palette($primary-palette, 'default-contrast');
+    $primary-palette-darker: mat.get-color-from-palette($primary-palette, 'darker');
+    $primary-palette-darker-contrast: mat.get-color-from-palette($primary-palette, 'darker-contrast');
+    $surface-darker: utils.get-surface($canvas-color-config, darker);
+    $surface: utils.get-surface($canvas-color-config);
+    $accent-surface: utils.get-surface($color-config, default, 'accent');
+    $header-surface: utils.ensure-contrast($primary-palette-default, $surface, $primary-palette-darker);
+    $header-on-surface: utils.ensure-contrast(
+        $primary-palette-default-contrast,
+        $header-surface,
+        $primary-palette-darker-contrast
+    );
+    $surface-highlight: utils.get-on-surface($canvas-color-config, 'highlight');
 
     .listing-table {
         table {
@@ -52,32 +58,36 @@
             }
 
             th {
-                background-color: $primary-palette-500 !important;
-                color: $canvas-primary-palette-900;
+                background-color: $header-surface !important;
+                color: $header-on-surface;
                 user-select: none;
+
+                .mat-sort-header-arrow {
+                    color: $header-on-surface;
+                }
             }
 
             tr:hover {
-                background-color: $primary-palette-100 !important;
+                background-color: $surface-highlight !important;
             }
 
             .selected {
-                background-color: $canvas-accent-palette-A100 !important;
+                background-color: $accent-surface !important;
             }
 
             .even {
-                background-color: $canvas-primary-palette-800;
+                background-color: $surface-darker;
             }
 
             .fa {
-                color: $accent-palette-A400;
+                color: utils.get-color-on-surface($color-config, $surface);
                 width: 10px;
                 height: 14px;
                 text-align: center;
             }
 
             .icon {
-                color: $accent-palette-A400;
+                color: utils.get-color-on-surface($color-config, $surface);
                 width: 10px;
                 text-align: center;
             }
@@ -98,10 +108,6 @@
         .mat-mdc-table .mdc-data-table__row {
             height: 35px;
         }
-    }
-
-    .mat-sort-header-arrow {
-        color: $canvas-primary-palette-900;
     }
 
     .mat-sort-header-content {

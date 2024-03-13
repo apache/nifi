@@ -670,16 +670,16 @@ export class ProcessorManager {
         updated
             .select('text.run-status-icon')
             .attr('class', function (d: any) {
-                let clazz = 'primary-500';
+                let clazz = 'primary-default';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Validating') {
-                    clazz = 'warn-contrast-300';
+                    clazz = 'canvas-primary-500';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
-                    clazz = 'canvas-accent-A400';
+                    clazz = 'canvas-warn-A200';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
-                    clazz = 'canvas-accent-200';
+                    clazz = 'canvas-accent-lighter';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                    clazz = 'warn-200';
+                    clazz = 'warn-lighter';
                 }
 
                 return `run-status-icon ${clazz}`;

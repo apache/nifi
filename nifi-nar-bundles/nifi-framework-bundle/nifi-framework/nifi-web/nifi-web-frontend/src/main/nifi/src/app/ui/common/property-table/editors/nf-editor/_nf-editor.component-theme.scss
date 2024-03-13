@@ -17,6 +17,7 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../../../../../assets/utils.scss' as utils;
 
 @mixin nifi-theme($material-theme, $canvas-theme) {
     // Get the color config from the theme.
@@ -28,31 +29,30 @@
     $canvas-primary-palette: map.get($canvas-color-config, 'primary');
 
     // Get hues from palette
-    $primary-palette-100: mat.get-color-from-palette($primary-palette, 100);
-    $primary-palette-300: mat.get-color-from-palette($primary-palette, 300);
-    $canvas-primary-palette-100: mat.get-color-from-palette($canvas-primary-palette, 100);
-    $canvas-primary-palette-200: mat.get-color-from-palette($canvas-primary-palette, 200);
-    $canvas-primary-palette-300: mat.get-color-from-palette($canvas-primary-palette, 300);
-    $canvas-primary-palette-contrast-200: mat.get-color-from-palette($canvas-primary-palette, '200-contrast');
-    $canvas-primary-palette-contrast-900: mat.get-color-from-palette($canvas-primary-palette, '900-contrast');
+    $primary-palette-lighter: mat.get-color-from-palette($primary-palette, lighter);
+    $primary-palette-default: mat.get-color-from-palette($primary-palette, default);
+    $canvas-primary-palette-500-contrast: mat.get-color-from-palette($canvas-primary-palette, 400-contrast);
+    $canvas-primary-palette-500: mat.get-color-from-palette($canvas-primary-palette, 500);
+    $surface: utils.get-surface($canvas-color-config);
+    $on-surface: utils.get-on-surface($canvas-color-config);
 
     .property-editor {
         @include mat.button-density(-1);
 
         .nf-editor {
             .CodeMirror {
-                border: 1px solid $canvas-primary-palette-300;
-                background-color: $canvas-primary-palette-contrast-900;
+                border: 1px solid $canvas-primary-palette-500;
+                background-color: $surface;
 
                 &.blank {
-                    background: $primary-palette-300;
-                    color: $primary-palette-100;
-                    border: 1px solid $primary-palette-300;
+                    background: $primary-palette-default;
+                    color: $primary-palette-lighter;
+                    border: 1px solid $primary-palette-default;
                 }
             }
 
             .CodeMirror-code {
-                color: $canvas-primary-palette-contrast-200;
+                color: $on-surface;
             }
 
             /*
@@ -60,8 +60,8 @@
             */
 
             .cm-s-default .CodeMirror-matchingbracket {
-                color: $canvas-primary-palette-200 !important;
-                background-color: $canvas-primary-palette-300;
+                color: $canvas-primary-palette-500-contrast !important;
+                background-color: $canvas-primary-palette-500;
             }
         }
     }

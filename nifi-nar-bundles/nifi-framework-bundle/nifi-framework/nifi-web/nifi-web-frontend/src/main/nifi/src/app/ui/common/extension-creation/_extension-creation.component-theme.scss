@@ -17,6 +17,7 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../../../assets/utils.scss' as utils;
 
 @mixin nifi-theme($material-theme, $canvas-theme) {
     // Get the color config from the theme.
@@ -25,19 +26,28 @@
 
     // Get the color palette from the color-config.
     $primary-palette: map.get($color-config, 'primary');
+    $accent-palette: map.get($color-config, 'accent');
     $warn-palette: map.get($color-config, 'warn');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
-    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
 
     // Get hues from palette
-    $primary-palette-100: mat.get-color-from-palette($primary-palette, 100);
-    $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
-    $canvas-primary-palette-800: mat.get-color-from-palette($canvas-primary-palette, 800);
-    $canvas-primary-palette-900: mat.get-color-from-palette($canvas-primary-palette, 900);
-    $canvas-primary-palette-A700: mat.get-color-from-palette($canvas-primary-palette, 'A700');
-    $canvas-accent-palette-A100: mat.get-color-from-palette($canvas-accent-palette, 'A100');
-    $warn-palette-400: mat.get-color-from-palette($warn-palette, 400);
-    $warn-palette-A400: mat.get-color-from-palette($warn-palette, 'A400');
+    $primary-palette-default: mat.get-color-from-palette($primary-palette, 'default');
+    $primary-palette-default-contrast: mat.get-color-from-palette($primary-palette, 'default-contrast');
+    $primary-palette-darker: mat.get-color-from-palette($primary-palette, 'darker');
+    $primary-palette-darker-contrast: mat.get-color-from-palette($primary-palette, 'darker-contrast');
+    $accent-palette-default: mat.get-color-from-palette($accent-palette, 'default');
+    $warn-palette-default: mat.get-color-from-palette($warn-palette, default);
+
+    $surface-darker: utils.get-surface($canvas-color-config, darker);
+    $surface: utils.get-surface($canvas-color-config);
+    $accent-surface: utils.get-surface($color-config, default, 'accent');
+    $header-surface: utils.ensure-contrast($primary-palette-default, $surface, $primary-palette-darker);
+    $header-on-surface: utils.ensure-contrast(
+        $primary-palette-default-contrast,
+        $header-surface,
+        $primary-palette-darker-contrast
+    );
+    $surface-highlight: utils.get-on-surface($canvas-color-config, 'highlight');
+    $on-surface-medium: utils.get-on-surface($canvas-color-config, medium);
 
     .extension-creation-dialog {
         @include mat.button-density(-1);
@@ -45,38 +55,38 @@
         .type-table {
             table {
                 th {
-                    background-color: $primary-palette-500;
-                    color: $canvas-primary-palette-900;
+                    background-color: $header-surface;
+                    color: $header-on-surface;
+
+                    .mat-sort-header-arrow {
+                        color: $header-on-surface;
+                    }
                 }
 
                 tr:hover {
-                    background-color: $primary-palette-100 !important;
+                    background-color: $surface-highlight !important;
                 }
 
                 .selected {
-                    background-color: $canvas-accent-palette-A100 !important;
+                    background-color: $accent-surface !important;
                 }
 
                 .even {
-                    background-color: $canvas-primary-palette-800;
+                    background-color: $surface-darker;
                 }
 
                 .fa.fa-shield {
-                    color: $warn-palette-400;
+                    color: $warn-palette-default;
                 }
             }
         }
 
         .selected-type-name {
-            color: $warn-palette-A400;
+            color: $accent-palette-default;
         }
 
         .selected-type-bundle {
-            color: $canvas-primary-palette-A700;
+            color: $on-surface-medium;
         }
-    }
-
-    .mat-sort-header-arrow {
-        color: $canvas-primary-palette-900;
     }
 }

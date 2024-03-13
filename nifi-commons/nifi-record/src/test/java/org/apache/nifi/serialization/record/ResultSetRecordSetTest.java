@@ -16,18 +16,11 @@
  */
 package org.apache.nifi.serialization.record;
 
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.type.ArrayDataType;
-import org.apache.nifi.serialization.record.type.DecimalDataType;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.sql.Array;
@@ -41,6 +34,8 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -50,11 +45,18 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.when;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -268,6 +270,7 @@ public class ResultSetRecordSetTest {
 
         LocalDate testDate = LocalDate.of(2021, 1, 26);
         LocalDateTime testDateTime = LocalDateTime.of(2021, 9, 10, 11, 11, 11);
+        OffsetDateTime offsetDateTime = testDateTime.atOffset(ZoneOffset.UTC);
 
         final String varcharValue = "varchar";
         final Long bigintValue = 1234567890123456789L;
@@ -275,7 +278,6 @@ public class ResultSetRecordSetTest {
         final Boolean bitValue = Boolean.FALSE;
         final Boolean booleanValue = Boolean.TRUE;
         final Character charValue = 'c';
-        final Date dateValue = Date.valueOf(testDate);
         final Timestamp timestampValue = Timestamp.valueOf(testDateTime);
         final Integer integerValue = 1234567890;
         final Double doubleValue = 0.12;
@@ -295,7 +297,8 @@ public class ResultSetRecordSetTest {
         when(resultSet.getObject(COLUMN_NAME_BIT)).thenReturn(bitValue);
         when(resultSet.getObject(COLUMN_NAME_BOOLEAN)).thenReturn(booleanValue);
         when(resultSet.getObject(COLUMN_NAME_CHAR)).thenReturn(charValue);
-        when(resultSet.getObject(COLUMN_NAME_DATE)).thenReturn(dateValue);
+        when(resultSet.getObject(COLUMN_NAME_DATE)).thenReturn(testDate);
+        when(resultSet.getObject(COLUMN_NAME_TIMESTAMP)).thenReturn(offsetDateTime);
         when(resultSet.getTimestamp(COLUMN_NAME_TIMESTAMP)).thenReturn(timestampValue);
         when(resultSet.getObject(COLUMN_NAME_INTEGER)).thenReturn(integerValue);
         when(resultSet.getObject(COLUMN_NAME_DOUBLE)).thenReturn(doubleValue);
@@ -319,7 +322,8 @@ public class ResultSetRecordSetTest {
         assertEquals(booleanValue, record.getAsBoolean(COLUMN_NAME_BOOLEAN));
         assertEquals(charValue, record.getValue(COLUMN_NAME_CHAR));
 
-        assertEquals(dateValue, record.getAsDate(COLUMN_NAME_DATE, null));
+        assertEquals(testDate, record.getAsLocalDate(COLUMN_NAME_DATE, null));
+        assertEquals(offsetDateTime, record.getAsOffsetDateTime(COLUMN_NAME_TIMESTAMP, null));
         final Object timestampObject = record.getValue(COLUMN_NAME_TIMESTAMP);
         assertEquals(timestampValue, timestampObject);
 

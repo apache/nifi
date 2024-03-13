@@ -18,6 +18,7 @@
 @use 'sass:math' as math;
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../../../assets/utils.scss' as utils;
 
 @mixin nifi-theme($material-theme, $canvas-theme) {
     // Get the color config from the theme.
@@ -26,13 +27,12 @@
 
     // Get the color palette from the color-config.
     $primary-palette: map.get($color-config, 'primary');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
 
     // Get hues from palette
-    $canvas-primary-palette-500: mat.get-color-from-palette($canvas-primary-palette, 500);
+    $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
 
     $handle-size: 15px;
-    $handle-color: $canvas-primary-palette-500;
+    $handle-color: $on-surface-lighter;
 
     .resizable-triangle {
         border-right: math.div($handle-size, 2) solid $handle-color;

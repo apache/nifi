@@ -27,16 +27,16 @@
     $warn-palette: map.get($color-config, 'warn');
 
     // Get hues from palette
-    $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
-    $warn-palette-400: mat.get-color-from-palette($warn-palette, 400);
+    $primary-palette-default: mat.get-color-from-palette($primary-palette, default);
+    $warn-palette-default: mat.get-color-from-palette($warn-palette, default);
 
     .flowfile-table {
         .queue-listing-header {
-            color: $primary-palette-500;
+            color: $primary-palette-default;
         }
 
         .listing-message {
-            color: $warn-palette-400;
+            color: $warn-palette-default;
         }
     }
 }
