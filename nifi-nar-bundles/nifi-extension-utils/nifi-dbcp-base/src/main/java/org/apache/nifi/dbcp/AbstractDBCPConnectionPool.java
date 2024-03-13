@@ -160,7 +160,13 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
     protected void configureDataSource(final ConfigurationContext context, final BasicDataSource basicDataSource, final DataSourceConfiguration configuration) {
         final Driver driver = getDriver(configuration.getDriverName(), configuration.getUrl());
 
-        basicDataSource.setDriver(driver);
+        if (driver != null) {
+            basicDataSource.setDriver(driver);
+        } else {
+            basicDataSource.setDriverClassName(configuration.getDriverName());
+            basicDataSource.setDriverClassLoader(configuration.getDriverClassLoader());
+        }
+
         basicDataSource.setMaxWait(Duration.ofMillis(configuration.getMaxWaitMillis()));
         basicDataSource.setMaxTotal(configuration.getMaxTotal());
         basicDataSource.setMinIdle(configuration.getMinIdle());
