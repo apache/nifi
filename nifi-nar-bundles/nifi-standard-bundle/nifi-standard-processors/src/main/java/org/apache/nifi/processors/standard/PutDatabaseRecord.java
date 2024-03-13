@@ -78,10 +78,12 @@ import java.sql.SQLTransientException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -799,9 +801,9 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                             final String stringValue = (String) currentValue;
 
                                             if (BINARY_STRING_FORMAT_BASE64.getValue().equals(binaryStringFormat)) {
-                                                currentValue = BaseEncoding.base64().decode(stringValue);
+                                                currentValue = Base64.getDecoder().decode(stringValue);
                                             } else if (BINARY_STRING_FORMAT_HEX_STRING.getValue().equals(binaryStringFormat)) {
-                                                currentValue = BaseEncoding.base16().decode(stringValue.toUpperCase());
+                                                currentValue = HexFormat.of().parseHex(stringValue.toUpperCase());
                                             } else {
                                                 currentValue = stringValue.getBytes(StandardCharsets.UTF_8);
                                             }
