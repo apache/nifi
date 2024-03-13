@@ -262,6 +262,7 @@
 
         <!-- python properties -->
         <nifi.python.command>python3</nifi.python.command>
+        <nifi.python.virtual.env.binary.directory>bin</nifi.python.virtual.env.binary.directory>
         <nifi.python.source.directory>python</nifi.python.source.directory>
         <nifi.python.framework.source.directory>./python/framework</nifi.python.framework.source.directory>
         <nifi.python.extensions.source.directory.default>./python/extensions</nifi.python.extensions.source.directory.default>

@@ -27,6 +27,7 @@ import java.util.List;
 public class PythonProcessConfig {
 
     private final String pythonCommand;
+    private final String pythonVirtualEnvBinaryDirectory;
     private final File pythonFrameworkDirectory;
     private final List<File> pythonExtensionsDirectories;
     private final File pythonWorkingDirectory;
@@ -48,6 +49,7 @@ public class PythonProcessConfig {
         this.debugController = builder.debugController;
         this.debugPort = builder.debugPort;
         this.debugHost = builder.debugHost;
+        this.pythonVirtualEnvBinaryDirectory = builder.pythonVirtualEnvBinaryDirectory;
     }
 
     public String getPythonCommand() {
@@ -90,6 +92,10 @@ public class PythonProcessConfig {
         return debugPort;
     }
 
+    public String getPythonVirtualEnvBinaryDirectory() {
+        return pythonVirtualEnvBinaryDirectory;
+    }
+
     public static class Builder {
         private String pythonCommand = "python3";
         private File pythonFrameworkDirectory = new File("python/framework");
@@ -101,6 +107,7 @@ public class PythonProcessConfig {
         private boolean debugController = false;
         private String debugHost = "localhost";
         private int debugPort = 5678;
+        private String pythonVirtualEnvBinaryDirectory = "bin/";
 
         public Builder pythonCommand(final String command) {
             this.pythonCommand = command;
@@ -161,6 +168,11 @@ public class PythonProcessConfig {
 
         public Builder debugHost(final String debugHost) {
             this.debugHost = debugHost;
+            return this;
+        }
+
+        public Builder pythonVirtualEnvBinaryDirectory(final String pythonVirtualEnvBinaryDirectory) {
+            this.pythonVirtualEnvBinaryDirectory = pythonVirtualEnvBinaryDirectory;
             return this;
         }
 

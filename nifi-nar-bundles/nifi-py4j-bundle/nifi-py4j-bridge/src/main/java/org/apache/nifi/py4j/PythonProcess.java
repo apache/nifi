@@ -229,7 +229,7 @@ public class PythonProcess {
         final File pythonApiDirectory = new File(pythonFrameworkDirectory.getParentFile(), "api");
         final File pythonCmdFile = new File(processConfig.getPythonCommand());
         final String pythonCmd = pythonCmdFile.getName();
-        final File pythonCommandFile = new File(virtualEnvHome, "bin/" + pythonCmd);
+        final File pythonCommandFile = new File(virtualEnvHome, processConfig.getPythonVirtualEnvBinaryDirectory() + File.separator + pythonCmd);
         final String pythonCommand = pythonCommandFile.getAbsolutePath();
 
         final File controllerPyFile = new File(pythonFrameworkDirectory, PYTHON_CONTROLLER_FILENAME);

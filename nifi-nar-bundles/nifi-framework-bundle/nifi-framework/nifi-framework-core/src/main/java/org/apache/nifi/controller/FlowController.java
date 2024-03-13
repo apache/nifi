@@ -878,7 +878,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         final boolean enableControllerDebug = Boolean.parseBoolean(nifiProperties.getProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_ENABLED, "false"));
         final int debugPort = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_PORT, 5678);
         final String debugHost = nifiProperties.getProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_HOST, "localhost");
-
+        final String pythonVirtualEnvBinaryDirectory = nifiProperties.getProperty(NiFiProperties.PYTHON_VIRTUAL_ENV_BINARY_DIRECTORY, "bin/");
         // Validate configuration for max numbers of processes.
         if (maxProcessesPerType < 1) {
             LOG.warn("Configured value for {} in nifi.properties is {}, which is invalid. Defaulting to 2.", NiFiProperties.PYTHON_MAX_PROCESSES_PER_TYPE, maxProcessesPerType);
@@ -902,6 +902,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
         final PythonProcessConfig pythonProcessConfig = new PythonProcessConfig.Builder()
             .pythonCommand(pythonCommand)
+            .pythonVirtualEnvBinaryDirectory(pythonVirtualEnvBinaryDirectory)
             .pythonFrameworkDirectory(pythonFrameworkSourceDirectory)
             .pythonExtensionsDirectories(pythonExtensionsDirectories)
             .pythonWorkingDirectory(pythonWorkingDirectory)
