@@ -26,24 +26,22 @@
     // Get the color palette from the color-config.
     $primary-palette: map.get($color-config, 'primary');
     $accent-palette: map.get($color-config, 'accent');
-    $warn-palette: map.get($color-config, 'warn');
     $canvas-primary-palette: map.get($canvas-color-config, 'primary');
 
     // Get hues from palette
-    $primary-palette-700: mat.get-color-from-palette($primary-palette, 700);
-    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
-    $warn-palette-A200: mat.get-color-from-palette($warn-palette, 'A200');
+    $primary-palette-darker: mat.get-color-from-palette($primary-palette, darker);
+    $accent-palette-default: mat.get-color-from-palette($accent-palette, 'default');
     $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
 
     .component-context {
         .fa,
         .icon {
-            color: $accent-palette-A400;
+            color: $accent-palette-default;
         }
 
         .component-context-logo {
             .icon {
-                color: $warn-palette-A200;
+                color: $accent-palette-default;
             }
         }
 
@@ -52,11 +50,11 @@
         }
 
         .component-context-type {
-            color: $primary-palette-700;
+            color: $primary-palette-darker;
         }
 
         .component-context-id {
-            color: $warn-palette-A200;
+            color: $accent-palette-default;
         }
     }
 }

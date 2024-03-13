@@ -26,11 +26,11 @@
     $accent-palette: map.get($color-config, 'accent');
 
     // Get hues from palette
-    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
+    $accent-palette-default: mat.get-color-from-palette($accent-palette, 'default');
 
     .add-tenant-to-policy-form {
         .fa {
-            color: $accent-palette-A400;
+            color: $accent-palette-default;
         }
     }
 }

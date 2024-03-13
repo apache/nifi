@@ -20,11 +20,4 @@
 
 @mixin nifi-theme($canvas-theme) {
     // Get the color config from the theme.
-    $canvas-color-config: mat.get-color-config($canvas-theme);
-
-    // Get the color palette from the color-config.
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
-
-    // Get hues from palette
-    $canvas-primary-palette-50: mat.get-color-from-palette($canvas-primary-palette, 50);
 }

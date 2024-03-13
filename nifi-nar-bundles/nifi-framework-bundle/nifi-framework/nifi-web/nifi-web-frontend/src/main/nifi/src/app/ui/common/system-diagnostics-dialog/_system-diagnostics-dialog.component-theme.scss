@@ -26,12 +26,12 @@
     $primary-palette: map.get($color-config, 'primary');
 
     // Get hues from palette
-    $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
+    $primary-palette-default: mat.get-color-from-palette($primary-palette, default);
 
     .system-diagnostics {
         .tab-content {
             .section-header {
-                color: $primary-palette-500;
+                color: $primary-palette-default;
             }
         }
     }
