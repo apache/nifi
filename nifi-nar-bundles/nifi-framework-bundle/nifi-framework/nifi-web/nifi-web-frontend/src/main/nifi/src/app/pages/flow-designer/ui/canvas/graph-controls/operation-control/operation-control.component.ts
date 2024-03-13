@@ -42,12 +42,13 @@ import {
 
 import { BreadcrumbEntity } from '../../../../state/shared';
 import { ComponentType } from '../../../../../../state/shared';
+import { MatButtonModule } from '@angular/material/button';
 
 @Component({
     selector: 'operation-control',
     standalone: true,
     templateUrl: './operation-control.component.html',
-    imports: [],
+    imports: [MatButtonModule],
     styleUrls: ['./operation-control.component.scss']
 })
 export class OperationControl {

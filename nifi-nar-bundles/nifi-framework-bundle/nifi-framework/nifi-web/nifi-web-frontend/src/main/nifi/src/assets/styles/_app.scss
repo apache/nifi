@@ -126,18 +126,12 @@
         font-weight: normal !important;
     }
 
-    button.nifi-button {
-        height: 28px;
-        width: 28px;
+    .mat-mdc-icon-button {
+        height: 28px !important;
+        width: 28px !important;
         line-height: 28px;
-    }
-
-    button.nifi-button:hover {
-        cursor: pointer;
-    }
-
-    button.nifi-button:disabled {
-        cursor: not-allowed;
+        font-size: 14px !important;
+        padding: 0 !important;
     }
 
     .pointer {
@@ -301,21 +295,20 @@
         color: $canvas-primary-palette-500 !important;
     }
 
-    button.nifi-button {
-        color: utils.get-color-on-surface($color-config, $surface-darker);
+    .mat-mdc-icon-button {
+        color: utils.get-color-on-surface($color-config, $surface-darker) !important;
     }
 
-    button.nifi-button:hover {
-        background-color: $surface-highlight;
+    .mat-mdc-icon-button:hover {
+        background-color: $surface-highlight !important;
     }
 
-    button.nifi-button:disabled {
-        color: $on-surface-lighter;
-        background-color: transparent;
-        cursor: not-allowed;
+    .mat-mdc-icon-button:disabled {
+        color: $on-surface-lighter !important;
+        background-color: transparent !important;
 
         i {
-            color: $on-surface-lighter;
+            color: $on-surface-lighter !important;
         }
     }
 

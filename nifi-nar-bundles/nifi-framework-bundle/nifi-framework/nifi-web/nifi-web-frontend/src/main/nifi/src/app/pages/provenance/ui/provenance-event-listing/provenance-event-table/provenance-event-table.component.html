@@ -55,7 +55,7 @@
                     </div>
                 </form>
                 <div class="flex flex-col justify-center">
-                    <button class="nifi-button" (click)="searchClicked()">
+                    <button mat-icon-button (click)="searchClicked()">
                         <i class="fa fa-search"></i>
                     </button>
                 </div>
@@ -171,7 +171,7 @@
         </div>
         <div class="flex justify-between">
             <div class="refresh-container flex items-center gap-x-2">
-                <button class="nifi-button" (click)="refreshClicked()">
+                <button mat-icon-button (click)="refreshClicked()">
                     <i class="fa fa-refresh" [class.fa-spin]="loading"></i>
                 </button>
                 <div>Last updated:</div>

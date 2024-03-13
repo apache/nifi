@@ -32,7 +32,7 @@
             }
             <div class="flex justify-between">
                 <div class="refresh-container flex items-center gap-x-2">
-                    <button class="nifi-button" (click)="refreshCounterListing()">
+                    <button mat-icon-button (click)="refreshCounterListing()">
                         <i class="fa fa-refresh" [class.fa-spin]="counterListingState.status === 'loading'"></i>
                     </button>
                     <div>Last updated:</div>

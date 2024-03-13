@@ -29,7 +29,7 @@ $material-primary-light-palette: (
     // 50 -> 900 are the PRIMARY colors (mat.define-palette($material-primary-light-palette, 300);) defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors for primary color #728e9b
     50: #f0e7f2, // .context-menu
     100: #dac3e0, // "lighter" hue for this palette. Also .global-menu:hover, .navigation-control-header:hover, .operation-control-header:hover, .new-canvas-item.icon.hovering, table tr:hover, .CodeMirror.blank, .remote-banner, .process-group-details-banner, .process-group-details-banner, remote-process-group-details-banner, .remote-process-group-last-refresh-rect,
-    200: #c29dcc, // .processor-stats-border, .process-group-stats-border, .context-menu-item:hover, .process-group-banner, .remote-process-group-banner, .a, button.nifi-button, button.nifi-button:disabled
+    200: #c29dcc, // .processor-stats-border, .process-group-stats-border, .context-menu-item:hover, .process-group-banner, .remote-process-group-banner, .a
     300: #aa79b7, // .breadcrumb-container, .navigation-control, .operation-control, .flow-status, .controller-bulletins, .component-button-grip, .search-container, .nifi-navigation, .CodeMirror.blank
     400: #985fa7, // Default hue for this palette (color="primary").
     500: #874b98, // .disabled, .not-transmitting, .splash, .access-policies-header, .operation-context-type, .bulletin-board-header, .counter-header, .stats-info, .active-thread-count-icon, .processor-type, .port-transmission-icon, .operation-context-type, .flow-status.fa, .flow-status.icon, .controller-bulletins, .prioritizers-list, .controller-services-header, .login-title, .parameter-context-header, .parameter-context-inheritance-list, .provenance-header, .flowfile-header, .queue-listing-header, .settings-header, .summary-header, .user-header, table th, button.global-menu-item.fa, button.global-menu-item.icon, .event-header, .section-header,
@@ -43,7 +43,7 @@ $material-primary-light-palette: (
     A100: rgba(20, 145, 193, 0.12), // .hint-pattern
     A200: #aabec7, // .zero
     A400: #44a3cf, // .enabled, .transmitting, .load-balance-icon-active
-    A700: #004849, // a, a:hover, button.nifi-button, button.nifi-button:hover, .add-tenant-to-policy-form.fa, .component.selected rect.border, .add-connect, .remote-process-group-uri, .remote-process-group-transmission-secure, .navigation-control.fa, .operation-control.fa, .new-canvas-item.icon, .upload-flow-definition, .lineage-controls.fa, .event circle.context, .nifi-navigation.icon, .listing-table.fa, .listing-table.icon, .context-menu
+    A700: #004849, // a, a:hover, .add-tenant-to-policy-form.fa, .component.selected rect.border, .add-connect, .remote-process-group-uri, .remote-process-group-transmission-secure, .navigation-control.fa, .operation-control.fa, .new-canvas-item.icon, .upload-flow-definition, .lineage-controls.fa, .event circle.context, .nifi-navigation.icon, .listing-table.fa, .listing-table.icon, .context-menu
 
     // These are the $material-primary-light-palette PRIMARY AND ACCENT contrast colors. These color do not really get defined by https://m2.material.io/design/color/the-color-system.html#tools-for-picking-colors.
     // Instead if we look to the Angular Material provided palettes we see that these fields are typically rgba(black, 0.87) or white. These values are particularly important

@@ -183,7 +183,7 @@
     </div>
     <div class="flex justify-between align-middle">
         <div class="refresh-container flex items-center gap-x-2">
-            <button class="nifi-button" (click)="refresh.next()">
+            <button mat-icon-button (click)="refresh.next()">
                 <i class="fa fa-refresh" [class.fa-spin]="summaryListingStatus === 'loading'"></i>
             </button>
             <div>Last updated:</div>

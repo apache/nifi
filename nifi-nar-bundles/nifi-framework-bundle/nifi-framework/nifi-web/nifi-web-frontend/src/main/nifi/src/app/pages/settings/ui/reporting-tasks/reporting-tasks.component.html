@@ -25,7 +25,7 @@
             <div class="flex flex-col h-full gap-y-2">
                 @if (currentUser.controllerPermissions.canWrite) {
                     <div class="flex justify-end">
-                        <button class="nifi-button" (click)="openNewReportingTaskDialog()">
+                        <button mat-icon-button (click)="openNewReportingTaskDialog()">
                             <i class="fa fa-plus"></i>
                         </button>
                     </div>
@@ -46,7 +46,7 @@
                 </div>
                 <div class="flex justify-between">
                     <div class="refresh-container flex items-center gap-x-2">
-                        <button class="nifi-button" (click)="refreshReportingTaskListing()">
+                        <button mat-icon-button (click)="refreshReportingTaskListing()">
                             <i class="fa fa-refresh" [class.fa-spin]="reportingTaskState.status === 'loading'"></i>
                         </button>
                         <div>Last updated:</div>

@@ -40,7 +40,7 @@
         </div>
         <div class="flex flex-col justify-center">
             @if (canModifyTenants(currentUser)) {
-                <button class="nifi-button" (click)="createClicked()">
+                <button mat-icon-button (click)="createClicked()">
                     <i class="fa fa-plus"></i>
                 </button>
             }

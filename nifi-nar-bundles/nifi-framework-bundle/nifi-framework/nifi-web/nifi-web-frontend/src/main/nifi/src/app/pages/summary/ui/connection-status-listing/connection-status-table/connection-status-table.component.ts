@@ -27,13 +27,22 @@ import { RouterLink } from '@angular/router';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { ConnectionStatusSnapshot, ConnectionStatusSnapshotEntity } from '../../../state';
 import { ComponentStatusTable } from '../../common/component-status-table/component-status-table.component';
+import { MatButtonModule } from '@angular/material/button';
 
 export type SupportedColumns = 'name' | 'queue' | 'in' | 'out' | 'threshold' | 'sourceName' | 'destinationName';
 
 @Component({
     selector: 'connection-status-table',
     standalone: true,
-    imports: [CommonModule, SummaryTableFilterModule, MatSortModule, RouterLink, MatTableModule, MatPaginatorModule],
+    imports: [
+        CommonModule,
+        SummaryTableFilterModule,
+        MatSortModule,
+        RouterLink,
+        MatTableModule,
+        MatPaginatorModule,
+        MatButtonModule
+    ],
     templateUrl: './connection-status-table.component.html',
     styleUrls: ['./connection-status-table.component.scss']
 })
