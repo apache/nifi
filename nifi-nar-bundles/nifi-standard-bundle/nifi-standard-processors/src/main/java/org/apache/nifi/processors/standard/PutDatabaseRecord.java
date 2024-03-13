@@ -803,7 +803,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                             if (BINARY_STRING_FORMAT_BASE64.getValue().equals(binaryStringFormat)) {
                                                 currentValue = Base64.getDecoder().decode(stringValue);
                                             } else if (BINARY_STRING_FORMAT_HEX_STRING.getValue().equals(binaryStringFormat)) {
-                                                currentValue = HexFormat.of().parseHex(stringValue.toUpperCase());
+                                                currentValue = HexFormat.of().parseHex(stringValue);
                                             } else {
                                                 currentValue = stringValue.getBytes(StandardCharsets.UTF_8);
                                             }
