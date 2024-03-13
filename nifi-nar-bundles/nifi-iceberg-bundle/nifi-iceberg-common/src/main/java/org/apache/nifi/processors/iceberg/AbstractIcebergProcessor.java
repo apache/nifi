@@ -124,10 +124,16 @@ public abstract class AbstractIcebergProcessor extends AbstractProcessor impleme
 
     @Override
     public String getClassloaderIsolationKey(PropertyContext context) {
-        final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
-        if (kerberosUserService != null) {
-            return kerberosUserService.getIdentifier();
+        try {
+            final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
+            if (kerberosUserService != null) {
+                final KerberosUser kerberosUser = kerberosUserService.createKerberosUser();
+                return kerberosUser.getPrincipal();
+            }
+        } catch (IllegalStateException e) {
+            return null;
         }
+
         return null;
     }
 
