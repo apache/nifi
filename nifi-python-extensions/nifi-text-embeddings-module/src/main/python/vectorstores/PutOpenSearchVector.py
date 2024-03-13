@@ -20,7 +20,7 @@ from OpenSearchVectorUtils import (L2, L1, LINF, COSINESIMIL, OPENAI_API_KEY, OP
                                    HUGGING_FACE_MODEL,HTTP_HOST, USERNAME, PASSWORD, INDEX_NAME, VECTOR_FIELD,
                                    TEXT_FIELD, create_authentication_params, parse_documents)
 from EmbeddingUtils import EMBEDDING_MODEL, create_embedding_service
-from nifiapi.documentation import use_case, multi_processor_use_case, ProcessorConfiguration
+from nifiapi.documentation import use_case, ProcessorConfiguration
 
 
 @use_case(description="Create vectors/embeddings that represent text content and send the vectors to OpenSearch",
@@ -154,7 +154,7 @@ class PutOpenSearchVector(FlowFileTransform):
                     "decreasing this value can have a large impact on memory consumption. Keep this value between 2 and 100.",
         default_value="16",
         required=False,
-        validators=[StandardValidators.create_long_validator(2, 100, True)],
+        validators=[StandardValidators._standard_validators.createLongValidator(2, 100, True)],
         dependencies=[PropertyDependency(NEW_INDEX_STRATEGY, CUSTOM_INDEX_MAPPING)]
     )
 
