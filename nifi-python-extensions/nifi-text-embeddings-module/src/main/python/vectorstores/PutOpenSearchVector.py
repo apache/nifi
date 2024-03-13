@@ -17,7 +17,7 @@ from langchain.vectorstores import OpenSearchVectorSearch
 from nifiapi.flowfiletransform import FlowFileTransform, FlowFileTransformResult
 from nifiapi.properties import PropertyDescriptor, StandardValidators, ExpressionLanguageScope, PropertyDependency
 from OpenSearchVectorUtils import (L2, L1, LINF, COSINESIMIL, OPENAI_API_KEY, OPENAI_API_MODEL, HUGGING_FACE_API_KEY,
-                                   HUGGING_FACE_MODEL,HTTP_HOST, USERNAME, PASSWORD, INDEX_NAME, VECTOR_FIELD,
+                                   HUGGING_FACE_MODEL, HTTP_HOST, USERNAME, PASSWORD, INDEX_NAME, VECTOR_FIELD,
                                    TEXT_FIELD, create_authentication_params, parse_documents)
 from EmbeddingUtils import EMBEDDING_MODEL, create_embedding_service
 from nifiapi.documentation import use_case, ProcessorConfiguration
