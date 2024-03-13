@@ -25,8 +25,8 @@ $handle-size: 15px;
 
 .resizable-handle {
     position: absolute;
-    width: $handle-size;
-    height: $handle-size;
+    width: 15px;
+    height: 15px;
     bottom: 0;
     right: 0;
     cursor: se-resize;
@@ -41,6 +41,10 @@ $handle-size: 15px;
     height: 0;
     border-left: math.div($handle-size, 2) solid transparent;
     border-top: math.div($handle-size, 2) solid transparent;
+    border-right-width: math.div($handle-size, 2);
+    border-right-style: solid;
+    border-bottom-width: math.div($handle-size, 2);
+    border-bottom-style: solid;
     bottom: 0;
     right: 0;
 }

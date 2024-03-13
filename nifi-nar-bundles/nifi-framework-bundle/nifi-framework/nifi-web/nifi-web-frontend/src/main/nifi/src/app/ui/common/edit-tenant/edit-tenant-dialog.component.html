@@ -37,7 +37,7 @@
         @if (isUser) {
             <div>
                 <mat-label>Member of</mat-label>
-                <mat-selection-list formControlName="userGroups" class="border">
+                <mat-selection-list formControlName="userGroups">
                     @for (userGroup of userGroups; track userGroup) {
                         <mat-list-option togglePosition="before" [value]="userGroup.id"
                             >{{ userGroup.component.identity }}
@@ -48,7 +48,7 @@
         } @else {
             <div>
                 <mat-label>Members</mat-label>
-                <mat-selection-list formControlName="users" class="border">
+                <mat-selection-list formControlName="users">
                     @for (user of users; track user) {
                         <mat-list-option togglePosition="before" [value]="user.id"
                             >{{ user.component.identity }}

@@ -41,13 +41,11 @@
 
         .nf-editor {
             .CodeMirror {
-                border: 1px solid $canvas-primary-palette-500;
                 background-color: $surface;
 
                 &.blank {
                     background: $primary-palette-default;
                     color: $primary-palette-lighter;
-                    border: 1px solid $primary-palette-default;
                 }
             }
 

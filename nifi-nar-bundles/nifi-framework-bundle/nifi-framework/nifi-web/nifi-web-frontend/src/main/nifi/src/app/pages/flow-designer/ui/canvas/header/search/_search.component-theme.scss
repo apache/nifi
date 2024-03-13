@@ -19,7 +19,7 @@
 @use '@angular/material' as mat;
 @use '../../../../../../../assets/utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin nifi-theme($canvas-theme) {
     // Get the color config from the theme.
     $canvas-color-config: mat.get-color-config($canvas-theme);
 
@@ -30,8 +30,6 @@
     $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
 
     .search-container {
-        border-left: 1px solid $on-surface-lighter;
-
         &:hover,
         &.open {
             background-color: $surface;

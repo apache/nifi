@@ -17,28 +17,9 @@
 
 @use '@angular/material' as mat;
 
-.property-table.listing-table {
-    @include mat.table-density(-4);
-    min-width: 740px;
-
-    table {
-        width: auto;
-
-        td,
-        th {
-            cursor: default;
-        }
-
-        .mat-column-property {
-            min-width: 230px;
-        }
-
-        .mat-column-value {
-            min-width: 230px;
-        }
-
-        .mat-column-actions {
-            min-width: 50px;
-        }
+.property-table {
+    .listing-table {
+        @include mat.table-density(-4);
+        width: 740px;
     }
 }

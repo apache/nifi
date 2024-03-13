@@ -19,7 +19,8 @@
 // For more information: https://v16.material.angular.io/guide/theming-your-components
 @use '@angular/material' as mat;
 @use 'sass:map';
-@use 'assets/styles/listing-table-theme' as listing-table;
+@use 'assets/styles/app' as app;
+@use 'assets/styles/listing-table' as listing-table;
 @use 'app/app.component-theme' as app-component;
 @use 'app/pages/access-policies/feature/access-policies.component-theme' as access-policies;
 @use 'app/pages/access-policies/ui/common/add-tenant-to-policy-dialog/add-tenant-to-policy-dialog.component-theme' as add-tenant-to-policy;
@@ -58,7 +59,6 @@
 @use 'app/ui/common/extension-creation/extension-creation.component-theme' as extension-creation;
 @use 'app/ui/common/navigation/navigation.component-theme' as navigation;
 @use 'app/ui/common/property-table/editors/nf-editor/nf-editor.component-theme' as nf-editor;
-@use 'app/ui/common/resizable/resizable.component-theme' as resizable;
 @use 'app/ui/common/system-diagnostics-dialog/system-diagnostics-dialog.component-theme' as system-diagnostics-dialog;
 @use 'app/ui/common/status-history/status-history.component-theme' as status-history;
 @use 'app/ui/common/tooltips/property-hint-tip/property-hint-tip.component-theme' as property-hint-tip;
@@ -73,10 +73,6 @@
 @use 'codemirror/lib/codemirror.css';
 @use 'codemirror/addon/hint/show-hint.css';
 
-@use 'assets/utils.scss' as utils;
-
-// NOTE: for faster developer cycles during theme development the theme can also be changed here.
-// Ex: @import 'assets/themes/purple';
 // To override the canvas theme, you need to set the variables $nifi-canvas-theme-light and $nifi-canvas-theme-dark
 @import 'assets/themes/nifi-canvas';
 // To override the NiFi theme, you need to set the variables $material-theme-light and $material-theme-dark
@@ -178,310 +174,15 @@ $appFontPath: '~roboto-fontface/fonts';
 @tailwind components;
 @tailwind utilities;
 
-//General status styles. TODO - Reconsider this... separating canvas/style styles from html styles...
-@mixin nifi-colors($material-theme, $canvas-theme) {
-    // Get the color config from the theme.
-    $color-config: mat.get-color-config($material-theme);
-    $canvas-color-config: mat.get-color-config($canvas-theme);
-
-    // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
-    $accent-palette: map.get($color-config, 'accent');
-    $warn-palette: map.get($color-config, 'warn');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
-    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
-
-    // Get hues from palette
-
-    // Start with the canvas theme.
-    $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, A200);
-    $canvas-primary-palette-400: mat.get-color-from-palette($canvas-primary-palette, 400);
-    $canvas-primary-palette-500: mat.get-color-from-palette($canvas-primary-palette, 500);
-    $canvas-accent-palette-lighter: mat.get-color-from-palette($canvas-accent-palette, lighter);
-    $canvas-accent-palette-default: mat.get-color-from-palette($canvas-accent-palette, default);
-
-    $primary-palette-lighter: mat.get-color-from-palette($primary-palette, lighter);
-    $primary-palette-default: mat.get-color-from-palette($primary-palette, 'default');
-    $primary-palette-A400: mat.get-color-from-palette($primary-palette, 'A400');
-
-    $accent-palette-default: mat.get-color-from-palette($accent-palette, 'default');
-    $accent-palette-lighter: mat.get-color-from-palette($accent-palette, 'lighter');
-
-    $warn-palette-lighter: mat.get-color-from-palette($warn-palette, lighter);
-    $warn-palette-default: mat.get-color-from-palette($warn-palette, 'default');
-
-    // Alternative hue for warn colors.
-    $warn-palette-A200: mat.get-color-from-palette($warn-palette, 'A200');
-
-    $surface: utils.get-surface($canvas-color-config);
-    $surface-darker: utils.get-surface($canvas-color-config, darker);
-    $surface-highlight: utils.get-on-surface($canvas-color-config, highlight);
-    $on-surface: utils.get-on-surface($canvas-color-config);
-    $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
-
-    * { // Tailwind sets a default that doesn't shift with light and dark themes
-        border-color: $on-surface-lighter;
-    }
-
-    a {
-        color: utils.get-color-on-surface($color-config, $surface);
-        text-decoration-color: $primary-palette-lighter;
-    }
-
-    a:hover {
-        text-decoration-color: utils.get-color-on-surface($color-config, $surface);
-    }
-
-    .tooltip {
-        background-color: $surface;
-        border-color: $on-surface;
-        box-shadow: 0 2px 5px $canvas-primary-palette-A200;
-        color: $on-surface;
-    }
-
-    .property-editor {
-        background-color: $surface;
-        box-shadow: 0 2px 5px $canvas-primary-palette-A200;
-    }
-
-    .disabled {
-        color: $primary-palette-default !important;
-        fill: $primary-palette-default !important;
-    }
-
-    .enabled {
-        color: $primary-palette-A400 !important;
-        fill: $primary-palette-A400 !important;
-    }
-
-    .stopped {
-        color: $warn-palette-lighter !important;
-        fill: $warn-palette-lighter !important;
-    }
-
-    .running {
-        color: $canvas-accent-palette-lighter !important;
-        fill: $canvas-accent-palette-lighter !important;
-    }
-
-    .has-errors,
-    .invalid {
-        color: $warn-palette-A200 !important;
-        fill: $warn-palette-A200 !important;
-    }
-
-    .validating {
-        color: $canvas-primary-palette-500 !important;
-        fill: $canvas-primary-palette-500 !important;
-    }
-
-    .transmitting {
-        color: $canvas-accent-palette-default !important;
-        fill: $canvas-accent-palette-default !important;
-    }
-
-    .up-to-date {
-        color: $canvas-accent-palette-default !important;
-        fill: $canvas-accent-palette-default !important;
-    }
-
-    .locally-modified,
-    .sync-failure {
-        color: $accent-palette-lighter !important;
-        fill: $accent-palette-lighter !important;
-    }
-
-    .stale,
-    .locally-modified-and-stale {
-        color: $warn-palette-default !important;
-        fill: $warn-palette-default !important;
-    }
-
-    .zero {
-        opacity: 0.5;
-    }
-
-    .blank,
-    .unset,
-    .sensitive {
-        color: $canvas-primary-palette-500 !important;
-    }
-
-    button.nifi-button {
-        color: utils.get-color-on-surface($color-config, $surface-darker);
-    }
-
-    button.nifi-button:hover {
-        background-color: $surface-highlight;
-    }
-
-    button.nifi-button:disabled {
-        color: $on-surface-lighter;
-        background-color: transparent;
-        cursor: not-allowed;
-        
-        i {
-            color: $on-surface-lighter;
-        }
-    }
-
-    .value,
-    .refresh-timestamp {
-        color: utils.get-color-on-surface($color-config, $surface, 'accent');
-    }
-
-    .accent-palette-default {
-        color: $accent-palette-default;
-    }
-
-    ngx-skeleton-loader .skeleton-loader {
-        background: $canvas-primary-palette-400;
-    }
-}
-
-@mixin nifi-styles() {
-    html,
-    body {
-        height: 100%;
-    }
-
-    body {
-        margin: 0;
-        font-family: Roboto, 'Helvetica Neue', sans-serif;
-    }
-
-    a {
-        font-size: 13px;
-        cursor: pointer;
-        font-weight: normal;
-        display: inline-block;
-        font-family: Roboto;
-        text-decoration: underline;
-        text-underline-offset: 3px;
-    }
-
-    //Icon for styling mat-icon in forms throughout the application.
-    .info-icon {
-        font-size: 14px;
-        height: 14px !important;
-        width: 14px !important;
-    }
-
-    //This style is needed due to an incompatibility between material and tailwind.
-    .mdc-notched-outline__notch {
-        border-right: none;
-    }
-
-    .small-dialog {
-        min-width: 320px;
-    }
-
-    .medium-dialog {
-        min-width: 470px;
-    }
-
-    .medium-short-dialog {
-        max-height: 32%;
-        max-width: 34%;
-        min-height: 250px;
-        min-width: 440px;
-        font-size: 13px;
-    }
-
-    .large-dialog {
-        max-height: 72%;
-        max-width: 55%;
-        min-height: 520px;
-        min-width: 760px;
-    }
-
-    .xl-dialog {
-        max-height: 72%;
-        max-width: 85%;
-        min-height: 560px;
-        min-width: 1024px;
-    }
-
-    .edit-parameter-context-dialog {
-        max-height: 72%;
-        max-width: 55%;
-        min-width: 850px;
-        min-height: 575px;
-    }
-
-    .tooltip {
-        position: fixed;
-        max-width: 500px;
-        padding: 10px;
-        border-radius: 2px;
-        border-width: 1px;
-        font-size: 13px;
-        font-family: Roboto;
-        font-weight: 400;
-        word-wrap: break-word;
-        white-space: normal;
-        z-index: 1;
-
-        ul {
-            list-style: disc outside;
-            margin-left: 1em;
-        }
-    }
-
-    .property-editor {
-        font-size: 13px;
-        font-family: Roboto;
-        font-weight: 400;
-    }
-
-    .CodeMirror-hints {
-        font-size: 13px !important;
-        z-index: 1000 !important;
-        overflow-y: scroll !important;
-    }
-
-    .blank,
-    .unset,
-    .sensitive {
-        font-weight: normal !important;
-    }
-
-    button.nifi-button {
-        height: 28px;
-        width: 28px;
-        line-height: 28px;
-    }
-
-    button.nifi-button:hover {
-        cursor: pointer;
-    }
-
-    button.nifi-button:disabled {
-        cursor: not-allowed;
-    }
-
-    .pointer {
-        cursor: pointer;
-    }
-
-    .disabled {
-        cursor: not-allowed;
-    }
-
-    .value,
-    .refresh-timestamp {
-        font-weight: 500;
-    }
-}
-
 // only include this once (not needed for dark mode)
-@include nifi-styles();
+@include app.styles();
+@include listing-table.styles();
 
-// generate light mode nifi stylesheets
+// generate light mode stylesheets
 @include mat.all-component-themes($material-theme-light);
 @include app-component.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include nifi-colors($material-theme-light, $nifi-canvas-theme-light);
-@include listing-table.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include app.colors($material-theme-light, $nifi-canvas-theme-light);
+@include listing-table.colors($material-theme-light, $nifi-canvas-theme-light);
 @include access-policies.nifi-theme($material-theme-light);
 @include add-tenant-to-policy.nifi-theme($material-theme-light);
 @include component-access-policies.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
@@ -499,7 +200,7 @@ $appFontPath: '~roboto-fontface/fonts';
 @include flow-status.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include header.nifi-theme($nifi-canvas-theme-light);
 @include new-canvas-item.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include search.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
+@include search.nifi-theme($nifi-canvas-theme-light);
 @include prioritizers.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include create-process-group.nifi-theme($material-theme-light);
 @include create-remote-process-group.nifi-theme($material-theme-light);
@@ -519,7 +220,6 @@ $appFontPath: '~roboto-fontface/fonts';
 @include extension-creation.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include navigation.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include nf-editor.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
-@include resizable.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include system-diagnostics-dialog.nifi-theme($material-theme-light);
 @include status-history.nifi-theme($material-theme-light, $nifi-canvas-theme-light);
 @include property-hint-tip.nifi-theme($material-theme-light);
@@ -531,10 +231,10 @@ $appFontPath: '~roboto-fontface/fonts';
     // Include the dark theme color styles.
     @include mat.all-component-colors($material-theme-dark);
 
-    // generate dark mode nifi stylesheets
+    // generate dark mode stylesheets
     @include app-component.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include nifi-colors($material-theme-dark, $nifi-canvas-theme-dark);
-    @include listing-table.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include app.colors($material-theme-dark, $nifi-canvas-theme-dark);
+    @include listing-table.colors($material-theme-dark, $nifi-canvas-theme-dark);
     @include access-policies.nifi-theme($material-theme-dark);
     @include add-tenant-to-policy.nifi-theme($material-theme-dark);
     @include component-access-policies.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
@@ -552,7 +252,7 @@ $appFontPath: '~roboto-fontface/fonts';
     @include flow-status.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
     @include header.nifi-theme($nifi-canvas-theme-dark);
     @include new-canvas-item.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include search.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
+    @include search.nifi-theme($nifi-canvas-theme-dark);
     @include prioritizers.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
     @include create-process-group.nifi-theme($material-theme-dark);
     @include create-remote-process-group.nifi-theme($material-theme-dark);
@@ -572,7 +272,6 @@ $appFontPath: '~roboto-fontface/fonts';
     @include extension-creation.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
     @include navigation.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
     @include nf-editor.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
-    @include resizable.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
     @include system-diagnostics-dialog.nifi-theme($material-theme-dark);
     @include status-history.nifi-theme($material-theme-dark, $nifi-canvas-theme-dark);
     @include property-hint-tip.nifi-theme($material-theme-dark);

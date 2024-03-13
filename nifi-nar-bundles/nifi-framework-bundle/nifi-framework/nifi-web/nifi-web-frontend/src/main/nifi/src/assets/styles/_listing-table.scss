@@ -17,9 +17,53 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
-@use '../../assets/utils.scss' as utils;
+@use '../utils.scss' as utils;
 
-@mixin nifi-theme($material-theme, $canvas-theme) {
+@mixin styles() {
+    .listing-table {
+        border-width: 1px;
+        border-style: solid;
+
+        table {
+            width: 100%;
+            table-layout: fixed;
+
+            td,
+            th {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                padding: 0 8px;
+                cursor: default;
+            }
+
+            .fa {
+                width: 10px;
+                height: 14px;
+                text-align: center;
+            }
+
+            .icon {
+                width: 10px;
+                text-align: center;
+            }
+
+            .mat-column-moreDetails {
+                min-width: 30px;
+            }
+
+            .mat-column-actions {
+                min-width: 115px;
+            }
+        }
+    }
+
+    .mat-sort-header-content {
+        overflow: hidden;
+    }
+}
+
+@mixin colors($material-theme, $canvas-theme) {
     // Get the color config from the theme.
     $color-config: mat.get-color-config($material-theme);
     $canvas-color-config: mat.get-color-config($canvas-theme);
@@ -42,21 +86,12 @@
         $primary-palette-darker-contrast
     );
     $surface-highlight: utils.get-on-surface($canvas-color-config, 'highlight');
+    $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
 
     .listing-table {
+        border-color: $on-surface-lighter;
+
         table {
-            width: 100%;
-            table-layout: fixed;
-
-            td,
-            th {
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                padding: 0 8px;
-                cursor: default;
-            }
-
             th {
                 background-color: $header-surface !important;
                 color: $header-on-surface;
@@ -65,6 +100,12 @@
                 .mat-sort-header-arrow {
                     color: $header-on-surface;
                 }
+            }
+
+            th,
+            td {
+                border-bottom-width: 1px;
+                border-bottom-style: solid;
             }
 
             tr:hover {
@@ -81,36 +122,11 @@
 
             .fa {
                 color: utils.get-color-on-surface($color-config, $surface);
-                width: 10px;
-                height: 14px;
-                text-align: center;
             }
 
             .icon {
                 color: utils.get-color-on-surface($color-config, $surface);
-                width: 10px;
-                text-align: center;
-            }
-
-            .mat-column-moreDetails {
-                min-width: 30px;
-            }
-
-            .mat-column-actions {
-                min-width: 115px;
             }
         }
-
-        .mat-mdc-table .mdc-data-table__header-row {
-            height: 35px;
-        }
-
-        .mat-mdc-table .mdc-data-table__row {
-            height: 35px;
-        }
-    }
-
-    .mat-sort-header-content {
-        overflow: hidden;
     }
 }
