@@ -262,7 +262,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .name("put-db-record-binary-format")
             .displayName("Binary String Format")
             .description("The format to be applied when decoding string values to binary.")
-            .required(false)
+            .required(true)
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
             .allowableValues(BINARY_STRING_FORMAT_UTF8, BINARY_STRING_FORMAT_HEX_STRING, BINARY_STRING_FORMAT_BASE64)
             .defaultValue(BINARY_STRING_FORMAT_UTF8.getValue())
