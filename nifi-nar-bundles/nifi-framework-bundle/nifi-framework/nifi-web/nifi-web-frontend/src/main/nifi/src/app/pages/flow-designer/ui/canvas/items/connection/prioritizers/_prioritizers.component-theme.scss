@@ -38,12 +38,9 @@
     .prioritizers {
         .prioritizers-list {
             background: $primary-palette-default;
-
-            border: solid 1px $canvas-primary-palette-500;
         }
 
         .prioritizer-draggable-item {
-            border-bottom: solid 1px $canvas-primary-palette-500;
             color: $on-surface;
             background: $surface;
         }
