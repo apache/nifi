@@ -227,10 +227,7 @@ public class PythonProcess {
     private Process launchPythonProcess(final int listeningPort, final String authToken) throws IOException {
         final File pythonFrameworkDirectory = processConfig.getPythonFrameworkDirectory();
         final File pythonApiDirectory = new File(pythonFrameworkDirectory.getParentFile(), "api");
-        final File pythonCmdFile = new File(processConfig.getPythonCommand());
-        final String pythonCmd = pythonCmdFile.getName();
-        final File pythonCommandFile = new File(virtualEnvHome, "bin/" + pythonCmd);
-        final String pythonCommand = pythonCommandFile.getAbsolutePath();
+        final String pythonCommand = resolvePythonCommand();
 
         final File controllerPyFile = new File(pythonFrameworkDirectory, PYTHON_CONTROLLER_FILENAME);
         final ProcessBuilder processBuilder = new ProcessBuilder();
@@ -256,7 +253,7 @@ public class PythonProcess {
         processBuilder.environment().put("JAVA_PORT", String.valueOf(listeningPort));
         processBuilder.environment().put("ENV_HOME", virtualEnvHome.getAbsolutePath());
         processBuilder.environment().put("PYTHONPATH", pythonPath);
-        processBuilder.environment().put("PYTHON_CMD", pythonCommandFile.getAbsolutePath());
+        processBuilder.environment().put("PYTHON_CMD", pythonCommand);
         processBuilder.environment().put("AUTH_TOKEN", authToken);
 
         // Redirect error stream to standard output stream
@@ -265,6 +262,27 @@ public class PythonProcess {
         logger.info("Launching Python Process {} {} with working directory {} to communicate with Java on Port {}",
             pythonCommand, controllerPyFile.getAbsolutePath(), virtualEnvHome, listeningPort);
         return processBuilder.start();
+    }
+
+    String resolvePythonCommand() throws IOException {
+        final File pythonCmdFile = new File(processConfig.getPythonCommand());
+        final String pythonCmd = pythonCmdFile.getName();
+
+        // Find command directories according to standard Python venv conventions
+        final File[] virtualEnvDirectories = virtualEnvHome.listFiles((file, name) -> file.isDirectory() && (name.equals("bin") || name.equals("Scripts")));
+
+        final String commandExecutableDirectory;
+        if (virtualEnvDirectories == null || virtualEnvDirectories.length == 0) {
+            throw new IOException("Python binary directory could not be found in " + virtualEnvHome);
+        } else if( virtualEnvDirectories.length == 1) {
+            commandExecutableDirectory = virtualEnvDirectories[0].getName();
+        } else {
+            // Default to bin directory for macOS and Linux
+            commandExecutableDirectory = "bin";
+        }
+
+        final File pythonCommandFile = new File(virtualEnvHome, commandExecutableDirectory + File.separator + pythonCmd);
+        return pythonCommandFile.getAbsolutePath();
     }
 
 
