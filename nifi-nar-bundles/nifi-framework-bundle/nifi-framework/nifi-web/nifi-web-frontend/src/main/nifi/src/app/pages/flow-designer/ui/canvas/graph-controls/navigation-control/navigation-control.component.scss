@@ -19,11 +19,8 @@ div.navigation-control {
     margin-bottom: 2px;
 
     .mat-mdc-icon-button {
-        height: 34px !important;
-        width: 34px !important;
-        line-height: 34px;
-        font-size: 17px !important;
-        padding: 0px !important;
+        --mdc-icon-button-state-layer-size: 34px;
+        --mdc-icon-button-icon-size: 17px;
     }
 
     .navigation-control-header {
