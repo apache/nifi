@@ -196,8 +196,8 @@
     }
 
     .cdk-drag-disabled {
-        cursor: not-allowed;
-        background: $on-surface-lighter;
+        cursor: not-allowed !important;
+        background: $on-surface-lighter !important;
     }
 
     .cdk-drag-preview {
