@@ -67,6 +67,7 @@ public class DeleteSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuil
         QUEUE_URL,
         REGION,
         AWS_CREDENTIALS_PROVIDER_SERVICE,
+        SSL_CONTEXT_SERVICE,
         RECEIPT_HANDLE,
         TIMEOUT,
         ENDPOINT_OVERRIDE,
