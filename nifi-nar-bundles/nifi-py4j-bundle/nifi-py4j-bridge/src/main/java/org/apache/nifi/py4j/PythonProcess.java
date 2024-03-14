@@ -227,10 +227,7 @@ public class PythonProcess {
     private Process launchPythonProcess(final int listeningPort, final String authToken) throws IOException {
         final File pythonFrameworkDirectory = processConfig.getPythonFrameworkDirectory();
         final File pythonApiDirectory = new File(pythonFrameworkDirectory.getParentFile(), "api");
-        final File pythonCmdFile = new File(processConfig.getPythonCommand());
-        final String pythonCmd = pythonCmdFile.getName();
-        final File pythonCommandFile = new File(virtualEnvHome, "bin/" + pythonCmd);
-        final String pythonCommand = pythonCommandFile.getAbsolutePath();
+        final String pythonCommand = resolvePythonCommand();
 
         final File controllerPyFile = new File(pythonFrameworkDirectory, PYTHON_CONTROLLER_FILENAME);
         final ProcessBuilder processBuilder = new ProcessBuilder();
@@ -256,7 +253,7 @@ public class PythonProcess {
         processBuilder.environment().put("JAVA_PORT", String.valueOf(listeningPort));
         processBuilder.environment().put("ENV_HOME", virtualEnvHome.getAbsolutePath());
         processBuilder.environment().put("PYTHONPATH", pythonPath);
-        processBuilder.environment().put("PYTHON_CMD", pythonCommandFile.getAbsolutePath());
+        processBuilder.environment().put("PYTHON_CMD", pythonCommand);
         processBuilder.environment().put("AUTH_TOKEN", authToken);
 
         // Redirect error stream to standard output stream
@@ -265,6 +262,21 @@ public class PythonProcess {
         logger.info("Launching Python Process {} {} with working directory {} to communicate with Java on Port {}",
             pythonCommand, controllerPyFile.getAbsolutePath(), virtualEnvHome, listeningPort);
         return processBuilder.start();
+    }
+
+    String resolvePythonCommand() throws IOException {
+        final File pythonCmdFile = new File(processConfig.getPythonCommand());
+        final String pythonCmd = pythonCmdFile.getName();
+        File[] virtualEnvFileList = virtualEnvHome.listFiles((file, name) -> file.isDirectory() && (name.equals("bin") || name.equals("Scripts")));
+        //Prefer bin directory
+        String commandFileExecutableDirectory = "bin";
+        if(virtualEnvFileList == null || virtualEnvFileList.length == 0) {
+            throw new IOException("Python binary directory could not be found in " + virtualEnvHome);
+        }else if( virtualEnvFileList.length == 1) {
+            commandFileExecutableDirectory = virtualEnvFileList[0].getName();
+        }
+        final File pythonCommandFile = new File(virtualEnvHome, commandFileExecutableDirectory + File.separator + pythonCmd);
+        return pythonCommandFile.getAbsolutePath();
     }
 
 
