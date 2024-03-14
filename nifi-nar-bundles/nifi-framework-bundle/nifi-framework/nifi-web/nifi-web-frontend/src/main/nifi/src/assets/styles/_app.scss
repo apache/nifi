@@ -127,11 +127,14 @@
     }
 
     .mat-mdc-icon-button {
-        height: 28px !important;
-        width: 28px !important;
-        line-height: 28px;
-        font-size: 14px !important;
-        padding: 0 !important;
+        --mdc-icon-button-state-layer-size: 28px;
+        --mdc-icon-button-icon-size: 14px;
+        line-height: var(--mdc-icon-button-state-layer-size);
+        padding: 0;
+
+        &.mat-mdc-button-base.mdc-icon-button {
+            padding: 0;
+        }
     }
 
     .pointer {
