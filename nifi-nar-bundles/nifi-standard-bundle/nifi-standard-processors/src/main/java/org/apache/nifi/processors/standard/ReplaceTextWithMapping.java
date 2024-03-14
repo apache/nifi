@@ -101,7 +101,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor MAPPING_FILE_REFRESH_INTERVAL = new PropertyDescriptor.Builder()
             .name("Mapping File Refresh Interval")
-            .description("The polling interval in seconds to check for updates to the mapping file. The default is 60s.")
+            .description("The polling interval to check for updates to the mapping file. The default is 60s.")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .required(true)
             .defaultValue("60s")

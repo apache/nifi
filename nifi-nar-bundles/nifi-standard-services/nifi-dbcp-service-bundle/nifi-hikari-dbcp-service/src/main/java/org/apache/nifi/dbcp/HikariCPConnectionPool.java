@@ -184,7 +184,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
     public static final PropertyDescriptor MAX_CONN_LIFETIME = new PropertyDescriptor.Builder()
             .name("hikaricp-max-conn-lifetime")
             .displayName("Max Connection Lifetime")
-            .description("The maximum lifetime in milliseconds of a connection. After this time is exceeded the " +
+            .description("The maximum lifetime of a connection. After this time is exceeded the " +
                     "connection will fail the next activation, passivation or validation test. A value of zero or less " +
                     "means the connection has an infinite lifetime.")
             .defaultValue(DEFAULT_MAX_CONN_LIFETIME)
