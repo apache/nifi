@@ -150,7 +150,7 @@
         <spring.security.version>5.8.7</spring.security.version>
         <swagger.annotations.version>1.6.12</swagger.annotations.version>
         <h2.version>2.2.224</h2.version>
-        <zookeeper.version>3.9.1</zookeeper.version>
+        <zookeeper.version>3.9.2</zookeeper.version>
         <caffeine.version>2.9.3</caffeine.version>
     </properties>
     <dependencyManagement>
