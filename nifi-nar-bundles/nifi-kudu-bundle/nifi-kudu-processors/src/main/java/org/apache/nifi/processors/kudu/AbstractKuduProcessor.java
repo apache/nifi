@@ -367,10 +367,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         final List<OperationResponse> responses = kuduSession.flush();
         // RowErrors will only be present in the OperationResponses in this case if the flush mode
         // selected is MANUAL_FLUSH. It will be empty otherwise.
-        return responses.stream()
-                .filter(OperationResponse::hasRowError)
-                .map(OperationResponse::getRowError)
-                .collect(Collectors.toList());
+        return getRowErrors(responses);
     }
 
     protected List<RowError> closeKuduSession(final KuduSession kuduSession) throws KuduException {
@@ -378,10 +375,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         // RowErrors will only be present in the OperationResponses in this case if the flush mode
         // selected is MANUAL_FLUSH, since the underlying implementation of kuduSession.close() returns
         // the OperationResponses from a flush() call.
-        return responses.stream()
-                .filter(OperationResponse::hasRowError)
-                .map(OperationResponse::getRowError)
-                .collect(Collectors.toList());
+        return getRowErrors(responses);
     }
 
     @OnStopped
@@ -603,5 +597,12 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         private String getName() {
             return String.format("PutKudu[%s]-client-%d", identifier, threadCount.getAndIncrement());
         }
+    }
+
+    private List<RowError> getRowErrors(final List<OperationResponse> responses) {
+        return responses.stream()
+                .filter(OperationResponse::hasRowError)
+                .map(OperationResponse::getRowError)
+                .collect(Collectors.toList());
     }
 }

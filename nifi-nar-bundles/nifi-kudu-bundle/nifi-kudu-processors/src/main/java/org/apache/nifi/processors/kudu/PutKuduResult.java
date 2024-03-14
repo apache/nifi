@@ -123,11 +123,7 @@ public abstract class PutKuduResult {
      * @return {@code true} if the processing the {@link FlowFile} did not incur any exceptions, {@code false} otherwise
      */
     public boolean isFlowFileProcessedSuccessfully(final FlowFile flowFile) {
-        if (flowFileFailures.containsKey(flowFile)) {
-            return false;
-        }
-
-        return true;
+        return !flowFileFailures.containsKey(flowFile);
     }
 
     /**

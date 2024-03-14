@@ -71,13 +71,9 @@ public class StandardPutKuduResult extends PutKuduResult {
             return true;
         }
 
-        for (final Map.Entry<FlowFile, List<RowError>> entry : flowFileRowErrorsMap.entrySet()) {
-            if (!entry.getValue().isEmpty()) {
-                return true;
-            }
-        }
-
-        return false;
+        return flowFileRowErrorsMap.entrySet()
+                .stream()
+                .anyMatch(entry -> !entry.getValue().isEmpty());
     }
 
     @Override
