@@ -19,6 +19,8 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.annotation.behavior.DefaultRunDuration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.documentation.UseCase;
@@ -40,6 +42,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -54,7 +57,22 @@ import java.util.Set;
                 Using 'DeleteFile', delete the file from the filesystem only after the result has been stored.
                 """
 )
+@WritesAttributes({
+        @WritesAttribute(
+                attribute = DeleteFile.ATTRIBUTE_FAILURE_REASON,
+                description = "Human-readable reason of failure. Only available if FlowFile is routed to relationship 'failure'."),
+        @WritesAttribute(
+                attribute = DeleteFile.ATTRIBUTE_EXCEPTION_CLASS,
+                description = "The class name of the exception thrown during processor execution. Only available if an exception caused the FlowFile to be routed to relationship 'failure'."),
+        @WritesAttribute(
+                attribute = DeleteFile.ATTRIBUTE_EXCEPTION_MESSAGE,
+                description = "The message of the exception thrown during processor execution. Only available if an exception caused the FlowFile to be routed to relationship 'failure'.")
+})
 public class DeleteFile extends AbstractProcessor {
+
+    public static final String ATTRIBUTE_FAILURE_REASON = "DeleteFile.failure.reason";
+    public static final String ATTRIBUTE_EXCEPTION_CLASS = "DeleteFile.failure.exception.class";
+    public static final String ATTRIBUTE_EXCEPTION_MESSAGE = "DeleteFile.failure.exception.message";
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -108,6 +126,7 @@ public class DeleteFile extends AbstractProcessor {
         if (flowFile == null) {
             return;
         }
+        final long startNanos = System.nanoTime();
 
         final String directoryPathProperty = context.getProperty(DIRECTORY_PATH).evaluateAttributeExpressions(flowFile).getValue();
         final String filename = context.getProperty(FILENAME).evaluateAttributeExpressions(flowFile).getValue();
@@ -117,22 +136,39 @@ public class DeleteFile extends AbstractProcessor {
             final Path filePath = directoryPath.resolve(filename).toRealPath();
 
             if (!directoryPath.equals(filePath.getParent())) {
-                getLogger().error("Attempting to delete file at path '{}' which is not a direct child of the directory '{}'", filePath, directoryPath);
-                session.penalize(flowFile);
-                session.transfer(flowFile, REL_FAILURE);
+                final String errorMessage = "Attempting to delete file at path '%s' which is not a direct child of the directory '%s'"
+                        .formatted(filePath, directoryPath);
+
+                handleFailure(session, flowFile, errorMessage, null);
                 return;
             }
 
             Files.delete(filePath);
 
             session.transfer(flowFile, REL_SUCCESS);
+            final String transitUri = "file://%s".formatted(filePath);
+            final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+            getLogger().debug("Successfully deleted file at path {} in {} millis; routing to success", flowFile, transferMillis);
+            session.getProvenanceReporter().invokeRemoteProcess(flowFile, transitUri, "Object deleted");
         } catch (NoSuchFileException noSuchFileException) {
             session.transfer(flowFile, REL_NOT_FOUND);
         } catch (IOException ioException) {
-            getLogger().error("Failed to delete file '{}' in directory '{}'", filename, directoryPathProperty, ioException);
+            final String errorMessage = "Failed to delete file '%s' in directory '%s'"
+                    .formatted(filename, directoryPathProperty);
 
-            session.penalize(flowFile);
-            session.transfer(flowFile, REL_FAILURE);
+            handleFailure(session, flowFile, errorMessage, ioException);
         }
+    }
+
+    private void handleFailure(ProcessSession session, FlowFile flowFile, String errorMessage, Throwable throwable) {
+        getLogger().error(errorMessage, throwable);
+
+        session.putAttribute(flowFile, ATTRIBUTE_FAILURE_REASON, errorMessage);
+        if (throwable != null) {
+            session.putAttribute(flowFile, ATTRIBUTE_EXCEPTION_CLASS, throwable.getClass().toString());
+            session.putAttribute(flowFile, ATTRIBUTE_EXCEPTION_MESSAGE, throwable.getMessage());
+        }
+        session.penalize(flowFile);
+        session.transfer(flowFile, REL_FAILURE);
     }
 }
