@@ -306,7 +306,7 @@ class TestMapRecord {
         final MapRecord testRecord = new MapRecord(schema, item);
 
         final LocalDate localDate = testRecord.getAsLocalDate(timestampFieldName, format);
-        final Instant instantDate = localDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+        final Instant instantDate = localDate.atStartOfDay().atZone(ZoneId.of("UTC")).toInstant();
         assertEquals(expectedDate, instantDate.toEpochMilli());
 
         final OffsetDateTime offsetDateTime = testRecord.getAsOffsetDateTime(timestampFieldName, format);
