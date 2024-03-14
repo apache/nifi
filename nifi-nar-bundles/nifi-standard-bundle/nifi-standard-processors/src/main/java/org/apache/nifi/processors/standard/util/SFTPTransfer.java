@@ -108,6 +108,22 @@ public class SFTPTransfer implements FileTransfer {
                 .collect(Collectors.joining(", "));
     }
 
+    private static String buildFullPath(String path, String filename) {
+        if (path == null) {
+             return filename;
+        }
+
+        if (path.endsWith("/")) {
+            return path + filename;
+        }
+
+        return path + "/" + filename;
+    }
+
+    private static boolean isDirectory(FileAttributes attributes) {
+        return attributes.getType() == FileMode.Type.DIRECTORY;
+    }
+
     public static final PropertyDescriptor PRIVATE_KEY_PATH = new PropertyDescriptor.Builder()
         .name("Private Key Path")
         .description("The fully qualified path to the Private Key file")
@@ -338,7 +354,7 @@ public class SFTPTransfer implements FileTransfer {
 
                 if (isIncludedFile(entry, symlink) && (filteringDisabled || pathMatched)) {
                     if (filteringDisabled || fileFilterPattern == null || fileFilterPattern.matcher(entryFilename).matches()) {
-                        listing.add(newFileInfo(entry, path));
+                        listing.add(newFileInfo(path, entry.getName(), entry.getAttributes()));
                     }
                 }
 
@@ -418,15 +434,12 @@ public class SFTPTransfer implements FileTransfer {
         return FileMode.Type.SYMLINK == remoteResourceInfo.getAttributes().getType();
     }
 
-    private FileInfo newFileInfo(final RemoteResourceInfo entry, String path) {
-        if (entry == null) {
-            return null;
-        }
-        final File newFullPath = new File(path, entry.getName());
+    private FileInfo newFileInfo(String path, String filename, final FileAttributes attributes) {
+        final File newFullPath = new File(path, filename);
         final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
 
         final StringBuilder permsBuilder = new StringBuilder();
-        final Set<FilePermission> permissions = entry.getAttributes().getPermissions();
+        final Set<FilePermission> permissions = attributes.getPermissions();
 
         appendPermission(permsBuilder, permissions, FilePermission.USR_R, "r");
         appendPermission(permsBuilder, permissions, FilePermission.USR_W, "w");
@@ -441,14 +454,14 @@ public class SFTPTransfer implements FileTransfer {
         appendPermission(permsBuilder, permissions, FilePermission.OTH_X, "x");
 
         final FileInfo.Builder builder = new FileInfo.Builder()
-            .filename(entry.getName())
+            .filename(filename)
             .fullPathFileName(newFullForwardPath)
-            .directory(entry.isDirectory())
-            .size(entry.getAttributes().getSize())
-            .lastModifiedTime(entry.getAttributes().getMtime() * 1000L)
+            .directory(isDirectory(attributes))
+            .size(attributes.getSize())
+            .lastModifiedTime(attributes.getMtime() * 1000L)
             .permissions(permsBuilder.toString())
-            .owner(Integer.toString(entry.getAttributes().getUID()))
-            .group(Integer.toString(entry.getAttributes().getGID()));
+            .owner(Integer.toString(attributes.getUID()))
+            .group(Integer.toString(attributes.getGID()));
         return builder.build();
     }
 
@@ -502,7 +515,7 @@ public class SFTPTransfer implements FileTransfer {
     @Override
     public void deleteFile(final FlowFile flowFile, final String path, final String remoteFileName) throws IOException {
         final SFTPClient sftpClient = getSFTPClient(flowFile);
-        final String fullPath = (path == null) ? remoteFileName : (path.endsWith("/")) ? path + remoteFileName : path + "/" + remoteFileName;
+        final String fullPath = buildFullPath(path, remoteFileName);
         try {
             sftpClient.rm(fullPath);
         } catch (final SFTPException e) {
@@ -681,9 +694,10 @@ public class SFTPTransfer implements FileTransfer {
     public FileInfo getRemoteFileInfo(final FlowFile flowFile, final String path, String filename) throws IOException {
         final SFTPClient sftpClient = getSFTPClient(flowFile);
 
-        final List<RemoteResourceInfo> remoteResources;
+        final String fullPath = buildFullPath(path, filename);
+        final FileAttributes fileAttributes;
         try {
-            remoteResources = sftpClient.ls(path);
+            fileAttributes = sftpClient.stat(fullPath);
         } catch (final SFTPException e) {
             if (e.getStatusCode() == Response.StatusCode.NO_SUCH_FILE) {
                 return null;
@@ -692,20 +706,10 @@ public class SFTPTransfer implements FileTransfer {
             }
         }
 
-        RemoteResourceInfo matchingEntry = null;
-        for (final RemoteResourceInfo entry : remoteResources) {
-            if (entry.getName().equalsIgnoreCase(filename)) {
-                matchingEntry = entry;
-                break;
-            }
-        }
-
-        // Previously JSCH would perform a listing on the full path (path + filename) and would get an exception when it wasn't
-        // a file and then return null, so to preserve that behavior we return null if the matchingEntry is a directory
-        if (matchingEntry != null && matchingEntry.isDirectory()) {
+        if (fileAttributes == null || isDirectory(fileAttributes)) {
             return null;
         } else {
-            return newFileInfo(matchingEntry, path);
+            return newFileInfo(path, filename, fileAttributes);
         }
     }
 
@@ -714,7 +718,7 @@ public class SFTPTransfer implements FileTransfer {
         final SFTPClient sftpClient = getSFTPClient(flowFile);
 
         // destination path + filename
-        final String fullPath = (path == null) ? filename : (path.endsWith("/")) ? path + filename : path + "/" + filename;
+        final String fullPath = buildFullPath(path, filename);
 
         // temporary path + filename
         String tempFilename = ctx.getProperty(TEMP_FILENAME).evaluateAttributeExpressions(flowFile).getValue();
@@ -722,7 +726,7 @@ public class SFTPTransfer implements FileTransfer {
             final boolean dotRename = ctx.getProperty(DOT_RENAME).asBoolean();
             tempFilename = dotRename ? DOT_PREFIX + filename : filename;
         }
-        final String tempPath = (path == null) ? tempFilename : (path.endsWith("/")) ? path + tempFilename : path + "/" + tempFilename;
+        final String tempPath = buildFullPath(path, tempFilename);
 
         int perms;
         final String permissions = ctx.getProperty(PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
