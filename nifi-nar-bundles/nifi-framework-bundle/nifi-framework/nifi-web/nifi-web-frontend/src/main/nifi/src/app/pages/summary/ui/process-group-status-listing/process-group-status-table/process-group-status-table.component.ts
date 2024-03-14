@@ -26,6 +26,7 @@ import { RouterLink } from '@angular/router';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { ProcessGroupStatusSnapshot, ProcessGroupStatusSnapshotEntity } from '../../../state';
 import { ComponentStatusTable } from '../../common/component-status-table/component-status-table.component';
+import { MatButtonModule } from '@angular/material/button';
 
 export type SupportedColumns =
     | 'name'
@@ -42,7 +43,15 @@ export type SupportedColumns =
 @Component({
     selector: 'process-group-status-table',
     standalone: true,
-    imports: [CommonModule, MatSortModule, MatTableModule, SummaryTableFilterModule, RouterLink, MatPaginatorModule],
+    imports: [
+        CommonModule,
+        MatSortModule,
+        MatTableModule,
+        SummaryTableFilterModule,
+        RouterLink,
+        MatPaginatorModule,
+        MatButtonModule
+    ],
     templateUrl: './process-group-status-table.component.html',
     styleUrls: ['./process-group-status-table.component.scss']
 })

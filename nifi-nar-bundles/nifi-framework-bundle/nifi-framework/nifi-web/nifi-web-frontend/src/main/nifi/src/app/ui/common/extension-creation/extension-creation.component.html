@@ -24,15 +24,15 @@
                     <mat-label>Filter types</mat-label>
                     <input
                         matInput
-                        class="border px-1.5 py-1 w-64"
+                        class="px-1.5 py-1 w-64"
                         type="text"
                         (keyup)="filterTypes($event)"
                         placeholder="Filter types..." />
                 </mat-form-field>
             </div>
         </div>
-        <div class="type-table">
-            <div class="h-96 overflow-y-auto overflow-x-hidden border">
+        <div class="listing-table">
+            <div class="h-96 overflow-y-auto overflow-x-hidden">
                 <table
                     mat-table
                     [dataSource]="dataSource"

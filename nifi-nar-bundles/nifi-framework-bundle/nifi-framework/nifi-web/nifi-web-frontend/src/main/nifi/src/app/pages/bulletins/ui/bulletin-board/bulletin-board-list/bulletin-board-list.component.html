@@ -41,7 +41,7 @@
     </div>
 
     <div class="flex-1 relative">
-        <div class="bulletin-board-list overflow-y-auto absolute inset-0 border-2 p-4" #scrollContainer>
+        <div class="overflow-y-auto absolute inset-0 border-2 p-4" #scrollContainer>
             <ul class="flex flex-wrap gap-y-2">
                 @for (item of bulletinBoardItems; track item) {
                     <!-- each item can either be a BulletinEntity or BulletinBoardEvent -->
@@ -72,7 +72,7 @@
                     } @else {
                         @if (asBulletinEvent(item); as event) {
                             <li class="w-full mt-4">
-                                <div class="border-b-2 flex-1 p-2">
+                                <div class="bulletin-board-event border-b-2 flex-1 p-2">
                                     {{ event.message }}
                                 </div>
                             </li>

@@ -51,7 +51,7 @@
             } @else {
                 <div class="flex flex-col h-full gap-y-2">
                     <div class="flex-1">
-                        <div class="manage-remote-ports-table relative h-full border">
+                        <div class="manage-remote-ports-table relative h-full">
                             <div class="listing-table absolute inset-0 overflow-y-auto">
                                 <table
                                     mat-table
@@ -226,7 +226,7 @@
                     </div>
                     <div class="flex justify-between">
                         <div class="refresh-container flex items-center gap-x-2">
-                            <button class="nifi-button" (click)="refreshManageRemotePortsListing()">
+                            <button mat-icon-button (click)="refreshManageRemotePortsListing()">
                                 <i class="fa fa-refresh" [class.fa-spin]="portsState.status === 'loading'"></i>
                             </button>
                             <div>Last updated:</div>

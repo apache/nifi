@@ -23,7 +23,7 @@ import {
     MatDialogContent,
     MatDialogTitle
 } from '@angular/material/dialog';
-import { MatButton } from '@angular/material/button';
+import { MatButton, MatButtonModule } from '@angular/material/button';
 import { ComponentType, isDefinedAndNotNull } from '../../../../../state/shared';
 import { ComponentContext } from '../../../../../ui/common/component-context/component-context.component';
 import {
@@ -68,7 +68,8 @@ interface Helper {
         PortClusterTable,
         RemoteProcessGroupClusterTable,
         ConnectionClusterTable,
-        ProcessGroupClusterTable
+        ProcessGroupClusterTable,
+        MatButtonModule
     ],
     templateUrl: './cluster-summary-dialog.component.html',
     styleUrl: './cluster-summary-dialog.component.scss'

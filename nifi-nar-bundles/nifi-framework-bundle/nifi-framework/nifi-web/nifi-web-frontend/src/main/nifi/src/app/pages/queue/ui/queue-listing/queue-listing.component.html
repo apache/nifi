@@ -36,7 +36,7 @@
         </div>
         <div class="flex justify-between">
             <div class="flex items-center gap-x-2">
-                <button class="nifi-button" (click)="refreshClicked()">
+                <button mat-icon-button (click)="refreshClicked()">
                     <i class="fa fa-refresh" [class.fa-spin]="status === 'loading'"></i>
                 </button>
                 <div>Last updated:</div>

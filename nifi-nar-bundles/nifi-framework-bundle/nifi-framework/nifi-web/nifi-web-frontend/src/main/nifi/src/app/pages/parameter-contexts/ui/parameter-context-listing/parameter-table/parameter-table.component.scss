@@ -17,20 +17,15 @@
 
 @use '@angular/material' as mat;
 
-.parameter-table.listing-table {
-    @include mat.table-density(-4);
-    min-width: 740px;
+.parameter-table {
+    .listing-table {
+        @include mat.table-density(-4);
+        width: 506px;
 
-    table {
-        width: auto;
-
-        td,
-        th {
-            cursor: default;
-        }
-
-        .mat-column-actions {
-            width: 75px;
+        table {
+            .mat-column-actions {
+                width: 75px;
+            }
         }
     }
 }

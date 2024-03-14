@@ -18,9 +18,9 @@
 div.navigation-control {
     margin-bottom: 2px;
 
-    .fa,
-    .icon {
-        font-size: 18px;
+    .mat-mdc-icon-button {
+        --mdc-icon-button-state-layer-size: 34px;
+        --mdc-icon-button-icon-size: 17px;
     }
 
     .navigation-control-header {

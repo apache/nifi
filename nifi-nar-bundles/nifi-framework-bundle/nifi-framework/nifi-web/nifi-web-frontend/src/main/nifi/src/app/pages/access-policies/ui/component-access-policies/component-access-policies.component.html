@@ -90,14 +90,14 @@
                         @if (flowConfiguration.supportsConfigurableAuthorizer) {
                             <div class="flex gap-x-2">
                                 <button
-                                    class="nifi-button"
+                                    mat-icon-button
                                     title="Add users/groups to this policy"
                                     [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
                                     (click)="addTenantToPolicy()">
                                     <i class="fa fa-user-plus"></i>
                                 </button>
                                 <button
-                                    class="nifi-button"
+                                    mat-icon-button
                                     title="Delete this policy"
                                     [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
                                     (click)="deletePolicy()">
@@ -119,7 +119,7 @@
                     }
                     <div class="flex justify-between">
                         <div class="refresh-container flex items-center gap-x-2">
-                            <button class="nifi-button" (click)="refreshGlobalAccessPolicy()">
+                            <button mat-icon-button (click)="refreshGlobalAccessPolicy()">
                                 <i class="fa fa-refresh" [class.fa-spin]="accessPolicyState.status === 'loading'"></i>
                             </button>
                             <div>Last updated:</div>

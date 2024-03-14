@@ -21,10 +21,11 @@ import { ManagementControllerServices } from './management-controller-services.c
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
 import { ErrorBanner } from '../../../../ui/common/error-banner/error-banner.component';
+import { MatButtonModule } from '@angular/material/button';
 
 @NgModule({
     declarations: [ManagementControllerServices],
     exports: [ManagementControllerServices],
-    imports: [CommonModule, NgxSkeletonLoaderModule, ControllerServiceTable, ErrorBanner]
+    imports: [CommonModule, NgxSkeletonLoaderModule, ControllerServiceTable, ErrorBanner, MatButtonModule]
 })
 export class ManagementControllerServicesModule {}

@@ -30,7 +30,6 @@
 
     // Get hues from palette
     $primary-palette-default: mat.get-color-from-palette($primary-palette, default);
-    $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, A200);
     $canvas-primary-palette-500: mat.get-color-from-palette($canvas-primary-palette, 500);
     $surface: utils.get-surface($canvas-color-config);
     $on-surface: utils.get-on-surface($canvas-color-config);
@@ -39,22 +38,11 @@
     .prioritizers {
         .prioritizers-list {
             background: $primary-palette-default;
-
-            border: solid 1px $canvas-primary-palette-500;
-
-            .cdk-drag-disabled {
-                background: $on-surface-lighter;
-            }
         }
 
         .prioritizer-draggable-item {
-            border-bottom: solid 1px $canvas-primary-palette-500;
             color: $on-surface;
             background: $surface;
-        }
-
-        .cdk-drag-preview {
-            box-shadow: 0 3px 6px $canvas-primary-palette-A200;
         }
     }
 }

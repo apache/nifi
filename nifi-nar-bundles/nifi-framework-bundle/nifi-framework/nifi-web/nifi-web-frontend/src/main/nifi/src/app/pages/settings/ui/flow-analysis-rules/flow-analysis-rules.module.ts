@@ -24,6 +24,7 @@ import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
 import { PropertyTable } from '../../../../ui/common/property-table/property-table.component';
+import { MatButtonModule } from '@angular/material/button';
 
 @NgModule({
     declarations: [FlowAnalysisRules],
@@ -35,7 +36,8 @@ import { PropertyTable } from '../../../../ui/common/property-table/property-tab
         MatTableModule,
         NifiTooltipDirective,
         FlowAnalysisRuleTable,
-        PropertyTable
+        PropertyTable,
+        MatButtonModule
     ]
 })
 export class FlowAnalysisRulesModule {}

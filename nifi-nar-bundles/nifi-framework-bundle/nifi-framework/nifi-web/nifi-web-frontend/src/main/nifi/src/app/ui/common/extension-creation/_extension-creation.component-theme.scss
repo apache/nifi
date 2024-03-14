@@ -25,56 +25,21 @@
     $canvas-color-config: mat.get-color-config($canvas-theme);
 
     // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
     $accent-palette: map.get($color-config, 'accent');
     $warn-palette: map.get($color-config, 'warn');
 
     // Get hues from palette
-    $primary-palette-default: mat.get-color-from-palette($primary-palette, 'default');
-    $primary-palette-default-contrast: mat.get-color-from-palette($primary-palette, 'default-contrast');
-    $primary-palette-darker: mat.get-color-from-palette($primary-palette, 'darker');
-    $primary-palette-darker-contrast: mat.get-color-from-palette($primary-palette, 'darker-contrast');
     $accent-palette-default: mat.get-color-from-palette($accent-palette, 'default');
     $warn-palette-default: mat.get-color-from-palette($warn-palette, default);
-
-    $surface-darker: utils.get-surface($canvas-color-config, darker);
-    $surface: utils.get-surface($canvas-color-config);
-    $accent-surface: utils.get-surface($color-config, default, 'accent');
-    $header-surface: utils.ensure-contrast($primary-palette-default, $surface, $primary-palette-darker);
-    $header-on-surface: utils.ensure-contrast(
-        $primary-palette-default-contrast,
-        $header-surface,
-        $primary-palette-darker-contrast
-    );
-    $surface-highlight: utils.get-on-surface($canvas-color-config, 'highlight');
     $on-surface-medium: utils.get-on-surface($canvas-color-config, medium);
 
     .extension-creation-dialog {
         @include mat.button-density(-1);
 
-        .type-table {
+        .listing-table {
+            @include mat.table-density(-4);
+
             table {
-                th {
-                    background-color: $header-surface;
-                    color: $header-on-surface;
-
-                    .mat-sort-header-arrow {
-                        color: $header-on-surface;
-                    }
-                }
-
-                tr:hover {
-                    background-color: $surface-highlight !important;
-                }
-
-                .selected {
-                    background-color: $accent-surface !important;
-                }
-
-                .even {
-                    background-color: $surface-darker;
-                }
-
                 .fa.fa-shield {
                     color: $warn-palette-default;
                 }
