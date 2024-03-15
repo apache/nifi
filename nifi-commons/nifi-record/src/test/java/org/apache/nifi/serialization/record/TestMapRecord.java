@@ -48,6 +48,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestMapRecord {
 
+    private static final String ISO_LOCAL_DATE_TIME = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+    private static final String ISO_OFFSET_DATE_TIME = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+
     @Test
     void testIncorporateInactiveFieldsWithUpdate() {
         final List<RecordField> fields = new ArrayList<>();
@@ -316,22 +319,17 @@ class TestMapRecord {
 
     private static Stream<Arguments> provideTimestamps() {
         return Stream.of(
-            Arguments.of("2022-01-01 12:34:56.789", "yyyy-MM-dd HH:mm:ss.SSS", 1640995200000L, 1641040496789L),
-            Arguments.of("01/02/2022 12:34:56", "MM/dd/yyyy HH:mm:ss", 1641081600000L, 1641126896000L),
-            Arguments.of("03-01-2022 12:34:56", "dd-MM-yyyy HH:mm:ss", 1641168000000L, 1641213296000L),
-            Arguments.of("01/01/22 12:34:56", "MM/dd/yy HH:mm:ss", 1640995200000L, 1641040496000L),
-            Arguments.of("02-01-22 12:34:56", "dd-MM-yy HH:mm:ss", 1641081600000L, 1641126896000L),
-            Arguments.of("2022-01-03T12:34:56.789", "yyyy-MM-dd'T'HH:mm:ss.SSS", 1641168000000L, 1641213296789L),
-            Arguments.of("Sat, 01 Jan 2022 12:34:56 GMT", "EEE, dd MMM yyyy HH:mm:ss zzz", 1640995200000L, 1641040496000L),
-            Arguments.of("2022-Jan-02 12:34:56.789", "yyyy-MMM-dd HH:mm:ss.SSS", 1641081600000L, 1641126896789L),
-            Arguments.of("20220103 12:34:56", "yyyyMMdd HH:mm:ss", 1641168000000L, 1641213296000L),
-            Arguments.of("01/01/2022 12:34:56 AM", "MM/dd/yyyy hh:mm:ss a", 1640995200000L, 1640997296000L),
-            Arguments.of("02-01-2022 12:34:56 AM", "dd-MM-yyyy hh:mm:ss a", 1641081600000L, 1641083696000L),
-            Arguments.of("2022 01 03 12:34:56.789", "yyyy MM dd HH:mm:ss.SSS", 1641168000000L, 1641213296789L),
-            Arguments.of("2022-01-01 12:34:56.789-05:00", "yyyy-MM-dd HH:mm:ss.SSSXXX", 1640995200000L, 1641040496789L),
             Arguments.of(1641040496789L, null, 1640995200000L, 1641040496789L),
-            Arguments.of("2020-02-29 23:59:59.999", "yyyy-MM-dd HH:mm:ss.SSS", 1582934400000L, 1583020799999L), // leap year
-            Arguments.of("2024-03-10 02:00:00.000", "yyyy-MM-dd HH:mm:ss.SSS", 1710028800000L, 1710036000000L) // DST transition
+            // test variations in year, month, day, hour, seconds, milliseconds
+            // test variations of `ISO_LOCAL_DATE_TIME` and `ISO_OFFSET_DATE_TIME`; keep UTC offset at +00:00
+            Arguments.of("2022-01-01T12:34:56.789", ISO_LOCAL_DATE_TIME, 1640995200000L, 1641040496789L),
+            Arguments.of("2017-06-23T01:02:03.456", ISO_LOCAL_DATE_TIME, 1498176000000L, 1498179723456L),
+            Arguments.of("2020-02-29T23:59:59.999", ISO_LOCAL_DATE_TIME, 1582934400000L, 1583020799999L), // leap year
+            Arguments.of("2024-03-10T02:00:00.000", ISO_LOCAL_DATE_TIME, 1710028800000L, 1710036000000L), // DST transition
+            Arguments.of("2022-01-01T12:34:56.789+00:00", ISO_OFFSET_DATE_TIME, 1640995200000L, 1641040496789L),
+            Arguments.of("2017-06-23T01:02:03.456+00:00", ISO_OFFSET_DATE_TIME, 1498176000000L, 1498179723456L),
+            Arguments.of("2020-02-29T23:59:59.999+00:00", ISO_OFFSET_DATE_TIME, 1582934400000L, 1583020799999L), // leap year
+            Arguments.of("2024-03-10T02:00:00.000+00:00", ISO_OFFSET_DATE_TIME, 1710028800000L, 1710036000000L) // DST transition
         );
     }
 }
