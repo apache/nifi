@@ -66,7 +66,7 @@
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
-                <version>9.33</version>
+                <version>9.37.3</version>
             </dependency>
             <!-- Override Reactor Netty client 1.0.34 from Azure Identity -->
             <dependency>
