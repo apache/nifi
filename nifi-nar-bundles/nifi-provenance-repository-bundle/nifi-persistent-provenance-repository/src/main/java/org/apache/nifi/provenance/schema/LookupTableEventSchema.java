@@ -34,6 +34,7 @@ import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.NO_
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.PARENT_UUIDS;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.PREVIOUS_ATTRIBUTES;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.PREVIOUS_CONTENT_CLAIM;
+import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.PREVIOUS_EVENT_IDENTIFIERS;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.RECORD_IDENTIFIER_OFFSET;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.RELATIONSHIP;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.SOURCE_QUEUE_ID;
@@ -64,6 +65,7 @@ public class LookupTableEventSchema {
             fields.add(RECORD_IDENTIFIER_OFFSET);
         }
 
+        fields.add(PREVIOUS_EVENT_IDENTIFIERS);
         fields.add(EVENT_TYPE_ORDINAL);
         fields.add(EVENT_TIME_OFFSET);
         fields.add(FLOWFILE_ENTRY_DATE_OFFSET);

@@ -88,7 +88,7 @@ import java.util.Set;
  * across disks for far greater performance.
  * </p>
  */
-public class WriteAheadProvenanceRepository implements ProvenanceRepository {
+public class WriteAheadProvenanceRepository extends AbstractProvenanceRepository {
     private static final Logger logger = LoggerFactory.getLogger(WriteAheadProvenanceRepository.class);
     static final int BLOCK_SIZE = 1024 * 32;
     public static final String EVENT_CATEGORY = "Provenance Repository";

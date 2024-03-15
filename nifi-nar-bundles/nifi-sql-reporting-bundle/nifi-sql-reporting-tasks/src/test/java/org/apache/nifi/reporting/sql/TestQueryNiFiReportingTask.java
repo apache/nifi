@@ -743,6 +743,7 @@ class TestQueryNiFiReportingTask {
 
     private static class MockProvenanceRepository implements ProvenanceEventRepository {
         private final List<ProvenanceEventRecord> events = new ArrayList<>();
+        protected final Map<String, List<Long>> previousEventIdsMap = new HashMap<>();
 
         @Override
         public ProvenanceEventBuilder eventBuilder() {
@@ -785,6 +786,20 @@ class TestQueryNiFiReportingTask {
 
         @Override
         public void close() {
+        }
+
+        @Override
+        public List<Long> getPreviousEventIds(String flowFileUUID) {
+            return previousEventIdsMap.get(flowFileUUID);
+        }
+
+        @Override
+        public void updatePreviousEventIds(ProvenanceEventRecord record, List<Long> previousIds) {
+            if (previousIds == null) {
+                previousEventIdsMap.remove(record.getFlowFileUuid());
+            } else {
+                previousEventIdsMap.put(record.getFlowFileUuid(), previousIds);
+            }
         }
     }
 }

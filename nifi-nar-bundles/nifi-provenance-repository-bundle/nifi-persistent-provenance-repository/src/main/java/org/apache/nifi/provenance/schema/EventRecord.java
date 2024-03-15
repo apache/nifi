@@ -111,6 +111,8 @@ public class EventRecord implements Record {
                 return event.getTransitUri();
             case EventFieldNames.UPDATED_ATTRIBUTES:
                 return event.getUpdatedAttributes();
+            case EventFieldNames.PREVIOUS_EVENT_IDENTIFIERS:
+                return event.getPreviousEventIds();
         }
 
         return null;
@@ -165,6 +167,11 @@ public class EventRecord implements Record {
                 (String) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_IDENTIFIER),
                 (Long) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_OFFSET),
                 (Long) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_SIZE));
+        }
+
+        final List<Long> previousEventIDs = (List<Long>) record.getFieldValue(EventFieldNames.PREVIOUS_EVENT_IDENTIFIERS);
+        if (previousEventIDs != null) {
+            builder.setPreviousEventIds(previousEventIDs);
         }
 
         return builder.build();
