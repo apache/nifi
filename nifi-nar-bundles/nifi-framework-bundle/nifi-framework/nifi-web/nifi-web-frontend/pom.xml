@@ -80,7 +80,7 @@
                             <outputDirectory>${project.build.directory}/${project.build.finalName}</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>${frontend.working.dir}/dist/nifi</directory>
+                                    <directory>${frontend.working.dir}/dist/nifi/browser</directory>
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>**/*</include>
