@@ -36,6 +36,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class PythonProcessTest {
 
+    private static final String UNIX_BIN_DIR = "bin";
+
+    private static final String WINDOWS_SCRIPTS_DIR = "Scripts";
+
+    private static final String PYTHON_CMD = "python";
+
     private PythonProcess pythonProcess;
 
     @TempDir(cleanup = CleanupMode.ON_SUCCESS)
@@ -50,41 +56,49 @@ class PythonProcessTest {
     @BeforeEach
     public void setUp() {
         this.pythonProcess = new PythonProcess(this.pythonProcessConfig, this.controllerServiceTypeLookup, virtualEnvHome, "Controller", "Controller");
+
     }
+
     @Test
     void testResolvePythonCommandWindows() throws IOException {
-        File scriptsDir = new File(virtualEnvHome, "Scripts");
+        File scriptsDir = new File(virtualEnvHome, WINDOWS_SCRIPTS_DIR);
         scriptsDir.mkdir();
-        when(pythonProcessConfig.getPythonCommand()).thenReturn("python");
+        when(pythonProcessConfig.getPythonCommand()).thenReturn(PYTHON_CMD);
         String result = this.pythonProcess.resolvePythonCommand();
-        assertEquals(this.virtualEnvHome.getAbsolutePath() + File.separator + "Scripts" + File.separator + "python", result);
+        String expected = getExpectedBinaryPath(WINDOWS_SCRIPTS_DIR);
+        assertEquals(expected, result);
     }
 
     @Test
     void testResolvePythonCommandUnix() throws IOException {
-        File binDir = new File(virtualEnvHome, "bin");
+        File binDir = new File(virtualEnvHome, UNIX_BIN_DIR);
         binDir.mkdir();
-        when(pythonProcessConfig.getPythonCommand()).thenReturn("python");
+        when(pythonProcessConfig.getPythonCommand()).thenReturn(PYTHON_CMD);
         String result = this.pythonProcess.resolvePythonCommand();
-        assertEquals(this.virtualEnvHome.getAbsolutePath() + File.separator + "bin" + File.separator + "python", result);
+        String expected = getExpectedBinaryPath(UNIX_BIN_DIR);
+        assertEquals(expected, result);
     }
 
     @Test
     void testResolvePythonCommandPreferBin() throws IOException {
-        File binDir = new File(virtualEnvHome, "bin");
+        File binDir = new File(virtualEnvHome, UNIX_BIN_DIR);
         binDir.mkdir();
-        File scriptsDir = new File(virtualEnvHome, "Scripts");
+        File scriptsDir = new File(virtualEnvHome, WINDOWS_SCRIPTS_DIR);
         scriptsDir.mkdir();
-        when(pythonProcessConfig.getPythonCommand()).thenReturn("python");
+        when(pythonProcessConfig.getPythonCommand()).thenReturn(PYTHON_CMD);
         String result = this.pythonProcess.resolvePythonCommand();
-        String expected = this.virtualEnvHome.getAbsolutePath() + File.separator + "bin" + File.separator + "python";
+        String expected = getExpectedBinaryPath(UNIX_BIN_DIR);
         assertEquals(expected, result);
     }
 
     @Test
     void testResolvePythonCommandNone() throws IOException {
-        when(pythonProcessConfig.getPythonCommand()).thenReturn("python");
+        when(pythonProcessConfig.getPythonCommand()).thenReturn(PYTHON_CMD);
         assertThrows(IOException.class, ()-> this.pythonProcess.resolvePythonCommand());
+    }
+
+    private String getExpectedBinaryPath(String binarySubDirectoryName) {
+        return this.virtualEnvHome.getAbsolutePath() + File.separator + binarySubDirectoryName + File.separator + PYTHON_CMD;
     }
 
 }

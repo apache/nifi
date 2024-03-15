@@ -275,7 +275,7 @@ public class PythonProcess {
         final String commandFileExecutableDirectory;
         if(virtualEnvFileList == null || virtualEnvFileList.length == 0) {
             throw new IOException("Python binary directory could not be found in " + virtualEnvHome);
-        }else if( virtualEnvFileList.length == 1) {
+        } else if( virtualEnvFileList.length == 1) {
             commandFileExecutableDirectory = virtualEnvFileList[0].getName();
         } else {
             commandFileExecutableDirectory = "bin";
