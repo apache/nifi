@@ -81,11 +81,6 @@
 // To override the NiFi theme, you need to set the variables $material-theme-light and $material-theme-dark
 @import 'assets/themes/nifi';
 
-$fontPrimary: 'Roboto', sans-serif;
-$fontSecondary: 'Robot Slab', sans-serif;
-$fontMedium: 'Roboto Medium', sans-serif;
-$fontLight: 'Roboto Light', sans-serif;
-
 // Include the common styles for Angular Material. We include this here so that you only
 // have to load a single css file for Angular Material in your app.
 // Be sure that you only ever include this mixin once!
