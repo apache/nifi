@@ -67,7 +67,10 @@
 @use 'app/ui/common/component-context/component-context.component-theme' as component-context;
 
 // Plus imports for other components in your app.
-@use 'roboto-fontface/css/roboto/roboto-fontface.css';
+@use '@fontsource/roboto/latin.css' as roboto-normal;
+@use '@fontsource/roboto/latin-300-italic.css' as roboto-light-italic;
+@use '@fontsource/roboto/latin-400-italic.css' as roboto-normal-italic;
+@use '@fontsource/roboto-slab/latin.css' as roboto-slab-normal;
 @use 'assets/fonts/flowfont/flowfont.css';
 @use 'font-awesome/css/font-awesome.min.css';
 @use 'codemirror/lib/codemirror.css';
@@ -77,93 +80,6 @@
 @import 'assets/themes/nifi-canvas';
 // To override the NiFi theme, you need to set the variables $material-theme-light and $material-theme-dark
 @import 'assets/themes/nifi';
-
-$fontPrimary: 'Roboto', sans-serif;
-$fontSecondary: 'Robot Slab', sans-serif;
-$fontMedium: 'Roboto Medium', sans-serif;
-$fontLight: 'Roboto Light', sans-serif;
-
-$appFontPath: '~roboto-fontface/fonts';
-
-@font-face {
-    font-family: 'Roboto';
-    font-style: normal;
-    font-weight: 300;
-    src:
-        local('Roboto Light'),
-        local('Roboto-Light'),
-        url('#{$appFontPath}/roboto/Roboto-Light.woff2') format('woff2');
-}
-
-@font-face {
-    font-family: 'Roboto';
-    font-style: italic;
-    font-weight: 300;
-    src:
-        local('Roboto LightItalic'),
-        local('Roboto-LightItalic'),
-        url('#{$appFontPath}/roboto/Roboto-LightItalic.woff2') format('woff2');
-}
-
-@font-face {
-    font-family: 'Roboto';
-    font-style: normal;
-    font-weight: normal;
-    src:
-        local('Roboto Regular'),
-        local('Roboto-Regular'),
-        url('#{$appFontPath}/roboto/Roboto-Regular.woff2') format('woff2');
-}
-
-@font-face {
-    font-family: 'Roboto';
-    font-style: normal;
-    font-weight: 500;
-    src:
-        local('Roboto Medium'),
-        local('Roboto-Medium'),
-        url('#{$appFontPath}/roboto/Roboto-Medium.woff2') format('woff2');
-}
-
-@font-face {
-    font-family: 'Roboto';
-    font-style: normal;
-    font-weight: bold;
-    src:
-        local('Roboto Bold'),
-        local('Roboto-Bold'),
-        url('#{$appFontPath}/roboto/Roboto-Bold.woff2') format('woff2');
-}
-
-@font-face {
-    font-family: 'Roboto';
-    font-style: italic;
-    font-weight: normal;
-    src:
-        local('Roboto Italic'),
-        local('Roboto-Italic'),
-        url('#{$appFontPath}/roboto/Roboto-RegularItalic.woff2') format('woff2');
-}
-
-@font-face {
-    font-family: 'Roboto Slab';
-    font-style: normal;
-    font-weight: normal;
-    src:
-        local('RobotoSlab Regular'),
-        local('RobotoSlab-Regular'),
-        url('#{$appFontPath}/roboto-slab/Roboto-Slab-Regular.woff2') format('woff2');
-}
-
-@font-face {
-    font-family: 'Roboto Slab';
-    font-style: normal;
-    font-weight: bold;
-    src:
-        local('RobotoSlab Bold'),
-        local('RobotoSlab-Bold'),
-        url('#{$appFontPath}/roboto-slab/Roboto-Slab-Bold.woff2') format('woff2');
-}
 
 // Include the common styles for Angular Material. We include this here so that you only
 // have to load a single css file for Angular Material in your app.
