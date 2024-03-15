@@ -111,10 +111,12 @@ public class SFTPTransfer implements FileTransfer {
     }
 
     private static String buildFullPath(String path, String filename) {
-        return (path == null) ? filename : (path.endsWith("/")) ? path + filename : path + "/" + filename;
+        if (path == null) return filename;
+        if (path.endsWith("/")) return path + filename;
+        return path + "/" + filename;
     }
 
-    private static boolean identifiesDirectory(FileAttributes attributes) {
+    private static boolean isDirectory(FileAttributes attributes) {
         return attributes.getType() == FileMode.Type.DIRECTORY;
     }
 
@@ -348,7 +350,7 @@ public class SFTPTransfer implements FileTransfer {
 
                 if (isIncludedFile(entry, symlink) && (filteringDisabled || pathMatched)) {
                     if (filteringDisabled || fileFilterPattern == null || fileFilterPattern.matcher(entryFilename).matches()) {
-                        listing.add(newFileInfo(entry, path));
+                        listing.add(newFileInfo(path, entry.getName(), entry.getAttributes()));
                     }
                 }
 
@@ -428,14 +430,7 @@ public class SFTPTransfer implements FileTransfer {
         return FileMode.Type.SYMLINK == remoteResourceInfo.getAttributes().getType();
     }
 
-    private FileInfo newFileInfo(final RemoteResourceInfo entry, String path) {
-        if (entry == null) {
-            return null;
-        }
-        return newFileInfo(entry.getAttributes(), path, entry.getName());
-    }
-
-    private FileInfo newFileInfo(final FileAttributes attributes, String path, String filename) {
+    private FileInfo newFileInfo(String path, String filename, final FileAttributes attributes) {
         final File newFullPath = new File(path, filename);
         final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
 
@@ -457,7 +452,7 @@ public class SFTPTransfer implements FileTransfer {
         final FileInfo.Builder builder = new FileInfo.Builder()
             .filename(filename)
             .fullPathFileName(newFullForwardPath)
-            .directory(identifiesDirectory(attributes))
+            .directory(isDirectory(attributes))
             .size(attributes.getSize())
             .lastModifiedTime(attributes.getMtime() * 1000L)
             .permissions(permsBuilder.toString())
@@ -465,7 +460,6 @@ public class SFTPTransfer implements FileTransfer {
             .group(Integer.toString(attributes.getGID()));
         return builder.build();
     }
-
 
     private void appendPermission(final StringBuilder builder, final Set<FilePermission> permissions, final FilePermission filePermission, final String permString) {
         if (permissions.contains(filePermission)) {
@@ -710,10 +704,10 @@ public class SFTPTransfer implements FileTransfer {
 
         // Previously JSCH would perform a listing on the full path (path + filename) and would get an exception when it wasn't
         // a file and then return null, so to preserve that behavior we return null if the matchingEntry is a directory
-        if (fileAttributes == null || identifiesDirectory(fileAttributes)) {
+        if (fileAttributes == null || isDirectory(fileAttributes)) {
             return null;
         } else {
-            return newFileInfo(fileAttributes, path, filename);
+            return newFileInfo(path, filename, fileAttributes);
         }
     }
 
