@@ -27,46 +27,48 @@ import org.apache.nifi.python.ControllerServiceTypeLookup;
 import org.apache.nifi.python.PythonProcessConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.CleanupMode;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class PythonProcessTest {
 
     private PythonProcess pythonProcess;
 
+    @TempDir(cleanup = CleanupMode.ON_SUCCESS)
     private File virtualEnvHome;
 
     @Mock
-    private PythonProcessConfig pythonProcessConfigMock;
+    private PythonProcessConfig pythonProcessConfig;
 
     @Mock
-    private ControllerServiceTypeLookup controllerServiceTypeLookupMock;
+    private ControllerServiceTypeLookup controllerServiceTypeLookup;
 
     @BeforeEach
     public void setUp() {
-        virtualEnvHome = new File("target/virtualEnvHome");
-        virtualEnvHome.mkdirs();
         MockitoAnnotations.openMocks(this);
-        this.pythonProcess = new PythonProcess(this.pythonProcessConfigMock, this.controllerServiceTypeLookupMock, virtualEnvHome, "Controller", "Controller");
+        this.pythonProcess = new PythonProcess(this.pythonProcessConfig, this.controllerServiceTypeLookup, virtualEnvHome, "Controller", "Controller");
     }
     @Test
     void testResolvePythonCommandWindows() throws IOException {
         File scriptsDir = new File(virtualEnvHome, "Scripts");
         scriptsDir.mkdir();
-        when(pythonProcessConfigMock.getPythonCommand()).thenReturn("python");
+        when(pythonProcessConfig.getPythonCommand()).thenReturn("python");
         String result = this.pythonProcess.resolvePythonCommand();
         assertEquals(this.virtualEnvHome.getAbsolutePath() + File.separator + "Scripts" + File.separator + "python", result);
-        scriptsDir.delete();
     }
 
     @Test
     void testResolvePythonCommandUnix() throws IOException {
         File binDir = new File(virtualEnvHome, "bin");
         binDir.mkdir();
-        when(pythonProcessConfigMock.getPythonCommand()).thenReturn("python");
+        when(pythonProcessConfig.getPythonCommand()).thenReturn("python");
         String result = this.pythonProcess.resolvePythonCommand();
         assertEquals(this.virtualEnvHome.getAbsolutePath() + File.separator + "bin" + File.separator + "python", result);
-        binDir.delete();
     }
 
     @Test
@@ -75,16 +77,15 @@ class PythonProcessTest {
         binDir.mkdir();
         File scriptsDir = new File(virtualEnvHome, "Scripts");
         scriptsDir.mkdir();
-        when(pythonProcessConfigMock.getPythonCommand()).thenReturn("python");
+        when(pythonProcessConfig.getPythonCommand()).thenReturn("python");
         String result = this.pythonProcess.resolvePythonCommand();
-        assertEquals(this.virtualEnvHome.getAbsolutePath() + File.separator + "bin" + File.separator + "python", result);
-        binDir.delete();
-        scriptsDir.delete();
+        String expected = this.virtualEnvHome.getAbsolutePath() + File.separator + "bin" + File.separator + "python";
+        assertEquals(expected, result);
     }
 
     @Test
     void testResolvePythonCommandNone() throws IOException {
-        when(pythonProcessConfigMock.getPythonCommand()).thenReturn("python");
+        when(pythonProcessConfig.getPythonCommand()).thenReturn("python");
         assertThrows(IOException.class, ()-> this.pythonProcess.resolvePythonCommand());
     }
 

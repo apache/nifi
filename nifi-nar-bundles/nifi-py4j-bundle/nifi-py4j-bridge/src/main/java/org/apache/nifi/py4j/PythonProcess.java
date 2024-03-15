@@ -267,14 +267,20 @@ public class PythonProcess {
     String resolvePythonCommand() throws IOException {
         final File pythonCmdFile = new File(processConfig.getPythonCommand());
         final String pythonCmd = pythonCmdFile.getName();
-        File[] virtualEnvFileList = virtualEnvHome.listFiles((file, name) -> file.isDirectory() && (name.equals("bin") || name.equals("Scripts")));
+
+        // Find command directories according to standard Python venv conventions
+        final File[] virtualEnvFileList = virtualEnvHome.listFiles((file, name) -> file.isDirectory() && (name.equals("bin") || name.equals("Scripts")));
+
         //Prefer bin directory
-        String commandFileExecutableDirectory = "bin";
+        final String commandFileExecutableDirectory;
         if(virtualEnvFileList == null || virtualEnvFileList.length == 0) {
             throw new IOException("Python binary directory could not be found in " + virtualEnvHome);
         }else if( virtualEnvFileList.length == 1) {
             commandFileExecutableDirectory = virtualEnvFileList[0].getName();
+        } else {
+            commandFileExecutableDirectory = "bin";
         }
+
         final File pythonCommandFile = new File(virtualEnvHome, commandFileExecutableDirectory + File.separator + pythonCmd);
         return pythonCommandFile.getAbsolutePath();
     }
