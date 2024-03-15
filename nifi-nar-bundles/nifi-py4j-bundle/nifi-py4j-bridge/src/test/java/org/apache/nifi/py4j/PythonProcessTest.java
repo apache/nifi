@@ -31,7 +31,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,7 +49,6 @@ class PythonProcessTest {
 
     @BeforeEach
     public void setUp() {
-        MockitoAnnotations.openMocks(this);
         this.pythonProcess = new PythonProcess(this.pythonProcessConfig, this.controllerServiceTypeLookup, virtualEnvHome, "Controller", "Controller");
     }
     @Test
