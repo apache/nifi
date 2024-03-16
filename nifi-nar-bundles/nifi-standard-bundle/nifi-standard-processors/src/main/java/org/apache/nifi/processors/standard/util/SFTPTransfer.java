@@ -114,11 +114,11 @@ public class SFTPTransfer implements FileTransfer {
         if (path == null) {
              return filename;
         }
-        
-        if (path.endsWith("/")) { 
+
+        if (path.endsWith("/")) {
             return path + filename;
         }
-         
+
         return path + "/" + filename;
     }
 
