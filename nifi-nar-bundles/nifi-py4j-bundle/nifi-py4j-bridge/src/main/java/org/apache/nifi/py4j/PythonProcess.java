@@ -269,19 +269,19 @@ public class PythonProcess {
         final String pythonCmd = pythonCmdFile.getName();
 
         // Find command directories according to standard Python venv conventions
-        final File[] virtualEnvFileList = virtualEnvHome.listFiles((file, name) -> file.isDirectory() && (name.equals("bin") || name.equals("Scripts")));
+        final File[] virtualEnvDirectories = virtualEnvHome.listFiles((file, name) -> file.isDirectory() && (name.equals("bin") || name.equals("Scripts")));
 
-        //Prefer bin directory
-        final String commandFileExecutableDirectory;
-        if(virtualEnvFileList == null || virtualEnvFileList.length == 0) {
+        final String commandExecutableDirectory;
+        if (virtualEnvDirectories == null || virtualEnvDirectories.length == 0) {
             throw new IOException("Python binary directory could not be found in " + virtualEnvHome);
-        } else if( virtualEnvFileList.length == 1) {
-            commandFileExecutableDirectory = virtualEnvFileList[0].getName();
+        } else if( virtualEnvDirectories.length == 1) {
+            commandExecutableDirectory = virtualEnvDirectories[0].getName();
         } else {
-            commandFileExecutableDirectory = "bin";
+            // Default to bin directory for macOS and Linux
+            commandExecutableDirectory = "bin";
         }
 
-        final File pythonCommandFile = new File(virtualEnvHome, commandFileExecutableDirectory + File.separator + pythonCmd);
+        final File pythonCommandFile = new File(virtualEnvHome, commandExecutableDirectory + File.separator + pythonCmd);
         return pythonCommandFile.getAbsolutePath();
     }
 
