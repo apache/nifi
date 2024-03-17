@@ -361,7 +361,9 @@ public class PythonProcess {
     }
 
     private synchronized void killProcess() {
-        StandardLogLevelChangeHandler.getHandler().removeListener(logListenerId);
+        if (logListenerId != null) {
+            StandardLogLevelChangeHandler.getHandler().removeListener(logListenerId);
+        }
 
         if (server != null) {
             try {
