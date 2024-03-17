@@ -30,6 +30,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -80,6 +81,7 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
 @Tags({ "rest", "lookup", "json", "xml", "http" })
 @CapabilityDescription("Use a REST service to look up values.")
+@SupportsSensitiveDynamicProperties
 @DynamicProperties({
     @DynamicProperty(name = "*", value = "*", description = "All dynamic properties are added as HTTP headers with the name " +
             "as the header name and the value as the header value.", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
