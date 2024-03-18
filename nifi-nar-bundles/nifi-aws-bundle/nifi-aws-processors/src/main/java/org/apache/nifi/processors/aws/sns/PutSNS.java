@@ -129,6 +129,7 @@ public class PutSNS extends AbstractAwsSyncProcessor<SnsClient, SnsClientBuilder
             REGION,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             TIMEOUT,
+            ENDPOINT_OVERRIDE,
             USE_JSON_STRUCTURE,
             CHARACTER_ENCODING,
             MESSAGEGROUPID,
