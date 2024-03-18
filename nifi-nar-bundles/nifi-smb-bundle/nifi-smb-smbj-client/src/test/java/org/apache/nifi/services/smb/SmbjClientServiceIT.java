@@ -54,7 +54,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.utility.DockerImageName;
 
-public class NiFiSmbjClientIT {
+public class SmbjClientServiceIT {
 
     private final static Logger sambaContainerLogger = LoggerFactory.getLogger("sambaContainer");
     private final static Logger toxyProxyLogger = LoggerFactory.getLogger("toxiProxy");
@@ -62,7 +62,7 @@ public class NiFiSmbjClientIT {
     private final Network network = Network.newNetwork();
 
     private final GenericContainer<?> sambaContainer = new GenericContainer<>(DockerImageName.parse("dperson/samba"))
-            .withExposedPorts(139, 445)
+            .withExposedPorts(445)
             .waitingFor(Wait.forListeningPort())
             .withLogConsumer(new Slf4jLogConsumer(sambaContainerLogger))
             .withNetwork(network)
