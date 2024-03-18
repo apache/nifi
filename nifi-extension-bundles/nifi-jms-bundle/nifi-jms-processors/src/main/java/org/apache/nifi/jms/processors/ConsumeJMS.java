@@ -40,6 +40,7 @@ import org.apache.nifi.jms.processors.ioconcept.writer.FlowFileWriter;
 import org.apache.nifi.jms.processors.ioconcept.writer.FlowFileWriterCallback;
 import org.apache.nifi.jms.processors.ioconcept.writer.record.OutputStrategy;
 import org.apache.nifi.jms.processors.ioconcept.writer.record.RecordWriter;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -251,6 +252,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         _propertyDescriptors.add(SHARED_SUBSCRIBER);
         _propertyDescriptors.add(SUBSCRIPTION_NAME);
         _propertyDescriptors.add(TIMEOUT);
+        _propertyDescriptors.add(MAX_BATCH_SIZE);
         _propertyDescriptors.add(ERROR_QUEUE);
 
         _propertyDescriptors.add(RECORD_READER);
@@ -266,6 +268,17 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         _relationships.add(REL_SUCCESS);
         _relationships.add(REL_PARSE_FAILURE);
         relationships = Collections.unmodifiableSet(_relationships);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+
+        if (!config.hasProperty(MAX_BATCH_SIZE)) {
+            if (config.isPropertySet(BASE_RECORD_READER)) {
+                config.setProperty(MAX_BATCH_SIZE, "10000");
+            }
+        }
     }
 
     private static boolean isDurableSubscriber(final ProcessContext context) {
@@ -322,9 +335,9 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
         try {
             if (context.getProperty(RECORD_READER).isSet()) {
-                processMessageSet(context, processSession, consumer, destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset);
+                processMessagesAsRecords(context, processSession, consumer, destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset);
             } else {
-                processSingleMessage(processSession, consumer, destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset);
+                processMessages(context, processSession, consumer, destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset);
             }
         } catch (Exception e) {
             getLogger().error("Error while trying to process JMS message", e);
@@ -334,26 +347,25 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         }
     }
 
-    private void processSingleMessage(ProcessSession processSession, JMSConsumer consumer, String destinationName, String errorQueueName,
-                                      boolean durable, boolean shared, String subscriptionName, String messageSelector, String charset) {
+    private void processMessages(ProcessContext context, ProcessSession processSession, JMSConsumer consumer, String destinationName, String errorQueueName,
+                                 boolean durable, boolean shared, String subscriptionName, String messageSelector, String charset) {
 
-        consumer.consumeSingleMessage(destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset, response -> {
-            if (response == null) {
-                return;
-            }
+        int batchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
+        consumer.consumeMessageSet(destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset, batchSize, jmsResponses -> {
+            jmsResponses.forEach(response -> {
+                try {
+                    final FlowFile flowFile = createFlowFileFromMessage(processSession, destinationName, response);
 
-            try {
-                final FlowFile flowFile = createFlowFileFromMessage(processSession, destinationName, response);
-
-                processSession.getProvenanceReporter().receive(flowFile, destinationName);
-                processSession.transfer(flowFile, REL_SUCCESS);
-                processSession.commitAsync(
-                        () -> withLog(() -> acknowledge(response)),
-                        __ -> withLog(() -> response.reject()));
-            } catch (final Throwable t) {
-                response.reject();
-                throw t;
-            }
+                    processSession.getProvenanceReporter().receive(flowFile, destinationName);
+                    processSession.transfer(flowFile, REL_SUCCESS);
+                    processSession.commitAsync(
+                            () -> withLog(() -> acknowledge(response)),
+                            __ -> withLog(() -> response.reject()));
+                } catch (final Throwable t) {
+                    response.reject();
+                    throw t;
+                }
+            });
         });
     }
 
@@ -369,9 +381,10 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         return processSession.putAllAttributes(flowFile, attributes);
     }
 
-    private void processMessageSet(ProcessContext context, ProcessSession session, JMSConsumer consumer, String destinationName, String errorQueueName,
-                                   boolean durable, boolean shared, String subscriptionName, String messageSelector, String charset) {
+    private void processMessagesAsRecords(ProcessContext context, ProcessSession session, JMSConsumer consumer, String destinationName, String errorQueueName,
+                                          boolean durable, boolean shared, String subscriptionName, String messageSelector, String charset) {
 
+        int batchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         final OutputStrategy outputStrategy = OutputStrategy.valueOf(context.getProperty(OUTPUT_STRATEGY).getValue());
@@ -385,7 +398,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
                 getLogger()
         );
 
-        consumer.consumeMessageSet(destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset, jmsResponses -> {
+        consumer.consumeMessageSet(destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset, batchSize, jmsResponses -> {
             flowFileWriter.write(session, jmsResponses, new FlowFileWriterCallback<>() {
                 @Override
                 public void onSuccess(FlowFile flowFile, List<JMSResponse> processedMessages, List<JMSResponse> failedMessages) {
@@ -477,7 +490,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
      * Use provided clientId for non shared durable consumers, if not set
      * always a different value as defined in {@link AbstractJMSProcessor#setClientId(ProcessContext, SingleConnectionFactory)}.
      * </p>
-     * See {@link Session#createDurableConsumer(javax.jms.Topic, String, String, boolean)},
+     * See {@link Session#createDurableConsumer(jakarta.jms.Topic, String, String, boolean)},
      * in special following part: <i>An unshared durable subscription is
      * identified by a name specified by the client and by the client identifier,
      * which must be set. An application which subsequently wishes to create

@@ -182,7 +182,7 @@ public class GetFile extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
-            .description("The maximum number of files to pull in each iteration")
+            .description("The maximum number of files to pull in each invocation of the processor")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("10")

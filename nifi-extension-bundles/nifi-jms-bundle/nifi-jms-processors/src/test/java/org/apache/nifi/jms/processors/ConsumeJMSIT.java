@@ -503,6 +503,7 @@ public class ConsumeJMSIT {
             TestRunner testRunner = initializeTestRunner(jmsTemplate.getConnectionFactory(), destination);
             testRunner.setProperty(ConsumeJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
             testRunner.setProperty(ConsumeJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+            testRunner.setProperty(AbstractJMSProcessor.MAX_BATCH_SIZE, "10");
 
             testRunner.run(1, false);
 
@@ -535,6 +536,7 @@ public class ConsumeJMSIT {
             TestRunner testRunner = initializeTestRunner(jmsTemplate.getConnectionFactory(), destination);
             testRunner.setProperty(ConsumeJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
             testRunner.setProperty(ConsumeJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+            testRunner.setProperty(AbstractJMSProcessor.MAX_BATCH_SIZE, "10");
             testRunner.setRelationshipAvailable(ConsumeJMS.REL_PARSE_FAILURE);
 
             testRunner.run(1, false);
@@ -568,6 +570,7 @@ public class ConsumeJMSIT {
             TestRunner testRunner = initializeTestRunner(jmsTemplate.getConnectionFactory(), destination);
             testRunner.setProperty(ConsumeJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
             testRunner.setProperty(ConsumeJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+            testRunner.setProperty(AbstractJMSProcessor.MAX_BATCH_SIZE, "10");
             testRunner.setProperty(ConsumeJMS.OUTPUT_STRATEGY, OutputStrategy.USE_APPENDER.getValue());
 
             testRunner.run(1, false);
@@ -609,6 +612,7 @@ public class ConsumeJMSIT {
             TestRunner testRunner = initializeTestRunner(jmsTemplate.getConnectionFactory(), destination);
             testRunner.setProperty(ConsumeJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
             testRunner.setProperty(ConsumeJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+            testRunner.setProperty(AbstractJMSProcessor.MAX_BATCH_SIZE, "10");
             testRunner.setProperty(ConsumeJMS.OUTPUT_STRATEGY, OutputStrategy.USE_WRAPPER.getValue());
 
             testRunner.run(1, false);

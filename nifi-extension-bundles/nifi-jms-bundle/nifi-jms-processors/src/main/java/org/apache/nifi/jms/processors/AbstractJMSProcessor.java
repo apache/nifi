@@ -128,6 +128,14 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
             .identifiesControllerService(JMSConnectionFactoryProviderDefinition.class)
             .build();
 
+    static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
+            .name("Maximum Batch Size")
+            .description("The maximum number of messages to publish or consume in each invocation of the processor.")
+            .required(true)
+            .defaultValue("1")
+            .addValidator(StandardValidators.createLongValidator(1, 10_000, true))
+            .build();
+
     static final List<PropertyDescriptor> JNDI_JMS_CF_PROPERTIES = Collections.unmodifiableList(
             JndiJmsConnectionFactoryProperties.getPropertyDescriptors().stream()
                     .map(pd -> new PropertyDescriptor.Builder()
