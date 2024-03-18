@@ -81,14 +81,11 @@
 }
 
 @function get-color-on-surface($theme, $surface: #ffffff, $palette: 'primary') {
-    // Check to see if it's a dark theme
-    $is-dark: map.get($theme, is-dark);
     $color-config: mat.get-color-config($theme);
     $color-palette: map.get($theme, $palette);
 
     $default: mat.get-color-from-palette($color-palette, default);
-    $high-contrast: mat.get-color-from-palette($color-palette, if($is-dark, lighter, darker));
-
+    $high-contrast: mat.get-color-from-palette($color-palette, if(luminosity($default) > luminosity($surface), lighter, darker));
     $on-surface: ensure-contrast($default, $surface, $high-contrast);
 
     @return $on-surface;
