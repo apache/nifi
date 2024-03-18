@@ -23,6 +23,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -52,6 +53,7 @@ import static org.apache.nifi.controller.cassandra.QueryUtils.createInsertStatem
 
 @Tags({"map", "cache", "distributed", "cassandra"})
 @CapabilityDescription("Provides a DistributedMapCache client that is based on Apache Cassandra.")
+@DeprecationNotice(reason = "DataStax 3 driver for Cassandra is no longer the current version and requires new components.")
 public class CassandraDistributedMapCache extends AbstractControllerService implements DistributedMapCacheClient {
     public static final PropertyDescriptor SESSION_PROVIDER = new PropertyDescriptor.Builder()
             .name("cassandra-dmc-session-provider")
