@@ -44,6 +44,15 @@ public class SmbProperties {
             .defaultValue("false")
             .build();
 
+    public static final PropertyDescriptor ENABLE_DFS = new PropertyDescriptor.Builder()
+            .name("enable-dfs")
+            .displayName("Enable DFS")
+            .description("Enables accessing Distributed File System (DFS) and following DFS links during SMB operations.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
             .displayName("Timeout")
             .name("timeout")

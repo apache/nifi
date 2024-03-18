@@ -21,6 +21,7 @@ import com.hierynomus.smbj.SmbConfig;
 import org.apache.nifi.context.PropertyContext;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.nifi.smb.common.SmbProperties.ENABLE_DFS;
 import static org.apache.nifi.smb.common.SmbProperties.SMB_DIALECT;
 import static org.apache.nifi.smb.common.SmbProperties.TIMEOUT;
 import static org.apache.nifi.smb.common.SmbProperties.USE_ENCRYPTION;
@@ -32,7 +33,7 @@ public final class SmbUtils {
     }
 
     public static SMBClient buildSmbClient(final PropertyContext context) {
-        return new SMBClient(buildSmbConfig(context));
+        return SmbClient.create(buildSmbConfig(context));
     }
 
     static SmbConfig buildSmbConfig(final PropertyContext context) {
@@ -48,6 +49,10 @@ public final class SmbUtils {
 
         if (context.getProperty(USE_ENCRYPTION).isSet()) {
             configBuilder.withEncryptData(context.getProperty(USE_ENCRYPTION).asBoolean());
+        }
+
+        if (context.getProperty(ENABLE_DFS).isSet()) {
+            configBuilder.withDfsEnabled(context.getProperty(ENABLE_DFS).asBoolean());
         }
 
         if (context.getProperty(TIMEOUT).isSet()) {

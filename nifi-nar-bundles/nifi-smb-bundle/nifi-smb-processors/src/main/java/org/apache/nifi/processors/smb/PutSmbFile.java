@@ -64,6 +64,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.smb.common.SmbProperties.ENABLE_DFS;
 import static org.apache.nifi.smb.common.SmbProperties.SMB_DIALECT;
 import static org.apache.nifi.smb.common.SmbProperties.TIMEOUT;
 import static org.apache.nifi.smb.common.SmbProperties.USE_ENCRYPTION;
@@ -194,6 +195,7 @@ public class PutSmbFile extends AbstractProcessor {
         descriptors.add(RENAME_SUFFIX);
         descriptors.add(SMB_DIALECT);
         descriptors.add(USE_ENCRYPTION);
+        descriptors.add(ENABLE_DFS);
         descriptors.add(TIMEOUT);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
