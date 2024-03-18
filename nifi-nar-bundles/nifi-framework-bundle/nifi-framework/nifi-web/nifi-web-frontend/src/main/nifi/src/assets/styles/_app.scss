@@ -175,7 +175,6 @@
     $primary-palette-default: mat.get-color-from-palette($primary-palette, 'default');
     $primary-palette-A400: mat.get-color-from-palette($primary-palette, 'A400');
 
-    $accent-palette-default: mat.get-color-from-palette($accent-palette, 'default');
     $accent-palette-lighter: mat.get-color-from-palette($accent-palette, 'lighter');
 
     $warn-palette-lighter: mat.get-color-from-palette($warn-palette, lighter);
@@ -190,9 +189,15 @@
     $on-surface: utils.get-on-surface($canvas-color-config);
     $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
 
+    // Because snackbars have different surface colors, we need to make sure the action color has enough contrast.
+    $is-dark: map.get($color-config, is-dark);
+    $snack-surface: if($is-dark, #d9d9d9, #333333);
+    $snack-action-color: utils.get-color-on-surface($color-config, $snack-surface, 'accent');
+
     * {
         // Tailwind sets a default that doesn't shift with light and dark themes
         border-color: $on-surface-lighter;
+        --mat-snack-bar-button-color: #{$snack-action-color};
     }
 
     .cdk-drag-disabled {
