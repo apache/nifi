@@ -36,6 +36,7 @@ import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -92,6 +93,7 @@ import java.util.regex.Pattern;
                         + " type of the cql.args.1.value parameter is specified by the cql.args.1.type attribute.")
 })
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
+@DeprecationNotice(reason = "DataStax 3 driver for Cassandra is no longer the current version and requires new components.")
 public class PutCassandraQL extends AbstractCassandraProcessor {
 
     public static final PropertyDescriptor STATEMENT_TIMEOUT = new PropertyDescriptor.Builder()

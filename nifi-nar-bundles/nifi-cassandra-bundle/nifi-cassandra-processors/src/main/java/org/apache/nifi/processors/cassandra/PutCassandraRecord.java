@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
@@ -83,6 +84,7 @@ import static java.lang.String.format;
                 "Statement Type property, the value of the cql.batch.statement.type Attribute will be used to determine which type of batch statement " +
                 "(LOGGED, UNLOGGED, COUNTER) will be generated and executed")
 })
+@DeprecationNotice(reason = "DataStax 3 driver for Cassandra is no longer the current version and requires new components.")
 public class PutCassandraRecord extends AbstractCassandraProcessor {
     static final AllowableValue UPDATE_TYPE = new AllowableValue("UPDATE", "UPDATE",
             "Use an UPDATE statement.");

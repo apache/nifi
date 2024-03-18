@@ -36,6 +36,7 @@ import org.apache.commons.text.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -100,6 +101,7 @@ import java.util.concurrent.atomic.AtomicLong;
                 + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
                 + "FlowFiles were produced")
 })
+@DeprecationNotice(reason = "DataStax 3 driver for Cassandra is no longer the current version and requires new components.")
 public class QueryCassandra extends AbstractCassandraProcessor {
 
     public static final String AVRO_FORMAT = "Avro";

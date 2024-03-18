@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -47,6 +48,7 @@ import org.apache.nifi.ssl.SSLContextService;
 
 @Tags({"cassandra", "dbcp", "database", "connection", "pooling"})
 @CapabilityDescription("Provides connection session for Cassandra processors to work with Apache Cassandra.")
+@DeprecationNotice(reason = "DataStax 3 driver for Cassandra is no longer the current version and requires new components.")
 public class CassandraSessionProvider extends AbstractControllerService implements CassandraSessionProviderService {
 
     public static final int DEFAULT_CASSANDRA_PORT = 9042;
