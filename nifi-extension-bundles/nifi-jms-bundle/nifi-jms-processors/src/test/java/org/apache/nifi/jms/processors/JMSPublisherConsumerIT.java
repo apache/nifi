@@ -197,9 +197,9 @@ public class JMSPublisherConsumerIT {
             jmsTemplate.send(destinationName, messageCreator);
 
             JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
-            consumer.consumeSingleMessage(destinationName, null, false, false, null, null, "UTF-8", response -> {
+            consumer.consumeMessageSet(destinationName, null, false, false, null, null, "UTF-8", 1, responses -> {
                 callbackInvoked.set(true);
-                responseChecker.accept(response);
+                responseChecker.accept(responses.getFirst());
             });
 
             assertTrue(callbackInvoked.get());
@@ -300,6 +300,7 @@ public class JMSPublisherConsumerIT {
             ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
         }
     }
+
     /**
      * At the moment the only two supported message types are TextMessage and
      * BytesMessage which is sufficient for the type if JMS use cases NiFi is
@@ -320,7 +321,7 @@ public class JMSPublisherConsumerIT {
             });
 
             JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
-            consumer.consumeSingleMessage(destinationName, null, false, false, null, null, "UTF-8", response -> {
+            consumer.consumeMessageSet(destinationName, null, false, false, null, null, "UTF-8", 1, responses -> {
                 // noop
             });
         } finally {
@@ -347,8 +348,9 @@ public class JMSPublisherConsumerIT {
 
             JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             final AtomicBoolean callbackInvoked = new AtomicBoolean();
-            consumer.consumeSingleMessage(destinationName, null, false, false, null, null, "UTF-8", response -> {
+            consumer.consumeMessageSet(destinationName, null, false, false, null, null, "UTF-8", 1, responses -> {
                 callbackInvoked.set(true);
+                JMSResponse response = responses.getFirst();
                 assertEquals("hello from the other side", new String(response.getMessageBody()));
                 assertEquals("fooQueue", response.getMessageHeaders().get(JmsHeaders.REPLY_TO));
                 assertEquals("foo", response.getMessageProperties().get("foo"));
@@ -374,9 +376,9 @@ public class JMSPublisherConsumerIT {
             JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             final AtomicBoolean callbackInvoked = new AtomicBoolean();
             try {
-                consumer.consumeSingleMessage(destinationName, null, false, false, null, null, "UTF-8", response -> {
+                consumer.consumeMessageSet(destinationName, null, false, false, null, null, "UTF-8", 1, responses -> {
                     callbackInvoked.set(true);
-                    assertEquals("1", new String(response.getMessageBody()));
+                    assertEquals("1", new String(responses.getFirst().getMessageBody()));
                     throw new RuntimeException("intentional to avoid explicit ack");
                 });
             } catch (Exception e) {
@@ -388,11 +390,8 @@ public class JMSPublisherConsumerIT {
 
             // should receive the same message, but will process it successfully
             while (!callbackInvoked.get()) {
-                consumer.consumeSingleMessage(destinationName, null, false, false, null, null, "UTF-8", response -> {
-                    if (response == null) {
-                        return;
-                    }
-
+                consumer.consumeMessageSet(destinationName, null, false, false, null, null, "UTF-8", 1, responses -> {
+                    JMSResponse response = responses.getFirst();
                     callbackInvoked.set(true);
                     assertEquals("2", new String(response.getMessageBody()));
                     acknowledge(response);
@@ -405,13 +404,9 @@ public class JMSPublisherConsumerIT {
             // receiving next message and fail again
             try {
                 while (!callbackInvoked.get()) {
-                    consumer.consumeSingleMessage(destinationName, null, false, false, null, null, "UTF-8", response -> {
-                        if (response == null) {
-                            return;
-                        }
-
+                    consumer.consumeMessageSet(destinationName, null, false, false, null, null, "UTF-8", 1, responses -> {
                         callbackInvoked.set(true);
-                        assertEquals("1", new String(response.getMessageBody()));
+                        assertEquals("1", new String(responses.getFirst().getMessageBody()));
                         throw new RuntimeException("intentional to avoid explicit ack");
                     });
                 }
@@ -424,11 +419,8 @@ public class JMSPublisherConsumerIT {
             // should receive the same message, but will process it successfully
             try {
                 while (!callbackInvoked.get()) {
-                    consumer.consumeSingleMessage(destinationName, null, false, false, null, null, "UTF-8", response -> {
-                        if (response == null) {
-                            return;
-                        }
-
+                    consumer.consumeMessageSet(destinationName, null, false, false, null, null, "UTF-8", 1, responses -> {
+                        JMSResponse response = responses.getFirst();
                         callbackInvoked.set(true);
                         assertEquals("1", new String(response.getMessageBody()));
                         acknowledge(response);
@@ -472,9 +464,9 @@ public class JMSPublisherConsumerIT {
 
             JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             AtomicBoolean callbackInvoked = new AtomicBoolean();
-            consumer.consumeSingleMessage(destinationName, null, false, false, null, messageSelector, "UTF-8", response -> {
+            consumer.consumeMessageSet(destinationName, null, false, false, null, messageSelector, "UTF-8", 1, responses -> {
                 callbackInvoked.set(true);
-                assertEquals("msg1", new String(response.getMessageBody()));
+                assertEquals("msg1", new String(responses.getFirst().getMessageBody()));
             });
             assertTrue(callbackInvoked.get());
 

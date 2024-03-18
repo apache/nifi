@@ -52,8 +52,6 @@ import java.util.function.Consumer;
  */
 class JMSConsumer extends JMSWorker {
 
-    private final static int MAX_MESSAGES_PER_FLOW_FILE = 10000;
-
     JMSConsumer(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ComponentLog logger) {
         super(connectionFactory, jmsTemplate, logger);
         logger.debug("Created Message Consumer for '{}'", jmsTemplate);
@@ -89,28 +87,10 @@ class JMSConsumer extends JMSWorker {
     }
 
     /**
-     * Receives a message from the broker. It is the consumerCallback's responsibility to acknowledge the received message.
-     */
-    public void consumeSingleMessage(final String destinationName, String errorQueueName, final boolean durable, final boolean shared, final String subscriptionName, final String messageSelector,
-                                     final String charset, final Consumer<JMSResponse> singleMessageConsumer) {
-        doWithJmsTemplate(destinationName, durable, shared, subscriptionName, messageSelector, (session, messageConsumer) -> {
-            final JMSResponse response = receiveMessage(session, messageConsumer, charset, errorQueueName);
-            if (response != null) {
-                // Provide the JMSResponse to the processor to handle. It is the responsibility of the
-                // processor to handle acknowledgment of the message (if Client Acknowledge), and it is
-                // the responsibility of the processor to handle closing the Message Consumer.
-                // Both of these actions can be handled by calling the acknowledge() or reject() methods of
-                // the JMSResponse.
-                singleMessageConsumer.accept(response);
-            }
-        });
-    }
-
-    /**
      * Receives a list of messages from the broker. It is the consumerCallback's responsibility to acknowledge the received message.
      */
     public void consumeMessageSet(final String destinationName, String errorQueueName, final boolean durable, final boolean shared, final String subscriptionName, final String messageSelector,
-                        final String charset, final Consumer<List<JMSResponse>> messageSetConsumer) {
+                                  final String charset, final int batchSize, final Consumer<List<JMSResponse>> messageSetConsumer) {
         doWithJmsTemplate(destinationName, durable, shared, subscriptionName, messageSelector, new MessageReceiver() {
             @Override
             public void consume(Session session, MessageConsumer messageConsumer) throws JMSException {
@@ -118,7 +98,7 @@ class JMSConsumer extends JMSWorker {
                 int batchCounter = 0;
 
                 JMSResponse response;
-                while ((response = receiveMessage(session, messageConsumer, charset, errorQueueName)) != null && batchCounter < MAX_MESSAGES_PER_FLOW_FILE) {
+                while (batchCounter < batchSize && (response = receiveMessage(session, messageConsumer, charset, errorQueueName)) != null) {
                     response.setBatchOrder(batchCounter);
                     jmsResponses.add(response);
                     batchCounter++;
