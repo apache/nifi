@@ -43,6 +43,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { isDefinedAndNotNull } from '../../../../state/shared';
 import { selectClusterSummary } from '../../../../state/cluster-summary/cluster-summary.selectors';
 import { ClusterService } from '../../../../service/cluster.service';
+import { DIALOGS } from '../../../../app.component';
 
 @Injectable()
 export class ProvenanceEventListingEffects {
@@ -88,12 +89,12 @@ export class ProvenanceEventListingEffects {
             map((action) => action.request),
             switchMap((request) => {
                 const dialogReference = this.dialog.open(CancelDialog, {
+                    ...DIALOGS.SMALL_DIALOG,
                     data: {
                         title: 'Provenance',
                         message: 'Searching provenance events...'
                     },
-                    disableClose: true,
-                    panelClass: 'small-dialog'
+                    disableClose: true
                 });
 
                 dialogReference.componentInstance.cancel.pipe(take(1)).subscribe(() => {
@@ -276,13 +277,13 @@ export class ProvenanceEventListingEffects {
                 ]),
                 tap(([request, timeOffset, options, currentRequest, about]) => {
                     const dialogReference = this.dialog.open(ProvenanceSearchDialog, {
+                        ...DIALOGS.LARGE_DIALOG,
                         data: {
                             timeOffset,
                             clusterNodes: request.clusterNodes,
                             options,
                             currentRequest
-                        },
-                        panelClass: 'large-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.timezone = about.timezone;
@@ -322,10 +323,10 @@ export class ProvenanceEventListingEffects {
                     this.provenanceService.getProvenanceEvent(request.eventId, request.clusterNodeId).subscribe({
                         next: (response) => {
                             const dialogReference = this.dialog.open(ProvenanceEventDialog, {
+                                ...DIALOGS.LARGE_DIALOG,
                                 data: {
                                     event: response.provenanceEvent
-                                },
-                                panelClass: 'large-dialog'
+                                }
                             });
 
                             dialogReference.componentInstance.contentViewerAvailable = about?.contentViewerUrl != null;
@@ -429,11 +430,11 @@ export class ProvenanceEventListingEffects {
                 ofType(ProvenanceEventListingActions.showOkDialog),
                 tap((request) => {
                     this.dialog.open(OkDialog, {
+                        ...DIALOGS.MEDIUM_DIALOG,
                         data: {
                             title: request.title,
                             message: request.message
-                        },
-                        panelClass: 'medium-dialog'
+                        }
                     });
                 })
             ),

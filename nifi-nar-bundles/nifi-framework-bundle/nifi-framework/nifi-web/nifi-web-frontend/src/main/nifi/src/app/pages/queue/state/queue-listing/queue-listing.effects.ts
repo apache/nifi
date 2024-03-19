@@ -34,6 +34,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { stopPollingQueueListingRequest } from './queue-listing.actions';
+import { DIALOGS } from '../../../../app.component';
 
 @Injectable()
 export class QueueListingEffects {
@@ -88,12 +89,12 @@ export class QueueListingEffects {
             map((action) => action.request),
             switchMap((request) => {
                 const dialogReference = this.dialog.open(CancelDialog, {
+                    ...DIALOGS.SMALL_DIALOG,
                     data: {
                         title: 'Queue Listing',
                         message: 'Waiting for queue listing to complete...'
                     },
-                    disableClose: true,
-                    panelClass: 'small-dialog'
+                    disableClose: true
                 });
 
                 dialogReference.componentInstance.cancel.pipe(take(1)).subscribe(() => {
@@ -264,8 +265,8 @@ export class QueueListingEffects {
                 filter((about) => about != null),
                 tap(([request, about]) => {
                     const dialogReference = this.dialog.open(FlowFileDialog, {
-                        data: request,
-                        panelClass: 'large-dialog'
+                        ...DIALOGS.LARGE_DIALOG,
+                        data: request
                     });
 
                     dialogReference.componentInstance.contentViewerAvailable = about?.contentViewerUrl != null;

@@ -25,6 +25,7 @@ import * as SystemDiagnosticsActions from './system-diagnostics.actions';
 import { catchError, from, map, of, switchMap, tap } from 'rxjs';
 import { SystemDiagnosticsRequest } from './index';
 import { SystemDiagnosticsDialog } from '../../ui/common/system-diagnostics-dialog/system-diagnostics-dialog.component';
+import { DIALOGS } from '../../app.component';
 
 @Injectable()
 export class SystemDiagnosticsEffects {
@@ -98,7 +99,9 @@ export class SystemDiagnosticsEffects {
                 ofType(SystemDiagnosticsActions.openSystemDiagnosticsDialog),
                 tap(() => {
                     this.dialog
-                        .open(SystemDiagnosticsDialog, { panelClass: 'large-dialog' })
+                        .open(SystemDiagnosticsDialog, {
+                            ...DIALOGS.LARGE_DIALOG
+                        })
                         .afterClosed()
                         .subscribe(() => {
                             this.store.dispatch(SystemDiagnosticsActions.viewSystemDiagnosticsComplete());

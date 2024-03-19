@@ -25,6 +25,7 @@ import { StatusHistoryRequest } from './index';
 import { catchError, from, map, of, switchMap, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { StatusHistory } from '../../ui/common/status-history/status-history.component';
+import { DIALOGS } from '../../app.component';
 
 @Injectable()
 export class StatusHistoryEffects {
@@ -146,8 +147,8 @@ export class StatusHistoryEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(StatusHistory, {
-                        data: request,
-                        panelClass: 'large-dialog'
+                        ...DIALOGS.LARGE_DIALOG,
+                        data: request
                     });
 
                     dialogReference.afterClosed().subscribe((response) => {

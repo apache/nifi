@@ -35,6 +35,7 @@ import { UserAccessPolicies } from '../../ui/user-listing/user-access-policies/u
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { DIALOGS } from '../../../../app.component';
 
 @Injectable()
 export class UserListingEffects {
@@ -97,8 +98,8 @@ export class UserListingEffects {
                         existingUserGroups
                     };
                     const dialogReference = this.dialog.open(EditTenantDialog, {
-                        data: editTenantRequest,
-                        panelClass: 'medium-dialog'
+                        ...DIALOGS.MEDIUM_DIALOG,
+                        data: editTenantRequest
                     });
 
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -329,8 +330,8 @@ export class UserListingEffects {
                         existingUserGroups
                     };
                     const dialogReference = this.dialog.open(EditTenantDialog, {
-                        data: editTenantRequest,
-                        panelClass: 'medium-dialog'
+                        ...DIALOGS.MEDIUM_DIALOG,
+                        data: editTenantRequest
                     });
 
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -555,8 +556,8 @@ export class UserListingEffects {
                         existingUserGroups
                     };
                     const dialogReference = this.dialog.open(EditTenantDialog, {
-                        data: editTenantRequest,
-                        panelClass: 'medium-dialog'
+                        ...DIALOGS.MEDIUM_DIALOG,
+                        data: editTenantRequest
                     });
 
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -654,8 +655,8 @@ export class UserListingEffects {
                 tap((request) => {
                     this.dialog
                         .open(UserAccessPolicies, {
-                            data: request,
-                            panelClass: 'large-dialog'
+                            ...DIALOGS.LARGE_DIALOG,
+                            data: request
                         })
                         .afterClosed()
                         .subscribe((response) => {
@@ -679,11 +680,11 @@ export class UserListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...DIALOGS.SMALL_DIALOG,
                         data: {
                             title: 'Delete User Account',
                             message: `Are you sure you want to delete the user account for '${request.user.component.identity}'?`
-                        },
-                        panelClass: 'small-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
@@ -720,11 +721,11 @@ export class UserListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...DIALOGS.SMALL_DIALOG,
                         data: {
                             title: 'Delete User Account',
                             message: `Are you sure you want to delete the user group account for '${request.userGroup.component.identity}'?`
-                        },
-                        panelClass: 'small-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {

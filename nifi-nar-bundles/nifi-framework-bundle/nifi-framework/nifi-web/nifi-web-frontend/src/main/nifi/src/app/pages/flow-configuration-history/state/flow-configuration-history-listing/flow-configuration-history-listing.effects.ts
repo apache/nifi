@@ -34,6 +34,7 @@ import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.c
 import { isDefinedAndNotNull } from '../../../../state/shared';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { selectAbout } from '../../../../state/about/about.selectors';
+import { DIALOGS } from '../../../../app.component';
 
 @Injectable()
 export class FlowConfigurationHistoryListingEffects {
@@ -81,8 +82,8 @@ export class FlowConfigurationHistoryListingEffects {
                 map((action) => action.request),
                 tap((actionEntity) => {
                     this.dialog.open(ActionDetails, {
-                        data: actionEntity,
-                        panelClass: 'medium-dialog'
+                        ...DIALOGS.MEDIUM_DIALOG,
+                        data: actionEntity
                     });
                 })
             ),
@@ -95,7 +96,7 @@ export class FlowConfigurationHistoryListingEffects {
                 ofType(HistoryActions.openPurgeHistoryDialog),
                 tap(() => {
                     const dialogReference = this.dialog.open(PurgeHistory, {
-                        panelClass: 'medium-short-dialog'
+                        ...DIALOGS.MEDIUM_DIALOG
                     });
 
                     dialogReference.componentInstance.submitPurgeRequest
@@ -106,11 +107,11 @@ export class FlowConfigurationHistoryListingEffects {
                         )
                         .subscribe(([result, about]) => {
                             const yesNoRef = this.dialog.open(YesNoDialog, {
+                                ...DIALOGS.SMALL_DIALOG,
                                 data: {
                                     title: 'Confirm History Purge',
                                     message: `Are you sure you want to delete all history before '${result.endDate} ${about.timezone}'?`
-                                },
-                                panelClass: 'small-dialog'
+                                }
                             });
 
                             yesNoRef.componentInstance.yes.pipe(take(1)).subscribe(() => {

@@ -31,6 +31,7 @@ import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.c
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { loadConnection, loadProcessGroup } from '../flow/flow.actions';
 import { resetQueueState } from './queue.actions';
+import { DIALOGS } from '../../../../app.component';
 
 @Injectable()
 export class QueueEffects {
@@ -49,12 +50,12 @@ export class QueueEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...DIALOGS.SMALL_DIALOG,
                         data: {
                             title: 'Empty Queue',
                             message:
                                 'Are you sure you want to empty this queue? All FlowFiles waiting at the time of the request will be removed.'
-                        },
-                        panelClass: 'small-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
@@ -75,12 +76,12 @@ export class QueueEffects {
             map((action) => action.request),
             switchMap((request) => {
                 const dialogReference = this.dialog.open(CancelDialog, {
+                    ...DIALOGS.SMALL_DIALOG,
                     data: {
                         title: 'Empty Queue',
                         message: 'Waiting for queue to empty...'
                     },
-                    disableClose: true,
-                    panelClass: 'small-dialog'
+                    disableClose: true
                 });
 
                 dialogReference.componentInstance.cancel.pipe(take(1)).subscribe(() => {
@@ -114,12 +115,12 @@ export class QueueEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...DIALOGS.SMALL_DIALOG,
                         data: {
                             title: 'Empty All Queues',
                             message:
                                 'Are you sure you want to empty all queues in this Process Group? All FlowFiles from all connections waiting at the time of the request will be removed.'
-                        },
-                        panelClass: 'small-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
@@ -140,12 +141,12 @@ export class QueueEffects {
             map((action) => action.request),
             switchMap((request) => {
                 const dialogReference = this.dialog.open(CancelDialog, {
+                    ...DIALOGS.SMALL_DIALOG,
                     data: {
                         title: 'Empty All Queues',
                         message: 'Waiting for all queues to empty...'
                     },
-                    disableClose: true,
-                    panelClass: 'small-dialog'
+                    disableClose: true
                 });
 
                 dialogReference.componentInstance.cancel.pipe(take(1)).subscribe(() => {
@@ -315,11 +316,11 @@ export class QueueEffects {
                     }
 
                     const dialogReference = this.dialog.open(OkDialog, {
+                        ...DIALOGS.SMALL_DIALOG,
                         data: {
                             title: 'Empty Queue',
                             message
-                        },
-                        panelClass: 'small-dialog'
+                        }
                     });
 
                     dialogReference.afterClosed().subscribe(() => {
