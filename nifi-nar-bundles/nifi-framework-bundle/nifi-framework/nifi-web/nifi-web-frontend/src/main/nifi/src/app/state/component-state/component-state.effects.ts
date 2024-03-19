@@ -79,7 +79,7 @@ export class ComponentStateEffects {
                 ofType(ComponentStateActions.openComponentStateDialog),
                 tap(() => {
                     const dialogReference = this.dialog.open(ComponentStateDialog, {
-                        ...DIALOG_SIZES.LARGE_DIALOG
+                        ...DIALOG_SIZES.LARGE
                     });
 
                     dialogReference.afterClosed().subscribe(() => {
