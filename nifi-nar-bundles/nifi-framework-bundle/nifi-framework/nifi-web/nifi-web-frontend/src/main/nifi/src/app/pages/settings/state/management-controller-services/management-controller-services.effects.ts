@@ -85,7 +85,7 @@ export class ManagementControllerServicesEffects {
                 concatLatestFrom(() => this.store.select(selectControllerServiceTypes)),
                 tap(([, controllerServiceTypes]) => {
                     const dialogReference = this.dialog.open(CreateControllerService, {
-                        ...DIALOG_SIZES.MEDIUM,
+                        ...DIALOG_SIZES.LARGE,
                         data: {
                             controllerServiceTypes
                         }

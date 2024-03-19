@@ -19,23 +19,19 @@ import { MatDialogConfig } from '@angular/material/dialog';
 
 export const DIALOG_SIZES: { [key: string]: MatDialogConfig } = {
     SMALL: {
-        maxWidth: 470,
+        maxWidth: 320,
         minWidth: 320
     },
     MEDIUM: {
-        maxWidth: 760,
+        maxWidth: 470,
         minWidth: 470
     },
     LARGE: {
-        maxHeight: '72%',
-        maxWidth: '55%',
-        minHeight: 520,
+        maxWidth: 760,
         minWidth: 760
     },
     XL: {
-        maxHeight: '72%',
-        maxWidth: '85%',
-        minHeight: 560,
+        maxWidth: 1024,
         minWidth: 1024
     }
 };

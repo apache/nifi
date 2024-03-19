@@ -102,7 +102,7 @@ export class ControllerServicesEffects {
                 ]),
                 tap(([, controllerServiceTypes, processGroupId]) => {
                     const dialogReference = this.dialog.open(CreateControllerService, {
-                        ...DIALOG_SIZES.MEDIUM,
+                        ...DIALOG_SIZES.LARGE,
                         data: {
                             controllerServiceTypes
                         }
