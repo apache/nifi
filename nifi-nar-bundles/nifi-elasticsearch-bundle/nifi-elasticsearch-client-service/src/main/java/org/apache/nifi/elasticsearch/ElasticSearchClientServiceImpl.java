@@ -192,17 +192,21 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             responseCharset = Charset.forName(context.getProperty(CHARSET).getValue());
 
             // re-create the ObjectMapper in case the SUPPRESS_NULLS property has changed - the JsonInclude settings aren't dynamic
-            mapper = new ObjectMapper();
-            if (ALWAYS_SUPPRESS.getValue().equals(context.getProperty(SUPPRESS_NULLS).getValue())) {
-                mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-                mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-            }
+            createObjectMapper(context);
 
-            prettyPrintWriter = mapper.writerWithDefaultPrettyPrinter();
         } catch (final Exception ex) {
             getLogger().error("Could not initialize ElasticSearch client.", ex);
             throw new InitializationException(ex);
         }
+    }
+
+    private void createObjectMapper(final ConfigurationContext context) {
+        mapper = new ObjectMapper();
+        if (ALWAYS_SUPPRESS.getValue().equals(context.getProperty(SUPPRESS_NULLS).getValue())) {
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        }
+        prettyPrintWriter = mapper.writerWithDefaultPrettyPrinter();
     }
 
     @OnDisabled
@@ -217,6 +221,9 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             this.client = null;
         }
         this.url = null;
+        this.mapper = null;
+        this.prettyPrintWriter = null;
+        this.responseCharset = null;
     }
 
     @Override
@@ -230,6 +237,9 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                 .verificationStepName(VERIFICATION_STEP_WARNINGS);
         final ConfigVerificationResult.Builder snifferResult = new ConfigVerificationResult.Builder()
                 .verificationStepName(VERIFICATION_STEP_SNIFFER);
+
+        responseCharset = Charset.forName(context.getProperty(CHARSET).getValue());
+        createObjectMapper(context);
 
         // configure the Rest Client
         try (final RestClient verifyClient = setupClient(context)) {
@@ -252,6 +262,9 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             clientSetupResult.outcome(ConfigVerificationResult.Outcome.FAILED)
                     .explanation("Unable to configure, are all mandatory properties set (see logs for details)?");
         } finally {
+            responseCharset = null;
+            mapper = null;
+            prettyPrintWriter = null;
             final ConfigVerificationResult clientSetup = clientSetupResult.build();
             if (ConfigVerificationResult.Outcome.SUCCESSFUL != clientSetup.getOutcome()) {
                 connectionResult.outcome(ConfigVerificationResult.Outcome.SKIPPED)
@@ -266,6 +279,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             results.add(connectionResult.build());
             results.add(warningsResult.build());
             results.add(snifferResult.build());
+
         }
 
         return results;

@@ -20,6 +20,7 @@ import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.processor.exception.ProcessException;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 public class EmptyPreparedQuery implements PreparedQuery {
@@ -48,5 +49,10 @@ public class EmptyPreparedQuery implements PreparedQuery {
     @Override
     public Set<String> getExplicitlyReferencedAttributes() {
         return Collections.emptySet();
+    }
+
+    @Override
+    public List<Expression> getExpressions() {
+        return List.of();
     }
 }

@@ -405,26 +405,6 @@
         <cve>CVE-2020-8908</cve>
     </suppress>
     <suppress>
-        <notes>CVE-2021-44521 applies to Apache Cassandra Server</notes>
-        <packageUrl regex="true">^pkg:maven/com\.datastax\.cassandra/cassandra\-driver\-extras@.*$</packageUrl>
-        <cve>CVE-2021-44521</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2020-17516 applies to Apache Cassandra Server</notes>
-        <packageUrl regex="true">^pkg:maven/com\.datastax\.cassandra/cassandra\-driver\-extras@.*$</packageUrl>
-        <cve>CVE-2020-17516</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2019-2684 applies to Apache Cassandra Server</notes>
-        <packageUrl regex="true">^pkg:maven/com\.datastax\.cassandra/cassandra\-driver\-extras@.*$</packageUrl>
-        <cve>CVE-2019-2684</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2020-13946 applies to Apache Cassandra Server</notes>
-        <packageUrl regex="true">^pkg:maven/com\.datastax\.cassandra/cassandra\-driver\-extras@.*$</packageUrl>
-        <cve>CVE-2020-13946</cve>
-    </suppress>
-    <suppress>
         <notes>Bundled versions of jQuery DataTables are not used</notes>
         <packageUrl regex="true">^pkg:javascript/jquery\.datatables@.*$</packageUrl>
         <vulnerabilityName>prototype pollution</vulnerabilityName>

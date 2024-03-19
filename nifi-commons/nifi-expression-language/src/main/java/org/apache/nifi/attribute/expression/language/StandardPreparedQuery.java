@@ -178,4 +178,9 @@ public class StandardPreparedQuery implements PreparedQuery {
         this.variableImpact = impact;
         return impact;
     }
+
+    @Override
+    public List<Expression> getExpressions() {
+        return Collections.unmodifiableList(expressions);
+    }
 }

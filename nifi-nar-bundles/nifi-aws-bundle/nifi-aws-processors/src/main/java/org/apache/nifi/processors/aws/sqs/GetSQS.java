@@ -121,6 +121,7 @@ public class GetSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
         QUEUE_URL,
         REGION,
         AWS_CREDENTIALS_PROVIDER_SERVICE,
+        SSL_CONTEXT_SERVICE,
         AUTO_DELETE,
         BATCH_SIZE,
         TIMEOUT,

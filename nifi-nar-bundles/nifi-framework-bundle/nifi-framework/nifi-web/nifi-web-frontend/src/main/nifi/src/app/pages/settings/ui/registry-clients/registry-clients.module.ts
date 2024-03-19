@@ -23,10 +23,18 @@ import { RegistryClientTable } from './registry-client-table/registry-client-tab
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
 import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { MatButtonModule } from '@angular/material/button';
 
 @NgModule({
     declarations: [RegistryClients, RegistryClientTable],
     exports: [RegistryClients],
-    imports: [CommonModule, NgxSkeletonLoaderModule, MatTableModule, MatSortModule, NifiTooltipDirective]
+    imports: [
+        CommonModule,
+        NgxSkeletonLoaderModule,
+        MatTableModule,
+        MatSortModule,
+        NifiTooltipDirective,
+        MatButtonModule
+    ]
 })
 export class RegistryClientsModule {}

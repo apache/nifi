@@ -20,24 +20,11 @@
 .extension-creation-dialog {
     @include mat.button-density(-1);
 
-    .type-table {
-        @include mat.table-density(-4);
-        min-width: 740px;
+    .listing-table {
+        width: 740px;
 
         table {
-            width: 100%;
-
-            td,
-            th {
-                max-width: 300px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                padding: 0 8px;
-                cursor: default;
-            }
-
-            .fa {
+            .fa.fa-shield {
                 width: 10px;
                 height: 14px;
                 margin-right: 2px;

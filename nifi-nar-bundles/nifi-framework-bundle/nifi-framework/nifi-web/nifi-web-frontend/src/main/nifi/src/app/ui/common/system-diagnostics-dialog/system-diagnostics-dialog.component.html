@@ -229,7 +229,7 @@
         <mat-dialog-actions>
             <div class="flex flex-1 justify-between">
                 <div class="refresh-container flex items-center gap-x-2">
-                    <button class="nifi-button" (click)="refreshSystemDiagnostics()">
+                    <button mat-icon-button (click)="refreshSystemDiagnostics()">
                         <i class="fa fa-refresh" [class.fa-spin]="(status$ | async) === 'loading'"></i>
                     </button>
                     <div>Last updated:</div>

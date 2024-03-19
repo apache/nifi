@@ -27,6 +27,7 @@ import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { ProcessorStatusSnapshot, ProcessorStatusSnapshotEntity } from '../../../state';
 import { ComponentStatusTable } from '../../common/component-status-table/component-status-table.component';
+import { MatButtonModule } from '@angular/material/button';
 
 export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 'in' | 'out' | 'readWrite' | 'tasks';
 
@@ -35,7 +36,15 @@ export type SupportedColumns = 'name' | 'type' | 'processGroup' | 'runStatus' | 
     templateUrl: './processor-status-table.component.html',
     styleUrls: ['./processor-status-table.component.scss'],
     standalone: true,
-    imports: [RouterLink, SummaryTableFilterModule, MatTableModule, MatSortModule, NgClass, MatPaginatorModule]
+    imports: [
+        RouterLink,
+        SummaryTableFilterModule,
+        MatTableModule,
+        MatSortModule,
+        NgClass,
+        MatPaginatorModule,
+        MatButtonModule
+    ]
 })
 export class ProcessorStatusTable extends ComponentStatusTable<ProcessorStatusSnapshotEntity> {
     filterableColumns: SummaryTableFilterColumn[] = [

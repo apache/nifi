@@ -50,7 +50,7 @@ export class ErrorEffects {
                 ofType(ErrorActions.snackBarError),
                 map((action) => action.error),
                 tap((error) => {
-                    this.snackBar.open(error, 'Dismiss', { panelClass: 'nifi-snackbar', duration: 30000 });
+                    this.snackBar.open(error, 'Dismiss', { duration: 30000 });
                 })
             ),
         { dispatch: false }

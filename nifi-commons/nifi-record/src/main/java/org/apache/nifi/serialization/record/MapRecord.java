@@ -474,6 +474,25 @@ public class MapRecord implements Record {
     }
 
     @Override
+    public void setValue(final String fieldName, final Object value) {
+        final Optional<RecordField> existingField = getSchema().getField(fieldName);
+        RecordField recordField = null;
+        if (existingField.isPresent()) {
+            final DataType existingDataType = existingField.get().getDataType();
+            final boolean compatible = DataTypeUtils.isCompatibleDataType(value, existingDataType);
+            if (compatible) {
+                recordField = existingField.get();
+            }
+        }
+        if (recordField == null) {
+            final DataType inferredDataType = DataTypeUtils.inferDataType(value, RecordFieldType.STRING.getDataType());
+            recordField = new RecordField(fieldName, inferredDataType);
+        }
+
+        setValue(recordField, value);
+    }
+
+    @Override
     public void remove(final RecordField field) {
         final Optional<RecordField> existingField = resolveField(field);
         existingField.ifPresent(recordField -> values.remove(recordField.getFieldName()));
@@ -519,21 +538,6 @@ public class MapRecord implements Record {
         }
 
         schema = new SimpleRecordSchema(schemaFields);
-    }
-
-    @Override
-    public void setValue(final String fieldName, final Object value) {
-        final Optional<RecordField> existingField = setValueAndGetField(fieldName, value);
-
-        if (existingField.isEmpty()) {
-            if (inactiveFields == null) {
-                inactiveFields = new LinkedHashSet<>();
-            }
-
-            final DataType inferredDataType = DataTypeUtils.inferDataType(value, RecordFieldType.STRING.getDataType());
-            final RecordField field = new RecordField(fieldName, inferredDataType);
-            inactiveFields.add(field);
-        }
     }
 
 
@@ -642,7 +646,7 @@ public class MapRecord implements Record {
 
     @Override
     public void incorporateInactiveFields() {
-        final List<RecordField> updatedFields = new ArrayList<>();
+        final Map<String, RecordField> fieldsByName = new LinkedHashMap<>();
 
         boolean fieldUpdated = false;
         for (final RecordField field : schema.getFields()) {
@@ -651,7 +655,7 @@ public class MapRecord implements Record {
                 fieldUpdated = true;
             }
 
-            updatedFields.add(updated);
+            fieldsByName.put(updated.getFieldName(), updated);
         }
 
         if (!fieldUpdated && (inactiveFields == null || inactiveFields.isEmpty())) {
@@ -660,13 +664,21 @@ public class MapRecord implements Record {
 
         if (inactiveFields != null) {
             for (final RecordField field : inactiveFields) {
-                if (!updatedFields.contains(field)) {
-                    updatedFields.add(field);
+                final RecordField existingField = fieldsByName.get(field.getFieldName());
+                if (existingField == null) {
+                    fieldsByName.put(field.getFieldName(), field);
+                } else {
+                    if (Objects.equals(existingField, field)) {
+                        continue;
+                    }
+
+                    final RecordField merged = DataTypeUtils.merge(existingField, field);
+                    fieldsByName.put(field.getFieldName(), merged);
                 }
             }
         }
 
-        this.schema = new SimpleRecordSchema(updatedFields);
+        this.schema = new SimpleRecordSchema(new ArrayList<>(fieldsByName.values()));
     }
 
     private RecordField getUpdatedRecordField(final RecordField field) {

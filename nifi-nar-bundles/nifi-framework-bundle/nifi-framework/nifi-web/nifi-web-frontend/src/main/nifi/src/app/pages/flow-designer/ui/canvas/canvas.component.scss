@@ -47,10 +47,6 @@
         font-family: Roboto;
     }
 
-    g.component rect.border {
-        stroke-width: 1;
-    }
-
     g.component rect.border.unauthorized {
         stroke-width: 3;
         stroke-dasharray: 4;

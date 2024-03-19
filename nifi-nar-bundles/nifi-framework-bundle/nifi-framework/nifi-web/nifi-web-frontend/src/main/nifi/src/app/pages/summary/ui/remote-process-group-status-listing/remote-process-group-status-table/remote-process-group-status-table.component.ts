@@ -27,13 +27,22 @@ import { RouterLink } from '@angular/router';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { RemoteProcessGroupStatusSnapshot, RemoteProcessGroupStatusSnapshotEntity } from '../../../state';
 import { ComponentStatusTable } from '../../common/component-status-table/component-status-table.component';
+import { MatButtonModule } from '@angular/material/button';
 
 export type SupportedColumns = 'name' | 'uri' | 'transmitting' | 'sent' | 'received';
 
 @Component({
     selector: 'remote-process-group-status-table',
     standalone: true,
-    imports: [CommonModule, SummaryTableFilterModule, MatSortModule, MatTableModule, RouterLink, MatPaginatorModule],
+    imports: [
+        CommonModule,
+        SummaryTableFilterModule,
+        MatSortModule,
+        MatTableModule,
+        RouterLink,
+        MatPaginatorModule,
+        MatButtonModule
+    ],
     templateUrl: './remote-process-group-status-table.component.html',
     styleUrls: ['./remote-process-group-status-table.component.scss']
 })

@@ -17,6 +17,7 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../../../../../../assets/utils.scss' as utils;
 
 @mixin nifi-theme($material-theme, $canvas-theme) {
     // Get the color config from the theme.
@@ -26,42 +27,41 @@
     // Get the color palette from the color-config.
     $accent-palette: map.get($color-config, 'accent');
     $warn-palette: map.get($color-config, 'warn');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
-    $canvas-accent-palette: map.get($canvas-color-config, 'accent');
+    $canvas-warn-palette: map.get($canvas-color-config, 'warn');
 
     // Get hues from palette
-    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
-    $warn-palette-400: mat.get-color-from-palette($warn-palette, 400);
-    $warn-palette-A200: mat.get-color-from-palette($warn-palette, 'A200');
-    $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
-    $canvas-accent-palette-A200: mat.get-color-from-palette($canvas-accent-palette, 'A200');
+    $accent-palette-default: mat.get-color-from-palette($accent-palette, 'default');
+    $warn-palette-default: mat.get-color-from-palette($warn-palette, default);
+    $canvas-warn-palette-A200: mat.get-color-from-palette($canvas-warn-palette, 'A200');
+    $on-surface: utils.get-on-surface($canvas-color-config);
 
     #lineage {
         canvas,
         svg {
             text.event-type {
-                fill: $canvas-primary-palette-A200;
+                fill: $on-surface;
             }
 
             path.link.selected {
-                stroke: $warn-palette-400;
+                stroke: $warn-palette-default;
+                fill: $warn-palette-default;
             }
 
             g.event circle.selected {
-                fill: $warn-palette-400;
+                fill: $warn-palette-default;
             }
 
             g.event circle.context {
-                fill: $canvas-accent-palette-A200;
+                fill: $canvas-warn-palette-A200;
             }
 
             g.flowfile circle.context,
             g.event circle.context {
-                stroke: $accent-palette-A400;
+                stroke: $accent-palette-default;
             }
 
             .flowfile-icon {
-                color: $warn-palette-A200;
+                color: $accent-palette-default;
             }
         }
     }

@@ -121,7 +121,7 @@
         <nifi.web.http.host />
         <nifi.web.http.port />
         <nifi.web.http.network.interface.default />
-        <nifi.web.https.host>127.0.0.1</nifi.web.https.host>
+        <nifi.web.https.host>localhost</nifi.web.https.host>
         <nifi.web.https.port>8443</nifi.web.https.port>
         <nifi.web.https.network.interface.default />
         <nifi.web.https.application.protocols>h2 http/1.1</nifi.web.https.application.protocols>

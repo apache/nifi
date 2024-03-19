@@ -17,6 +17,7 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../../../assets/utils.scss' as utils;
 
 @mixin nifi-theme($material-theme, $canvas-theme) {
     // Get the color config from the theme.
@@ -28,14 +29,14 @@
     $canvas-primary-palette: map.get($canvas-color-config, 'primary');
 
     // Get hues from palette
-    $primary-palette-700: mat.get-color-from-palette($primary-palette, 700);
-    $canvas-primary-palette-900: mat.get-color-from-palette($canvas-primary-palette, 900);
+    $primary-palette-darker: mat.get-color-from-palette($primary-palette, darker);
+    $surface: utils.get-surface($canvas-color-config);
     $canvas-primary-palette-A100: mat.get-color-from-palette($canvas-primary-palette, 'A100');
     $canvas-primary-palette-A700: mat.get-color-from-palette($canvas-primary-palette, 'A700');
 
     :host ::ng-deep #status-history-chart-container,
     :host ::ng-deep #status-history-chart-control-container {
-        background-color: $canvas-primary-palette-900;
+        background-color: $surface;
 
         .axis path,
         .axis line {
@@ -49,6 +50,6 @@
 
     :host ::ng-deep #status-history-chart-container text,
     #status-history-chart-control-container text {
-        fill: $primary-palette-700;
+        fill: $primary-palette-darker;
     }
 }

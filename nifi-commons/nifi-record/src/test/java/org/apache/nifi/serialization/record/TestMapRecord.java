@@ -19,6 +19,7 @@ package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.junit.jupiter.api.Test;
 
@@ -32,10 +33,59 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestMapRecord {
+
+    @Test
+    public void testIncorporateInactiveFieldsWithUpdate() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("string", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("number", RecordFieldType.INT.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+        final Map<String, Object> values = new HashMap<>();
+        final Record record = new MapRecord(schema, values);
+        record.setValue("number", "value");
+        record.incorporateInactiveFields();
+
+        final RecordSchema updatedSchema = record.getSchema();
+        final DataType dataType = updatedSchema.getDataType("number").orElseThrow();
+        assertSame(RecordFieldType.CHOICE, dataType.getFieldType());
+
+        final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
+        final List<DataType> subTypes = choiceDataType.getPossibleSubTypes();
+        assertEquals(2, subTypes.size());
+        assertTrue(subTypes.contains(RecordFieldType.INT.getDataType()));
+        assertTrue(subTypes.contains(RecordFieldType.STRING.getDataType()));
+    }
+
+    @Test
+    public void testIncorporateInactiveFieldsWithConflict() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("string", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("number", RecordFieldType.INT.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+        final Map<String, Object> values = new HashMap<>();
+        final Record record = new MapRecord(schema, values);
+        record.setValue("new", 8);
+        record.incorporateInactiveFields();
+
+        record.setValue("new", "eight");
+        record.incorporateInactiveFields();
+
+        final DataType dataType = record.getSchema().getDataType("new").orElseThrow();
+        assertSame(RecordFieldType.CHOICE, dataType.getFieldType());
+
+        final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
+        final List<DataType> subTypes = choiceDataType.getPossibleSubTypes();
+        assertEquals(2, subTypes.size());
+        assertTrue(subTypes.contains(RecordFieldType.INT.getDataType()));
+        assertTrue(subTypes.contains(RecordFieldType.STRING.getDataType()));
+    }
 
     @Test
     public void testDefaultValue() {

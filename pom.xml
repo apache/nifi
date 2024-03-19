@@ -117,7 +117,7 @@
         <okio.version>3.8.0</okio.version>
         <org.apache.commons.cli.version>1.6.0</org.apache.commons.cli.version>
         <org.apache.commons.codec.version>1.16.1</org.apache.commons.codec.version>
-        <org.apache.commons.compress.version>1.25.0</org.apache.commons.compress.version>
+        <org.apache.commons.compress.version>1.26.1</org.apache.commons.compress.version>
         <org.apache.commons.lang3.version>3.14.0</org.apache.commons.lang3.version>
         <org.apache.commons.net.version>3.10.0</org.apache.commons.net.version>
         <org.apache.commons.io.version>2.15.1</org.apache.commons.io.version>
@@ -130,32 +130,32 @@
         <com.jayway.jsonpath.version>2.9.0</com.jayway.jsonpath.version>
         <derby.version>10.17.1.0</derby.version>
         <jetty.version>12.0.6</jetty.version>
-        <jackson.bom.version>2.16.1</jackson.bom.version>
+        <jackson.bom.version>2.16.2</jackson.bom.version>
         <avro.version>1.11.3</avro.version>
         <jaxb.runtime.version>4.0.4</jaxb.runtime.version>
         <javax.annotation-api.version>1.3.2</javax.annotation-api.version>
         <jakarta.xml.bind-api.version>4.0.1</jakarta.xml.bind-api.version>
         <jakarta.ws.rs-api.version>3.1.0</jakarta.ws.rs-api.version>
         <json.smart.version>2.5.0</json.smart.version>
-        <groovy.version>4.0.19</groovy.version>
-        <surefire.version>3.1.2</surefire.version>
+        <groovy.version>4.0.20</groovy.version>
+        <surefire.version>3.2.5</surefire.version>
         <hadoop.version>3.3.6</hadoop.version>
         <ozone.version>1.2.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.21</aspectj.version>
         <jersey.bom.version>3.1.4</jersey.bom.version>
-        <log4j2.version>2.20.0</log4j2.version>
+        <log4j2.version>2.23.0</log4j2.version>
         <logback.version>1.4.14</logback.version>
         <mockito.version>5.8.0</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
         <snakeyaml.version>2.2</snakeyaml.version>
         <netty.4.version>4.1.106.Final</netty.4.version>
         <servlet-api.version>6.0.0</servlet-api.version>
-        <spring.version>6.0.17</spring.version>
+        <spring.version>6.0.18</spring.version>
         <spring.security.version>6.2.2</spring.security.version>
         <swagger.annotations.version>2.2.20</swagger.annotations.version>
         <h2.version>2.2.224</h2.version>
-        <zookeeper.version>3.9.1</zookeeper.version>
+        <zookeeper.version>3.9.2</zookeeper.version>
         <caffeine.version>3.1.8</caffeine.version>
         <hapi.version>2.5.1</hapi.version>
     </properties>

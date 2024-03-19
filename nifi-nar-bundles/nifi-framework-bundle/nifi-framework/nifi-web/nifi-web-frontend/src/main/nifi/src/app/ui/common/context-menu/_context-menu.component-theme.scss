@@ -17,6 +17,7 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../../../assets/utils.scss' as utils;
 
 @mixin nifi-theme($material-theme, $canvas-theme) {
     // Get the color config from the theme.
@@ -25,42 +26,41 @@
 
     // Get the color palette from the color-config.
     $primary-palette: map.get($color-config, 'primary');
-    $accent-palette: map.get($color-config, 'accent');
     $canvas-primary-palette: map.get($canvas-color-config, 'primary');
     $canvas-accent-palette: map.get($canvas-color-config, 'accent');
 
     // Get hues from palette
-    $primary-palette-50: mat.get-color-from-palette($primary-palette, 50);
-    $primary-palette-200: mat.get-color-from-palette($primary-palette, 200);
-    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
-    $canvas-primary-palette-50: mat.get-color-from-palette($canvas-primary-palette, 50);
-    $canvas-primary-palette-300: mat.get-color-from-palette($canvas-primary-palette, 300);
+    $primary-palette-default: mat.get-color-from-palette($primary-palette, 'default');
+    $surface-darker: utils.get-surface($canvas-color-config, darker);
+    $canvas-primary-palette-500: mat.get-color-from-palette($canvas-primary-palette, 500);
+    $on-surface-medium: utils.get-on-surface($canvas-color-config, medium);
+    $on-surface-highlight: utils.get-on-surface($canvas-color-config, highlight);
     $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
-    $canvas-accent-palette-800: mat.get-color-from-palette($canvas-accent-palette, 800);
+    $canvas-accent-palette-A700: mat.get-color-from-palette($canvas-accent-palette, 'A700');
 
     div.context-menu {
-        background-color: $primary-palette-50;
-        border: 1px solid $accent-palette-A400;
-        box-shadow: 0 3px 6px $canvas-primary-palette-50;
-        color: $accent-palette-A400;
+        background-color: $surface-darker;
+        border: 1px solid $primary-palette-default;
+        box-shadow: 0 3px 6px $canvas-primary-palette-A200;
+        color: utils.get-color-on-surface($color-config, $surface-darker);
 
         .context-menu-item {
             .context-menu-item-text {
-                color: $canvas-primary-palette-A200;
+                color: $on-surface-medium;
             }
         }
 
         .context-menu-item:hover {
-            background-color: $primary-palette-200;
+            background-color: $on-surface-highlight;
         }
 
         .context-menu-item:active {
-            background-color: $canvas-primary-palette-300;
+            background-color: $canvas-primary-palette-500;
         }
 
         &.show-focused {
             .context-menu-item:focus {
-                outline: $canvas-accent-palette-800 solid 1px;
+                outline: $canvas-accent-palette-A700 solid 1px;
             }
         }
     }

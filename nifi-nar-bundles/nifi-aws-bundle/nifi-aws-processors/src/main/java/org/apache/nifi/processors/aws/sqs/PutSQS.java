@@ -106,6 +106,7 @@ public class PutSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
         QUEUE_URL,
         REGION,
         AWS_CREDENTIALS_PROVIDER_SERVICE,
+        SSL_CONTEXT_SERVICE,
         DELAY,
         TIMEOUT,
         ENDPOINT_OVERRIDE,

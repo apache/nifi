@@ -28,7 +28,6 @@ import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.proxy.ProxyConfiguration;
 
 public abstract class AbstractGCPubSubWithProxyProcessor extends AbstractGCPubSubProcessor {
@@ -36,28 +35,13 @@ public abstract class AbstractGCPubSubWithProxyProcessor extends AbstractGCPubSu
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return List.of(
             PROJECT_ID,
-            ProxyConfiguration.createProxyConfigPropertyDescriptor(true, ProxyAwareTransportFactory.PROXY_SPECS),
+            PROXY_CONFIGURATION_SERVICE,
             GCP_CREDENTIALS_PROVIDER_SERVICE
         );
     }
 
     protected TransportChannelProvider getTransportChannelProvider(ProcessContext context) {
-        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context, () -> {
-            final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
-            final Integer proxyPort = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
-            if (proxyHost != null && proxyPort != null && proxyPort > 0) {
-                final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
-                final String proxyUser = context.getProperty(HTTP_PROXY_USERNAME).evaluateAttributeExpressions().getValue();
-                final String proxyPassword = context.getProperty(HTTP_PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
-                componentProxyConfig.setProxyType(Proxy.Type.HTTP);
-                componentProxyConfig.setProxyServerHost(proxyHost);
-                componentProxyConfig.setProxyServerPort(proxyPort);
-                componentProxyConfig.setProxyUserName(proxyUser);
-                componentProxyConfig.setProxyUserPassword(proxyPassword);
-                return componentProxyConfig;
-            }
-            return ProxyConfiguration.DIRECT_CONFIGURATION;
-        });
+        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
 
         return TopicAdminSettings.defaultGrpcTransportProviderBuilder()
                 .setChannelConfigurator(managedChannelBuilder -> managedChannelBuilder.proxyDetector(

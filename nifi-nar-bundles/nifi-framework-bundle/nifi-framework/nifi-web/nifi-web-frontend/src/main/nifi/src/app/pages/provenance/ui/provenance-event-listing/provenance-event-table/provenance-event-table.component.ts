@@ -40,6 +40,7 @@ import { MatSliderModule } from '@angular/material/slider';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterSummary } from '../../../../../state/cluster-summary';
+import { MatButtonModule } from '@angular/material/button';
 
 @Component({
     selector: 'provenance-event-table',
@@ -59,7 +60,8 @@ import { ClusterSummary } from '../../../../../state/cluster-summary';
         MatPaginatorModule,
         LineageComponent,
         MatSliderModule,
-        ErrorBanner
+        ErrorBanner,
+        MatButtonModule
     ],
     styleUrls: ['./provenance-event-table.component.scss']
 })

@@ -72,7 +72,7 @@
     <mat-dialog-actions>
         <div class="flex justify-between align-middle w-full">
             <div class="refresh-container flex items-center gap-x-2">
-                <button class="nifi-button" (click)="refresh()">
+                <button mat-icon-button (click)="refresh()">
                     <i class="fa fa-refresh" [class.fa-spin]="loading$ | async"></i>
                 </button>
                 <div>Last updated:</div>

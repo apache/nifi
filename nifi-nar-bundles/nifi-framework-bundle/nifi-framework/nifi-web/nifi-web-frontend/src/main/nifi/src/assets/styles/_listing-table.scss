@@ -1,0 +1,132 @@
+/*!
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+@use 'sass:map';
+@use '@angular/material' as mat;
+@use '../utils.scss' as utils;
+
+@mixin styles() {
+    .listing-table {
+        border-width: 1px;
+        border-style: solid;
+
+        table {
+            width: 100%;
+            table-layout: fixed;
+
+            td,
+            th {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                padding: 0 8px;
+                cursor: default;
+            }
+
+            .fa {
+                width: 10px;
+                height: 14px;
+                text-align: center;
+            }
+
+            .icon {
+                width: 10px;
+                text-align: center;
+            }
+
+            .mat-column-moreDetails {
+                min-width: 30px;
+            }
+
+            .mat-column-actions {
+                min-width: 115px;
+            }
+        }
+    }
+
+    .mat-sort-header-content {
+        overflow: hidden;
+    }
+}
+
+@mixin colors($material-theme, $canvas-theme) {
+    // Get the color config from the theme.
+    $color-config: mat.get-color-config($material-theme);
+    $canvas-color-config: mat.get-color-config($canvas-theme);
+
+    // Get the color palette from the color-config.
+    $primary-palette: map.get($color-config, 'primary');
+
+    // Get hues from palette
+    $primary-palette-default: mat.get-color-from-palette($primary-palette, 'default');
+    $primary-palette-default-contrast: mat.get-color-from-palette($primary-palette, 'default-contrast');
+    $primary-palette-darker: mat.get-color-from-palette($primary-palette, 'darker');
+    $primary-palette-darker-contrast: mat.get-color-from-palette($primary-palette, 'darker-contrast');
+    $surface-darker: utils.get-surface($canvas-color-config, darker);
+    $surface: utils.get-surface($canvas-color-config);
+    $accent-surface: utils.get-surface($color-config, default, 'accent');
+    $header-surface: utils.ensure-contrast($primary-palette-default, $surface, $primary-palette-darker);
+    $header-on-surface: utils.ensure-contrast(
+        $primary-palette-default-contrast,
+        $header-surface,
+        $primary-palette-darker-contrast
+    );
+    $surface-highlight: utils.get-on-surface($canvas-color-config, 'highlight');
+    $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
+
+    .listing-table {
+        border-color: $on-surface-lighter;
+
+        table {
+            th {
+                background-color: $header-surface !important;
+                color: $header-on-surface;
+                user-select: none;
+
+                .mat-sort-header-arrow {
+                    color: $header-on-surface;
+                }
+            }
+
+            th,
+            td {
+                border-bottom-width: 1px;
+                border-bottom-style: solid;
+            }
+
+            tr:hover {
+                background-color: $surface-highlight !important;
+            }
+
+            .selected {
+                background-color: $accent-surface !important;
+            }
+
+            .even {
+                background-color: $surface-darker;
+            }
+
+            .fa {
+                color: utils.get-color-on-surface($color-config, $surface);
+            }
+
+            .icon {
+                color: utils.get-color-on-surface($color-config, $surface);
+            }
+        }
+    }
+}

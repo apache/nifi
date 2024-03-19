@@ -17,6 +17,7 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../../../assets/utils.scss' as utils;
 
 @mixin nifi-theme($material-theme, $canvas-theme) {
     // Get the color config from the theme.
@@ -25,40 +26,43 @@
 
     // Get the color palette from the color-config.
     $primary-palette: map.get($color-config, 'primary');
-    $warn-palette: map.get($color-config, 'warn');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
+    $accent-palette: map.get($color-config, 'accent');
 
     // Get hues from palette
-    $primary-palette-300: mat.get-color-from-palette($primary-palette, 300);
-    $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
-    $canvas-primary-palette-200: mat.get-color-from-palette($canvas-primary-palette, 200);
-    $canvas-primary-palette-600: mat.get-color-from-palette($canvas-primary-palette, 600);
-    $canvas-primary-palette-900: mat.get-color-from-palette($canvas-primary-palette, 900);
-    $warn-palette-A200: mat.get-color-from-palette($warn-palette, 'A200');
+    $primary-palette-lighter: mat.get-color-from-palette($primary-palette, lighter);
+    $primary-palette-default: mat.get-color-from-palette($primary-palette, default);
+    $accent-palette-default: mat.get-color-from-palette($accent-palette, default);
+    $surface: utils.get-surface($canvas-color-config);
+    $surface-darker: utils.get-surface($canvas-color-config, darker);
+    $on-surface: utils.get-on-surface($canvas-color-config);
 
     .provenance-header {
-        color: $primary-palette-500;
+        color: $primary-palette-default;
     }
 
     rect.lineage {
-        fill: $canvas-primary-palette-600;
+        fill: $surface-darker;
     }
 
     g.flowfile-icon text {
-        fill: $warn-palette-A200;
+        fill: $accent-palette-default; // Accent palette
     }
 
     circle.event-circle {
-        fill: $primary-palette-300;
-        stroke: $canvas-primary-palette-200;
+        fill: $primary-palette-lighter;
+        stroke: $on-surface;
     }
 
     path.link {
-        stroke: $canvas-primary-palette-200;
+        stroke: $on-surface;
+    }
+
+    marker {
+        fill: $on-surface;
     }
 
     circle.flowfile-link {
-        fill: $canvas-primary-palette-900;
-        stroke: $canvas-primary-palette-200;
+        fill: $surface;
+        stroke: $on-surface;
     }
 }

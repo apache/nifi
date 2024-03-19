@@ -798,13 +798,14 @@ public class DataTypeUtils {
             return false;
         }
         // Either an object array (check the element type) or a String to be converted to byte[]
-        if (value instanceof Object[]) {
-            for (Object o : ((Object[]) value)) {
+        if (value instanceof final Object[] array) {
+            for (final Object element : array) {
                 // Check each element to ensure its type is the same or can be coerced (if need be)
-                if (!isCompatibleDataType(o, elementDataType, strict)) {
+                if (!isCompatibleDataType(element, elementDataType, strict)) {
                     return false;
                 }
             }
+
             return true;
         } else {
             return value instanceof String && RecordFieldType.BYTE.getDataType().equals(elementDataType);
