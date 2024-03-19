@@ -28,7 +28,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { selectStatus } from './counter-listing.selectors';
-import { DIALOGS } from '../../../../app.component';
+import { DIALOG_SIZES } from '../../../../index';
 
 @Injectable()
 export class CounterListingEffects {
@@ -69,7 +69,7 @@ export class CounterListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOGS.SMALL_DIALOG,
+                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Reset Counter',
                             message: `Reset counter '${request.counter.name}' to default value?`

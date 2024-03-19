@@ -55,7 +55,7 @@ import { FetchParameterProviderParameters } from '../../ui/parameter-providers/f
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
-import { DIALOGS } from '../../../../app.component';
+import { DIALOG_SIZES } from '../../../../index';
 
 @Injectable()
 export class ParameterProvidersEffects {
@@ -110,7 +110,7 @@ export class ParameterProvidersEffects {
                 concatLatestFrom(() => this.store.select(selectParameterProviderTypes)),
                 tap(([, parameterProviderTypes]) => {
                     const dialogReference = this.dialog.open(CreateParameterProvider, {
-                        ...DIALOGS.MEDIUM_DIALOG,
+                        ...DIALOG_SIZES.MEDIUM,
                         data: {
                             parameterProviderTypes
                         }
@@ -187,7 +187,7 @@ export class ParameterProvidersEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOGS.SMALL_DIALOG,
+                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Delete Parameter Provider',
                             message: `Delete parameter provider ${request.parameterProvider.component.name}?`
@@ -257,7 +257,7 @@ export class ParameterProvidersEffects {
                 tap((request) => {
                     const id = request.id;
                     const editDialogReference = this.dialog.open(EditParameterProvider, {
-                        ...DIALOGS.LARGE_DIALOG,
+                        ...DIALOG_SIZES.LARGE,
                         data: {
                             parameterProvider: request.parameterProvider
                         },
@@ -270,7 +270,7 @@ export class ParameterProvidersEffects {
                         // confirm navigating away while changes are unsaved
                         if (editDialogReference.componentInstance.editParameterProviderForm.dirty) {
                             const promptSaveDialogRef = this.dialog.open(YesNoDialog, {
-                                ...DIALOGS.SMALL_DIALOG,
+                                ...DIALOG_SIZES.SMALL,
                                 data: {
                                     title: 'Parameter Provider Configuration',
                                     message: `Save changes before going to this ${destination}`
@@ -440,7 +440,7 @@ export class ParameterProvidersEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogRef = this.dialog.open(FetchParameterProviderParameters, {
-                        ...DIALOGS.XL_DIALOG,
+                        ...DIALOG_SIZES.XL,
                         data: request
                     });
 

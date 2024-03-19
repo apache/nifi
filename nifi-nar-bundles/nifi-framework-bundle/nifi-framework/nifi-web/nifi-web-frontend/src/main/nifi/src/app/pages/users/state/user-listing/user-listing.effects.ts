@@ -35,7 +35,7 @@ import { UserAccessPolicies } from '../../ui/user-listing/user-access-policies/u
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { DIALOGS } from '../../../../app.component';
+import { DIALOG_SIZES } from '../../../../index';
 
 @Injectable()
 export class UserListingEffects {
@@ -98,7 +98,7 @@ export class UserListingEffects {
                         existingUserGroups
                     };
                     const dialogReference = this.dialog.open(EditTenantDialog, {
-                        ...DIALOGS.MEDIUM_DIALOG,
+                        ...DIALOG_SIZES.MEDIUM,
                         data: editTenantRequest
                     });
 
@@ -330,7 +330,7 @@ export class UserListingEffects {
                         existingUserGroups
                     };
                     const dialogReference = this.dialog.open(EditTenantDialog, {
-                        ...DIALOGS.MEDIUM_DIALOG,
+                        ...DIALOG_SIZES.MEDIUM,
                         data: editTenantRequest
                     });
 
@@ -556,7 +556,7 @@ export class UserListingEffects {
                         existingUserGroups
                     };
                     const dialogReference = this.dialog.open(EditTenantDialog, {
-                        ...DIALOGS.MEDIUM_DIALOG,
+                        ...DIALOG_SIZES.MEDIUM,
                         data: editTenantRequest
                     });
 
@@ -655,7 +655,7 @@ export class UserListingEffects {
                 tap((request) => {
                     this.dialog
                         .open(UserAccessPolicies, {
-                            ...DIALOGS.LARGE_DIALOG,
+                            ...DIALOG_SIZES.LARGE,
                             data: request
                         })
                         .afterClosed()
@@ -680,7 +680,7 @@ export class UserListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOGS.SMALL_DIALOG,
+                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Delete User Account',
                             message: `Are you sure you want to delete the user account for '${request.user.component.identity}'?`
@@ -721,7 +721,7 @@ export class UserListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOGS.SMALL_DIALOG,
+                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Delete User Account',
                             message: `Are you sure you want to delete the user group account for '${request.userGroup.component.identity}'?`
