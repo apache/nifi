@@ -15,11 +15,11 @@
 <extensionManifest>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-websocket-services-jetty-nar</artifactId>
-    <version>2.7.0-SNAPSHOT</version>
+    <version>2.9.0-SNAPSHOT</version>
     <parentNar>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-websocket-services-api-nar</artifactId>
-        <version>2.7.0-SNAPSHOT</version>
+        <version>2.9.0-SNAPSHOT</version>
     </parentNar>
     <systemApiVersion>2.5.0-SNAPSHOT</systemApiVersion>
     <buildInfo>
@@ -105,7 +105,7 @@
                         <className>org.apache.nifi.ssl.SSLContextProvider</className>
                         <groupId>org.apache.nifi</groupId>
                         <artifactId>nifi-standard-services-api-nar</artifactId>
-                        <version>2.7.0-SNAPSHOT</version>
+                        <version>2.9.0-SNAPSHOT</version>
                     </controllerServiceDefinition>
                     <required>false</required>
                     <sensitive>false</sensitive>
@@ -223,13 +223,13 @@
                     <className>org.apache.nifi.websocket.WebSocketClientService</className>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-websocket-services-api-nar</artifactId>
-                    <version>2.7.0-SNAPSHOT</version>
+                    <version>2.9.0-SNAPSHOT</version>
                 </providedServiceAPI>
                 <providedServiceAPI>
                     <className>org.apache.nifi.websocket.WebSocketService</className>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-websocket-services-api-nar</artifactId>
-                    <version>2.7.0-SNAPSHOT</version>
+                    <version>2.9.0-SNAPSHOT</version>
                 </providedServiceAPI>
             </providedServiceAPIs>
         </extension>
@@ -316,7 +316,7 @@
                         <className>org.apache.nifi.ssl.SSLContextProvider</className>
                         <groupId>org.apache.nifi</groupId>
                         <artifactId>nifi-standard-services-api-nar</artifactId>
-                        <version>2.7.0-SNAPSHOT</version>
+                        <version>2.9.0-SNAPSHOT</version>
                     </controllerServiceDefinition>
                     <required>false</required>
                     <sensitive>false</sensitive>
@@ -444,13 +444,13 @@
                     <className>org.apache.nifi.websocket.WebSocketServerService</className>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-websocket-services-api-nar</artifactId>
-                    <version>2.7.0-SNAPSHOT</version>
+                    <version>2.9.0-SNAPSHOT</version>
                 </providedServiceAPI>
                 <providedServiceAPI>
                     <className>org.apache.nifi.websocket.WebSocketService</className>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-websocket-services-api-nar</artifactId>
-                    <version>2.7.0-SNAPSHOT</version>
+                    <version>2.9.0-SNAPSHOT</version>
                 </providedServiceAPI>
             </providedServiceAPIs>
         </extension>
