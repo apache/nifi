@@ -90,14 +90,33 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
             "TRANSACTION_SERIALIZABLE"
     );
 
+    private static final String FETCH_SIZE_NAME = "Fetch Size";
+    private static final String AUTO_COMMIT_NAME = "Set Auto Commit";
+
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
-            .name("Fetch Size")
+            .name(FETCH_SIZE_NAME)
             .description("The number of result rows to be fetched from the result set at a time. This is a hint to the database driver and may not be "
-                    + "honored and/or exact. If the value specified is zero, then the hint is ignored.")
+                    + "honored and/or exact. If the value specified is zero, then the hint is ignored. "
+                    + "If using PostgreSQL, then '" + AUTO_COMMIT_NAME + "' must be equal to 'false' to cause '" + FETCH_SIZE_NAME + "' to take effect.")
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build();
+
+    public static final PropertyDescriptor AUTO_COMMIT = new PropertyDescriptor.Builder()
+            .name(AUTO_COMMIT_NAME)
+            .description("Allows enabling or disabling the auto commit functionality of the DB connection. Default value is 'No value set'. " +
+                    "'No value set' will leave the db connection's auto commit mode unchanged. " +
+                    "For some JDBC drivers such as PostgreSQL driver, it is required to disable the auto commit functionality " +
+                    "to get the '" + FETCH_SIZE_NAME + "' setting to take effect. " +
+                    "When auto commit is enabled, PostgreSQL driver ignores '" + FETCH_SIZE_NAME + "' setting and loads all rows of the result set to memory at once. " +
+                    "This could lead for a large amount of memory usage when executing queries which fetch large data sets. " +
+                    "More Details of this behaviour in PostgreSQL driver can be found in https://jdbc.postgresql.org//documentation/head/query.html.")
+            .allowableValues("true", "false")
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .clearDefaultValue()
+            .required(false)
             .build();
 
     public static final PropertyDescriptor MAX_ROWS_PER_FLOW_FILE = new PropertyDescriptor.Builder()
@@ -304,7 +323,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                     }
                 }
             } catch (final Exception e) {
-                logger.error("Unable to execute SQL select query {} due to {}", new Object[]{selectMaxQuery, e});
+                logger.error("Unable to execute SQL select query {} due to {}", selectMaxQuery, e);
                 context.yield();
             }
         }
@@ -343,6 +362,19 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
             if (logger.isDebugEnabled()) {
                 logger.debug("Executing query {}", new Object[] { selectQuery });
             }
+
+            final boolean originalAutoCommit = con.getAutoCommit();
+            final Boolean setAutoCommitValue = context.getProperty(AUTO_COMMIT).evaluateAttributeExpressions().asBoolean();
+            if (setAutoCommitValue != null && originalAutoCommit != setAutoCommitValue) {
+                try {
+                    con.setAutoCommit(setAutoCommitValue);
+                    logger.debug("Driver connection changed to setAutoCommit({})", setAutoCommitValue);
+                } catch (Exception ex) {
+                    logger.debug("Failed to setAutoCommit({}) due to {}: {}",
+                            setAutoCommitValue, ex.getClass().getName(), ex.getMessage());
+                }
+            }
+
             try (final ResultSet resultSet = st.executeQuery(selectQuery)) {
                 int fragmentIndex=0;
                 // Max values will be updated in the state property map by the callback
@@ -441,12 +473,22 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                 }
             } catch (final SQLException e) {
                 throw e;
+            } finally {
+                if (con.getAutoCommit() != originalAutoCommit) {
+                    try {
+                        con.setAutoCommit(originalAutoCommit);
+                        logger.debug("Driver connection reset to original setAutoCommit({})", originalAutoCommit);
+                    } catch (Exception ex) {
+                        logger.debug("Failed to setAutoCommit({}) due to {}: {}",
+                                originalAutoCommit, ex.getClass().getName(), ex.getMessage());
+                    }
+                }
             }
 
             session.transfer(resultSetFlowFiles, REL_SUCCESS);
 
         } catch (final ProcessException | SQLException e) {
-            logger.error("Unable to execute SQL select query {} due to {}", new Object[]{selectQuery, e});
+            logger.error("Unable to execute SQL select query {} due to {}", selectQuery, e);
             if (!resultSetFlowFiles.isEmpty()) {
                 session.remove(resultSetFlowFiles);
             }
