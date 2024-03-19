@@ -757,7 +757,7 @@ export class FlowEffects {
 
                     if (someRegistries) {
                         const dialogReference = this.dialog.open(ImportFromRegistry, {
-                            ...DIALOG_SIZES.MEDIUM,
+                            ...DIALOG_SIZES.LARGE,
                             data: request
                         });
 
