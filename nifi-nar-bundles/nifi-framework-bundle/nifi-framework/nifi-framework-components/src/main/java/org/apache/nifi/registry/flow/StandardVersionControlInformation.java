@@ -131,7 +131,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
         }
 
         public StandardVersionControlInformation build() {
-            //Objects.requireNonNull(storageLocation, "Flow Storage (Registry) Location must be specified");
+            Objects.requireNonNull(storageLocation, "Flow Storage (Registry) Location must be specified");
             Objects.requireNonNull(bucketIdentifier, "Bucket ID must be specified");
             Objects.requireNonNull(flowIdentifier, "Flow ID must be specified");
             Objects.requireNonNull(version, "Version must be specified");
