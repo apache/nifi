@@ -30,11 +30,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class RegistryUtil {
     private static final Logger logger = LoggerFactory.getLogger(RegistryUtil.class);
+
+    private static final Pattern REGISTRY_URL_PATTERN = Pattern.compile("^(https?://.+?)/?nifi-registry-api.*$");
 
     private final String registryUrl;
     private NiFiRegistryClient registryClient;
@@ -45,6 +50,11 @@ public class RegistryUtil {
         this.sslContext = sslContext;
     }
 
+    public RegistryUtil(final NiFiRegistryClient registryClient, final String registryUrl, final SSLContext sslContext) {
+        this.registryClient = registryClient;
+        this.registryUrl = registryUrl;
+        this.sslContext = sslContext;
+    }
 
     public VersionedFlowSnapshot getFlowByID(String bucketID, String flowID) throws IOException, NiFiRegistryException {
         return getFlowByID(bucketID, flowID, -1);
@@ -122,6 +132,14 @@ public class RegistryUtil {
         return flowSnapshot;
     }
 
+    protected String getBaseRegistryUrl(final String storageLocation) {
+        final Matcher matcher = REGISTRY_URL_PATTERN.matcher(storageLocation);
+        if (matcher.matches()) {
+            return matcher.group(1);
+        } else {
+            return storageLocation;
+        }
+    }
 
     private void populateVersionedContentsRecursively(final VersionedProcessGroup group, final NiFiUser user) throws NiFiRegistryException, IOException {
         if (group == null) {
@@ -130,12 +148,12 @@ public class RegistryUtil {
 
         final VersionedFlowCoordinates coordinates = group.getVersionedFlowCoordinates();
         if (coordinates != null) {
-            final String registryUrl = coordinates.getRegistryUrl();
+            final String subRegistryUrl = getBaseRegistryUrl(coordinates.getStorageLocation());
             final String bucketId = coordinates.getBucketId();
             final String flowId = coordinates.getFlowId();
             final int version = coordinates.getVersion();
 
-            final RegistryUtil subFlowUtil = new RegistryUtil(registryUrl, sslContext);
+            final RegistryUtil subFlowUtil = getSubRegistryUtil(subRegistryUrl);
             final VersionedFlowSnapshot snapshot = subFlowUtil.getFlowByID(bucketId, flowId, version);
             final VersionedProcessGroup contents = snapshot.getFlowContents();
 
@@ -162,5 +180,16 @@ public class RegistryUtil {
         for (final VersionedProcessGroup child : group.getProcessGroups()) {
             populateVersionedContentsRecursively(child, user);
         }
+    }
+
+    private RegistryUtil getSubRegistryUtil(final String subRegistryUrl) {
+        final RegistryUtil subRegistryUtil;
+        if (registryUrl.startsWith(subRegistryUrl)) {
+            // Share current Registry Client for matching Registry URL
+            subRegistryUtil = new RegistryUtil(registryClient, subRegistryUrl, sslContext);
+        } else {
+            subRegistryUtil = new RegistryUtil(subRegistryUrl, sslContext);
+        }
+        return subRegistryUtil;
     }
 }
