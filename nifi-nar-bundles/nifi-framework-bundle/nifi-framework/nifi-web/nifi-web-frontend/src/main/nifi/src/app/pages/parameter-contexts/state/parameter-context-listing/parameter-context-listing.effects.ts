@@ -248,10 +248,10 @@ export class ParameterContextListingEffects {
                     const parameterContextId: string = request.parameterContext.id;
 
                     const editDialogReference = this.dialog.open(EditParameterContext, {
+                        ...DIALOG_SIZES.LARGE,
                         data: {
                             parameterContext: request.parameterContext
-                        },
-                        panelClass: 'medium-dalog'
+                        }
                     });
 
                     editDialogReference.componentInstance.updateRequest = this.store.select(selectUpdateRequest);
