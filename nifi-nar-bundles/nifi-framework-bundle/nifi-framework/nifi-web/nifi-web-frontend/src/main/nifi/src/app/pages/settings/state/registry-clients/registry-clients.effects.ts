@@ -35,6 +35,7 @@ import { PropertyTableHelperService } from '../../../../service/property-table-h
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { DIALOGS } from '../../../../app.component';
 
 @Injectable()
 export class RegistryClientsEffects {
@@ -78,10 +79,10 @@ export class RegistryClientsEffects {
                 concatLatestFrom(() => this.store.select(selectRegistryClientTypes)),
                 tap(([, registryClientTypes]) => {
                     const dialogReference = this.dialog.open(CreateRegistryClient, {
+                        ...DIALOGS.MEDIUM_DIALOG,
                         data: {
                             registryClientTypes
-                        },
-                        panelClass: 'medium-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -180,9 +181,9 @@ export class RegistryClientsEffects {
                     const registryClientId: string = request.registryClient.id;
 
                     const editDialogReference = this.dialog.open(EditRegistryClient, {
+                        ...DIALOGS.LARGE_DIALOG,
                         data: request,
-                        id: registryClientId,
-                        panelClass: 'large-dialog'
+                        id: registryClientId
                     });
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -195,11 +196,11 @@ export class RegistryClientsEffects {
 
                         if (editDialogReference.componentInstance.editRegistryClientForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
+                                ...DIALOGS.SMALL_DIALOG,
                                 data: {
                                     title: 'Registry Client Configuration',
                                     message: `Save changes before going to this Controller Service?`
-                                },
-                                panelClass: 'small-dialog'
+                                }
                             });
 
                             saveChangesDialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
@@ -302,11 +303,11 @@ export class RegistryClientsEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...DIALOGS.SMALL_DIALOG,
                         data: {
                             title: 'Delete Registry Client',
                             message: `Delete registry client ${request.registryClient.component.name}?`
-                        },
-                        panelClass: 'small-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {

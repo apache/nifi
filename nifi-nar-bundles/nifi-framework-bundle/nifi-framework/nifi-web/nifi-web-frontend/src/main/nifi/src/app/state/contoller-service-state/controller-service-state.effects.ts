@@ -27,6 +27,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { ControllerServiceStateService } from '../../service/controller-service-state.service';
 import { ControllerServiceEntity, ControllerServiceReferencingComponentEntity, isDefinedAndNotNull } from '../shared';
 import { SetEnableRequest, SetEnableStep } from './index';
+import { DIALOGS } from '../../app.component';
 
 @Injectable()
 export class ControllerServiceStateEffects {
@@ -318,11 +319,11 @@ export class ControllerServiceStateEffects {
                 ofType(ControllerServiceActions.showOkDialog),
                 tap((request) => {
                     this.dialog.open(OkDialog, {
+                        ...DIALOGS.MEDIUM_DIALOG,
                         data: {
                             title: request.title,
                             message: request.message
-                        },
-                        panelClass: 'medium-dialog'
+                        }
                     });
                 })
             ),

@@ -32,6 +32,7 @@ import { AddTenantToPolicyDialog } from '../../ui/common/add-tenant-to-policy-di
 import { AddTenantsToPolicyRequest } from './index';
 import { selectUserGroups, selectUsers } from '../tenants/tenants.selectors';
 import { OverridePolicyDialog } from '../../ui/common/override-policy-dialog/override-policy-dialog.component';
+import { DIALOGS } from '../../../../app.component';
 
 @Injectable()
 export class AccessPolicyEffects {
@@ -172,7 +173,7 @@ export class AccessPolicyEffects {
                 concatLatestFrom(() => this.store.select(selectAccessPolicy).pipe(isDefinedAndNotNull())),
                 tap(([, accessPolicy]) => {
                     const dialogReference = this.dialog.open(OverridePolicyDialog, {
-                        panelClass: 'small-dialog'
+                        ...DIALOGS.SMALL_DIALOG
                     });
 
                     dialogReference.componentInstance.copyInheritedPolicy
@@ -289,10 +290,10 @@ export class AccessPolicyEffects {
                 concatLatestFrom(() => this.store.select(selectAccessPolicy)),
                 tap(([, accessPolicy]) => {
                     const dialogReference = this.dialog.open(AddTenantToPolicyDialog, {
+                        ...DIALOGS.MEDIUM_DIALOG,
                         data: {
                             accessPolicy
-                        },
-                        panelClass: 'medium-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.saving$ = this.store.select(selectSaving);
@@ -350,11 +351,11 @@ export class AccessPolicyEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...DIALOGS.SMALL_DIALOG,
                         data: {
                             title: 'Update Policy',
                             message: `Remove '${request.tenant.component.identity}' from this policy?`
-                        },
-                        panelClass: 'small-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
@@ -419,12 +420,12 @@ export class AccessPolicyEffects {
                 ofType(AccessPolicyActions.promptDeleteAccessPolicy),
                 tap(() => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...DIALOGS.SMALL_DIALOG,
                         data: {
                             title: 'Delete Policy',
                             message:
                                 'Are you sure you want to delete this policy? By doing so, the permissions for this component will revert to the inherited policy if applicable.'
-                        },
-                        panelClass: 'small-dialog'
+                        }
                     });
 
                     dialogReference.componentInstance.yes.pipe(take(1)).subscribe(() => {
