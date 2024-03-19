@@ -37,7 +37,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectStatus } from './reporting-tasks.selectors';
 import { HttpErrorResponse } from '@angular/common/http';
-import { DIALOGS } from '../../../../app.component';
+import { DIALOG_SIZES } from '../../../../index';
 
 @Injectable()
 export class ReportingTasksEffects {
@@ -81,7 +81,7 @@ export class ReportingTasksEffects {
                 concatLatestFrom(() => this.store.select(selectReportingTaskTypes)),
                 tap(([, reportingTaskTypes]) => {
                     this.dialog.open(CreateReportingTask, {
-                        ...DIALOGS.MEDIUM_DIALOG,
+                        ...DIALOG_SIZES.MEDIUM,
                         data: {
                             reportingTaskTypes
                         }
@@ -159,7 +159,7 @@ export class ReportingTasksEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOGS.SMALL_DIALOG,
+                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Delete Reporting Task',
                             message: `Delete reporting task ${request.reportingTask.component.name}?`
@@ -224,7 +224,7 @@ export class ReportingTasksEffects {
                     const taskId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditReportingTask, {
-                        ...DIALOGS.LARGE_DIALOG,
+                        ...DIALOG_SIZES.LARGE,
                         data: {
                             reportingTask: request.reportingTask
                         },
@@ -239,7 +239,7 @@ export class ReportingTasksEffects {
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editReportingTaskForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
-                                ...DIALOGS.SMALL_DIALOG,
+                                ...DIALOG_SIZES.SMALL,
                                 data: {
                                     title: 'Reporting Task Configuration',
                                     message: `Save changes before going to this ${destination}?`

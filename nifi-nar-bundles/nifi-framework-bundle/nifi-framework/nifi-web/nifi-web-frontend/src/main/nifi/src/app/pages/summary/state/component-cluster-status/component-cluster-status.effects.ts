@@ -29,7 +29,7 @@ import { selectComponentClusterStatusLatestRequest } from './component-cluster-s
 import { isDefinedAndNotNull } from '../../../../state/shared';
 import { HttpErrorResponse } from '@angular/common/http';
 import * as ErrorActions from '../../../../state/error/error.actions';
-import { DIALOGS } from '../../../../app.component';
+import { DIALOG_SIZES } from '../../../../index';
 
 @Injectable()
 export class ComponentClusterStatusEffects {
@@ -101,7 +101,7 @@ export class ComponentClusterStatusEffects {
                 ),
                 tap(([response, request]) => {
                     const dialogRef = this.dialog.open(ClusterSummaryDialog, {
-                        ...DIALOGS.XL_DIALOG,
+                        ...DIALOG_SIZES.XL,
                         data: request
                     });
                     dialogRef.componentInstance.componentType = response.componentType;

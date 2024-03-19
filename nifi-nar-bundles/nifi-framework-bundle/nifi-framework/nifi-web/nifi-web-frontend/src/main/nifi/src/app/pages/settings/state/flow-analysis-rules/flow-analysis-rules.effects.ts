@@ -37,7 +37,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectStatus } from './flow-analysis-rules.selectors';
 import { HttpErrorResponse } from '@angular/common/http';
-import { DIALOGS } from '../../../../app.component';
+import { DIALOG_SIZES } from '../../../../index';
 
 @Injectable()
 export class FlowAnalysisRulesEffects {
@@ -81,7 +81,7 @@ export class FlowAnalysisRulesEffects {
                 concatLatestFrom(() => this.store.select(selectFlowAnalysisRuleTypes)),
                 tap(([, flowAnalysisRuleTypes]) => {
                     this.dialog.open(CreateFlowAnalysisRule, {
-                        ...DIALOGS.MEDIUM_DIALOG,
+                        ...DIALOG_SIZES.MEDIUM,
                         data: {
                             flowAnalysisRuleTypes
                         }
@@ -157,7 +157,7 @@ export class FlowAnalysisRulesEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOGS.SMALL_DIALOG,
+                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Delete Flow Analysis Rule',
                             message: `Delete reporting task ${request.flowAnalysisRule.component.name}?`
@@ -222,7 +222,7 @@ export class FlowAnalysisRulesEffects {
                     const ruleId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditFlowAnalysisRule, {
-                        ...DIALOGS.LARGE_DIALOG,
+                        ...DIALOG_SIZES.LARGE,
                         data: {
                             flowAnalysisRule: request.flowAnalysisRule
                         },
@@ -237,7 +237,7 @@ export class FlowAnalysisRulesEffects {
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editFlowAnalysisRuleForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
-                                ...DIALOGS.SMALL_DIALOG,
+                                ...DIALOG_SIZES.SMALL,
                                 data: {
                                     title: 'Flow Analysis Rule Configuration',
                                     message: `Save changes before going to this ${destination}?`

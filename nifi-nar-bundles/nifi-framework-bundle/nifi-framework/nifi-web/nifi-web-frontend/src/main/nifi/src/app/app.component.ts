@@ -16,40 +16,10 @@
  */
 
 import { Component } from '@angular/core';
-import { MatDialogConfig } from '@angular/material/dialog';
 import { GuardsCheckEnd, GuardsCheckStart, NavigationCancel, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Storage } from './service/storage.service';
 import { ThemingService } from './service/theming.service';
-
-export const DIALOGS: { [key: string]: MatDialogConfig } = {
-    SMALL_DIALOG: {
-        maxWidth: 470,
-        minWidth: 320
-    },
-    MEDIUM_DIALOG: {
-        maxWidth: 760,
-        minWidth: 470
-    },
-    LARGE_DIALOG: {
-        maxHeight: '72%',
-        maxWidth: '55%',
-        minHeight: 520,
-        minWidth: 760
-    },
-    XL_DIALOG: {
-        maxHeight: '72%',
-        maxWidth: '85%',
-        minHeight: 560,
-        minWidth: 1024
-    },
-    EDIT_PARAMETER_CONTEXT_DIALOG: {
-        maxHeight: '72%',
-        maxWidth: '55%',
-        minWidth: 850,
-        minHeight: 575
-    }
-};
 
 @Component({
     selector: 'nifi',

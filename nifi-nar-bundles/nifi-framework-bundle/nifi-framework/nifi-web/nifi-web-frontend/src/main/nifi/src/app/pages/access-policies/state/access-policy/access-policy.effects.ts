@@ -32,7 +32,7 @@ import { AddTenantToPolicyDialog } from '../../ui/common/add-tenant-to-policy-di
 import { AddTenantsToPolicyRequest } from './index';
 import { selectUserGroups, selectUsers } from '../tenants/tenants.selectors';
 import { OverridePolicyDialog } from '../../ui/common/override-policy-dialog/override-policy-dialog.component';
-import { DIALOGS } from '../../../../app.component';
+import { DIALOG_SIZES } from '../../../../index';
 
 @Injectable()
 export class AccessPolicyEffects {
@@ -173,7 +173,7 @@ export class AccessPolicyEffects {
                 concatLatestFrom(() => this.store.select(selectAccessPolicy).pipe(isDefinedAndNotNull())),
                 tap(([, accessPolicy]) => {
                     const dialogReference = this.dialog.open(OverridePolicyDialog, {
-                        ...DIALOGS.SMALL_DIALOG
+                        ...DIALOG_SIZES.SMALL_DIALOG
                     });
 
                     dialogReference.componentInstance.copyInheritedPolicy
@@ -290,7 +290,7 @@ export class AccessPolicyEffects {
                 concatLatestFrom(() => this.store.select(selectAccessPolicy)),
                 tap(([, accessPolicy]) => {
                     const dialogReference = this.dialog.open(AddTenantToPolicyDialog, {
-                        ...DIALOGS.MEDIUM_DIALOG,
+                        ...DIALOG_SIZES.MEDIUM,
                         data: {
                             accessPolicy
                         }
@@ -351,7 +351,7 @@ export class AccessPolicyEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOGS.SMALL_DIALOG,
+                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Update Policy',
                             message: `Remove '${request.tenant.component.identity}' from this policy?`
@@ -420,7 +420,7 @@ export class AccessPolicyEffects {
                 ofType(AccessPolicyActions.promptDeleteAccessPolicy),
                 tap(() => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOGS.SMALL_DIALOG,
+                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Delete Policy',
                             message:

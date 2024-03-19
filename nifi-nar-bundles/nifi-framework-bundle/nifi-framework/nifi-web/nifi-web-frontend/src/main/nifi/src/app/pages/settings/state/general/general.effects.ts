@@ -28,7 +28,7 @@ import { selectStatus } from './general.selectors';
 import { NiFiState } from '../../../../state';
 import { Store } from '@ngrx/store';
 import { HttpErrorResponse } from '@angular/common/http';
-import { DIALOGS } from '../../../../app.component';
+import { DIALOG_SIZES } from '../../../../index';
 
 @Injectable()
 export class GeneralEffects {
@@ -92,7 +92,7 @@ export class GeneralEffects {
                 ofType(GeneralActions.updateControllerConfigSuccess),
                 tap(() => {
                     this.dialog.open(OkDialog, {
-                        ...DIALOGS.SMALL_DIALOG,
+                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Settings',
                             message: 'Settings successfully applied'

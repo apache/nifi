@@ -99,7 +99,7 @@ import { ImportFromRegistry } from '../../ui/canvas/items/flow/import-from-regis
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dialog/no-registry-clients-dialog.component';
 import { EditRemoteProcessGroup } from '../../ui/canvas/items/remote-process-group/edit-remote-process-group/edit-remote-process-group.component';
-import { DIALOGS } from '../../../../app.component';
+import { DIALOG_SIZES } from '../../../../index';
 import { HttpErrorResponse } from '@angular/common/http';
 
 @Injectable()
@@ -264,7 +264,7 @@ export class FlowEffects {
                 tap(([request, processorTypes]) => {
                     this.dialog
                         .open(CreateProcessor, {
-                            ...DIALOGS.MEDIUM_DIALOG,
+                            ...DIALOG_SIZES.MEDIUM,
                             data: {
                                 request,
                                 processorTypes
@@ -308,7 +308,7 @@ export class FlowEffects {
                 tap((request) => {
                     this.dialog
                         .open(CreateRemoteProcessGroup, {
-                            ...DIALOGS.LARGE_DIALOG,
+                            ...DIALOG_SIZES.LARGE,
                             data: request
                         })
                         .afterClosed()
@@ -434,7 +434,7 @@ export class FlowEffects {
                 tap((request) => {
                     this.dialog
                         .open(CreateProcessGroup, {
-                            ...DIALOGS.MEDIUM_DIALOG,
+                            ...DIALOG_SIZES.MEDIUM,
                             data: request
                         })
                         .afterClosed()
@@ -524,7 +524,7 @@ export class FlowEffects {
                 tap((request) => {
                     this.dialog
                         .open(GroupComponents, {
-                            ...DIALOGS.MEDIUM_DIALOG,
+                            ...DIALOG_SIZES.MEDIUM,
                             data: request
                         })
                         .afterClosed()
@@ -612,7 +612,7 @@ export class FlowEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(CreateConnection, {
-                        ...DIALOGS.LARGE_DIALOG,
+                        ...DIALOG_SIZES.LARGE,
                         data: request
                     });
 
@@ -668,7 +668,7 @@ export class FlowEffects {
                 tap((request) => {
                     this.dialog
                         .open(CreatePort, {
-                            ...DIALOGS.SMALL_DIALOG,
+                            ...DIALOG_SIZES.SMALL,
                             data: request
                         })
                         .afterClosed()
@@ -757,7 +757,7 @@ export class FlowEffects {
 
                     if (someRegistries) {
                         const dialogReference = this.dialog.open(ImportFromRegistry, {
-                            ...DIALOGS.MEDIUM_DIALOG,
+                            ...DIALOG_SIZES.MEDIUM,
                             data: request
                         });
 
@@ -797,7 +797,7 @@ export class FlowEffects {
                     } else {
                         this.dialog
                             .open(NoRegistryClientsDialog, {
-                                ...DIALOGS.MEDIUM_DIALOG,
+                                ...DIALOG_SIZES.MEDIUM,
                                 data: {
                                     controllerPermissions: currentUser.controllerPermissions
                                 }
@@ -1043,7 +1043,7 @@ export class FlowEffects {
                 tap((request) => {
                     this.dialog
                         .open(EditPort, {
-                            ...DIALOGS.MEDIUM_DIALOG,
+                            ...DIALOG_SIZES.MEDIUM,
                             data: request
                         })
                         .afterClosed()
@@ -1107,7 +1107,7 @@ export class FlowEffects {
                     const processorId: string = request.entity.id;
 
                     const editDialogReference = this.dialog.open(EditProcessor, {
-                        ...DIALOGS.LARGE_DIALOG,
+                        ...DIALOG_SIZES.LARGE,
                         data: request,
                         id: processorId
                     });
@@ -1120,7 +1120,7 @@ export class FlowEffects {
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editProcessorForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
-                                ...DIALOGS.SMALL_DIALOG,
+                                ...DIALOG_SIZES.SMALL,
                                 data: {
                                     title: 'Processor Configuration',
                                     message: `Save changes before going to this ${destination}?`
@@ -1227,7 +1227,7 @@ export class FlowEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const editDialogReference = this.dialog.open(EditConnectionComponent, {
-                        ...DIALOGS.LARGE_DIALOG,
+                        ...DIALOG_SIZES.LARGE,
                         data: request
                     });
 
@@ -1297,7 +1297,7 @@ export class FlowEffects {
                 ),
                 tap(([request, parameterContexts, currentProcessGroupId]) => {
                     const editDialogReference = this.dialog.open(EditProcessGroup, {
-                        ...DIALOGS.LARGE_DIALOG,
+                        ...DIALOG_SIZES.LARGE,
                         data: request
                     });
 
@@ -1368,7 +1368,7 @@ export class FlowEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const editDialogReference = this.dialog.open(EditRemoteProcessGroup, {
-                        ...DIALOGS.LARGE_DIALOG,
+                        ...DIALOG_SIZES.LARGE,
                         data: request
                     });
 
@@ -2219,7 +2219,7 @@ export class FlowEffects {
                 ofType(FlowActions.showOkDialog),
                 tap((request) => {
                     this.dialog.open(OkDialog, {
-                        ...DIALOGS.MEDIUM_DIALOG,
+                        ...DIALOG_SIZES.MEDIUM,
                         data: {
                             title: request.title,
                             message: request.message

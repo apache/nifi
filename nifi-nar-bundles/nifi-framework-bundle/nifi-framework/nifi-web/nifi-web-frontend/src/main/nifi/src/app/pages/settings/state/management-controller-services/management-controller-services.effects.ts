@@ -41,7 +41,7 @@ import { DisableControllerService } from '../../../../ui/common/controller-servi
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
-import { DIALOGS } from '../../../../app.component';
+import { DIALOG_SIZES } from '../../../../index';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
@@ -85,7 +85,7 @@ export class ManagementControllerServicesEffects {
                 concatLatestFrom(() => this.store.select(selectControllerServiceTypes)),
                 tap(([, controllerServiceTypes]) => {
                     const dialogReference = this.dialog.open(CreateControllerService, {
-                        ...DIALOGS.MEDIUM_DIALOG,
+                        ...DIALOG_SIZES.MEDIUM,
                         data: {
                             controllerServiceTypes
                         }
@@ -180,7 +180,7 @@ export class ManagementControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditControllerService, {
-                        ...DIALOGS.LARGE_DIALOG,
+                        ...DIALOG_SIZES.LARGE,
                         data: {
                             controllerService: request.controllerService
                         },
@@ -198,7 +198,7 @@ export class ManagementControllerServicesEffects {
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editControllerServiceForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
-                                ...DIALOGS.SMALL_DIALOG,
+                                ...DIALOG_SIZES.SMALL,
                                 data: {
                                     title: 'Controller Service Configuration',
                                     message: `Save changes before going to this ${destination}?`
@@ -354,7 +354,7 @@ export class ManagementControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const enableDialogReference = this.dialog.open(EnableControllerService, {
-                        ...DIALOGS.LARGE_DIALOG,
+                        ...DIALOG_SIZES.LARGE,
                         data: request,
                         id: serviceId
                     });
@@ -385,7 +385,7 @@ export class ManagementControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const enableDialogReference = this.dialog.open(DisableControllerService, {
-                        ...DIALOGS.LARGE_DIALOG,
+                        ...DIALOG_SIZES.LARGE,
                         data: request,
                         id: serviceId
                     });
@@ -414,7 +414,7 @@ export class ManagementControllerServicesEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOGS.SMALL_DIALOG,
+                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Delete Controller Service',
                             message: `Delete controller service ${request.controllerService.component.name}?`
