@@ -264,7 +264,7 @@ export class FlowEffects {
                 tap(([request, processorTypes]) => {
                     this.dialog
                         .open(CreateProcessor, {
-                            ...DIALOG_SIZES.MEDIUM,
+                            ...DIALOG_SIZES.LARGE,
                             data: {
                                 request,
                                 processorTypes

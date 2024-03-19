@@ -132,7 +132,7 @@ export class PropertyTableHelperService {
                     switchMap((implementingTypesResponse) => {
                         // show the create controller service dialog with the types that implemented the interface
                         const createServiceDialogReference = this.dialog.open(CreateControllerService, {
-                            ...DIALOG_SIZES.MEDIUM,
+                            ...DIALOG_SIZES.LARGE,
                             data: {
                                 controllerServiceTypes: implementingTypesResponse.controllerServiceTypes
                             }
