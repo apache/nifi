@@ -364,7 +364,12 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
             }
 
             final boolean originalAutoCommit = con.getAutoCommit();
-            final Boolean setAutoCommitValue = context.getProperty(AUTO_COMMIT).evaluateAttributeExpressions().asBoolean();
+            final Boolean propertyAutoCommitValue = context.getProperty(AUTO_COMMIT).evaluateAttributeExpressions().asBoolean();
+            // If user sets AUTO_COMMIT property to non-null (i.e. true or false), then the property value overrides the dbAdapter's value
+            final Boolean setAutoCommitValue =
+                    dbAdapter == null || propertyAutoCommitValue != null
+                            ? propertyAutoCommitValue
+                            : dbAdapter.getAutoCommitForReads(fetchSize).orElse(null);
             if (setAutoCommitValue != null && originalAutoCommit != setAutoCommitValue) {
                 try {
                     con.setAutoCommit(setAutoCommitValue);
