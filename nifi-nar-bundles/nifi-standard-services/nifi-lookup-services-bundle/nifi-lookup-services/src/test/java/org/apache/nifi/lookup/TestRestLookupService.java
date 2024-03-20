@@ -172,14 +172,29 @@ class TestRestLookupService {
     }
 
     @Test
-    void testLookupPathNotFound() {
+    void testLookupErrorPassThrough() throws Exception {
+        runner.setProperty(restLookupService, RestLookupService.PROP_RESPONSE_CODE_HANDLING, RestLookupService.PASS_THROUGH);
+        runner.enableControllerService(restLookupService);
+
+        when(recordReaderFactory.createRecordReader(any(), any(), anyLong(), any())).thenReturn(recordReader);
+        when(recordReader.nextRecord()).thenReturn(record);
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_NOT_FOUND)
+                .setHeader("Content-type", "application/json")
+                .setBody("{\"error\": { \"code\": 404 } }"));
+
+        final Optional<Record> recordFound = restLookupService.lookup(Collections.emptyMap());
+        assertTrue(recordFound.isPresent());
+    }
+    @Test
+    void testLookupErrorHandle() {
+        runner.setProperty(restLookupService, RestLookupService.PROP_RESPONSE_CODE_HANDLING, RestLookupService.HANDLE);
         runner.enableControllerService(restLookupService);
         mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_NOT_FOUND));
 
         final LookupFailureException exception = assertThrows(LookupFailureException.class, () -> restLookupService.lookup(Collections.emptyMap()));
         assertInstanceOf(IOException.class, exception.getCause());
     }
-
     private void assertRecordedRequestFound() throws InterruptedException {
         final RecordedRequest request = mockWebServer.takeRequest();
 
