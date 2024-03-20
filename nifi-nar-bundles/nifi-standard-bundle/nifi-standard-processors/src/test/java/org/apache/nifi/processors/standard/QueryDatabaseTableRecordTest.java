@@ -69,7 +69,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class QueryDatabaseTableRecordTest {
 
     MockQueryDatabaseTableRecord processor;
-    private TestRunner runner;
+    protected TestRunner runner;
     private final static String DB_LOCATION = "target/db_qdt";
     private DatabaseAdapter dbAdapter;
     private HashMap<String, DatabaseAdapter> origDbAdapters;
@@ -107,18 +107,25 @@ public class QueryDatabaseTableRecordTest {
         System.clearProperty("derby.stream.error.file");
     }
 
+    public DatabaseAdapter createDatabaseAdapter() {
+        return new GenericDatabaseAdapter();
+    }
+
+    public void createDbcpControllerService() throws InitializationException {
+        final DBCPService dbcp = new DBCPServiceSimpleImpl();
+        final Map<String, String> dbcpProperties = new HashMap<>();
+        runner.addControllerService("dbcp", dbcp, dbcpProperties);
+        runner.enableControllerService(dbcp);
+    }
 
     @BeforeEach
     public void setup() throws InitializationException, IOException {
-        final DBCPService dbcp = new DBCPServiceSimpleImpl();
-        final Map<String, String> dbcpProperties = new HashMap<>();
         origDbAdapters = new HashMap<>(QueryDatabaseTableRecord.dbAdapters);
-        dbAdapter = new GenericDatabaseAdapter();
+        dbAdapter = createDatabaseAdapter();
         QueryDatabaseTableRecord.dbAdapters.put(dbAdapter.getName(), dbAdapter);
         processor = new MockQueryDatabaseTableRecord();
         runner = TestRunners.newTestRunner(processor);
-        runner.addControllerService("dbcp", dbcp, dbcpProperties);
-        runner.enableControllerService(dbcp);
+        createDbcpControllerService();
         runner.setProperty(QueryDatabaseTableRecord.DBCP_SERVICE, "dbcp");
         runner.setProperty(QueryDatabaseTableRecord.DB_TYPE, dbAdapter.getName());
         runner.getStateManager().clear(Scope.CLUSTER);
@@ -1511,7 +1518,7 @@ public class QueryDatabaseTableRecordTest {
     }
 
     @Stateful(scopes = Scope.CLUSTER, description = "Mock for QueryDatabaseTableRecord processor")
-    private static class MockQueryDatabaseTableRecord extends QueryDatabaseTableRecord {
+    protected static class MockQueryDatabaseTableRecord extends QueryDatabaseTableRecord {
         void putColumnType(String colName, Integer colType) {
             columnTypeMap.put(colName, colType);
         }

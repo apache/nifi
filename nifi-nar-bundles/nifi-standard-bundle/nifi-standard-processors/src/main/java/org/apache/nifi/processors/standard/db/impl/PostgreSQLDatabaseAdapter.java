@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static java.sql.Types.CHAR;
@@ -158,6 +159,23 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
                 .append(" ")
                 .append(String.join(", ", columnsAndDatatypes))
                 .toString());
+    }
+
+    /**
+     * Get the auto commit mode to use for reading from this database type.
+     * For PostgreSQL databases, auto commit mode must be set to false to cause a fetchSize other than 0 to take effect.
+     * More Details of this behaviour in PostgreSQL driver can be found in https://jdbc.postgresql.org//documentation/head/query.html.")
+     * For PostgreSQL, if autocommit is TRUE, then fetch size is treated as 0 which loads all rows of the result set to memory at once.
+     * @param fetchSize The number of rows to retrieve at a time. Value of 0 means retrieve all rows at once.
+     * @return Optional.empty() if auto commit mode does not matter and can be left as is.
+     *         Return true or false to indicate whether auto commit needs to be true or false for this database.
+     */
+    @Override
+    public Optional<Boolean> getAutoCommitForReads(Integer fetchSize) {
+        if (fetchSize != null && fetchSize != 0) {
+            return Optional.of(Boolean.FALSE);
+        }
+        return Optional.empty();
     }
 
     @Override
