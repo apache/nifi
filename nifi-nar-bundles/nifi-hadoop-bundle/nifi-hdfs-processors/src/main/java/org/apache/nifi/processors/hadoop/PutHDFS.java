@@ -18,6 +18,11 @@ package org.apache.nifi.processors.hadoop;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import org.apache.avro.file.DataFileStream;
+import org.apache.avro.file.DataFileWriter;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.mapred.FsInput;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FileStatus;
@@ -45,6 +50,8 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -66,6 +73,7 @@ import java.io.UncheckedIOException;
 import java.security.PrivilegedAction;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -114,6 +122,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
             .build();
 
     // properties
+    public static final String DEFAULT_APPEND_MODE = "DEFAULT";
+    public static final String AVRO_APPEND_MODE = "AVRO";
 
     protected static final String REPLACE_RESOLUTION = "replace";
     protected static final String IGNORE_RESOLUTION = "ignore";
@@ -152,6 +162,15 @@ public class PutHDFS extends AbstractHadoopProcessor {
             .required(true)
             .defaultValue(WRITE_AND_RENAME_AV.getValue())
             .allowableValues(WRITE_AND_RENAME_AV, SIMPLE_WRITE_AV)
+            .build();
+
+    public static final PropertyDescriptor APPEND_MODE = new PropertyDescriptor.Builder()
+            .name("Append Mode")
+            .description("Defines the append strategy to use when the Conflict Resolution Strategy is set to 'append'.")
+            .allowableValues(DEFAULT_APPEND_MODE, AVRO_APPEND_MODE)
+            .defaultValue(DEFAULT_APPEND_MODE)
+            .dependsOn(CONFLICT_RESOLUTION, APPEND_RESOLUTION)
+            .required(true)
             .build();
 
     public static final PropertyDescriptor BLOCK_SIZE = new PropertyDescriptor.Builder()
@@ -231,6 +250,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 .description("The parent HDFS directory to which files should be written. The directory will be created if it doesn't exist.")
                 .build());
         props.add(CONFLICT_RESOLUTION);
+        props.add(APPEND_MODE);
         props.add(WRITING_STRATEGY);
         props.add(BLOCK_SIZE);
         props.add(BUFFER_SIZE);
@@ -241,6 +261,22 @@ public class PutHDFS extends AbstractHadoopProcessor {
         props.add(COMPRESSION_CODEC);
         props.add(IGNORE_LOCALITY);
         return props;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
+        final PropertyValue codec = validationContext.getProperty(COMPRESSION_CODEC);
+        final boolean isCodecSet = codec.isSet() && !CompressionType.NONE.name().equals(codec.getValue());
+        if (isCodecSet && APPEND_RESOLUTION.equals(validationContext.getProperty(CONFLICT_RESOLUTION).getValue())
+                && AVRO_APPEND_MODE.equals(validationContext.getProperty(APPEND_MODE).getValue())) {
+            problems.add(new ValidationResult.Builder()
+                    .subject("Codec")
+                    .valid(false)
+                    .explanation("Compression codec cannot be set when used in 'append avro' mode")
+                    .build());
+        }
+        return problems;
     }
 
     @Override
@@ -384,14 +420,32 @@ public class PutHDFS extends AbstractHadoopProcessor {
                                         null, null);
                             }
 
-                            if (codec != null) {
-                                fos = codec.createOutputStream(fos);
-                            }
-                            createdFile = actualCopyFile;
-                            BufferedInputStream bis = new BufferedInputStream(in);
-                            StreamUtils.copy(bis, fos);
-                            bis = null;
-                            fos.flush();
+                                if (codec != null) {
+                                    fos = codec.createOutputStream(fos);
+                                }
+                                createdFile = actualCopyFile;
+
+                                final String appendMode = context.getProperty(APPEND_MODE).getValue();
+                                if (APPEND_RESOLUTION.equals(conflictResponse)
+                                        && AVRO_APPEND_MODE.equals(appendMode)
+                                        && destinationExists) {
+                                    getLogger().info("Appending avro record to existing avro file");
+                                    try (final DataFileStream<Object> reader = new DataFileStream<>(in, new GenericDatumReader<>());
+                                         final DataFileWriter<Object> writer = new DataFileWriter<>(new GenericDatumWriter<>())) {
+                                        writer.appendTo(new FsInput(copyFile, configuration), fos); // open writer to existing file
+                                        writer.appendAllFrom(reader, false); // append flowfile content
+                                        writer.flush();
+                                        getLogger().info("Successfully appended avro record");
+                                    } catch (Exception e) {
+                                        getLogger().error("Error occurred during appending to existing avro file", e);
+                                        throw new ProcessException(e);
+                                    }
+                                } else {
+                                    BufferedInputStream bis = new BufferedInputStream(in);
+                                    StreamUtils.copy(bis, fos);
+                                    bis = null;
+                                    fos.flush();
+                                }
                         } finally {
                             try {
                                 if (fos != null) {

@@ -41,16 +41,18 @@ import java.util.Map;
 import java.util.Set;
 
 public class MockFileSystem extends FileSystem {
+    private static final long DIR_LENGTH = 1L;
+    private static final long FILE_LENGTH = 100L;
     private final Map<Path, FileStatus> pathToStatus = new HashMap<>();
     private final Map<Path, List<AclEntry>> pathToAcl = new HashMap<>();
     private final Map<Path, Set<FileStatus>> fileStatuses = new HashMap<>();
+    private final Map<Path, FSDataOutputStream> pathToOutputStream = new HashMap<>();
 
     private boolean failOnOpen;
     private boolean failOnClose;
     private boolean failOnCreate;
     private boolean failOnFileStatus;
     private boolean failOnExists;
-
 
     public void setFailOnClose(final boolean failOnClose) {
         this.failOnClose = failOnClose;
@@ -102,22 +104,18 @@ public class MockFileSystem extends FileSystem {
             throw new IOException(new AuthenticationException("test auth error"));
         }
         pathToStatus.put(f, newFile(f, permission));
-        if(failOnClose) {
-            return new FSDataOutputStream(new ByteArrayOutputStream(), new FileSystem.Statistics("")) {
-                @Override
-                public void close() throws IOException {
-                    super.close();
-                    throw new IOException("Fail on close");
-                }
-            };
-        } else {
-            return new FSDataOutputStream(new ByteArrayOutputStream(), new Statistics(""));
-        }
+        final FSDataOutputStream outputStream = createOutputStream();
+        pathToOutputStream.put(f, outputStream);
+        return outputStream;
     }
 
     @Override
     public FSDataOutputStream append(final Path f, final int bufferSize, final Progressable progress) {
-        return null;
+        pathToOutputStream.computeIfAbsent(f, f2 -> createOutputStream());
+        final FileStatus oldStatus = pathToStatus.get(f);
+        final long newLength = oldStatus.getLen() + FILE_LENGTH;
+        pathToStatus.put(f, updateLength(oldStatus, newLength));
+        return pathToOutputStream.get(f);
     }
 
     @Override
@@ -192,19 +190,45 @@ public class MockFileSystem extends FileSystem {
         return pathToStatus.containsKey(f);
     }
 
+    private FSDataOutputStream createOutputStream() {
+        if(failOnClose) {
+            return new FSDataOutputStream(new ByteArrayOutputStream(), new Statistics("")) {
+                @Override
+                public void close() throws IOException {
+                    super.close();
+                    throw new IOException("Fail on close");
+                }
+            };
+        } else {
+            return new FSDataOutputStream(new ByteArrayOutputStream(), new Statistics(""));
+        }
+    }
+
+    private FileStatus updateLength(FileStatus oldStatus, Long newLength) {
+        try {
+            return new FileStatus(newLength, oldStatus.isDirectory(), oldStatus.getReplication(),
+                    oldStatus.getBlockSize(), oldStatus.getModificationTime(), oldStatus.getAccessTime(),
+                    oldStatus.getPermission(), oldStatus.getOwner(), oldStatus.getGroup(),
+                    (oldStatus.isSymlink() ? oldStatus.getSymlink() : null),
+                    oldStatus.getPath());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public FileStatus newFile(Path p, FsPermission permission) {
-        return new FileStatus(100L, false, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, permission, "owner", "group", p);
+        return new FileStatus(FILE_LENGTH, false, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, permission, "owner", "group", p);
     }
 
     public FileStatus newDir(Path p) {
-        return new FileStatus(1L, true, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, perms((short) 0755), "owner", "group", (Path)null, p, true, false, false);
+        return new FileStatus(DIR_LENGTH, true, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, perms((short) 0755), "owner", "group", (Path)null, p, true, false, false);
     }
 
     public FileStatus newFile(String p) {
-        return new FileStatus(100L, false, 3, 128*1024*1024, 1523456000000L, 1523457000000L, perms((short)0644), "owner", "group", new Path(p));
+        return new FileStatus(FILE_LENGTH, false, 3, 128*1024*1024, 1523456000000L, 1523457000000L, perms((short)0644), "owner", "group", new Path(p));
     }
     public FileStatus newDir(String p) {
-        return new FileStatus(1L, true, 3, 128*1024*1024, 1523456000000L, 1523457000000L, perms((short)0755), "owner", "group", new Path(p));
+        return new FileStatus(DIR_LENGTH, true, 3, 128*1024*1024, 1523456000000L, 1523457000000L, perms((short)0755), "owner", "group", new Path(p));
     }
 
     @Override
