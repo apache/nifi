@@ -3479,6 +3479,10 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         versionControlFields.setFlowDifferences(null);
+
+        flowManager.getFlowAnalyzer().ifPresent(
+                flowManager -> flowManager.setFlowAnalysisRequired(true)
+        );
     }
 
     @Override
