@@ -346,7 +346,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
                         new Object[]{response.code(), coordinates});
             }
 
-            if (!response.isSuccessful() && "Handle Service Errors".equals(responseHandler)) {
+            if (!response.isSuccessful() && HANDLE.getValue().equals(responseHandler)) {
                 final String responseText = responseBody == null ? "<No Message Received from Server>" : responseBody.string();
                 throw new IOException("Failed to download content from URL " + request.url() +
                         ": Response code was " + response.code() + ": " + responseText);
