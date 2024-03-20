@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
+import java.net.URL;
 import java.util.concurrent.TimeUnit;
 
 public class RegistryUtil {
@@ -130,7 +131,7 @@ public class RegistryUtil {
 
         final VersionedFlowCoordinates coordinates = group.getVersionedFlowCoordinates();
         if (coordinates != null) {
-            final String registryUrl = coordinates.getRegistryUrl();
+            final String registryUrl = coordinates.getRegistryUrl().replace("nifi-registry","");
             final String bucketId = coordinates.getBucketId();
             final String flowId = coordinates.getFlowId();
             final int version = coordinates.getVersion();
