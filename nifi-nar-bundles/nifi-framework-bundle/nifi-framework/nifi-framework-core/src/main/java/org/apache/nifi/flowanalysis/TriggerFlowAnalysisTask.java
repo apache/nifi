@@ -36,12 +36,16 @@ public class TriggerFlowAnalysisTask implements Runnable {
 
     @Override
     public void run() {
-        try {
+        if (flowAnalyzer.isFlowAnalysisRequired()) {
             logger.debug("Triggering analysis of entire flow");
-
-            flowAnalyzer.analyzeProcessGroup(rootProcessGroupSupplier.get());
-        } catch (final Throwable t) {
-            logger.error("Encountered unexpected error when attempting to analyze flow", t);
+            try {
+                flowAnalyzer.analyzeProcessGroup(rootProcessGroupSupplier.get());
+                flowAnalyzer.setFlowAnalysisRequired(false);
+            } catch (final Throwable t) {
+                logger.error("Encountered unexpected error when attempting to analyze flow", t);
+            }
+        } else {
+            logger.trace("Flow hasn't changed, flow analysis is put on hold");
         }
     }
 }
