@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.net.URL;
 import java.util.concurrent.TimeUnit;
 
 public class RegistryUtil {
