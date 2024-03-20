@@ -48,22 +48,32 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.nifi.processors.hadoop.CompressionType.GZIP;
+import static org.apache.nifi.processors.hadoop.CompressionType.NONE;
+import static org.apache.nifi.processors.hadoop.PutHDFS.APPEND_RESOLUTION;
+import static org.apache.nifi.processors.hadoop.PutHDFS.AVRO_APPEND_MODE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class PutHDFSTest {
     private final static String TARGET_DIRECTORY = "target/test-classes";
+    private final static String AVRO_TARGET_DIRECTORY = TARGET_DIRECTORY + "/testdata-avro";
     private final static String SOURCE_DIRECTORY = "src/test/resources/testdata";
+    private final static String AVRO_SOURCE_DIRECTORY = "src/test/resources/testdata-avro";
     private final static String FILE_NAME = "randombytes-1";
+    private final static String AVRO_FILE_NAME = "input.avro";
 
     private KerberosProperties kerberosProperties;
     private MockFileSystem mockFileSystem;
@@ -186,6 +196,34 @@ public class PutHDFSTest {
         for (ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because Given value not found in allowed set"));
         }
+
+        results = new HashSet<>();
+        runner.setProperty(PutHDFS.DIRECTORY, "target");
+        runner.setProperty(PutHDFS.APPEND_MODE, AVRO_APPEND_MODE);
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, APPEND_RESOLUTION);
+        runner.setProperty(PutHDFS.COMPRESSION_CODEC, GZIP.name());
+        runner.enqueue(new byte[0]);
+        pc = runner.getProcessContext();
+        if (pc instanceof MockProcessContext) {
+            results = ((MockProcessContext) pc).validate();
+        }
+        assertEquals(1, results.size());
+        for (ValidationResult vr : results) {
+            assertEquals(vr.getSubject(), "Codec");
+            assertEquals(vr.getExplanation(), "Compression codec cannot be set when used in 'append avro' mode");
+        }
+
+        results = new HashSet<>();
+        runner.setProperty(PutHDFS.DIRECTORY, "target");
+        runner.setProperty(PutHDFS.APPEND_MODE, AVRO_APPEND_MODE);
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, APPEND_RESOLUTION);
+        runner.setProperty(PutHDFS.COMPRESSION_CODEC, NONE.name());
+        runner.enqueue(new byte[0]);
+        pc = runner.getProcessContext();
+        if (pc instanceof MockProcessContext) {
+            results = ((MockProcessContext) pc).validate();
+        }
+        assertEquals(0, results.size());
     }
 
     @Test
@@ -227,6 +265,58 @@ public class PutHDFSTest {
         assertTrue(flowFile.getAttribute(PutHDFS.HADOOP_FILE_URL_ATTRIBUTE).endsWith(TARGET_DIRECTORY + "/" + FILE_NAME));
 
         verify(spyFileSystem, times(1)).rename(any(Path.class), any(Path.class));
+    }
+
+    @Test
+    public void testPutFileWithAppendAvroModeNewFileCreated() throws IOException {
+        // given
+        final FileSystem spyFileSystem = Mockito.spy(mockFileSystem);
+        final PutHDFS proc = new TestablePutHDFS(kerberosProperties, spyFileSystem);
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(PutHDFS.DIRECTORY, AVRO_TARGET_DIRECTORY);
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, APPEND_RESOLUTION);
+        runner.setProperty(PutHDFS.APPEND_MODE, AVRO_APPEND_MODE);
+        final Path targetPath = new Path(AVRO_TARGET_DIRECTORY + "/" + AVRO_FILE_NAME);
+
+        // when
+        try (final FileInputStream fis = new FileInputStream(AVRO_SOURCE_DIRECTORY + "/" + AVRO_FILE_NAME)) {
+            runner.enqueue(fis, Collections.singletonMap(CoreAttributes.FILENAME.key(), AVRO_FILE_NAME));
+            runner.assertValid();
+            runner.run();
+        }
+
+        // then
+        assertAvroAppendValues(runner, spyFileSystem, targetPath);
+        verify(spyFileSystem, times(0)).append(eq(targetPath), anyInt());
+        verify(spyFileSystem, times(1)).rename(any(Path.class), eq(targetPath));
+        assertEquals(100, spyFileSystem.getFileStatus(targetPath).getLen());
+    }
+
+    @Test
+    public void testPutFileWithAppendAvroModeWhenTargetFileAlreadyExists() throws IOException {
+        // given
+        final FileSystem spyFileSystem = Mockito.spy(mockFileSystem);
+        final PutHDFS proc = new TestablePutHDFS(kerberosProperties, spyFileSystem);
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(PutHDFS.DIRECTORY, AVRO_TARGET_DIRECTORY);
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, APPEND_RESOLUTION);
+        runner.setProperty(PutHDFS.APPEND_MODE, AVRO_APPEND_MODE);
+        spyFileSystem.setConf(new Configuration());
+        final Path targetPath = new Path(AVRO_TARGET_DIRECTORY + "/" + AVRO_FILE_NAME);
+        spyFileSystem.createNewFile(targetPath);
+
+        // when
+        try (final FileInputStream fis = new FileInputStream(AVRO_SOURCE_DIRECTORY + "/" + AVRO_FILE_NAME)) {
+            runner.enqueue(fis, Collections.singletonMap(CoreAttributes.FILENAME.key(), AVRO_FILE_NAME));
+            runner.assertValid();
+            runner.run();
+        }
+
+        // then
+        assertAvroAppendValues(runner, spyFileSystem, targetPath);
+        verify(spyFileSystem).append(eq(targetPath), anyInt());
+        verify(spyFileSystem, times(0)).rename(any(Path.class), eq(targetPath));
+        assertEquals(200, spyFileSystem.getFileStatus(targetPath).getLen());
     }
 
     @Test
@@ -642,7 +732,29 @@ public class PutHDFSTest {
         mockFileSystem.delete(p, true);
     }
 
-    private class TestablePutHDFS extends PutHDFS {
+    private static void assertAvroAppendValues(TestRunner runner, FileSystem spyFileSystem, Path targetPath) throws IOException {
+        final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(PutHDFS.REL_FAILURE);
+        assertTrue(failedFlowFiles.isEmpty());
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+
+        final MockFlowFile flowFile = flowFiles.get(0);
+        assertTrue(spyFileSystem.exists(targetPath));
+        assertEquals(AVRO_FILE_NAME, flowFile.getAttribute(CoreAttributes.FILENAME.key()));
+        assertEquals(AVRO_TARGET_DIRECTORY, flowFile.getAttribute(PutHDFS.ABSOLUTE_HDFS_PATH_ATTRIBUTE));
+        assertEquals("true", flowFile.getAttribute(PutHDFS.TARGET_HDFS_DIR_CREATED_ATTRIBUTE));
+
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        assertEquals(1, provenanceEvents.size());
+        final ProvenanceEventRecord sendEvent = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.SEND, sendEvent.getEventType());
+        // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
+        assertTrue(sendEvent.getTransitUri().endsWith(AVRO_TARGET_DIRECTORY + "/" + AVRO_FILE_NAME));
+        assertTrue(flowFile.getAttribute(PutHDFS.HADOOP_FILE_URL_ATTRIBUTE).endsWith(AVRO_TARGET_DIRECTORY + "/" + AVRO_FILE_NAME));
+    }
+
+    private static class TestablePutHDFS extends PutHDFS {
 
         private final KerberosProperties testKerberosProperties;
         private final FileSystem fileSystem;
