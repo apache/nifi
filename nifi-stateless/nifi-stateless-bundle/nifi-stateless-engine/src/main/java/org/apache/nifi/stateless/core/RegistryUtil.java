@@ -130,7 +130,7 @@ public class RegistryUtil {
 
         final VersionedFlowCoordinates coordinates = group.getVersionedFlowCoordinates();
         if (coordinates != null) {
-            final String registryUrl = coordinates.getRegistryUrl().replace("nifi-registry","");
+            final String registryUrl = coordinates.getStorageLocation();
             final String bucketId = coordinates.getBucketId();
             final String flowId = coordinates.getFlowId();
             final int version = coordinates.getVersion();
