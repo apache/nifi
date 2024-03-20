@@ -98,7 +98,7 @@ export class ParameterContextListingEffects {
                 ofType(ParameterContextListingActions.openNewParameterContextDialog),
                 tap(() => {
                     const dialogReference = this.dialog.open(EditParameterContext, {
-                        ...DIALOG_SIZES.LARGE,
+                        ...DIALOG_SIZES.XL,
                         data: {}
                     });
 
@@ -248,7 +248,7 @@ export class ParameterContextListingEffects {
                     const parameterContextId: string = request.parameterContext.id;
 
                     const editDialogReference = this.dialog.open(EditParameterContext, {
-                        ...DIALOG_SIZES.LARGE,
+                        ...DIALOG_SIZES.XL,
                         data: {
                             parameterContext: request.parameterContext
                         }
