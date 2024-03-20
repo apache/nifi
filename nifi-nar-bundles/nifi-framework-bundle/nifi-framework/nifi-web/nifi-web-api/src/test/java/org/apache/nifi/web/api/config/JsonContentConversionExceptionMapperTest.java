@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.api.config;
 
-import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
@@ -32,7 +31,6 @@ import java.util.regex.Pattern;
 import static com.fasterxml.jackson.databind.JsonMappingException.wrapWithPath;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class JsonContentConversionExceptionMapperTest {
@@ -43,7 +41,6 @@ public class JsonContentConversionExceptionMapperTest {
 
     @BeforeEach
     public void setUp() {
-        when(mockParser.getTokenLocation()).thenReturn(new JsonLocation(null, 100, 1, 1));
         jsonCCEM = new JsonContentConversionExceptionMapper();
     }
 
