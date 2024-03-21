@@ -37,6 +37,7 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
@@ -266,7 +267,7 @@ public class FetchFile extends AbstractProcessor {
         // import content from file system
         try (final FileInputStream fis = new FileInputStream(file)) {
             flowFile = session.importFrom(fis, flowFile);
-        } catch (final IOException ioe) {
+        } catch (final IOException | FlowFileAccessException ioe) {
             getLogger().error("Could not fetch file {} from file system for {} due to {}; routing to failure", file, flowFile, ioe.toString(), ioe);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
