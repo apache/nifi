@@ -21,6 +21,9 @@
     @include mat.button-density(-1);
 
     .tab-content {
+        position: relative;
+        height: 480px;
+        
         .section-header {
             font-size: 15px;
             font-family: 'Roboto Slab';
