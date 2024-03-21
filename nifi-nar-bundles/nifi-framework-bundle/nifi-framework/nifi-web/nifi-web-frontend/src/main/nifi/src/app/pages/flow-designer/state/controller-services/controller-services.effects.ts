@@ -381,7 +381,7 @@ export class ControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const enableDialogReference = this.dialog.open(EnableControllerService, {
-                        ...DIALOG_SIZES.LARGE,
+                        ...DIALOG_SIZES.XL,
                         data: request,
                         id: serviceId
                     });
@@ -421,7 +421,7 @@ export class ControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const enableDialogReference = this.dialog.open(DisableControllerService, {
-                        ...DIALOG_SIZES.LARGE,
+                        ...DIALOG_SIZES.XL,
                         data: request,
                         id: serviceId
                     });
