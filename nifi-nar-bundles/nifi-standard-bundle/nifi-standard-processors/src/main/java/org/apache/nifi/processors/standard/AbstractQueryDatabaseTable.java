@@ -215,6 +215,23 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                     .build());
         }
 
+        final Boolean propertyAutoCommit = validationContext.getProperty(AUTO_COMMIT).evaluateAttributeExpressions().asBoolean();
+        final Integer fetchSize = validationContext.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
+        final DatabaseAdapter dbAdapter = dbAdapters.get(validationContext.getProperty(DB_TYPE).getValue());
+        final Boolean adapterAutoCommit = dbAdapter == null
+                ? null
+                : dbAdapter.getAutoCommitForReads(fetchSize).orElse(null);
+        if (adapterAutoCommit != null && propertyAutoCommit != null
+            && propertyAutoCommit != adapterAutoCommit ) {
+            results.add(new ValidationResult.Builder().valid(false)
+                    .subject(AUTO_COMMIT.getDisplayName())
+                    .input(String.valueOf(propertyAutoCommit))
+                    .explanation(String.format("'%s' must be set to '%s' because '%s' %s requires it to be '%s'",
+                            AUTO_COMMIT.getDisplayName(), adapterAutoCommit,
+                            dbAdapter.getName(), DB_TYPE.getDisplayName(), adapterAutoCommit))
+                    .build());
+        }
+
         return results;
     }
 
