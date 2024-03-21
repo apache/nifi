@@ -25,6 +25,7 @@ import org.snmp4j.CommandResponder;
 import org.snmp4j.CommandResponderEvent;
 import org.snmp4j.PDU;
 import org.snmp4j.PDUv1;
+import org.snmp4j.smi.Address;
 
 import java.util.Map;
 
@@ -46,7 +47,7 @@ public class SNMPTrapReceiver implements CommandResponder {
         final PDU pdu = event.getPDU();
         if (isValidTrapPdu(pdu)) {
             final ProcessSession processSession = processSessionFactory.createSession();
-            final FlowFile flowFile = createFlowFile(processSession, pdu);
+            final FlowFile flowFile = createFlowFile(processSession, pdu, event.getPeerAddress());
             processSession.getProvenanceReporter().create(flowFile, event.getPeerAddress() + "/" + pdu.getRequestID());
             if (pdu.getErrorStatus() == PDU.noError) {
                 processSession.transfer(flowFile, REL_SUCCESS);
@@ -59,13 +60,16 @@ public class SNMPTrapReceiver implements CommandResponder {
         }
     }
 
-    private FlowFile createFlowFile(final ProcessSession processSession, final PDU pdu) {
+    private FlowFile createFlowFile(final ProcessSession processSession, final PDU pdu, final Address peerAddress) {
         FlowFile flowFile = processSession.create();
         final Map<String, String> attributes;
         if (pdu instanceof PDUv1) {
             attributes = SNMPUtils.getV1TrapPduAttributeMap((PDUv1) pdu);
         } else {
             attributes = SNMPUtils.getPduAttributeMap(pdu);
+        }    
+        if (peerAddress.isValid()) {
+            processSession.putAttribute(flowFile, SNMPUtils.SNMP_PROP_PREFIX + "peerAddress", peerAddress.toString());
         }
         flowFile = processSession.putAllAttributes(flowFile, attributes);
         return flowFile;
