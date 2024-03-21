@@ -155,8 +155,7 @@ class SNMPTrapReceiverTest {
         when(mockPdu.getErrorStatus()).thenReturn(PDU.badValue);
         
         final Address mockAddress = mock(Address.class);
-        when(mockAddress.toString()).thenReturn("127.0.0.1/62");
-        when(mockAddress.isValid()).thenReturn(true);
+        when(mockAddress.isValid()).thenReturn(false);
        
         final Vector<VariableBinding> vbs = new Vector<>();
         doReturn(vbs).when(mockPdu).getVariableBindings();
@@ -172,6 +171,6 @@ class SNMPTrapReceiverTest {
         final FlowFile flowFile = flowFiles.get(0);
 
         assertEquals(String.valueOf(PDU.badValue), flowFile.getAttribute("snmp$errorStatus"));
-        assertEquals("127.0.0.1/62", flowFile.getAttribute("snmp$peerAddress"));
+        assertEquals(null, flowFile.getAttribute("snmp$peerAddress"));
     }
 }
