@@ -309,11 +309,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
      * and is ready to receive messages.
      */
     private synchronized void initializeIfNecessary(ProcessContext context, ProcessSession processSession) {
-        if (
-                this.messageReceiver == null
-                        ||
-                        oauth2AccessDetailsRefreshed()
-        ) {
+        if (this.messageReceiver == null || oauth2AccessDetailsRefreshed()) {
             this.processSession = processSession;
             this.messageReceiver = this.buildMessageReceiver(context);
 
@@ -333,11 +329,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
     private boolean oauth2AccessDetailsRefreshed() {
         boolean oauthDetailsRefreshed = this.oauth2AccessTokenProviderOptional.isPresent()
                 &&
-                (
-                        this.oauth2AccessDetails == null
-                                ||
-                                !oauth2AccessDetails.equals(this.oauth2AccessTokenProviderOptional.get().getAccessDetails())
-                );
+                (this.oauth2AccessDetails == null || !oauth2AccessDetails.equals(this.oauth2AccessTokenProviderOptional.get().getAccessDetails()));
 
         return oauthDetailsRefreshed;
     }
