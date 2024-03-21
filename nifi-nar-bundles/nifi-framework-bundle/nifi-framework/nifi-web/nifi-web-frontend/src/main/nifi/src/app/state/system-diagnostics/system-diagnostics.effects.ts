@@ -100,7 +100,7 @@ export class SystemDiagnosticsEffects {
                 tap(() => {
                     this.dialog
                         .open(SystemDiagnosticsDialog, {
-                            ...DIALOG_SIZES.LARGE_DIALOG
+                            ...DIALOG_SIZES.LARGE
                         })
                         .afterClosed()
                         .subscribe(() => {
