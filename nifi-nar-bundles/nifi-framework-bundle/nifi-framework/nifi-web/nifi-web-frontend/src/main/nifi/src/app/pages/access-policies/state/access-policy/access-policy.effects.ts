@@ -173,7 +173,7 @@ export class AccessPolicyEffects {
                 concatLatestFrom(() => this.store.select(selectAccessPolicy).pipe(isDefinedAndNotNull())),
                 tap(([, accessPolicy]) => {
                     const dialogReference = this.dialog.open(OverridePolicyDialog, {
-                        ...DIALOG_SIZES.SMALL_DIALOG
+                        ...DIALOG_SIZES.LARGE
                     });
 
                     dialogReference.componentInstance.copyInheritedPolicy
