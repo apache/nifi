@@ -114,8 +114,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                     "This could lead for a large amount of memory usage when executing queries which fetch large data sets. " +
                     "More Details of this behaviour in PostgreSQL driver can be found in https://jdbc.postgresql.org//documentation/head/query.html.")
             .allowableValues("true", "false")
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .clearDefaultValue()
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .build();
 
