@@ -110,7 +110,7 @@ export class ParameterProvidersEffects {
                 concatLatestFrom(() => this.store.select(selectParameterProviderTypes)),
                 tap(([, parameterProviderTypes]) => {
                     const dialogReference = this.dialog.open(CreateParameterProvider, {
-                        ...DIALOG_SIZES.MEDIUM,
+                        ...DIALOG_SIZES.LARGE,
                         data: {
                             parameterProviderTypes
                         }

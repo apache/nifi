@@ -81,7 +81,7 @@ export class FlowAnalysisRulesEffects {
                 concatLatestFrom(() => this.store.select(selectFlowAnalysisRuleTypes)),
                 tap(([, flowAnalysisRuleTypes]) => {
                     this.dialog.open(CreateFlowAnalysisRule, {
-                        ...DIALOG_SIZES.MEDIUM,
+                        ...DIALOG_SIZES.LARGE,
                         data: {
                             flowAnalysisRuleTypes
                         }

@@ -81,7 +81,7 @@ export class ReportingTasksEffects {
                 concatLatestFrom(() => this.store.select(selectReportingTaskTypes)),
                 tap(([, reportingTaskTypes]) => {
                     this.dialog.open(CreateReportingTask, {
-                        ...DIALOG_SIZES.MEDIUM,
+                        ...DIALOG_SIZES.LARGE,
                         data: {
                             reportingTaskTypes
                         }
