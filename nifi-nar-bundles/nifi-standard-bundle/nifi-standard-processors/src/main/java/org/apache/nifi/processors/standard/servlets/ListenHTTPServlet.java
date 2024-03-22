@@ -160,6 +160,7 @@ public class ListenHTTPServlet extends HttpServlet {
     private void notAllowed(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
         response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "Method Not Allowed");
     }
+    
     @Override
     protected void doTrace(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
         notAllowed(request, response);
