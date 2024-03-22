@@ -103,8 +103,13 @@ public class TestListenHTTP {
 
     private static final int SOCKET_CONNECT_TIMEOUT = 100;
     private static final long SERVER_START_TIMEOUT = 1200000;
+
+    private static final String HTTP_POST = "POST";
+    private static final String HTTP_TRACE = "TRACE";
+    private static final String HTTP_OPTIONS = "OPTIONS";
+
     private static final Duration CLIENT_CALL_TIMEOUT = Duration.ofSeconds(10);
-    public static final String LOCALHOST_DN = "CN=localhost";
+    private static final String LOCALHOST_DN = "CN=localhost";
 
     private static TlsConfiguration serverConfiguration;
     private static TlsConfiguration serverTls_1_3_Configuration;
@@ -374,14 +379,14 @@ public class TestListenHTTP {
     public void testSecureServerTrustStoreConfiguredClientAuthenticationRequired() throws Exception {
         configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
         final int port = startSecureServer();
-        assertThrows(IOException.class, () -> postMessage(null, true, port, false));
+        assertThrows(IOException.class, () -> sendMessage(null, true, port, false, HTTP_POST));
     }
 
     @Test
     public void testSecureServerTrustStoreNotConfiguredClientAuthenticationNotRequired() throws Exception {
         configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverNoTruststoreConfiguration);
         final int port = startSecureServer();
-        final int responseCode = postMessage(null, true, port, true);
+        final int responseCode = sendMessage(null, true, port, true, HTTP_POST);
         assertEquals(HttpServletResponse.SC_NO_CONTENT, responseCode);
     }
 
@@ -471,7 +476,7 @@ public class TestListenHTTP {
                 "\"3\",\"rec3\",\"103\"\n" +
                 "\"4\",\"rec4\",\"104\"\n";
 
-        startWebServerAndSendMessages(Collections.singletonList(""), HttpServletResponse.SC_OK, false, false);
+        startWebServerAndSendMessages(Collections.singletonList(""), HttpServletResponse.SC_OK, false, false, HTTP_POST);
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
 
         runner.assertTransferCount(RELATIONSHIP_SUCCESS, 1);
@@ -495,7 +500,7 @@ public class TestListenHTTP {
             parser.addRecord(keys.get(i), names.get(i), codes.get(i));
         }
 
-        startWebServerAndSendMessages(Collections.singletonList(""), HttpServletResponse.SC_BAD_REQUEST, false, false);
+        startWebServerAndSendMessages(Collections.singletonList(""), HttpServletResponse.SC_BAD_REQUEST, false, false, HTTP_POST);
 
         runner.assertTransferCount(RELATIONSHIP_SUCCESS, 0);
     }
@@ -533,6 +538,22 @@ public class TestListenHTTP {
         }
     }
 
+    @Test
+    public void testOptionsNotAllowed() throws Exception {
+        final List<String> messages = new ArrayList<>();
+        messages.add("payload 1");
+
+        startWebServerAndSendMessages(messages, HttpServletResponse.SC_METHOD_NOT_ALLOWED, false, false, HTTP_OPTIONS);
+    }
+
+    @Test
+    public void testTraceNotAllowed() throws Exception {
+        final List<String> messages = new ArrayList<>();
+        messages.add("payload 1");
+
+        startWebServerAndSendMessages(messages, HttpServletResponse.SC_METHOD_NOT_ALLOWED, false, false, HTTP_TRACE);
+    }
+
     private MockRecordParser setupRecordReaderTest() throws InitializationException {
         final MockRecordParser parser = new MockRecordParser();
         final MockRecordWriter writer = new MockRecordWriter();
@@ -556,16 +577,16 @@ public class TestListenHTTP {
         return startWebServer();
     }
 
-    private int postMessage(final String message, boolean secure, final int port, boolean clientAuthRequired) throws IOException {
-        final OkHttpClient okHttpClient = getOkHttpClient(secure, clientAuthRequired);
-        final Request.Builder requestBuilder = new Request.Builder();
-        final String url = buildUrl(secure, port);
-        requestBuilder.url(url);
-
+    private int sendMessage(final String message, final boolean secure, final int port, boolean clientAuthRequired, final String httpMethod) throws IOException {
         final byte[] bytes = message == null ? new byte[]{} : message.getBytes(StandardCharsets.UTF_8);
         final RequestBody requestBody = RequestBody.create(bytes, APPLICATION_OCTET_STREAM);
-        final Request request = requestBuilder.post(requestBody).build();
+        final String url = buildUrl(secure, port);
+        final Request.Builder requestBuilder = new Request.Builder();
+        final Request request = requestBuilder.method(httpMethod, requestBody)
+                .url(url)
+                .build();
 
+        final OkHttpClient okHttpClient = getOkHttpClient(secure, clientAuthRequired);
         try (final Response response = okHttpClient.newCall(request).execute()) {
             return response.code();
         }
@@ -597,7 +618,7 @@ public class TestListenHTTP {
         messages.add(null);
         messages.add("payload 2");
 
-        startWebServerAndSendMessages(messages, returnCode, secure, twoWaySsl);
+        startWebServerAndSendMessages(messages, returnCode, secure, twoWaySsl, HTTP_POST);
 
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
 
@@ -647,11 +668,12 @@ public class TestListenHTTP {
         return listeningPort;
     }
 
-    private void startWebServerAndSendMessages(final List<String> messages, final int expectedStatusCode, final boolean secure, final boolean clientAuthRequired) throws Exception {
+    private void startWebServerAndSendMessages(final List<String> messages, final int expectedStatusCode, final boolean secure, final boolean clientAuthRequired,
+                                               final String httpMethod) throws Exception {
         final int port = startWebServer();
 
         for (final String message : messages) {
-            final int statusCode = postMessage(message, secure, port, clientAuthRequired);
+            final int statusCode = sendMessage(message, secure, port, clientAuthRequired, httpMethod);
             assertEquals(expectedStatusCode, statusCode, "HTTP Status Code not matched");
         }
     }
