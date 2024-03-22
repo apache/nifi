@@ -35,6 +35,7 @@ import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flowanalysis.EnforcementPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
@@ -55,7 +56,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClientNode {
@@ -66,7 +66,7 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
     private final FlowAnalyzer flowAnalyzer;
     private final RuleViolationsManager ruleViolationsManager;
     private final FlowManager flowManager;
-    private final Supplier<NiFiRegistryFlowMapper> flowMapperSupplier;
+    private final NiFiRegistryFlowMapper flowMapper;
 
     public FlowAnalyzingRegistryClientNode(
             final FlowRegistryClientNode node,
@@ -74,14 +74,14 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
             final FlowAnalyzer flowAnalyzer,
             final RuleViolationsManager ruleViolationsManager,
             final FlowManager flowManager,
-            final Supplier<NiFiRegistryFlowMapper> flowMapperSupplier
+            final NiFiRegistryFlowMapper flowMapper
     ) {
         this.node = Objects.requireNonNull(node);
         this.serviceProvider = Objects.requireNonNull(serviceProvider);
         this.flowAnalyzer = Objects.requireNonNull(flowAnalyzer);
         this.ruleViolationsManager = Objects.requireNonNull(ruleViolationsManager);
         this.flowManager = Objects.requireNonNull(flowManager);
-        this.flowMapperSupplier = Objects.requireNonNull(flowMapperSupplier);
+        this.flowMapper = Objects.requireNonNull(flowMapper);
     }
 
     @Override
@@ -102,16 +102,17 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
         if (analyzeProcessGroupToRegister(snapshot)) {
             return node.registerFlowSnapshot(context, flow, snapshot, externalControllerServices, parameterContexts, parameterProviderReferences, comments, expectedVersion);
         } else {
-            throw new ViolatingFlowException("Cannot store flow version to registry due to rules violations");
+            throw new FlowRegistryPreCommitException("There are unresolved rule violations");
         }
     }
 
     private boolean analyzeProcessGroupToRegister(final VersionedProcessGroup snapshot) {
-        final NiFiRegistryFlowMapper mapper = flowMapperSupplier.get();
-        final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = mapper.mapNonVersionedProcessGroup(flowManager.getGroup(snapshot.getInstanceIdentifier()), serviceProvider);
+        final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = flowMapper.mapNonVersionedProcessGroup(flowManager.getGroup(snapshot.getInstanceIdentifier()), serviceProvider);
 
         flowAnalyzer.analyzeProcessGroup(nonVersionedProcessGroup);
-        final Collection<RuleViolation> ruleViolations = ruleViolationsManager.getRuleViolationsForGroup(snapshot.getInstanceIdentifier());
+        final List<RuleViolation> ruleViolations = ruleViolationsManager.getRuleViolationsForGroup(snapshot.getInstanceIdentifier()).stream()
+                .filter(ruleViolation -> EnforcementPolicy.ENFORCE.equals(ruleViolation.getEnforcementPolicy()))
+                .toList();
 
         final boolean result = ruleViolations.isEmpty();
 
