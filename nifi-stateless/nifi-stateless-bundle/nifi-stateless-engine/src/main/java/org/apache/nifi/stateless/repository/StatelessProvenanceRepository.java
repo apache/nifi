@@ -80,9 +80,10 @@ public class StatelessProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public void registerEvents(final Iterable<ProvenanceEventRecord> events) {
-        for (final ProvenanceEventRecord event : events) {
-            registerEvent(event);
-        }
+        //This is broken for stateless nifi processing.
+        //for (final ProvenanceEventRecord event : events) {
+            //registerEvent(event);
+        //}
     }
 
     @Override

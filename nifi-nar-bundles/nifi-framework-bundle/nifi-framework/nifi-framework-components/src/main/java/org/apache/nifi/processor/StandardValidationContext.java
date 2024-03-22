@@ -28,6 +28,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.resource.ResourceContext;
 import org.apache.nifi.components.resource.StandardResourceContext;
 import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
+import org.apache.nifi.components.validation.AbstractValidationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.PropertyConfiguration;
@@ -50,7 +51,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-public class StandardValidationContext implements ValidationContext {
+public class StandardValidationContext extends AbstractValidationContext implements ValidationContext {
 
     private final ControllerServiceProvider controllerServiceProvider;
     private final Map<PropertyDescriptor, PropertyConfiguration> properties;
@@ -72,6 +73,7 @@ public class StandardValidationContext implements ValidationContext {
             final ParameterContext parameterContext,
             final boolean validateConnections) {
 
+        super(parameterContext, properties);
         this.controllerServiceProvider = controllerServiceProvider;
         this.properties = new HashMap<>(properties);
         this.annotationData = annotationData;
