@@ -301,7 +301,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD = "nifi.analytics.connection.model.score.threshold";
 
     // registry client properties
-    public static final String CHECK_FOL_RULES_VIOLATION_WHEN_REGISTRY_COMMIT = "nifi.registry.check.for.rules.violation";
+    public static final String FLOW_REGISTRY_CHECK_FOR_RULE_VIOLATIONS_BEFORE_COMMIT = "nifi.registry.check.for.rule.violation.before.commit";
 
     // runtime monitoring properties
     public static final String MONITOR_LONG_RUNNING_TASK_SCHEDULE = "nifi.monitor.long.running.task.schedule";
@@ -402,7 +402,7 @@ public class NiFiProperties extends ApplicationProperties {
     private static final String DEFAULT_SECURITY_USER_JWS_KEY_ROTATION_PERIOD = "PT1H";
     public static final String DEFAULT_WEB_SHOULD_SEND_SERVER_VERSION = "true";
     public static final int DEFAULT_LISTENER_BOOTSTRAP_PORT = 0;
-    public static final Boolean DEFAULT_CHECK_FOL_RULES_VIOLATION_WHEN_REGISTRY_COMMIT = false;
+    public static final Boolean DEFAULT_FLOW_REGISTRY_CHECK_FOR_RULE_VIOLATIONS_BEFORE_COMMIT = false;
 
     // cluster common defaults
     public static final String DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "5 sec";
@@ -1849,14 +1849,19 @@ public class NiFiProperties extends ApplicationProperties {
     }
 
     /**
-     * @return Returns true if NiFi should execute flow analysis check on the process group before committing it to a registry. Returns
+     * @return Returns true if NiFi should execute flow analysis on the process group before committing it to a registry. Returns
      * false otherwise.
      */
-    public boolean shouldCheckForRulesViolationWhenRegistryCommit() {
-        final String shouldCheckForRulesViolationWhenRegistryCommit = getProperty(
-                CHECK_FOL_RULES_VIOLATION_WHEN_REGISTRY_COMMIT,
-                DEFAULT_CHECK_FOL_RULES_VIOLATION_WHEN_REGISTRY_COMMIT.toString());
-        return Boolean.parseBoolean(shouldCheckForRulesViolationWhenRegistryCommit);
+    public boolean flowRegistryCheckForRuleViolationsBeforeCommit() {
+        final String flowRegistryCheckForRuleViolationsBeforeCommit = getProperty(
+                FLOW_REGISTRY_CHECK_FOR_RULE_VIOLATIONS_BEFORE_COMMIT,
+                DEFAULT_FLOW_REGISTRY_CHECK_FOR_RULE_VIOLATIONS_BEFORE_COMMIT.toString());
+
+        if (!"true".equalsIgnoreCase(flowRegistryCheckForRuleViolationsBeforeCommit) && !"false".equalsIgnoreCase(flowRegistryCheckForRuleViolationsBeforeCommit)) {
+            throw new RuntimeException(String.format("%s was '%s', expected true or false", FLOW_REGISTRY_CHECK_FOR_RULE_VIOLATIONS_BEFORE_COMMIT, flowRegistryCheckForRuleViolationsBeforeCommit));
+        }
+
+        return Boolean.parseBoolean(flowRegistryCheckForRuleViolationsBeforeCommit);
     }
 
     /**

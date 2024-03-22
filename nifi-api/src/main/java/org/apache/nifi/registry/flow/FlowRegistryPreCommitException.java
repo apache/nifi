@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.registry.flow;
 
-public class ViolatingFlowException extends FlowRegistryException {
-    public ViolatingFlowException(final String message) {
+public class FlowRegistryPreCommitException extends FlowRegistryException {
+    public FlowRegistryPreCommitException(final String message) {
         super(message);
     }
 }

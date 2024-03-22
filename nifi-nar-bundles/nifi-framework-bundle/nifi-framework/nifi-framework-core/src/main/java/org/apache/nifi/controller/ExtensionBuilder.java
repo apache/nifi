@@ -585,7 +585,7 @@ public class ExtensionBuilder {
                    flowAnalyzer,
                    ruleViolationsManager,
                    flowController.getFlowManager(),
-                   () -> FlowAnalysisUtil.createMapper(extensionManager)
+                   FlowAnalysisUtil.createMapper(extensionManager)
            );
        } else {
            return clientNode;
