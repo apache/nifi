@@ -47,6 +47,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
+import org.ietf.jgss.GSSException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -57,6 +58,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -254,8 +256,29 @@ public class MoveHDFS extends AbstractHadoopProcessor {
             if (!directoryExists) {
                 throw new IOException("Input Directory or File does not exist in HDFS");
             }
+        } catch (final IOException e) {
+            Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
+            if (causeOptional.isPresent()) {
+                getLogger().error("An error occurred while connecting to HDFS. "
+                                + "Rolling back session, resetting HDFS resources, and penalizing flow file {}",
+                        flowFile.getAttribute(CoreAttributes.UUID.key()), causeOptional.get());
+                try {
+                    hdfsResources.set(resetHDFSResources(getConfigLocations(context), context));
+                } catch (IOException ioe) {
+                    getLogger().error("An error occurred resetting HDFS resources, you may need to restart the processor.");
+                }
+                session.rollback();
+                context.yield();
+                return;
+            } else {
+                getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", filenameValue, flowFile, e);
+                flowFile = session.putAttribute(flowFile, "hdfs.failure.reason", e.getMessage());
+                flowFile = session.penalize(flowFile);
+                session.transfer(flowFile, REL_FAILURE);
+            }
+            return;
         } catch (Exception e) {
-            getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[]{filenameValue, flowFile, e});
+            getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", filenameValue, flowFile, e);
             flowFile = session.putAttribute(flowFile, "hdfs.failure.reason", e.getMessage());
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -294,7 +317,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                 if (logEmptyListing.getAndDecrement() > 0) {
                     getLogger().info(
                             "Obtained file listing in {} milliseconds; listing had {} items, {} of which were new",
-                            new Object[]{millis, listedFiles.size(), newItems});
+                            millis, listedFiles.size(), newItems);
                 }
             }
         } catch (IOException e) {

@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -55,6 +56,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.ietf.jgss.GSSException;
 
 import static org.apache.nifi.processors.hadoop.GetHDFSFileInfo.HDFSFileInfoRequest.Grouping.ALL;
 import static org.apache.nifi.processors.hadoop.GetHDFSFileInfo.HDFSFileInfoRequest.Grouping.DIR;
@@ -75,10 +77,10 @@ import static org.apache.nifi.processors.hadoop.GetHDFSFileInfo.HDFSFileInfoRequ
         @WritesAttribute(attribute = "hdfs.owner", description = "The user that owns the object in HDFS"),
         @WritesAttribute(attribute = "hdfs.group", description = "The group that owns the object in HDFS"),
         @WritesAttribute(attribute = "hdfs.lastModified", description = "The timestamp of when the object in HDFS was last modified, as milliseconds since midnight Jan 1, 1970 UTC"),
-        @WritesAttribute(attribute = "hdfs.length", description = ""
-                + "In case of files: The number of bytes in the file in HDFS.  "
+        @WritesAttribute(attribute = "hdfs.length", description =
+                "In case of files: The number of bytes in the file in HDFS.  "
                 + "In case of dirs: Retuns storage space consumed by directory. "
-                + ""),
+                ),
         @WritesAttribute(attribute = "hdfs.count.files", description = "In case of type='directory' will represent total count of files under this dir. "
                 + "Won't be populated to other types of HDFS objects. "),
         @WritesAttribute(attribute = "hdfs.count.dirs", description = "In case of type='directory' will represent total count of directories under this dir (including itself). "
@@ -326,6 +328,23 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             getLogger().error("Interrupted while performing listing of HDFS", e);
             ff = session.putAttribute(ff, "hdfs.status", "Failed due to: " + e);
             session.transfer(ff, REL_FAILURE);
+        } catch (final IOException e) {
+            // Catch GSSExceptions and reset the resources
+            Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
+            if (causeOptional.isPresent()) {
+                getLogger().error("Error authenticating when performing file operation, resetting HDFS resources", causeOptional);
+                try {
+                    hdfsResources.set(resetHDFSResources(getConfigLocations(context), context));
+                } catch (IOException resetResourcesException) {
+                    getLogger().error("An error occurred resetting HDFS resources, you may need to restart the processor.", resetResourcesException);
+                }
+                session.rollback();
+                context.yield();
+            } else {
+                getLogger().error("Interrupted while performing listing of HDFS", e);
+                ff = session.putAttribute(ff, "hdfs.status", "Failed due to: " + e);
+                session.transfer(ff, REL_FAILURE);
+            }
         } catch (final Exception e) {
             getLogger().error("Failed to perform listing of HDFS due to {}", new Object[]{e});
             ff = session.putAttribute(ff, "hdfs.status", "Failed due to: " + e);
