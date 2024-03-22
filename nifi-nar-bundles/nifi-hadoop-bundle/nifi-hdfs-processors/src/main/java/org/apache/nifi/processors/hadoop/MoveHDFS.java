@@ -46,10 +46,13 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.hadoop.util.GSSExceptionRollbackYieldSessionHandler;
 import org.apache.nifi.util.StopWatch;
+import org.ietf.jgss.GSSException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -57,6 +60,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -255,7 +259,10 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                 throw new IOException("Input Directory or File does not exist in HDFS");
             }
         } catch (Exception e) {
-            getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[]{filenameValue, flowFile, e});
+            if (handleAuthErrors(e, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
+                return;
+            }
+            getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", filenameValue, flowFile, e);
             flowFile = session.putAttribute(flowFile, "hdfs.failure.reason", e.getMessage());
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -294,7 +301,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                 if (logEmptyListing.getAndDecrement() > 0) {
                     getLogger().info(
                             "Obtained file listing in {} milliseconds; listing had {} items, {} of which were new",
-                            new Object[]{millis, listedFiles.size(), newItems});
+                            millis, listedFiles.size(), newItems);
                 }
             }
         } catch (IOException e) {
@@ -322,7 +329,12 @@ public class MoveHDFS extends AbstractHadoopProcessor {
             queueLock.unlock();
         }
 
-        processBatchOfFiles(files, context, session, flowFile);
+        try {
+            processBatchOfFiles(files, context, session, flowFile);
+            session.remove(flowFile);
+        } catch (UncheckedIOException e) {
+            handleAuthErrors(e, session, context, new GSSExceptionRollbackYieldSessionHandler());
+        }
 
         queueLock.lock();
         try {
@@ -330,8 +342,6 @@ public class MoveHDFS extends AbstractHadoopProcessor {
         } finally {
             queueLock.unlock();
         }
-
-        session.remove(flowFile);
     }
 
     protected void processBatchOfFiles(final List<Path> files, final ProcessContext context,
@@ -352,95 +362,95 @@ public class MoveHDFS extends AbstractHadoopProcessor {
 
         for (final Path file : files) {
 
-            ugi.doAs(new PrivilegedAction<Object>() {
-                @Override
-                public Object run() {
-                    FlowFile flowFile = session.create(parentFlowFile);
-                    try {
-                        final String originalFilename = file.getName();
-                        final Path outputDirPath = getNormalizedPath(context, OUTPUT_DIRECTORY, parentFlowFile);
-                        final Path newFile = new Path(outputDirPath, originalFilename);
-                        final boolean destinationExists = hdfs.exists(newFile);
-                        // If destination file already exists, resolve that
-                        // based on processor configuration
-                        if (destinationExists) {
-                            switch (processorConfig.getConflictResolution()) {
-                                case REPLACE_RESOLUTION:
-                                    // Remove destination file (newFile) to replace
-                                    if (hdfs.delete(newFile, false)) {
-                                        getLogger().info("deleted {} in order to replace with the contents of {}",
-                                                new Object[]{newFile, flowFile});
-                                    }
-                                    break;
-                                case IGNORE_RESOLUTION:
-                                    session.transfer(flowFile, REL_SUCCESS);
-                                    getLogger().info(
-                                            "transferring {} to success because file with same name already exists",
-                                            new Object[]{flowFile});
-                                    return null;
-                                case FAIL_RESOLUTION:
-                                    session.transfer(session.penalize(flowFile), REL_FAILURE);
-                                    getLogger().warn(
-                                            "penalizing {} and routing to failure because file with same name already exists",
-                                            new Object[]{flowFile});
-                                    return null;
-                                default:
-                                    break;
-                            }
-                        }
-
-                        // Create destination directory if it does not exist
-                        try {
-                            if (!hdfs.getFileStatus(outputDirPath).isDirectory()) {
-                                throw new IOException(outputDirPath.toString()
-                                        + " already exists and is not a directory");
-                            }
-                        } catch (FileNotFoundException fe) {
-                            if (!hdfs.mkdirs(outputDirPath)) {
-                                throw new IOException(outputDirPath.toString() + " could not be created");
-                            }
-                            changeOwner(context, hdfs, outputDirPath);
-                        }
-
-                        boolean moved = false;
-                        for (int i = 0; i < 10; i++) { // try to rename multiple
-                            // times.
-                            if (processorConfig.getOperation().equals("move")) {
-                                if (hdfs.rename(file, newFile)) {
-                                    moved = true;
-                                    break;// rename was successful
+            ugi.doAs((PrivilegedAction<Object>) () -> {
+                FlowFile flowFile = session.create(parentFlowFile);
+                try {
+                    final String originalFilename = file.getName();
+                    final Path outputDirPath = getNormalizedPath(context, OUTPUT_DIRECTORY, parentFlowFile);
+                    final Path newFile = new Path(outputDirPath, originalFilename);
+                    final boolean destinationExists = hdfs.exists(newFile);
+                    // If destination file already exists, resolve that
+                    // based on processor configuration
+                    if (destinationExists) {
+                        switch (processorConfig.getConflictResolution()) {
+                            case REPLACE_RESOLUTION:
+                                // Remove destination file (newFile) to replace
+                                if (hdfs.delete(newFile, false)) {
+                                    getLogger().info("deleted {} in order to replace with the contents of {}",
+                                            new Object[]{newFile, flowFile});
                                 }
-                            } else {
-                                if (FileUtil.copy(hdfs, file, hdfs, newFile, false, conf)) {
-                                    moved = true;
-                                    break;// copy was successful
-                                }
-                            }
-                            Thread.sleep(200L);// try waiting to let whatever might cause rename failure to resolve
+                                break;
+                            case IGNORE_RESOLUTION:
+                                session.transfer(flowFile, REL_SUCCESS);
+                                getLogger().info(
+                                        "transferring {} to success because file with same name already exists",
+                                        new Object[]{flowFile});
+                                return null;
+                            case FAIL_RESOLUTION:
+                                session.transfer(session.penalize(flowFile), REL_FAILURE);
+                                getLogger().warn(
+                                        "penalizing {} and routing to failure because file with same name already exists",
+                                        new Object[]{flowFile});
+                                return null;
+                            default:
+                                break;
                         }
-                        if (!moved) {
-                            throw new ProcessException("Could not move file " + file + " to its final filename");
-                        }
-
-                        changeOwner(context, hdfs, newFile);
-                        final String outputPath = newFile.toString();
-                        final String newFilename = newFile.getName();
-                        final String hdfsPath = newFile.getParent().toString();
-                        flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), newFilename);
-                        flowFile = session.putAttribute(flowFile, ABSOLUTE_HDFS_PATH_ATTRIBUTE, hdfsPath);
-                        final Path qualifiedPath = newFile.makeQualified(hdfs.getUri(), hdfs.getWorkingDirectory());
-                        flowFile = session.putAttribute(flowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
-                        final String transitUri = hdfs.getUri() + StringUtils.prependIfMissing(outputPath, "/");
-                        session.getProvenanceReporter().send(flowFile, transitUri);
-                        session.transfer(flowFile, REL_SUCCESS);
-
-                    } catch (final Throwable t) {
-                        getLogger().error("Failed to rename on HDFS due to {}", new Object[]{t});
-                        session.transfer(session.penalize(flowFile), REL_FAILURE);
-                        context.yield();
                     }
-                    return null;
+
+                    // Create destination directory if it does not exist
+                    try {
+                        if (!hdfs.getFileStatus(outputDirPath).isDirectory()) {
+                            throw new IOException(outputDirPath + " already exists and is not a directory");
+                        }
+                    } catch (FileNotFoundException fe) {
+                        if (!hdfs.mkdirs(outputDirPath)) {
+                            throw new IOException(outputDirPath + " could not be created");
+                        }
+                        changeOwner(context, hdfs, outputDirPath);
+                    }
+
+                    boolean moved = false;
+                    for (int i = 0; i < 10; i++) { // try to rename multiple
+                        // times.
+                        if (processorConfig.getOperation().equals("move")) {
+                            if (hdfs.rename(file, newFile)) {
+                                moved = true;
+                                break;// rename was successful
+                            }
+                        } else {
+                            if (FileUtil.copy(hdfs, file, hdfs, newFile, false, conf)) {
+                                moved = true;
+                                break;// copy was successful
+                            }
+                        }
+                        Thread.sleep(200L);// try waiting to let whatever might cause rename failure to resolve
+                    }
+                    if (!moved) {
+                        throw new ProcessException("Could not move file " + file + " to its final filename");
+                    }
+
+                    changeOwner(context, hdfs, newFile);
+                    final String outputPath = newFile.toString();
+                    final String newFilename = newFile.getName();
+                    final String hdfsPath = newFile.getParent().toString();
+                    flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), newFilename);
+                    flowFile = session.putAttribute(flowFile, ABSOLUTE_HDFS_PATH_ATTRIBUTE, hdfsPath);
+                    final Path qualifiedPath = newFile.makeQualified(hdfs.getUri(), hdfs.getWorkingDirectory());
+                    flowFile = session.putAttribute(flowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
+                    final String transitUri = hdfs.getUri() + StringUtils.prependIfMissing(outputPath, "/");
+                    session.getProvenanceReporter().send(flowFile, transitUri);
+                    session.transfer(flowFile, REL_SUCCESS);
+
+                } catch (final Throwable t) {
+                    final Optional<GSSException> causeOptional = findCause(t, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
+                    if (causeOptional.isPresent()) {
+                        throw new UncheckedIOException(new IOException(causeOptional.get()));
+                    }
+                    getLogger().error("Failed to rename on HDFS due to {}", new Object[]{t});
+                    session.transfer(session.penalize(flowFile), REL_FAILURE);
+                    context.yield();
                 }
+                return null;
             });
         }
     }

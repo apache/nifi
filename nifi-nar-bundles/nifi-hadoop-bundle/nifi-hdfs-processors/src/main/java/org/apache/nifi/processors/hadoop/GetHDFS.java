@@ -49,6 +49,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.hadoop.util.GSSExceptionRollbackYieldSessionHandler;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.IOException;
@@ -294,12 +295,12 @@ public class GetHDFS extends AbstractHadoopProcessor {
                     }
                     if (logEmptyListing.getAndDecrement() > 0) {
                         getLogger().info("Obtained file listing in {} milliseconds; listing had {} items, {} of which were new",
-                                new Object[]{millis, listedFiles.size(), newItems});
+                                millis, listedFiles.size(), newItems);
                     }
                 }
             } catch (IOException e) {
-                context.yield();
-                getLogger().warn("Error while retrieving list of files due to {}", new Object[]{e});
+                handleAuthErrors(e, session, context, new GSSExceptionRollbackYieldSessionHandler());
+                getLogger().warn("Error while retrieving list of files due to {}", e.getMessage(), e);
                 return;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -388,20 +389,20 @@ public class GetHDFS extends AbstractHadoopProcessor {
                 flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), outputFilename);
 
                 if (!keepSourceFiles && !getUserGroupInformation().doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.delete(file, false))) {
-                    getLogger().warn("Could not remove {} from HDFS. Not ingesting this file ...",
-                            new Object[]{file});
+                    getLogger().warn("Could not remove {} from HDFS. Not ingesting this file ...", file);
                     session.remove(flowFile);
                     continue;
                 }
 
                 session.getProvenanceReporter().receive(flowFile, file.toString());
                 session.transfer(flowFile, REL_SUCCESS);
-                getLogger().info("retrieved {} from HDFS {} in {} milliseconds at a rate of {}",
-                        new Object[]{flowFile, file, millis, dataRate});
+                getLogger().info("retrieved {} from HDFS {} in {} milliseconds at a rate of {}", flowFile, file, millis, dataRate);
             } catch (final Throwable t) {
-                getLogger().error("Error retrieving file {} from HDFS due to {}", new Object[]{file, t});
-                session.rollback();
-                context.yield();
+                if (!handleAuthErrors(t, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
+                    getLogger().error("Error retrieving file {} from HDFS due to {}", file, t);
+                    session.rollback();
+                    context.yield();
+                }
             } finally {
                 IOUtils.closeQuietly(stream);
                 stream = null;
