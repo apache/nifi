@@ -250,27 +250,32 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         .identifiesControllerService(RecordSetWriterFactory.class)
         .build();
 
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+            GCP_CREDENTIALS_PROVIDER_SERVICE,
+            PROJECT_ID,
+            BUCKET,
+            PREFIX,
+            LISTING_STRATEGY,
+            TRACKING_STATE_CACHE,
+            INITIAL_LISTING_TARGET,
+            TRACKING_TIME_WINDOW,
+            RECORD_WRITER,
+            USE_GENERATIONS,
+            RETRY_COUNT,
+            STORAGE_API_URL,
+            PROXY_CONFIGURATION_SERVICE
+    );
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(LISTING_STRATEGY);
-        descriptors.add(TRACKING_STATE_CACHE);
-        descriptors.add(INITIAL_LISTING_TARGET);
-        descriptors.add(TRACKING_TIME_WINDOW);
-        descriptors.add(BUCKET);
-        descriptors.add(RECORD_WRITER);
-        descriptors.addAll(super.getSupportedPropertyDescriptors());
-        descriptors.add(PREFIX);
-        descriptors.add(USE_GENERATIONS);
-        return Collections.unmodifiableList(descriptors);
+        return DESCRIPTORS;
     }
 
-    private static final Set<Relationship> relationships = Collections.singleton(REL_SUCCESS);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     // State tracking

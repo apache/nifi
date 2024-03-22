@@ -24,21 +24,11 @@ import io.grpc.ProxyDetector;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.SocketAddress;
-import java.util.List;
 import javax.annotation.Nullable;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.proxy.ProxyConfiguration;
 
 public abstract class AbstractGCPubSubWithProxyProcessor extends AbstractGCPubSubProcessor {
-    @Override
-    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return List.of(
-            PROJECT_ID,
-            PROXY_CONFIGURATION_SERVICE,
-            GCP_CREDENTIALS_PROVIDER_SERVICE
-        );
-    }
 
     protected TransportChannelProvider getTransportChannelProvider(ProcessContext context) {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);

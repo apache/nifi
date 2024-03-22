@@ -170,7 +170,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
 
     public static final PropertyDescriptor KEY = new PropertyDescriptor
             .Builder().name("gcs-key")
-            .displayName("Name")
+            .displayName("Key")
             .description(KEY_DESC)
             .required(true)
             .defaultValue("${" + CoreAttributes.FILENAME.key() + "}")
@@ -217,17 +217,23 @@ public class FetchGCSObject extends AbstractGCSProcessor {
             .required(false)
             .build();
 
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+            GCP_CREDENTIALS_PROVIDER_SERVICE,
+            PROJECT_ID,
+            BUCKET,
+            KEY,
+            GENERATION,
+            ENCRYPTION_KEY,
+            RANGE_START,
+            RANGE_LENGTH,
+            RETRY_COUNT,
+            STORAGE_API_URL,
+            PROXY_CONFIGURATION_SERVICE
+    );
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(BUCKET);
-        descriptors.add(KEY);
-        descriptors.addAll(super.getSupportedPropertyDescriptors());
-        descriptors.add(GENERATION);
-        descriptors.add(ENCRYPTION_KEY);
-        descriptors.add(RANGE_START);
-        descriptors.add(RANGE_LENGTH);
-        return Collections.unmodifiableList(descriptors);
+        return DESCRIPTORS;
     }
 
     @Override
