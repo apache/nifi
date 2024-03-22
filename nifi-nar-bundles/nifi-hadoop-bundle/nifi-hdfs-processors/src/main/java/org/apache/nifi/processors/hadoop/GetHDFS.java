@@ -50,6 +50,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
+import org.ietf.jgss.GSSException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -59,6 +60,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -294,12 +296,22 @@ public class GetHDFS extends AbstractHadoopProcessor {
                     }
                     if (logEmptyListing.getAndDecrement() > 0) {
                         getLogger().info("Obtained file listing in {} milliseconds; listing had {} items, {} of which were new",
-                                new Object[]{millis, listedFiles.size(), newItems});
+                                millis, listedFiles.size(), newItems);
                     }
                 }
             } catch (IOException e) {
+                // Catch GSSExceptions and reset the resources
+                Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
+                if (causeOptional.isPresent()) {
+                    getLogger().error("Error authenticating when performing file operation, resetting HDFS resources", causeOptional);
+                    try {
+                        hdfsResources.set(resetHDFSResources(getConfigLocations(context), context));
+                    } catch (IOException ioe) {
+                        getLogger().error("An error occurred resetting HDFS resources, you may need to restart the processor.");
+                    }
+                }
                 context.yield();
-                getLogger().warn("Error while retrieving list of files due to {}", new Object[]{e});
+                getLogger().warn("Error while retrieving list of files due to {}", e.getMessage(), e);
                 return;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -388,18 +400,29 @@ public class GetHDFS extends AbstractHadoopProcessor {
                 flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), outputFilename);
 
                 if (!keepSourceFiles && !getUserGroupInformation().doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.delete(file, false))) {
-                    getLogger().warn("Could not remove {} from HDFS. Not ingesting this file ...",
-                            new Object[]{file});
+                    getLogger().warn("Could not remove {} from HDFS. Not ingesting this file ...", file);
                     session.remove(flowFile);
                     continue;
                 }
 
                 session.getProvenanceReporter().receive(flowFile, file.toString());
                 session.transfer(flowFile, REL_SUCCESS);
-                getLogger().info("retrieved {} from HDFS {} in {} milliseconds at a rate of {}",
-                        new Object[]{flowFile, file, millis, dataRate});
+                getLogger().info("retrieved {} from HDFS {} in {} milliseconds at a rate of {}", flowFile, file, millis, dataRate);
+            } catch (final IOException e) {
+                // Catch GSSExceptions and reset the resources
+                Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
+                if (causeOptional.isPresent()) {
+                    getLogger().error("Error authenticating when performing file operation, resetting HDFS resources", causeOptional);
+                    try {
+                        hdfsResources.set(resetHDFSResources(getConfigLocations(context), context));
+                    } catch (IOException resetResourcesException) {
+                        getLogger().error("An error occurred resetting HDFS resources, you may need to restart the processor.", resetResourcesException);
+                    }
+                }
+                session.rollback();
+                context.yield();
             } catch (final Throwable t) {
-                getLogger().error("Error retrieving file {} from HDFS due to {}", new Object[]{file, t});
+                getLogger().error("Error retrieving file {} from HDFS due to {}", file, t);
                 session.rollback();
                 context.yield();
             } finally {

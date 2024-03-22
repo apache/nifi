@@ -46,6 +46,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
+import org.ietf.jgss.GSSException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -54,6 +55,7 @@ import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -141,60 +143,70 @@ public class FetchHDFS extends AbstractHadoopProcessor {
         final StopWatch stopWatch = new StopWatch(true);
         final FlowFile finalFlowFile = flowFile;
 
-        ugi.doAs(new PrivilegedAction<Object>() {
-            @Override
-            public Object run() {
-                InputStream stream = null;
-                CompressionCodec codec = null;
-                Configuration conf = getConfiguration();
-                final CompressionCodecFactory compressionCodecFactory = new CompressionCodecFactory(conf);
-                final CompressionType compressionType = getCompressionType(context);
-                final boolean inferCompressionCodec = compressionType == CompressionType.AUTOMATIC;
+        ugi.doAs((PrivilegedAction<Object>) () -> {
+            InputStream stream = null;
+            CompressionCodec codec = null;
+            Configuration conf = getConfiguration();
+            final CompressionCodecFactory compressionCodecFactory = new CompressionCodecFactory(conf);
+            final CompressionType compressionType = getCompressionType(context);
+            final boolean inferCompressionCodec = compressionType == CompressionType.AUTOMATIC;
 
-                if(inferCompressionCodec) {
-                    codec = compressionCodecFactory.getCodec(path);
-                } else if (compressionType != CompressionType.NONE) {
-                    codec = getCompressionCodec(context, getConfiguration());
-                }
-
-                FlowFile flowFile = finalFlowFile;
-                final Path qualifiedPath = path.makeQualified(hdfs.getUri(), hdfs.getWorkingDirectory());
-                try {
-                    final String outputFilename;
-                    final String originalFilename = path.getName();
-                    stream = hdfs.open(path, 16384);
-
-                    // Check if compression codec is defined (inferred or otherwise)
-                    if (codec != null) {
-                        stream = codec.createInputStream(stream);
-                        outputFilename = StringUtils.removeEnd(originalFilename, codec.getDefaultExtension());
-                    } else {
-                        outputFilename = originalFilename;
-                    }
-
-                    flowFile = session.importFrom(stream, finalFlowFile);
-                    flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), outputFilename);
-
-                    stopWatch.stop();
-                    getLogger().info("Successfully received content from {} for {} in {}", new Object[] {qualifiedPath, flowFile, stopWatch.getDuration()});
-                    flowFile = session.putAttribute(flowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
-                    session.getProvenanceReporter().fetch(flowFile, qualifiedPath.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
-                    session.transfer(flowFile, getSuccessRelationship());
-                } catch (final FileNotFoundException | AccessControlException e) {
-                    getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[] {qualifiedPath, flowFile, e});
-                    flowFile = session.putAttribute(flowFile, getAttributePrefix() + ".failure.reason", e.getMessage());
-                    flowFile = session.penalize(flowFile);
-                    session.transfer(flowFile, getFailureRelationship());
-                } catch (final IOException e) {
-                    getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to comms.failure", new Object[] {qualifiedPath, flowFile, e});
-                    flowFile = session.penalize(flowFile);
-                    session.transfer(flowFile, getCommsFailureRelationship());
-                } finally {
-                    IOUtils.closeQuietly(stream);
-                }
-
-                return null;
+            if (inferCompressionCodec) {
+                codec = compressionCodecFactory.getCodec(path);
+            } else if (compressionType != CompressionType.NONE) {
+                codec = getCompressionCodec(context, getConfiguration());
             }
+
+            FlowFile flowFile1 = finalFlowFile;
+            final Path qualifiedPath = path.makeQualified(hdfs.getUri(), hdfs.getWorkingDirectory());
+            try {
+                final String outputFilename;
+                final String originalFilename = path.getName();
+                stream = hdfs.open(path, 16384);
+
+                // Check if compression codec is defined (inferred or otherwise)
+                if (codec != null) {
+                    stream = codec.createInputStream(stream);
+                    outputFilename = StringUtils.removeEnd(originalFilename, codec.getDefaultExtension());
+                } else {
+                    outputFilename = originalFilename;
+                }
+
+                flowFile1 = session.importFrom(stream, finalFlowFile);
+                flowFile1 = session.putAttribute(flowFile1, CoreAttributes.FILENAME.key(), outputFilename);
+
+                stopWatch.stop();
+                getLogger().info("Successfully received content from {} for {} in {}", new Object[]{qualifiedPath, flowFile1, stopWatch.getDuration()});
+                flowFile1 = session.putAttribute(flowFile1, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
+                session.getProvenanceReporter().fetch(flowFile1, qualifiedPath.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
+                session.transfer(flowFile1, getSuccessRelationship());
+            } catch (final FileNotFoundException | AccessControlException e) {
+                getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[]{qualifiedPath, flowFile1, e});
+                flowFile1 = session.putAttribute(flowFile1, getAttributePrefix() + ".failure.reason", e.getMessage());
+                flowFile1 = session.penalize(flowFile1);
+                session.transfer(flowFile1, getFailureRelationship());
+            } catch (final IOException e) {
+                // Catch GSSExceptions and reset the resources
+                Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
+                if (causeOptional.isPresent()) {
+                    getLogger().error("Error authenticating when performing file operation, resetting HDFS resources", causeOptional);
+                    try {
+                        hdfsResources.set(resetHDFSResources(getConfigLocations(context), context));
+                    } catch (IOException resetResourcesException) {
+                        getLogger().error("An error occurred resetting HDFS resources, you may need to restart the processor.", resetResourcesException);
+                    }
+                    session.rollback();
+                    context.yield();
+                } else {
+                    getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to comms.failure", new Object[]{qualifiedPath, flowFile1, e});
+                    flowFile1 = session.penalize(flowFile1);
+                    session.transfer(flowFile1, getCommsFailureRelationship());
+                }
+            } finally {
+                IOUtils.closeQuietly(stream);
+            }
+
+            return null;
         });
     }
 

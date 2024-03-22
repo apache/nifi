@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.hadoop;
 
+import com.google.common.base.Throwables;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -62,7 +63,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /**
  * This is a base class that is helpful when building processors interacting with HDFS.
@@ -171,7 +174,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
 
     // variables shared by all threads of this processor
     // Hadoop Configuration, Filesystem, and UserGroupInformation (optional)
-    private final AtomicReference<HdfsResources> hdfsResources = new AtomicReference<>();
+    final AtomicReference<HdfsResources> hdfsResources = new AtomicReference<>();
 
     // Holder of cached Configuration information so validation does not reload the same config over and over
     private final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
@@ -532,12 +535,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
 
     protected FileSystem getFileSystemAsUser(final Configuration config, UserGroupInformation ugi) throws IOException {
         try {
-            return ugi.doAs(new PrivilegedExceptionAction<FileSystem>() {
-                @Override
-                public FileSystem run() throws Exception {
-                    return FileSystem.get(config);
-                }
-            });
+            return ugi.doAs((PrivilegedExceptionAction<FileSystem>) () -> FileSystem.get(config));
         } catch (InterruptedException e) {
             throw new IOException("Unable to create file system: " + e.getMessage());
         }
@@ -702,5 +700,20 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         }
 
         return new Path(path.replaceAll("/+", "/"));
+    }
+
+    /**
+     * Returns an optional with the first throwable in the causal chain that is assignable to the provided cause type,
+     * and satisfies the provided cause predicate, {@link Optional#empty()} otherwise.
+     * @param t The throwable to inspect for the cause.
+     * @return Throwable Cause
+     */
+    protected <T extends Throwable> Optional<T> findCause(Throwable t, Class<T> expectedCauseType, Predicate<T> causePredicate) {
+        Stream<Throwable> causalChain = Throwables.getCausalChain(t).stream();
+        return causalChain
+                .filter(expectedCauseType::isInstance)
+                .map(expectedCauseType::cast)
+                .filter(causePredicate)
+                .findFirst();
     }
 }
