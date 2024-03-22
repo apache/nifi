@@ -95,10 +95,31 @@ public class ConsumeGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+            GCP_CREDENTIALS_PROVIDER_SERVICE,
+            PROJECT_ID,
+            SUBSCRIPTION,
+            BATCH_SIZE_THRESHOLD,
+            API_ENDPOINT,
+            PROXY_CONFIGURATION_SERVICE
+    );
+
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
+
     private SubscriberStub subscriber = null;
     private PullRequest pullRequest;
 
     private final AtomicReference<Exception> storedException = new AtomicReference<>();
+
+    @Override
+    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return DESCRIPTORS;
+    }
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        return RELATIONSHIPS;
+    }
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
@@ -186,20 +207,6 @@ public class ConsumeGCPubSub extends AbstractGCPubSubWithProxyProcessor {
         if (subscriber != null) {
             subscriber.shutdown();
         }
-    }
-
-    @Override
-    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        descriptors.add(SUBSCRIPTION);
-        descriptors.add(BATCH_SIZE_THRESHOLD);
-        descriptors.add(API_ENDPOINT);
-        return Collections.unmodifiableList(descriptors);
-    }
-
-    @Override
-    public Set<Relationship> getRelationships() {
-        return Collections.singleton(REL_SUCCESS);
     }
 
     @Override

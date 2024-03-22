@@ -52,9 +52,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.pubsub.AbstractGCPubSubProcessor;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -116,8 +114,27 @@ public class ConsumeGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+            GCP_CREDENTIALS_PROVIDER_SERVICE,
+            SUBSCRIPTION,
+            BYTES_OUTSTANDING,
+            MESSAGES_OUTSTANDING
+    );
+
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
+
     private Subscriber subscriber = null;
     private BlockingQueue<Message> messages = new LinkedBlockingQueue<>();
+
+    @Override
+    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return DESCRIPTORS;
+    }
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        return RELATIONSHIPS;
+    }
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
@@ -166,19 +183,6 @@ public class ConsumeGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
         } catch (final Exception e) {
             getLogger().warn("Failed to gracefully shutdown the Google Cloud PubSub Lite Subscriber", e);
         }
-    }
-
-    @Override
-    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.unmodifiableList(Arrays.asList(SUBSCRIPTION,
-                GCP_CREDENTIALS_PROVIDER_SERVICE,
-                BYTES_OUTSTANDING,
-                MESSAGES_OUTSTANDING));
-    }
-
-    @Override
-    public Set<Relationship> getRelationships() {
-        return Collections.singleton(REL_SUCCESS);
     }
 
     @Override

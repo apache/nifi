@@ -75,10 +75,8 @@ import org.threeten.bp.Duration;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -173,22 +171,29 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             .description("FlowFiles are routed to this relationship if the Google Cloud Pub/Sub operation fails but attempting the operation again may succeed.")
             .build();
 
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+            GCP_CREDENTIALS_PROVIDER_SERVICE,
+            PROJECT_ID,
+            TOPIC_NAME,
+            MESSAGE_DERIVATION_STRATEGY,
+            RECORD_READER,
+            RECORD_WRITER,
+            MAX_BATCH_SIZE,
+            MAX_MESSAGE_SIZE,
+            BATCH_SIZE_THRESHOLD,
+            BATCH_BYTES_THRESHOLD,
+            BATCH_DELAY_THRESHOLD,
+            API_ENDPOINT,
+            PROXY_CONFIGURATION_SERVICE
+    );
+
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE, REL_RETRY);
+
     protected Publisher publisher = null;
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        descriptors.add(MAX_BATCH_SIZE);
-        descriptors.add(MESSAGE_DERIVATION_STRATEGY);
-        descriptors.add(RECORD_READER);
-        descriptors.add(RECORD_WRITER);
-        descriptors.add(MAX_MESSAGE_SIZE);
-        descriptors.add(TOPIC_NAME);
-        descriptors.add(BATCH_SIZE_THRESHOLD);
-        descriptors.add(BATCH_BYTES_THRESHOLD);
-        descriptors.add(BATCH_DELAY_THRESHOLD);
-        descriptors.add(API_ENDPOINT);
-        return Collections.unmodifiableList(descriptors);
+        return DESCRIPTORS;
     }
 
     @Override
@@ -205,9 +210,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return Collections.unmodifiableSet(
-                new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE, REL_RETRY))
-        );
+        return RELATIONSHIPS;
     }
 
     @Override
