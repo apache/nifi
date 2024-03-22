@@ -115,7 +115,6 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                     "More Details of this behaviour in PostgreSQL driver can be found in https://jdbc.postgresql.org//documentation/head/query.html.")
             .allowableValues("true", "false")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .clearDefaultValue()
             .required(false)
             .build();
 
