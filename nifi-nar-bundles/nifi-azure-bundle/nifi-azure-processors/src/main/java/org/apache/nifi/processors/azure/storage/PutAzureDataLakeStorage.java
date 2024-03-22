@@ -310,11 +310,12 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
     }
 
     private DataLakeFileClient handleDataLakeStorageException(final DataLakeStorageException dataLakeStorageException, final String destinationPath, final String conflictResolution) {
-        if (dataLakeStorageException.getStatusCode() == 409 && conflictResolution.equals(IGNORE_RESOLUTION)) {
+        final boolean fileAlreadyExists = dataLakeStorageException.getStatusCode() == 409;
+        if (fileAlreadyExists && conflictResolution.equals(IGNORE_RESOLUTION)) {
             getLogger().info("File [{}] already exists. Remote file not modified due to {} being set to '{}'.",
                     destinationPath, CONFLICT_RESOLUTION.getDisplayName(), conflictResolution);
             return null;
-        } else if (dataLakeStorageException.getStatusCode() == 409 && conflictResolution.equals(FAIL_RESOLUTION)) {
+        } else if (fileAlreadyExists && conflictResolution.equals(FAIL_RESOLUTION)) {
             throw new ProcessException(String.format("File [%s] already exists.", destinationPath), dataLakeStorageException);
         } else {
             throw new ProcessException(String.format("File operation failed [%s]", destinationPath), dataLakeStorageException);

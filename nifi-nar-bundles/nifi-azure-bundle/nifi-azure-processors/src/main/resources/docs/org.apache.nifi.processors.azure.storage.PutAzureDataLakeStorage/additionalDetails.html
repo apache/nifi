@@ -49,7 +49,7 @@
         <li>A temporary file is created with random prefix under the given path in '_nifitempdirectory'.</li>
         <li>Content is appended to temp file.</li>
         <li>Temp file is moved to the final destination directory and renamed to its original name, the original file is overwritten.</li>
-        <li>In case of appending or renaming failure, the temp file is deleted, the original file remains intact.</li>
+        <li>In case of appending or renaming failure, the temp file is deleted and the original file remains intact.</li>
         <li>In case of temporary file deletion failure, both temp file and original file remain on the server.</li>
     </ol>
 </ul>
@@ -75,7 +75,7 @@
     <ol>
         <li>An empty file is created at its final destination, the original file is overwritten.</li>
         <li>Content is appended to the file.</li>
-        <li>In case of appending failure, the file is deleted, the original file is not be restored.</li>
+        <li>In case of appending failure, the file is deleted and the original file is not restored.</li>
         <li>In case of file deletion failure, the file remains on the server.</li>
     </ol>
 </ul>

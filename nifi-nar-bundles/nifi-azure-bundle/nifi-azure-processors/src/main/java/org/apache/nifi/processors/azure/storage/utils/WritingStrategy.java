@@ -22,7 +22,7 @@ public enum WritingStrategy implements DescribedValue {
 
     WRITE_AND_RENAME("Write and Rename", "The processor writes the Azure file into a temporary directory and then renames/moves it to the final destination." +
             " This prevents other processes from reading partially written files."),
-    SIMPLE_WRITE("Simple Write", "The processor writes the Azure file directly to the destination. This might cause reading partially written files.");
+    SIMPLE_WRITE("Simple Write", "The processor writes the Azure file directly to the destination. This might result in the reading of partially written files.");
 
     private final String displayName;
     private final String description;
