@@ -17,6 +17,7 @@
 
 <h2 mat-dialog-title>{{ this.isNew ? 'Add' : 'Edit' }} Parameter Context</h2>
 <form class="parameter-context-edit-form" [formGroup]="editParameterContextForm">
+    <error-banner></error-banner>
     @if ((updateRequest | async)!; as requestEntity) {
         <mat-dialog-content>
             <div class="results-content flex gap-x-8">
@@ -26,12 +27,21 @@
                         @for (updateStep of requestEntity.request.updateSteps; track updateStep) {
                             <div class="flex justify-between items-center">
                                 <div class="value">{{ updateStep.description }}</div>
-                                @if (updateStep.complete) {
-                                    <div class="fa fa-check complete"></div>
+                                @if (updateStep.failureReason) {
+                                    <div class="fa fa-times text-red-400"></div>
                                 } @else {
-                                    <div class="fa fa-spin fa-circle-o-notch"></div>
+                                    @if (updateStep.complete) {
+                                        <div class="fa fa-check complete"></div>
+                                    } @else {
+                                        <div class="fa fa-spin fa-circle-o-notch"></div>
+                                    }
                                 }
                             </div>
+                            @if (updateStep.failureReason) {
+                                <div class="text-xs ml-2">
+                                    {{ updateStep.failureReason }}
+                                </div>
+                            }
                         }
                     </div>
                 </div>
