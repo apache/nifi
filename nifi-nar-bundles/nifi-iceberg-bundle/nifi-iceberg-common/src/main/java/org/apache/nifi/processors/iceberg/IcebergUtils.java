@@ -17,6 +17,7 @@
  */
 package org.apache.nifi.processors.iceberg;
 
+import com.google.common.base.Throwables;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -25,6 +26,8 @@ import org.apache.nifi.processor.ProcessContext;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class IcebergUtils {
@@ -64,5 +67,20 @@ public class IcebergUtils {
                         e -> e.getKey().getName(),
                         e -> context.getProperty(e.getKey()).evaluateAttributeExpressions(flowFile).getValue()
                 ));
+    }
+
+    /**
+     * Returns an optional with the first throwable in the causal chain that is assignable to the provided cause type,
+     * and satisfies the provided cause predicate, {@link Optional#empty()} otherwise.
+     *
+     * @param t The throwable to inspect for the cause.
+     * @return Throwable Cause
+     */
+    public static <T extends Throwable> Optional<T> findCause(Throwable t, Class<T> expectedCauseType, Predicate<T> causePredicate) {
+        return Throwables.getCausalChain(t).stream()
+                .filter(expectedCauseType::isInstance)
+                .map(expectedCauseType::cast)
+                .filter(causePredicate)
+                .findFirst();
     }
 }
