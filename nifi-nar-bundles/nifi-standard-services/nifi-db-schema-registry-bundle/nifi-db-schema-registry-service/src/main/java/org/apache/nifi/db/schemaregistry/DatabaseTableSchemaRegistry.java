@@ -157,7 +157,13 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
         // COLUMN_DEF must be read first to work around Oracle bug, see NIFI-4279 for details
         final String defaultValue = columnResultSet.getString("COLUMN_DEF");
         final String columnName = columnResultSet.getString("COLUMN_NAME");
-        final int dataType = columnResultSet.getInt("DATA_TYPE");
+        String typeName = columnResultSet.getString("TYPE_NAME");
+        final int dataType;
+        if (typeName.equalsIgnoreCase("bool")) {
+            dataType = 16;
+        } else {
+            dataType = columnResultSet.getInt("DATA_TYPE");
+        }
         final String nullableValue = columnResultSet.getString("IS_NULLABLE");
         final boolean isNullable = "YES".equalsIgnoreCase(nullableValue) || nullableValue.isEmpty();
         return new RecordField(

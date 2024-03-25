@@ -17,6 +17,7 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../../../../../../../assets/utils.scss' as utils;
 
 @mixin nifi-theme($material-theme, $canvas-theme) {
     // Get the color config from the theme.
@@ -28,32 +29,20 @@
     $canvas-primary-palette: map.get($canvas-color-config, 'primary');
 
     // Get hues from palette
-    $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
-    $canvas-primary-palette-50: mat.get-color-from-palette($canvas-primary-palette, 50);
-    $canvas-primary-palette-100: mat.get-color-from-palette($canvas-primary-palette, 100);
-    $canvas-primary-palette-400: mat.get-color-from-palette($canvas-primary-palette, 400);
+    $primary-palette-default: mat.get-color-from-palette($primary-palette, default);
     $canvas-primary-palette-500: mat.get-color-from-palette($canvas-primary-palette, 500);
-    $canvas-primary-palette-900: mat.get-color-from-palette($canvas-primary-palette, 900);
+    $surface: utils.get-surface($canvas-color-config);
+    $on-surface: utils.get-on-surface($canvas-color-config);
+    $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
 
     .prioritizers {
         .prioritizers-list {
-            background: $primary-palette-500;
-
-            border: solid 1px $canvas-primary-palette-400;
-
-            .cdk-drag-disabled {
-                background: $canvas-primary-palette-500;
-            }
+            background: $primary-palette-default;
         }
 
         .prioritizer-draggable-item {
-            border-bottom: solid 1px $canvas-primary-palette-400;
-            color: $canvas-primary-palette-100;
-            background: $canvas-primary-palette-900;
-        }
-
-        .cdk-drag-preview {
-            box-shadow: 0 3px 6px $canvas-primary-palette-50;
+            color: $on-surface;
+            background: $surface;
         }
     }
 }

@@ -19,8 +19,18 @@
     <header class="nifi-header">
         <navigation></navigation>
     </header>
-    <div class="px-5 flex-1 flex flex-col">
-        <h3 class="text-xl bold summary-header">NiFi Summary</h3>
+    <div class="px-5 flex-1 flex flex-col gap-y-2">
+        <h3 class="text-xl bold summary-header">
+            @if (selectedClusterNode$ | async; as selectedNode) {
+                @if (selectedNode.id !== 'All') {
+                    {{ selectedNode.address }} Summary
+                } @else {
+                    NiFi Summary
+                }
+            } @else {
+                NiFi Summary
+            }
+        </h3>
         <div class="summary-tabs">
             <nav mat-tab-nav-bar color="primary" [tabPanel]="tabPanel">
                 @for (tab of tabLinks; track tab) {

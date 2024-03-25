@@ -28,6 +28,7 @@ import { MatSelectModule } from '@angular/material/select';
 
 import { MatInputModule } from '@angular/material/input';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatButtonModule } from '@angular/material/button';
 
 export interface TenantItem {
     id: string;
@@ -46,7 +47,15 @@ export interface Tenants {
     selector: 'user-table',
     standalone: true,
     templateUrl: './user-table.component.html',
-    imports: [ReactiveFormsModule, MatFormFieldModule, MatSelectModule, MatTableModule, MatSortModule, MatInputModule],
+    imports: [
+        ReactiveFormsModule,
+        MatFormFieldModule,
+        MatSelectModule,
+        MatTableModule,
+        MatSortModule,
+        MatInputModule,
+        MatButtonModule
+    ],
     styleUrls: ['./user-table.component.scss']
 })
 export class UserTable implements AfterViewInit {

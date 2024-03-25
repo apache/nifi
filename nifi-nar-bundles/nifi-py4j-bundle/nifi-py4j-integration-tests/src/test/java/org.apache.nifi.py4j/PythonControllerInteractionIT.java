@@ -89,7 +89,6 @@ public class PythonControllerInteractionIT {
             .commsTimeout(Duration.ofSeconds(0))
             .maxPythonProcessesPerType(25)
             .maxPythonProcesses(100)
-            .pythonLogsDirectory(logsDir)
             .build();
 
         Files.createDirectories(logsDir.toPath());

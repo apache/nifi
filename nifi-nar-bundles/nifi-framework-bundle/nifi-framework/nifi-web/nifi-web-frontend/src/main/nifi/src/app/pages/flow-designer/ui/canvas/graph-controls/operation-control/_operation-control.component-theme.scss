@@ -17,6 +17,7 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../../../../../../assets/utils.scss' as utils;
 
 @mixin nifi-theme($material-theme, $canvas-theme) {
     // Get the color config from the theme.
@@ -24,57 +25,50 @@
     $canvas-color-config: mat.get-color-config($canvas-theme);
 
     // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
     $accent-palette: map.get($color-config, 'accent');
-    $warn-palette: map.get($color-config, 'warn');
     $canvas-primary-palette: map.get($canvas-color-config, 'primary');
 
     // Get hues from palette
-    $primary-palette-100: mat.get-color-from-palette($primary-palette, 100);
-    $primary-palette-300: mat.get-color-from-palette($primary-palette, 300);
-    $primary-palette-700: mat.get-color-from-palette($primary-palette, 700);
-    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
-    $warn-palette-A200: mat.get-color-from-palette($warn-palette, 'A200');
-    $warn-palette-A400: mat.get-color-from-palette($warn-palette, 'A400');
-    $canvas-primary-palette-50: mat.get-color-from-palette($canvas-primary-palette, 50);
-    $canvas-primary-palette-600: mat.get-color-from-palette($canvas-primary-palette, 600);
-    $canvas-primary-palette-A100: mat.get-color-from-palette($canvas-primary-palette, 'A100');
+    $accent-palette-default: mat.get-color-from-palette($accent-palette, default);
     $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
 
+    $surface: utils.get-surface($canvas-color-config);
+    $on-surface-lighter: utils.get-on-surface($canvas-color-config, lighter);
+    $on-surface-medium: utils.get-on-surface($canvas-color-config, medium);
+    $surface-highlight: utils.get-on-surface($canvas-color-config, highlight);
+
     div.operation-control {
-        box-shadow: 0 1px 6px $canvas-primary-palette-50;
-        background-color: $canvas-primary-palette-600;
-        border-top: 1px solid $primary-palette-300;
-        border-right: 1px solid $primary-palette-300;
-        border-bottom: 1px solid $primary-palette-300;
+        box-shadow: 0 1px 6px $canvas-primary-palette-A200;
+        background-color: $surface;
+        border: 1px solid $on-surface-lighter;
 
         .fa,
         .icon {
-            color: $accent-palette-A400;
+            color: utils.get-color-on-surface($color-config, $surface);
         }
 
         .operation-control-header {
             &:hover {
-                background: linear-gradient(90deg, $canvas-primary-palette-A100 252px, $primary-palette-100 34px);
+                background: linear-gradient(-90deg, $surface-highlight 34px, transparent 35px);
             }
         }
 
         .operation-control-title {
-            color: $canvas-primary-palette-A200;
+            color: $on-surface-medium;
         }
 
         .operation-context-logo {
             .icon {
-                color: $warn-palette-A200;
+                color: $accent-palette-default;
             }
         }
 
         .operation-context-name {
-            color: $canvas-primary-palette-A200;
+            color: $on-surface-medium;
         }
 
         .operation-context-type {
-            color: $primary-palette-700;
+            color: utils.get-color-on-surface($color-config, $surface);
         }
     }
 }

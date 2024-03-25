@@ -16,15 +16,15 @@
  */
 
 import { createSelector } from '@ngrx/store';
-import { selectSummaryState, SummaryState } from '../index';
 import {
     ConnectionStatusSnapshotEntity,
     ProcessGroupStatusSnapshotEntity,
     ProcessorStatusSnapshotEntity,
     RemoteProcessGroupStatusSnapshotEntity,
-    summaryListingFeatureKey,
-    SummaryListingState
-} from './index';
+    selectSummaryState,
+    SummaryState
+} from '../index';
+import { summaryListingFeatureKey, SummaryListingState } from './index';
 import { selectCurrentRoute } from '../../../../state/router/router.selectors';
 
 export const selectSummaryListing = createSelector(
@@ -40,11 +40,6 @@ export const selectSummaryListingLoadedTimestamp = createSelector(
 export const selectSummaryListingStatus = createSelector(
     selectSummaryListing,
     (state: SummaryListingState) => state.status
-);
-
-export const selectClusterSummary = createSelector(
-    selectSummaryListing,
-    (state: SummaryListingState) => state.clusterSummary
 );
 
 export const selectProcessGroupStatus = createSelector(
@@ -148,4 +143,9 @@ export const selectConnectionStatusSnapshots = createSelector(
 export const selectRemoteProcessGroupStatusSnapshots = createSelector(
     selectSummaryListing,
     (state: SummaryListingState) => state.remoteProcessGroupStatusSnapshots
+);
+
+export const selectSelectedClusterNode = createSelector(
+    selectSummaryListing,
+    (state: SummaryListingState) => state.selectedClusterNode
 );

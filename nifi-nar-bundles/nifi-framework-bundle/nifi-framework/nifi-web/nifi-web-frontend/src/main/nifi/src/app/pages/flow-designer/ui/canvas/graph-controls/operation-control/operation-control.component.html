@@ -48,7 +48,7 @@
                 <div class="flex flex-col gap-y-1">
                     <div class="flex gap-x-1">
                         <button
-                            class="nifi-button"
+                            mat-icon-button
                             type="button"
                             [disabled]="!canConfigure(selection)"
                             (click)="configure(selection)">
@@ -56,7 +56,8 @@
                         </button>
                         @if (supportsManagedAuthorizer()) {
                             <button
-                                class="nifi-button mr-2"
+                                mat-icon-button
+                                class="mr-2"
                                 type="button"
                                 [disabled]="!canManageAccess(selection)"
                                 (click)="manageAccess(selection)">
@@ -64,28 +65,29 @@
                             </button>
                         }
                         <button
-                            class="nifi-button"
+                            mat-icon-button
                             type="button"
                             [disabled]="!canEnable(selection)"
                             (click)="enable(selection)">
                             <i class="fa fa-flash"></i>
                         </button>
                         <button
-                            class="nifi-button mr-2"
+                            mat-icon-button
+                            class="mr-2"
                             type="button"
                             [disabled]="!canDisable(selection)"
                             (click)="disable(selection)">
                             <i class="ml-1 icon icon-enable-false"></i>
                         </button>
                         <button
-                            class="nifi-button"
+                            mat-icon-button
                             type="button"
                             [disabled]="!canStart(selection)"
                             (click)="start(selection)">
                             <i class="fa fa-play"></i>
                         </button>
                         <button
-                            class="nifi-button"
+                            mat-icon-button
                             type="button"
                             [disabled]="!canStop(selection)"
                             (click)="stop(selection)">
@@ -94,35 +96,38 @@
                     </div>
                     <div class="flex gap-x-1">
                         <button
-                            class="nifi-button"
+                            mat-icon-button
                             type="button"
                             [disabled]="!canCopy(selection)"
                             (click)="copy(selection)">
                             <i class="fa fa-copy"></i>
                         </button>
                         <button
-                            class="nifi-button mr-2"
+                            mat-icon-button
+                            class="mr-2"
                             type="button"
                             [disabled]="!canPaste(selection)"
                             (click)="paste(selection)">
                             <i class="fa fa-paste"></i>
                         </button>
                         <button
-                            class="nifi-button mr-2"
+                            mat-icon-button
+                            class="mr-2"
                             type="button"
                             [disabled]="!canGroup(selection)"
                             (click)="group(selection)">
                             <i class="ml-1 icon icon-group"></i>
                         </button>
                         <button
-                            class="nifi-button mr-2"
+                            mat-icon-button
+                            class="mr-2"
                             type="button"
                             [disabled]="!canColor(selection)"
                             (click)="color(selection)">
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <button
-                            class="nifi-button"
+                            mat-icon-button
                             type="button"
                             [disabled]="!canDelete(selection)"
                             (click)="delete(selection)">

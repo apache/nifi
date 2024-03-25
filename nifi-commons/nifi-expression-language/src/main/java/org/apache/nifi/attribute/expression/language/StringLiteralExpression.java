@@ -30,4 +30,9 @@ public class StringLiteralExpression implements Expression {
     public String evaluate(final EvaluationContext evaluationContext, AttributeValueDecorator decorator) {
         return value;
     }
+
+    @Override
+    public String getExpression() {
+        return value;
+    }
 }

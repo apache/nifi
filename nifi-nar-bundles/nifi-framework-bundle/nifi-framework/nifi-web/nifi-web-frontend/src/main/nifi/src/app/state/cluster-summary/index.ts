@@ -40,6 +40,11 @@ export interface ClusterSearchResults {
 
 export interface ClusterSummaryState {
     clusterSummary: ClusterSummary | null;
+    searchResults: ClusterSearchResults | null;
     error: string | null;
     status: 'pending' | 'loading' | 'error' | 'success';
+}
+
+export interface ClusterSearchRequest {
+    q?: string;
 }

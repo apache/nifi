@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Set;
 
 public interface PythonProcessorAdapter extends PythonProcessor {
+    @Idempotent
     PythonProcessor getProcessor();
 
     @PreserveJavaBinding
@@ -40,9 +41,11 @@ public interface PythonProcessorAdapter extends PythonProcessor {
 
     void onStopped(ProcessContext context);
 
+    @Idempotent
     String getCapabilityDescription();
 
     PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyName);
 
+    @Idempotent
     boolean isDynamicPropertySupported();
 }

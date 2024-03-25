@@ -315,7 +315,7 @@ export class LineageComponent implements OnInit {
                 if (d.indexOf('SELECTED') >= 0) {
                     return 'warn-400';
                 } else {
-                    return 'primary-contrast-200';
+                    return 'on-surface';
                 }
             })
             .append('path')

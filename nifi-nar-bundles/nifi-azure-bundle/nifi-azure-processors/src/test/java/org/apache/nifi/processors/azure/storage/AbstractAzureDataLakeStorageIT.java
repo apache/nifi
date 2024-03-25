@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsControllerService;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
+import org.apache.nifi.services.azure.storage.AzureStorageCredentialsType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -53,6 +54,7 @@ public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorag
     protected void setUpCredentials() throws Exception {
         ADLSCredentialsService service = new ADLSCredentialsControllerService();
         runner.addControllerService("ADLSCredentials", service);
+        runner.setProperty(service, AzureStorageUtils.CREDENTIALS_TYPE, AzureStorageCredentialsType.ACCOUNT_KEY);
         runner.setProperty(service, ADLSCredentialsControllerService.ACCOUNT_NAME, getAccountName());
         runner.setProperty(service, AzureStorageUtils.ACCOUNT_KEY, getAccountKey());
         runner.enableControllerService(service);

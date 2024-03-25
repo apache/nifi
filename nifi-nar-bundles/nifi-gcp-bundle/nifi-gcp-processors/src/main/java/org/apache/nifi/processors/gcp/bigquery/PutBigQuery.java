@@ -21,6 +21,8 @@ import com.google.api.core.ApiFuture;
 import com.google.api.core.ApiFutureCallback;
 import com.google.api.core.ApiFutures;
 import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.api.gax.grpc.InstantiatingGrpcChannelProvider;
+import com.google.api.gax.rpc.TransportChannelProvider;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.storage.v1.AppendRowsResponse;
 import com.google.cloud.bigquery.storage.v1.BQTableSchemaToProtoDescriptor;
@@ -42,6 +44,7 @@ import com.google.cloud.bigquery.storage.v1.WriteStream;
 import com.google.cloud.bigquery.storage.v1.stub.BigQueryWriteStubSettings;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
+import io.grpc.HttpConnectProxiedSocketAddress;
 import io.grpc.Status;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
@@ -60,6 +63,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.bigquery.proto.ProtoUtils;
+import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -67,13 +71,14 @@ import org.apache.nifi.serialization.record.Record;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,10 +86,6 @@ import java.util.Optional;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Stream;
-
-import static java.util.stream.Collectors.collectingAndThen;
-import static java.util.stream.Collectors.toList;
 
 @TriggerSerially
 @Tags({"google", "google cloud", "bq", "bigquery"})
@@ -172,7 +173,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         .defaultValue("false")
         .build();
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = Stream.of(
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
         GCP_CREDENTIALS_PROVIDER_SERVICE,
         PROJECT_ID,
         BIGQUERY_API_ENDPOINT,
@@ -182,8 +183,9 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         TRANSFER_TYPE,
         APPEND_RECORD_COUNT,
         RETRY_COUNT,
-        SKIP_INVALID_ROWS
-    ).collect(collectingAndThen(toList(), Collections::unmodifiableList));
+        SKIP_INVALID_ROWS,
+        PROXY_CONFIGURATION_SERVICE
+    );
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -198,7 +200,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         maxRetryCount = context.getProperty(RETRY_COUNT).asInteger();
         recordBatchCount = context.getProperty(APPEND_RECORD_COUNT).asInteger();
         endpoint = context.getProperty(BIGQUERY_API_ENDPOINT).evaluateAttributeExpressions().getValue();
-        writeClient = createWriteClient(getGoogleCredentials(context));
+        writeClient = createWriteClient(getGoogleCredentials(context), ProxyConfiguration.getConfiguration(context));
     }
 
     @OnUnscheduled
@@ -225,7 +227,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
             writeStream = createWriteStream(tableName);
             tableSchema = writeStream.getTableSchema();
             protoDescriptor = BQTableSchemaToProtoDescriptor.convertBQTableSchemaToProtoDescriptor(tableSchema);
-            streamWriter = createStreamWriter(writeStream.getName(), protoDescriptor, getGoogleCredentials(context));
+            streamWriter = createStreamWriter(writeStream.getName(), protoDescriptor, getGoogleCredentials(context), ProxyConfiguration.getConfiguration(context));
         } catch (Descriptors.DescriptorValidationException | IOException e) {
             getLogger().error("Failed to create Big Query Stream Writer for writing", e);
             context.yield();
@@ -395,12 +397,13 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         return writeClient.createWriteStream(createWriteStreamRequest);
     }
 
-    protected BigQueryWriteClient createWriteClient(GoogleCredentials credentials) {
+    protected BigQueryWriteClient createWriteClient(GoogleCredentials credentials, ProxyConfiguration proxyConfiguration) {
         BigQueryWriteClient client;
         try {
             BigQueryWriteSettings.Builder builder = BigQueryWriteSettings.newBuilder();
             builder.setCredentialsProvider(FixedCredentialsProvider.create(credentials));
             builder.setEndpoint(endpoint);
+            builder.setTransportChannelProvider(createTransportChannelProvider(proxyConfiguration));
 
             client = BigQueryWriteClient.create(builder.build());
         } catch (Exception e) {
@@ -410,13 +413,35 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         return client;
     }
 
-    protected StreamWriter createStreamWriter(String streamName, Descriptors.Descriptor descriptor, GoogleCredentials credentials) throws IOException {
+    protected StreamWriter createStreamWriter(String streamName, Descriptors.Descriptor descriptor, GoogleCredentials credentials, ProxyConfiguration proxyConfiguration) throws IOException {
         ProtoSchema protoSchema = ProtoSchemaConverter.convert(descriptor);
 
         StreamWriter.Builder builder = StreamWriter.newBuilder(streamName);
         builder.setWriterSchema(protoSchema);
         builder.setCredentialsProvider(FixedCredentialsProvider.create(credentials));
         builder.setEndpoint(endpoint);
+        builder.setChannelProvider(createTransportChannelProvider(proxyConfiguration));
+
+        return builder.build();
+    }
+
+    private TransportChannelProvider createTransportChannelProvider(ProxyConfiguration proxyConfiguration) {
+        InstantiatingGrpcChannelProvider.Builder builder = InstantiatingGrpcChannelProvider.newBuilder();
+
+        if (proxyConfiguration != null) {
+            if (proxyConfiguration.getProxyType() == Proxy.Type.HTTP) {
+                builder.setChannelConfigurator(managedChannelBuilder -> managedChannelBuilder.proxyDetector(
+                        targetServerAddress -> HttpConnectProxiedSocketAddress.newBuilder()
+                                .setTargetAddress((InetSocketAddress) targetServerAddress)
+                                .setProxyAddress(new InetSocketAddress(proxyConfiguration.getProxyServerHost(), proxyConfiguration.getProxyServerPort()))
+                                .setUsername(proxyConfiguration.getProxyUserName())
+                                .setPassword(proxyConfiguration.getProxyUserPassword())
+                                .build()
+                ));
+            } else if (proxyConfiguration.getProxyType() == Proxy.Type.SOCKS) {
+                getLogger().warn("Proxy type SOCKS is not supported, the proxy configuration will be ignored");
+            }
+        }
 
         return builder.build();
     }

@@ -32,7 +32,7 @@
                         <breadcrumbs
                             [entity]="serviceState.breadcrumb"
                             [currentProcessGroupId]="serviceState.processGroupId"></breadcrumbs>
-                        <button class="nifi-button" (click)="openNewControllerServiceDialog()">
+                        <button mat-icon-button (click)="openNewControllerServiceDialog()">
                             <i class="fa fa-plus"></i>
                         </button>
                     </div>
@@ -57,7 +57,7 @@
                     }
                     <div class="flex justify-between">
                         <div class="refresh-container flex items-center gap-x-2">
-                            <button class="nifi-button" (click)="refreshControllerServiceListing()">
+                            <button mat-icon-button (click)="refreshControllerServiceListing()">
                                 <i class="fa fa-refresh" [class.fa-spin]="serviceState.status === 'loading'"></i>
                             </button>
                             <div>Last updated:</div>

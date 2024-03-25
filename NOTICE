@@ -134,4 +134,4 @@ This includes derived works from Spring Framework available under Apache Softwar
     The derived work is adapted from
       https://github.com/spring-projects/spring-framework/blob/main/spring-web/src/main/java/org/springframework/web/util/UriComponentsBuilder.java
     and can be found in
-      nifi-commons/nifi-utils/src/main/java/org/apache/nifi/util/UriUtils.java
+      nifi-api/src/main/java/org/apache/nifi/processor/util/URLValidator.java

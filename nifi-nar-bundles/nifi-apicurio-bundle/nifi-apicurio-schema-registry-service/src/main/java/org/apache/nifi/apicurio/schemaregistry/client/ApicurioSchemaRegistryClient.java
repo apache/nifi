@@ -17,13 +17,13 @@
 package org.apache.nifi.apicurio.schemaregistry.client;
 
 import org.apache.nifi.apicurio.schemaregistry.util.SchemaUtils;
-import org.apache.nifi.apicurio.schemaregistry.util.SchemaUtils.ResultAttributes;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.OptionalInt;
 
 public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
     private final SchemaRegistryApiClient apiClient;
@@ -33,37 +33,20 @@ public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
     }
 
     @Override
-    public RecordSchema getSchema(final String schemaName) throws IOException, SchemaNotFoundException {
-        final ResultAttributes attributes = getAttributesForSchemaName(schemaName);
-        final int version = getVersionAttributeFromMetadata(attributes);
-        return createRecordSchemaForAttributes(attributes, version);
+    public RecordSchema getSchema(final String schemaId, final OptionalInt version) throws IOException, SchemaNotFoundException {
+        return createRecordSchemaForAttributes(
+                schemaId,
+                version
+        );
     }
 
-    @Override
-    public RecordSchema getSchema(final String schemaName, final int version) throws IOException, SchemaNotFoundException {
-        final ResultAttributes attributes = getAttributesForSchemaName(schemaName);
-        return createRecordSchemaForAttributes(attributes, version);
-    }
-
-    private ResultAttributes getAttributesForSchemaName(String schemaName) throws IOException {
-        final URI searchUri = apiClient.buildSearchUri(schemaName);
-        try (final InputStream searchResultStream = apiClient.retrieveResponse(searchUri)) {
-            return SchemaUtils.getResultAttributes(searchResultStream);
-        }
-    }
-
-    private int getVersionAttributeFromMetadata(final ResultAttributes attributes) throws IOException {
-        final URI metaDataUri = apiClient.buildMetaDataUri(attributes.groupId(), attributes.artifactId());
-        try (final InputStream metadataResultStream = apiClient.retrieveResponse(metaDataUri)) {
-            return SchemaUtils.extractVersionAttributeFromStream(metadataResultStream);
-        }
-    }
-
-    private RecordSchema createRecordSchemaForAttributes(ResultAttributes attributes, int version) throws IOException, SchemaNotFoundException {
-        final URI schemaUri = apiClient.buildSchemaVersionUri(attributes.groupId(), attributes.artifactId(), version);
+    private RecordSchema createRecordSchemaForAttributes(final String artifactId, final OptionalInt version) throws IOException, SchemaNotFoundException {
+        final URI schemaUri = version.isPresent()
+                ? apiClient.buildSchemaVersionUri(artifactId, version.getAsInt()) :
+                apiClient.buildSchemaArtifactUri(artifactId);
 
         try (final InputStream schemaResultStream = apiClient.retrieveResponse(schemaUri)) {
-            return SchemaUtils.createRecordSchema(schemaResultStream, attributes.name(), version);
+            return SchemaUtils.createRecordSchema(schemaResultStream, artifactId, version);
         }
     }
 }

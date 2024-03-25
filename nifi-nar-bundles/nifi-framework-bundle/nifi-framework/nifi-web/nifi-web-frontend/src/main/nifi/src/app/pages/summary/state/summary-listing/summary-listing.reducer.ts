@@ -22,13 +22,17 @@ import {
     ProcessGroupStatusSnapshot,
     ProcessGroupStatusSnapshotEntity,
     ProcessorStatusSnapshotEntity,
-    RemoteProcessGroupStatusSnapshotEntity,
-    SummaryListingState
-} from './index';
-import { loadSummaryListing, loadSummaryListingSuccess, resetSummaryState } from './summary-listing.actions';
+    RemoteProcessGroupStatusSnapshotEntity
+} from '../index';
+import {
+    loadSummaryListing,
+    loadSummaryListingSuccess,
+    resetSummaryState,
+    selectClusterNode
+} from './summary-listing.actions';
+import { SummaryListingState } from './index';
 
 export const initialState: SummaryListingState = {
-    clusterSummary: null,
     processGroupStatus: null,
     processorStatusSnapshots: [],
     processGroupStatusSnapshots: [],
@@ -36,6 +40,7 @@ export const initialState: SummaryListingState = {
     outputPortStatusSnapshots: [],
     connectionStatusSnapshots: [],
     remoteProcessGroupStatusSnapshots: [],
+    selectedClusterNode: null,
     status: 'pending',
     loadedTimestamp: ''
 };
@@ -82,7 +87,6 @@ export const summaryListingReducer = createReducer(
             status: 'success' as const,
             loadedTimestamp: response.status.processGroupStatus.statsLastRefreshed,
             processGroupStatus: response.status,
-            clusterSummary: response.clusterSummary,
             processorStatusSnapshots: processors,
             processGroupStatusSnapshots: [root, ...childProcessGroups],
             inputPortStatusSnapshots: inputPorts,
@@ -94,6 +98,11 @@ export const summaryListingReducer = createReducer(
 
     on(resetSummaryState, () => ({
         ...initialState
+    })),
+
+    on(selectClusterNode, (state, { clusterNode }) => ({
+        ...state,
+        selectedClusterNode: clusterNode
     }))
 );
 

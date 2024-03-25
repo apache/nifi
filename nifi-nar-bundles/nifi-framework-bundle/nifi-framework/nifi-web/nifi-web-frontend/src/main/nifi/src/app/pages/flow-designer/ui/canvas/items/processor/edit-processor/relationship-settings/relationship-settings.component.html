@@ -37,15 +37,16 @@
                                 name="autoTerminate-{{ i }}"
                                 (change)="handleChanged()"
                                 [disabled]="isDisabled"
-                                >terminate</mat-checkbox
-                            >
+                                >terminate
+                            </mat-checkbox>
                             <mat-checkbox
+                                color="primary"
                                 [(ngModel)]="relationship.retry"
                                 name="retry-{{ i }}"
                                 (change)="handleChanged()"
                                 [disabled]="isDisabled"
-                                >retry</mat-checkbox
-                            >
+                                >retry
+                            </mat-checkbox>
                         </div>
                         @if (hasDescription(relationship)) {
                             <div class="ml-2">{{ relationship.description }}</div>
@@ -90,8 +91,8 @@
                         (change)="handleChanged()"
                         [disabled]="isDisabled"
                         class="flex gap-x-2">
-                        <mat-radio-button value="PENALIZE_FLOWFILE">Penalize</mat-radio-button>
-                        <mat-radio-button value="YIELD_PROCESSOR">Yield</mat-radio-button>
+                        <mat-radio-button color="primary" value="PENALIZE_FLOWFILE">Penalize</mat-radio-button>
+                        <mat-radio-button color="primary" value="YIELD_PROCESSOR">Yield</mat-radio-button>
                     </mat-radio-group>
                 </div>
                 <div>

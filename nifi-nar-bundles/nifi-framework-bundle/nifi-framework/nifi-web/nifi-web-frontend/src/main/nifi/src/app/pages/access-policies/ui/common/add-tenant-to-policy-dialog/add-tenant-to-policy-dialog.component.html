@@ -48,9 +48,9 @@
     </mat-dialog-content>
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
-            <button mat-stroked-button mat-dialog-close color="primary">Cancel</button>
+            <button mat-button mat-dialog-close>Cancel</button>
             <button
-                mat-raised-button
+                mat-button
                 [disabled]="addTenantsForm.invalid || saving.value"
                 (click)="addClicked()"
                 color="primary">

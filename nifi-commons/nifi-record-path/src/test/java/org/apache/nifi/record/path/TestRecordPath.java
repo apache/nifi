@@ -1242,6 +1242,89 @@ public class TestRecordPath {
     }
 
     @Test
+    public void testJoinWithTwoFields() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("fullName", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("firstName", RecordFieldType.LONG.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("lastName", "Doe");
+        values.put("firstName", "John");
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("Doe, John", RecordPath.compile("join(', ', /lastName, /firstName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testJoinWithArray() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("names", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("names", new String[] {"John", "Jane", "Jacob", "Judy"});
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("John,Jane,Jacob,Judy", RecordPath.compile("join(',', /names)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testJoinWithArrayAndMultipleFields() {
+        final List<RecordField> personFields = new ArrayList<>();
+        personFields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
+        personFields.add(new RecordField("firstName", RecordFieldType.STRING.getDataType()));
+        personFields.add(new RecordField("friends", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())));
+        final RecordSchema personSchema = new SimpleRecordSchema(personFields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("friends", new String[] {"John", "Jane", "Jacob", "Judy"});
+        values.put("firstName", "John");
+        values.put("lastName", "Doe");
+        final Record record = new MapRecord(personSchema, values);
+
+        assertEquals("Doe\nJohn\nJane\nJacob", RecordPath.compile("join('\\n', /lastName, /firstName, /friends[1..2])").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testAnchored() {
+        final List<RecordField> personFields = new ArrayList<>();
+        personFields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
+        personFields.add(new RecordField("firstName", RecordFieldType.STRING.getDataType()));
+        final RecordSchema personSchema = new SimpleRecordSchema(personFields);
+
+        final List<RecordField> employeeFields = new ArrayList<>();
+        employeeFields.add(new RecordField("self", RecordFieldType.RECORD.getRecordDataType(personSchema)));
+        employeeFields.add(new RecordField("manager", RecordFieldType.RECORD.getRecordDataType(personSchema)));
+        employeeFields.add(new RecordField("directReports", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(personSchema))));
+        final RecordSchema employeeSchema = new SimpleRecordSchema(employeeFields);
+
+        final Record directReport1 = createPerson("John", "Doe", personSchema);
+        final Record directReport2 = createPerson("John", "Jingleheimer", personSchema);
+        final Record directReport3 = createPerson("John", "Jacob", personSchema);
+        final Record manager = createPerson("Jane", "Smith", personSchema);
+        final Record employee = new MapRecord(employeeSchema, Map.of(
+            "self", createPerson("John", "Schmidt", personSchema),
+            "manager", manager,
+            "directReports", new Record[] {directReport1, directReport2, directReport3}
+        ));
+
+        assertEquals("John", RecordPath.compile("anchored(/directReports[0], /firstName)").evaluate(employee).getSelectedFields().findFirst().get().getValue());
+        assertEquals(List.of("John", "John", "John"), RecordPath.compile("anchored(/directReports, /firstName)").evaluate(employee).getSelectedFields().map(FieldValue::getValue).toList());
+        assertEquals(List.of(), RecordPath.compile("anchored(/self/lastName, / )").evaluate(employee).getSelectedFields().map(FieldValue::getValue).toList());
+    }
+
+    private Record createPerson(final String firstName, final String lastName, final RecordSchema schema) {
+        final Map<String, Object> values = Map.of(
+            "firstName", firstName,
+            "lastName", lastName);
+        return new MapRecord(schema, values);
+    }
+
+
+    @Test
     public void testMapOf() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("fullName", RecordFieldType.INT.getDataType()));

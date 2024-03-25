@@ -62,7 +62,7 @@ public class ConvertEventToLuceneDocument {
     public Document convert(final ProvenanceEventRecord record, final long eventId) {
         final Document doc = new Document();
         addField(doc, SearchableFields.FlowFileUUID, record.getFlowFileUuid());
-        addField(doc, SearchableFields.Filename, record.getAttribute(CoreAttributes.FILENAME.key()));
+        addField(doc, SearchableFields.Filename, LuceneUtil.truncateIndexField(record.getAttribute(CoreAttributes.FILENAME.key())));
         addField(doc, SearchableFields.ComponentID, record.getComponentId());
         addField(doc, SearchableFields.AlternateIdentifierURI, record.getAlternateIdentifierUri());
         addField(doc, SearchableFields.EventType, record.getEventType().name());

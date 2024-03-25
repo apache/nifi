@@ -134,21 +134,21 @@
     @if ((updateRequest | async)!; as requestEntity) {
         <mat-dialog-actions align="end">
             @if (requestEntity.request.complete) {
-                <button color="primary" mat-raised-button mat-dialog-close>Close</button>
+                <button color="primary" mat-button mat-dialog-close>Close</button>
             } @else {
-                <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+                <button mat-button mat-dialog-close>Cancel</button>
             }
         </mat-dialog-actions>
     } @else {
         @if ({ value: (saving$ | async)! }; as saving) {
             <mat-dialog-actions align="end">
-                <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+                <button mat-button mat-dialog-close>Cancel</button>
                 <button
                     [disabled]="!editParameterContextForm.dirty || editParameterContextForm.invalid || saving.value"
                     type="button"
                     color="primary"
                     (click)="submitForm()"
-                    mat-raised-button>
+                    mat-button>
                     <span *nifiSpinner="saving.value">Apply</span>
                 </button>
             </mat-dialog-actions>

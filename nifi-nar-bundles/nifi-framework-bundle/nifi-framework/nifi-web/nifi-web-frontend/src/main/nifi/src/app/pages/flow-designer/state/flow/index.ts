@@ -270,6 +270,14 @@ export interface EditComponentDialogRequest {
     entity: any;
 }
 
+export interface EditRemotePortDialogRequest extends EditComponentDialogRequest {
+    rpg?: any;
+}
+
+export interface RpgManageRemotePortsRequest {
+    id: string;
+}
+
 export interface NavigateToControllerServicesRequest {
     id: string;
 }

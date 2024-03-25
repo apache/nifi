@@ -19,13 +19,14 @@ package org.apache.nifi.python.processor;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.python.PythonObjectProxy;
 
 import java.util.List;
 
 /**
  * Base interface for any Python based processor
  */
-public interface PythonProcessor {
+public interface PythonProcessor extends PythonObjectProxy {
 
     List<PropertyDescriptor> getSupportedPropertyDescriptors();
 

@@ -77,13 +77,13 @@
         }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-        <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+        <button mat-button mat-dialog-close>Cancel</button>
         <button
             [disabled]="provenanceOptionsForm.invalid"
             type="button"
             color="primary"
             (click)="searchClicked()"
-            mat-raised-button
+            mat-button
             mat-dialog-close>
             <span>Search</span>
         </button>

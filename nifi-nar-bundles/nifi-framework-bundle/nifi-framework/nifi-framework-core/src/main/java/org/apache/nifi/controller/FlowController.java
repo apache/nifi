@@ -871,7 +871,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         final File pythonFrameworkSourceDirectory = nifiProperties.getPythonFrameworkSourceDirectory();
         final List<File> pythonExtensionsDirectories = nifiProperties.getPythonExtensionsDirectories();
         final File pythonWorkingDirectory = new File(nifiProperties.getProperty(NiFiProperties.PYTHON_WORKING_DIRECTORY));
-        final File pythonLogsDirectory = new File(nifiProperties.getProperty(NiFiProperties.PYTHON_LOGS_DIRECTORY));
 
         int maxProcesses = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_MAX_PROCESSES, 20);
         int maxProcessesPerType = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_MAX_PROCESSES_PER_TYPE, 2);
@@ -879,7 +878,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         final boolean enableControllerDebug = Boolean.parseBoolean(nifiProperties.getProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_ENABLED, "false"));
         final int debugPort = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_PORT, 5678);
         final String debugHost = nifiProperties.getProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_HOST, "localhost");
-        final String debugLogs = nifiProperties.getProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_LOGS_DIR, "logs");
 
         // Validate configuration for max numbers of processes.
         if (maxProcessesPerType < 1) {
@@ -906,7 +904,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             .pythonCommand(pythonCommand)
             .pythonFrameworkDirectory(pythonFrameworkSourceDirectory)
             .pythonExtensionsDirectories(pythonExtensionsDirectories)
-            .pythonLogsDirectory(pythonLogsDirectory)
             .pythonWorkingDirectory(pythonWorkingDirectory)
             .commsTimeout(commsTimeout == null ? null : Duration.ofMillis(FormatUtils.getTimeDuration(commsTimeout, TimeUnit.MILLISECONDS)))
             .maxPythonProcesses(maxProcesses)
@@ -914,7 +911,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             .enableControllerDebug(enableControllerDebug)
             .debugPort(debugPort)
             .debugHost(debugHost)
-            .debugLogsDirectory(new File(debugLogs))
             .build();
 
         final ControllerServiceTypeLookup serviceTypeLookup = serviceProvider::getControllerServiceType;

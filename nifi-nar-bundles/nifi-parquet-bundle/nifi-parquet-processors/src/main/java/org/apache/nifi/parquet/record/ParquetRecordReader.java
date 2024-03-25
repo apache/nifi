@@ -61,10 +61,13 @@ public class ParquetRecordReader implements RecordReader {
         final Long offset = Optional.ofNullable(variables.get(ParquetAttribute.RECORD_OFFSET))
                 .map(Long::parseLong)
                 .orElse(null);
+        final String recordCount = variables.get(ParquetAttribute.RECORD_COUNT);
 
-        recordsToRead = Optional.ofNullable(variables.get(ParquetAttribute.RECORD_COUNT))
-                .map(Long::parseLong)
-                .orElse(null);
+        if (offset != null && recordCount != null) {
+            recordsToRead = Long.parseLong(recordCount);
+        } else {
+            recordsToRead = null;
+        }
 
         final long fileStartOffset = Optional.ofNullable(variables.get(ParquetAttribute.FILE_RANGE_START_OFFSET))
                 .map(Long::parseLong)

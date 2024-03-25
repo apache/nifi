@@ -17,18 +17,17 @@
 
 @use 'sass:map';
 @use '@angular/material' as mat;
+@use '../../../../../node_modules/@angular/material/core/theming/inspection' as inspection;
+@use '../../../../assets/utils.scss' as utils;
 
 @mixin nifi-theme($theme) {
     // Get the color config from the theme.
     $color-config: mat.get-color-config($theme);
 
-    // Get the color palette from the color-config.
-    $primary-palette: map.get($color-config, 'primary');
-
-    // Get hues from palette
-    $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
+    // Get the surface color from material so we can ensure best contrast
+    $surface: inspection.get-theme-color($theme, background, background);
 
     .settings-header {
-        color: $primary-palette-500;
+        color: utils.get-color-on-surface($color-config, $surface);
     }
 }

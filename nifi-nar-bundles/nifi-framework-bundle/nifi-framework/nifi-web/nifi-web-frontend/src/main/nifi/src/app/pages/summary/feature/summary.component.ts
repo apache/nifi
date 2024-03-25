@@ -20,6 +20,11 @@ import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import { startCurrentUserPolling, stopCurrentUserPolling } from '../../../state/current-user/current-user.actions';
 import { loadSummaryListing, resetSummaryState } from '../state/summary-listing/summary-listing.actions';
+import { loadClusterSummary, searchCluster } from '../../../state/cluster-summary/cluster-summary.actions';
+import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { isDefinedAndNotNull } from '../../../state/shared';
+import { selectSelectedClusterNode } from '../state/summary-listing/summary-listing.selectors';
 
 interface TabLink {
     label: string;
@@ -41,11 +46,24 @@ export class Summary implements OnInit, OnDestroy {
         { label: 'Process Groups', link: 'process-groups' }
     ];
 
-    constructor(private store: Store<NiFiState>) {}
+    clusterSummary$ = this.store.select(selectClusterSummary);
+    selectedClusterNode$ = this.store.select(selectSelectedClusterNode).pipe(isDefinedAndNotNull());
+
+    constructor(private store: Store<NiFiState>) {
+        this.clusterSummary$.pipe(takeUntilDestroyed(), isDefinedAndNotNull()).subscribe((clusterSummary) => {
+            if (clusterSummary.connectedToCluster) {
+                this.store.dispatch(searchCluster({ request: {} }));
+            }
+        });
+        this.selectedClusterNode$.pipe(isDefinedAndNotNull(), takeUntilDestroyed()).subscribe(() => {
+            this.store.dispatch(loadSummaryListing({ recursive: true }));
+        });
+    }
 
     ngOnInit(): void {
         this.store.dispatch(startCurrentUserPolling());
         this.store.dispatch(loadSummaryListing({ recursive: true }));
+        this.store.dispatch(loadClusterSummary());
     }
 
     ngOnDestroy(): void {

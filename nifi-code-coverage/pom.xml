@@ -31,6 +31,7 @@
         <calcite.avatica.version>1.6.0</calcite.avatica.version>
         <avatica.version>1.24.0</avatica.version>
         <org.apache.sshd.version>2.12.0</org.apache.sshd.version>
+        <mime4j.version>0.8.11</mime4j.version>
     </properties>
 
     <!-- Managed Dependency Versions for referenced modules required based on different parent bundle project -->
@@ -124,6 +125,12 @@
                 <groupId>org.apache.sshd</groupId>
                 <artifactId>sshd-osgi</artifactId>
                 <version>${org.apache.sshd.version}</version>
+            </dependency>
+            <!-- MIME4J from Tika Parsers in media-processors -->
+            <dependency>
+                <groupId>org.apache.james</groupId>
+                <artifactId>apache-mime4j-core</artifactId>
+                <version>${mime4j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -836,26 +843,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-box-services-api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-cassandra-distributedmapcache-service</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-cassandra-processors</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-cassandra-services</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-cassandra-services-api</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>

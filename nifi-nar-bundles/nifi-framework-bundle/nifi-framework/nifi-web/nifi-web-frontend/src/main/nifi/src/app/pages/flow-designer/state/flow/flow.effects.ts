@@ -1319,6 +1319,18 @@ export class FlowEffects {
         { dispatch: false }
     );
 
+    navigateToManageRemotePorts$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.navigateToManageRemotePorts),
+                map((action) => action.request),
+                tap((request) => {
+                    this.router.navigate(['/remote-process-group', request.id, 'manage-remote-ports']);
+                })
+            ),
+        { dispatch: false }
+    );
+
     openEditRemoteProcessGroupDialog$ = createEffect(
         () =>
             this.actions$.pipe(

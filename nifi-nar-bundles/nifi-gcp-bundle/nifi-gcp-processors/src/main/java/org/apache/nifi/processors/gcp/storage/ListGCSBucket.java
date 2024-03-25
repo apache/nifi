@@ -250,63 +250,90 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         .identifiesControllerService(RecordSetWriterFactory.class)
         .build();
 
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+            GCP_CREDENTIALS_PROVIDER_SERVICE,
+            PROJECT_ID,
+            BUCKET,
+            PREFIX,
+            LISTING_STRATEGY,
+            TRACKING_STATE_CACHE,
+            INITIAL_LISTING_TARGET,
+            TRACKING_TIME_WINDOW,
+            RECORD_WRITER,
+            USE_GENERATIONS,
+            RETRY_COUNT,
+            STORAGE_API_URL,
+            PROXY_CONFIGURATION_SERVICE
+    );
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(LISTING_STRATEGY);
-        descriptors.add(TRACKING_STATE_CACHE);
-        descriptors.add(INITIAL_LISTING_TARGET);
-        descriptors.add(TRACKING_TIME_WINDOW);
-        descriptors.add(BUCKET);
-        descriptors.add(RECORD_WRITER);
-        descriptors.addAll(super.getSupportedPropertyDescriptors());
-        descriptors.add(PREFIX);
-        descriptors.add(USE_GENERATIONS);
-        return Collections.unmodifiableList(descriptors);
+        return DESCRIPTORS;
     }
 
-    private static final Set<Relationship> relationships = Collections.singleton(REL_SUCCESS);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
-    // State tracking
+    private static final Set<PropertyDescriptor> TRACKING_RESET_PROPERTIES = Set.of(
+            BUCKET,
+            PREFIX,
+            LISTING_STRATEGY
+    );
+
+    // used by Tracking Timestamps tracking strategy
     public static final String CURRENT_TIMESTAMP = "currentTimestamp";
     public static final String CURRENT_KEY_PREFIX = "key-";
     private volatile long currentTimestamp = 0L;
     private final Set<String> currentKeys = Collections.synchronizedSet(new HashSet<>());
 
-    private volatile boolean justElectedPrimaryNode = false;
-    private volatile boolean resetEntityTrackingState = false;
+    // used by Tracking Entities tracking strategy
     private volatile ListedEntityTracker<ListableBlob> listedEntityTracker;
+
+    private volatile boolean justElectedPrimaryNode = false;
+    private volatile boolean resetTracking = false;
 
     @OnPrimaryNodeStateChange
     public void onPrimaryNodeChange(final PrimaryNodeState newState) {
         justElectedPrimaryNode = (newState == PrimaryNodeState.ELECTED_PRIMARY_NODE);
     }
 
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if (isConfigurationRestored() && TRACKING_RESET_PROPERTIES.contains(descriptor)) {
+            resetTracking = true;
+        }
+    }
+
     @OnScheduled
-    public void initListedEntityTracker(ProcessContext context) {
-        final boolean isTrackingEntityStrategy = BY_ENTITIES.getValue().equals(context.getProperty(LISTING_STRATEGY).getValue());
-        if (listedEntityTracker != null && (resetEntityTrackingState || !isTrackingEntityStrategy)) {
+    public void initTrackingStrategy(ProcessContext context) throws IOException {
+        final String listingStrategy = context.getProperty(LISTING_STRATEGY).getValue();
+        final boolean isTrackingTimestampsStrategy = BY_TIMESTAMPS.getValue().equals(listingStrategy);
+        final boolean isTrackingEntityStrategy = BY_ENTITIES.getValue().equals(listingStrategy);
+
+        if (resetTracking || !isTrackingTimestampsStrategy) {
+            context.getStateManager().clear(Scope.CLUSTER);
+            currentTimestamp = 0L;
+            currentKeys.clear();
+        }
+
+        if (listedEntityTracker != null && (resetTracking || !isTrackingEntityStrategy)) {
             try {
                 listedEntityTracker.clearListedEntities();
+                listedEntityTracker = null;
             } catch (IOException e) {
                 throw new RuntimeException("Failed to reset previously listed entities", e);
             }
         }
-        resetEntityTrackingState = false;
 
-        if (isTrackingEntityStrategy) {
-            if (listedEntityTracker == null) {
-                listedEntityTracker = createListedEntityTracker();
-            }
-        } else {
-            listedEntityTracker = null;
+        if (isTrackingEntityStrategy && listedEntityTracker == null) {
+            listedEntityTracker = createListedEntityTracker();
         }
+
+        resetTracking = false;
     }
 
     protected ListedEntityTracker<ListableBlob> createListedEntityTracker() {
@@ -1021,5 +1048,17 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         public int getCount() {
             return count;
         }
+    }
+
+    long getCurrentTimestamp() {
+        return currentTimestamp;
+    }
+
+    ListedEntityTracker<ListableBlob> getListedEntityTracker() {
+        return listedEntityTracker;
+    }
+
+    boolean isResetTracking() {
+        return resetTracking;
     }
 }

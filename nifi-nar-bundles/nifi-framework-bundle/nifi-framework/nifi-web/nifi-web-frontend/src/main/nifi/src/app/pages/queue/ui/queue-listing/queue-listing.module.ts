@@ -27,6 +27,7 @@ import { EffectsModule } from '@ngrx/effects';
 import { queueFeatureKey, reducers } from '../../state';
 import { QueueListingEffects } from '../../state/queue-listing/queue-listing.effects';
 import { ErrorBanner } from '../../../../ui/common/error-banner/error-banner.component';
+import { MatButtonModule } from '@angular/material/button';
 
 @NgModule({
     declarations: [QueueListing],
@@ -39,7 +40,8 @@ import { ErrorBanner } from '../../../../ui/common/error-banner/error-banner.com
         FlowFileTable,
         StoreModule.forFeature(queueFeatureKey, reducers),
         EffectsModule.forFeature(QueueListingEffects),
-        ErrorBanner
+        ErrorBanner,
+        MatButtonModule
     ]
 })
 export class QueueListingModule {}

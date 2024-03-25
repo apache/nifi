@@ -1424,16 +1424,16 @@ export class ConnectionManager {
                     // update the coloring of the backgrounds
                     backgrounds.forEach((background, i) => {
                         if (i % 2 === 0) {
-                            background.attr('class', 'primary-contrast-800');
+                            background.attr('class', 'surface-darker');
                         } else {
-                            background.attr('class', 'primary-contrast-900');
+                            background.attr('class', 'surface');
                         }
                     });
 
                     // update the coloring of the label borders
                     borders.forEach((border, i) => {
                         if (i > 0) {
-                            border.attr('class', 'primary-200');
+                            border.attr('class', 'canvas-primary-lighter');
                         } else {
                             border.attr('class', 'transparent');
                         }

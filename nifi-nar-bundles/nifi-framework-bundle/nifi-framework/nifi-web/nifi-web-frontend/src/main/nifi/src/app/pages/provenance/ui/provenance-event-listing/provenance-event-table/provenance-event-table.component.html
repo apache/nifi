@@ -55,14 +55,14 @@
                     </div>
                 </form>
                 <div class="flex flex-col justify-center">
-                    <button class="nifi-button" (click)="searchClicked()">
+                    <button mat-icon-button (click)="searchClicked()">
                         <i class="fa fa-search"></i>
                     </button>
                 </div>
             </div>
         </div>
         <div class="flex-1 relative -mt-4">
-            <div class="listing-table border absolute inset-0 overflow-y-auto">
+            <div class="listing-table absolute inset-0 overflow-y-auto">
                 <table
                     mat-table
                     [dataSource]="dataSource"
@@ -171,7 +171,7 @@
         </div>
         <div class="flex justify-between">
             <div class="refresh-container flex items-center gap-x-2">
-                <button class="nifi-button" (click)="refreshClicked()">
+                <button mat-icon-button (click)="refreshClicked()">
                     <i class="fa fa-refresh" [class.fa-spin]="loading"></i>
                 </button>
                 <div>Last updated:</div>

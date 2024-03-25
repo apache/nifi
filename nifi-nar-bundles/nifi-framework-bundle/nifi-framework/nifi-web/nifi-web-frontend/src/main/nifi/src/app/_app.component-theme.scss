@@ -25,37 +25,17 @@
 
     // Get the color palette from the color-config.
     $primary-palette: map.get($color-config, 'primary');
-    $accent-palette: map.get($color-config, 'accent');
-    $canvas-primary-palette: map.get($canvas-color-config, 'primary');
     $canvas-accent-palette: map.get($canvas-color-config, 'accent');
 
     // Get hues from palette
-    $primary-palette-300: mat.get-color-from-palette($primary-palette, 300);
-    $primary-palette-500: mat.get-color-from-palette($primary-palette, 500);
-    $accent-palette-A400: mat.get-color-from-palette($accent-palette, 'A400');
-    $canvas-primary-palette-A200: mat.get-color-from-palette($canvas-primary-palette, 'A200');
-    $canvas-accent-palette-500: mat.get-color-from-palette($canvas-accent-palette, 500);
+    $primary-palette-default: mat.get-color-from-palette($primary-palette, default);
+    $canvas-accent-palette-default: mat.get-color-from-palette($canvas-accent-palette, default);
 
     .splash {
-        background-color: $primary-palette-500;
-    }
-
-    // https://github.com/angular/components/issues/11426
-    .nifi-snackbar .mdc-snackbar__surface {
-        background-color: $primary-palette-300 !important;
-    }
-
-    // https://github.com/angular/components/issues/11426
-    .nifi-snackbar .mat-mdc-snack-bar-label {
-        color: $canvas-primary-palette-A200 !important;
-    }
-
-    // https://github.com/angular/components/issues/11426
-    .nifi-snackbar .mat-mdc-button:not(:disabled) .mdc-button__label {
-        color: $accent-palette-A400;
+        background-color: $primary-palette-default;
     }
 
     .fa.fa-check.complete {
-        color: $canvas-accent-palette-500;
+        color: $canvas-accent-palette-default;
     }
 }

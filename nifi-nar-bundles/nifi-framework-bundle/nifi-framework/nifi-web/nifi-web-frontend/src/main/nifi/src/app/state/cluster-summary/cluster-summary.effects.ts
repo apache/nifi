@@ -16,16 +16,23 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import * as ClusterSummaryActions from './cluster-summary.actions';
-import { asyncScheduler, catchError, from, interval, map, of, switchMap, takeUntil } from 'rxjs';
+import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap, takeUntil } from 'rxjs';
 import { ClusterService } from '../../service/cluster.service';
+import { selectClusterSummary } from './cluster-summary.selectors';
+import { isDefinedAndNotNull } from '../shared';
+import { Store } from '@ngrx/store';
+import { ClusterSummaryState } from './index';
+import { HttpErrorResponse } from '@angular/common/http';
+import * as ErrorActions from '../error/error.actions';
 
 @Injectable()
 export class ClusterSummaryEffects {
     constructor(
         private actions$: Actions,
-        private clusterService: ClusterService
+        private clusterService: ClusterService,
+        private store: Store<ClusterSummaryState>
     ) {}
 
     loadClusterSummary$ = createEffect(() =>
@@ -55,6 +62,31 @@ export class ClusterSummaryEffects {
                 )
             ),
             switchMap(() => of(ClusterSummaryActions.loadClusterSummary()))
+        )
+    );
+
+    searchCluster$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ClusterSummaryActions.searchCluster),
+            map((action) => action.request),
+            concatLatestFrom(() =>
+                this.store.select(selectClusterSummary).pipe(
+                    isDefinedAndNotNull(),
+                    filter((clusterSummary) => clusterSummary.connectedToCluster)
+                )
+            ),
+            switchMap(([request]) => {
+                return from(this.clusterService.searchCluster(request.q)).pipe(
+                    map((response) =>
+                        ClusterSummaryActions.searchClusterSuccess({
+                            response: response
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(ErrorActions.snackBarError({ error: errorResponse.error }))
+                    )
+                );
+            })
         )
     );
 }

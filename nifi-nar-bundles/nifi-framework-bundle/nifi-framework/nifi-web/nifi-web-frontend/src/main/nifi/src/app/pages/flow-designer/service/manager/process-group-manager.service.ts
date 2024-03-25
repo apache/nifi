@@ -1087,10 +1087,10 @@ export class ProcessGroupManager {
                             } else if (vciState === 'LOCALLY_MODIFIED') {
                                 return `version-control primary-contrast-A700`;
                             } else {
-                                return `version-control canvas-accent-600`;
+                                return `version-control canvas-accent-darker`;
                             }
                         } else {
-                            return 'version-control primary-contrast-200';
+                            return 'version-control on-surface';
                         }
                     })
                     .text(function () {

@@ -58,13 +58,13 @@
                     </div>
                 </mat-dialog-content>
                 <mat-dialog-actions align="end">
-                    <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+                    <button mat-button mat-dialog-close>Cancel</button>
                     <button
                         [disabled]="enableControllerServiceForm.invalid"
                         type="button"
                         color="primary"
                         (click)="submitForm()"
-                        mat-raised-button>
+                        mat-button>
                         Enable
                     </button>
                 </mat-dialog-actions>
@@ -148,11 +148,9 @@
                 </mat-dialog-content>
                 <mat-dialog-actions align="end">
                     @if (enableRequest.currentStep === SetEnableStep.Completed || enableRequest.error) {
-                        <button color="primary" mat-raised-button mat-dialog-close>Close</button>
+                        <button mat-button mat-dialog-close>Close</button>
                     } @else {
-                        <button color="primary" (click)="cancelClicked()" mat-stroked-button mat-dialog-close>
-                            Cancel
-                        </button>
+                        <button (click)="cancelClicked()" mat-button mat-dialog-close>Cancel</button>
                     }
                 </mat-dialog-actions>
             }

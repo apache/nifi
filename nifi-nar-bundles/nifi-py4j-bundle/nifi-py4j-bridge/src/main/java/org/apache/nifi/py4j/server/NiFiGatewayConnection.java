@@ -17,17 +17,13 @@
 
 package org.apache.nifi.py4j.server;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import py4j.Gateway;
 import py4j.GatewayConnection;
 import py4j.GatewayServerListener;
 import py4j.commands.Command;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.net.Socket;
-import java.net.SocketTimeoutException;
 import java.util.List;
 
 /**
@@ -66,10 +62,8 @@ import java.util.List;
  * -
  */
 public class NiFiGatewayConnection extends GatewayConnection {
-    private static final Logger logger = LoggerFactory.getLogger(NiFiGatewayConnection.class);
 
     private final NiFiGatewayServer gatewayServer;
-    private volatile boolean poisoned = false;
     private final ClassLoader contextClassLoader;
 
     public NiFiGatewayConnection(final NiFiGatewayServer gatewayServer,
@@ -83,10 +77,6 @@ public class NiFiGatewayConnection extends GatewayConnection {
         this.contextClassLoader = getClass().getClassLoader();
     }
 
-    private boolean isContinue() {
-        return !poisoned && !gatewayServer.isShutdown();
-    }
-
     @Override
     public void run() {
         final ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
@@ -94,9 +84,7 @@ public class NiFiGatewayConnection extends GatewayConnection {
             Thread.currentThread().setContextClassLoader(this.contextClassLoader);
 
             Thread.currentThread().setName(String.format("NiFiGatewayConnection Thread for %s %s", gatewayServer.getComponentType(), gatewayServer.getComponentId()));
-            while (isContinue()) {
-                super.run();
-            }
+            super.run();
 
             shutdown(false);
         } finally {
@@ -104,37 +92,5 @@ public class NiFiGatewayConnection extends GatewayConnection {
                 Thread.currentThread().setContextClassLoader(originalClassLoader);
             }
         }
-    }
-
-    protected void quietSendFatalError(final BufferedWriter writer, final Throwable exception) {
-        if (gatewayServer.isShutdown()) {
-            super.quietSendFatalError(writer, exception);
-        }
-
-        if (exception instanceof SocketTimeoutException) {
-            logger.debug("{} received call to quietSendFatalError with Exception {} but will ignore because it's a SocketTimeoutException", this, exception.toString());
-            return;
-        }
-
-        poisoned = true;
-        super.quietSendFatalError(writer, exception);
-    }
-
-    @Override
-    public void shutdown(final boolean reset) {
-        if (poisoned) {
-            logger.debug("Connection {} shutdown and is poisoned so will truly shutdown connection, reset={}", this, reset);
-            super.shutdown(reset);
-            return;
-        }
-
-        if (gatewayServer.isShutdown()) {
-            logger.debug("Connection {} shutdown and Gateway Server is shutdown so will truly shutdown connection", this);
-            super.shutdown(false);
-            return;
-        }
-
-        // do nothing.
-        logger.debug("Connection {} shutdown but is not poisoned. Will not shutdown the connection", this);
     }
 }

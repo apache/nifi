@@ -30,11 +30,11 @@
             <div class="flex justify-between">
                 <div class="refresh-container flex items-center gap-x-2">
                     <div class="mr-6">
-                        <mat-slide-toggle [checked]="autoRefresh" (change)="autoRefreshToggle($event)"
+                        <mat-slide-toggle color="primary" [checked]="autoRefresh" (change)="autoRefreshToggle($event)"
                             >Auto-refresh</mat-slide-toggle
                         >
                     </div>
-                    <button class="nifi-button" (click)="refreshBulletinBoard(bulletinBoardState.lastBulletinId)">
+                    <button mat-icon-button (click)="refreshBulletinBoard(bulletinBoardState.lastBulletinId)">
                         <i class="fa fa-refresh" [class.fa-spin]="bulletinBoardState.status === 'loading'"></i>
                     </button>
                     <div>Last updated:</div>

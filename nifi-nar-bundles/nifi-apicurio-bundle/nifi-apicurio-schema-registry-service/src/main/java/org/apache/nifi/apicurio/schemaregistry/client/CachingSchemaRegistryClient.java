@@ -23,10 +23,11 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.time.Duration;
+import java.util.OptionalInt;
 
 public class CachingSchemaRegistryClient implements SchemaRegistryClient {
     private final SchemaRegistryClient client;
-    private final LoadingCache<Pair<String, Integer>, RecordSchema> schemaCache;
+    private final LoadingCache<Pair<String, OptionalInt>, RecordSchema> schemaCache;
 
     public CachingSchemaRegistryClient(final SchemaRegistryClient toWrap, final int cacheSize, final long expirationNanos) {
         this.client = toWrap;
@@ -34,24 +35,10 @@ public class CachingSchemaRegistryClient implements SchemaRegistryClient {
         schemaCache = Caffeine.newBuilder()
                 .maximumSize(cacheSize)
                 .expireAfterWrite(Duration.ofNanos(expirationNanos))
-                .build(key -> {
-                    if (key.getRight() == -1) {
-                        // If the version in the key is -1, fetch the schema by name only.
-                        return client.getSchema(key.getLeft());
-                    } else {
-                        // If a specific version is provided in the key, fetch the schema with that version.
-                        return client.getSchema(key.getLeft(), key.getRight());
-                    }
-                });
+                .build(key -> client.getSchema(key.getLeft(), key.getRight()));
     }
-
     @Override
-    public RecordSchema getSchema(final String schemaName) {
-        return schemaCache.get(Pair.of(schemaName, -1));
-    }
-
-    @Override
-    public RecordSchema getSchema(final String schemaName, final int version) {
+    public RecordSchema getSchema(final String schemaName, final OptionalInt version) {
         return schemaCache.get(Pair.of(schemaName, version));
     }
 }

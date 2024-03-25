@@ -93,7 +93,9 @@ public class StandardFlowPropertyEncryptor implements FlowPropertyEncryptor {
     }
 
     private Map<String, Set<String>> runtimeManifestSensitiveProperties() {
-        return ofNullable(runTimeManifest.getBundles()).orElse(List.of())
+        return ofNullable(runTimeManifest)
+            .map(RuntimeManifest::getBundles)
+            .orElse(List.of())
             .stream()
             .flatMap(bundle -> Stream.of(
                 ofNullable(bundle.getComponentManifest().getProcessors()).orElse(List.of()),

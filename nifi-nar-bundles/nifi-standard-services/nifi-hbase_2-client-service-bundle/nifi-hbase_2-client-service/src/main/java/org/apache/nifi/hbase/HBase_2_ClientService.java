@@ -27,6 +27,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -42,6 +44,7 @@ import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
@@ -76,6 +79,7 @@ import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
+import org.apache.nifi.hbase.scan.HBaseRegion;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
@@ -862,6 +866,37 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         resultCell.setValueLength(cell.getValueLength());
 
         return resultCell;
+    }
+
+    @Override
+    public List<HBaseRegion> listHBaseRegions(final String tableName) throws HBaseClientException {
+        if (connection == null || connection.isClosed() || connection.isAborted()) {
+            final String errorMsg = String.format(
+                    "Unable to fetch regions for table %s since there is no active connection to HBase.",
+                    tableName
+            );
+            throw new IllegalStateException(errorMsg);
+        }
+
+        try {
+            final List<RegionInfo> regionInfos = connection.getAdmin().getRegions(TableName.valueOf(tableName));
+            // maps to the NiFi HBaseRegion object
+            final List<HBaseRegion> regions = regionInfos.stream()
+                    .map(regionInfo ->
+                            new HBaseRegion(
+                                regionInfo.getStartKey(),
+                                regionInfo.getEndKey(),
+                                regionInfo.getRegionNameAsString(),
+                                regionInfo.getRegionId(),
+                                regionInfo.isDegenerate()
+                            )
+                    )
+                    .collect(Collectors.toList());
+            return regions;
+        } catch (final IOException e) {
+            logger.error("Encountered error while communicating with HBase.", e);
+            throw new HBaseClientException(e);
+        }
     }
 
     static protected class ValidationResources {

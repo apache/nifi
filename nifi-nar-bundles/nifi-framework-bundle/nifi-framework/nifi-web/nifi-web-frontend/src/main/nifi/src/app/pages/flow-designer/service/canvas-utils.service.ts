@@ -1253,9 +1253,9 @@ export class CanvasUtils {
                 })
                 .attr('class', function () {
                     if (terminatedThreads > 0) {
-                        return `active-thread-count-icon warn-400`;
+                        return `active-thread-count-icon warn-default`;
                     } else {
-                        return `active-thread-count-icon primary-500`;
+                        return `active-thread-count-icon primary-default`;
                     }
                 })
                 .style('display', 'block')

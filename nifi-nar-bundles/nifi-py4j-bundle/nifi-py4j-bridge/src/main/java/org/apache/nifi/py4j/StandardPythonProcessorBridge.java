@@ -18,7 +18,6 @@
 package org.apache.nifi.py4j;
 
 import org.apache.nifi.python.PythonController;
-import org.apache.nifi.python.PythonProcessorDetails;
 import org.apache.nifi.python.processor.PythonProcessorAdapter;
 import org.apache.nifi.python.processor.PythonProcessorBridge;
 import org.apache.nifi.python.processor.PythonProcessorInitializationContext;
@@ -36,7 +35,8 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
     private static final Logger logger = LoggerFactory.getLogger(StandardPythonProcessorBridge.class);
 
     private final ProcessorCreationWorkflow creationWorkflow;
-    private final PythonProcessorDetails processorDetails;
+    private final String processorType;
+    private final String processorVersion;
     private volatile PythonProcessorAdapter adapter;
     private final File workingDir;
     private final File moduleFile;
@@ -51,7 +51,8 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
     private StandardPythonProcessorBridge(final Builder builder) {
         this.controller = builder.controller;
         this.creationWorkflow = builder.creationWorkflow;
-        this.processorDetails = builder.processorDetails;
+        this.processorType = builder.processorType;
+        this.processorVersion = builder.processorVersion;
         this.workingDir = builder.workDir;
         this.moduleFile = builder.moduleFile;
         this.lastModified = this.moduleFile.lastModified();
@@ -165,7 +166,7 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
 
     @Override
     public String getProcessorType() {
-        return processorDetails.getProcessorType();
+        return processorType;
     }
 
     @Override
@@ -175,7 +176,7 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
             return false;
         }
 
-        controller.reloadProcessor(getProcessorType(), processorDetails.getProcessorVersion(), workingDir.getAbsolutePath());
+        controller.reloadProcessor(getProcessorType(), processorVersion, workingDir.getAbsolutePath());
         initializePythonSide(false, new CompletableFuture<>());
         lastModified = moduleFile.lastModified();
 
@@ -188,7 +189,8 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
         private ProcessorCreationWorkflow creationWorkflow;
         private File workDir;
         private File moduleFile;
-        private PythonProcessorDetails processorDetails;
+        private String processorType;
+        private String processorVersion;
 
         public Builder controller(final PythonController controller) {
             this.controller = controller;
@@ -200,8 +202,13 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
             return this;
         }
 
-        public Builder processorDetails(final PythonProcessorDetails details) {
-            this.processorDetails = details;
+        public Builder processorType(final String processorType) {
+            this.processorType = processorType;
+            return this;
+        }
+
+        public Builder processorVersion(final String processorVersion) {
+            this.processorVersion = processorVersion;
             return this;
         }
 
@@ -222,8 +229,11 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
             if (creationWorkflow == null) {
                 throw new IllegalStateException("Must specify the Processor Creation Workflow");
             }
-            if (processorDetails == null) {
-                throw new IllegalStateException("Must specify the Processor Details");
+            if (processorType == null) {
+                throw new IllegalStateException("Must specify the Processor Type");
+            }
+            if (processorVersion == null) {
+                throw new IllegalStateException("Must specify the Processor Version");
             }
             if (workDir == null) {
                 throw new IllegalStateException("Must specify the Working Directory");

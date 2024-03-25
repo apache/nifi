@@ -17,15 +17,6 @@
 
 package org.apache.nifi.py4j.client;
 
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Stack;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.nifi.python.PythonController;
 import org.apache.nifi.python.PythonObjectProxy;
 import org.apache.nifi.python.processor.PreserveJavaBinding;
@@ -34,7 +25,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import py4j.CallbackClient;
 import py4j.Gateway;
+import py4j.ReturnObject;
 import py4j.reflection.PythonProxyHandler;
+
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 
 
 /**
@@ -64,13 +64,29 @@ import py4j.reflection.PythonProxyHandler;
 public class NiFiPythonGateway extends Gateway {
     private static final Logger logger = LoggerFactory.getLogger(NiFiPythonGateway.class);
     private final JavaObjectBindings objectBindings;
-    private final Map<Long, Stack<InvocationBindings>> invocationBindingsById = new ConcurrentHashMap<>();
+
+    // Guarded by synchronized methods
+    private final List<InvocationBindings> activeInvocations = new ArrayList<>();
+
+    private final ReturnObject END_OF_ITERATOR_OBJECT = ReturnObject.getErrorReturnObject(new NoSuchElementException());
+    private final Method freeMethod;
+    private final Method pingMethod;
 
     public NiFiPythonGateway(final JavaObjectBindings bindings, final Object entryPoint, final CallbackClient callbackClient) {
         super(entryPoint, callbackClient);
         this.objectBindings = bindings;
+
+        freeMethod = getMethod(PythonObjectProxy.class, "free");
+        pingMethod = getMethod(PythonController.class, "ping");
     }
 
+    private Method getMethod(final Class<?> clazz, final String methodName) {
+        try {
+            return clazz.getMethod(methodName);
+        } catch (final NoSuchMethodException ignored) {
+            return null;
+        }
+    }
 
     public JavaObjectBindings getObjectBindings() {
         return objectBindings;
@@ -82,20 +98,55 @@ public class NiFiPythonGateway extends Gateway {
     }
 
     @Override
-    public String putNewObject(final Object object) {
-        final String objectId = objectBindings.bind(object);
-
-        final InvocationBindings bindings = getInvocationBindings();
-        if (bindings != null) {
-            bindings.add(objectId);
+    public ReturnObject invoke(final String methodName, final String targetObjectId, final List<Object> args) {
+        // Py4J detects the end of an iterator on the Python side by catching a Py4JError. It makes the assumption that
+        // if it encounters Py4JError then it was due to a NoSuchElementException being thrown on the Java side. In this case,
+        // it throws a StopIteration exception on the Python side. This has a couple of problems:
+        // 1. It's not clear that the exception was thrown because the iterator was exhausted. It could have been thrown for
+        //    any other reason, such as an IOException, etc.
+        // 2. It relies on Exception handling for flow control, which is generally considered bad practice.
+        // While we aren't going to go so far as to override the Python code, we can at least prevent Java from constantly
+        // throwing the Exception, catching it, logging it, and re-throwing it.
+        // Instead, we just create the ReturnObject once and return it.
+        final boolean intervene = isNextOnExhaustedIterator(methodName, targetObjectId, args);
+        if (!intervene) {
+            return super.invoke(methodName, targetObjectId, args);
         }
-        logger.debug("Binding {}: {} ({}) for {}", objectId, object, object == null ? "null" : object.getClass().getName(), bindings);
+
+        return END_OF_ITERATOR_OBJECT;
+    }
+
+    private boolean isNextOnExhaustedIterator(final String methodName, final String targetObjectId, final List<Object> args) {
+        if (!"next".equals(methodName)) {
+            return false;
+        }
+        if (args != null && !args.isEmpty()) {
+            return false;
+        }
+
+        final Object targetObject = getObjectFromId(targetObjectId);
+        if (!(targetObject instanceof final Iterator<?> itr)) {
+            return false;
+        }
+
+        return !itr.hasNext();
+    }
+
+    @Override
+    public synchronized String putNewObject(final Object object) {
+        final String objectId = objectBindings.bind(object, activeInvocations.size() + 1);
+
+        for (final InvocationBindings activeInvocation : activeInvocations) {
+            activeInvocation.add(objectId);
+        }
+
+        logger.debug("Binding {}: {} ({})", objectId, object, object == null ? "null" : object.getClass().getName());
         return objectId;
     }
 
     @Override
-    public Object putObject(final String id, final Object object) {
-        objectBindings.bind(id, object);
+    public synchronized Object putObject(final String id, final Object object) {
+        objectBindings.bind(id, object, activeInvocations.size() + 1);
         logger.debug("Binding {}: {} ({})", id, object, object == null ? "null" : object.getClass().getName());
 
         return super.putObject(id, object);
@@ -103,55 +154,16 @@ public class NiFiPythonGateway extends Gateway {
 
     @Override
     public void deleteObject(final String objectId) {
-        // When the python side no longer needs an object, its finalizer will notify the Java side that it's no longer needed and can be removed
-        // from the accessible objects on the Java heap. However, if we are making a call to the Python side, it's possible that even though the Python
-        // side no longer needs the object, the Java side still needs it bound. For instance, consider the following case:
-        //
-        // Java side calls PythonController.getProcessorTypes()
-        // Python side needs to return an ArrayList, so it calls back to the Java side (in a separate thread) to create this ArrayList with ID o54
-        // Python side adds several Processors to the ArrayList.
-        // Python side returns the ArrayList to the Java side.
-        // Python side no longer needs the ArrayList, so while the Java side is processing the response from the Python side, the Python side notifies the Java side that it's no longer needed.
-        // Java side unbinds the ArrayList.
-        // Java side parses the response from Python, indicating that the return value is the object with ID o54.
-        // Java side cannot access object with ID o54 because it was already removed.
-        //
-        // To avoid this, we check if there is an Invocation Binding (indicating that we are in the middle of a method invocation) and if so,
-        // we add the object to a list of objects to delete on completion.
-        // If there is no Invocation Binding, we unbind the object immediately.
-        final InvocationBindings invocationBindings = getInvocationBindings();
-        if (invocationBindings == null) {
-            final Object unbound = objectBindings.unbind(objectId);
-            logger.debug("Unbound {}: {} because it was explicitly requested from Python side", objectId, unbound);
-        } else {
-            invocationBindings.deleteOnCompletion(objectId);
-            logger.debug("Unbound {} because it was requested from Python side but in active method invocation so will not remove until invocation completed", objectId);
-        }
+        logger.debug("Unbinding {} because it was explicitly requested from Python side", objectId);
+        objectBindings.unbind(objectId);
     }
 
-    private InvocationBindings getInvocationBindings() {
-        final long threadId = Thread.currentThread().threadId();
-        final Stack<InvocationBindings> stack = invocationBindingsById.get(threadId);
-        if (stack == null || stack.isEmpty()) {
-            return null;
-        }
-
-        return stack.peek();
-    }
 
     @Override
     protected PythonProxyHandler createPythonProxyHandler(final String id) {
         logger.debug("Creating Python Proxy Handler for ID {}", id);
         final PythonProxyInvocationHandler createdHandler = new PythonProxyInvocationHandler(this, id);
 
-        Method proxyFreeMethod;
-        try {
-            proxyFreeMethod = PythonObjectProxy.class.getMethod("free");
-        } catch (final NoSuchMethodException ignored) {
-            proxyFreeMethod = null;
-        }
-
-        final Method freeMethod = proxyFreeMethod;
         return new PythonProxyHandler(id, this) {
             @Override
             public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
@@ -163,54 +175,41 @@ public class NiFiPythonGateway extends Gateway {
                 return createdHandler.invoke(proxy, method, args);
             }
 
-            @Override
-            protected void finalize() {
-                // Do nothing. Prevent super.finalize() from being called.
-            }
         };
     }
 
-    public void beginInvocation(final String objectId, final Method method, final Object[] args) {
-        final long threadId = Thread.currentThread().threadId();
-        final InvocationBindings bindings = new InvocationBindings(objectId, method, args);
-        final Stack<InvocationBindings> stack = invocationBindingsById.computeIfAbsent(threadId, id -> new Stack<>());
-        stack.push(bindings);
-
-        logger.debug("Beginning method invocation {} on {} with args {}", method, objectId, Arrays.toString(args));
-    }
-
-    public void endInvocation(final String objectId, final Method method, final Object[] args) {
+    public synchronized InvocationBindings beginInvocation(final String objectId, final Method method, final Object[] args) {
         final boolean unbind = isUnbind(method);
 
-        final long threadId = Thread.currentThread().threadId();
-        final Stack<InvocationBindings> stack = invocationBindingsById.get(threadId);
-        if (stack == null) {
-            return;
+        final InvocationBindings bindings = new InvocationBindings(objectId, method, args, unbind);
+
+        // We don't want to keep track of invocations of the Ping method.
+        // The Ping method has no arguments or bound objects to free, and can occasionally
+        // even hang, if the timing is right because of the startup sequence of the Python side and how the
+        // communications are established.
+        if (!pingMethod.equals(method)) {
+            activeInvocations.add(bindings);
         }
 
-        while (!stack.isEmpty()) {
-            final InvocationBindings invocationBindings = stack.pop();
-            final String methodName = invocationBindings.getMethod().getName();
+        logger.debug("Beginning method invocation {}", bindings);
 
-            invocationBindings.getObjectIds().forEach(id -> {
-                if (unbind) {
-                    final Object unbound = objectBindings.unbind(id);
-                    logger.debug("Unbinding {}: {} because invocation of {} on {} with args {} has completed", id, unbound, methodName, objectId, Arrays.toString(args));
-                } else {
-                    logger.debug("Will not unbind {} even though invocation of {} on {} with args {} has completed because of the method being completed",
-                        id, methodName, objectId, Arrays.toString(args));
-                }
-            });
+        return bindings;
+    }
 
-            invocationBindings.getObjectsToDeleteOnCompletion().forEach(id -> {
-                final Object unbound = objectBindings.unbind(id);
-                logger.debug("Unbinding {}: {} because invocation of {} on {} with args {} has completed", id, unbound, methodName, objectId, Arrays.toString(args));
-            });
+    public synchronized void endInvocation(final InvocationBindings invocationBindings) {
+        final String methodName = invocationBindings.getMethod().getName();
+        logger.debug("Ending method invocation {}", invocationBindings);
 
-            if (Objects.equals(invocationBindings.getTargetObjectId(), objectId) && Objects.equals(invocationBindings.getMethod(), method) && Arrays.equals(invocationBindings.getArgs(), args)) {
-                break;
+        final String objectId = invocationBindings.getTargetObjectId();
+
+        activeInvocations.remove(invocationBindings);
+        invocationBindings.getObjectIds().forEach(id -> {
+            final Object unbound = objectBindings.unbind(id);
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Unbinding {}: {} because invocation of {} on {} with args {} has completed", id, unbound, methodName, objectId, Arrays.toString(invocationBindings.getArgs()));
             }
-        }
+        });
     }
 
     protected boolean isUnbind(final Method method) {
@@ -222,40 +221,50 @@ public class NiFiPythonGateway extends Gateway {
         // that it is no longer needed. We can do this by annotating the method with the PreserveJavaBinding annotation.
         final boolean relevantClass = PythonController.class.isAssignableFrom(declaringClass) || PythonProcessor.class.isAssignableFrom(declaringClass);
         if (relevantClass && method.getAnnotation(PreserveJavaBinding.class) == null) {
-            return true;
+            // No need for binding / unbinding if types are primitives, because the values themselves are sent across and not references to objects.
+            boolean bindNecessary = isBindNecessary(method.getReturnType());
+            for (final Class<?> parameterType : method.getParameterTypes()) {
+                if (isBindNecessary(parameterType)) {
+                    bindNecessary = true;
+                    break;
+                }
+            }
+
+            return bindNecessary;
         }
 
         return false;
     }
 
+    private boolean isBindNecessary(final Class<?> type) {
+        return !type.isPrimitive() && type != String.class && type != byte[].class;
+    }
 
-    private static class InvocationBindings {
+
+    public static class InvocationBindings {
         private final String targetObjectId;
         private final Method method;
         private final Object[] args;
+        private final boolean unbind;
         private final List<String> objectIds = new ArrayList<>();
-        private final List<String> deleteOnCompletion = new ArrayList<>();
 
-        public InvocationBindings(final String targetObjectId, final Method method, final Object[] args) {
+        public InvocationBindings(final String targetObjectId, final Method method, final Object[] args, final boolean unbind) {
             this.targetObjectId = targetObjectId;
             this.method = method;
             this.args = args;
+            this.unbind = unbind;
+        }
+
+        public boolean isUnbind() {
+            return unbind;
         }
 
         public void add(final String objectId) {
             objectIds.add(objectId);
         }
 
-        public void deleteOnCompletion(final String objectId) {
-            deleteOnCompletion.add(objectId);
-        }
-
         public List<String> getObjectIds() {
             return objectIds;
-        }
-
-        public List<String> getObjectsToDeleteOnCompletion() {
-            return deleteOnCompletion;
         }
 
         public String getTargetObjectId() {

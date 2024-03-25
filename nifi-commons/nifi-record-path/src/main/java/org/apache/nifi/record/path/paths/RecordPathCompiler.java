@@ -35,6 +35,7 @@ import org.apache.nifi.record.path.filter.NotEqualsFilter;
 import org.apache.nifi.record.path.filter.NotFilter;
 import org.apache.nifi.record.path.filter.RecordPathFilter;
 import org.apache.nifi.record.path.filter.StartsWith;
+import org.apache.nifi.record.path.functions.Anchored;
 import org.apache.nifi.record.path.functions.Base64Decode;
 import org.apache.nifi.record.path.functions.Base64Encode;
 import org.apache.nifi.record.path.functions.Coalesce;
@@ -45,6 +46,7 @@ import org.apache.nifi.record.path.functions.FieldName;
 import org.apache.nifi.record.path.functions.FilterFunction;
 import org.apache.nifi.record.path.functions.Format;
 import org.apache.nifi.record.path.functions.Hash;
+import org.apache.nifi.record.path.functions.Join;
 import org.apache.nifi.record.path.functions.MapOf;
 import org.apache.nifi.record.path.functions.PadLeft;
 import org.apache.nifi.record.path.functions.PadRight;
@@ -129,6 +131,10 @@ public class RecordPathCompiler {
             }
             case CHILD_REFERENCE: {
                 final Tree childTree = tree.getChild(0);
+                if (childTree == null) {
+                    return new RootPath();
+                }
+
                 final int childTreeType = childTree.getType();
                 if (childTreeType == FIELD_NAME) {
                     final String childName = childTree.getChild(0).getText();
@@ -403,6 +409,24 @@ public class RecordPathCompiler {
                     case "count": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
                         return new Count(args[0], absolute);
+                    }
+                    case "join": {
+                        final int numArgs = argumentListTree.getChildCount();
+                        if (numArgs < 2) {
+                            throw new RecordPathException("Invalid number of arguments: " + functionName + " function takes 2 or more arguments but got " + numArgs);
+                        }
+
+                        final RecordPathSegment[] joinPaths = new RecordPathSegment[numArgs - 1];
+                        for (int i = 0; i < numArgs - 1; i++) {
+                            joinPaths[i] = buildPath(argumentListTree.getChild(i + 1), null, absolute);
+                        }
+
+                        final RecordPathSegment delimiterPath = buildPath(argumentListTree.getChild(0), null, absolute);
+                        return new Join(delimiterPath, joinPaths, absolute);
+                    }
+                    case "anchored": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                        return new Anchored(args[0], args[1], absolute);
                     }
                     case "not":
                     case "contains":

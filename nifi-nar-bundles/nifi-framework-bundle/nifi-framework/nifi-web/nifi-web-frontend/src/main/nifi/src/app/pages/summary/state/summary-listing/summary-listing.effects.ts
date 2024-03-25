@@ -19,24 +19,22 @@ import { Injectable } from '@angular/core';
 import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
-import { ClusterSummaryService } from '../../service/cluster-summary.service';
 import { ProcessGroupStatusService } from '../../service/process-group-status.service';
 import * as SummaryListingActions from './summary-listing.actions';
 import * as StatusHistoryActions from '../../../../state/status-history/status-history.actions';
-
-import { catchError, combineLatest, filter, map, of, switchMap, tap } from 'rxjs';
+import { catchError, filter, from, map, of, switchMap, tap } from 'rxjs';
 import { Router } from '@angular/router';
 import { ComponentType } from '../../../../state/shared';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { selectSummaryListingStatus } from './summary-listing.selectors';
+import { selectSelectedClusterNode, selectSummaryListingStatus } from './summary-listing.selectors';
+import { LoadSummaryRequest } from './index';
 
 @Injectable()
 export class SummaryListingEffects {
     constructor(
         private actions$: Actions,
         private store: Store<NiFiState>,
-        private clusterSummaryService: ClusterSummaryService,
         private pgStatusService: ProcessGroupStatusService,
         private errorHelper: ErrorHelper,
         private router: Router
@@ -46,16 +44,21 @@ export class SummaryListingEffects {
         this.actions$.pipe(
             ofType(SummaryListingActions.loadSummaryListing),
             map((action) => action.recursive),
-            concatLatestFrom(() => this.store.select(selectSummaryListingStatus)),
-            switchMap(([recursive, listingStatus]) =>
-                combineLatest([
-                    this.clusterSummaryService.getClusterSummary(),
-                    this.pgStatusService.getProcessGroupsStatus(recursive)
-                ]).pipe(
-                    map(([clusterSummary, status]) =>
+            concatLatestFrom(() => [
+                this.store.select(selectSummaryListingStatus),
+                this.store.select(selectSelectedClusterNode)
+            ]),
+            switchMap(([recursive, listingStatus, selectedClusterNode]) => {
+                const request: LoadSummaryRequest = {
+                    recursive
+                };
+                if (selectedClusterNode) {
+                    request.clusterNodeId = selectedClusterNode.id;
+                }
+                return from(this.pgStatusService.getProcessGroupsStatus(request)).pipe(
+                    map((status) =>
                         SummaryListingActions.loadSummaryListingSuccess({
                             response: {
-                                clusterSummary,
                                 status
                             }
                         })
@@ -63,8 +66,8 @@ export class SummaryListingEffects {
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(this.errorHelper.handleLoadingError(listingStatus, errorResponse))
                     )
-                )
-            )
+                );
+            })
         )
     );
 

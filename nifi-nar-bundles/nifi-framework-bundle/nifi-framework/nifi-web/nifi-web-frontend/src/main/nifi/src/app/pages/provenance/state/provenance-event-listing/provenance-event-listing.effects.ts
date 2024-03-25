@@ -328,8 +328,7 @@ export class ProvenanceEventListingEffects {
                                 panelClass: 'large-dialog'
                             });
 
-                            dialogReference.componentInstance.contentViewerAvailable =
-                                about?.contentViewerUrl != null ?? false;
+                            dialogReference.componentInstance.contentViewerAvailable = about?.contentViewerUrl != null;
 
                             dialogReference.componentInstance.downloadContent
                                 .pipe(takeUntil(dialogReference.afterClosed()))

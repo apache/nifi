@@ -72,13 +72,13 @@
     </mat-dialog-content>
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
-            <button color="primary" mat-stroked-button mat-dialog-close>Cancel</button>
+            <button mat-button mat-dialog-close>Cancel</button>
             <button
                 [disabled]="!createProcessGroupForm.dirty || createProcessGroupForm.invalid || saving.value"
                 type="button"
                 color="primary"
                 (click)="createProcessGroup()"
-                mat-raised-button>
+                mat-button>
                 <span *nifiSpinner="saving.value">Add</span>
             </button>
         </mat-dialog-actions>

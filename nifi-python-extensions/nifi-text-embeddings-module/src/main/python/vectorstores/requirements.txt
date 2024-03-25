@@ -26,4 +26,4 @@ requests
 # Pinecone requirements
 pinecone-client==3.0.1
 tiktoken
-langchain==0.1.2
+langchain==0.1.11

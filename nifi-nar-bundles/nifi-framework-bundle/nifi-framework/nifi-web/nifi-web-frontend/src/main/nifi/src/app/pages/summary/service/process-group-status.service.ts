@@ -16,8 +16,9 @@
  */
 
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { LoadSummaryRequest } from '../state/summary-listing';
 
 @Injectable({ providedIn: 'root' })
 export class ProcessGroupStatusService {
@@ -25,13 +26,14 @@ export class ProcessGroupStatusService {
 
     constructor(private httpClient: HttpClient) {}
 
-    getProcessGroupsStatus(recursive?: boolean): Observable<any> {
-        if (recursive) {
-            const params = {
-                recursive: true
-            };
-            return this.httpClient.get(`${ProcessGroupStatusService.API}/flow/process-groups/root/status`, { params });
+    getProcessGroupsStatus(request: LoadSummaryRequest): Observable<any> {
+        let params: HttpParams = new HttpParams();
+        if (request?.recursive) {
+            params = params.set('recursive', true);
         }
-        return this.httpClient.get(`${ProcessGroupStatusService.API}/flow/process-groups/root/status`);
+        if (request?.clusterNodeId && request?.clusterNodeId !== 'All') {
+            params = params.set('clusterNodeId', request.clusterNodeId);
+        }
+        return this.httpClient.get(`${ProcessGroupStatusService.API}/flow/process-groups/root/status`, { params });
     }
 }

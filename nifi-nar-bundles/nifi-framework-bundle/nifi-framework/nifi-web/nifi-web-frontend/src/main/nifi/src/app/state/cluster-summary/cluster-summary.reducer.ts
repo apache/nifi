@@ -18,14 +18,16 @@
 import { createReducer, on } from '@ngrx/store';
 import { ClusterSummaryState } from './index';
 import {
-    clusterSummaryApiError,
     clearClusterSummaryApiError,
+    clusterSummaryApiError,
     loadClusterSummary,
-    loadClusterSummarySuccess
+    loadClusterSummarySuccess,
+    searchClusterSuccess
 } from './cluster-summary.actions';
 
 export const initialState: ClusterSummaryState = {
     clusterSummary: null,
+    searchResults: null,
     error: null,
     status: 'pending'
 };
@@ -51,5 +53,9 @@ export const clusterSummaryReducer = createReducer(
         ...state,
         error: null,
         status: 'pending' as const
+    })),
+    on(searchClusterSuccess, (state, { response }) => ({
+        ...state,
+        searchResults: response
     }))
 );

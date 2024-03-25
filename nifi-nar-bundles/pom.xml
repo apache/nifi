@@ -24,7 +24,7 @@
     <artifactId>nifi-nar-bundles</artifactId>
     <packaging>pom</packaging>
     <properties>
-        <commons.dbcp2.version>2.11.0</commons.dbcp2.version>
+        <commons.dbcp2.version>2.12.0</commons.dbcp2.version>
     </properties>
     <modules>
         <module>nifi-framework-bundle</module>
@@ -61,7 +61,6 @@
         <module>nifi-splunk-bundle</module>
         <module>nifi-jms-bundle</module>
         <module>nifi-beats-bundle</module>
-        <module>nifi-cassandra-bundle</module>
         <module>nifi-hive-bundle</module>
         <module>nifi-site-to-site-reporting-bundle</module>
         <module>nifi-mqtt-bundle</module>
@@ -229,11 +228,6 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-http-context-map</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-cassandra-services-api</artifactId>
                 <version>2.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>

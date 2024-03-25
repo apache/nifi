@@ -26,9 +26,9 @@
     $accent-palette: map.get($color-config, 'accent');
 
     // Get hues from palette
-    $accent-palette-A700: mat.get-color-from-palette($accent-palette, 'A700');
+    $accent-palette-darker: mat.get-color-from-palette($accent-palette, 'darker');
 
     .hint-pattern {
-        background-color: $accent-palette-A700;
+        background-color: $accent-palette-darker;
     }
 }

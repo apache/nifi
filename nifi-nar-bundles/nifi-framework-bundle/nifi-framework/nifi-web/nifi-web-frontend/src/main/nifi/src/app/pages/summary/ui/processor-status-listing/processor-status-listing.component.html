@@ -21,14 +21,19 @@
         </div>
     } @else {
         <processor-status-table
-            [processors]="(processorStatusSnapshots$ | async)!"
-            [selectedProcessorId]="selectedProcessorId$ | async"
+            [components]="(processorStatusSnapshots$ | async)!"
+            [selectedId]="selectedProcessorId$ | async"
             [loadedTimestamp]="loadedTimestamp$ | async"
             [summaryListingStatus]="summaryListingStatus$ | async"
+            [connectedToCluster]="(connectedToCluster$ | async) || false"
+            [clusterNodes]="clusterNodes$ | async"
+            [selectedClusterNode]="selectedClusterNode$ | async"
             (viewStatusHistory)="viewStatusHistory($event)"
-            (selectProcessor)="selectProcessor($event)"
+            (selectComponent)="selectProcessor($event)"
             (clearSelection)="clearSelection()"
             (refresh)="refreshSummaryListing()"
+            (clusterNodeSelected)="clusterNodeSelected($event)"
+            (viewClusteredDetails)="viewClusteredDetails($event)"
             initialSortColumn="name"
             initialSortDirection="asc"></processor-status-table>
     }

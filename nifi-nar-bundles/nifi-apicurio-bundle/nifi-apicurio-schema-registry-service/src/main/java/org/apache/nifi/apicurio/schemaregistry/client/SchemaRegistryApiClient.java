@@ -26,10 +26,12 @@ public class SchemaRegistryApiClient {
 
     private final WebClientServiceProvider webClientServiceProvider;
     private final String baseUrl;
+    private final String groupId;
 
-    public SchemaRegistryApiClient(final WebClientServiceProvider webClientServiceProvider, final String baseUrl) {
+    public SchemaRegistryApiClient(final WebClientServiceProvider webClientServiceProvider, final String baseUrl, final String groupId) {
         this.webClientServiceProvider = webClientServiceProvider;
         this.baseUrl = baseUrl;
+        this.groupId = groupId;
     }
 
     public InputStream retrieveResponse(final URI uri) {
@@ -51,37 +53,26 @@ public class SchemaRegistryApiClient {
                 .addPathSegment("v2");
     }
 
-    public URI buildSearchUri(final String schemaName) {
+    private HttpUriBuilder buildBaseSchemaUri() {
         return buildBaseUri()
-                .addPathSegment("search")
+                .addPathSegment("groups")
+                .addPathSegment(this.groupId);
+    }
+
+    private HttpUriBuilder buildBaseSchemaArtifactUri(final String artifactId) {
+        return buildBaseSchemaUri()
                 .addPathSegment("artifacts")
-                .addQueryParameter("name", schemaName)
-                .addQueryParameter("limit", "1")
-                .build();
+                .addPathSegment(artifactId);
     }
 
-    public URI buildMetaDataUri(final String groupId, final String artifactId) {
-        return buildGroupArtifactsUri(groupId, artifactId)
-                .addPathSegment("meta")
-                .build();
+    public URI buildSchemaArtifactUri(final String artifactId) {
+        return buildBaseSchemaArtifactUri(artifactId).build();
     }
 
-    public URI buildSchemaUri(final String groupId, final String artifactId) {
-        return buildGroupArtifactsUri(groupId, artifactId).build();
-    }
-
-    public URI buildSchemaVersionUri(final String groupId, final String artifactId, final int version) {
-        return buildGroupArtifactsUri(groupId, artifactId)
+    public URI buildSchemaVersionUri(final String artifactId, final int version) {
+        return buildBaseSchemaArtifactUri(artifactId)
                 .addPathSegment("versions")
                 .addPathSegment(String.valueOf(version))
                 .build();
-    }
-
-    private HttpUriBuilder buildGroupArtifactsUri(final String groupId, final String artifactId) {
-        return buildBaseUri()
-                .addPathSegment("groups")
-                .addPathSegment(groupId)
-                .addPathSegment("artifacts")
-                .addPathSegment(artifactId);
     }
 }

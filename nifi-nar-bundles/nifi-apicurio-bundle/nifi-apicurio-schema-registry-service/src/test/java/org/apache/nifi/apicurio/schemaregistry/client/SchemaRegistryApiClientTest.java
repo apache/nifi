@@ -35,12 +35,12 @@ class SchemaRegistryApiClientTest {
 
     private static final String BASE_URL = "http://test.apicurio-schema-registry.com:8888";
     private static final String API_PATH = "/apis/registry/v2";
-    private static final String METADATA_PATH = "/meta";
     private static final String GROUP_ID = "groupId1";
     private static final String ARTIFACT_ID = "artifactId1";
-    private static final String SCHEMA_PATH = String.format("/groups/%s/artifacts/%s", GROUP_ID, ARTIFACT_ID);
-    private static final String SCHEMA_NAME = "schema1";
-    private static final String SEARCH_PATH = String.format("/search/artifacts?name=%s&limit=1", SCHEMA_NAME);
+    private static final int VERSION = 3;
+    private static final String GROUP_PATH = String.format("/groups/%s", GROUP_ID);
+    private static final String ARTIFACT_PATH = String.format("/artifacts/%s", ARTIFACT_ID);
+    private static final String VERSION_PATH = String.format("/versions/%d", VERSION);
 
     @Mock
     private WebClientServiceProvider webClientServiceProvider;
@@ -53,7 +53,7 @@ class SchemaRegistryApiClientTest {
 
     @Test
     void testBuildBaseUrl() {
-        client = new SchemaRegistryApiClient(webClientServiceProvider, BASE_URL);
+        client = new SchemaRegistryApiClient(webClientServiceProvider, BASE_URL, GROUP_ID);
 
         final HttpUriBuilder httpUriBuilder = client.buildBaseUri();
 
@@ -61,30 +61,20 @@ class SchemaRegistryApiClientTest {
     }
 
     @Test
-    void testBuildSearchUri() {
-        client = new SchemaRegistryApiClient(webClientServiceProvider, BASE_URL);
+    void testBuildSchemaArtifactUri() {
+        client = new SchemaRegistryApiClient(webClientServiceProvider, BASE_URL, GROUP_ID);
 
-        final URI uri = client.buildSearchUri(SCHEMA_NAME);
+        final URI uri = client.buildSchemaArtifactUri(ARTIFACT_ID);
 
-        assertEquals(BASE_URL + API_PATH + SEARCH_PATH, uri.toString());
+        assertEquals(BASE_URL + API_PATH  + GROUP_PATH + ARTIFACT_PATH, uri.toString());
     }
 
     @Test
-    void testBuildMetadataUri() {
-        client = new SchemaRegistryApiClient(webClientServiceProvider, BASE_URL);
+    void testBuildSchemaVersionUri() {
+        client = new SchemaRegistryApiClient(webClientServiceProvider, BASE_URL, GROUP_ID);
 
-        final URI uri = client.buildMetaDataUri(GROUP_ID, ARTIFACT_ID);
+        final URI uri = client.buildSchemaVersionUri(ARTIFACT_ID, VERSION);
 
-        assertEquals(BASE_URL + API_PATH + SCHEMA_PATH + METADATA_PATH, uri.toString());
+        assertEquals(BASE_URL + API_PATH + GROUP_PATH + ARTIFACT_PATH + VERSION_PATH, uri.toString());
     }
-
-    @Test
-    void testBuildSchemaUri() {
-        client = new SchemaRegistryApiClient(webClientServiceProvider, BASE_URL);
-
-        final URI uri = client.buildSchemaUri(GROUP_ID, ARTIFACT_ID);
-
-        assertEquals(BASE_URL + API_PATH + SCHEMA_PATH, uri.toString());
-    }
-
 }
