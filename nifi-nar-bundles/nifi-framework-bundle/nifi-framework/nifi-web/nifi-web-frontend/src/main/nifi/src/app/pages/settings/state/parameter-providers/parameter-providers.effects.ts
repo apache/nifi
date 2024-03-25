@@ -187,7 +187,6 @@ export class ParameterProvidersEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Delete Parameter Provider',
                             message: `Delete parameter provider ${request.parameterProvider.component.name}?`
@@ -270,7 +269,6 @@ export class ParameterProvidersEffects {
                         // confirm navigating away while changes are unsaved
                         if (editDialogReference.componentInstance.editParameterProviderForm.dirty) {
                             const promptSaveDialogRef = this.dialog.open(YesNoDialog, {
-                                ...DIALOG_SIZES.SMALL,
                                 data: {
                                     title: 'Parameter Provider Configuration',
                                     message: `Save changes before going to this ${destination}`

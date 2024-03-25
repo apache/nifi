@@ -351,7 +351,6 @@ export class AccessPolicyEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Update Policy',
                             message: `Remove '${request.tenant.component.identity}' from this policy?`
@@ -420,7 +419,6 @@ export class AccessPolicyEffects {
                 ofType(AccessPolicyActions.promptDeleteAccessPolicy),
                 tap(() => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Delete Policy',
                             message:

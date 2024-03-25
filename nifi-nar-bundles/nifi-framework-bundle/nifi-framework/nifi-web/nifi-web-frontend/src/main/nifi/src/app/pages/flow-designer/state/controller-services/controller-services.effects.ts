@@ -206,7 +206,6 @@ export class ControllerServicesEffects {
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editControllerServiceForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
-                                ...DIALOG_SIZES.SMALL,
                                 data: {
                                     title: 'Controller Service Configuration',
                                     message: `Save changes before going to this ${destination}?`
@@ -458,7 +457,6 @@ export class ControllerServicesEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Delete Controller Service',
                             message: `Delete controller service ${request.controllerService.component.name}?`

@@ -89,7 +89,6 @@ export class ProvenanceEventListingEffects {
             map((action) => action.request),
             switchMap((request) => {
                 const dialogReference = this.dialog.open(CancelDialog, {
-                    ...DIALOG_SIZES.SMALL,
                     data: {
                         title: 'Provenance',
                         message: 'Searching provenance events...'

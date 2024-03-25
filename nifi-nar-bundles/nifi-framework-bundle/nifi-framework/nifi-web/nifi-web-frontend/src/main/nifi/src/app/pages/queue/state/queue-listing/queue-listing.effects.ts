@@ -89,7 +89,6 @@ export class QueueListingEffects {
             map((action) => action.request),
             switchMap((request) => {
                 const dialogReference = this.dialog.open(CancelDialog, {
-                    ...DIALOG_SIZES.SMALL,
                     data: {
                         title: 'Queue Listing',
                         message: 'Waiting for queue listing to complete...'
