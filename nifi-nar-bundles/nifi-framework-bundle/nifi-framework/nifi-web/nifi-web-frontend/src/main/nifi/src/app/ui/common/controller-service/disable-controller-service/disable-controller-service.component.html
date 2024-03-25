@@ -21,8 +21,8 @@
         <div class="controller-service-disable-form">
             @if (disableRequest.currentStep === SetEnableStep.Pending) {
                 <mat-dialog-content>
-                    <div class="tab-content py-4 grid-container grid grid-cols-2">
-                        <div class="col-span-1 pr-5">
+                    <div class="tab-content py-4 flex gap-x-4">
+                        <div class="w-96 max-w-full flex flex-col gap-y-4">
                             <div class="flex flex-col">
                                 <div>Service</div>
                                 <div class="value">{{ controllerService.component.name }}</div>
@@ -32,7 +32,7 @@
                                 <div class="value">Service and referencing components</div>
                             </div>
                         </div>
-                        <div class="col-span-1">
+                        <div class="w-96 max-w-full flex flex-col">
                             <div>Referencing Components</div>
                             <div>
                                 <controller-service-references
@@ -50,8 +50,8 @@
                 </mat-dialog-actions>
             } @else {
                 <mat-dialog-content>
-                    <div class="tab-content py-4 grid-container grid grid-cols-2">
-                        <div class="col-span-1 pr-5">
+                    <div class="tab-content py-4 flex gap-x-4">
+                        <div class="w-96 max-w-full flex flex-col gap-y-4">
                             <div class="flex flex-col">
                                 <div>Service</div>
                                 <div class="value">{{ controllerService.component.name }}</div>
@@ -72,7 +72,7 @@
                                     @if (
                                         disableRequest.error &&
                                         disableRequest.error.step == SetEnableStep.StopReferencingComponents
-                                    ) {
+                                        ) {
                                         <div class="text-xs ml-2">
                                             {{ disableRequest.error.error }}
                                         </div>
@@ -90,7 +90,7 @@
                                     @if (
                                         disableRequest.error &&
                                         disableRequest.error.step == SetEnableStep.DisableReferencingServices
-                                    ) {
+                                        ) {
                                         <div class="text-xs ml-2">
                                             {{ disableRequest.error.error }}
                                         </div>
@@ -105,7 +105,7 @@
                                     @if (
                                         disableRequest.error &&
                                         disableRequest.error.step == SetEnableStep.DisableService
-                                    ) {
+                                        ) {
                                         <div class="text-xs ml-2">
                                             {{ disableRequest.error.error }}
                                         </div>
@@ -113,7 +113,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-span-1">
+                        <div class="w-96 max-w-full flex flex-col">
                             <div>Referencing Components</div>
                             <div>
                                 <controller-service-references
