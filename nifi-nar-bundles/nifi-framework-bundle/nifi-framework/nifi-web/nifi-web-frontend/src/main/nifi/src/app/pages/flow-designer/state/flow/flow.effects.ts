@@ -1069,6 +1069,16 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.openEditProcessorDialog),
                 map((action) => action.request),
+                switchMap((request) =>
+                    from(this.flowService.getProcessor(request.entity.id)).pipe(
+                        map((entity) => {
+                            return {
+                                ...request,
+                                entity
+                            };
+                        })
+                    )
+                ),
                 concatLatestFrom(() => [
                     this.store.select(selectCurrentParameterContext),
                     this.store.select(selectCurrentProcessGroupId)

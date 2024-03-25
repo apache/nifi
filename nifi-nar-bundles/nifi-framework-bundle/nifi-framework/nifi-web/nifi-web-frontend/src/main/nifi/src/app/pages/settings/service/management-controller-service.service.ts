@@ -41,10 +41,9 @@ export class ManagementControllerServiceService implements ControllerServiceCrea
         private nifiCommon: NiFiCommon
     ) {}
 
-    getControllerServices(): Observable<any> {
-        const uiOnly: any = { uiOnly: true };
+    getControllerServices(uiOnly = true): Observable<any> {
         return this.httpClient.get(`${ManagementControllerServiceService.API}/flow/controller/controller-services`, {
-            params: uiOnly
+            params: { uiOnly }
         });
     }
 

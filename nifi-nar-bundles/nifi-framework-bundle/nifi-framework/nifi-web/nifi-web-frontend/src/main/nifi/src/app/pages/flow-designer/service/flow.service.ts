@@ -53,14 +53,15 @@ export class FlowService implements PropertyDescriptorRetriever {
         private nifiCommon: NiFiCommon
     ) {}
 
-    getFlow(processGroupId = 'root'): Observable<any> {
-        // TODO - support uiOnly... this would mean that we need to load the entire resource prior to editing
-        return this.httpClient.get(`${FlowService.API}/flow/process-groups/${processGroupId}`);
+    getFlow(processGroupId = 'root', uiOnly = true): Observable<any> {
+        return this.httpClient.get(`${FlowService.API}/flow/process-groups/${processGroupId}`, {
+            params: { uiOnly }
+        });
     }
 
     getProcessGroupStatus(processGroupId = 'root', recursive = false): Observable<any> {
         return this.httpClient.get(`${FlowService.API}/flow/process-groups/${processGroupId}/status`, {
-            params: { recursive: recursive }
+            params: { recursive }
         });
     }
 

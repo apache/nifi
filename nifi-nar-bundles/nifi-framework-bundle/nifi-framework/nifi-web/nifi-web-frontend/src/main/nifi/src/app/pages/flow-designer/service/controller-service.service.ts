@@ -38,12 +38,11 @@ export class ControllerServiceService implements ControllerServiceCreator, Prope
         private nifiCommon: NiFiCommon
     ) {}
 
-    getControllerServices(processGroupId: string): Observable<any> {
-        const uiOnly: any = { uiOnly: true };
+    getControllerServices(processGroupId: string, uiOnly = true): Observable<any> {
         return this.httpClient.get(
             `${ControllerServiceService.API}/flow/process-groups/${processGroupId}/controller-services`,
             {
-                params: uiOnly
+                params: { uiOnly }
             }
         );
     }
@@ -52,8 +51,10 @@ export class ControllerServiceService implements ControllerServiceCreator, Prope
         return this.httpClient.get(`${ControllerServiceService.API}/flow/process-groups/${processGroupId}`);
     }
 
-    getControllerService(id: string): Observable<any> {
-        return this.httpClient.get(`${ControllerServiceService.API}/controller-services/${id}`);
+    getControllerService(id: string, uiOnly = true): Observable<any> {
+        return this.httpClient.get(`${ControllerServiceService.API}/controller-services/${id}`, {
+            params: { uiOnly }
+        });
     }
 
     createControllerService(createControllerService: CreateControllerServiceRequest): Observable<any> {
