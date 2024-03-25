@@ -96,11 +96,11 @@ class SNMPTrapReceiverTest {
         when(mockV1Pdu.getType()).thenReturn(PDU.V1TRAP);
         when(mockV1Pdu.getEnterprise()).thenReturn(new OID("1.3.6.1.2.1.1.1.0"));
         when(mockV1Pdu.getSpecificTrap()).thenReturn(4);
-        
+
         final Address mockAddress = mock(Address.class);
         when(mockAddress.toString()).thenReturn("127.0.0.1/62");
         when(mockAddress.isValid()).thenReturn(true);
-        
+
         final Vector<VariableBinding> vbs = new Vector<>();
         doReturn(vbs).when(mockV1Pdu).getVariableBindings();
         when(mockEvent.getPDU()).thenReturn(mockV1Pdu);
@@ -115,7 +115,7 @@ class SNMPTrapReceiverTest {
         assertEquals("1.3.6.1.2.1.1.1.0", flowFile.getAttribute("snmp$enterprise"));
         assertEquals(String.valueOf(4), flowFile.getAttribute("snmp$specificTrapType"));
         assertEquals("127.0.0.1/62", flowFile.getAttribute("snmp$peerAddress"));
-        
+
     }
 
     @Test
@@ -126,15 +126,15 @@ class SNMPTrapReceiverTest {
         when(mockPdu.getErrorIndex()).thenReturn(123);
         when(mockPdu.getErrorStatusText()).thenReturn("test error status text");
         final Vector<VariableBinding> vbs = new Vector<>();
-        
+
         final Address mockAddress = mock(Address.class);
         when(mockAddress.toString()).thenReturn("127.0.0.1/62");
         when(mockAddress.isValid()).thenReturn(true);
-        
+
         doReturn(vbs).when(mockPdu).getVariableBindings();
         when(mockEvent.getPDU()).thenReturn(mockPdu);
         when(mockEvent.getPeerAddress()).thenReturn(mockAddress);
-        
+
         when(mockProcessSessionFactory.createSession()).thenReturn(mockProcessSession);
 
         snmpTrapReceiver.processPdu(mockEvent);
@@ -153,10 +153,10 @@ class SNMPTrapReceiverTest {
 
         when(mockPdu.getType()).thenReturn(PDU.TRAP);
         when(mockPdu.getErrorStatus()).thenReturn(PDU.badValue);
-        
+ 
         final Address mockAddress = mock(Address.class);
         when(mockAddress.isValid()).thenReturn(false);
-       
+
         final Vector<VariableBinding> vbs = new Vector<>();
         doReturn(vbs).when(mockPdu).getVariableBindings();
         when(mockEvent.getPDU()).thenReturn(mockPdu);
