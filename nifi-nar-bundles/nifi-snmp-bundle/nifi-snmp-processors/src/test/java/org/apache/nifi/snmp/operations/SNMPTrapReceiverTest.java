@@ -153,7 +153,7 @@ class SNMPTrapReceiverTest {
 
         when(mockPdu.getType()).thenReturn(PDU.TRAP);
         when(mockPdu.getErrorStatus()).thenReturn(PDU.badValue);
- 
+
         final Address mockAddress = mock(Address.class);
         when(mockAddress.isValid()).thenReturn(false);
 
