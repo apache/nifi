@@ -69,6 +69,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -274,40 +275,64 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         return relationships;
     }
 
-    // State tracking
+    private static final Set<PropertyDescriptor> TRACKING_RESET_PROPERTIES = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(
+                    BUCKET,
+                    PREFIX,
+                    LISTING_STRATEGY
+            ))
+    );
+
+    // used by Tracking Timestamps tracking strategy
     public static final String CURRENT_TIMESTAMP = "currentTimestamp";
     public static final String CURRENT_KEY_PREFIX = "key-";
     private volatile long currentTimestamp = 0L;
     private final Set<String> currentKeys = Collections.synchronizedSet(new HashSet<>());
 
-    private volatile boolean justElectedPrimaryNode = false;
-    private volatile boolean resetEntityTrackingState = false;
+    // used by Tracking Entities tracking strategy
     private volatile ListedEntityTracker<ListableBlob> listedEntityTracker;
+
+    private volatile boolean justElectedPrimaryNode = false;
+    private volatile boolean resetTracking = false;
 
     @OnPrimaryNodeStateChange
     public void onPrimaryNodeChange(final PrimaryNodeState newState) {
         justElectedPrimaryNode = (newState == PrimaryNodeState.ELECTED_PRIMARY_NODE);
     }
 
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if (isConfigurationRestored() && TRACKING_RESET_PROPERTIES.contains(descriptor)) {
+            resetTracking = true;
+        }
+    }
+
     @OnScheduled
-    public void initListedEntityTracker(ProcessContext context) {
-        final boolean isTrackingEntityStrategy = BY_ENTITIES.getValue().equals(context.getProperty(LISTING_STRATEGY).getValue());
-        if (listedEntityTracker != null && (resetEntityTrackingState || !isTrackingEntityStrategy)) {
+    public void initTrackingStrategy(ProcessContext context) throws IOException {
+        final String listingStrategy = context.getProperty(LISTING_STRATEGY).getValue();
+        final boolean isTrackingTimestampsStrategy = BY_TIMESTAMPS.getValue().equals(listingStrategy);
+        final boolean isTrackingEntityStrategy = BY_ENTITIES.getValue().equals(listingStrategy);
+
+        if (resetTracking || !isTrackingTimestampsStrategy) {
+            context.getStateManager().clear(Scope.CLUSTER);
+            currentTimestamp = 0L;
+            currentKeys.clear();
+        }
+
+        if (listedEntityTracker != null && (resetTracking || !isTrackingEntityStrategy)) {
             try {
                 listedEntityTracker.clearListedEntities();
+                listedEntityTracker = null;
             } catch (IOException e) {
                 throw new RuntimeException("Failed to reset previously listed entities", e);
             }
         }
-        resetEntityTrackingState = false;
 
-        if (isTrackingEntityStrategy) {
-            if (listedEntityTracker == null) {
-                listedEntityTracker = createListedEntityTracker();
-            }
-        } else {
-            listedEntityTracker = null;
+        if (isTrackingEntityStrategy && listedEntityTracker == null) {
+            listedEntityTracker = createListedEntityTracker();
         }
+
+        resetTracking = false;
     }
 
     protected ListedEntityTracker<ListableBlob> createListedEntityTracker() {
@@ -1025,5 +1050,17 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         public int getCount() {
             return count;
         }
+    }
+
+    long getCurrentTimestamp() {
+        return currentTimestamp;
+    }
+
+    ListedEntityTracker<ListableBlob> getListedEntityTracker() {
+        return listedEntityTracker;
+    }
+
+    boolean isResetTracking() {
+        return resetTracking;
     }
 }
