@@ -147,6 +147,11 @@
                         <groupId>org.eclipse.jetty</groupId>
                         <artifactId>jetty-rewrite</artifactId>
                     </exclusion>
+                    <!-- Excluded for Hadoop 3.4.0 -->
+                    <exclusion>
+                        <groupId>org.bouncycastle</groupId>
+                        <artifactId>bcprov-jdk15on</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <!-- Override Guava 27 -->
