@@ -35,7 +35,7 @@ export class OverridePolicyDialog {
 
     constructor(private formBuilder: FormBuilder) {
         this.overridePolicyForm = this.formBuilder.group({
-            override: new FormControl()
+            override: new FormControl('copy')
         });
     }
 
