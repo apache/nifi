@@ -159,7 +159,6 @@ export class ReportingTasksEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Delete Reporting Task',
                             message: `Delete reporting task ${request.reportingTask.component.name}?`
@@ -239,7 +238,6 @@ export class ReportingTasksEffects {
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editReportingTaskForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
-                                ...DIALOG_SIZES.SMALL,
                                 data: {
                                     title: 'Reporting Task Configuration',
                                     message: `Save changes before going to this ${destination}?`

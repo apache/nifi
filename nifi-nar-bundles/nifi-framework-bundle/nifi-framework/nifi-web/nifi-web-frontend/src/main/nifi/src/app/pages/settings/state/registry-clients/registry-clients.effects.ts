@@ -196,7 +196,6 @@ export class RegistryClientsEffects {
 
                         if (editDialogReference.componentInstance.editRegistryClientForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
-                                ...DIALOG_SIZES.SMALL,
                                 data: {
                                     title: 'Registry Client Configuration',
                                     message: `Save changes before going to this Controller Service?`
@@ -303,7 +302,6 @@ export class RegistryClientsEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Delete Registry Client',
                             message: `Delete registry client ${request.registryClient.component.name}?`

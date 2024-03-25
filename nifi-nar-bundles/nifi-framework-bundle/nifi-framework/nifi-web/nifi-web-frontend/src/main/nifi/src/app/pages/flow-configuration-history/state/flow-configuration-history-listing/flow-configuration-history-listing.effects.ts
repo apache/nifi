@@ -107,7 +107,6 @@ export class FlowConfigurationHistoryListingEffects {
                         )
                         .subscribe(([result, about]) => {
                             const yesNoRef = this.dialog.open(YesNoDialog, {
-                                ...DIALOG_SIZES.SMALL,
                                 data: {
                                     title: 'Confirm History Purge',
                                     message: `Are you sure you want to delete all history before '${result.endDate} ${about.timezone}'?`

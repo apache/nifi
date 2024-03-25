@@ -69,7 +69,6 @@ export class CounterListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Reset Counter',
                             message: `Reset counter '${request.counter.name}' to default value?`

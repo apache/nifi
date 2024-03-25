@@ -1120,7 +1120,6 @@ export class FlowEffects {
                     const goTo = (commands: string[], destination: string): void => {
                         if (editDialogReference.componentInstance.editProcessorForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
-                                ...DIALOG_SIZES.SMALL,
                                 data: {
                                     title: 'Processor Configuration',
                                     message: `Save changes before going to this ${destination}?`

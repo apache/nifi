@@ -92,7 +92,6 @@ export class GeneralEffects {
                 ofType(GeneralActions.updateControllerConfigSuccess),
                 tap(() => {
                     this.dialog.open(OkDialog, {
-                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Settings',
                             message: 'Settings successfully applied'

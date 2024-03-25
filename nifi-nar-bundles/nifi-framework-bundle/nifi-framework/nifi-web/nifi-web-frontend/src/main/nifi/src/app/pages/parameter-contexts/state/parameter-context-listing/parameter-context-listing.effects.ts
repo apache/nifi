@@ -481,7 +481,6 @@ export class ParameterContextListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Delete Parameter Context',
                             message: `Delete parameter context ${request.parameterContext.component.name}?`

@@ -680,7 +680,6 @@ export class UserListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Delete User Account',
                             message: `Are you sure you want to delete the user account for '${request.user.component.identity}'?`
@@ -721,7 +720,6 @@ export class UserListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
-                        ...DIALOG_SIZES.SMALL,
                         data: {
                             title: 'Delete User Account',
                             message: `Are you sure you want to delete the user group account for '${request.userGroup.component.identity}'?`
