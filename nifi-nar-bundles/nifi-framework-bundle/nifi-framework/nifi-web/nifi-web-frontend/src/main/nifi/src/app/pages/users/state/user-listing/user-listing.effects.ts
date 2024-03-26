@@ -35,7 +35,7 @@ import { UserAccessPolicies } from '../../ui/user-listing/user-access-policies/u
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { DIALOG_SIZES } from '../../../../index';
+import { LARGE_DIALOG, MEDIUM_DIALOG } from '../../../../index';
 
 @Injectable()
 export class UserListingEffects {
@@ -98,7 +98,7 @@ export class UserListingEffects {
                         existingUserGroups
                     };
                     const dialogReference = this.dialog.open(EditTenantDialog, {
-                        ...DIALOG_SIZES.MEDIUM,
+                        ...MEDIUM_DIALOG,
                         data: editTenantRequest
                     });
 
@@ -330,7 +330,7 @@ export class UserListingEffects {
                         existingUserGroups
                     };
                     const dialogReference = this.dialog.open(EditTenantDialog, {
-                        ...DIALOG_SIZES.MEDIUM,
+                        ...MEDIUM_DIALOG,
                         data: editTenantRequest
                     });
 
@@ -556,7 +556,7 @@ export class UserListingEffects {
                         existingUserGroups
                     };
                     const dialogReference = this.dialog.open(EditTenantDialog, {
-                        ...DIALOG_SIZES.MEDIUM,
+                        ...MEDIUM_DIALOG,
                         data: editTenantRequest
                     });
 
@@ -655,7 +655,7 @@ export class UserListingEffects {
                 tap((request) => {
                     this.dialog
                         .open(UserAccessPolicies, {
-                            ...DIALOG_SIZES.LARGE,
+                            ...LARGE_DIALOG,
                             data: request
                         })
                         .afterClosed()

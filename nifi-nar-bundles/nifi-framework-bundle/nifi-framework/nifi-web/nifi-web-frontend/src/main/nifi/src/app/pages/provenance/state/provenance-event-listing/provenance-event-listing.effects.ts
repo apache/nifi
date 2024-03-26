@@ -43,7 +43,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { isDefinedAndNotNull } from '../../../../state/shared';
 import { selectClusterSummary } from '../../../../state/cluster-summary/cluster-summary.selectors';
 import { ClusterService } from '../../../../service/cluster.service';
-import { DIALOG_SIZES } from '../../../../index';
+import { LARGE_DIALOG, MEDIUM_DIALOG } from '../../../../index';
 
 @Injectable()
 export class ProvenanceEventListingEffects {
@@ -276,7 +276,7 @@ export class ProvenanceEventListingEffects {
                 ]),
                 tap(([request, timeOffset, options, currentRequest, about]) => {
                     const dialogReference = this.dialog.open(ProvenanceSearchDialog, {
-                        ...DIALOG_SIZES.LARGE,
+                        ...LARGE_DIALOG,
                         data: {
                             timeOffset,
                             clusterNodes: request.clusterNodes,
@@ -322,7 +322,7 @@ export class ProvenanceEventListingEffects {
                     this.provenanceService.getProvenanceEvent(request.eventId, request.clusterNodeId).subscribe({
                         next: (response) => {
                             const dialogReference = this.dialog.open(ProvenanceEventDialog, {
-                                ...DIALOG_SIZES.LARGE,
+                                ...LARGE_DIALOG,
                                 data: {
                                     event: response.provenanceEvent
                                 }
@@ -429,7 +429,7 @@ export class ProvenanceEventListingEffects {
                 ofType(ProvenanceEventListingActions.showOkDialog),
                 tap((request) => {
                     this.dialog.open(OkDialog, {
-                        ...DIALOG_SIZES.MEDIUM,
+                        ...MEDIUM_DIALOG,
                         data: {
                             title: request.title,
                             message: request.message

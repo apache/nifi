@@ -37,7 +37,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectStatus } from './reporting-tasks.selectors';
 import { HttpErrorResponse } from '@angular/common/http';
-import { DIALOG_SIZES } from '../../../../index';
+import { LARGE_DIALOG } from '../../../../index';
 
 @Injectable()
 export class ReportingTasksEffects {
@@ -81,7 +81,7 @@ export class ReportingTasksEffects {
                 concatLatestFrom(() => this.store.select(selectReportingTaskTypes)),
                 tap(([, reportingTaskTypes]) => {
                     this.dialog.open(CreateReportingTask, {
-                        ...DIALOG_SIZES.LARGE,
+                        ...LARGE_DIALOG,
                         data: {
                             reportingTaskTypes
                         }
@@ -223,7 +223,7 @@ export class ReportingTasksEffects {
                     const taskId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditReportingTask, {
-                        ...DIALOG_SIZES.LARGE,
+                        ...LARGE_DIALOG,
                         data: {
                             reportingTask: request.reportingTask
                         },

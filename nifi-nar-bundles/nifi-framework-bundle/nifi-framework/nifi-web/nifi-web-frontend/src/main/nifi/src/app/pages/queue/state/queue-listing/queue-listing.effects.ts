@@ -34,7 +34,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { stopPollingQueueListingRequest } from './queue-listing.actions';
-import { DIALOG_SIZES } from '../../../../index';
+import { LARGE_DIALOG } from '../../../../index';
 
 @Injectable()
 export class QueueListingEffects {
@@ -264,7 +264,7 @@ export class QueueListingEffects {
                 filter((about) => about != null),
                 tap(([request, about]) => {
                     const dialogReference = this.dialog.open(FlowFileDialog, {
-                        ...DIALOG_SIZES.LARGE,
+                        ...LARGE_DIALOG,
                         data: request
                     });
 

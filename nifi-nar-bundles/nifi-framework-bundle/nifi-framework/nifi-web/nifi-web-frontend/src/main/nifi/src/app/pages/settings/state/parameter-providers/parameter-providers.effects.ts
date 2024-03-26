@@ -55,7 +55,7 @@ import { FetchParameterProviderParameters } from '../../ui/parameter-providers/f
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
-import { DIALOG_SIZES } from '../../../../index';
+import { LARGE_DIALOG, XL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class ParameterProvidersEffects {
@@ -110,7 +110,7 @@ export class ParameterProvidersEffects {
                 concatLatestFrom(() => this.store.select(selectParameterProviderTypes)),
                 tap(([, parameterProviderTypes]) => {
                     const dialogReference = this.dialog.open(CreateParameterProvider, {
-                        ...DIALOG_SIZES.LARGE,
+                        ...LARGE_DIALOG,
                         data: {
                             parameterProviderTypes
                         }
@@ -256,7 +256,7 @@ export class ParameterProvidersEffects {
                 tap((request) => {
                     const id = request.id;
                     const editDialogReference = this.dialog.open(EditParameterProvider, {
-                        ...DIALOG_SIZES.LARGE,
+                        ...LARGE_DIALOG,
                         data: {
                             parameterProvider: request.parameterProvider
                         },
@@ -438,7 +438,7 @@ export class ParameterProvidersEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogRef = this.dialog.open(FetchParameterProviderParameters, {
-                        ...DIALOG_SIZES.XL,
+                        ...XL_DIALOG,
                         data: request
                     });
 

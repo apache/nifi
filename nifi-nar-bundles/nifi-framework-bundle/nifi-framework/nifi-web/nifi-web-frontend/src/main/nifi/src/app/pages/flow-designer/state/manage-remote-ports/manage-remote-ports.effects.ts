@@ -34,7 +34,7 @@ import { EditRemotePortDialogRequest } from '../flow';
 import { ComponentType, isDefinedAndNotNull } from '../../../../state/shared';
 import { selectTimeOffset } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { selectAbout } from '../../../../state/about/about.selectors';
-import { DIALOG_SIZES } from '../../../../index';
+import { MEDIUM_DIALOG } from '../../../../index';
 
 @Injectable()
 export class ManageRemotePortsEffects {
@@ -207,7 +207,7 @@ export class ManageRemotePortsEffects {
                     const portId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditRemotePortComponent, {
-                        ...DIALOG_SIZES.MEDIUM,
+                        ...MEDIUM_DIALOG,
                         data: {
                             type: request.port.type,
                             entity: request.port,

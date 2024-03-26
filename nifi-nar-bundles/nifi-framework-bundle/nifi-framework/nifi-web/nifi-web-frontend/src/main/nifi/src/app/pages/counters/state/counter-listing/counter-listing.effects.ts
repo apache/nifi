@@ -28,7 +28,6 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { selectStatus } from './counter-listing.selectors';
-import { DIALOG_SIZES } from '../../../../index';
 
 @Injectable()
 export class CounterListingEffects {

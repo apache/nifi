@@ -24,7 +24,6 @@ import { AuthStorage } from '../../../../service/auth-storage.service';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
-import { DIALOG_SIZES } from '../../../../index';
 
 @Injectable()
 export class AccessEffects {

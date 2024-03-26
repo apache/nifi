@@ -25,7 +25,7 @@ import * as SystemDiagnosticsActions from './system-diagnostics.actions';
 import { catchError, from, map, of, switchMap, tap } from 'rxjs';
 import { SystemDiagnosticsRequest } from './index';
 import { SystemDiagnosticsDialog } from '../../ui/common/system-diagnostics-dialog/system-diagnostics-dialog.component';
-import { DIALOG_SIZES } from '../../index';
+import { LARGE_DIALOG } from '../../index';
 
 @Injectable()
 export class SystemDiagnosticsEffects {
@@ -100,7 +100,7 @@ export class SystemDiagnosticsEffects {
                 tap(() => {
                     this.dialog
                         .open(SystemDiagnosticsDialog, {
-                            ...DIALOG_SIZES.LARGE
+                            ...LARGE_DIALOG
                         })
                         .afterClosed()
                         .subscribe(() => {

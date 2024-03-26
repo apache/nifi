@@ -34,7 +34,7 @@ import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.c
 import { isDefinedAndNotNull } from '../../../../state/shared';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { selectAbout } from '../../../../state/about/about.selectors';
-import { DIALOG_SIZES } from '../../../../index';
+import { LARGE_DIALOG, MEDIUM_DIALOG } from '../../../../index';
 
 @Injectable()
 export class FlowConfigurationHistoryListingEffects {
@@ -82,7 +82,7 @@ export class FlowConfigurationHistoryListingEffects {
                 map((action) => action.request),
                 tap((actionEntity) => {
                     this.dialog.open(ActionDetails, {
-                        ...DIALOG_SIZES.MEDIUM,
+                        ...MEDIUM_DIALOG,
                         data: actionEntity
                     });
                 })
@@ -96,7 +96,7 @@ export class FlowConfigurationHistoryListingEffects {
                 ofType(HistoryActions.openPurgeHistoryDialog),
                 tap(() => {
                     const dialogReference = this.dialog.open(PurgeHistory, {
-                        ...DIALOG_SIZES.LARGE
+                        ...LARGE_DIALOG
                     });
 
                     dialogReference.componentInstance.submitPurgeRequest

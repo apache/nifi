@@ -57,7 +57,7 @@ import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { DIALOG_SIZES } from '../../../../index';
+import { MEDIUM_DIALOG, XL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class ParameterContextListingEffects {
@@ -98,7 +98,7 @@ export class ParameterContextListingEffects {
                 ofType(ParameterContextListingActions.openNewParameterContextDialog),
                 tap(() => {
                     const dialogReference = this.dialog.open(EditParameterContext, {
-                        ...DIALOG_SIZES.XL,
+                        ...XL_DIALOG,
                         data: {}
                     });
 
@@ -111,7 +111,7 @@ export class ParameterContextListingEffects {
                     ): Observable<Parameter> => {
                         const dialogRequest: EditParameterRequest = { existingParameters };
                         const newParameterDialogReference = this.dialog.open(EditParameterDialog, {
-                            ...DIALOG_SIZES.MEDIUM,
+                            ...MEDIUM_DIALOG,
                             data: dialogRequest
                         });
 
@@ -248,7 +248,7 @@ export class ParameterContextListingEffects {
                     const parameterContextId: string = request.parameterContext.id;
 
                     const editDialogReference = this.dialog.open(EditParameterContext, {
-                        ...DIALOG_SIZES.XL,
+                        ...XL_DIALOG,
                         data: {
                             parameterContext: request.parameterContext
                         }
@@ -267,7 +267,7 @@ export class ParameterContextListingEffects {
                     ): Observable<Parameter> => {
                         const dialogRequest: EditParameterRequest = { existingParameters };
                         const newParameterDialogReference = this.dialog.open(EditParameterDialog, {
-                            ...DIALOG_SIZES.MEDIUM,
+                            ...MEDIUM_DIALOG,
                             data: dialogRequest
                         });
 
@@ -294,7 +294,7 @@ export class ParameterContextListingEffects {
                             }
                         };
                         const editParameterDialogReference = this.dialog.open(EditParameterDialog, {
-                            ...DIALOG_SIZES.MEDIUM,
+                            ...MEDIUM_DIALOG,
                             data: dialogRequest
                         });
 
@@ -542,7 +542,7 @@ export class ParameterContextListingEffects {
                 ofType(ParameterContextListingActions.showOkDialog),
                 tap((request) => {
                     this.dialog.open(OkDialog, {
-                        ...DIALOG_SIZES.MEDIUM,
+                        ...MEDIUM_DIALOG,
                         data: {
                             title: request.title,
                             message: request.message
