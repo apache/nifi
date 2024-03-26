@@ -22,7 +22,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Objects;
 
 public class VersionedFlowCoordinates {
-    private String registryId;
+    private String registryIdentifier;
     private String storageLocation;
     private String bucketId;
     private String flowId;
@@ -31,11 +31,11 @@ public class VersionedFlowCoordinates {
 
     @Schema(description = "The identifier of the Flow Registry that contains the flow")
     public String getRegistryId() {
-        return registryId;
+        return registryIdentifier;
     }
 
     public void setRegistryId(String registryId) {
-        this.registryId = registryId;
+        this.registryIdentifier = registryIdentifier;
     }
 
     @Schema(description = "The location of the Flow Registry that stores the flow")
@@ -85,7 +85,7 @@ public class VersionedFlowCoordinates {
 
     @Override
     public int hashCode() {
-        return Objects.hash(registryId, storageLocation, bucketId, flowId, version);
+        return Objects.hash(registryIdentifier, storageLocation, bucketId, flowId, version);
     }
 
     @Override
