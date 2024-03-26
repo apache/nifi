@@ -40,6 +40,18 @@ public interface PythonProcessorDetails extends PythonObjectProxy {
     String getSourceLocation();
 
     /**
+     * @return the directory where the Processor's extension is installed. If the extension is a module, this will be the directory
+     *         containing the module. If the extension is a single file outside of a module, this will be the directory containing
+     *         that file.
+     */
+    String getExtensionHome();
+
+    /**
+     * @return <code>true</code> if the Processor is bundled with its dependencies; <code>false</code> otherwise
+     */
+    boolean isBundledWithDependencies();
+
+    /**
      * @return the Processor's capability description
      */
     String getCapabilityDescription();
