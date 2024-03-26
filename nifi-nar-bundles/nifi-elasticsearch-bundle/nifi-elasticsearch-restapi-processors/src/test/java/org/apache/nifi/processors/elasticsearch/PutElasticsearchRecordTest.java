@@ -237,10 +237,10 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         assertTrue(runner.getProcessContext().hasConnection(AbstractPutElasticsearch.REL_SUCCESSFUL));
         assertTrue(((MockProcessContext) runner.getProcessContext()).getAllRelationships().stream().noneMatch(r -> "successful_records".equals(r.getName())));
 
-        assertEquals(2, result.getRelationshipsRenamed().size());
-        assertEquals(AbstractPutElasticsearch.REL_ORIGINAL.getName(), result.getRelationshipsRenamed().get("success"));
-        assertEquals(AbstractPutElasticsearch.REL_SUCCESSFUL.getName(), result.getRelationshipsRenamed().get("successful_records"));
-        assertEquals(0, result.getRelationshipsSplit().size());
+        assertEquals(2, result.getRenamedRelationships().size());
+        assertEquals(AbstractPutElasticsearch.REL_ORIGINAL.getName(), result.getRenamedRelationships().get("success"));
+        assertEquals(AbstractPutElasticsearch.REL_SUCCESSFUL.getName(), result.getRenamedRelationships().get("successful_records"));
+        assertEquals(0, result.getPreviousRelationships().size());
     }
 
     @Test

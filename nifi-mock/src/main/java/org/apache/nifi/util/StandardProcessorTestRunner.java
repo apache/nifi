@@ -63,6 +63,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -241,8 +242,7 @@ public class StandardProcessorTestRunner implements TestRunner {
                     unscheduledRun = true;
                     unSchedule();
                 }
-            } catch (final Exception e) {
-                e.printStackTrace();
+            } catch (final InterruptedException | ExecutionException e) {
             }
         }
 
