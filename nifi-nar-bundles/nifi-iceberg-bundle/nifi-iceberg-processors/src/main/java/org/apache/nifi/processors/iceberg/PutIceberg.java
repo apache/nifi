@@ -281,7 +281,8 @@ public class PutIceberg extends AbstractIcebergProcessor {
             if (causeOptional.isPresent()) {
                 getLogger().warn("No valid Kerberos credential found, retrying login", causeOptional.get());
                 initKerberosCredentials(context);
-                session.rollback(true);
+                session.rollback();
+                context.yield();
             } else {
                 getLogger().error("Failed to load table from catalog", e);
                 session.transfer(session.penalize(flowFile), REL_FAILURE);
@@ -313,7 +314,8 @@ public class PutIceberg extends AbstractIcebergProcessor {
             if (causeOptional.isPresent()) {
                 getLogger().warn("No valid Kerberos credential found, retrying login", causeOptional.get());
                 initKerberosCredentials(context);
-                session.rollback(true);
+                session.rollback();
+                context.yield();
             } else {
                 getLogger().error("Exception occurred while writing Iceberg records", e);
                 session.transfer(session.penalize(flowFile), REL_FAILURE);

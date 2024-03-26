@@ -68,8 +68,8 @@ public abstract class AbstractIcebergProcessor extends AbstractProcessor impleme
             .description("A FlowFile is routed to this relationship if the operation failed and retrying the operation will also fail, such as an invalid data or schema.")
             .build();
 
-    final protected AtomicReference<KerberosUser> kerberosUserReference = new AtomicReference<>();
-    final protected AtomicReference<UserGroupInformation> ugiReference = new AtomicReference<>();
+    protected final AtomicReference<KerberosUser> kerberosUserReference = new AtomicReference<>();
+    protected final AtomicReference<UserGroupInformation> ugiReference = new AtomicReference<>();
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
