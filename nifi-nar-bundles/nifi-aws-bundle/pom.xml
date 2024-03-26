@@ -27,7 +27,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <aws-kinesis-client-library-version>2.5.3</aws-kinesis-client-library-version>
+        <aws-kinesis-client-library-version>2.5.7</aws-kinesis-client-library-version>
     </properties>
 
     <modules>
@@ -47,7 +47,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>32.1.2-jre</version>
+                <version>33.1.0-jre</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
