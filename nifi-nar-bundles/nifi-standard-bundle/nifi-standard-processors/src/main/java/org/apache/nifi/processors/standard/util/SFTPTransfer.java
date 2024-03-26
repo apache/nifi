@@ -708,8 +708,6 @@ public class SFTPTransfer implements FileTransfer {
             }
         }
 
-        // Previously JSCH would perform a listing on the full path (path + filename) and would get an exception when it wasn't
-        // a file and then return null, so to preserve that behavior we return null if the matchingEntry is a directory
         if (fileAttributes == null || isDirectory(fileAttributes)) {
             return null;
         } else {
