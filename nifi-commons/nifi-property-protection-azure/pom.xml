@@ -26,7 +26,7 @@
             <dependency>
                 <groupId>com.azure</groupId>
                 <artifactId>azure-sdk-bom</artifactId>
-                <version>1.2.19</version>
+                <version>1.2.21</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -81,12 +81,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!-- Override oauth2-oidc-sdk 9.35 from msal4j -->
-        <dependency>
-            <groupId>com.nimbusds</groupId>
-            <artifactId>oauth2-oidc-sdk</artifactId>
-            <version>9.43.3</version>
-        </dependency>
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-core-http-okhttp</artifactId>
@@ -96,6 +90,12 @@
             <artifactId>mockito-inline</artifactId>
             <version>${mockito.version}</version>
             <scope>test</scope>
+        </dependency>
+        <!-- Override MSAL4J 1.14.0 from azure-identity -->
+        <dependency>
+            <groupId>com.microsoft.azure</groupId>
+            <artifactId>msal4j</artifactId>
+            <version>1.14.3</version>
         </dependency>
     </dependencies>
 </project>
