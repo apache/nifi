@@ -25,10 +25,12 @@ import {
     editParameterContextComplete,
     loadParameterContexts,
     loadParameterContextsSuccess,
-    parameterContextListingApiError,
+    parameterContextListingSnackbarApiError,
+    parameterContextListingBannerApiError,
     pollParameterContextUpdateRequestSuccess,
     submitParameterContextUpdateRequest,
-    submitParameterContextUpdateRequestSuccess
+    submitParameterContextUpdateRequestSuccess,
+    deleteParameterContextUpdateRequestSuccess
 } from './parameter-context-listing.actions';
 import { ParameterContextUpdateRequestEntity, Revision } from '../../../../state/shared';
 
@@ -37,7 +39,6 @@ export const initialState: ParameterContextListingState = {
     updateRequestEntity: null,
     saving: false,
     loadedTimestamp: '',
-    error: null,
     status: 'pending'
 };
 
@@ -54,11 +55,9 @@ export const parameterContextListingReducer = createReducer(
         error: null,
         status: 'success' as const
     })),
-    on(parameterContextListingApiError, (state, { error }) => ({
+    on(parameterContextListingSnackbarApiError, parameterContextListingBannerApiError, (state) => ({
         ...state,
-        saving: false,
-        error,
-        status: 'error' as const
+        saving: false
     })),
     on(createParameterContext, (state) => ({
         ...state,
@@ -74,10 +73,15 @@ export const parameterContextListingReducer = createReducer(
         ...state,
         saving: true
     })),
-    on(submitParameterContextUpdateRequestSuccess, pollParameterContextUpdateRequestSuccess, (state, { response }) => ({
-        ...state,
-        updateRequestEntity: response.requestEntity
-    })),
+    on(
+        submitParameterContextUpdateRequestSuccess,
+        pollParameterContextUpdateRequestSuccess,
+        deleteParameterContextUpdateRequestSuccess,
+        (state, { response }) => ({
+            ...state,
+            updateRequestEntity: response.requestEntity
+        })
+    ),
     on(editParameterContextComplete, (state) => {
         return produce(state, (draftState) => {
             const updateRequestEntity: ParameterContextUpdateRequestEntity | null = draftState.updateRequestEntity;

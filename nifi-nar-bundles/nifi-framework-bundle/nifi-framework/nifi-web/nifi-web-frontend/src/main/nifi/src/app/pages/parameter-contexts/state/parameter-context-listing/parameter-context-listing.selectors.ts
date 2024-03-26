@@ -54,6 +54,11 @@ export const selectParameterContexts = createSelector(
     (state: ParameterContextListingState) => state.parameterContexts
 );
 
+export const selectParameterContextStatus = createSelector(
+    selectParameterContextListingState,
+    (state: ParameterContextListingState) => state.status
+);
+
 export const selectContext = (id: string) =>
     createSelector(selectParameterContexts, (parameterContexts: ParameterContextEntity[]) =>
         parameterContexts.find((entity) => id == entity.id)
