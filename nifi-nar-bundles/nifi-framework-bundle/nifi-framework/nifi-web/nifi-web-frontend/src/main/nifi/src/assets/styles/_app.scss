@@ -112,6 +112,19 @@
     .refresh-timestamp {
         font-weight: 500;
     }
+
+    .flex-2 {
+        display: flex;
+        flex: 2;
+        flex-basis: 100%;
+    }
+
+    .flex-1a {
+        display: flex;
+        flex-direction: column;
+        flex-basis: 100%;
+        flex: 1;
+    }
 }
 
 @mixin colors($material-theme, $canvas-theme) {

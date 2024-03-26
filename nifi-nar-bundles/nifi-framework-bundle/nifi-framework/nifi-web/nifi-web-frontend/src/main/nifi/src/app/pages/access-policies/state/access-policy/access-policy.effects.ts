@@ -32,7 +32,7 @@ import { AddTenantToPolicyDialog } from '../../ui/common/add-tenant-to-policy-di
 import { AddTenantsToPolicyRequest } from './index';
 import { selectUserGroups, selectUsers } from '../tenants/tenants.selectors';
 import { OverridePolicyDialog } from '../../ui/common/override-policy-dialog/override-policy-dialog.component';
-import { DIALOG_SIZES } from '../../../../index';
+import { MEDIUM_DIALOG } from '../../../../index';
 
 @Injectable()
 export class AccessPolicyEffects {
@@ -288,7 +288,7 @@ export class AccessPolicyEffects {
                 concatLatestFrom(() => this.store.select(selectAccessPolicy)),
                 tap(([, accessPolicy]) => {
                     const dialogReference = this.dialog.open(AddTenantToPolicyDialog, {
-                        ...DIALOG_SIZES.MEDIUM,
+                        ...MEDIUM_DIALOG,
                         data: {
                             accessPolicy
                         }

@@ -35,7 +35,7 @@ import { PropertyTableHelperService } from '../../../../service/property-table-h
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { DIALOG_SIZES } from '../../../../index';
+import { LARGE_DIALOG, MEDIUM_DIALOG } from '../../../../index';
 
 @Injectable()
 export class RegistryClientsEffects {
@@ -79,7 +79,7 @@ export class RegistryClientsEffects {
                 concatLatestFrom(() => this.store.select(selectRegistryClientTypes)),
                 tap(([, registryClientTypes]) => {
                     const dialogReference = this.dialog.open(CreateRegistryClient, {
-                        ...DIALOG_SIZES.MEDIUM,
+                        ...MEDIUM_DIALOG,
                         data: {
                             registryClientTypes
                         }
@@ -181,7 +181,7 @@ export class RegistryClientsEffects {
                     const registryClientId: string = request.registryClient.id;
 
                     const editDialogReference = this.dialog.open(EditRegistryClient, {
-                        ...DIALOG_SIZES.LARGE,
+                        ...LARGE_DIALOG,
                         data: request,
                         id: registryClientId
                     });

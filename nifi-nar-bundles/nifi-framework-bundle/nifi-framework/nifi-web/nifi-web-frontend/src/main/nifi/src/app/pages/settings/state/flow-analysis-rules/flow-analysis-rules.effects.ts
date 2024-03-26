@@ -37,7 +37,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectStatus } from './flow-analysis-rules.selectors';
 import { HttpErrorResponse } from '@angular/common/http';
-import { DIALOG_SIZES } from '../../../../index';
+import { LARGE_DIALOG } from '../../../../index';
 
 @Injectable()
 export class FlowAnalysisRulesEffects {
@@ -81,7 +81,7 @@ export class FlowAnalysisRulesEffects {
                 concatLatestFrom(() => this.store.select(selectFlowAnalysisRuleTypes)),
                 tap(([, flowAnalysisRuleTypes]) => {
                     this.dialog.open(CreateFlowAnalysisRule, {
-                        ...DIALOG_SIZES.LARGE,
+                        ...LARGE_DIALOG,
                         data: {
                             flowAnalysisRuleTypes
                         }
@@ -221,7 +221,7 @@ export class FlowAnalysisRulesEffects {
                     const ruleId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditFlowAnalysisRule, {
-                        ...DIALOG_SIZES.LARGE,
+                        ...LARGE_DIALOG,
                         data: {
                             flowAnalysisRule: request.flowAnalysisRule
                         },

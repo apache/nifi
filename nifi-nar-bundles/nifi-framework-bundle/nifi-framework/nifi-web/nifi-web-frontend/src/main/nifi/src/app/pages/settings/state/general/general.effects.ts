@@ -28,7 +28,6 @@ import { selectStatus } from './general.selectors';
 import { NiFiState } from '../../../../state';
 import { Store } from '@ngrx/store';
 import { HttpErrorResponse } from '@angular/common/http';
-import { DIALOG_SIZES } from '../../../../index';
 
 @Injectable()
 export class GeneralEffects {

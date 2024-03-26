@@ -38,7 +38,7 @@ import { NiFiState } from '../state';
 import { Store } from '@ngrx/store';
 import { snackBarError } from '../state/error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
-import { DIALOG_SIZES } from '../index';
+import { LARGE_DIALOG, SMALL_DIALOG } from '../index';
 
 @Injectable({
     providedIn: 'root'
@@ -63,7 +63,7 @@ export class PropertyTableHelperService {
         return (existingProperties: string[], allowsSensitive: boolean) => {
             const dialogRequest: NewPropertyDialogRequest = { existingProperties, allowsSensitive };
             const newPropertyDialogReference = this.dialog.open(NewPropertyDialog, {
-                ...DIALOG_SIZES.SMALL,
+                ...SMALL_DIALOG,
                 data: dialogRequest
             });
 
@@ -132,7 +132,7 @@ export class PropertyTableHelperService {
                     switchMap((implementingTypesResponse) => {
                         // show the create controller service dialog with the types that implemented the interface
                         const createServiceDialogReference = this.dialog.open(CreateControllerService, {
-                            ...DIALOG_SIZES.LARGE,
+                            ...LARGE_DIALOG,
                             data: {
                                 controllerServiceTypes: implementingTypesResponse.controllerServiceTypes
                             }

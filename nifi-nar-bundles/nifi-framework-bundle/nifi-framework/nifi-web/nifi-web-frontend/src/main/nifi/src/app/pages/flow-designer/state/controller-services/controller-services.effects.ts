@@ -47,7 +47,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ParameterHelperService } from '../../service/parameter-helper.service';
-import { DIALOG_SIZES } from '../../../../index';
+import { LARGE_DIALOG, XL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class ControllerServicesEffects {
@@ -102,7 +102,7 @@ export class ControllerServicesEffects {
                 ]),
                 tap(([, controllerServiceTypes, processGroupId]) => {
                     const dialogReference = this.dialog.open(CreateControllerService, {
-                        ...DIALOG_SIZES.LARGE,
+                        ...LARGE_DIALOG,
                         data: {
                             controllerServiceTypes
                         }
@@ -191,7 +191,7 @@ export class ControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditControllerService, {
-                        ...DIALOG_SIZES.LARGE,
+                        ...LARGE_DIALOG,
                         data: {
                             controllerService: request.controllerService
                         },
@@ -380,7 +380,7 @@ export class ControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const enableDialogReference = this.dialog.open(EnableControllerService, {
-                        ...DIALOG_SIZES.XL,
+                        ...XL_DIALOG,
                         data: request,
                         id: serviceId
                     });
@@ -420,7 +420,7 @@ export class ControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const enableDialogReference = this.dialog.open(DisableControllerService, {
-                        ...DIALOG_SIZES.XL,
+                        ...XL_DIALOG,
                         data: request,
                         id: serviceId
                     });

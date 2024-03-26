@@ -41,7 +41,7 @@ import { DisableControllerService } from '../../../../ui/common/controller-servi
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
-import { DIALOG_SIZES } from '../../../../index';
+import { LARGE_DIALOG, XL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
@@ -85,7 +85,7 @@ export class ManagementControllerServicesEffects {
                 concatLatestFrom(() => this.store.select(selectControllerServiceTypes)),
                 tap(([, controllerServiceTypes]) => {
                     const dialogReference = this.dialog.open(CreateControllerService, {
-                        ...DIALOG_SIZES.LARGE,
+                        ...LARGE_DIALOG,
                         data: {
                             controllerServiceTypes
                         }
@@ -180,7 +180,7 @@ export class ManagementControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const editDialogReference = this.dialog.open(EditControllerService, {
-                        ...DIALOG_SIZES.LARGE,
+                        ...LARGE_DIALOG,
                         data: {
                             controllerService: request.controllerService
                         },
@@ -353,7 +353,7 @@ export class ManagementControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const enableDialogReference = this.dialog.open(EnableControllerService, {
-                        ...DIALOG_SIZES.XL,
+                        ...XL_DIALOG,
                         data: request,
                         id: serviceId
                     });
@@ -384,7 +384,7 @@ export class ManagementControllerServicesEffects {
                     const serviceId: string = request.id;
 
                     const enableDialogReference = this.dialog.open(DisableControllerService, {
-                        ...DIALOG_SIZES.XL,
+                        ...XL_DIALOG,
                         data: request,
                         id: serviceId
                     });
