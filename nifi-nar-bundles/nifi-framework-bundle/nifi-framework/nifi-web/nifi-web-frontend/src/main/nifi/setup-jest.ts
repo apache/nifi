@@ -15,26 +15,7 @@
  * limitations under the License.
  */
 
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-
-import { BulletinBoardList } from './bulletin-board-list.component';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-
-describe('BulletinBoardList', () => {
-    let component: BulletinBoardList;
-    let fixture: ComponentFixture<BulletinBoardList>;
-
-    beforeEach(() => {
-        Element.prototype.scroll = jest.fn();
-        TestBed.configureTestingModule({
-            imports: [BulletinBoardList, NoopAnimationsModule]
-        });
-        fixture = TestBed.createComponent(BulletinBoardList);
-        component = fixture.componentInstance;
-        fixture.detectChanges();
-    });
-
-    it('should create', () => {
-        expect(component).toBeTruthy();
-    });
-});
+// jsdom testing environment does not provide crypto functionality... provide a dummy implementation in its place.
+window.crypto.randomUUID = () => {
+    return '7DC4EA44-EA0F-4EAE-8438-274B52620B02';
+};

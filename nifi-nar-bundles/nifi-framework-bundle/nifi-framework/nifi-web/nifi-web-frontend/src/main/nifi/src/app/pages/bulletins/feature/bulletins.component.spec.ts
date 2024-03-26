@@ -14,3 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+import { Bulletins } from './bulletins.component';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterModule } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
+import { provideMockStore } from '@ngrx/store/testing';
+import { initialBulletinBoardState } from '../state/bulletin-board/bulletin-board.reducer';
+import { Component } from '@angular/core';
+import { BulletinBoard } from '../ui/bulletin-board/bulletin-board.component';
+
+describe('Bulletins', () => {
+    let component: Bulletins;
+    let fixture: ComponentFixture<Bulletins>;
+    @Component({
+        selector: 'navigation',
+        standalone: true,
+        template: ''
+    })
+    class MockNavigation {}
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            declarations: [Bulletins],
+            imports: [RouterModule, RouterTestingModule, MockNavigation, BulletinBoard],
+            providers: [
+                provideMockStore({
+                    initialState: initialBulletinBoardState
+                })
+            ]
+        });
+        fixture = TestBed.createComponent(Bulletins);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});
