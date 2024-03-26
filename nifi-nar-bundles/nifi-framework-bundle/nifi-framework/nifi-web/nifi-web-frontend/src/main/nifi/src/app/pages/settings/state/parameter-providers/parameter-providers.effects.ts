@@ -55,7 +55,7 @@ import { FetchParameterProviderParameters } from '../../ui/parameter-providers/f
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
-import { LARGE_DIALOG, XL_DIALOG } from '../../../../index';
+import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class ParameterProvidersEffects {
@@ -187,6 +187,7 @@ export class ParameterProvidersEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
                         data: {
                             title: 'Delete Parameter Provider',
                             message: `Delete parameter provider ${request.parameterProvider.component.name}?`
@@ -269,6 +270,7 @@ export class ParameterProvidersEffects {
                         // confirm navigating away while changes are unsaved
                         if (editDialogReference.componentInstance.editParameterProviderForm.dirty) {
                             const promptSaveDialogRef = this.dialog.open(YesNoDialog, {
+                                ...SMALL_DIALOG,
                                 data: {
                                     title: 'Parameter Provider Configuration',
                                     message: `Save changes before going to this ${destination}`

@@ -35,7 +35,7 @@ import { UserAccessPolicies } from '../../ui/user-listing/user-access-policies/u
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { LARGE_DIALOG, MEDIUM_DIALOG } from '../../../../index';
+import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class UserListingEffects {
@@ -680,6 +680,7 @@ export class UserListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
                         data: {
                             title: 'Delete User Account',
                             message: `Are you sure you want to delete the user account for '${request.user.component.identity}'?`
@@ -720,6 +721,7 @@ export class UserListingEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
                         data: {
                             title: 'Delete User Account',
                             message: `Are you sure you want to delete the user group account for '${request.userGroup.component.identity}'?`

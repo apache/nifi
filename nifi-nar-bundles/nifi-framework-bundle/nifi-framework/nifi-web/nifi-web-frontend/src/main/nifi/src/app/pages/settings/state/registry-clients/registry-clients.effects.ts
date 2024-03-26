@@ -35,7 +35,7 @@ import { PropertyTableHelperService } from '../../../../service/property-table-h
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { LARGE_DIALOG, MEDIUM_DIALOG } from '../../../../index';
+import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
 
 @Injectable()
 export class RegistryClientsEffects {
@@ -196,6 +196,7 @@ export class RegistryClientsEffects {
 
                         if (editDialogReference.componentInstance.editRegistryClientForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
+                                ...SMALL_DIALOG,
                                 data: {
                                     title: 'Registry Client Configuration',
                                     message: `Save changes before going to this Controller Service?`
@@ -302,6 +303,7 @@ export class RegistryClientsEffects {
                 map((action) => action.request),
                 tap((request) => {
                     const dialogReference = this.dialog.open(YesNoDialog, {
+                        ...SMALL_DIALOG,
                         data: {
                             title: 'Delete Registry Client',
                             message: `Delete registry client ${request.registryClient.component.name}?`
