@@ -95,9 +95,7 @@ export class FlowConfigurationHistoryListingEffects {
             this.actions$.pipe(
                 ofType(HistoryActions.openPurgeHistoryDialog),
                 tap(() => {
-                    const dialogReference = this.dialog.open(PurgeHistory, {
-                        ...LARGE_DIALOG
-                    });
+                    const dialogReference = this.dialog.open(PurgeHistory);
 
                     dialogReference.componentInstance.submitPurgeRequest
                         .pipe(
