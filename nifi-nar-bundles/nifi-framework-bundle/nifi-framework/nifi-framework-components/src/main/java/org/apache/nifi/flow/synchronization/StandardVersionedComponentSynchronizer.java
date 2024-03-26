@@ -511,7 +511,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 return explicitRegistryId;
             }
         } else {
-            explicitRegistryId = UUID.randomUUID().toString();
+            explicitRegistryId = "1";
         }
 
         final String location = coordinates.getStorageLocation();
