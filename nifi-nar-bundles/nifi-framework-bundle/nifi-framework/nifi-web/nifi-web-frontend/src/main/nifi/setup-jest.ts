@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 
-import 'jest-preset-angular/setup-jest';
-
 // jsdom testing environment does not provide crypto functionality... provide a dummy implementation in its place.
 window.crypto.randomUUID = () => {
     return '7DC4EA44-EA0F-4EAE-8438-274B52620B02';
