@@ -25,10 +25,10 @@ public interface RelationshipMigrationResult {
     /**
      * @return a mapping of previous relationship names to the new names of those relationships
      */
-    Map<String, Set<String>> getRelationshipsSplit();
+    Map<String, Set<String>> getPreviousRelationships();
 
     /**
      * @return a mapping of previous relationship names to the new names of those relationships
      */
-    Map<String, String> getRelationshipsRenamed();
+    Map<String, String> getRenamedRelationships();
 }

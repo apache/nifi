@@ -42,12 +42,12 @@ public class MockRelationshipConfiguration implements RelationshipConfiguration 
     public RelationshipMigrationResult toRelationshipMigrationResult() {
         return new RelationshipMigrationResult() {
             @Override
-            public Map<String, Set<String>> getRelationshipsSplit() {
+            public Map<String, Set<String>> getPreviousRelationships() {
                 return Collections.unmodifiableMap(relationshipSplits);
             }
 
             @Override
-            public Map<String, String> getRelationshipsRenamed() {
+            public Map<String, String> getRenamedRelationships() {
                 return Collections.unmodifiableMap(relationshipRenames);
             }
         };

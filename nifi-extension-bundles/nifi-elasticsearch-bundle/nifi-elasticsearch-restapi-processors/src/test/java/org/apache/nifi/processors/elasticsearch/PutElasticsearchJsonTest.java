@@ -168,9 +168,9 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
         assertTrue(runner.getProcessContext().hasConnection(AbstractPutElasticsearch.REL_ORIGINAL));
         assertTrue(((MockProcessContext) runner.getProcessContext()).getAllRelationships().stream().noneMatch(r -> "success".equals(r.getName())));
 
-        assertEquals(1, result.getRelationshipsRenamed().size());
-        assertEquals(AbstractPutElasticsearch.REL_ORIGINAL.getName(), result.getRelationshipsRenamed().get("success"));
-        assertEquals(0, result.getRelationshipsSplit().size());
+        assertEquals(1, result.getRenamedRelationships().size());
+        assertEquals(AbstractPutElasticsearch.REL_ORIGINAL.getName(), result.getRenamedRelationships().get("success"));
+        assertEquals(0, result.getPreviousRelationships().size());
     }
 
     @Test
