@@ -28,7 +28,7 @@
                             <div class="flex justify-between items-center">
                                 <div class="value">{{ updateStep.description }}</div>
                                 @if (updateStep.failureReason) {
-                                    <div class="fa fa-times text-red-400"></div>
+                                    <div class="fa fa-times warn-default"></div>
                                 } @else {
                                     @if (updateStep.complete) {
                                         <div class="fa fa-check complete"></div>
